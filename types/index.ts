@@ -18,6 +18,15 @@ export type FormDefinition = {
   modifiedAt: Date;
 };
 
+export type FormTemplate = {
+  id: string;
+  name: string;
+  description?: string;
+  isEnabled: boolean;
+  createdAt: Date;
+  modifiedAt?: Date;
+};
+
 export type Submission = {
   id: string;
   formId: string;

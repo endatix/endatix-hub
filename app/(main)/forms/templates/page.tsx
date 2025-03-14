@@ -1,18 +1,16 @@
-import { getForms } from "@/services/api";
 import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
 import { FilePlus2 } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
 import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
-import FormsList from "@/features/forms/ui/forms-list";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-export default async function FormsPage() {
+import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
+export default async function FormTemplatesPage() {
   return (
     <>
-      <PageTitle title="Forms" />
+      <PageTitle title="Form Templates" />
       <div className="flex-1 space-y-2">
         <Tabs defaultValue="all" className="space-y-0">
           <div className="flex items-center justify-end space-y-0 mb-4">
@@ -21,7 +19,7 @@ export default async function FormsPage() {
                 <SheetTrigger asChild>
                   <Button variant="default">
                     <FilePlus2 className="h-4 w-4" />
-                    Create a Form
+                    Create a Form Template
                   </Button>
                 </SheetTrigger>
                 <CreateFormSheet />
@@ -38,10 +36,32 @@ export default async function FormsPage() {
 }
 
 async function FormsTabsContent() {
-  const forms = await getForms();
+  const templates = await Promise.resolve([
+    {
+      id: "1",
+      name: "Template 1",
+      description: "Description 1",
+      isEnabled: true,
+      createdAt: new Date(),
+    },
+    {
+      id: "2",
+      name: "Template 2",
+      description: "Description 2",
+      isEnabled: true,
+      createdAt: new Date(),
+    },
+    {
+      id: "3",
+      name: "Template 3",
+      description: "Description 3",
+      isEnabled: true,
+      createdAt: new Date(),
+    },
+  ]);
   return (
     <TabsContent value="all">
-      <FormsList forms={forms} />
+      <FormTemplatesList templates={templates} />
     </TabsContent>
   );
 }
