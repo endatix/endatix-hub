@@ -282,7 +282,7 @@ const FormSheet = ({
 
           <div className="grid gap-2 py-4">
             <div className="grid grid-cols-4 py-2 items-center gap-4">
-              <span className="text-right self-start">Created on</span>
+              <span className="text-right self-start">Created at</span>
               <span className="text-sm text-muted-foreground col-span-3">
                 {getFormattedDate(selectedForm.createdAt)}
               </span>
