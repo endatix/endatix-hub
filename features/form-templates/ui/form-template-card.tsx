@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Eye, FilePen, FilePlus2, Loader2 } from "lucide-react";
 import React from "react";
-import { createFormUsingTemplateAction } from "../application/use-template.action";
+import { useTemplateAction } from "../application/use-template.action";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 
@@ -38,7 +38,9 @@ const FormTemplateCard = ({
     if (!template.isEnabled) return;
 
     startTransition(async () => {
-      const result = await createFormUsingTemplateAction({
+      // this is not a hook, but an action, so adding this rule to avoid the false eslint error
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const result = await useTemplateAction({
         templateId: template.id,
       });
 

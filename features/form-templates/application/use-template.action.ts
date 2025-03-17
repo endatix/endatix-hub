@@ -10,7 +10,7 @@ export type UseTemplateRequest = {
   templateId: string;
 };
 
-export async function createFormUsingTemplateAction(
+export async function useTemplateAction(
   request: UseTemplateRequest,
 ): Promise<UseTemplateResult> {
   await ensureAuthenticated();
