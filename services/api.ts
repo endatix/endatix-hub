@@ -282,6 +282,28 @@ export const updateFormTemplate = async (
   }
 };
 
+export const deleteFormTemplate = async (templateId: string): Promise<string> => {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/form-templates/${templateId}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete form template");
+  }
+
+  return response.text();
+};
+
+
 export const getSubmissions = async (formId: string): Promise<Submission[]> => {
   const session = await getSession();
   if (!session.isLoggedIn) {

@@ -42,9 +42,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import { updateTemplateStatusAction } from "../application/update-template-status.action";
 import { useTemplateAction } from "../application/use-template.action";
+import { deleteTemplateAction } from "../application/delete-template.action";
 
 interface FormTemplateSheetProps
   extends React.ComponentPropsWithoutRef<typeof Sheet> {
@@ -52,34 +53,33 @@ interface FormTemplateSheetProps
   enableEditing?: boolean;
 }
 
-interface DeleteFormDialogProps {
+interface DeleteFormTemplateDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  formName: string;
-  submissionsCount: number;
+  formTemplateName: string;
   onDelete: () => Promise<void>;
 }
 
-const DeleteFormDialog = ({
+const DeleteFormTemplateDialog = ({
   isOpen,
   onOpenChange,
-  formName,
-  submissionsCount,
+  formTemplateName,
   onDelete,
-}: DeleteFormDialogProps) => {
-  const [formNameInput, setFormNameInput] = useState("");
+}: DeleteFormTemplateDialogProps) => {
+  const [formTemplateNameInput, setFormTemplateNameInput] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open);
     if (!open) {
-      setFormNameInput("");
+      setFormTemplateNameInput("");
     }
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (formNameInput !== formName) {
-      toast.error("Form name doesn't match");
+    if (formTemplateNameInput !== formTemplateName) {
+      toast.error("Form template name doesn't match");
       return;
     }
     onDelete();
@@ -87,30 +87,42 @@ const DeleteFormDialog = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Are you sure you want to delete form <strong>{formName}</strong>?
+            Are you sure you want to delete form template{" "}
+            <strong>{formTemplateName}</strong>?
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-4 mb-1">
             <span className="flex items-center gap-2 text-destructive font-medium">
               <AlertTriangle className="h-4 w-4" />
-              This action will permanently delete the form, all its definitions
-              and submissions, and cannot be undone.
+              This action will permanently delete the form template.
             </span>
             <span className="block text-sm">
-              <strong>{formName}</strong> has{" "}
-              <strong>{submissionsCount}</strong> submissions.
-            </span>
-            <span className="block text-sm">
-              To confirm, type the name of the form below:
+              To confirm, type the name of the form template below:
             </span>
           </AlertDialogDescription>
           <Input
+            ref={inputRef}
             type="text"
-            placeholder={`Type "${formName}"`}
-            value={formNameInput}
-            onChange={(e) => setFormNameInput(e.target.value)}
+            placeholder={`Type "${formTemplateName}"`}
+            value={formTemplateNameInput}
+            onChange={(e) => setFormTemplateNameInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (formTemplateNameInput === formTemplateName) {
+                  onDelete();
+                } else {
+                  toast.error("Form template name doesn't match");
+                }
+              }
+            }}
             className="w-full mt-1"
           />
         </AlertDialogHeader>
@@ -118,6 +130,7 @@ const DeleteFormDialog = ({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
+            disabled={formTemplateNameInput !== formTemplateName}
             onClick={handleDeleteClick}
             className="bg-destructive hover:bg-destructive/90"
           >
@@ -135,7 +148,9 @@ const FormTemplateSheet = ({
 }: FormTemplateSheetProps) => {
   const [pendingCreateForm, startCreateFormTransition] = useTransition();
   const [pending, startTransition] = useTransition();
-  const [isEnabled, setIsEnabled] = useState(selectedTemplate?.isEnabled ?? false);
+  const [isEnabled, setIsEnabled] = useState(
+    selectedTemplate?.isEnabled ?? false,
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
@@ -145,7 +160,7 @@ const FormTemplateSheet = ({
       setIsEnabled(selectedTemplate.isEnabled);
     }
   }, [selectedTemplate]);
-  
+
   if (!selectedTemplate) {
     return null;
   }
@@ -209,24 +224,24 @@ const FormTemplateSheet = ({
     startTransition(async () => {
       try {
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        const result = await useTemplateAction({
-          templateId: selectedTemplate.id,
-        });
+        const result = await deleteTemplateAction(selectedTemplate.id);
         if (Result.isSuccess(result)) {
-          toast.success(
-            `Form <strong>${selectedTemplate.name}</strong> deleted successfully`,
-          );
+          toast.success({
+            title: "Form template deleted successfully",
+            description: (
+              <>
+                <strong>{selectedTemplate.name}</strong> was deleted
+                successfully
+              </>
+            ),
+          });
           setIsDialogOpen(false);
           props.onOpenChange?.(false);
-          setTimeout(() => {
-            router.push("/forms");
-            router.refresh();
-          }, 1000);
         } else {
-          toast.error("Failed to delete form");
+          toast.error("Failed to delete form template");
         }
       } catch {
-        toast.error("Failed to delete form");
+        toast.error("Failed to delete form template");
       }
     });
   };
@@ -293,11 +308,10 @@ const FormTemplateSheet = ({
             </DropdownMenu>
           </div>
 
-          <DeleteFormDialog
+          <DeleteFormTemplateDialog
             isOpen={isDialogOpen}
             onOpenChange={handleDialogOpenChange}
-            formName={selectedTemplate.name}
-            submissionsCount={0}
+            formTemplateName={selectedTemplate.name}
             onDelete={handleDelete}
           />
 
@@ -323,9 +337,7 @@ const FormTemplateSheet = ({
               </div>
             </div>
           </div>
-          <SheetFooter>
-            <pre>{JSON.stringify(selectedTemplate, null, 2)}</pre>
-          </SheetFooter>
+          <SheetFooter></SheetFooter>
         </SheetContent>
       </Sheet>
     )
