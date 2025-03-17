@@ -5,7 +5,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
-import { getFormTemplates } from '@/services/api';
+import { getFormTemplates } from "@/services/api";
 
 export default async function FormTemplatesPage() {
   return (
@@ -32,7 +32,7 @@ export default async function FormTemplatesPage() {
 
 async function FormsTabsContent() {
   const templates = await getFormTemplates();
-  
+
   return (
     <TabsContent value="all">
       <FormTemplatesList templates={templates} />

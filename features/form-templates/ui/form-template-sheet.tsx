@@ -3,12 +3,12 @@
 import { Button } from "@/components/ui/button";
 import {
   Copy,
-  Link2,
-  List,
   MoreHorizontal,
   Trash2,
   AlertTriangle,
   FilePen,
+  Eye,
+  FilePlus2,
 } from "lucide-react";
 import {
   Sheet,
@@ -18,7 +18,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Form } from "@/types";
+import { FormTemplate } from "@/types";
 import Link from "next/link";
 import { SectionTitle } from "@/components/headings/section-title";
 import { Switch } from "@/components/ui/switch";
@@ -44,12 +44,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteFormAction } from "../application/actions/delete-form.action";
 import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
+import { useTemplateAction } from "../application/use-template.action";
+import { Spinner } from "@/components/loaders/spinner";
+import { cn } from "@/lib/utils";
 
-interface FormSheetProps extends React.ComponentPropsWithoutRef<typeof Sheet> {
-  selectedForm: Form | null;
+interface FormTemplateSheetProps
+  extends React.ComponentPropsWithoutRef<typeof Sheet> {
+  selectedTemplate: FormTemplate | null;
   enableEditing?: boolean;
 }
 
@@ -130,20 +133,40 @@ const DeleteFormDialog = ({
   );
 };
 
-const FormSheet = ({
-  selectedForm,
+const FormTemplateSheet = ({
+  selectedTemplate,
   enableEditing = false,
   ...props
-}: FormSheetProps) => {
+}: FormTemplateSheetProps) => {
+  const [pendingCreateForm, startCreateFormTransition] = useTransition();
   const [pending, startTransition] = useTransition();
-  const [isEnabled, setIsEnabled] = useState(selectedForm?.isEnabled);
+  const [isEnabled, setIsEnabled] = useState(selectedTemplate?.isEnabled);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
 
-  if (!selectedForm) {
+  if (!selectedTemplate) {
     return null;
   }
+
+  const handleUseTemplate = () => {
+    if (!selectedTemplate.isEnabled) return;
+
+    startCreateFormTransition(async () => {
+      // this is not a hook, but an action, so adding this rule to avoid the false eslint error
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const result = await useTemplateAction({
+        templateId: selectedTemplate.id,
+      });
+
+      if (Result.isSuccess(result)) {
+        toast.success("Form created from template successfully");
+        router.push(`/forms/${result.value}`);
+      } else {
+        toast.error(result.message || "Failed to create form from template");
+      }
+    });
+  };
 
   const getFormattedDate = (date?: Date) => {
     if (!date) {
@@ -160,22 +183,13 @@ const FormSheet = ({
     });
   };
 
-  const getSubmissionsLabel = () => {
-    const count = selectedForm?.submissionsCount ?? 0;
-    if (count === 0) {
-      return "No submissions yet";
-    }
-
-    return `${count}`;
-  };
-
-  const enabledLabel = selectedForm?.isEnabled ? "Enabled" : "Disabled";
+  const enabledLabel = selectedTemplate?.isEnabled ? "Enabled" : "Disabled";
 
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
     startTransition(async () => {
       try {
-        await updateFormStatusAction(selectedForm.id, enabled);
+        await updateFormStatusAction(selectedTemplate.id, enabled);
         toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
       } catch (error) {
         setIsEnabled(!enabled);
@@ -196,10 +210,13 @@ const FormSheet = ({
   const handleDelete = async () => {
     startTransition(async () => {
       try {
-        const result = await deleteFormAction(selectedForm.id);
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const result = await useTemplateAction({
+          templateId: selectedTemplate.id,
+        });
         if (Result.isSuccess(result)) {
           toast.success(
-            `Form <strong>${selectedForm.name}</strong> deleted successfully`,
+            `Form <strong>${selectedTemplate.name}</strong> deleted successfully`,
           );
           setIsDialogOpen(false);
           props.onOpenChange?.(false);
@@ -222,33 +239,39 @@ const FormSheet = ({
   };
 
   return (
-    selectedForm && (
+    selectedTemplate && (
       <Sheet {...props}>
         <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none">
           <SheetHeader>
             <SheetTitle className="text-2xl font-bold">
-              {selectedForm?.name}
+              {selectedTemplate?.name}
             </SheetTitle>
-            <SheetDescription>{selectedForm?.description}</SheetDescription>
+            <SheetDescription>{selectedTemplate?.description}</SheetDescription>
           </SheetHeader>
           <div className="my-8 flex space-x-2 justify-end">
             <Button variant={"outline"} asChild>
-              <Link href={`forms/${selectedForm.id}`}>
+              <Link href={`forms/${selectedTemplate.id}`}>
                 <FilePen className="mr-2 h-4 w-4" />
                 Design
               </Link>
             </Button>
             <Button variant={"outline"} asChild>
-              <Link href={`share/${selectedForm.id}`}>
-                <Link2 className="mr-2 h-4 w-4" />
-                Share
+              <Link href={`share/${selectedTemplate.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview
               </Link>
             </Button>
-            <Button variant={"outline"} asChild>
-              <Link href={`forms/${selectedForm.id}/submissions`}>
-                <List className="w-4 h-4 mr-1" />
-                Submissions
-              </Link>
+            <Button
+              disabled={selectedTemplate.isEnabled || pendingCreateForm}
+              variant={"outline"}
+              onClick={handleUseTemplate}
+            >
+              {pendingCreateForm ? (
+                <Spinner className="w-4 h-4 mr-1" />
+              ) : (
+                <FilePlus2 className="w-4 h-4 mr-1" />
+              )}
+              {pendingCreateForm ? "Creating..." : "Use Template"}
             </Button>
             <DropdownMenu
               open={isDropdownOpen}
@@ -275,8 +298,8 @@ const FormSheet = ({
           <DeleteFormDialog
             isOpen={isDialogOpen}
             onOpenChange={handleDialogOpenChange}
-            formName={selectedForm.name}
-            submissionsCount={selectedForm.submissionsCount || 0}
+            formName={selectedTemplate.name}
+            submissionsCount={0}
             onDelete={handleDelete}
           />
 
@@ -284,13 +307,13 @@ const FormSheet = ({
             <div className="grid grid-cols-4 py-2 items-center gap-4">
               <span className="text-right self-start">Created on</span>
               <span className="text-sm text-muted-foreground col-span-3">
-                {getFormattedDate(selectedForm.createdAt)}
+                {getFormattedDate(selectedTemplate.createdAt)}
               </span>
             </div>
             <div className="grid grid-cols-4 py-2 items-center gap-4">
               <span className="text-right self-start">Modified on</span>
               <span className="text-sm text-muted-foreground col-span-3">
-                {getFormattedDate(selectedForm.modifiedAt)}
+                {getFormattedDate(selectedTemplate.modifiedAt)}
               </span>
             </div>
 
@@ -310,7 +333,9 @@ const FormSheet = ({
                   </>
                 ) : (
                   <Badge
-                    variant={selectedForm.isEnabled ? "default" : "secondary"}
+                    variant={
+                      selectedTemplate.isEnabled ? "default" : "secondary"
+                    }
                   >
                     {enabledLabel}
                   </Badge>
@@ -323,7 +348,7 @@ const FormSheet = ({
                 Submissions
               </span>
               <div className="text-sm text-muted-foreground col-span-3">
-                {getSubmissionsLabel()}
+                getSubmissionsLabel
               </div>
             </div>
           </div>
@@ -337,7 +362,9 @@ const FormSheet = ({
               <div className="relative cursor-pointer">
                 <div className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer z-10">
                   <Copy
-                    onClick={() => copyToClipboard(`/share/${selectedForm.id}`)}
+                    onClick={() =>
+                      copyToClipboard(`/share/${selectedTemplate.id}`)
+                    }
                     aria-label="Copy form url"
                     className="h-4 w-4"
                   />
@@ -346,7 +373,7 @@ const FormSheet = ({
                   readOnly
                   disabled
                   id="form-share-url"
-                  value={`/share/${selectedForm.id}`}
+                  value={`/share/${selectedTemplate.id}`}
                   className="bg-accent w-full rounded-lg"
                 />
               </div>
@@ -358,4 +385,4 @@ const FormSheet = ({
     )
   );
 };
-export default FormSheet;
+export default FormTemplateSheet;
