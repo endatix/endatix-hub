@@ -4,7 +4,7 @@ import {
   AuthenticationResponse,
 } from "@/features/auth";
 import { CreateFormRequest } from "@/lib/form-types";
-import { Form, FormDefinition, Submission } from "../types";
+import { Form, FormDefinition, FormTemplate, Submission } from "../types";
 import { redirect } from "next/navigation";
 import { HeaderBuilder } from "./header-builder";
 import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
@@ -226,6 +226,38 @@ export const updateFormDefinition = async (
   if (!response.ok) {
     throw new Error("Failed to update form definition");
   }
+};
+
+export const getFormTemplates = async (): Promise<FormTemplate[]> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/form-templates`, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch form templates");
+  }
+
+  return response.json();
+};
+
+export const getFormTemplate = async (
+  templateId: string,
+): Promise<FormTemplate> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/form-templates/${templateId}`, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch form template");
+  }
+
+  return response.json();
 };
 
 export const getSubmissions = async (formId: string): Promise<Submission[]> => {

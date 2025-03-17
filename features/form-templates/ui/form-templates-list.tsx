@@ -1,33 +1,20 @@
 "use client";
 
 import { FormTemplate } from "@/types";
-import { useState, useMemo } from "react";
-import FormSheet from "@/features/forms/ui/form-sheet";
-import FormTemplateCard from './form-template-card';
+import { useState } from "react";
+import FormTemplateCard from "./form-template-card";
 
 type FormTemplatesListProps = {
   templates: FormTemplate[];
 };
 
 const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
-  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  const selectedForm = useMemo(
-    () => templates.find((template) => template.id === selectedFormId),
-    [selectedFormId, templates],
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
   );
 
-  const handleOnOpenChange = (open: boolean) => {
-    setIsSheetOpen(open);
-    if (!open) {
-      setSelectedFormId(null);
-    }
-  };
-
-  const handleFormSelected = (formId: string) => {
-    setSelectedFormId(formId);
-    setIsSheetOpen(true);
+  const handleTemplateSelected = (templateId: string) => {
+    setSelectedTemplateId(templateId);
   };
 
   return (
@@ -37,18 +24,11 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
           <FormTemplateCard
             key={template.id}
             template={template}
-            isSelected={template.id === selectedFormId}
-            onClick={() => handleFormSelected(template.id)}
+            isSelected={template.id === selectedTemplateId}
+            onClick={() => handleTemplateSelected(template.id)}
           />
         ))}
       </div>
-
-      <FormSheet
-        modal={false}
-        open={isSheetOpen}
-        onOpenChange={handleOnOpenChange}
-        selectedForm={selectedForm ?? null}
-      />
     </>
   );
 };

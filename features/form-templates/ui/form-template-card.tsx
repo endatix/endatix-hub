@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -11,16 +13,43 @@ import {
 import { FormTemplate } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Eye, FilePen, FilePlus2 } from "lucide-react";
+import { Eye, FilePen, FilePlus2, Loader2 } from "lucide-react";
 import React from "react";
+import { createFormUsingTemplateAction } from "../application/use-template.action";
+import { toast } from "@/components/ui/toast";
+import { Result } from "@/lib/result";
 
 type FormTemplateCardProps = React.ComponentProps<typeof Card> & {
   template: FormTemplate;
   isSelected: boolean;
 };
 
-const FormTemplateCard = ({ template, isSelected, className, ...props }: FormTemplateCardProps) => {
+const FormTemplateCard = ({
+  template,
+  isSelected,
+  className,
+  ...props
+}: FormTemplateCardProps) => {
   const getEnabledLabel = () => (template.isEnabled ? "Enabled" : "Disabled");
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const handleUseTemplate = () => {
+    if (!template.isEnabled) return;
+
+    startTransition(async () => {
+      const result = await createFormUsingTemplateAction({
+        templateId: template.id,
+      });
+
+      if (Result.isSuccess(result)) {
+        toast.success("Form created from template successfully");
+        router.push(`/forms/${result.value}`);
+      } else {
+        toast.error(result.message || "Failed to create form from template");
+      }
+    });
+  };
 
   return (
     <Card
@@ -69,16 +98,22 @@ const FormTemplateCard = ({ template, isSelected, className, ...props }: FormTem
               <Eye className="w-4 h-4 mr-1" />
               Preview
             </Link>
-            <Link
-              href={`forms/templates/${template.id}/useTemplate`}
+            <button
+              onClick={handleUseTemplate}
+              disabled={!template.isEnabled || isPending}
               className={cn(
-                "text-sm text-muted-foreground inline-flex items-center",
-                "hover:text-foreground cursor-pointer",
+                "text-sm text-muted-foreground inline-flex items-center hover:text-foreground cursor-pointer bg-transparent border-none p-0",
+                (!template.isEnabled || isPending) &&
+                  "opacity-50 cursor-not-allowed",
               )}
             >
-              <FilePlus2 className="w-4 h-4 mr-1" />
-              Use Template
-            </Link>
+              {isPending ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <FilePlus2 className="w-4 h-4 mr-1" />
+              )}
+              {isPending ? "Creating..." : "Use Template"}
+            </button>
           </div>
         </div>
       </CardFooter>

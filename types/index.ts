@@ -25,6 +25,7 @@ export type FormTemplate = {
   isEnabled: boolean;
   createdAt: Date;
   modifiedAt?: Date;
+  jsonData?: string;
 };
 
 export type Submission = {
