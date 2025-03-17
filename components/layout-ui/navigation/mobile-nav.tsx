@@ -1,11 +1,16 @@
-import Image from 'next/image';
-import NavLink from './nav-link';
-import Link from 'next/link';
-import EndatixLogoSvg from '@/public/assets/icons/icon.svg';
-import { SitemapService } from '@/services/sitemap-service';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { PanelLeft } from 'lucide-react';
+import Image from "next/image";
+import NavLink from "./nav-link";
+import Link from "next/link";
+import EndatixLogoSvg from "@/public/assets/icons/icon.svg";
+import { SitemapService } from "@/services/sitemap-service";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { PanelLeft } from "lucide-react";
 
 const MobileNav = () => {
   const logo = SitemapService.getLogo();
@@ -19,6 +24,7 @@ const MobileNav = () => {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="sm:max-w-xs">
+        <SheetTitle className="sr-only">Endatix</SheetTitle>
         <nav className="grid gap-6 text-lg font-medium">
           <Link
             href={logo.path}

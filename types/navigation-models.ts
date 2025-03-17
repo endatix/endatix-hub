@@ -1,6 +1,7 @@
 import { LucideIcon } from "lucide-react";
 
 interface ISitemapItem {
+  key: string;
   text: string;
   path: string;
 }

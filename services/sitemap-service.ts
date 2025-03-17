@@ -5,10 +5,11 @@ import { BrainCircuit } from "lucide-react";
 export class SitemapService {
   public static getSitemap(): ISitemapItem[] {
     const sitemapArray: ISitemapItem[] = Object.entries(sitemap).map(
-      ([key, value]) => {
+      ([, value]) => {
         const sitemapItem: ISitemapItem = {
-          text: value.text,
-          path: value.path,
+          key: value?.key,
+          text: value?.text,
+          path: value?.path,
         };
         return sitemapItem;
       },
@@ -20,16 +21,17 @@ export class SitemapService {
     excludeSettings: boolean = false,
   ): INavItem[] {
     const sitemapList: INavItem[] = [
-      sitemap.Home,
-      sitemap.Forms,
-      sitemap.Customers,
-      sitemap.Analytics,
-      sitemap.Workflows,
-      sitemap.Integrations,
+      sitemap.home,
+      sitemap.forms,
+      sitemap.formTemplates,
+      sitemap.customers,
+      sitemap.analytics,
+      sitemap.workflows,
+      sitemap.integrations,
     ];
 
     if (!excludeSettings) {
-      sitemapList.push(sitemap.Settings);
+      sitemapList.push(sitemap.settings);
     }
 
     return sitemapList;
@@ -37,6 +39,7 @@ export class SitemapService {
 
   public static getLogo(): INavItem {
     const logoNavItem: INavItem = {
+      key: "logo",
       path: "https://endatix.com",
       text: "Endatix",
       IconType: BrainCircuit,

@@ -11,7 +11,7 @@ import {
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Link2, List, Pencil } from "lucide-react";
+import { FilePen, Link2, List } from "lucide-react";
 import React from "react";
 
 type FormCardProps = React.ComponentProps<typeof Card> & {
@@ -98,7 +98,7 @@ const FormCard = ({ form, isSelected, className, ...props }: FormCardProps) => {
               href={`forms/${form.id}`}
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
             >
-              <Pencil className="w-4 h-4 mr-1" />
+              <FilePen className="w-4 h-4 mr-1" />
               Design
             </Link>
             <Link

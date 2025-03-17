@@ -13,7 +13,7 @@ import EndatixLogoSvg from "@/public/assets/icons/icon.svg";
 const MainNav = () => {
   const logo = SitemapService.getLogo();
   const sitemapList = SitemapService.getTopLevelSitemap(true);
-  const settingsNavItem = sitemap.Settings;
+  const settingsNavItem = sitemap.settings
   return (
     <TooltipProvider>
       <nav className="flex flex-col items-center gap-4 px-2 sm:py-5 space-y-1">
