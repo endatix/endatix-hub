@@ -1,39 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  Copy,
-  MoreHorizontal,
-  Trash2,
-  AlertTriangle,
-  FilePen,
-  Eye,
-  FilePlus2,
-} from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { FormTemplate } from "@/types";
-import Link from "next/link";
-import { SectionTitle } from "@/components/headings/section-title";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useTransition, useState } from "react";
-import { updateFormStatusAction } from "../../../app/(main)/forms/[formId]/update-form-status.action";
-import { toast } from "@/components/ui/toast";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/loaders/spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,11 +11,40 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
+import { FormTemplate } from "@/types";
+import {
+  AlertTriangle,
+  Eye,
+  FilePen,
+  FilePlus2,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { updateTemplateStatusAction } from "../application/update-template-status.action";
 import { useTemplateAction } from "../application/use-template.action";
-import { Spinner } from "@/components/loaders/spinner";
-import { cn } from "@/lib/utils";
 
 interface FormTemplateSheetProps
   extends React.ComponentPropsWithoutRef<typeof Sheet> {
@@ -135,16 +131,21 @@ const DeleteFormDialog = ({
 
 const FormTemplateSheet = ({
   selectedTemplate,
-  enableEditing = false,
   ...props
 }: FormTemplateSheetProps) => {
   const [pendingCreateForm, startCreateFormTransition] = useTransition();
   const [pending, startTransition] = useTransition();
-  const [isEnabled, setIsEnabled] = useState(selectedTemplate?.isEnabled);
+  const [isEnabled, setIsEnabled] = useState(selectedTemplate?.isEnabled ?? false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    if (selectedTemplate) {
+      setIsEnabled(selectedTemplate.isEnabled);
+    }
+  }, [selectedTemplate]);
+  
   if (!selectedTemplate) {
     return null;
   }
@@ -189,18 +190,15 @@ const FormTemplateSheet = ({
     setIsEnabled(enabled);
     startTransition(async () => {
       try {
-        await updateFormStatusAction(selectedTemplate.id, enabled);
-        toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
+        await updateTemplateStatusAction(selectedTemplate.id, enabled);
+        toast.success(
+          `Form template is now ${enabled ? "enabled" : "disabled"}`,
+        );
       } catch (error) {
         setIsEnabled(!enabled);
-        toast.error("Failed to update form status. Error: " + error);
+        toast.error("Failed to update form template status. Error: " + error);
       }
     });
-  };
-
-  const copyToClipboard = (value: string) => {
-    navigator.clipboard.writeText(value);
-    toast.success("Copied to clipboard");
   };
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -262,7 +260,7 @@ const FormTemplateSheet = ({
               </Link>
             </Button>
             <Button
-              disabled={selectedTemplate.isEnabled || pendingCreateForm}
+              disabled={!selectedTemplate.isEnabled || pendingCreateForm}
               variant={"outline"}
               onClick={handleUseTemplate}
             >
@@ -305,81 +303,29 @@ const FormTemplateSheet = ({
 
           <div className="grid gap-2 py-4">
             <div className="grid grid-cols-4 py-2 items-center gap-4">
-              <span className="text-right self-start">Created on</span>
+              <span className="text-right self-start">Created at</span>
               <span className="text-sm text-muted-foreground col-span-3">
                 {getFormattedDate(selectedTemplate.createdAt)}
-              </span>
-            </div>
-            <div className="grid grid-cols-4 py-2 items-center gap-4">
-              <span className="text-right self-start">Modified on</span>
-              <span className="text-sm text-muted-foreground col-span-3">
-                {getFormattedDate(selectedTemplate.modifiedAt)}
               </span>
             </div>
 
             <div className="grid grid-cols-4 py-2 items-center gap-4">
               <span className="text-right self-start">Status</span>
               <div className="col-span-3 flex items-center space-x-2">
-                {enableEditing ? (
-                  <>
-                    <Switch
-                      id="form-status"
-                      checked={isEnabled}
-                      onCheckedChange={toggleEnabled}
-                      disabled={pending}
-                      aria-readonly
-                    />
-                    <Label htmlFor="form-status">{enabledLabel}</Label>
-                  </>
-                ) : (
-                  <Badge
-                    variant={
-                      selectedTemplate.isEnabled ? "default" : "secondary"
-                    }
-                  >
-                    {enabledLabel}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 py-2 items-center gap-4">
-              <span className="col-span-1 text-right self-start">
-                Submissions
-              </span>
-              <div className="text-sm text-muted-foreground col-span-3">
-                getSubmissionsLabel
-              </div>
-            </div>
-          </div>
-
-          <SectionTitle title="Sharing" headingClassName="text-xl mt-4" />
-          <div className="grid grid-cols-4 py-2 gap-4">
-            <div className="col-span-1 flex items-center justify-end">
-              <Label htmlFor="form-share-url">Default Url:</Label>
-            </div>
-            <div className="col-span-3">
-              <div className="relative cursor-pointer">
-                <div className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer z-10">
-                  <Copy
-                    onClick={() =>
-                      copyToClipboard(`/share/${selectedTemplate.id}`)
-                    }
-                    aria-label="Copy form url"
-                    className="h-4 w-4"
-                  />
-                </div>
-                <Input
-                  readOnly
-                  disabled
-                  id="form-share-url"
-                  value={`/share/${selectedTemplate.id}`}
-                  className="bg-accent w-full rounded-lg"
+                <Switch
+                  id="form-template-status"
+                  checked={isEnabled}
+                  onCheckedChange={toggleEnabled}
+                  disabled={pending}
+                  aria-readonly
                 />
+                <Label htmlFor="form-template-status">{enabledLabel}</Label>
               </div>
             </div>
           </div>
-          <SheetFooter></SheetFooter>
+          <SheetFooter>
+            <pre>{JSON.stringify(selectedTemplate, null, 2)}</pre>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     )

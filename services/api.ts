@@ -260,6 +260,28 @@ export const getFormTemplate = async (
   return response.json();
 };
 
+export const updateFormTemplate = async (
+  templateId: string,
+  data: { name?: string; isEnabled?: boolean },
+): Promise<void> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/form-templates/${templateId}`, {
+    method: "PATCH",
+    headers: headers,
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update form template");
+  }
+};
+
 export const getSubmissions = async (formId: string): Promise<Submission[]> => {
   const session = await getSession();
   if (!session.isLoggedIn) {
