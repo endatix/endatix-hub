@@ -9,3 +9,15 @@ export interface CreateFormResult {
   error?: string;
   formId?: string;
 }
+
+export interface CreateFormTemplateRequest {
+  name: string;
+  isEnabled: boolean;
+  jsonData: string;
+}
+
+export interface CreateFormTemplateResult {
+  isSuccess: boolean;
+  error?: string;
+  formTemplateId?: string;
+}
