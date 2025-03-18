@@ -5,6 +5,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -15,17 +16,17 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@radix-ui/react-scroll-area";
 import dynamic from "next/dynamic";
 import { getTemplateAction } from "../application/get-template.action";
+import { UseTemplateButton } from "./use-template-button";
 
-// Dynamically import the SurveyPreviewComponent with SSR disabled
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
   {
@@ -73,7 +74,7 @@ export function FormTemplatePreview({
   }, [open, templateId]);
 
   const PreviewContent = (
-    <div className="mt-6 px-1">
+    <div className="mt-0 px-1">
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Spinner className="w-8 h-8" />
@@ -100,6 +101,9 @@ export function FormTemplatePreview({
                 : `Showing template ${template?.name} in read-only mode`}
             </DialogDescription>
           </DialogHeader>
+          <DialogFooter>
+            <UseTemplateButton template={template} />
+          </DialogFooter>
           {PreviewContent}
         </DialogContent>
       </Dialog>
@@ -119,9 +123,10 @@ export function FormTemplatePreview({
               : `Showing template ${template?.name} in read-only mode`}
           </DrawerDescription>
         </DrawerHeader>
-        <ScrollArea className="mt-6 px-1 overflow-y-auto">
-          {PreviewContent}
-        </ScrollArea>
+        <div className="overflow-y-auto">{PreviewContent}</div>
+        <DrawerFooter>
+          <UseTemplateButton template={template} />
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   );

@@ -37,5 +37,13 @@ export function registerSpecializedQuestion(
 ) {
   const instance =
     new (questionClass as unknown as new () => SpecializedSurveyQuestion)();
-  ComponentCollection.Instance.add(instance.customQuestionConfig);
+
+  const isQuestionRegistered =
+    ComponentCollection.Instance.getCustomQuestionByName(
+      instance.customQuestionConfig.name,
+    );
+
+  if (!isQuestionRegistered && instance) {
+    ComponentCollection.Instance.add(instance.customQuestionConfig);
+  }
 }
