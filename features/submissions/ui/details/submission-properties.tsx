@@ -37,7 +37,7 @@ export function SubmissionProperties({
       <PropertyDisplay label="Is Complete?" valueClassName="uppercase">
         <CellCompleteStatus isComplete={submission.isComplete} />
       </PropertyDisplay>
-      <PropertyDisplay label="Completed on">
+      <PropertyDisplay label="Completed at">
         {getFormattedDate(submission.completedAt)}
       </PropertyDisplay>
       {submission.isComplete && (
