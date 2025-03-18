@@ -22,11 +22,13 @@ import { Result } from "@/lib/result";
 type FormTemplateCardProps = React.ComponentProps<typeof Card> & {
   template: FormTemplate;
   isSelected: boolean;
+  onPreviewClick?: (templateId: string) => void;
 };
 
 const FormTemplateCard = ({
   template,
   isSelected,
+  onPreviewClick,
   className,
   ...props
 }: FormTemplateCardProps) => {
@@ -51,6 +53,13 @@ const FormTemplateCard = ({
         toast.error(result.message || "Failed to create form from template");
       }
     });
+  };
+
+  const handlePreviewClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onPreviewClick) {
+      onPreviewClick(template.id);
+    }
   };
 
   return (
@@ -92,14 +101,13 @@ const FormTemplateCard = ({
               <FilePen className="w-4 h-4 mr-1" />
               Design
             </Link>
-            <Link
-              href={`/forms/templates/${template.id}/preview`}
-              target="_blank"
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
+            <button
+              onClick={handlePreviewClick}
+              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer bg-transparent border-none p-0"
             >
               <Eye className="w-4 h-4 mr-1" />
               Preview
-            </Link>
+            </button>
             <button
               onClick={handleUseTemplate}
               disabled={!template.isEnabled || isPending}
