@@ -51,99 +51,12 @@ interface FormTemplateSheetProps
   extends React.ComponentPropsWithoutRef<typeof Sheet> {
   selectedTemplate: FormTemplate | null;
   enableEditing?: boolean;
+  onPreviewClick?: (templateId: string) => void;
 }
-
-interface DeleteFormTemplateDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  formTemplateName: string;
-  onDelete: () => Promise<void>;
-}
-
-const DeleteFormTemplateDialog = ({
-  isOpen,
-  onOpenChange,
-  formTemplateName,
-  onDelete,
-}: DeleteFormTemplateDialogProps) => {
-  const [formTemplateNameInput, setFormTemplateNameInput] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleOpenChange = (open: boolean) => {
-    onOpenChange(open);
-    if (!open) {
-      setFormTemplateNameInput("");
-    }
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (formTemplateNameInput !== formTemplateName) {
-      toast.error("Form template name doesn't match");
-      return;
-    }
-    onDelete();
-  };
-
-  return (
-    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-      <AlertDialogContent
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          inputRef.current?.focus();
-        }}
-      >
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            Are you sure you want to delete form template{" "}
-            <strong>{formTemplateName}</strong>?
-          </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4 mb-1">
-            <span className="flex items-center gap-2 text-destructive font-medium">
-              <AlertTriangle className="h-4 w-4" />
-              This action will permanently delete the form template.
-            </span>
-            <span className="block text-sm">
-              To confirm, type the name of the form template below:
-            </span>
-          </AlertDialogDescription>
-          <Input
-            ref={inputRef}
-            type="text"
-            placeholder={`Type "${formTemplateName}"`}
-            value={formTemplateNameInput}
-            onChange={(e) => setFormTemplateNameInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                if (formTemplateNameInput === formTemplateName) {
-                  onDelete();
-                } else {
-                  toast.error("Form template name doesn't match");
-                }
-              }
-            }}
-            className="w-full mt-1"
-          />
-        </AlertDialogHeader>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            disabled={formTemplateNameInput !== formTemplateName}
-            onClick={handleDeleteClick}
-            className="bg-destructive hover:bg-destructive/90"
-          >
-            Delete Form
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-};
 
 const FormTemplateSheet = ({
   selectedTemplate,
+  onPreviewClick,
   ...props
 }: FormTemplateSheetProps) => {
   const [pendingCreateForm, startCreateFormTransition] = useTransition();
@@ -153,6 +66,8 @@ const FormTemplateSheet = ({
   );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formTemplateNameInput, setFormTemplateNameInput] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -182,6 +97,13 @@ const FormTemplateSheet = ({
         toast.error(result.message || "Failed to create form from template");
       }
     });
+  };
+
+  const handlePreviewClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onPreviewClick) {
+      onPreviewClick(selectedTemplate.id);
+    }
   };
 
   const getFormattedDate = (date?: Date) => {
@@ -218,6 +140,18 @@ const FormTemplateSheet = ({
 
   const handleDialogOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
+    if (!open) {
+      setFormTemplateNameInput("");
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (formTemplateNameInput !== selectedTemplate.name) {
+      toast.error("Form template name doesn't match");
+      return;
+    }
+    handleDelete();
   };
 
   const handleDelete = async () => {
@@ -268,11 +202,9 @@ const FormTemplateSheet = ({
                 Design
               </Link>
             </Button>
-            <Button variant={"outline"} asChild>
-              <Link href={`share/${selectedTemplate.id}`}>
-                <Eye className="mr-2 h-4 w-4" />
-                Preview
-              </Link>
+            <Button variant={"outline"} onClick={handlePreviewClick}>
+              <Eye className="mr-2 h-4 w-4" />
+              Preview
             </Button>
             <Button
               disabled={!selectedTemplate.isEnabled || pendingCreateForm}
@@ -308,12 +240,59 @@ const FormTemplateSheet = ({
             </DropdownMenu>
           </div>
 
-          <DeleteFormTemplateDialog
-            isOpen={isDialogOpen}
-            onOpenChange={handleDialogOpenChange}
-            formTemplateName={selectedTemplate.name}
-            onDelete={handleDelete}
-          />
+          <AlertDialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+            <AlertDialogContent
+              onOpenAutoFocus={(e) => {
+                e.preventDefault();
+                inputRef.current?.focus();
+              }}
+            >
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Are you sure you want to delete form template{" "}
+                  <strong>{selectedTemplate.name}</strong>?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="space-y-4 mb-1">
+                  <span className="flex items-center gap-2 text-destructive font-medium">
+                    <AlertTriangle className="h-4 w-4" />
+                    This action will permanently delete the form template.
+                  </span>
+                  <span className="block text-sm">
+                    To confirm, type the name of the form template below:
+                  </span>
+                </AlertDialogDescription>
+                <Input
+                  ref={inputRef}
+                  type="text"
+                  placeholder={`Type "${selectedTemplate.name}"`}
+                  value={formTemplateNameInput}
+                  onChange={(e) => setFormTemplateNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (formTemplateNameInput === selectedTemplate.name) {
+                        handleDelete();
+                      } else {
+                        toast.error("Form template name doesn't match");
+                      }
+                    }
+                  }}
+                  className="w-full mt-1"
+                />
+              </AlertDialogHeader>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={formTemplateNameInput !== selectedTemplate.name}
+                  onClick={handleDeleteClick}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Delete Template
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <div className="grid gap-2 py-4">
             <div className="grid grid-cols-4 py-2 items-center gap-4">

@@ -4,6 +4,7 @@ import { FormTemplate } from "@/types";
 import { useMemo, useState } from "react";
 import FormTemplateCard from "./form-template-card";
 import FormTemplateSheet from "./form-template-sheet";
+import { FormTemplatePreview } from "./form-template-preview";
 
 type FormTemplatesListProps = {
   templates: FormTemplate[];
@@ -14,10 +15,21 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
     null,
   );
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(
+    null,
+  );
 
   const handleTemplateSelected = (templateId: string) => {
     setSelectedTemplateId(templateId);
     setIsSheetOpen(true);
+  };
+
+  const handlePreviewOpen = (templateId: string) => {
+    setIsSheetOpen(false);
+
+    setPreviewTemplateId(templateId);
+    setIsPreviewOpen(true);
   };
 
   const selectedTemplate = useMemo(
@@ -25,10 +37,17 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
     [selectedTemplateId, templates],
   );
 
-  const handleOnOpenChange = (open: boolean) => {
+  const handleSheetOpenChange = (open: boolean) => {
     setIsSheetOpen(open);
     if (!open) {
       setSelectedTemplateId(null);
+    }
+  };
+
+  const handlePreviewOpenChange = (open: boolean) => {
+    setIsPreviewOpen(open);
+    if (!open) {
+      setPreviewTemplateId(null);
     }
   };
 
@@ -41,6 +60,7 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
             template={template}
             isSelected={template.id === selectedTemplateId}
             onClick={() => handleTemplateSelected(template.id)}
+            onPreviewClick={handlePreviewOpen}
           />
         ))}
       </div>
@@ -49,8 +69,17 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
         modal={false}
         selectedTemplate={selectedTemplate ?? null}
         open={isSheetOpen}
-        onOpenChange={handleOnOpenChange}
+        onOpenChange={handleSheetOpenChange}
+        onPreviewClick={selectedTemplate ? handlePreviewOpen : undefined}
       />
+
+      {previewTemplateId && (
+        <FormTemplatePreview
+          open={isPreviewOpen}
+          onOpenChange={handlePreviewOpenChange}
+          templateId={previewTemplateId}
+        />
+      )}
     </>
   );
 };
