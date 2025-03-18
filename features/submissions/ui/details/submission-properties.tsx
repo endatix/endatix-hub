@@ -31,13 +31,13 @@ export function SubmissionProperties({
 
   return (
     <div className="px-4">
-      <PropertyDisplay label="Created on">
+      <PropertyDisplay label="Created at">
         {getFormattedDate(submission.createdAt)}
       </PropertyDisplay>
       <PropertyDisplay label="Is Complete?" valueClassName="uppercase">
         <CellCompleteStatus isComplete={submission.isComplete} />
       </PropertyDisplay>
-      <PropertyDisplay label="Completed on">
+      <PropertyDisplay label="Completed at">
         {getFormattedDate(submission.completedAt)}
       </PropertyDisplay>
       {submission.isComplete && (

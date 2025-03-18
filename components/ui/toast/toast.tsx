@@ -7,46 +7,85 @@ import { ToastIcon } from './toast-icon';
 
 const DEFAULT_DURATION = 5000;
 
-const DEFAULT_TOAST_PROPS: Omit<ToastProps, 'id' | 'title'> = {
+const DEFAULT_TOAST_PROPS: Partial<Omit<ToastProps, 'id'>> = {
   variant: 'info',
   duration: DEFAULT_DURATION,
-  progressBar: 'right-to-left',
   description: undefined,
+  progressBar: 'right-to-left',
   includeIcon: true,
   action: undefined,
   SvgIcon: undefined,
 };
 
-function createToast(toast: Omit<ToastProps, 'id'>) {
+// Type for variant method arguments
+type ToastContentInput = 
+  | string 
+  | React.ReactElement 
+  | Partial<Omit<ToastProps, 'id' | 'variant'>>;
+
+// Type guard to check if value is a React element
+function isReactElement(value: unknown): value is React.ReactElement {
+  return React.isValidElement(value);
+}
+
+function createToast(toast: Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] }) {
   const mergedProps = {
     ...DEFAULT_TOAST_PROPS,
     ...toast,
   };
 
-  return sonnerToast.custom((id) => <Toast {...mergedProps} id={id} />);
+  return sonnerToast.custom((id) => <Toast {...mergedProps as ToastProps} id={id} />);
 }
 
 const toast = Object.assign(createToast, {
-  success: (props: string | Omit<Omit<ToastProps, 'id'>, 'variant'>) =>
-    createToast({ 
-      ...(typeof props === 'string' ? { title: props } : props), 
+  success: (props: ToastContentInput) => {
+    if (typeof props === 'string' || isReactElement(props)) {
+      return createToast({ 
+        title: props, 
+        variant: 'success' 
+      });
+    }
+    return createToast({ 
+      ...props as object, 
       variant: 'success' 
-    }),
-  error: (props: string | Omit<Omit<ToastProps, 'id'>, 'variant'>) =>
-    createToast({ 
-      ...(typeof props === 'string' ? { title: props } : props), 
+    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  },
+  error: (props: ToastContentInput) => {
+    if (typeof props === 'string' || isReactElement(props)) {
+      return createToast({ 
+        title: props, 
+        variant: 'error' 
+      });
+    }
+    return createToast({ 
+      ...props as object, 
       variant: 'error' 
-    }),
-  warning: (props: string | Omit<Omit<ToastProps, 'id'>, 'variant'>) =>
-    createToast({ 
-      ...(typeof props === 'string' ? { title: props } : props), 
+    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  },
+  warning: (props: ToastContentInput) => {
+    if (typeof props === 'string' || isReactElement(props)) {
+      return createToast({ 
+        title: props, 
+        variant: 'warning' 
+      });
+    }
+    return createToast({ 
+      ...props as object, 
       variant: 'warning' 
-    }),
-  info: (props: string | Omit<Omit<ToastProps, 'id'>, 'variant'>) =>
-    createToast({ 
-      ...(typeof props === 'string' ? { title: props } : props), 
+    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  },
+  info: (props: ToastContentInput) => {
+    if (typeof props === 'string' || isReactElement(props)) {
+      return createToast({ 
+        title: props, 
+        variant: 'info' 
+      });
+    }
+    return createToast({ 
+      ...props as object, 
       variant: 'info' 
-    }),
+    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  },
 });
 
 function Toast({
@@ -117,7 +156,7 @@ function Toast({
         )}
         <div className="flex flex-col justify-start w-full">
           <div className="text-sm font-medium">{title}</div>
-          <div className="text-sm text-muted-foreground">{description}</div>
+          {description && <div className="text-sm text-muted-foreground">{description}</div>}
         </div>
         {action && (
           <div className="flex ml-5 items-center text-sm">

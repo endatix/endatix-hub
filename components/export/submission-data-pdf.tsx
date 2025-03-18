@@ -81,7 +81,7 @@ export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
           <Text style={styles.sectionTitle}>Submission Properties</Text>
           <Text>ID: {submission.id}</Text>
           <Text>Completed: {submission.isComplete ? "Yes" : "No"}</Text>
-          <Text>Created on: {getFormattedDate(submission.createdAt)}</Text>
+          <Text>Created at: {getFormattedDate(submission.createdAt)}</Text>
           <Text>Comleted on: {getFormattedDate(submission.completedAt)}</Text>
           <Text>
             Completion time:{" "}

@@ -1,8 +1,9 @@
 "use client";
 
 import { FormTemplate } from "@/types";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import FormTemplateCard from "./form-template-card";
+import FormTemplateSheet from "./form-template-sheet";
 
 type FormTemplatesListProps = {
   templates: FormTemplate[];
@@ -12,9 +13,23 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
   );
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleTemplateSelected = (templateId: string) => {
     setSelectedTemplateId(templateId);
+    setIsSheetOpen(true);
+  };
+
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => template.id === selectedTemplateId),
+    [selectedTemplateId, templates],
+  );
+
+  const handleOnOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
+    if (!open) {
+      setSelectedTemplateId(null);
+    }
   };
 
   return (
@@ -29,6 +44,13 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
           />
         ))}
       </div>
+
+      <FormTemplateSheet
+        modal={false}
+        selectedTemplate={selectedTemplate ?? null}
+        open={isSheetOpen}
+        onOpenChange={handleOnOpenChange}
+      />
     </>
   );
 };

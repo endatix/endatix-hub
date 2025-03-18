@@ -5,10 +5,10 @@ import {
   Copy,
   Link2,
   List,
-  Pencil,
   MoreHorizontal,
   Trash2,
   AlertTriangle,
+  FilePen,
 } from "lucide-react";
 import {
   Sheet,
@@ -234,7 +234,7 @@ const FormSheet = ({
           <div className="my-8 flex space-x-2 justify-end">
             <Button variant={"outline"} asChild>
               <Link href={`forms/${selectedForm.id}`}>
-                <Pencil className="mr-2 h-4 w-4" />
+                <FilePen className="mr-2 h-4 w-4" />
                 Design
               </Link>
             </Button>
@@ -282,7 +282,7 @@ const FormSheet = ({
 
           <div className="grid gap-2 py-4">
             <div className="grid grid-cols-4 py-2 items-center gap-4">
-              <span className="text-right self-start">Created on</span>
+              <span className="text-right self-start">Created at</span>
               <span className="text-sm text-muted-foreground col-span-3">
                 {getFormattedDate(selectedForm.createdAt)}
               </span>
