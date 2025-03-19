@@ -17,9 +17,9 @@ import "survey-creator-core/survey-creator-core.css";
 import * as themes from "survey-creator-core/themes";
 import { Save } from "lucide-react";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
-import { updateTemplateNameAction } from "../update-template-name.action";
-import { updateTemplateJsonAction } from "../update-template-json.action";
-import { updateTemplateStatusAction } from "../update-template-status.action";
+import { updateTemplateNameAction } from "../application/update-template-name.action";
+import { updateTemplateJsonAction } from "../application/update-template-json.action";
+import { updateTemplateStatusAction } from "../application/update-template-status.action";
 
 registerSpecializedQuestion(SpecializedVideo);
 

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import FormTemplateEditorContainer from "./ui/form-template-editor-container";
+import FormTemplateEditorContainer from "../../../../../features/form-templates/ui/form-template-editor-container";
 import { getFormTemplate } from "@/services/api";
 
 interface Props {
