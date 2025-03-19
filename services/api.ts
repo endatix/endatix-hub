@@ -248,7 +248,12 @@ export const createFormTemplate = async (
     throw new Error("Failed to create form template");
   }
 
-  return response.json();
+  const result = await response.json();
+  return {
+    isSuccess: response.ok,
+    error: response.statusText,
+    formTemplateId: result.id,
+  };
 };
 
 export const getFormTemplates = async (): Promise<FormTemplate[]> => {

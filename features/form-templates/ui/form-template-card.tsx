@@ -95,7 +95,7 @@ const FormTemplateCard = ({
         <div className="flex justify-between w-full">
           <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
-              href={`forms/templates/${template.id}`}
+              href={`/forms/templates/${template.id}`}
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
             >
               <FilePen className="w-4 h-4 mr-1" />

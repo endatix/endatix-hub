@@ -14,6 +14,7 @@ export interface CreateFormTemplateRequest {
   name: string;
   isEnabled: boolean;
   jsonData: string;
+  description?: string;
 }
 
 export interface CreateFormTemplateResult {
