@@ -1,8 +1,12 @@
 "use client";
 
+import { toast } from "@/components/ui/toast";
+import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import { Submission } from "@/types";
-import "survey-core/defaultV2.css";
+import { Info } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import {
   DynamicPanelItemValueChangedEvent,
   MatrixCellValueChangedEvent,
@@ -10,11 +14,6 @@ import {
   SurveyModel,
   ValueChangedEvent,
 } from "survey-core";
-import { useCallback, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Info } from "lucide-react";
-import { toast } from "@/components/ui/toast";
-import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import EditSubmissionAlertDialog from "./edit-submission-alert-dialog";
 import EditSubmissionHeader from "./edit-submission-header";
 

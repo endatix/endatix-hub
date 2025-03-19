@@ -1,25 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { slk } from "survey-core";
+import "survey-core/survey-core.css";
+import SurveyCreatorTheme from "survey-creator-core/themes";
 import {
   ICreatorOptions,
   SurveyCreatorModel,
   UploadFileEvent,
 } from "survey-creator-core";
-import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
-import { slk } from "survey-core";
-import { toast } from "@/components/ui/toast";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import "survey-core/defaultV2.css";
 import "survey-creator-core/survey-creator-core.css";
-import * as themes from "survey-creator-core/themes";
-import { Save } from "lucide-react";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
-import { updateTemplateNameAction } from "../application/update-template-name.action";
+import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
-import { updateTemplateStatusAction } from "../application/update-template-status.action";
+import { updateTemplateNameAction } from "../application/update-template-name.action";
 
 registerSpecializedQuestion(SpecializedVideo);
 
@@ -46,7 +44,6 @@ function FormTemplateEditor({
   templateJson,
   templateId,
   templateName,
-  isEnabled: initialIsEnabled,
   options,
   slkVal,
 }: FormTemplateEditorProps) {
@@ -58,8 +55,6 @@ function FormTemplateEditor({
   const [originalName, setOriginalName] = useState(templateName);
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(initialIsEnabled);
-  const allowStatusToggle = false;
 
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
@@ -78,27 +73,6 @@ function FormTemplateEditor({
     }
     setIsEditingName(false);
   }, [templateId, name, originalName, startTransition]);
-
-  const handleStatusToggle = useCallback(
-    async (newStatus: boolean) => {
-      if (!allowStatusToggle) {
-        return;
-      }
-
-      startTransition(async () => {
-        const result = await updateTemplateStatusAction(templateId, newStatus);
-
-        if (result.success) {
-          setIsEnabled(newStatus);
-          toast.success(`Template ${newStatus ? "enabled" : "disabled"}`);
-        } else {
-          toast.error(result.error || "Failed to update template status");
-          setIsEnabled(initialIsEnabled);
-        }
-      });
-    },
-    [templateId, initialIsEnabled],
-  );
 
   const handleUploadFile = useCallback(
     async (_: SurveyCreatorModel, options: UploadFileEvent) => {
@@ -119,7 +93,7 @@ function FormTemplateEditor({
           options.callback("success", data.url);
         })
         .catch((error) => {
-          console.error("Error: ", error);
+          console.error("Error", error);
           options.callback("error", undefined);
         });
     },
@@ -139,7 +113,7 @@ function FormTemplateEditor({
     const newCreator = new SurveyCreator(options || defaultCreatorOptions);
     SpecializedVideo.customizeEditor(newCreator);
 
-    newCreator.applyCreatorTheme(themes.DefaultLight);
+    newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
     newCreator.JSON = templateJson;
     newCreator.saveSurveyFunc = (
       no: number,
@@ -288,31 +262,6 @@ function FormTemplateEditor({
       <div id="surveyCreatorContainer">
         {creator && <SurveyCreatorComponent creator={creator} />}
       </div>
-
-      {allowStatusToggle && (
-        <div className="template-status-indicator px-4 py-2 flex items-center gap-2 bg-background/80 backdrop-blur rounded-md border shadow-sm">
-          <div
-            className={`status-badge ${
-              isEnabled
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
-            } rounded-full px-3 py-1 text-xs font-medium`}
-          >
-            {isEnabled ? "Enabled" : "Disabled"}
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={isEnabled}
-              onCheckedChange={handleStatusToggle}
-              disabled={isPending}
-              aria-label="Toggle template status"
-            />
-            <span className="text-sm">
-              {isEnabled ? "Enabled" : "Disabled"}
-            </span>
-          </div>
-        </div>
-      )}
     </>
   );
 }

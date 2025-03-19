@@ -3,8 +3,9 @@
 import { FormTemplate } from "@/types";
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
+import "survey-core/survey-core.css";
+import { SharpLightPanelless } from "survey-core/themes";
 import { Survey } from "survey-react-ui";
-import "survey-core/defaultV2.css";
 
 interface SurveyPreviewComponentProps {
   template: FormTemplate;
@@ -19,18 +20,21 @@ export default function SurveyPreviewComponent({
   useEffect(() => {
     if (template) {
       try {
-        const surveyModel = new Model(template.jsonData);
+        const survey = new Model(template.jsonData);
 
         // Set survey to read-only mode
-        surveyModel.mode = "display";
+        survey.mode = "display";
 
         // Disable all navigation, buttons, and editing
-        surveyModel.showNavigationButtons = false;
-        surveyModel.showCompletedPage = false;
-        surveyModel.showProgressBar = "top";
-        surveyModel.questionsOnPageMode = "singlePage";
+        survey.showNavigationButtons = false;
+        survey.showCompletedPage = false;
+        survey.showProgressBar = "top";
+        survey.questionsOnPageMode = "singlePage";
 
-        setModel(surveyModel);
+        // Apply theme
+        survey.applyTheme(SharpLightPanelless);
+
+        setModel(survey);
         setError(null);
       } catch (error) {
         console.error("Error parsing survey JSON:", error);

@@ -1,18 +1,18 @@
 "use client";
 
-import { CompleteEvent, SurveyModel } from "survey-core";
-import { Survey } from "survey-react-ui";
-import { useTransition, useCallback, useState, useEffect } from "react";
-import { useSubmissionQueue } from "../application/submission-queue";
-import { Result } from "@/lib/result";
-import { Submission } from "@/types";
-import "survey-core/defaultV2.css";
-import { useSurveyModel } from "./use-survey-model.hook";
 import {
   SubmissionData,
   submitFormAction,
 } from "@/features/public-form/application/actions/submit-form.action";
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
+import { Result } from "@/lib/result";
+import { Submission } from "@/types";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { CompleteEvent, SurveyModel } from "survey-core";
+import "survey-core/survey-core.css";
+import { Survey } from "survey-react-ui";
+import { useSubmissionQueue } from "../application/submission-queue";
+import { useSurveyModel } from "./use-survey-model.hook";
 
 interface SurveyComponentProps {
   definition: string;
@@ -94,14 +94,14 @@ export default function SurveyComponent({
     model.onComplete.add(submitForm);
     model.onValueChanged.add(updatePartial);
     model.onCurrentPageChanged.add(updatePartial);
-    model.onDynamicPanelItemValueChanged.add(updatePartial);
+    model.onDynamicPanelValueChanged.add(updatePartial);
     model.onMatrixCellValueChanged.add(updatePartial);
 
     return () => {
       model.onComplete.remove(submitForm);
       model.onValueChanged.remove(updatePartial);
       model.onCurrentPageChanged.remove(updatePartial);
-      model.onDynamicPanelItemValueChanged.remove(updatePartial);
+      model.onDynamicPanelValueChanged.remove(updatePartial);
       model.onMatrixCellValueChanged.remove(updatePartial);
     };
   }, [model, submitForm, updatePartial]);

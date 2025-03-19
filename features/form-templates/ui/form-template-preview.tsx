@@ -2,17 +2,6 @@
 
 import { Spinner } from "@/components/loaders/spinner";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { FormTemplate } from "@/types";
-import { useEffect, useState } from "react";
-import "survey-core/defaultV2.css";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,10 +9,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { cn } from "@/lib/utils";
+import { FormTemplate } from "@/types";
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { getTemplateAction } from "../application/get-template.action";
 import { UseTemplateButton } from "./use-template-button";
 

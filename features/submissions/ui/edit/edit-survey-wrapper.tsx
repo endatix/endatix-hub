@@ -7,6 +7,8 @@ import {
   MatrixCellValueChangedEvent,
   ValueChangedEvent,
 } from "survey-core";
+import "survey-core/survey-core.css";
+import { SharpLightPanelless } from "survey-core/themes";
 import { Model, Survey, SurveyModel } from "survey-react-ui";
 
 registerSpecializedQuestion(SpecializedVideo);
@@ -48,6 +50,8 @@ function useSurveyModel(submission: Submission) {
       model.getAllPanels().forEach((panel) => {
         panel.expand();
       });
+
+      model.applyTheme(SharpLightPanelless);
 
       modelRef.current = model;
     } catch (error) {

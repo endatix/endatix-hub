@@ -1,23 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition, useCallback } from "react";
+import { updateFormNameAction } from "@/app/(main)/forms/[formId]/update-form-name.action";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { slk } from "survey-core";
+import "survey-core/survey-core.css";
 import {
   ICreatorOptions,
   SurveyCreatorModel,
   UploadFileEvent,
 } from "survey-creator-core";
-import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
-import { slk } from "survey-core";
-import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
-import { updateFormNameAction } from "@/app/(main)/forms/[formId]/update-form-name.action";
-import { toast } from "@/components/ui/toast";
-import { Button } from "@/components/ui/button";
-import "survey-core/defaultV2.css";
 import "survey-creator-core/survey-creator-core.css";
-import * as themes from "survey-creator-core/themes";
-import { Save } from "lucide-react";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import SurveyCreatorTheme from "survey-creator-core/themes";
+import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
+import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
 
 registerSpecializedQuestion(SpecializedVideo);
 
@@ -107,7 +107,8 @@ function FormEditor({
     const newCreator = new SurveyCreator(options || defaultCreatorOptions);
     SpecializedVideo.customizeEditor(newCreator);
 
-    newCreator.applyCreatorTheme(themes.DefaultLight);
+    newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+
     newCreator.JSON = formJson;
     newCreator.saveSurveyFunc = (
       no: number,
