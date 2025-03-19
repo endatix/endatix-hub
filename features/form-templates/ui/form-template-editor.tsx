@@ -9,22 +9,26 @@ import {
 } from "survey-creator-core";
 import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
 import { slk } from "survey-core";
-import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
-import { updateFormNameAction } from "@/app/(main)/forms/[formId]/update-form-name.action";
 import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import "survey-core/defaultV2.css";
 import "survey-creator-core/survey-creator-core.css";
 import * as themes from "survey-creator-core/themes";
 import { Save } from "lucide-react";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { updateTemplateNameAction } from "../application/update-template-name.action";
+import { updateTemplateJsonAction } from "../application/update-template-json.action";
+import { updateTemplateStatusAction } from "../application/update-template-status.action";
 
 registerSpecializedQuestion(SpecializedVideo);
 
-interface FormEditorProps {
-  formId: string;
-  formJson: object | null;
-  formName: string;
+export interface FormTemplateEditorProps {
+  templateId: string;
+  templateJson: object | null;
+  templateName: string;
+  description?: string;
+  isEnabled: boolean;
   options?: ICreatorOptions;
   slkVal?: string;
 }
@@ -38,35 +42,63 @@ const defaultCreatorOptions: ICreatorOptions = {
   themeForPreview: "Default",
 };
 
-function FormEditor({
-  formJson,
-  formId,
-  formName,
+function FormTemplateEditor({
+  templateJson,
+  templateId,
+  templateName,
+  isEnabled: initialIsEnabled,
   options,
   slkVal,
-}: FormEditorProps) {
+}: FormTemplateEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
-  const [isSaving] = useState(false);
   const router = useRouter();
-  const [isEditingName, setIsEditingName] = useState(formName === "New Form");
-  const [name, setName] = useState(formName);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [name, setName] = useState(templateName);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [originalName, setOriginalName] = useState(formName);
+  const [originalName, setOriginalName] = useState(templateName);
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(initialIsEnabled);
+  const allowStatusToggle = false;
 
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
       startTransition(async () => {
-        await updateFormNameAction(formId, name);
+        const result = await updateTemplateNameAction(templateId, name);
 
-        setOriginalName(name);
-        setName(name);
-        toast.success("Form name updated");
+        if (result.success) {
+          setOriginalName(name);
+          setName(name);
+          toast.success("Template name updated");
+        } else {
+          toast.error(result.error || "Failed to update template name");
+          setName(originalName);
+        }
       });
     }
     setIsEditingName(false);
-  }, [formId, name, originalName, startTransition]);
+  }, [templateId, name, originalName, startTransition]);
+
+  const handleStatusToggle = useCallback(
+    async (newStatus: boolean) => {
+      if (!allowStatusToggle) {
+        return;
+      }
+
+      startTransition(async () => {
+        const result = await updateTemplateStatusAction(templateId, newStatus);
+
+        if (result.success) {
+          setIsEnabled(newStatus);
+          toast.success(`Template ${newStatus ? "enabled" : "disabled"}`);
+        } else {
+          toast.error(result.error || "Failed to update template status");
+          setIsEnabled(initialIsEnabled);
+        }
+      });
+    },
+    [templateId, initialIsEnabled],
+  );
 
   const handleUploadFile = useCallback(
     async (_: SurveyCreatorModel, options: UploadFileEvent) => {
@@ -79,7 +111,7 @@ function FormEditor({
         method: "POST",
         body: formData,
         headers: {
-          "edx-form-id": formId,
+          "edx-form-id": templateId,
         },
       })
         .then((response) => response.json())
@@ -91,12 +123,12 @@ function FormEditor({
           options.callback("error", undefined);
         });
     },
-    [formId],
+    [templateId],
   );
 
   useEffect(() => {
     if (creator) {
-      creator.JSON = formJson;
+      creator.JSON = templateJson;
       return;
     }
 
@@ -108,7 +140,7 @@ function FormEditor({
     SpecializedVideo.customizeEditor(newCreator);
 
     newCreator.applyCreatorTheme(themes.DefaultLight);
-    newCreator.JSON = formJson;
+    newCreator.JSON = templateJson;
     newCreator.saveSurveyFunc = (
       no: number,
       callback: (num: number, status: boolean) => void,
@@ -119,7 +151,7 @@ function FormEditor({
     newCreator.onUploadFile.add(handleUploadFile);
 
     setCreator(newCreator);
-  }, [formJson, options, creator, slkVal, handleUploadFile]);
+  }, [templateJson, options, creator, slkVal, handleUploadFile]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -137,7 +169,7 @@ function FormEditor({
       document.removeEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside); // Clean up event listener
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isEditingName, handleNameSave]);
 
@@ -167,27 +199,22 @@ function FormEditor({
         "There are unsaved changes. Are you sure you want to leave?",
       );
       if (confirm) {
-        router.push("/forms");
+        router.push("/forms/templates");
       }
     } else {
-      router.push("/forms");
+      router.push("/forms/templates");
     }
   };
 
-  const saveForm = () => {
+  const saveTemplate = () => {
     startTransition(async () => {
-      const isDraft = false;
-      const updatedFormJson = creator?.JSON;
-      const result = await updateFormDefinitionJsonAction(
-        formId,
-        isDraft,
-        updatedFormJson,
-      );
+      const result = await updateTemplateJsonAction(templateId, creator?.JSON);
+
       if (result.success) {
         setHasUnsavedChanges(false);
-        toast.success("Form saved");
+        toast.success("Template saved");
       } else {
-        throw new Error(result.error);
+        toast.error(result.error || "Failed to save template");
       }
     });
   };
@@ -215,7 +242,7 @@ function FormEditor({
           <button
             onClick={handleSaveAndGoBack}
             className="mr-0 text-2xl flex items-center"
-            disabled={isSaving}
+            disabled={isPending}
             style={{ border: "none", background: "transparent" }}
           >
             ←
@@ -225,8 +252,8 @@ function FormEditor({
             <input
               ref={inputRef}
               value={name}
-              onChange={(e) => setName(e.target.value)} // Update the name when typing
-              onKeyDown={handleKeyDown} // Handle Enter and Esc key presses
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="font-bold text-lg border border-gray-300 rounded"
               autoFocus
             />
@@ -248,25 +275,46 @@ function FormEditor({
           )}
           <Button
             disabled={isPending}
-            onClick={saveForm}
+            onClick={saveTemplate}
             variant="default"
             size="sm"
-            className="h-8 border-dashed"
           >
             <Save className="mr-2 h-4 w-4" />
-            Save
+            {isPending ? "Saving..." : "Save Template"}
           </Button>
         </div>
       </div>
-      <div id="creator">
-        {creator ? (
-          <SurveyCreatorComponent creator={creator} />
-        ) : (
-          <div>Loading...</div>
-        )}
+
+      <div id="surveyCreatorContainer">
+        {creator && <SurveyCreatorComponent creator={creator} />}
       </div>
+
+      {allowStatusToggle && (
+        <div className="template-status-indicator px-4 py-2 flex items-center gap-2 bg-background/80 backdrop-blur rounded-md border shadow-sm">
+          <div
+            className={`status-badge ${
+              isEnabled
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            } rounded-full px-3 py-1 text-xs font-medium`}
+          >
+            {isEnabled ? "Enabled" : "Disabled"}
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={isEnabled}
+              onCheckedChange={handleStatusToggle}
+              disabled={isPending}
+              aria-label="Toggle template status"
+            />
+            <span className="text-sm">
+              {isEnabled ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+        </div>
+      )}
     </>
   );
 }
-export default FormEditor;
-export type { FormEditorProps };
+
+export default FormTemplateEditor;

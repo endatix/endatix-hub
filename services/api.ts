@@ -3,7 +3,7 @@ import {
   AuthenticationRequest,
   AuthenticationResponse,
 } from "@/features/auth";
-import { CreateFormRequest } from "@/lib/form-types";
+import { CreateFormRequest, CreateFormTemplateRequest, CreateFormTemplateResult } from "@/lib/form-types";
 import { Form, FormDefinition, FormTemplate, Submission } from "../types";
 import { redirect } from "next/navigation";
 import { HeaderBuilder } from "./header-builder";
@@ -31,7 +31,7 @@ export const authenticate = async (
 
 export const createForm = async (
   formRequest: CreateFormRequest,
-): Promise<Form> => {
+): Promise<FormTemplate> => {
   const session = await getSession();
   const headers = new HeaderBuilder()
     .withAuth(session)
@@ -228,6 +228,34 @@ export const updateFormDefinition = async (
   }
 };
 
+export const createFormTemplate = async (
+  formTemplateRequest: CreateFormTemplateRequest,
+): Promise<CreateFormTemplateResult> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/form-templates`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(formTemplateRequest),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create form template");
+  }
+
+  const result = await response.json();
+  return {
+    isSuccess: response.ok,
+    error: response.statusText,
+    formTemplateId: result.id,
+  };
+};
+
 export const getFormTemplates = async (): Promise<FormTemplate[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
@@ -262,7 +290,11 @@ export const getFormTemplate = async (
 
 export const updateFormTemplate = async (
   templateId: string,
-  data: { name?: string; isEnabled?: boolean },
+  data: { 
+    name?: string; 
+    isEnabled?: boolean;
+    jsonData?: string;
+  },
 ): Promise<void> => {
   const session = await getSession();
   const headers = new HeaderBuilder()

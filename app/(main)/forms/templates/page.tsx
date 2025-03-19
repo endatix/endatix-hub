@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
 import { getFormTemplates } from "@/services/api";
+import Link from "next/link";
 
 export default async function FormTemplatesPage() {
   return (
@@ -15,10 +16,12 @@ export default async function FormTemplatesPage() {
         <Tabs defaultValue="all" className="space-y-0">
           <div className="flex items-center justify-end space-y-0 mb-4">
             <div className="flex items-center space-x-2">
-              <Button variant="default">
-                <FilePlus2 className="h-4 w-4" />
-                Create a Form Template
-              </Button>
+              <Link href="/forms/templates/create">
+                <Button variant="default">
+                  <FilePlus2 className="h-4 w-4 mr-2" />
+                  Create a Form Template
+                </Button>
+              </Link>
             </div>
           </div>
           <Suspense fallback={<FormTemplatesSkeleton />}>

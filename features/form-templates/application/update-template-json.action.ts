@@ -3,35 +3,38 @@
 import { revalidatePath } from "next/cache";
 import { updateFormTemplate } from "@/services/api";
 
-interface UpdateTemplateStatusResult {
+interface UpdateTemplateJsonResult {
   success: boolean;
   error?: string;
 }
 
-export async function updateTemplateStatusAction(
+export async function updateTemplateJsonAction(
   templateId: string, 
-  isEnabled: boolean
-): Promise<UpdateTemplateStatusResult> {
+  templateJson: object | null
+): Promise<UpdateTemplateJsonResult> {
   try {
     if (!templateId) {
       return { success: false, error: "Template ID is required" };
     }
 
-    // Update the template status
+    if (!templateJson) {
+      return { success: false, error: "Template JSON data is required" };
+    }
+
+    const jsonData = JSON.stringify(templateJson);
+
     await updateFormTemplate(templateId, {
-      isEnabled
+      jsonData,
     });
 
-    // Revalidate the template page and templates list
     revalidatePath(`/forms/templates/${templateId}`);
-    revalidatePath('/forms/templates');
-    
+
     return { success: true };
   } catch (error) {
-    console.error("Error updating template status:", error);
+    console.error("Error updating template JSON:", error);
     return { 
       success: false, 
-      error: `Failed to update template status: ${(error as Error).message}`
+      error: `Failed to update template: ${(error as Error).message}`
     };
   }
 } 

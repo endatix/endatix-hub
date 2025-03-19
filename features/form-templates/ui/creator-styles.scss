@@ -1,0 +1,23 @@
+#surveyCreatorContainer {
+  height: calc(100vh - 112px);
+  width: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  
+  .sd-container-modern {
+    height: 100%;
+  }
+}
+
+.template-status-indicator {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+.sv-creator-tab {
+  height: 95% !important;
+  overflow: auto;
+} 
