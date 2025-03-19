@@ -17,7 +17,13 @@ import { CreateFormRequest } from "@/lib/form-types";
 import { redirect } from "next/navigation";
 import { Result } from "@/lib/result";
 import { createFormAction } from "@/features/forms/application/actions/create-form.action";
-
+import { FormTemplate } from "@/types";
+import TemplateSelector from "./template-selector";
+import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/loaders/spinner";
+import { useTemplateAction } from "@/features/form-templates/application/use-template.action";
+import { toast } from "@/components/ui/toast";
 type CreateFormOption =
   | "from_scratch"
   | "from_existing"
@@ -70,6 +76,13 @@ const CreateFormCard: FC<FormCreateSheetProps> = ({
 const CreateFormSheet = () => {
   const [pending, setPending] = useState(false);
   const [selectedOption, setSelectedOption] = useState<CreateFormOption>();
+  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
+    null,
+  );
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(
+    null,
+  );
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const openNewFormInEditor = async () => {
@@ -89,6 +102,38 @@ const CreateFormSheet = () => {
         redirect(`/forms/${formId}`);
       } else {
         alert("Failed to create form");
+      }
+    });
+  };
+
+  const handleTemplateSelect = (template: FormTemplate) => {
+    setSelectedTemplate(template);
+  };
+
+  const handlePreviewTemplate = (templateId: string) => {
+    setPreviewTemplateId(templateId);
+    setIsPreviewOpen(true);
+  };
+
+  const handleCreateFromTemplate = async () => {
+    if (!selectedTemplate || isPending) return;
+
+    startTransition(async () => {
+      try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const result = await useTemplateAction({
+          templateId: selectedTemplate.id,
+        });
+
+        if (Result.isSuccess(result)) {
+          toast.success("Form created from template successfully");
+          redirect(`/forms/${result.value}`);
+        } else {
+          toast.error(result.message || "Failed to create form from template");
+        }
+      } catch (error) {
+        console.error("Error creating form from template:", error);
+        toast.error(error || "Failed to create form from template");
       }
     });
   };
@@ -128,7 +173,6 @@ const CreateFormSheet = () => {
             action="from_template"
             isSelected={selectedOption === "from_template"}
             onClick={() => setSelectedOption("from_template")}
-            disabled
           />
           <CreateFormCard
             title="Import a Form"
@@ -162,7 +206,39 @@ const CreateFormSheet = () => {
             }}
           />
         )}
+        {selectedOption === "from_template" && (
+          <div className="w-full space-y-4">
+            <TemplateSelector
+              onTemplateSelect={handleTemplateSelect}
+              onPreviewTemplate={handlePreviewTemplate}
+            />
+            {selectedTemplate && (
+              <Button
+                className="w-full"
+                onClick={handleCreateFromTemplate}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <>
+                    <Spinner className="mr-2 h-4 w-4" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Form from Template"
+                )}
+              </Button>
+            )}
+          </div>
+        )}
       </SheetFooter>
+
+      {previewTemplateId && (
+        <FormTemplatePreview
+          open={isPreviewOpen}
+          onOpenChange={setIsPreviewOpen}
+          templateId={previewTemplateId}
+        />
+      )}
     </SheetContent>
   );
 };

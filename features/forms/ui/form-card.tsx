@@ -11,12 +11,19 @@ import {
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { FilePen, Link2, List } from "lucide-react";
-import React from "react";
+import { FilePen, Link2, List, MoreHorizontal, Save } from "lucide-react";
+import React, { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type FormCardProps = React.ComponentProps<typeof Card> & {
   form: Form;
   isSelected: boolean;
+  onSaveAsTemplate: () => void;
 };
 
 interface SubmissionsLabelProps {
@@ -55,8 +62,14 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
   );
 };
 
-const FormCard = ({ form, isSelected, className, ...props }: FormCardProps) => {
+const FormCard = ({ form, isSelected, onSaveAsTemplate, className, ...props }: FormCardProps) => {
   const getFormLabel = () => (form.isEnabled ? "Enabled" : "Disabled");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleOpenSaveAsTemplate = () => {
+    setIsDropdownOpen(false);
+    onSaveAsTemplate();
+  };
 
   return (
     <Card
@@ -123,6 +136,26 @@ const FormCard = ({ form, isSelected, className, ...props }: FormCardProps) => {
               <List className="w-4 h-4 mr-1" />
               Submissions
             </Link>
+            <DropdownMenu
+              open={isDropdownOpen}
+              onOpenChange={setIsDropdownOpen}
+            >
+              <DropdownMenuTrigger asChild>
+                <button className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer">
+                  <MoreHorizontal className="w-4 h-4" />
+                  <span className="sr-only">More options</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={handleOpenSaveAsTemplate}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save as Template
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardFooter>
