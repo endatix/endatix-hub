@@ -1,5 +1,8 @@
 "use client";
 
+import DotLoader from "@/components/loaders/dot-loader";
+import { Spinner } from "@/components/loaders/spinner";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   SheetContent,
@@ -8,22 +11,20 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { toast } from "@/components/ui/toast";
+import { useTemplateAction } from "@/features/form-templates/application/use-template.action";
+import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
+import { createFormAction } from "@/features/forms/application/actions/create-form.action";
+import { CreateFormRequest } from "@/lib/form-types";
+import { Result } from "@/lib/result";
+import { cn } from "@/lib/utils";
+import { FormTemplate } from "@/types";
+import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
+import { redirect } from "next/navigation";
 import { FC, useState, useTransition } from "react";
 import ChatBox from "./chat-box";
-import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
-import { cn } from "@/lib/utils";
-import DotLoader from "@/components/loaders/dot-loader";
-import { CreateFormRequest } from "@/lib/form-types";
-import { redirect } from "next/navigation";
-import { Result } from "@/lib/result";
-import { createFormAction } from "@/features/forms/application/actions/create-form.action";
-import { FormTemplate } from "@/types";
 import TemplateSelector from "./template-selector";
-import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/loaders/spinner";
-import { useTemplateAction } from "@/features/form-templates/application/use-template.action";
-import { toast } from "@/components/ui/toast";
+
 type CreateFormOption =
   | "from_scratch"
   | "from_existing"
