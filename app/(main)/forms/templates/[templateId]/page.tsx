@@ -2,15 +2,13 @@ import { notFound } from "next/navigation";
 import FormTemplateEditorContainer from "../../../../../features/form-templates/ui/form-template-editor-container";
 import { getFormTemplate } from "@/services/api";
 
-interface Props {
-  params: {
-    templateId: string;
-  };
-}
+type Params = {
+  params: Promise<{ templateId: string }>;
+};
 
-export default async function FormTemplateEditPage({ params }: Props) {
-  const { templateId } = params;
-  
+export default async function FormTemplateEditPage({ params }: Params) {
+  const { templateId } = await params;
+
   try {
     const template = await getFormTemplate(templateId);
 
@@ -39,4 +37,4 @@ export default async function FormTemplateEditPage({ params }: Props) {
     console.error("Error fetching template:", error);
     notFound();
   }
-} 
+}
