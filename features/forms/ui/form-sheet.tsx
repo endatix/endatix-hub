@@ -9,6 +9,7 @@ import {
   Trash2,
   AlertTriangle,
   FilePen,
+  Save,
 } from "lucide-react";
 import {
   Sheet,
@@ -47,6 +48,7 @@ import {
 import { deleteFormAction } from "../application/actions/delete-form.action";
 import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
+import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 
 interface FormSheetProps extends React.ComponentPropsWithoutRef<typeof Sheet> {
   selectedForm: Form | null;
@@ -139,6 +141,7 @@ const FormSheet = ({
   const [isEnabled, setIsEnabled] = useState(selectedForm?.isEnabled);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
   const router = useRouter();
 
   if (!selectedForm) {
@@ -221,6 +224,11 @@ const FormSheet = ({
     setIsDialogOpen(true);
   };
 
+  const handleOpenSaveAsTemplate = () => {
+    setIsDropdownOpen(false);
+    setIsSaveAsTemplateOpen(true);
+  };
+
   return (
     selectedForm && (
       <Sheet {...props}>
@@ -262,6 +270,13 @@ const FormSheet = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={handleOpenSaveAsTemplate}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save as Template
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   className="text-destructive cursor-pointer"
                   onClick={handleOpenDeleteDialog}
                 >
@@ -271,6 +286,13 @@ const FormSheet = ({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          <SaveAsTemplateDialog
+            formId={selectedForm.id}
+            formName={selectedForm.name}
+            open={isSaveAsTemplateOpen}
+            onOpenChange={setIsSaveAsTemplateOpen}
+          />
 
           <DeleteFormDialog
             isOpen={isDialogOpen}

@@ -4,6 +4,7 @@ import { Form } from "@/types";
 import FormCard from "./form-card";
 import { useState, useMemo } from "react";
 import FormSheet from "./form-sheet";
+import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 
 type FormDataProps = {
   forms: Form[];
@@ -12,10 +13,17 @@ type FormDataProps = {
 const FormsList = ({ forms }: FormDataProps) => {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
+  const [saveAsTemplateFormId, setSaveAsTemplateFormId] = useState<string | null>(null);
 
   const selectedForm = useMemo(
     () => forms.find((form) => form.id === selectedFormId),
     [selectedFormId, forms],
+  );
+
+  const saveAsTemplateForm = useMemo(
+    () => forms.find((form) => form.id === saveAsTemplateFormId),
+    [saveAsTemplateFormId, forms],
   );
 
   const handleOnOpenChange = (open: boolean) => {
@@ -29,6 +37,18 @@ const FormsList = ({ forms }: FormDataProps) => {
     setSelectedFormId(formId);
     setIsSheetOpen(true);
   };
+  
+  const handleSaveAsTemplateClick = (formId: string) => {
+    setSaveAsTemplateFormId(formId);
+    setIsSaveAsTemplateOpen(true);
+  };
+
+  const handleSaveAsTemplateOpenChange = (open: boolean) => {
+    setIsSaveAsTemplateOpen(open);
+    if (!open) {
+      setSaveAsTemplateFormId(null);
+    }
+  };
 
   return (
     <>
@@ -39,6 +59,7 @@ const FormsList = ({ forms }: FormDataProps) => {
             form={form}
             isSelected={form.id === selectedFormId}
             onClick={() => handleFormSelected(form.id)}
+            onSaveAsTemplate={() => handleSaveAsTemplateClick(form.id)}
           />
         ))}
       </div>
@@ -49,6 +70,15 @@ const FormsList = ({ forms }: FormDataProps) => {
         onOpenChange={handleOnOpenChange}
         selectedForm={selectedForm ?? null}
       />
+      
+      {saveAsTemplateForm && (
+        <SaveAsTemplateDialog
+          formId={saveAsTemplateForm.id}
+          formName={saveAsTemplateForm.name}
+          open={isSaveAsTemplateOpen}
+          onOpenChange={handleSaveAsTemplateOpenChange}
+        />
+      )}
     </>
   );
 };
