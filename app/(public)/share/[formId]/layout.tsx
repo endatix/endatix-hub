@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { PostHogProvider } from './../../../providers'
+import { getSession } from "@/features/auth";
 
 export const metadata: Metadata = {
   title: "Endatix Form",
@@ -9,14 +11,18 @@ interface PublicLayoutProps {
   children: React.ReactNode;
 }
 
-export default function PublicLayout({ children }: PublicLayoutProps) {
+export default async function PublicLayout({ children }: PublicLayoutProps) {
+  const session = await getSession();
+  
   return (
     <html lang="en">
       <body>
-        <header></header>
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-          {children}
-        </main>
+        <PostHogProvider session={session}>
+          <header></header>
+          <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+            {children}
+          </main>
+        </PostHogProvider>
       </body>
     </html>
   );
