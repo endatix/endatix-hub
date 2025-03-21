@@ -6,6 +6,7 @@ export type PostHogConfig = {
   enabled: boolean;
   apiKey: string;
   apiHost: string;
+  uiHost?: string;
   debug?: boolean;
 };
 

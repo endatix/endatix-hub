@@ -18,6 +18,7 @@ This module provides a comprehensive integration with PostHog for analytics trac
    ```
    NEXT_PUBLIC_POSTHOG_KEY=your_posthog_api_key
    NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com  # or your custom host
+   NEXT_PUBLIC_POSTHOG_UI_HOST=https://app.posthog.com  # (optional) for linking to PostHog UI
    ```
 
 2. Add the PostHog provider to your app:
@@ -41,6 +42,7 @@ This module provides a comprehensive integration with PostHog for analytics trac
    export default function RootLayout({ children }) {
      const posthogConfig = createPostHogConfig({
        debug: true, // Override specific options
+       uiHost: "https://custom-posthog-ui.example.com" // Custom UI host
      });
 
      return (
