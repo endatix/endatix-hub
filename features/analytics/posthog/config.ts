@@ -4,58 +4,76 @@
 import { PostHogConfig } from "./posthog-types";
 
 /**
- * Creates a PostHog configuration object with environment variables
- * @param overrideEnabled Override the enabled state from environment variables
+ * Check if PostHog is enabled based on environment variables
+ * @returns Whether PostHog is enabled
+ */
+export function isPostHogEnabled(config?: PostHogConfig): boolean {
+  if (config) {
+    return config.enabled;
+  }
+
+  return !!process.env.NEXT_PUBLIC_POSTHOG_KEY;
+}
+
+/**
+ * Check if the application is running in development mode
+ * @returns Whether the application is running in development mode
+ */
+export function isDevelopment(): boolean {
+  return process.env.NODE_ENV === "development";
+}
+
+/**
+ * Check if the application is running in production mode
+ * @returns Whether the application is running in production mode
+ */
+export function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+/**
+ * Check if application debug mode is enabled
+ * Uses IS_DEBUG_MODE environment variable if set, otherwise falls back to development mode
+ * @returns Whether debug mode is enabled
+ */
+export function isDebugMode(): boolean {
+  // Check if IS_DEBUG_MODE is explicitly set
+  const debugMode = process.env.IS_DEBUG_MODE;
+  if (debugMode !== undefined) {
+    return debugMode === "true";
+  }
+  
+  // Fall back to development mode check
+  return isDevelopment();
+}
+
+/**
+ * Create a PostHog configuration object
+ * @param options Options to override the default configuration
  * @returns PostHog configuration object
  */
-export const createPostHogConfig = (
-  overrideEnabled?: boolean,
-): PostHogConfig => {
-  // Check if PostHog is enabled based on environment variable
-  const envEnabled = process.env.POSTHOG_ENABLED === "true";
-  const isEnabled =
-    overrideEnabled !== undefined ? overrideEnabled : envEnabled;
+export function createPostHogConfig(
+  options?: Partial<PostHogConfig>,
+): PostHogConfig {
+  const defaultConfig = getDefaultPostHogConfig();
+  return {
+    ...defaultConfig,
+    ...options,
+  };
+}
+
+/**
+ * Get the default PostHog configuration from environment variables
+ * @returns Default PostHog configuration
+ */
+export function getDefaultPostHogConfig(): PostHogConfig {
+  const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY || "";
 
   return {
-    enabled: isEnabled,
-    apiKey: process.env.NEXT_PUBLIC_POSTHOG_KEY || "",
+    enabled: !!apiKey,
+    apiKey,
     apiHost: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
-    debug:
-      process.env.NODE_ENV === "development" &&
-      process.env.POSTHOG_DEBUG === "true",
+    uiHost: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || undefined,
+    debug: isDebugMode(),
   };
-};
-
-/**
- * Check if PostHog is enabled and properly configured
- * @param config PostHog configuration
- * @returns boolean indicating if PostHog should be used
- */
-export const isPostHogEnabled = (config: PostHogConfig): boolean => {
-  // PostHog is enabled if explicitly enabled and API key is provided
-  return config.enabled && !!config.apiKey;
-};
-
-/**
- * Check if current environment is development
- * @returns boolean indicating if current environment is development
- */
-export const isDevelopment = (): boolean => {
-  return process.env.NODE_ENV === "development";
-};
-
-/**
- * Check if current environment is production
- * @returns boolean indicating if current environment is production
- */
-export const isProduction = (): boolean => {
-  return process.env.NODE_ENV === "production";
-};
-
-/**
- * Get default PostHog configuration singleton
- * This is useful for server components that need PostHog configuration
- */
-export const getDefaultPostHogConfig = (): PostHogConfig => {
-  return createPostHogConfig();
-};
+}

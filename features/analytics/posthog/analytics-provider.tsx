@@ -15,9 +15,7 @@ interface AnalyticsProviderProps {
 export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
   // Create the PostHog configuration from environment variables
   const config = createPostHogConfig();
-  console.log("config", config);
 
-  // Skip if PostHog is not properly configured
   if (!isPostHogEnabled(config)) {
     return <>{children}</>;
   }

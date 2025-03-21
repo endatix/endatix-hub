@@ -8,7 +8,6 @@ export * from './posthog-client';
 
 // Providers and components
 export { PostHogProvider } from './posthog-provider';
-export { PostHogContext } from './posthog-provider';
 export { PostHogPageView } from './posthog-pageview';
 
 // Custom event tracking - client side only exports
