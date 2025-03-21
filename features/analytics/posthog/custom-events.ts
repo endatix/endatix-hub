@@ -69,9 +69,10 @@ export function trackFeatureUsage(
   action: string,
   properties?: Record<string, string | number | boolean | null>
 ): void {
+  const safeProperties = properties || {};
   trackEvent(`${EventCategory.FEATURE}_${action}`, {
     feature_name: featureName,
-    ...properties,
+    ...safeProperties,
     timestamp: new Date().toISOString(),
   });
 }
@@ -86,7 +87,7 @@ export function trackError(
   trackEvent(`${EventCategory.ERROR}_occurred`, {
     error_name: errorName,
     error_message: errorMessage,
-    error_stack: errorStack?.substring(0, 500) || null, // Limit stack trace length
+    error_stack: errorStack ? errorStack.substring(0, 500) : null, // Limit stack trace length
     component_name: componentName || null,
     timestamp: new Date().toISOString(),
     url: typeof window !== 'undefined' ? window.location.href : null,
@@ -106,8 +107,8 @@ export function trackApiCall(
     endpoint,
     method,
     success,
-    duration_ms: durationMs || null,
-    status_code: statusCode || null,
+    duration_ms: durationMs ?? null,
+    status_code: statusCode ?? null,
     error_message: errorMessage || null,
     timestamp: new Date().toISOString(),
   });
@@ -120,10 +121,11 @@ export function trackInteraction(
   action: string,
   properties?: Record<string, string | number | boolean | null>
 ): void {
+  const safeProperties = properties || {};
   trackEvent(`${EventCategory.INTERACTION}_${action}`, {
     element_type: elementType,
     element_id: elementId,
-    ...properties,
+    ...safeProperties,
     timestamp: new Date().toISOString(),
   });
 }
@@ -139,7 +141,7 @@ export function setupErrorTracking(): void {
     trackError(
       event.error?.name || 'UnknownError',
       event.error?.message || event.message,
-      event.error?.stack,
+      event.error?.stack || null,
       'global'
     );
   });
@@ -150,7 +152,7 @@ export function setupErrorTracking(): void {
     trackError(
       error?.name || 'UnhandledPromiseRejection',
       error?.message || String(error),
-      error?.stack,
+      error?.stack || null,
       'global'
     );
   });

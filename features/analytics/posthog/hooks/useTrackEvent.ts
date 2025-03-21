@@ -1,8 +1,10 @@
+"use client";
+
 /**
  * React hook for tracking events with PostHog
  */
 import { useCallback } from 'react';
-import { trackEvent } from '../posthog-client';
+import { usePostHog } from 'posthog-js/react';
 import { EventCategory } from '../custom-events';
 
 type TrackEventFunction = (
@@ -29,27 +31,33 @@ interface UseTrackEvent {
  * Custom hook for tracking events with PostHog
  */
 export const useTrackEvent = (): UseTrackEvent => {
+  const posthog = usePostHog();
+
   /**
    * Track a custom event with the provided name and properties
    */
   const trackEventFn = useCallback<TrackEventFunction>((eventName, properties = {}) => {
-    trackEvent(eventName, {
-      ...properties,
-      timestamp: new Date().toISOString(),
-    });
-  }, []);
+    if (posthog) {
+      posthog.capture(eventName, {
+        ...properties,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, [posthog]);
 
   /**
    * Track an event with a category and action
    */
   const trackCategoryEvent = useCallback<TrackCategoryEventFunction>(
     (category, action, properties = {}) => {
-      trackEvent(`${category}_${action}`, {
-        ...properties,
-        timestamp: new Date().toISOString(),
-      });
+      if (posthog) {
+        posthog.capture(`${category}_${action}`, {
+          ...properties,
+          timestamp: new Date().toISOString(),
+        });
+      }
     },
-    []
+    [posthog]
   );
 
   /**
