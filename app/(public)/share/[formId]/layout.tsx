@@ -1,3 +1,4 @@
+import { AnalyticsProvider } from '@/features/analytics/posthog/analytics-provider';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,10 +14,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   return (
     <html lang="en">
       <body>
-        <header></header>
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-          {children}
-        </main>
+        <AnalyticsProvider>
+          <header></header>
+          <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+            {children}
+          </main>
+        </AnalyticsProvider>
       </body>
     </html>
   );
