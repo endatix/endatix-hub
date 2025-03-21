@@ -39,6 +39,6 @@ declare namespace NodeJS {
     NEXT_PUBLIC_POSTHOG_HOST?: string;
     NEXT_PUBLIC_POSTHOG_UI_HOST?: string;
     // Application settings
-    IS_DEBUG_MODE?: string; // Application-level debug flag
+    NEXT_PUBLIC_IS_DEBUG_MODE?: string; // Application-level debug flag
   }
 }

@@ -33,12 +33,12 @@ export function isProduction(): boolean {
 
 /**
  * Check if application debug mode is enabled
- * Uses IS_DEBUG_MODE environment variable if set, otherwise falls back to development mode
+ * Uses NEXT_PUBLIC_IS_DEBUG_MODE environment variable if set, otherwise falls back to development mode
  * @returns Whether debug mode is enabled
  */
 export function isDebugMode(): boolean {
-  // Check if IS_DEBUG_MODE is explicitly set
-  const debugMode = process.env.IS_DEBUG_MODE;
+  // Check if NEXT_PUBLIC_IS_DEBUG_MODE is explicitly set
+  const debugMode = process.env.NEXT_PUBLIC_IS_DEBUG_MODE;
   if (debugMode !== undefined) {
     return debugMode === "true";
   }
