@@ -4,7 +4,7 @@ This module provides a comprehensive integration with PostHog for analytics trac
 
 ## Features
 
-- Client-side and server-side event tracking
+- Client-side event tracking
 - Automatic page view tracking
 - User identification and session management
 - Standardized event tracking utilities
@@ -12,27 +12,70 @@ This module provides a comprehensive integration with PostHog for analytics trac
 - Form tracking utilities
 - Error tracking
 
-## Getting Started
+## Setup
 
-### Basic Usage
+1. Set the following environment variables:
+   ```
+   NEXT_PUBLIC_POSTHOG_KEY=your_posthog_api_key
+   NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com  # or your custom host
+   ```
 
-1. The PostHog provider is already set up in the app layout
-2. Track events using the provided utilities:
+2. Add the PostHog provider to your app:
+   ```tsx
+   // In your app layout.tsx
+   import { PostHogProvider } from '@/hub/features/analytics/posthog';
+
+   export default function RootLayout({ children }) {
+     return (
+       <PostHogProvider>
+         {children}
+       </PostHogProvider>
+     );
+   }
+   ```
+
+   With custom config (optional):
+   ```tsx
+   import { PostHogProvider, createPostHogConfig } from '@/hub/features/analytics/posthog';
+
+   export default function RootLayout({ children }) {
+     const posthogConfig = createPostHogConfig({
+       debug: true, // Override specific options
+     });
+
+     return (
+       <PostHogProvider config={posthogConfig}>
+         {children}
+       </PostHogProvider>
+     );
+   }
+   ```
+
+## Usage
+
+### Basic Event Tracking
 
 ```tsx
-import { trackEvent } from '@/hub/features/analytics/posthog';
+import { usePostHog } from '@/hub/features/analytics/posthog';
 
-// Track a simple event
-trackEvent('button_clicked', { button_id: 'login_button' });
+function MyComponent() {
+  const posthog = usePostHog();
+  
+  const handleClick = () => {
+    posthog?.capture('button_clicked', { button_id: 'login_button' });
+  };
+  
+  return <button onClick={handleClick}>Login</button>;
+}
 ```
 
-### React Hooks
+### Utility Hooks
 
 ```tsx
 import { useTrackEvent } from '@/hub/features/analytics/posthog';
 
 function MyComponent() {
-  const { trackEvent, trackInteraction } = useTrackEvent();
+  const { trackInteraction, trackFeatureUsage } = useTrackEvent();
   
   const handleClick = () => {
     trackInteraction('button', 'submit_button', 'click', {
@@ -40,7 +83,10 @@ function MyComponent() {
       section: 'payment'
     });
     
-    // Do other things...
+    // Track feature usage
+    trackFeatureUsage('chat', 'open', {
+      source: 'sidebar'
+    });
   };
   
   return <button onClick={handleClick}>Submit</button>;
@@ -78,25 +124,13 @@ function CheckoutForm() {
 }
 ```
 
-### Server-Side Tracking
+## Implementation Details
 
-```tsx
-import { trackServerEvent } from '@/hub/features/analytics/posthog';
-
-// In a server action
-export async function createOrder(data: OrderData) {
-  // Process order...
-  
-  // Track the event
-  await trackServerEvent(userId, 'order_created', {
-    order_id: newOrder.id,
-    total_amount: newOrder.total,
-    items_count: newOrder.items.length
-  });
-  
-  return newOrder;
-}
-```
+- Uses the official PostHog JavaScript client (`posthog-js`) for client-side tracking
+- Uses the official PostHog React integration (`posthog-js/react`) for React components
+- Includes custom hooks and utilities for standardized event tracking
+- Automatically tracks page views via the PostHogPageView component
+- Provides user identification utilities for connecting anonymous and logged-in users
 
 ## Event Categories
 
@@ -141,4 +175,4 @@ trackEvent('form_submit', {
   time_to_complete_ms: 45000,
   timestamp: new Date().toISOString()
 });
-``` 
+```
