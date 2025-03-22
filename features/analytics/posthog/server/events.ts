@@ -3,14 +3,17 @@
  * This file is temporarily disabled to allow client-side testing
  */
 
+import { EventCategory } from '../client/events';
+import { trackServerEvent } from './utils';
+
 // All server-side exports are disabled
 
 // Re-enable this file later by renaming to server-events.ts and uncommenting the code below
 
 /*
 import 'server-only';
-import { trackServerEvent } from './server-utils';
-import { EventCategory } from './custom-events';
+import { trackServerEvent } from './utils';
+import { EventCategory } from '../client/events';
 
 /**
  * Track an event on the server side with category and action
@@ -68,4 +71,3 @@ export async function trackServerApiCall(
     timestamp: new Date().toISOString(),
   });
 }
-*/ 

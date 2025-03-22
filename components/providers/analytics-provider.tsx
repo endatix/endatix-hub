@@ -1,8 +1,9 @@
 "use client";
 
 import { ReactNode } from "react";
-import { PostHogProvider, PostHogPageView } from "./index";
-import { createPostHogConfig, isPostHogEnabled } from "./config";
+// Using relative imports to avoid module resolution issues
+import { PostHogProvider, PostHogPageView } from "../../features/analytics/posthog/client";
+import { createPostHogConfig, isPostHogEnabled } from "../../features/analytics/posthog/shared/config";
 
 interface AnalyticsProviderProps {
   children: ReactNode;
@@ -26,4 +27,4 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
       <PostHogPageView />
     </PostHogProvider>
   );
-}
+} 

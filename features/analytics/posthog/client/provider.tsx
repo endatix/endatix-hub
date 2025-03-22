@@ -3,9 +3,12 @@
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { ReactNode, Suspense, useEffect } from "react";
-import { getDefaultPostHogConfig, isDebugMode } from "./config";
-import { PostHogConfig } from "./posthog-types";
-import { PostHogPageView } from "./posthog-pageview";
+import {
+  PostHogConfig,
+  getDefaultPostHogConfig,
+  isDebugMode,
+} from "../shared";
+import { PostHogPageView } from "./pageview";
 
 interface PostHogProviderProps {
   children: ReactNode;

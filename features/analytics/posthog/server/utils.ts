@@ -3,7 +3,7 @@
  * This is a temporary stub to unblock client-side testing
  */
 
-import { PostHogEventProperties } from './posthog-types';
+import { PostHogEventProperties } from '../shared/types';
 
 /**
  * Mock function for tracking server events (does nothing)
@@ -60,4 +60,4 @@ export async function getServerFeatureFlags(
 export function getServerPostHogClient() {
   // Mock implementation that does nothing
   return null;
-}
+} 

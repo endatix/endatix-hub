@@ -1,4 +1,4 @@
-import { AnalyticsProvider } from '@/features/analytics/posthog/analytics-provider';
+import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

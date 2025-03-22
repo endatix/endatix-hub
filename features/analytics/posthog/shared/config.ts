@@ -1,7 +1,7 @@
 /**
  * PostHog configuration utilities
  */
-import { PostHogConfig } from "./posthog-types";
+import { PostHogConfig } from "./types";
 
 /**
  * Check if PostHog is enabled based on environment variables
@@ -76,4 +76,4 @@ export function getDefaultPostHogConfig(): PostHogConfig {
     uiHost: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || undefined,
     debug: isDebugMode(),
   };
-}
+} 

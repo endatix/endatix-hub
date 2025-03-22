@@ -2,9 +2,7 @@
  * User identification utilities for PostHog
  * Integrates with the auth system to provide consistent user identification
  */
-import { identifyUser } from './posthog-client';
-import { identifyServerUser } from './server-utils';
-import { getDistinctId } from './posthog-client';
+import { identifyUser, getDistinctId } from './client';
 
 // Anonymous ID prefix to distinguish from authenticated users
 const ANONYMOUS_PREFIX = 'anon_';
@@ -78,27 +76,5 @@ export function handleUserLogout(): void {
   identifyUser(anonymousId, {
     [IS_ANONYMOUS]: true,
     logout_timestamp: new Date().toISOString(),
-  });
-}
-
-/**
- * Handle user identification on the server side
- * @param userId User ID from the session
- * @param properties Optional user properties
- */
-export async function handleServerUserIdentification(
-  userId: string,
-  properties?: Record<string, string | number | boolean | null>
-): Promise<void> {
-  // Skip for empty or invalid user IDs
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
-  
-  // Identify the user with the server-side client
-  await identifyServerUser(userId, {
-    ...properties,
-    [IS_ANONYMOUS]: false,
-    server_identified: true,
   });
 } 

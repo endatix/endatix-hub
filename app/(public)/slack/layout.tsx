@@ -1,4 +1,4 @@
-import { AnalyticsProvider } from '@/features/analytics/posthog/analytics-provider';
+import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 
 export const metadata = {
   title: "Next.js",

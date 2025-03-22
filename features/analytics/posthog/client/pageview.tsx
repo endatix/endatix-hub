@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { trackEvent } from './posthog-client';
+import { trackEvent } from './client';
 
 interface PostHogPageViewProps {
   /**
@@ -15,7 +15,7 @@ interface PostHogPageViewProps {
  * Component that automatically tracks page views
  * Place this in your app layout or specific pages where you want to track views
  */
-export function PostHogPageView({ getPageProperties }: PostHogPageViewProps) {
+export function PostHogPageView({ getPageProperties }: PostHogPageViewProps = {}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const previousPathRef = useRef<string | null>(null);

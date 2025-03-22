@@ -1,32 +1,15 @@
 /**
- * PostHog Analytics module - CLIENT SIDE EXPORTS ONLY
- * This file should only export client-side compatible modules
+ * PostHog Analytics module
+ * Main entry point for analytics functionality
  */
 
-// Client utilities - these should not import server-only modules
-export * from './posthog-client';
+// Re-export shared utilities that are safe for both client and server
+export * from './shared';
 
-// Providers and components
-export { PostHogProvider } from './posthog-provider';
-export { PostHogPageView } from './posthog-pageview';
+// Re-export client-side utilities
+// These should only be used in client components
+export * from './client';
 
-// Custom event tracking - client side only exports
-export * from './custom-events';
-export * from './hooks';
-
-// User identification utilities - client side only
-export {
-  generateAnonymousId,
-  getCurrentUserId,
-  handleUserLogin,
-  handleUserLogout
-} from './user-identification';
-
-// Export configuration utilities - client side only
-export {
-  createPostHogConfig,
-  isPostHogEnabled,
-  isDevelopment,
-  isProduction,
-  getDefaultPostHogConfig
-} from './config'; 
+// Server-side utilities are deliberately not exported here
+// Import them directly from '@/hub/features/analytics/posthog/server'
+// to prevent accidental inclusion in client bundles

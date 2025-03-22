@@ -5,7 +5,7 @@
  */
 import { useCallback } from 'react';
 import { usePostHog } from 'posthog-js/react';
-import { EventCategory } from '../custom-events';
+import { EventCategory } from '../events';
 
 type TrackEventFunction = (
   eventName: string,

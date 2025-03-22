@@ -2,9 +2,7 @@
  * Custom event tracking utilities for PostHog
  * Provides standardized tracking for common application events
  */
-import { trackEvent } from './posthog-client';
-// Do not import server-utils directly as it includes server-only code
-// import { trackServerEvent } from './server-utils';
+import { trackEvent } from './client';
 
 // Event category constants
 export const EventCategory = {
@@ -156,8 +154,4 @@ export function setupErrorTracking(): void {
       'global'
     );
   });
-}
-
-// Server-side event tracking
-// This function is moved to server.ts since it uses server-only code
-// export async function trackServerAction()... 
+} 

@@ -1,8 +1,12 @@
 /**
  * Client-side PostHog initialization
  */
-import posthog from 'posthog-js';
-import { PostHogConfig, PostHogClientOptions, PostHogEventProperties } from './posthog-types';
+import posthog from "posthog-js";
+import {
+  PostHogConfig,
+  PostHogClientOptions,
+  PostHogEventProperties,
+} from "../shared/types";
 
 // Default PostHog configuration
 const defaultOptions: PostHogClientOptions = {
@@ -15,8 +19,11 @@ const defaultOptions: PostHogClientOptions = {
 };
 
 // Initialize PostHog on the client side
-export const initPostHog = (config: PostHogConfig, options: Partial<PostHogClientOptions> = {}): void => {
-  if (!config.enabled || typeof window === 'undefined') {
+export const initPostHog = (
+  config: PostHogConfig,
+  options: Partial<PostHogClientOptions> = {},
+): void => {
+  if (!config.enabled || typeof window === "undefined") {
     return;
   }
 
@@ -29,24 +36,30 @@ export const initPostHog = (config: PostHogConfig, options: Partial<PostHogClien
       capture_pageview: mergedOptions.capturePageview,
       disable_session_recording: mergedOptions.disableSessionRecording,
       debug: config.debug,
-      persistence: 'localStorage',
+      persistence: "localStorage",
       bootstrap: {
-        distinctID: mergedOptions.distinctId || 'anonymous',
+        distinctID: mergedOptions.distinctId || "anonymous",
       },
     });
 
     // Enable debug logging if configured
     if (config.debug) {
-      console.log('[PostHog] Initialized with options:', { config, options: mergedOptions });
+      console.log("[PostHog] Initialized with options:", {
+        config,
+        options: mergedOptions,
+      });
     }
   } catch (error) {
-    console.error('[PostHog] Failed to initialize:', error);
+    console.error("[PostHog] Failed to initialize:", error);
   }
 };
 
 // Track an event
-export const trackEvent = (eventName: string, properties?: PostHogEventProperties): void => {
-  if (typeof window === 'undefined') {
+export const trackEvent = (
+  eventName: string,
+  properties?: PostHogEventProperties,
+): void => {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -58,8 +71,11 @@ export const trackEvent = (eventName: string, properties?: PostHogEventPropertie
 };
 
 // Identify a user
-export const identifyUser = (distinctId: string, properties?: Record<string, string | number | boolean | null>): void => {
-  if (typeof window === 'undefined') {
+export const identifyUser = (
+  distinctId: string,
+  properties?: Record<string, string | number | boolean | null>,
+): void => {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -72,34 +88,37 @@ export const identifyUser = (distinctId: string, properties?: Record<string, str
 
 // Reset the user identity (for logout)
 export const resetUser = (): void => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
   try {
     posthog.reset();
   } catch (error) {
-    console.error('[PostHog] Failed to reset user:', error);
+    console.error("[PostHog] Failed to reset user:", error);
   }
 };
 
 // Get the current distinct ID
 export const getDistinctId = (): string => {
-  if (typeof window === 'undefined') {
-    return 'anonymous';
+  if (typeof window === "undefined") {
+    return "anonymous";
   }
 
   try {
     return posthog.get_distinct_id();
   } catch (error) {
-    console.error('[PostHog] Failed to get distinct ID:', error);
-    return 'anonymous';
+    console.error("[PostHog] Failed to get distinct ID:", error);
+    return "anonymous";
   }
 };
 
 // Check if a feature flag is enabled
-export const isFeatureEnabled = (key: string, defaultValue: boolean = false): boolean => {
-  if (typeof window === 'undefined') {
+export const isFeatureEnabled = (
+  key: string,
+  defaultValue: boolean = false,
+): boolean => {
+  if (typeof window === "undefined") {
     return defaultValue;
   }
 
@@ -109,4 +128,4 @@ export const isFeatureEnabled = (key: string, defaultValue: boolean = false): bo
     console.error(`[PostHog] Failed to check feature flag ${key}:`, error);
     return defaultValue;
   }
-}; 
+};
