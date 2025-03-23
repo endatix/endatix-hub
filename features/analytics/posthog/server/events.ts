@@ -3,8 +3,8 @@
  * This file is temporarily disabled to allow client-side testing
  */
 
-import { EventCategory } from '../client/events';
-import { trackServerEvent } from './utils';
+import { EventCategory } from "../client/events";
+import { trackServerEvent } from "./utils";
 
 // All server-side exports are disabled
 
@@ -22,7 +22,7 @@ export async function trackServerAction(
   userId: string,
   action: string,
   category: string = EventCategory.SYSTEM,
-  properties?: Record<string, string | number | boolean | null>
+  properties?: Record<string, string | number | boolean | null>,
 ): Promise<void> {
   await trackServerEvent(userId, `${category}_${action}`, {
     ...properties,
@@ -38,7 +38,7 @@ export async function trackServerFormSubmit(
   formId: string,
   success: boolean = true,
   formName?: string,
-  errorDetails?: string
+  errorDetails?: string,
 ): Promise<void> {
   await trackServerEvent(userId, `${EventCategory.FORM}_submit`, {
     form_id: formId,
@@ -59,7 +59,7 @@ export async function trackServerApiCall(
   success: boolean,
   durationMs?: number,
   statusCode?: number,
-  errorMessage?: string
+  errorMessage?: string,
 ): Promise<void> {
   await trackServerEvent(userId, `${EventCategory.API}_call`, {
     endpoint,

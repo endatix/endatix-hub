@@ -3,7 +3,7 @@
  * This is a temporary stub to unblock client-side testing
  */
 
-import { PostHogEventProperties } from '../shared/types';
+import { PostHogEventProperties } from "../shared/types";
 
 /**
  * Mock function for tracking server events (does nothing)
@@ -11,10 +11,14 @@ import { PostHogEventProperties } from '../shared/types';
 export async function trackServerEvent(
   distinctId: string,
   event: string,
-  properties?: PostHogEventProperties
+  properties?: PostHogEventProperties,
 ): Promise<boolean> {
   // Mock implementation that does nothing
-  console.log('Server-side tracking disabled. Would track:', { distinctId, event, properties });
+  console.log("Server-side tracking disabled. Would track:", {
+    distinctId,
+    event,
+    properties,
+  });
   return true;
 }
 
@@ -23,10 +27,13 @@ export async function trackServerEvent(
  */
 export async function identifyServerUser(
   distinctId: string,
-  properties?: Record<string, string | number | boolean | null>
+  properties?: Record<string, string | number | boolean | null>,
 ): Promise<boolean> {
   // Mock implementation that does nothing
-  console.log('Server-side identification disabled. Would identify:', { distinctId, properties });
+  console.log("Server-side identification disabled. Would identify:", {
+    distinctId,
+    properties,
+  });
   return true;
 }
 
@@ -36,10 +43,13 @@ export async function identifyServerUser(
 export async function isServerFeatureEnabled(
   key: string,
   distinctId: string,
-  defaultValue: boolean = false
+  defaultValue: boolean = false,
 ): Promise<boolean> {
   // Mock implementation that does nothing
-  console.log('Server-side feature flags disabled. Would check:', { key, distinctId });
+  console.log("Server-side feature flags disabled. Would check:", {
+    key,
+    distinctId,
+  });
   return defaultValue;
 }
 
@@ -47,10 +57,12 @@ export async function isServerFeatureEnabled(
  * Mock function for getting feature flags (returns empty object)
  */
 export async function getServerFeatureFlags(
-  distinctId: string
+  distinctId: string,
 ): Promise<Record<string, boolean | string | number>> {
   // Mock implementation that does nothing
-  console.log('Server-side feature flags disabled. Would get flags for:', { distinctId });
+  console.log("Server-side feature flags disabled. Would get flags for:", {
+    distinctId,
+  });
   return {};
 }
 
@@ -60,4 +72,4 @@ export async function getServerFeatureFlags(
 export function getServerPostHogClient() {
   // Mock implementation that does nothing
   return null;
-} 
+}

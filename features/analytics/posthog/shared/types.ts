@@ -15,7 +15,10 @@ export type PostHogIdentifyOptions = {
   userProperties?: Record<string, string | number | boolean | null>;
 };
 
-export type PostHogEventProperties = Record<string, string | number | boolean | null>;
+export type PostHogEventProperties = Record<
+  string,
+  string | number | boolean | null
+>;
 
 export type PostHogClientOptions = {
   distinctId?: string;
@@ -25,4 +28,4 @@ export type PostHogClientOptions = {
     flushInterval?: number;
     flushAt?: number;
   };
-}; 
+};

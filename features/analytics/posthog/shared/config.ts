@@ -42,7 +42,7 @@ export function isDebugMode(): boolean {
   if (debugMode !== undefined) {
     return debugMode === "true";
   }
-  
+
   // Fall back to development mode check
   return isDevelopment();
 }
@@ -76,4 +76,4 @@ export function getDefaultPostHogConfig(): PostHogConfig {
     uiHost: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || undefined,
     debug: isDebugMode(),
   };
-} 
+}

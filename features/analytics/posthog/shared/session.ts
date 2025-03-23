@@ -16,7 +16,7 @@ export function getUserIdFromSession(): string | null {
  */
 export async function syncPostHogWithSession(): Promise<void> {
   // Mock implementation that does nothing
-  console.log('Session sync disabled');
+  console.log("Session sync disabled");
 }
 
 /**
@@ -24,7 +24,10 @@ export async function syncPostHogWithSession(): Promise<void> {
  */
 export async function trackUserLogin(userId: string): Promise<void> {
   // Mock implementation that does nothing
-  console.log('Server-side login tracking disabled. Would track login for:', userId);
+  console.log(
+    "Server-side login tracking disabled. Would track login for:",
+    userId,
+  );
 }
 
 /**
@@ -32,5 +35,5 @@ export async function trackUserLogin(userId: string): Promise<void> {
  */
 export async function trackUserLogout(): Promise<void> {
   // Mock implementation that does nothing
-  console.log('Server-side logout tracking disabled');
-} 
+  console.log("Server-side logout tracking disabled");
+}

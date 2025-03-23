@@ -1,21 +1,26 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { trackEvent } from './client';
+import { useEffect, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { trackEvent } from "./client";
 
 interface PostHogPageViewProps {
   /**
    * Optional callback to customize properties sent with page view event
    */
-  getPageProperties?: (pathname: string, searchParams: URLSearchParams) => Record<string, string | number | boolean | null>;
+  getPageProperties?: (
+    pathname: string,
+    searchParams: URLSearchParams,
+  ) => Record<string, string | number | boolean | null>;
 }
 
 /**
  * Component that automatically tracks page views
  * Place this in your app layout or specific pages where you want to track views
  */
-export function PostHogPageView({ getPageProperties }: PostHogPageViewProps = {}) {
+export function PostHogPageView({
+  getPageProperties,
+}: PostHogPageViewProps = {}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const previousPathRef = useRef<string | null>(null);
@@ -27,8 +32,11 @@ export function PostHogPageView({ getPageProperties }: PostHogPageViewProps = {}
     }
 
     // Track the page view
-    const url = window.location.origin + pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
-    
+    const url =
+      window.location.origin +
+      pathname +
+      (searchParams?.toString() ? `?${searchParams.toString()}` : "");
+
     // Base properties for the page view event
     const baseProperties = {
       url,
@@ -37,23 +45,23 @@ export function PostHogPageView({ getPageProperties }: PostHogPageViewProps = {}
       title: document.title,
       search: searchParams?.toString() || null,
     };
-    
+
     // Add custom properties if provided
-    const customProperties = getPageProperties ? 
-      getPageProperties(pathname, searchParams as URLSearchParams) : 
-      {};
-    
+    const customProperties = getPageProperties
+      ? getPageProperties(pathname, searchParams as URLSearchParams)
+      : {};
+
     // Track the page view event with combined properties
-    trackEvent('page_view', {
+    trackEvent("page_view", {
       ...baseProperties,
       ...customProperties,
       timestamp: new Date().toISOString(),
     });
-    
+
     // Update the previous path
     previousPathRef.current = pathname;
   }, [pathname, searchParams, getPageProperties]);
-  
+
   // This component doesn't render anything
   return null;
-} 
+}

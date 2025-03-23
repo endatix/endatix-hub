@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
 import { ReactNode, Suspense, useEffect } from "react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
-import { 
-  createPostHogConfig, 
-  isPostHogEnabled, 
-  isDebugMode 
+import {
+  createPostHogConfig,
+  isPostHogEnabled,
+  isDebugMode,
 } from "../shared/config";
 import { PostHogPageView } from "./pageview";
 import { PostHogUserIdentity } from "./user-identity";
@@ -21,16 +21,11 @@ interface PostHogProviderProps {
  * PostHog analytics provider component
  * Handles initialization and user identification
  */
-export function PostHogProvider({
-  children,
-  session
-}: PostHogProviderProps) {
-  // Initialize analytics
+export function PostHogProvider({ children, session }: PostHogProviderProps) {
   const config = createPostHogConfig();
   const analyticsEnabled = isPostHogEnabled(config);
   const debugMode = isDebugMode();
 
-  // Initialize PostHog
   useEffect(() => {
     if (!analyticsEnabled || typeof window === "undefined") return;
 
@@ -50,7 +45,6 @@ export function PostHogProvider({
     return <>{children}</>;
   }
 
-  // Render PostHog provider with components
   return (
     <PHProvider client={posthog}>
       {children}
@@ -60,4 +54,4 @@ export function PostHogProvider({
       </Suspense>
     </PHProvider>
   );
-} 
+}
