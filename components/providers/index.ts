@@ -1,7 +1,9 @@
 /**
- * Global application providers
+ * Provider components for global application state and services
  */
 
-export * from './global-provider';
-export * from './theme-provider';
-export * from './analytics-provider'; 
+// Export the main AppProvider for layouts to use
+export { AppProvider } from './app-provider';
+
+// Export the ThemeProvider for cases where only theme functionality is needed
+export { ThemeProvider } from './theme-provider';

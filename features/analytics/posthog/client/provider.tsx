@@ -1,54 +1,63 @@
-"use client";
+'use client';
 
+import { ReactNode, Suspense, useEffect } from "react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
-import { ReactNode, Suspense, useEffect } from "react";
-import {
-  PostHogConfig,
-  getDefaultPostHogConfig,
-  isDebugMode,
-} from "../shared";
+import { 
+  createPostHogConfig, 
+  isPostHogEnabled, 
+  isDebugMode 
+} from "../shared/config";
 import { PostHogPageView } from "./pageview";
+import { PostHogUserIdentity } from "./user-identity";
+import type { SessionData } from "@/features/auth";
 
 interface PostHogProviderProps {
   children: ReactNode;
-  config?: PostHogConfig;
+  session?: SessionData;
 }
 
 /**
- * PostHog Provider component to wrap your application
- * This provider initializes PostHog and provides context for tracking components
+ * PostHog analytics provider component
+ * Handles initialization and user identification
  */
 export function PostHogProvider({
   children,
-  config: providedConfig,
+  session
 }: PostHogProviderProps) {
-  const config = providedConfig || getDefaultPostHogConfig();
+  // Initialize analytics
+  const config = createPostHogConfig();
+  const analyticsEnabled = isPostHogEnabled(config);
   const debugMode = isDebugMode();
 
+  // Initialize PostHog
   useEffect(() => {
-    if (typeof window !== "undefined" && config.enabled) {
-      posthog.init(config.apiKey, {
-        api_host: config.apiHost,
-        ui_host: config.uiHost,
-        capture_pageview: false, // this is handled by the PostHogPageView component
-        autocapture: true,
-        debug: debugMode,
-      });
-    }
-  }, [config, debugMode]);
+    if (!analyticsEnabled || typeof window === "undefined") return;
 
-  // If PostHog is disabled, just render children without the provider
-  if (!config.enabled) {
+    // Initialize PostHog
+    posthog.init(config.apiKey, {
+      api_host: config.apiHost,
+      ui_host: config.uiHost,
+      capture_pageview: false, // We'll handle this with PostHogPageView
+      autocapture: true,
+      person_profiles: "identified_only",
+      debug: debugMode,
+    });
+  }, [analyticsEnabled, config, debugMode]);
+
+  // If analytics is disabled, just render children
+  if (!analyticsEnabled) {
     return <>{children}</>;
   }
 
+  // Render PostHog provider with components
   return (
     <PHProvider client={posthog}>
+      {children}
       <Suspense fallback={null}>
         <PostHogPageView />
+        <PostHogUserIdentity session={session} />
       </Suspense>
-      {children}
     </PHProvider>
   );
-}
+} 

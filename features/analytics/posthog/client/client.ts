@@ -3,8 +3,8 @@
  */
 import posthog from "posthog-js";
 import {
-  PostHogConfig,
   PostHogClientOptions,
+  PostHogConfig,
   PostHogEventProperties,
 } from "../shared/types";
 
@@ -38,7 +38,7 @@ export const initPostHog = (
       debug: config.debug,
       persistence: "localStorage",
       bootstrap: {
-        distinctID: mergedOptions.distinctId || "anonymous",
+        distinctID: mergedOptions.distinctId || undefined,
       },
     });
 
@@ -67,49 +67,6 @@ export const trackEvent = (
     posthog.capture(eventName, properties);
   } catch (error) {
     console.error(`[PostHog] Failed to track event ${eventName}:`, error);
-  }
-};
-
-// Identify a user
-export const identifyUser = (
-  distinctId: string,
-  properties?: Record<string, string | number | boolean | null>,
-): void => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    posthog.identify(distinctId, properties);
-  } catch (error) {
-    console.error(`[PostHog] Failed to identify user ${distinctId}:`, error);
-  }
-};
-
-// Reset the user identity (for logout)
-export const resetUser = (): void => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    posthog.reset();
-  } catch (error) {
-    console.error("[PostHog] Failed to reset user:", error);
-  }
-};
-
-// Get the current distinct ID
-export const getDistinctId = (): string => {
-  if (typeof window === "undefined") {
-    return "anonymous";
-  }
-
-  try {
-    return posthog.get_distinct_id();
-  } catch (error) {
-    console.error("[PostHog] Failed to get distinct ID:", error);
-    return "anonymous";
   }
 };
 

@@ -5,11 +5,11 @@
 // Core client utilities
 export * from "./client";
 export * from "./events";
-export * from "./identification";
 
-// React components and providers
+// React components
 export { PostHogProvider } from "./provider";
 export { PostHogPageView } from "./pageview";
+export { PostHogUserIdentity } from "./user-identity";
 
 // React hooks
 export * from "./hooks";
