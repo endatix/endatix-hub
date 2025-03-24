@@ -3,6 +3,7 @@ declare namespace NodeJS {
     // Environment
     NODE_ENV: "development" | "production" | "test";
     REMOTE_IMAGE_HOSTNAMES?: string;
+    ROBOTS_ALLOWED_DOMAINS?: string;
 
     // Session
     SESSION_SECRET: string;
