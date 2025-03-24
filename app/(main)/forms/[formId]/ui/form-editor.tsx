@@ -114,7 +114,6 @@ function FormEditor({
       no: number,
       callback: (num: number, status: boolean) => void,
     ) => {
-      console.log(JSON.stringify(newCreator?.JSON));
       callback(no, true);
     };
     newCreator.onUploadFile.add(handleUploadFile);
