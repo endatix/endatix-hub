@@ -8,9 +8,6 @@ import {
   PostHogEventProperties,
 } from "../shared/types";
 
-// Track initialization state
-let isInitialized = false;
-
 // Default PostHog configuration
 const defaultOptions: PostHogClientOptions = {
   capturePageview: false,
@@ -19,6 +16,14 @@ const defaultOptions: PostHogClientOptions = {
     flushAt: 20,
     flushInterval: 10000,
   },
+};
+
+/**
+ * Check if PostHog is initialized
+ * This directly checks PostHog's state
+ */
+export const isPostHogInitialized = (): boolean => {
+  return posthog.__loaded === true;
 };
 
 /**
@@ -34,15 +39,8 @@ export const initPostHog = (
   options: Partial<PostHogClientOptions> = {},
 ): boolean => {
   // Skip initialization if already initialized, disabled, or not in browser
-  if (isInitialized || !config.enabled || typeof window === "undefined") {
+  if (isPostHogInitialized() || !config.enabled || typeof window === "undefined") {
     return false; // Return false to indicate no initialization was performed
-  }
-
-  if (posthog.__loaded) {
-    console.log("[PostHog] PostHog is already initialized");
-    isInitialized = true;
-
-    return false; // Already loaded but we didn't do the initialization
   }
 
   try {
@@ -62,8 +60,6 @@ export const initPostHog = (
       },
     });
 
-    isInitialized = true;
-
     // Enable debug logging if configured
     if (config.debug) {
       console.log("[PostHog] Initialized with options:", {
@@ -80,13 +76,6 @@ export const initPostHog = (
 };
 
 /**
- * Check if PostHog is initialized
- */
-export const isPostHogInitialized = (): boolean => {
-  return isInitialized;
-};
-
-/**
  * Ensure PostHog is initialized before performing operations
  * Returns true if initialization was successful or already done
  */
@@ -94,7 +83,7 @@ export const ensureInitialized = (
   config: PostHogConfig,
   options: Partial<PostHogClientOptions> = {},
 ): boolean => {
-  if (isInitialized) {
+  if (isPostHogInitialized()) {
     return true;
   }
 
@@ -113,12 +102,12 @@ export const trackEvent = (
   }
 
   // If config is provided, ensure PostHog is initialized
-  if (config && !isInitialized) {
+  if (config && !isPostHogInitialized()) {
     ensureInitialized(config, options);
   }
 
   // Skip if PostHog isn't initialized
-  if (!isInitialized) {
+  if (!isPostHogInitialized()) {
     console.warn(
       `[PostHog] Can't track event "${eventName}": PostHog not initialized`,
     );
@@ -144,12 +133,12 @@ export const isFeatureEnabled = (
   }
 
   // If config is provided, ensure PostHog is initialized
-  if (config && !isInitialized) {
+  if (config && !isPostHogInitialized()) {
     ensureInitialized(config, options);
   }
 
   // Skip if PostHog isn't initialized
-  if (!isInitialized) {
+  if (!isPostHogInitialized()) {
     console.warn(
       `[PostHog] Can't check feature "${key}": PostHog not initialized`,
     );
