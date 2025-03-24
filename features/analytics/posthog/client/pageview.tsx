@@ -62,6 +62,5 @@ export function PostHogPageView({
     previousPathRef.current = pathname;
   }, [pathname, searchParams, getPageProperties]);
 
-  // This component doesn't render anything
   return null;
 }

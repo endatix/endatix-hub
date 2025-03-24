@@ -143,10 +143,43 @@ export default async function DashboardPage() {
 }
 ```
 
+## Client-side Custom Tracking Without Provider
+
+With the centralized initialization logic, you can now use PostHog analytics without the provider in custom scenarios:
+
+```typescript
+// utils/tracking-helper.ts
+import { trackEvent, isFeatureEnabled, ensureInitialized } from '@/hub/features/analytics/posthog/client/client';
+import { createPostHogConfig } from '@/hub/features/analytics/posthog/shared/config';
+
+// Use in standalone utilities or non-React environments
+export function trackCustomEvent(name: string, properties = {}) {
+  const config = createPostHogConfig();
+  
+  // This will ensure PostHog is initialized if needed, or use the existing initialization
+  trackEvent(name, properties, config);
+}
+
+// Check feature flags outside React components
+export function checkFeatureFlag(key: string, defaultValue = false) {
+  const config = createPostHogConfig();
+  return isFeatureEnabled(key, defaultValue, config);
+}
+
+// For scenarios where you want to explicitly initialize PostHog
+export function setupAnalytics() {
+  const config = createPostHogConfig();
+  // Will only initialize if not already initialized
+  ensureInitialized(config);
+}
+```
+
 ## Best Practices
 
 1. **Use the `withPostHog` helper** when possible - it handles client lifecycle automatically
 2. **Always call `shutdown()`** when using the client directly to ensure events are sent
 3. **Add error handling** to gracefully handle network or other issues
 4. **Use meaningful distinct IDs** for users (anonymous or authenticated)
-5. **Add context to events** such as timestamps, page info, and other relevant metadata 
+5. **Add context to events** such as timestamps, page info, and other relevant metadata
+6. **Prefer the PostHogProvider** for React applications - it handles initialization automatically
+7. **For standalone utilities**, use the client with `ensureInitialized` for safe initialization 

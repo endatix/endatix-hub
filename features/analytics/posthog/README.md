@@ -11,6 +11,7 @@ This module provides a comprehensive integration with PostHog for analytics trac
 - React hooks for easier component integration
 - Form tracking utilities
 - Error tracking
+- Centralized initialization logic that's safe to use across your application
 
 ## Setup
 
@@ -53,9 +54,58 @@ This module provides a comprehensive integration with PostHog for analytics trac
    }
    ```
 
-## Usage
+## Architecture
 
-### Basic Event Tracking
+The PostHog integration follows these key design principles:
+
+1. **Centralized Initialization**: PostHog is initialized only once, regardless of how many times the initialization function is called. This prevents duplicate initialization issues.
+
+2. **Provider-based Integration**: The primary method of using PostHog is through the `PostHogProvider`, which handles initialization and core functionality.
+
+3. **Standalone Utility Support**: For non-React contexts or custom usage scenarios, the client exports utility functions that can safely initialize PostHog when needed.
+
+4. **Safe Feature Detection**: All methods check for the presence of PostHog before attempting operations, providing graceful fallbacks.
+
+## Usage Examples
+
+### Using the Provider (Recommended)
+
+```tsx
+// In your app layout.tsx
+import { PostHogProvider } from '@/hub/features/analytics/posthog';
+import { getSession } from '@/features/auth';
+
+export default async function RootLayout({ children }) {
+  const session = await getSession();
+
+  return (
+    <PostHogProvider session={session}>
+      {children}
+    </PostHogProvider>
+  );
+}
+```
+
+### Direct Utility Usage (Without Provider)
+
+For scenarios where you need to use PostHog outside of the React component tree:
+
+```typescript
+// In any client-side code
+import { trackEvent, isFeatureEnabled } from '@/hub/features/analytics/posthog/client/client';
+import { createPostHogConfig } from '@/hub/features/analytics/posthog/shared/config';
+
+// Get configuration
+const config = createPostHogConfig();
+
+// Track an event (will initialize PostHog if needed)
+trackEvent('button_clicked', { button_id: 'checkout' }, config);
+
+// Check a feature flag (will initialize PostHog if needed)
+const isEnabled = isFeatureEnabled('new-feature', false, config);
+```
+
+### Using Hooks (Within Provider Context)
 
 ```tsx
 import { usePostHog } from '@/hub/features/analytics/posthog';
@@ -71,93 +121,23 @@ function MyComponent() {
 }
 ```
 
-### Utility Hooks
-
-```tsx
-import { useTrackEvent } from '@/hub/features/analytics/posthog';
-
-function MyComponent() {
-  const { trackInteraction, trackFeatureUsage } = useTrackEvent();
-  
-  const handleClick = () => {
-    trackInteraction('button', 'submit_button', 'click', {
-      page: 'checkout',
-      section: 'payment'
-    });
-    
-    // Track feature usage
-    trackFeatureUsage('chat', 'open', {
-      source: 'sidebar'
-    });
-  };
-  
-  return <button onClick={handleClick}>Submit</button>;
-}
-```
-
-### Form Tracking
-
-```tsx
-import { useTrackForms } from '@/hub/features/analytics/posthog';
-
-function CheckoutForm() {
-  const { trackView, createSubmitHandler } = useTrackForms({
-    formId: 'checkout_form',
-    formName: 'Checkout Form',
-    trackStartEnabled: true,
-    trackCompletion: true
-  });
-  
-  // Track form view on component mount
-  useEffect(() => {
-    trackView();
-  }, [trackView]);
-  
-  const handleSubmit = createSubmitHandler(async (data) => {
-    // Handle form submission...
-    await submitOrder(data);
-  });
-  
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* Form fields */}
-    </form>
-  );
-}
-```
-
-## Implementation Details
-
-- Uses the official PostHog JavaScript client (`posthog-js`) for client-side tracking
-- Uses the official PostHog React integration (`posthog-js/react`) for React components
-- Includes custom hooks and utilities for standardized event tracking
-- Automatically tracks page views via the PostHogPageView component
-- Provides user identification utilities for connecting anonymous and logged-in users
-
-## Event Categories
-
-We use standardized event categories for consistency:
-
-- `form` - Form interactions and submissions
-- `navigation` - Page navigation and routing
-- `interaction` - User interactions (clicks, inputs, etc.)
-- `error` - Error tracking
-- `system` - System events
-- `api` - API calls
-- `feature` - Feature usage
-- `auth` - Authentication events
-
 ## Best Practices
 
-1. **Use standardized events**: Prefer using the provided utilities over custom event tracking to ensure consistency.
+1. **Use the Provider when possible**: The PostHogProvider handles initialization and provides context for all hooks.
 
-2. **Include relevant context**: Always include relevant contextual information with events.
+2. **For non-React contexts**: Use the utility functions with configuration to ensure proper initialization.
 
-3. **Respect user privacy**: Never track personal identifiable information (PII) unless explicitly allowed.
+3. **Avoid manual initialization**: Let the system handle PostHog initialization; just use the tracking functions.
 
-4. **Performance**: Be mindful of the number of events tracked to avoid performance issues.
+4. **Use standardized events**: Prefer using the provided utilities over custom event tracking to ensure consistency.
 
-5. **Error handling**: Always handle errors gracefully in tracking code to prevent app errors.
+5. **Include relevant context**: Always include relevant contextual information with events.
+
+6. **Respect user privacy**: Never track personal identifiable information (PII) unless explicitly allowed.
+
+7. **Performance**: Be mindful of the number of events tracked to avoid performance issues.
+
+8. **Error handling**: Always handle errors gracefully in tracking code to prevent app errors.
 
 ## Custom Event Tracking Guidelines
 

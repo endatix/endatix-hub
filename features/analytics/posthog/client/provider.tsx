@@ -10,6 +10,7 @@ import {
 } from "../shared/config";
 import { PostHogPageView } from "./pageview";
 import { PostHogUserIdentity } from "./user-identity";
+import { initPostHog } from "./client";
 import type { SessionData } from "@/features/auth";
 
 interface PostHogProviderProps {
@@ -29,14 +30,9 @@ export function PostHogProvider({ children, session }: PostHogProviderProps) {
   useEffect(() => {
     if (!analyticsEnabled || typeof window === "undefined") return;
 
-    // Initialize PostHog
-    posthog.init(config.apiKey, {
-      api_host: config.apiHost,
-      ui_host: config.uiHost,
-      capture_pageview: false, // We'll handle this with PostHogPageView
-      autocapture: true,
-      person_profiles: "identified_only",
-      debug: debugMode,
+    initPostHog(config, {
+      capturePageview: false, // We'll handle this with PostHogPageView
+      disableSessionRecording: false,
     });
   }, [analyticsEnabled, config, debugMode]);
 
