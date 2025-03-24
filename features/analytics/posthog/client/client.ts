@@ -22,22 +22,27 @@ const defaultOptions: PostHogClientOptions = {
 };
 
 /**
- * Initialize PostHog on the client side
- * Safe to call multiple times - will only initialize once
+ * Initializes PostHog with the provided configuration
+ * 
+ * @param config - PostHog configuration options
+ * @param options - Additional client options
+ * @returns boolean - Returns true ONLY if PostHog was newly initialized during this call,
+ *                    false if initialization was skipped (already initialized or disabled)
  */
 export const initPostHog = (
   config: PostHogConfig,
   options: Partial<PostHogClientOptions> = {},
 ): boolean => {
+  // Skip initialization if already initialized, disabled, or not in browser
   if (isInitialized || !config.enabled || typeof window === "undefined") {
-    return isInitialized;
+    return false; // Return false to indicate no initialization was performed
   }
 
   if (posthog.__loaded) {
     console.log("[PostHog] PostHog is already initialized");
     isInitialized = true;
 
-    return true;
+    return false; // Already loaded but we didn't do the initialization
   }
 
   try {
@@ -67,7 +72,7 @@ export const initPostHog = (
       });
     }
 
-    return true;
+    return true; // Successfully performed initialization
   } catch (error) {
     console.error("[PostHog] Failed to initialize:", error);
     return false;

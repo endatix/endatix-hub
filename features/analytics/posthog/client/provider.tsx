@@ -30,10 +30,16 @@ export function PostHogProvider({ children, session }: PostHogProviderProps) {
   useEffect(() => {
     if (!analyticsEnabled || typeof window === "undefined") return;
 
-    initPostHog(config, {
-      capturePageview: false, // We'll handle this with PostHogPageView
-      disableSessionRecording: false,
-    });
+    try {
+      initPostHog(config, {
+        capturePageview: false, // We'll handle this with PostHogPageView
+        disableSessionRecording: false,
+      });
+    } catch (error) {
+      // Silently handle initialization errors to prevent app crashes
+      // In a production app, you might want to log this to an error tracking service
+      console.error('Failed to initialize PostHog:', error);
+    }
   }, [analyticsEnabled, config, debugMode]);
 
   // If analytics is disabled, just render children
