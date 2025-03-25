@@ -26,7 +26,7 @@ export default defineConfig({
       enabled: true,
       provider: 'v8',
       reporter: process.env.GITHUB_ACTIONS ? ['cobertura', 'json', 'json-summary'] : ['cobertura', 'html'],
-      reportsDirectory: '../../.coverage/endatix-hub',
+      reportsDirectory: '.coverage/endatix-hub',
     },
     reporters: process.env.GITHUB_ACTIONS ? ['dot', 'github-actions'] : ['dot']
   },
