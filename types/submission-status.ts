@@ -5,6 +5,7 @@ import {
   Sparkles,
   Variable,
   XCircle,
+  CheckSquare,
 } from "lucide-react";
 
 enum SubmissionStatusKind {
@@ -40,7 +41,7 @@ class SubmissionStatus {
     },
     [SubmissionStatusKind.Approved]: {
       label: "Approved",
-      icon: Check,
+      icon: CheckSquare,
       color: "text-green-500",
     },
     [SubmissionStatusKind.Declined]: {

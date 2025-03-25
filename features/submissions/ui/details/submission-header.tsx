@@ -9,7 +9,6 @@ import { useState } from "react";
 import { Spinner } from "@/components/loaders/spinner";
 import { saveToFileHandler } from "survey-creator-core";
 import { toast } from "@/components/ui/toast";
-import { StatusButton } from "@/features/submissions/use-cases/change-status";
 import { trackFeatureUsage } from "@/features/analytics/posthog";
 
 interface SubmissionHeaderProps {
@@ -78,13 +77,6 @@ export function SubmissionHeader({
           )}
           {loading ? "Exporting..." : "Export PDF"}
         </Button>
-
-        <StatusButton
-          className="hidden md:flex"
-          submissionId={submissionId}
-          formId={formId}
-          status={status}
-        />
 
         <Button variant={"outline"} asChild className="hidden md:flex">
           <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
