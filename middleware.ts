@@ -26,13 +26,14 @@ export async function middleware(request: NextRequest) {
  * - favicon.ico, sitemap.xml, robots.txt (metadata files)
  * - assets - all files and folders served from the public folder
  * - login - the login page
+ * - ingest - the ingest proxy route for PostHog
  * - Note the the `missing: [{ type: 'header', key: 'next-action' }]` is to exclude server-actions
  */
 export const config = {
   matcher: [
     {
       source:
-        "/((?!api|.swa|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|login).*)",
+        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|login).*)",
       missing: [{ type: "header", key: "next-action" }],
     },
   ],

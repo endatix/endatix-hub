@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Spinner } from "@/components/loaders/spinner";
 import { saveToFileHandler } from "survey-creator-core";
 import { toast } from "@/components/ui/toast";
+import { trackFeatureUsage } from "@/features/analytics/posthog";
 
 interface SubmissionHeaderProps {
   submissionId: string;
@@ -34,11 +35,27 @@ export function SubmissionHeader({
           type: "text/plain;charset=utf-8",
         });
         saveToFileHandler(pdfFileName, blob);
+        
+        // Track successful PDF export
+        trackFeatureUsage('submission', 'export_pdf', {
+          form_id: formId,
+          submission_id: submissionId,
+          file_name: pdfFileName,
+          file_size: blob.size,
+        });
+        
         toast.success("PDF exported successfully");
         setLoading(false);
       }
     } catch (error) {
       console.error("Failed to export PDF:", error);
+      
+      // Track export failure
+      trackFeatureUsage('submission', 'export_pdf_error', {
+        form_id: formId,
+        submission_id: submissionId,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@ declare namespace NodeJS {
     // Environment
     NODE_ENV: "development" | "production" | "test";
     REMOTE_IMAGE_HOSTNAMES?: string;
+    ROBOTS_ALLOWED_DOMAINS?: string;
 
     // Session
     SESSION_SECRET: string;
@@ -33,5 +34,12 @@ declare namespace NodeJS {
     // Telemetry
     OTEL_LOG_LEVEL?: boolean;
     APPLICATIONINSIGHTS_CONNECTION_STRING?: string;
+
+    // PostHog
+    NEXT_PUBLIC_POSTHOG_KEY?: string;
+    NEXT_PUBLIC_POSTHOG_HOST?: string;
+    NEXT_PUBLIC_POSTHOG_UI_HOST?: string;
+    // Application settings
+    NEXT_PUBLIC_IS_DEBUG_MODE?: string; // Application-level debug flag
   }
 }

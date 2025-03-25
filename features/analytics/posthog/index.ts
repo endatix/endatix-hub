@@ -1,0 +1,11 @@
+/**
+ * PostHog Analytics module
+ * Main entry point for analytics functionality
+ */
+
+// Re-export shared utilities that are safe for both client and server
+export * from "./shared";
+
+// Re-export client-side utilities
+// These should only be used in client components
+export * from "./client";
