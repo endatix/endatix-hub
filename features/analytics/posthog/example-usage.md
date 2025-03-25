@@ -6,7 +6,7 @@ This document provides examples of how to use the PostHog client implementation 
 
 ```typescript
 // In a client component
-import { trackFeatureUsage } from '@/hub/features/analytics/posthog';
+import { trackFeatureUsage } from '@/features/analytics/posthog';
 
 // Track feature usage
 function handleClick() {
@@ -22,8 +22,8 @@ function handleClick() {
 
 ```typescript
 // Direct Client Usage with Auto-initialization
-import { trackEvent, isFeatureEnabled, ensureInitialized } from '@/hub/features/analytics/posthog/client/client';
-import { createPostHogConfig } from '@/hub/features/analytics/posthog/shared/config';
+import { trackEvent, isFeatureEnabled, ensureInitialized } from '@/features/analytics/posthog/client/client';
+import { createPostHogConfig } from '@/features/analytics/posthog/shared/config';
 
 // Use in standalone utilities or non-React environments
 export function trackCustomEvent(name: string, properties = {}) {

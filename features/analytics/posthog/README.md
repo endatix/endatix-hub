@@ -23,7 +23,7 @@ Client-side analytics tracking for Next.js applications using PostHog.
 2. Add PostHog provider:
    ```tsx
    // In app layout.tsx
-   import { PostHogProvider } from '@/hub/features/analytics/posthog';
+   import { PostHogProvider } from '@/features/analytics/posthog';
    import { getSession } from '@/features/auth';
    
    export default async function RootLayout({ children }) {
@@ -39,7 +39,7 @@ Client-side analytics tracking for Next.js applications using PostHog.
 
    With custom config (optional):
    ```tsx
-   import { PostHogProvider, createPostHogConfig } from '@/hub/features/analytics/posthog';
+   import { PostHogProvider, createPostHogConfig } from '@/features/analytics/posthog';
    
    // Later in your component
    const posthogConfig = createPostHogConfig({
@@ -65,7 +65,7 @@ Client-side analytics tracking for Next.js applications using PostHog.
 
 ```tsx
 import { usePostHog } from 'posthog-js/react';
-import { useIdentify, trackFeatureUsage } from '@/hub/features/analytics/posthog';
+import { useIdentify, trackFeatureUsage } from '@/features/analytics/posthog';
 
 function MyComponent() {
   const posthog = usePostHog();
@@ -86,7 +86,7 @@ function MyComponent() {
 ### User Identification
 
 ```tsx
-import { useSessionIdentity, useIdentify } from '@/hub/features/analytics/posthog';
+import { useSessionIdentity, useIdentify } from '@/features/analytics/posthog';
 
 // Automatic identity handling with session:
 function ProfileComponent({ session }) {
@@ -114,7 +114,7 @@ import {
   trackEvent, 
   isFeatureEnabled, 
   createPostHogConfig 
-} from '@/hub/features/analytics/posthog';
+} from '@/features/analytics/posthog';
 
 // Get configuration
 const config = createPostHogConfig();
