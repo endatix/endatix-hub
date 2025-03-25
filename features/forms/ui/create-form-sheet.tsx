@@ -20,7 +20,7 @@ import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { FC, useState, useTransition } from "react";
 import ChatBox from "./chat-box";
 import TemplateSelector from "./template-selector";
@@ -85,6 +85,7 @@ const CreateFormSheet = () => {
   );
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const openNewFormInEditor = async () => {
     if (isPending) {
@@ -100,7 +101,7 @@ const CreateFormSheet = () => {
       const formResult = await createFormAction(request);
       if (Result.isSuccess(formResult) && formResult.value) {
         const formId = formResult.value;
-        redirect(`/forms/${formId}`);
+        router.push(`/forms/${formId}`);
       } else {
         alert("Failed to create form");
       }
@@ -128,7 +129,7 @@ const CreateFormSheet = () => {
 
         if (Result.isSuccess(result)) {
           toast.success("Form created from template successfully");
-          redirect(`/forms/${result.value}`);
+          router.push(`/forms/${result.value}`);
         } else {
           toast.error(result.message || "Failed to create form from template");
         }
