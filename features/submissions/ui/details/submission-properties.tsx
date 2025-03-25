@@ -3,6 +3,7 @@ import { CellCompleteStatus } from "../table/cell-complete-status";
 import { PropertyDisplay } from "./property-display";
 import { Submission, SubmissionStatus, SubmissionStatusKind } from "@/types";
 import { Badge } from "@/components/ui/badge";
+import { CellStatusDropdown } from "../table/cell-status-dropdown";
 
 interface SubmissionPropertiesProps {
   submission: Submission;
@@ -50,13 +51,11 @@ export function SubmissionProperties({
         </PropertyDisplay>
       )}
       <PropertyDisplay label="Status">
-        <Badge
-          variant={
-            status.value === SubmissionStatusKind.New ? "default" : "secondary"
-          }
-        >
-          {status.label}
-        </Badge>
+        <CellStatusDropdown
+          code={submission.status}
+          submissionId={submission.id}
+          formId={submission.formId}
+        />
       </PropertyDisplay>
       <PropertyDisplay label="Last modified on">
         {getFormattedDate(submission.modifiedAt)}

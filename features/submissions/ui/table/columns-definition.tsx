@@ -6,6 +6,7 @@ import { CellDate } from "./cell-date";
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
 import { CellReadStatus } from "./cell-read-status";
+import { CellStatusDropdown } from "./cell-status-dropdown";
 
 export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   {
@@ -67,6 +68,12 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   {
     id: "status",
     header: ({ column }) => <ColumnHeader column={column} title="Status" />,
-    cell: ({ row }) => <CellReadStatus code={row.original.status} />,
+    cell: ({ row }) => (
+      <CellStatusDropdown 
+        code={row.original.status} 
+        submissionId={row.original.id}
+        formId={row.original.formId}
+      />
+    ),
   },
 ];

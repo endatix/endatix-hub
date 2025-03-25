@@ -16,7 +16,6 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { StatusDropdownMenuItem } from "@/features/submissions/use-cases/change-status";
 import { useState } from 'react';
 
 interface RowActionsProps<TData> {
@@ -54,11 +53,6 @@ export function RowActions<TData>({ row }: RowActionsProps<TData>) {
             <span>Edit</span>
           </Link>
         </DropdownMenuItem>
-        <StatusDropdownMenuItem
-          submissionId={item.id}
-          formId={item.formId}
-          status={item.status}
-        />
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-not-allowed">
           <FileDown className="w-4 h-4 mr-2" />
