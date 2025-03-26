@@ -20,7 +20,22 @@ import { headers } from "next/headers";
 export const metadata: Metadata = {
   title: "Login | Endatix Hub",
   description:
-    "Endatix sign in page. The first column has the login form with email and password. There's a Forgot your password link and a link to sign up if you do not have an account. The second column has a cover image.",
+    "Sign into the Endatix Hub form management portal or register a new account.",
+  authors: [
+    {
+      name: "Endatix Team",
+      url: "https://endatix.com",
+    },
+  ],
+  openGraph: {
+    description:
+      "Sign into the Endatix Hub form management portal or register a new account.",
+    images: [
+      {
+        url: "/assets/endatix-og-image.jpg",
+      },
+    ],
+  },
 };
 
 const LoginPage = async () => {
