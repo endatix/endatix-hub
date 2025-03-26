@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { CompleteEvent, SurveyModel } from "survey-core";
 import "survey-core/survey-core.css";
 import { Survey } from "survey-react-ui";
+import { DefaultLight } from "survey-core/themes";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
 
@@ -91,6 +92,7 @@ export default function SurveyComponent({
   );
 
   useEffect(() => {
+    model.applyTheme(DefaultLight);
     model.onComplete.add(submitForm);
     model.onValueChanged.add(updatePartial);
     model.onCurrentPageChanged.add(updatePartial);
