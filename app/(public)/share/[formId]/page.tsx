@@ -32,13 +32,11 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
   const definition = activeDefinitionResult.value;
 
   return (
-    <div className="flex min-h-screen flex-col items-center p-8">
-      <SurveyJsWrapper
-        formId={formId}
-        definition={definition}
-        submission={submission}
-      />
-    </div>
+    <SurveyJsWrapper
+      formId={formId}
+      definition={definition}
+      submission={submission}
+    />
   );
 }
 
