@@ -93,7 +93,7 @@ const FormTemplateCard = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between w-full">
-          <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
               href={`/forms/templates/${template.id}`}
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
@@ -112,7 +112,7 @@ const FormTemplateCard = ({
               onClick={handleUseTemplate}
               disabled={!template.isEnabled || isPending}
               className={cn(
-                "text-sm text-muted-foreground inline-flex items-center hover:text-foreground cursor-pointer bg-transparent border-none p-0",
+                "text-sm text-muted-foreground inline-flex items-center hover:text-foreground cursor-pointer bg-transparent border-none p-0 whitespace-nowrap",
                 (!template.isEnabled || isPending) &&
                   "opacity-50 cursor-not-allowed",
               )}

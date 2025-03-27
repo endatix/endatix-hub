@@ -11,7 +11,7 @@ import {
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { FilePen, Link2, List, MoreHorizontal, Save } from "lucide-react";
+import { FilePen, Link2, List, MoreVertical, Save } from "lucide-react";
 import React, { useState } from "react";
 import {
   DropdownMenu,
@@ -106,7 +106,7 @@ const FormCard = ({ form, isSelected, onSaveAsTemplate, className, ...props }: F
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between w-full">
-          <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
               href={`forms/${form.id}`}
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
@@ -136,17 +136,19 @@ const FormCard = ({ form, isSelected, onSaveAsTemplate, className, ...props }: F
               <List className="w-4 h-4 mr-1" />
               Submissions
             </Link>
+          </div>
+          <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
             <DropdownMenu
               open={isDropdownOpen}
               onOpenChange={setIsDropdownOpen}
             >
               <DropdownMenuTrigger asChild>
                 <button className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer">
-                  <MoreHorizontal className="w-4 h-4" />
+                  <MoreVertical className="w-4 h-4" />
                   <span className="sr-only">More options</span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+              <DropdownMenuContent align="end" side="top">
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={handleOpenSaveAsTemplate}
