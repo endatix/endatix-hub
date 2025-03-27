@@ -244,6 +244,7 @@ function TemplateList({
                       variant="ghost"
                       size="icon"
                       onClick={(e) => {
+                        onSelectTemplate(template)
                         e.stopPropagation();
                         onPreviewTemplate(template.id);
                       }}
