@@ -118,6 +118,7 @@ export default function TemplateSelector({
               onSelectTemplate={handleSelectTemplate}
               onPreviewTemplate={onPreviewTemplate}
               onSearch={handleSearch}
+              searchQuery={searchQuery}
             />
           </PopoverContent>
         </Popover>
@@ -160,6 +161,7 @@ export default function TemplateSelector({
               onSelectTemplate={handleSelectTemplate}
               onPreviewTemplate={onPreviewTemplate}
               onSearch={handleSearch}
+              searchQuery={searchQuery}
             />
           </div>
         </DrawerContent>
@@ -181,6 +183,7 @@ interface TemplateListProps {
   onSelectTemplate: (template: FormTemplate) => void;
   onPreviewTemplate: (templateId: string) => void;
   onSearch: (value: string) => void;
+  searchQuery: string;
 }
 
 function TemplateList({
@@ -191,6 +194,7 @@ function TemplateList({
   onSelectTemplate,
   onPreviewTemplate,
   onSearch,
+  searchQuery,
 }: TemplateListProps) {
   const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(null);
 
@@ -198,6 +202,7 @@ function TemplateList({
     <Command shouldFilter={false}>
       <CommandInput 
         placeholder="Search templates..." 
+        value={searchQuery}
         onValueChange={onSearch}
       />
       <CommandList>
