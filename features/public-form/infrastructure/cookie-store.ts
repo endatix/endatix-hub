@@ -13,6 +13,12 @@ type CookieConfig = {
   readonly secure: boolean;
 };
 
+// Type for base cookie options without expiration/maxAge, name, or value
+type BaseCookieOptions = Omit<
+  Partial<ResponseCookie>,
+  "expires" | "maxAge" | "name" | "value"
+>;
+
 export class FormTokenCookieStore {
   private readonly COOKIE_CONFIG: CookieConfig;
 
@@ -46,12 +52,11 @@ export class FormTokenCookieStore {
     );
   }
 
-  private getCookieOptions(): Partial<ResponseCookie> {
+  private getBaseCookieOptions(): BaseCookieOptions {
     return {
       httpOnly: true,
       secure: this.COOKIE_CONFIG.secure,
       sameSite: "strict",
-      expires: this.getExpires(),
       path: "/",
     };
   }
@@ -74,7 +79,9 @@ export class FormTokenCookieStore {
         : Result.error("No token found for the current form");
     } catch (error) {
       return Result.error(
-        `Error parsing cookie: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Error parsing cookie: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       );
     }
   }
@@ -89,16 +96,17 @@ export class FormTokenCookieStore {
       const tokens = currentValue ? JSON.parse(currentValue) : {};
       const updatedValue = JSON.stringify({ ...tokens, [formId]: token });
 
-      this.cookieStore.set(
-        this.COOKIE_CONFIG.name,
-        updatedValue,
-        this.getCookieOptions(),
-      );
+      this.cookieStore.set(this.COOKIE_CONFIG.name, updatedValue, {
+        ...this.getBaseCookieOptions(),
+        expires: this.getExpires(),
+      });
 
       return Result.success(void 0);
     } catch (error) {
       return Result.error(
-        `Failed to set token: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to set token: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       );
     }
   }
@@ -110,27 +118,33 @@ export class FormTokenCookieStore {
 
     try {
       const cookie = this.cookieStore.get(this.COOKIE_CONFIG.name);
-      if (!cookie) {
+      if (!cookie?.value) {
         return Result.success(void 0);
       }
 
       const currentTokens = JSON.parse(cookie.value);
-      const { [formId]: _, ...remainingTokens } = currentTokens;
-
-      if (Object.keys(remainingTokens).length === 0) {
-        this.cookieStore.delete(this.COOKIE_CONFIG.name);
-      } else {
-        this.cookieStore.set(
-          this.COOKIE_CONFIG.name,
-          JSON.stringify(remainingTokens),
-          this.getCookieOptions(),
-        );
+      if (!(formId in currentTokens)) {
+        return Result.success(void 0);
       }
+
+      delete currentTokens[formId];
+      const isEmpty = Object.keys(currentTokens).length === 0;
+
+      this.cookieStore.set(
+        this.COOKIE_CONFIG.name,
+        isEmpty ? "" : JSON.stringify(currentTokens),
+        {
+          ...this.getBaseCookieOptions(),
+          ...(isEmpty ? { maxAge: 0 } : { expires: this.getExpires() }),
+        },
+      );
 
       return Result.success(void 0);
     } catch (error) {
       return Result.error(
-        `Failed to delete token: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to delete token: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       );
     }
   }

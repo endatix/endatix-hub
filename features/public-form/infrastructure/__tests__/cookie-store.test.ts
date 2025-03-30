@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { FormTokenCookieStore } from "../cookie-store";
-import { Result, Success } from "@/lib/result";
+import { Result } from "@/lib/result";
+import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
 
 describe("FormTokenCookieStore", () => {
   const mockCookieStore = {
@@ -16,7 +17,7 @@ describe("FormTokenCookieStore", () => {
   });
 
   it("should initialize with environment variables", () => {
-    const store = new FormTokenCookieStore(mockCookieStore as any);
+    const store = new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     expect(store).toBeDefined();
   });
 
@@ -26,13 +27,13 @@ describe("FormTokenCookieStore", () => {
 
     // Act & Assert
     expect(() => {
-      new FormTokenCookieStore(mockCookieStore as any);
+      new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     }).toThrow("NEXT_FORMS_COOKIE_NAME environment variable is not set");
   });
 
   it("should get token successfully", () => {
     // Arrange
-    const store = new FormTokenCookieStore(mockCookieStore as any);
+    const store = new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     mockCookieStore.get.mockReturnValue({
       value: JSON.stringify({ "form-1": "token-1" }),
     });
@@ -48,7 +49,7 @@ describe("FormTokenCookieStore", () => {
   });
 
   it("should handle missing token", () => {
-    const store = new FormTokenCookieStore(mockCookieStore as any);
+    const store = new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     mockCookieStore.get.mockReturnValue({
       value: JSON.stringify({}),
     });
@@ -61,7 +62,7 @@ describe("FormTokenCookieStore", () => {
   });
 
   it("should set token successfully", () => {
-    const store = new FormTokenCookieStore(mockCookieStore as any);
+    const store = new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     mockCookieStore.get.mockReturnValue({
       value: JSON.stringify({}),
     });
@@ -79,7 +80,7 @@ describe("FormTokenCookieStore", () => {
   });
 
   it("should delete token successfully", () => {
-    const store = new FormTokenCookieStore(mockCookieStore as any);
+    const store = new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     mockCookieStore.get.mockReturnValue({
       value: JSON.stringify({ "form-1": "token-1", "form-2": "token-2" }),
     });
@@ -94,18 +95,18 @@ describe("FormTokenCookieStore", () => {
   });
 
   it("should delete cookie when last token is removed", () => {
-    const store = new FormTokenCookieStore(mockCookieStore as any);
+    const store = new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     mockCookieStore.get.mockReturnValue({
       value: JSON.stringify({ "form-1": "token-1" }),
     });
 
     const result = store.deleteToken("form-1");
     expect(Result.isSuccess(result)).toBe(true);
-    expect(mockCookieStore.delete).toHaveBeenCalledWith("TEST_COOKIE");
+    expect(mockCookieStore.set).toHaveBeenCalledWith("TEST_COOKIE", "", expect.any(Object));
   });
 
   it("should handle invalid JSON in cookie", () => {
-    const store = new FormTokenCookieStore(mockCookieStore as any);
+    const store = new FormTokenCookieStore(mockCookieStore as unknown as ReadonlyRequestCookies);
     mockCookieStore.get.mockReturnValue({
       value: "invalid-json",
     });
