@@ -2,7 +2,7 @@
  * React hook for tracking form events with PostHog
  */
 import { useCallback } from 'react';
-import { useTrackEvent } from './useTrackEvent';
+import { useTrackEvent } from './use-track-event';
 
 interface FormTrackingOptions {
   formId: string;
