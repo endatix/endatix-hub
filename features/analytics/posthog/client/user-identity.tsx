@@ -1,7 +1,7 @@
 "use client";
 
 import type { SessionData } from "@/features/auth";
-import { useSessionIdentity } from "./hooks/useIdentify";
+import { useSessionIdentity } from "./hooks/use-identify";
 
 interface PostHogUserIdentityProps {
   session?: SessionData;

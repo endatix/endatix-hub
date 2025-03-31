@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 import {
   initPostHog,
   trackEvent,
+  trackException,
   isFeatureEnabled,
   resetTrackedIdentity,
 } from "../client/client";
@@ -13,6 +14,7 @@ vi.mock("posthog-js", () => ({
   default: {
     init: vi.fn(),
     capture: vi.fn(),
+    captureException: vi.fn(),
     isFeatureEnabled: vi.fn(),
     reset: vi.fn(),
     __loaded: false,
@@ -33,15 +35,11 @@ describe("PostHog Client", () => {
     disableSessionRecording: true,
   };
 
-  // Global setup before each test
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
-
-    // Reset PostHog mock state
     vi.mocked(posthog).__loaded = false;
 
-    // Reset the global window
     if (typeof window === "undefined") {
       // @ts-expect-error: simulating window
       global.window = {};
@@ -53,15 +51,12 @@ describe("PostHog Client", () => {
   });
 
   describe("initPostHog", () => {
-    // No special setup needed for most initPostHog tests
-
     it("should handle initialization errors gracefully", () => {
       // Arrange
       const consoleErrorSpy = vi
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      // Mock the init function to throw
       vi.mocked(posthog.init).mockImplementationOnce(() => {
         throw new Error("Initialization error");
       });
@@ -77,7 +72,6 @@ describe("PostHog Client", () => {
         expect.any(Error),
       );
 
-      // Clean up
       consoleErrorSpy.mockRestore();
     });
 
@@ -128,10 +122,10 @@ describe("PostHog Client", () => {
     });
 
     it("should not reinitialize when already initialized", () => {
-      // Arrange - First initialize by setting __loaded to true
+      // Arrange
       vi.mocked(posthog).__loaded = true;
 
-      // Act - Try to initialize again
+      // Act
       const result = initPostHog(mockConfig, mockOptions);
 
       // Assert
@@ -141,39 +135,19 @@ describe("PostHog Client", () => {
   });
 
   describe("trackEvent", () => {
-    // Setup for trackEvent tests
-    let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-      // Spy on console.warn for all trackEvent tests
-      consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
-      // Clean up console spy
-      consoleWarnSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
 
-    it("should initialize and track event when config is provided", () => {
+    it("should track event when PostHog is initialized", () => {
       // Arrange
-      // Simulate what trackEvent would do with config
-      // Call init first
-      posthog.init(mockConfig.apiKey, {});
-
-      // Act - then capture
-      posthog.capture("test_event", { property: "value" });
-
-      // Assert
-      expect(posthog.init).toHaveBeenCalled();
-      expect(posthog.capture).toHaveBeenCalledWith("test_event", {
-        property: "value",
-      });
-    });
-
-    it("should track event with properties", () => {
-      // Arrange - Set PostHog as initialized
       vi.mocked(posthog).__loaded = true;
-
       const eventName = "test_event";
       const properties = { property1: "value1" };
 
@@ -200,30 +174,19 @@ describe("PostHog Client", () => {
       global.window = originalWindow;
     });
 
-    it("should check initialization state before tracking", () => {
-      // Arrange - Start with initialized state
-      vi.mocked(posthog).__loaded = true;
+    it("should initialize and track event when config is provided", () => {
+      // Arrange
+      vi.mocked(posthog.init).mockImplementationOnce(() => {
+        vi.mocked(posthog).__loaded = true;
+        return posthog;
+      });
 
       // Act
-      trackEvent("test_event");
+      trackEvent("test_event", undefined, mockConfig);
 
       // Assert
+      expect(posthog.init).toHaveBeenCalled();
       expect(posthog.capture).toHaveBeenCalledWith("test_event", undefined);
-      expect(consoleWarnSpy).not.toHaveBeenCalled();
-    });
-
-    it("should not track event when PostHog is not initialized", () => {
-      // Arrange - ensure PostHog is NOT initialized
-      vi.mocked(posthog).__loaded = false;
-
-      // Act
-      trackEvent("test_event");
-
-      // Assert
-      expect(posthog.capture).not.toHaveBeenCalled();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("PostHog not initialized"),
-      );
     });
 
     it("should handle errors when tracking event", () => {
@@ -233,29 +196,106 @@ describe("PostHog Client", () => {
         throw new Error("Tracking error");
       });
 
-      // Act & Assert
-      expect(() => {
-        trackEvent("test_event");
-      }).not.toThrow();
+      // Act
+      trackEvent("test_event");
+
+      // Assert
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[PostHog] Failed to track event test_event:",
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe("trackException", () => {
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("should track exception when PostHog is initialized", () => {
+      // Arrange
+      vi.mocked(posthog).__loaded = true;
+      const error = new Error("Test error");
+      const properties = { property1: "value1" };
+
+      // Act
+      trackException(error, properties);
+
+      // Assert
+      expect(posthog.captureException).toHaveBeenCalledWith(error, properties);
+    });
+
+    it("should not track exception in non-browser environment", () => {
+      // Arrange
+      const originalWindow = global.window;
+      // @ts-expect-error: simulating non-browser
+      delete global.window;
+
+      // Act
+      trackException(new Error("Test error"));
+
+      // Assert
+      expect(posthog.captureException).not.toHaveBeenCalled();
+
+      // Cleanup
+      global.window = originalWindow;
+    });
+
+    it("should initialize and track exception when config is provided", () => {
+      // Arrange
+      vi.mocked(posthog.init).mockImplementationOnce(() => {
+        vi.mocked(posthog).__loaded = true;
+        return posthog;
+      });
+
+      // Act
+      trackException(new Error("Test error"), undefined, mockConfig);
+
+      // Assert
+      expect(posthog.init).toHaveBeenCalled();
+      expect(posthog.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        undefined,
+      );
+    });
+
+    it("should handle errors when tracking exception", () => {
+      // Arrange
+      vi.mocked(posthog).__loaded = true;
+      vi.mocked(posthog.captureException).mockImplementation(() => {
+        throw new Error("Capture error");
+      });
+
+      // Act
+      trackException(new Error("Test error"));
+
+      // Assert
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[PostHog] Failed to track exception:",
+        expect.any(Error),
+      );
     });
   });
 
   describe("isFeatureEnabled", () => {
-    // Setup for isFeatureEnabled tests
-    let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-      // Spy on console.warn for all tests
-      consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
-      // Clean up
-      consoleWarnSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
 
     it("should check if feature is enabled", () => {
-      // Arrange - explicitly initialize
+      // Arrange
       vi.mocked(posthog).__loaded = true;
       vi.mocked(posthog.isFeatureEnabled).mockReturnValue(true);
 
@@ -287,7 +327,7 @@ describe("PostHog Client", () => {
     });
 
     it("should return default value when PostHog is not initialized", () => {
-      // Arrange - ensure PostHog is NOT initialized
+      // Arrange
       vi.mocked(posthog).__loaded = false;
 
       // Act
@@ -296,20 +336,15 @@ describe("PostHog Client", () => {
       // Assert
       expect(result).toBe(true);
       expect(posthog.isFeatureEnabled).not.toHaveBeenCalled();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("PostHog not initialized"),
-      );
     });
 
     it("should initialize and check feature when config is provided", () => {
-      // Arrange - test direct initialization path
-      vi.mocked(posthog.isFeatureEnabled).mockReturnValue(true);
-
-      // Mock init to set __loaded to true
+      // Arrange
       vi.mocked(posthog.init).mockImplementationOnce(() => {
         vi.mocked(posthog).__loaded = true;
-        return posthog; // Return the mocked posthog instance
+        return posthog;
       });
+      vi.mocked(posthog.isFeatureEnabled).mockReturnValue(true);
 
       // Act
       const result = isFeatureEnabled("test_feature", false, mockConfig);
@@ -331,29 +366,27 @@ describe("PostHog Client", () => {
       const result = isFeatureEnabled("test_feature", true);
 
       // Assert
-      expect(result).toBe(true); // Returns default value on error
+      expect(result).toBe(true);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[PostHog] Failed to check feature flag test_feature:",
+        expect.any(Error),
+      );
     });
   });
 
   describe("resetTrackedIdentity", () => {
-    // Setup for resetTrackedIdentity tests
-    let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
-    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-      // Spy on console for all tests
-      consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
-      // Clean up
-      consoleWarnSpy.mockRestore();
-      consoleLogSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
 
-    it("should reset PostHog identity", () => {
-      // Arrange - initialize explicitly
+    it("should reset PostHog identity when initialized", () => {
+      // Arrange
       vi.mocked(posthog).__loaded = true;
 
       // Act
@@ -379,29 +412,19 @@ describe("PostHog Client", () => {
       global.window = originalWindow;
     });
 
-    it("should attempt reset even if PostHog is not fully initialized", () => {
-      // Arrange - deliberately NOT setting __loaded to true
-
-      // Act
-      resetTrackedIdentity();
-
-      // Assert
-      expect(posthog.reset).toHaveBeenCalled();
-    });
-
-    it("should log debug info when debug mode is enabled", () => {
+    it("should initialize and reset when config is provided", () => {
       // Arrange
-      const debugConfig = { ...mockConfig, debug: true };
-      vi.mocked(posthog).__loaded = true;
+      vi.mocked(posthog.init).mockImplementationOnce(() => {
+        vi.mocked(posthog).__loaded = true;
+        return posthog;
+      });
 
       // Act
-      resetTrackedIdentity(debugConfig);
+      resetTrackedIdentity(mockConfig);
 
       // Assert
+      expect(posthog.init).toHaveBeenCalled();
       expect(posthog.reset).toHaveBeenCalled();
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "[PostHog] User identity reset successfully",
-      );
     });
 
     it("should handle errors when resetting identity", () => {
@@ -411,12 +434,11 @@ describe("PostHog Client", () => {
         throw new Error("Reset error");
       });
 
-      // Act & Assert
-      expect(() => {
-        resetTrackedIdentity();
-      }).not.toThrow();
+      // Act
+      resetTrackedIdentity();
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+      // Assert
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
         "[PostHog] Failed to reset user identity:",
         expect.any(Error),
       );
