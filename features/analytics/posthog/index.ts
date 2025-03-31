@@ -13,9 +13,6 @@
 // Client-side exports (React components)
 export * from './client';
 
-// Server-side exports (server actions)
-export * from './server';
-
 // Shared types and configuration
 export type { PostHogConfig, PostHogClientOptions } from './shared/types';
 export { createPostHogConfig, isPostHogEnabled } from './shared/config';
