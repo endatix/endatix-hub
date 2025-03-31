@@ -1,11 +1,16 @@
 /**
- * PostHog Analytics module
- * Main entry point for analytics functionality
+ * PostHog Analytics Integration
+ * 
+ * This module provides tracking and analytics capabilities using PostHog.
+ * It's separated into client-side (React) and server-side interfaces.
  */
 
-// Re-export shared utilities that are safe for both client and server
-export * from "./shared";
+// Re-export client hooks for React components
+export * from './client/hooks';
 
-// Re-export client-side utilities
-// These should only be used in client components
-export * from "./client";
+// Re-export server tracking functions for server-side code
+export * as server from './server';
+
+// Re-export shared types and configuration
+export * from './shared/types';
+export * from './shared/config';

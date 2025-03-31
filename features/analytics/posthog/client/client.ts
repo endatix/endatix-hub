@@ -5,7 +5,6 @@ import posthog from "posthog-js";
 import {
   PostHogClientOptions,
   PostHogConfig,
-  PostHogEventProperties,
 } from "../shared/types";
 
 // Default PostHog configuration
@@ -97,14 +96,14 @@ export const initPostHog = (
 
 /**
  * Validates if PostHog is ready for operations and attempts initialization if needed
- * Private helper for track methods.
+ * This is a utility function for hooks and other consumers.
  *
  * @param config - Optional PostHog configuration (used to initialize if needed)
  * @param options - Additional client options for initialization
  * @param context - Optional logging context for meaningful error messages
  * @returns boolean - Whether PostHog is ready for the operation
  */
-const ensureReady = (
+export const ensureReady = (
   config?: PostHogConfig,
   options?: Partial<PostHogClientOptions>,
   context?: { operation?: string; identifier?: string },
@@ -138,116 +137,4 @@ const ensureReady = (
 
   initPostHog(config, options);
   return isPostHogInitialized();
-};
-
-/**
- * Track an event in PostHog
- *
- * @param eventName - Name of the event to track
- * @param properties - Additional properties to include with the event
- * @param config - PostHog configuration (optional, used to initialize if needed)
- * @param options - Additional client options for initialization
- * @returns void
- */
-export const trackEvent = (
-  eventName: string,
-  properties?: PostHogEventProperties,
-  config?: PostHogConfig,
-  options?: Partial<PostHogClientOptions>,
-): void => {
-  if (
-    !ensureReady(config, options, {
-      operation: "track event",
-      identifier: eventName,
-    })
-  ) {
-    return;
-  }
-
-  try {
-    posthog.capture(eventName, properties);
-  } catch (error) {
-    console.error(`[PostHog] Failed to track event ${eventName}:`, error);
-  }
-};
-
-/**
- * Track an exception in PostHog
- *
- * @param error - The error object to capture
- * @param properties - Additional properties to include with the exception
- * @param config - PostHog configuration (optional, used to initialize if needed)
- * @param options - Additional client options for initialization
- * @returns void
- */
-export const trackException = (
-  error: Error | unknown,
-  properties?: PostHogEventProperties,
-  config?: PostHogConfig,
-  options?: Partial<PostHogClientOptions>,
-): void => {
-  if (!ensureReady(config, options, { operation: "track exception" })) {
-    return;
-  }
-
-  try {
-    posthog.captureException(error, properties);
-  } catch (captureError) {
-    console.error("[PostHog] Failed to track exception:", captureError);
-  }
-};
-
-/**
- * Check if a feature flag is enabled
- *
- * @param key - The feature flag key to check
- * @param defaultValue - Default value to return if checking fails
- * @param config - PostHog configuration (optional, used to initialize if needed)
- * @param options - Additional client options for initialization
- * @returns boolean - Whether the feature is enabled or the default value
- */
-export const isFeatureEnabled = (
-  key: string,
-  defaultValue: boolean = false,
-  config?: PostHogConfig,
-  options?: Partial<PostHogClientOptions>,
-): boolean => {
-  if (
-    !ensureReady(config, options, {
-      operation: "check feature",
-      identifier: key,
-    })
-  ) {
-    return defaultValue;
-  }
-
-  try {
-    return posthog.isFeatureEnabled(key, { send_event: true }) ?? defaultValue;
-  } catch (error) {
-    console.error(`[PostHog] Failed to check feature flag ${key}:`, error);
-    return defaultValue;
-  }
-};
-
-/**
- * Safely reset the PostHog user identity
- * This is typically called during logout to clear the user's identity
- *
- * @param config - Optional PostHog configuration for debug logging
- * @param options - Additional client options for initialization
- * @returns void
- */
-export const resetTrackedIdentity = (
-  config?: PostHogConfig,
-  options?: Partial<PostHogClientOptions>,
-): void => {
-  if (!ensureReady(config, options, { operation: "reset identity" })) {
-    return;
-  }
-
-  try {
-    posthog.reset();
-  } catch (error) {
-    console.error("[PostHog] Failed to reset user identity:", error);
-  }
 };

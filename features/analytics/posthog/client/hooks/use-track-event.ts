@@ -3,9 +3,11 @@
 /**
  * React hook for tracking events with PostHog
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { usePostHog } from 'posthog-js/react';
 import { EventCategory } from '../events';
+import { ensureReady, isPostHogInitialized } from '../client';
+import type { PostHogConfig, PostHogClientOptions } from '../../shared/types';
 
 type TrackEventFunction = (
   eventName: string,
@@ -31,39 +33,62 @@ interface UseTrackEvent {
   trackFeatureUsage: (featureName: string, action: string, properties?: Record<string, string | number | boolean | null>) => void;
   trackInteraction: (elementType: string, elementId: string, action: string, properties?: Record<string, string | number | boolean | null>) => void;
   trackException: TrackExceptionFunction;
+  isInitialized: boolean;
+}
+
+interface UseTrackEventOptions {
+  config?: PostHogConfig;
+  clientOptions?: Partial<PostHogClientOptions>;
 }
 
 /**
  * Custom hook for tracking events with PostHog
  */
-export const useTrackEvent = (): UseTrackEvent => {
+export const useTrackEvent = (options?: UseTrackEventOptions): UseTrackEvent => {
   const posthog = usePostHog();
+  const { config, clientOptions } = options || {};
+
+  // Initialize PostHog if config is provided
+  useEffect(() => {
+    if (config) {
+      ensureReady(config, clientOptions);
+    }
+  }, [config, clientOptions]);
 
   /**
    * Track a custom event with the provided name and properties
    */
   const trackEventFn = useCallback<TrackEventFunction>((eventName, properties = {}) => {
-    if (posthog) {
-      posthog.capture(eventName, {
-        ...properties,
-        timestamp: new Date().toISOString(),
+    if (!posthog && config) {
+      const isReady = ensureReady(config, clientOptions, {
+        operation: 'track event',
+        identifier: eventName,
       });
+      if (!isReady) return;
     }
-  }, [posthog]);
+
+    if (posthog) {
+      try {
+        posthog.capture(eventName, {
+          ...properties,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error(`[PostHog] Failed to track event ${eventName}:`, error);
+      }
+    }
+  }, [posthog, config, clientOptions]);
 
   /**
    * Track an event with a category and action
    */
   const trackCategoryEvent = useCallback<TrackCategoryEventFunction>(
     (category, action, properties = {}) => {
-      if (posthog) {
-        posthog.capture(`${category}_${action}`, {
-          ...properties,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      trackEventFn(`${category}_${action}`, {
+        ...properties,
+      });
     },
-    [posthog]
+    [trackEventFn]
   );
 
   /**
@@ -71,6 +96,13 @@ export const useTrackEvent = (): UseTrackEvent => {
    */
   const trackException = useCallback<TrackExceptionFunction>(
     (error, properties = {}) => {
+      if (!posthog && config) {
+        const isReady = ensureReady(config, clientOptions, {
+          operation: 'track exception',
+        });
+        if (!isReady) return;
+      }
+
       if (posthog) {
         try {
           posthog.captureException(error, {
@@ -82,7 +114,7 @@ export const useTrackEvent = (): UseTrackEvent => {
         }
       }
     },
-    [posthog]
+    [posthog, config, clientOptions]
   );
 
   /**
@@ -157,5 +189,6 @@ export const useTrackEvent = (): UseTrackEvent => {
     trackFeatureUsage,
     trackInteraction,
     trackException,
+    isInitialized: isPostHogInitialized(),
   };
 }; 
