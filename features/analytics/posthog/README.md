@@ -1,15 +1,27 @@
 # PostHog Analytics Integration
 
-Client-side analytics tracking for Next.js applications using PostHog.
+Analytics tracking for Next.js applications using PostHog, with support for both client and server-side tracking.
 
 ## Features
 
-- Client-side event tracking with automatic page views
-- User identification (email for logged-in users, persistent IDs for anonymous users)
-- React hooks for component integration
-- Form and error tracking
-- Feature flag support
-- Safe initialization across your application
+- **Client-Side Tracking**
+  - React hooks for component integration
+  - Automatic page view tracking
+  - Event and exception tracking
+  - Feature flag support
+  - User identification management
+
+- **Server-Side Tracking**
+  - Event tracking from server components and actions
+  - Exception tracking for server-side errors
+  - Feature flag checking on the server
+  - Type-safe interfaces
+
+- **Cross-Environment Support**
+  - Consistent API patterns for client and server
+  - Error handling and exception tracking
+  - Feature flag checking
+  - Type-safe interfaces
 
 ## Setup
 
@@ -20,9 +32,9 @@ Client-side analytics tracking for Next.js applications using PostHog.
    NEXT_PUBLIC_POSTHOG_UI_HOST=https://app.posthog.com  # optional
    ```
 
-2. Add PostHog provider:
+2. Add PostHog provider to your root layout:
    ```tsx
-   // In app layout.tsx
+   // In app/layout.tsx
    import { PostHogProvider } from '@/features/analytics/posthog';
    import { getSession } from '@/features/auth';
    
@@ -30,123 +42,215 @@ Client-side analytics tracking for Next.js applications using PostHog.
      const session = await getSession();
      
      return (
-       <PostHogProvider session={session}>
-         {children}
-       </PostHogProvider>
+       <html lang="en">
+         <body>
+           <PostHogProvider session={session}>
+             {children}
+           </PostHogProvider>
+         </body>
+       </html>
      );
    }
    ```
 
-   With custom config (optional):
+3. Add page view tracking (optional):
    ```tsx
-   import { PostHogProvider, createPostHogConfig } from '@/features/analytics/posthog';
+   // In a client layout component
+   "use client";
+   import { PostHogPageView } from '@/features/analytics/posthog';
    
-   // Later in your component
-   const posthogConfig = createPostHogConfig({
-     debug: true,
-     uiHost: "https://custom-posthog-ui.example.com"
-   });
-
-   <PostHogProvider config={posthogConfig} session={session}>
-     {children}
-   </PostHogProvider>
+   export default function ClientLayout({ children }) {
+     return (
+       <>
+         <PostHogPageView />
+         {children}
+       </>
+     );
+   }
    ```
+
+## Client-Side Usage
+
+### Event Tracking with Hooks
+
+```tsx
+"use client";
+import { useTrackEvent } from '@/features/analytics/posthog';
+
+function CheckoutButton() {
+  const { trackEvent } = useTrackEvent();
+  
+  const handleCheckout = () => {
+    // Perform checkout logic
+    trackEvent('checkout_started', {
+      cart_value: 99.99,
+      items_count: 3
+    });
+  };
+  
+  return <button onClick={handleCheckout}>Checkout</button>;
+}
+```
+
+### Feature Flag Checking
+
+```tsx
+"use client";
+import { useFeatureFlag } from '@/features/analytics/posthog';
+
+function NewFeature() {
+  const isEnabled = useFeatureFlag('new-checkout-flow');
+  
+  if (!isEnabled) {
+    return null;
+  }
+  
+  return <div>New Checkout Experience</div>;
+}
+```
+
+### Exception Tracking
+
+```tsx
+"use client";
+import { useTrackEvent } from '@/features/analytics/posthog';
+
+function DataComponent() {
+  const { trackException } = useTrackEvent();
+  
+  const fetchData = async () => {
+    try {
+      const data = await fetchFromAPI();
+      return data;
+    } catch (error) {
+      trackException(error, {
+        operation: 'data_fetch',
+        component: 'DataComponent'
+      });
+      // Handle error appropriately
+    }
+  };
+  
+  // Component implementation
+}
+```
+
+## Server-Side Usage
+
+### Tracking in Server Components/Actions
+
+```tsx
+// In a server component or server action
+import { trackEvent, trackException, isFeatureEnabled } from '@/features/analytics/posthog/server';
+
+export async function processForm(formData: FormData) {
+  try {
+    // Check if a feature flag is enabled
+    const isEnabled = await isFeatureEnabled('advanced-features', false);
+    
+    // Process form data
+    const result = await saveToDatabase(formData);
+    
+    // Track successful submission
+    await trackEvent('form_submitted', {
+      form_id: formData.get('id')?.toString(),
+      success: true,
+      feature_enabled: isEnabled
+    });
+    
+    return result;
+  } catch (error) {
+    // Track exception
+    await trackException(error, {
+      form_id: formData.get('id')?.toString(),
+      error_type: 'form_processing_error'
+    });
+    
+    throw error;
+  }
+}
+```
+
+## Non-React Context Usage
+
+For utilities, classes and other non-React code:
+
+```typescript
+// In a utility class or function
+import { trackException } from '@/features/analytics/posthog/client';
+
+export class SubmissionQueue {
+  process() {
+    try {
+      // Processing logic
+    } catch (error) {
+      // Track exception in non-React context
+      trackException(error, {
+        queue_length: this.items.length,
+        error_type: 'queue_processing_error'
+      });
+      
+      // Handle error appropriately
+    }
+  }
+}
+```
 
 ## Architecture
 
-- **Centralized Initialization**: PostHog initializes only once
-- **Provider-based Integration**: Primary usage through `PostHogProvider`
-- **Standalone Utilities**: For non-React contexts
-- **User Identity Management**: Email for logged-in users, persistent IDs for anonymous users
+### Components
 
-## Usage Examples
+- **Client Hooks**: React hooks for client components
+- **Client Utilities**: Direct functions for non-React code
+- **Server Module**: Server-side tracking functions
+- **Shared Types**: Common types and interfaces
 
-### Using Hooks (Within Provider)
+### Key Interfaces
 
-```tsx
-import { usePostHog } from 'posthog-js/react';
-import { useIdentify, trackFeatureUsage } from '@/features/analytics/posthog';
-
-function MyComponent() {
-  const posthog = usePostHog();
-  const { identifyLoggedInUser } = useIdentify();
+- **Client-Side**:
+  - `useTrackEvent()`: Main hook for event tracking
+  - `useFeatureFlag(key)`: Hook for feature flag checking
+  - `trackException()`: Direct function for error tracking
   
-  const handleClick = () => {
-    // Direct posthog usage
-    posthog?.capture('button_clicked', { button_id: 'login_button' });
-    
-    // Or using utility function
-    trackFeatureUsage('auth', 'login_attempt');
-  };
-  
-  return <button onClick={handleClick}>Login</button>;
-}
-```
+- **Server-Side**:
+  - `trackEvent()`: Track events from server
+  - `trackException()`: Track exceptions from server
+  - `isFeatureEnabled()`: Check feature flags on server
 
-### User Identification
+## Error Handling
 
-```tsx
-import { useSessionIdentity, useIdentify } from '@/features/analytics/posthog';
-
-// Automatic identity handling with session:
-function ProfileComponent({ session }) {
-  useSessionIdentity(session);
-  return <div>Profile Content</div>;
-}
-
-// Manual identity management:
-function LoginComponent() {
-  const { identifyLoggedInUser } = useIdentify();
-  
-  const handleLogin = async (credentials) => {
-    const user = await loginUser(credentials);
-    identifyLoggedInUser(user.email);
-  };
-  
-  return <LoginForm onSubmit={handleLogin} />;
-}
-```
-
-### Direct Utility Usage (Without Provider)
+Our error tracking supports different types of errors:
 
 ```typescript
-import { 
-  trackEvent, 
-  isFeatureEnabled, 
-  createPostHogConfig 
-} from '@/features/analytics/posthog';
+// Error objects
+trackException(new Error('Something went wrong'));
 
-// Get configuration
-const config = createPostHogConfig();
+// String messages
+trackException('Failed to load data');
 
-// Track an event (will initialize PostHog if needed)
-trackEvent('checkout_completed', { order_id: '12345' }, config);
-
-// Check a feature flag
-const isEnabled = isFeatureEnabled('new-checkout', false, config);
-```
-
-## Event Naming Conventions
-
-- Use snake_case for event names
-- Include category prefix (e.g., `auth_login`, `payment_completed`)
-- For form events, include form identifier and outcome
-
-Example:
-```tsx
-trackEvent('form_submit', {
-  form_id: 'registration',
-  success: true,
-  time_to_complete_ms: 45000,
-  timestamp: new Date().toISOString()
+// With additional context
+trackException(error, {
+  component: 'UserProfile',
+  user_id: user.id,
+  operation: 'profile_update'
 });
 ```
 
 ## Best Practices
 
-- Use `PostHogProvider` for React applications
-- Always pass session data for proper user identification
-- Include relevant context with events (page, component, identifiers)
-- Respect user privacy - no PII unless explicitly allowed
-- Handle tracking errors gracefully to prevent app failures
-- Use standardized events over custom formats for consistency
+1. **Use the Right Tools for the Context**:
+   - In React components: Use hooks (`useTrackEvent`, `useFeatureFlag`)
+   - In non-React code: Use direct functions (`trackException`)
+   - On the server: Import from `/server` module
+
+2. **Follow Event Naming Conventions**:
+   - Use snake_case for event names (`checkout_completed`, `form_submit`)
+   - Be consistent with property naming
+
+3. **Include Contextual Data**:
+   - For errors: Include component, operation, and identifiers
+   - For events: Include relevant business data and context
+
+4. **Handle Errors Gracefully**:
+   - Always wrap tracking in try-catch to prevent app crashes
+   - Use error tracking to improve application reliability
