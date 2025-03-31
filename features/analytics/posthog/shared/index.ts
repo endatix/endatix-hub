@@ -1,9 +1,20 @@
 /**
  * PostHog Analytics shared exports
- * These can be used in both client and server code
+ * 
+ * This is the single source of truth for shared types, configuration,
+ * and utilities that can be used in both client and server code.
  */
 
-// Configuration and types
-export * from "./config";
-export * from "./types";
-export * from "./session";
+// Core types
+export type {
+  PostHogConfig,
+  PostHogClientOptions,
+  PostHogEventProperties,
+} from './types';
+
+// Configuration utilities
+export {
+  createPostHogConfig,
+  getDefaultPostHogConfig,
+  isPostHogEnabled,
+} from './config';

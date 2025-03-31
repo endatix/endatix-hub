@@ -3,14 +3,17 @@
  * 
  * This module provides tracking and analytics capabilities using PostHog.
  * It's separated into client-side (React) and server-side interfaces.
+ * 
+ * Usage:
+ * - For React components: import from root (e.g., useTrackEvent)
+ * - For server code: import from server namespace (e.g., server.trackEvent)
+ * - For shared types/config: import from root (e.g., PostHogConfig)
  */
 
-// Re-export client hooks for React components
-export * from './client/hooks';
+// Client-side exports (React components)
+export * from './client';
 
-// Re-export server tracking functions for server-side code
-export * as server from './server';
 
-// Re-export shared types and configuration
-export * from './shared/types';
-export * from './shared/config';
+// Shared types and configuration
+export type { PostHogConfig, PostHogClientOptions } from './shared/types';
+export { createPostHogConfig, isPostHogEnabled } from './shared/config';

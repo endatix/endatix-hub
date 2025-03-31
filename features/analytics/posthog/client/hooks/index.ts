@@ -13,6 +13,3 @@ export * from './use-track-event';
 export * from './use-track-forms';
 export * from './use-feature-flag';
 export * from './use-identify';
-
-// For non-React contexts, re-export initialization functions
-export { initPostHog, isPostHogInitialized } from '../client'; 

@@ -12,6 +12,3 @@ export {
   trackException,
   isFeatureEnabled,
 } from './node-client';
-
-// Export utility functions
-export { createPostHogConfig } from '../shared/config'; 
