@@ -3,7 +3,7 @@
 import { updateFormNameAction } from "@/app/(main)/forms/[formId]/update-form-name.action";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { SpecializedVideo } from "@/lib/questions";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -18,8 +18,10 @@ import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
+import { initializeCustomQuestions } from "@/lib/questions/initialize-custom-questions";
+import { endatixTheme } from "@/components/editors/endatix-theme";
 
-registerSpecializedQuestion(SpecializedVideo);
+initializeCustomQuestions();
 
 interface FormEditorProps {
   formId: string;
@@ -107,7 +109,7 @@ function FormEditor({
     const newCreator = new SurveyCreator(options || defaultCreatorOptions);
     SpecializedVideo.customizeEditor(newCreator);
 
-    newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+    newCreator.applyCreatorTheme(endatixTheme);
 
     newCreator.JSON = formJson;
     newCreator.saveSurveyFunc = (

@@ -4,3 +4,4 @@ export * from "./questions-registry";
 
 // export specific questions
 export * from "./video/specialized-video.question";
+export * from "./country/specialized-country.question";

@@ -1,5 +1,4 @@
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { Submission } from "@/types";
 import { useEffect, useRef } from "react";
 import {
@@ -10,8 +9,9 @@ import {
 import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Model, Survey, SurveyModel } from "survey-react-ui";
+import { initializeCustomQuestions } from "@/lib/questions/initialize-custom-questions";
 
-registerSpecializedQuestion(SpecializedVideo);
+initializeCustomQuestions();
 
 interface EditSurveyWrapperProps {
   submission: Submission;

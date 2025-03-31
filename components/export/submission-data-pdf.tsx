@@ -11,7 +11,7 @@ import { Model, PanelModel, Question } from "survey-core";
 import PdfAnswerViewer from "@/features/submissions/pdf/pdf-answer-viewer";
 import { Submission } from "@/types";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { initializeCustomQuestions } from "@/lib/questions/initialize-custom-questions";
 
 Font.register({
   family: "Roboto",
@@ -44,7 +44,7 @@ const getFormattedDate = (date: Date): string => {
   });
 };
 
-registerSpecializedQuestion(SpecializedVideo);
+initializeCustomQuestions();
 
 export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
   if (!submission.formDefinition) {

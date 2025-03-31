@@ -18,13 +18,13 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { getTemplateAction } from "../application/get-template.action";
 import { UseTemplateButton } from "./use-template-button";
+import { initializeCustomQuestions } from "@/lib/questions/initialize-custom-questions";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -40,7 +40,7 @@ interface FormTemplatePreviewProps {
   templateId: string;
 }
 
-registerSpecializedQuestion(SpecializedVideo);
+initializeCustomQuestions();
 
 export function FormTemplatePreview({
   open,

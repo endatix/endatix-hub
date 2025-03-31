@@ -1,10 +1,9 @@
 import { useMemo, useEffect } from "react";
 import { Model } from "survey-core";
 import { Submission } from "@/types";
-import { SpecializedVideo } from "@/lib/questions";
-import { registerSpecializedQuestion } from "@/lib/questions";
+import { initializeCustomQuestions } from "@/lib/questions/initialize-custom-questions";
 
-registerSpecializedQuestion(SpecializedVideo);
+initializeCustomQuestions();  
 
 export function useSurveyModel(definition: string, submission?: Submission) {
   // Create survey model only when definition changes
