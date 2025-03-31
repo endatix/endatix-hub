@@ -2,10 +2,7 @@
  * Client-side PostHog initialization
  */
 import posthog from "posthog-js";
-import {
-  PostHogClientOptions,
-  PostHogConfig,
-} from "../shared/types";
+import { PostHogClientOptions, PostHogConfig } from "../shared/types";
 
 // Default PostHog configuration
 const defaultOptions: PostHogClientOptions = {
@@ -138,3 +135,86 @@ export const ensureReady = (
   initPostHog(config, options);
   return isPostHogInitialized();
 };
+
+/**
+ * Track an exception in PostHog - can be used in any context (not just React components)
+ *
+ * @param error - The error to track (can be an Error object, string message, or any other value)
+ * @param properties - Optional additional properties to include with the event
+ * @param config - Optional PostHog configuration (used to initialize if needed)
+ * @param options - Optional client options for initialization
+ */
+export const captureException = (
+  error: Error | string | unknown,
+  properties: Record<string, string | number | boolean | null> = {},
+  config?: PostHogConfig,
+  options?: Partial<PostHogClientOptions>,
+): void => {
+  // Get the error message based on error type
+  const errorMessage = getErrorMessage(error);
+  
+  const isReady = ensureReady(config, options, {
+    operation: "track exception",
+    identifier: errorMessage,
+  });
+
+  if (!isReady) {
+    console.debug(
+      "Remote capturing of exceptions is disabled. Skipping tracking of exception.",
+      error,
+    );
+    return;
+  }
+
+  try {
+    posthog.capture("exception", {
+      error_message: errorMessage,
+      error_stack: error instanceof Error ? error.stack || null : null,
+      error_type: getErrorType(error),
+      ...properties,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (trackError) {
+    console.error("[PostHog] Failed to track exception:", trackError);
+  }
+};
+
+/**
+ * Helper function to get a string message from different error types
+ */
+function getErrorMessage(error: Error | string | unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  } else if (typeof error === 'string') {
+    return error;
+  } else if (error === null) {
+    return 'Null error';
+  } else if (error === undefined) {
+    return 'Undefined error';
+  } else {
+    try {
+      return String(error);
+    } catch {
+      return 'Unknown error (unconvertible to string)';
+    }
+  }
+}
+
+/**
+ * Helper function to get the error type for analytics
+ */
+function getErrorType(error: Error | string | unknown): string {
+  if (error instanceof Error) {
+    return error.name || 'Error';
+  } else if (typeof error === 'string') {
+    return 'String';
+  } else if (error === null) {
+    return 'Null';
+  } else if (error === undefined) {
+    return 'Undefined';
+  } else {
+    return typeof error;
+  }
+}
+
+export const trackException = captureException;

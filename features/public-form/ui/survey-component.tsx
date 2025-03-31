@@ -14,6 +14,7 @@ import { Survey } from "survey-react-ui";
 import { DefaultLight } from "survey-core/themes";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
+import { useTrackEvent } from "@/features/analytics/posthog/client";
 
 interface SurveyComponentProps {
   definition: string;
@@ -32,7 +33,7 @@ export default function SurveyComponent({
   const [submissionId, setSubmissionId] = useState<string>(
     submission?.id ?? "",
   );
-
+  const { trackException } = useTrackEvent();
   useBlobStorage({
     formId,
     submissionId,
@@ -84,11 +85,17 @@ export default function SurveyComponent({
           event.showSaveError(
             "Failed to submit form. Please try again and contact us if the problem persists.",
           );
-          console.debug("Failed to submit form", result.message);
+          trackException(
+            "Form submission failed",
+            {
+              form_id: formId,
+              error_message: result.message,
+            },
+          );
         }
       });
     },
-    [formId, isSubmitting, clearQueue, startSubmitting],
+    [formId, isSubmitting, clearQueue, startSubmitting, trackException],
   );
 
   useEffect(() => {

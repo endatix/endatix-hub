@@ -2,15 +2,21 @@ import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
 import { SubmissionQueue } from "../submission-queue/submission-queue";
 import { submitFormAction } from "../actions/submit-form.action";
 import { Result } from "@/lib/result";
+import { captureException } from "@/features/analytics/posthog/client";
 
-// Mock the submitFormAction
+// Mock the submitFormAction and captureException
 vi.mock("../actions/submit-form.action", () => ({
   submitFormAction: vi.fn(),
+}));
+
+vi.mock("@/features/analytics/posthog/client", () => ({
+  captureException: vi.fn(),
 }));
 
 describe("SubmissionQueue", () => {
   let queue: SubmissionQueue;
   const mockSubmitForm = submitFormAction as Mock;
+  const mockCaptureException = captureException as Mock;
 
   beforeEach(() => {
     queue = new SubmissionQueue();
@@ -109,8 +115,9 @@ describe("SubmissionQueue", () => {
 
   it("should handle submission errors and continue processing", async () => {
     // Arrange
-    const consoleSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
-    mockSubmitForm.mockRejectedValueOnce(new Error("Network error"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("Network error");
+    mockSubmitForm.mockRejectedValueOnce(error);
     mockSubmitForm.mockResolvedValueOnce(Result.success({ isSuccess: true }));
 
     // Act
@@ -139,6 +146,10 @@ describe("SubmissionQueue", () => {
       "Error processing partial submission:",
       expect.any(Error),
     );
+    expect(mockCaptureException).toHaveBeenCalledWith(error, {
+      error_type: "submission_queue_processing_error",
+      queue_length: expect.any(Number),
+    });
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
   });
 
@@ -175,8 +186,9 @@ describe("SubmissionQueue", () => {
 
   it("should handle failed submissions with Result.error", async () => {
     // Arrange
-    const consoleSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
-    mockSubmitForm.mockResolvedValue(Result.error("Submission failed"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errorMessage = "Submission failed";
+    mockSubmitForm.mockResolvedValue(Result.error(errorMessage));
 
     // Act
     queue.enqueue({
@@ -193,8 +205,12 @@ describe("SubmissionQueue", () => {
     // Assert
     expect(consoleSpy).toHaveBeenCalledWith(
       "Failed to submit form",
-      "Submission failed",
+      errorMessage,
     );
+    expect(mockCaptureException).toHaveBeenCalledWith("Form submission failed", {
+      form_id: "1",
+      error_message: errorMessage,
+    });
   });
 
   it("should process items added while processing previous items", async () => {

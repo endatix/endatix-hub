@@ -3,6 +3,7 @@ import {
   SubmissionData,
   submitFormAction,
 } from "../actions/submit-form.action";
+import { captureException } from "@/features/analytics/posthog/client";
 
 interface QueueItem {
   formId: string;
@@ -27,10 +28,24 @@ export class SubmissionQueue {
       );
 
       if (Result.isError(result)) {
-        console.debug("Failed to submit form", result.message);
+        const errorMessage = "Failed to submit form";
+        const errorData = {
+          form_id: itemToProcess.formId,
+          error_message: result.message,
+        };
+        
+        console.error(errorMessage, result.message);
+        captureException("Form submission failed", errorData);
       }
     } catch (error) {
-      console.debug("Error processing partial submission:", error);
+      const errorMessage = "Error processing partial submission:";
+      const errorData = {
+        error_type: "submission_queue_processing_error",
+        queue_length: this.queue.length,
+      };
+      
+      console.error(errorMessage, error);
+      captureException(error, errorData);
     } finally {
       this.isProcessing = false;
       if (this.queue.length > 0) {
@@ -41,7 +56,15 @@ export class SubmissionQueue {
 
   public enqueue(item: QueueItem): void {
     if (!item.formId || !item.data) {
-      console.debug("Invalid queue item:", item);
+      const errorMessage = "Submission queue invalid item error";
+      const errorData = {
+        error_type: "invalid_queue_item",
+        has_form_id: !!item.formId,
+        has_data: !!item.data,
+      };
+      
+      console.error(errorMessage, errorData);
+      captureException(errorMessage, errorData);
       return;
     }
 

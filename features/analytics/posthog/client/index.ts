@@ -10,6 +10,7 @@ export {
   initPostHog,
   isPostHogInitialized,
   ensureReady,
+  captureException,
 } from './client';
 
 // React components
