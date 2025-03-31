@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { PostHog } from "posthog-node";
-import { getPostHogServer, resetPostHogServer } from "../server/node-client";
+import { getPostHog, resetPostHogServer } from "../server/node-client";
 import { createPostHogConfig, isPostHogEnabled } from "../shared/config";
 
 describe("PostHog Server", () => {
@@ -39,7 +39,7 @@ describe("PostHog Server", () => {
   describe("getPostHogServer", () => {
     it("creates a PostHog instance with proper configuration", () => {
       // Act
-      const client = getPostHogServer(defaultConfig);
+      const client = getPostHog(defaultConfig);
 
       // Assert
       expect(client).not.toBeNull();
@@ -52,8 +52,8 @@ describe("PostHog Server", () => {
 
     it("returns the same instance on subsequent calls (singleton pattern)", () => {
       // Act
-      const firstClient = getPostHogServer(defaultConfig);
-      const secondClient = getPostHogServer(defaultConfig);
+      const firstClient = getPostHog(defaultConfig);
+      const secondClient = getPostHog(defaultConfig);
 
       // Assert
       expect(firstClient).toBe(secondClient);
@@ -65,7 +65,7 @@ describe("PostHog Server", () => {
       vi.mocked(isPostHogEnabled).mockReturnValue(false);
 
       // Act
-      const client = getPostHogServer(defaultConfig);
+      const client = getPostHog(defaultConfig);
 
       // Assert
       expect(client).toBeNull();
@@ -78,7 +78,7 @@ describe("PostHog Server", () => {
       vi.mocked(createPostHogConfig).mockReturnValue(noKeyConfig);
 
       // Act
-      const client = getPostHogServer(noKeyConfig);
+      const client = getPostHog(noKeyConfig);
 
       // Assert
       expect(client).toBeNull();
@@ -87,7 +87,7 @@ describe("PostHog Server", () => {
 
     it("uses default config when none is provided", () => {
       // Act
-      const client = getPostHogServer();
+      const client = getPostHog();
 
       // Assert
       expect(client).not.toBeNull();
