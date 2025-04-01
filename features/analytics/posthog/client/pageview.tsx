@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { trackEvent } from "./client";
+import { useTrackEvent } from "@/features/analytics/posthog";
 
 interface PostHogPageViewProps {
   /**
@@ -24,6 +24,7 @@ export function PostHogPageView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const previousPathRef = useRef<string | null>(null);
+  const { trackEvent } = useTrackEvent();
 
   useEffect(() => {
     // Skip tracking if the path hasn't changed
@@ -60,7 +61,7 @@ export function PostHogPageView({
 
     // Update the previous path
     previousPathRef.current = pathname;
-  }, [pathname, searchParams, getPageProperties]);
+  }, [pathname, searchParams, getPageProperties, trackEvent]);
 
   return null;
 }

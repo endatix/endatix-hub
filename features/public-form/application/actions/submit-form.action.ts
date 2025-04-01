@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createSubmissionPublic, updateSubmissionPublic } from "@/services/api";
 import { Result } from "@/lib/result";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
+import { getPostHog } from "@/features/analytics/posthog/server/node-client";
 
 export type SubmissionData = {
   isComplete?: boolean;
@@ -67,6 +68,13 @@ async function updateExistingSubmissionViaToken(
     return Result.success({ submissionId: updatedSubmission.id });
   } catch (err) {
     tokenStore.deleteToken(formId);
+    const postHog = getPostHog();
+    if (postHog) {
+      postHog.captureException(err, "", {
+        formId,
+        token
+      });
+    }
     return Result.error(
       "Failed to update existing submission. Details: " + err,
     );

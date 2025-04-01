@@ -2,16 +2,28 @@
 
 import { logoutAction } from "@/features/auth/use-cases/logout/logout.action";
 import { useTransition } from "react";
-import { resetTrackedIdentity } from "@/features/analytics/posthog";
+import { useTrackEvent } from '@/features/analytics/posthog';
 
 const LogoutButton = () => {
   const [isPending, startTransition] = useTransition();
+  const { trackEvent, trackException } = useTrackEvent();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     startTransition(async () => {
-      resetTrackedIdentity();
-      
-      await logoutAction();
+      try {
+        await logoutAction();
+        // Track successful logout
+        trackEvent('auth_logout', {
+          success: true,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('Failed to logout:', error);
+        trackException(error, {
+          operation: 'auth_logout',
+          timestamp: new Date().toISOString(),
+        });
+      }
     });
   };
 

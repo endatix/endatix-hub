@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Spinner } from "@/components/loaders/spinner";
 import { saveToFileHandler } from "survey-creator-core";
 import { toast } from "@/components/ui/toast";
-import { trackFeatureUsage } from "@/features/analytics/posthog";
+import { useTrackEvent } from "@/features/analytics/posthog";
 
 interface SubmissionHeaderProps {
   submissionId: string;
@@ -23,6 +23,7 @@ export function SubmissionHeader({
   status,
 }: SubmissionHeaderProps) {
   const [loading, setLoading] = useState(false);
+  const { trackEvent } = useTrackEvent();
 
   const exportPdf = async () => {
     setLoading(true);
@@ -37,7 +38,7 @@ export function SubmissionHeader({
         saveToFileHandler(pdfFileName, blob);
         
         // Track successful PDF export
-        trackFeatureUsage('submission', 'export_pdf', {
+        trackEvent('submission_export_pdf', {
           form_id: formId,
           submission_id: submissionId,
           file_name: pdfFileName,
@@ -51,7 +52,7 @@ export function SubmissionHeader({
       console.error("Failed to export PDF:", error);
       
       // Track export failure
-      trackFeatureUsage('submission', 'export_pdf_error', {
+      trackEvent('submission_export_pdf_error', {
         form_id: formId,
         submission_id: submissionId,
         error_message: error instanceof Error ? error.message : 'Unknown error',
