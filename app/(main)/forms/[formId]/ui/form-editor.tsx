@@ -7,12 +7,18 @@ import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { slk } from "survey-core";
+import {
+  Action,
+  slk,
+  ITheme,
+  getLocaleStrings,
+  settings,
+  SvgRegistry,
+} from "survey-core";
 import "survey-core/survey-core.css";
-import SurveyTheme from "survey-core/themes";
 import {
   ICreatorOptions,
-  registerSurveyTheme,
+  PredefinedThemes,
   SurveyCreatorModel,
   UploadFileEvent,
 } from "survey-creator-core";
@@ -20,11 +26,15 @@ import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
-import { rentalThemeDark, rentalThemeLight } from "./rental-theme";
+// import { rentalThemeDark, rentalThemeLight } from "./rental-theme";
 
 registerSpecializedQuestion(SpecializedVideo);
-registerSurveyTheme(SurveyTheme);
-registerSurveyTheme(rentalThemeLight, rentalThemeDark);
+// registerSurveyTheme(SurveyTheme);
+// registerSurveyTheme(rentalThemeLight, rentalThemeDark);
+
+const saveAsIcon =
+  '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
+SvgRegistry.registerIcon("icon-saveas", saveAsIcon);
 
 interface FormEditorProps {
   formId: string;
@@ -100,6 +110,114 @@ function FormEditor({
     [formId],
   );
 
+  const getThemes = async () => {
+    try {
+      const response = await fetch("/api/hub/v0/themes");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch themes");
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error: ", error);
+      return [];
+    }
+  };
+
+  const saveTheme = useCallback(
+    (saveNo: number, callback: (num: number, status: boolean) => void) => {
+      const creatorTheme = creator?.theme;
+      debugger;
+      console.log("saveTheme", saveNo, creatorTheme);
+      callback(saveNo, true);
+    },
+    [creator],
+  );
+
+  const handleSaveTheme = useCallback(
+    (saveNo: number, callback: (num: number, status: boolean) => void) => {
+      debugger;
+      saveTheme(saveNo, callback);
+    },
+    [saveTheme],
+  );
+
+  const saveCustomTheme = useCallback(() => {
+    // Get the current theme
+    const currentTheme = creator?.theme;
+    debugger;
+    if (!currentTheme) {
+      return;
+    }
+
+    // TODO: Get the ID from the database
+    const themeId = Math.random().toString(36).substring(2, 15);
+    // Generate a unique theme name
+    currentTheme.themeName += "_modified_" + themeId;
+    // Generate a human-friendly theme name
+    const themeTitle = "My Custom Theme " + themeId;
+    console.log("themeTitle", themeTitle);
+    // askForThemeName("Do you want to save the current theme configuration?", "Enter a theme title", { title: themeTitle }, (confirm, data) => {
+    //     if (confirm) {
+    //         addCustomTheme(currentTheme, data.title);
+    //         // Set the theme as a current theme; update the theme list and theme options
+    //         const themeModel = themeTabPlugin.themeModel;
+    //         themeModel.setTheme(currentTheme);
+    //         themeId++;
+    //         updateCustomActions();
+    //         // ...
+    //         // (Optional) Save the theme to an external storage here
+    //         // ...
+    //     }
+    // });
+  }, [creator]);
+
+  const addCustomTheme = useCallback(
+    (theme: ITheme) => {
+      const themeTabPlugin = creator!.themeEditor!;
+      themeTabPlugin.addTheme(theme);
+    },
+    [creator],
+  );
+
+  const deleteCurrentTheme = useCallback(() => {
+    const currentTheme = creator?.theme;
+    debugger;
+    if (!creator || !currentTheme) {
+      return;
+    }
+
+    const themeName = currentTheme.themeName;
+    if (!themeName) {
+      return;
+    }
+
+    const builtInThemeIndex = PredefinedThemes.indexOf(themeName);
+    if (builtInThemeIndex === -1) {
+      // A custom theme
+      const enLocale = getLocaleStrings("en");
+      settings.confirmActionAsync(
+        'Do you want to delete the following theme: "' +
+          enLocale.theme.names[themeName] +
+          '"?',
+        (confirm) => {
+          if (confirm) {
+            const themeTabPlugin = creator?.themeEditor;
+            themeTabPlugin.removeTheme(currentTheme, true);
+            const themeModel = themeTabPlugin.themeModel;
+            themeModel.setTheme({ themeName: "default" });
+            //updateCustomActions();
+            // ...
+            // (Optional) Delete the theme from an external storage here
+            // ...
+          }
+        },
+      );
+    }
+  }, [creator]);
+
   useEffect(() => {
     if (creator) {
       creator.JSON = formJson;
@@ -114,14 +232,8 @@ function FormEditor({
     SpecializedVideo.customizeEditor(newCreator);
 
     newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
-    newCreator.theme = rentalThemeLight;
+    // newCreator.theme = rentalThemeLight;
     newCreator.JSON = formJson;
-    newCreator.saveSurveyFunc = (
-      no: number,
-      callback: (num: number, status: boolean) => void,
-    ) => {
-      callback(no, true);
-    };
     newCreator.onUploadFile.add(handleUploadFile);
 
     setCreator(newCreator);
@@ -130,7 +242,6 @@ function FormEditor({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
-        console.log("Clicked outside, waiting to save name...");
         setTimeout(() => {
           handleNameSave();
         }, 0);
@@ -152,8 +263,56 @@ function FormEditor({
       creator.onModified.add(() => {
         setHasUnsavedChanges(true);
       });
+
+      creator.saveThemeFunc = handleSaveTheme;
+
+      const saveThemeAction = new Action({
+        id: "svd-save-custom-theme",
+        title: "Add custom theme to the list",
+        action: saveCustomTheme,
+        iconName: "icon-saveas",
+        showTitle: false,
+      });
+      const deleteThemeAction = new Action({
+        id: "svd-delete-custom-theme",
+        title: "Delete theme",
+        action: deleteCurrentTheme,
+        iconName: "icon-delete",
+        showTitle: false,
+      });
+
+      creator.toolbar.actions.push(saveThemeAction);
+      creator.toolbar.actions.push(deleteThemeAction);
+      const themeTabPlugin = creator.themeEditor;
+
+      const updateCustomActions = () => {
+        const isThemeTab = creator.activeTab === "theme";
+        saveThemeAction.visible = isThemeTab;
+        // TODO: Implement proper theme name/id lookup
+        const currentThemeName = creator.theme?.themeName;
+        const isCustomTheme =
+          currentThemeName == "Rental Theme" ||
+          (currentThemeName !== undefined &&
+            PredefinedThemes.indexOf(currentThemeName) === -1);
+        deleteThemeAction.visible = isThemeTab && isCustomTheme;
+      };
+
+      getThemes()
+        .then((themes) => {
+          themes.forEach((theme: ITheme) => {
+            addCustomTheme(theme, theme.themeName!);
+          });
+        })
+        .catch((error) => {
+          console.error("Error: ", error);
+        });
+
+      updateCustomActions();
+      themeTabPlugin.onThemeSelected.add(updateCustomActions);
+      creator.onActiveTabChanged.add(updateCustomActions);
+      themeTabPlugin.advancedModeEnabled = true;
     }
-  }, [creator]);
+  }, [creator, saveCustomTheme, deleteCurrentTheme, handleSaveTheme]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -166,6 +325,13 @@ function FormEditor({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    document.body.classList.add("overflow-hidden");
+    return () => {
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, []);
 
   const handleSaveAndGoBack = () => {
     if (hasUnsavedChanges) {
@@ -206,13 +372,6 @@ function FormEditor({
       setIsEditingName(false);
     }
   };
-
-  useEffect(() => {
-    document.body.classList.add("overflow-hidden");
-    return () => {
-      document.body.classList.remove("overflow-hidden");
-    };
-  }, []);
 
   return (
     <>
