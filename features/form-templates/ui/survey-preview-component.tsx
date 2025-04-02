@@ -6,6 +6,7 @@ import { Model } from "survey-core";
 import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Survey } from "survey-react-ui";
+import { customizeSurvey } from "@/lib/kantar/customize-survey";
 
 interface SurveyPreviewComponentProps {
   template: FormTemplate;
@@ -21,6 +22,7 @@ export default function SurveyPreviewComponent({
     if (template) {
       try {
         const survey = new Model(template.jsonData);
+        customizeSurvey(survey);
 
         // Set survey to read-only mode
         survey.mode = "display";

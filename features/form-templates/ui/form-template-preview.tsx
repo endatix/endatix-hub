@@ -25,6 +25,9 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { getTemplateAction } from "../application/get-template.action";
 import { UseTemplateButton } from "./use-template-button";
+import { KantarCheckbox } from "@/lib/questions/kantar-checkbox/kantar-checkbox-question";
+import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question";
+import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -41,6 +44,9 @@ interface FormTemplatePreviewProps {
 }
 
 registerSpecializedQuestion(SpecializedVideo);
+registerSpecializedQuestion(KantarCheckbox);
+registerSpecializedQuestion(KantarRadio);
+registerSpecializedQuestion(KantarRanking);
 
 export function FormTemplatePreview({
   open,

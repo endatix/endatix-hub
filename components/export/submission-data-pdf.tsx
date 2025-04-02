@@ -12,6 +12,10 @@ import PdfAnswerViewer from "@/features/submissions/pdf/pdf-answer-viewer";
 import { Submission } from "@/types";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { KantarCheckbox } from "@/lib/questions/kantar-checkbox/kantar-checkbox-question";
+import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question";
+import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
+import { customizeSurvey } from "@/lib/kantar/customize-survey";
 
 Font.register({
   family: "Roboto",
@@ -45,6 +49,9 @@ const getFormattedDate = (date: Date): string => {
 };
 
 registerSpecializedQuestion(SpecializedVideo);
+registerSpecializedQuestion(KantarCheckbox);
+registerSpecializedQuestion(KantarRadio);
+registerSpecializedQuestion(KantarRanking);
 
 export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
   if (!submission.formDefinition) {
@@ -52,6 +59,7 @@ export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
   }
   const json = JSON.parse(submission.formDefinition.jsonData);
   const surveyModel = new Model(json);
+  customizeSurvey(surveyModel);
 
   let submissionData = {};
   try {

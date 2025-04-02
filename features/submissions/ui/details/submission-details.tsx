@@ -8,6 +8,7 @@ import AnswerViewer from "../answers/answer-viewer";
 import { SectionTitle } from "@/components/headings/section-title";
 import { BackToSubmissionsButton } from "./back-to-submissions-button";
 import { SubmissionHeader } from "./submission-header";
+import { customizeSurvey } from "@/lib/kantar/customize-survey";
 
 async function SubmissionDetails({
   formId,
@@ -39,6 +40,7 @@ async function SubmissionDetails({
   }
   const json = JSON.parse(submission.formDefinition.jsonData);
   const surveyModel = new Model(json);
+  customizeSurvey(surveyModel);
 
   let submissionData = {};
   try {

@@ -1,5 +1,8 @@
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { KantarCheckbox } from "@/lib/questions/kantar-checkbox/kantar-checkbox-question";
+import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question";
+import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
 import { Submission } from "@/types";
 import { useEffect, useRef } from "react";
 import {
@@ -10,8 +13,12 @@ import {
 import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Model, Survey, SurveyModel } from "survey-react-ui";
+import { customizeSurvey } from "@/lib/kantar/customize-survey";
 
 registerSpecializedQuestion(SpecializedVideo);
+registerSpecializedQuestion(KantarCheckbox);
+registerSpecializedQuestion(KantarRadio);
+registerSpecializedQuestion(KantarRanking);
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -52,6 +59,8 @@ function useSurveyModel(submission: Submission) {
       });
 
       model.applyTheme(SharpLightPanelless);
+
+      customizeSurvey(model);
 
       modelRef.current = model;
     } catch (error) {

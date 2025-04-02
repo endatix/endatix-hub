@@ -18,8 +18,17 @@ import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
+import { KantarCheckbox } from "@/lib/questions/kantar-checkbox/kantar-checkbox-question";
+import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question";
+import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
+import { defaultSurveyJson } from "@/lib/kantar/default-survey";
+import PreloadExternalData from "@/lib/kantar/preload-external-data";
+import CustomExpressionFunctions from "@/lib/kantar/custom-expression-functions";
 
 registerSpecializedQuestion(SpecializedVideo);
+registerSpecializedQuestion(KantarCheckbox);
+registerSpecializedQuestion(KantarRadio);
+registerSpecializedQuestion(KantarRanking);
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -38,6 +47,8 @@ const defaultCreatorOptions: ICreatorOptions = {
   showDesignerTab: true,
   showLogicTab: true,
   themeForPreview: "Default",
+  showCreatorThemeSettings: true,
+  showThemeTab: true,
 };
 
 function FormTemplateEditor({
@@ -102,7 +113,15 @@ function FormTemplateEditor({
 
   useEffect(() => {
     if (creator) {
-      creator.JSON = templateJson;
+      if (!templateJson || Object.keys(templateJson).length === 0) {
+        creator.JSON = defaultSurveyJson;
+      } else {
+        creator.JSON = templateJson;
+      }
+      
+      PreloadExternalData(creator.survey);
+      CustomExpressionFunctions();
+      
       return;
     }
 
@@ -112,9 +131,21 @@ function FormTemplateEditor({
 
     const newCreator = new SurveyCreator(options || defaultCreatorOptions);
     SpecializedVideo.customizeEditor(newCreator);
+    KantarCheckbox.customizeEditor(newCreator);
+    KantarRadio.customizeEditor(newCreator);
+    KantarRanking.customizeEditor(newCreator);
 
     newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
-    newCreator.JSON = templateJson;
+    
+    if (!templateJson || Object.keys(templateJson).length === 0) {
+      newCreator.JSON = defaultSurveyJson;
+    } else {
+      newCreator.JSON = templateJson;
+    }
+    
+    PreloadExternalData(newCreator.survey);
+    CustomExpressionFunctions();
+    
     newCreator.saveSurveyFunc = (
       no: number,
       callback: (num: number, status: boolean) => void,

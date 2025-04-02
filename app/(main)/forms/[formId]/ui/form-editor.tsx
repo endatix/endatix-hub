@@ -18,8 +18,17 @@ import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
+import { KantarCheckbox } from "@/lib/questions/kantar-checkbox/kantar-checkbox-question";
+import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question";
+import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
+import { defaultSurveyJson } from "@/lib/kantar/default-survey";
+import PreloadExternalData from "@/lib/kantar/preload-external-data";
+import CustomExpressionFunctions from "@/lib/kantar/custom-expression-functions";
 
 registerSpecializedQuestion(SpecializedVideo);
+registerSpecializedQuestion(KantarCheckbox);
+registerSpecializedQuestion(KantarRadio);
+registerSpecializedQuestion(KantarRanking);
 
 interface FormEditorProps {
   formId: string;
@@ -36,6 +45,8 @@ const defaultCreatorOptions: ICreatorOptions = {
   showDesignerTab: true,
   showLogicTab: true,
   themeForPreview: "Default",
+  showCreatorThemeSettings: true,
+  showThemeTab: true,
 };
 
 function FormEditor({
@@ -96,7 +107,16 @@ function FormEditor({
 
   useEffect(() => {
     if (creator) {
-      creator.JSON = formJson;
+      const parsedFormJson = typeof formJson === 'string' ? JSON.parse(formJson) : formJson;
+      if (!parsedFormJson || Object.keys(parsedFormJson).length === 0) {
+        creator.JSON = defaultSurveyJson;
+      } else {
+        creator.JSON = parsedFormJson;
+      }
+
+      PreloadExternalData(creator.survey);
+      CustomExpressionFunctions();
+      
       return;
     }
 
@@ -106,10 +126,23 @@ function FormEditor({
 
     const newCreator = new SurveyCreator(options || defaultCreatorOptions);
     SpecializedVideo.customizeEditor(newCreator);
+    KantarCheckbox.customizeEditor(newCreator);
+    KantarRadio.customizeEditor(newCreator);
+    KantarRanking.customizeEditor(newCreator);
 
     newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+    
+    const parsedFormJson = typeof formJson === 'string' ? JSON.parse(formJson) : formJson;
+    
+    if (!parsedFormJson || Object.keys(parsedFormJson).length === 0) {
+      newCreator.JSON = defaultSurveyJson;
+    } else {
+      newCreator.JSON = parsedFormJson;
+    }
+    
+    PreloadExternalData(newCreator.survey);
+    CustomExpressionFunctions();
 
-    newCreator.JSON = formJson;
     newCreator.saveSurveyFunc = (
       no: number,
       callback: (num: number, status: boolean) => void,

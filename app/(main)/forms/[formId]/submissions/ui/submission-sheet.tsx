@@ -22,6 +22,7 @@ import {
   GetDefinitionRequest,
   SelectedDefinitionResult,
 } from "../get-definition.action";
+import { customizeSurvey } from "@/lib/kantar/customize-survey";
 
 type SubmissionSheetProps = {
   submission: Submission | null;
@@ -59,6 +60,7 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
         if (result.isSuccess && result.definitionsData && submission) {
           const json = JSON.parse(result.definitionsData);
           const survey = new Model(json);
+          customizeSurvey(survey);
 
           let submissionData = {};
           try {
