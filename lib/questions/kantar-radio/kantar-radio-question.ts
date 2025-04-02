@@ -96,7 +96,7 @@ export class KantarRadio extends SpecializedSurveyQuestion {
         radio.choicesOrder = question.random ? "random" : "none";
         other.visible = question.enableVerbatimOther;
       },
-      onPropertyChanged(question, propertyName, _) {
+      onPropertyChanged(question, propertyName) {
         if (propertyName === "choices") {
           reloadChoices(question);
         }

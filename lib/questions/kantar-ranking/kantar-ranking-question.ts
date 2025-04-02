@@ -36,7 +36,7 @@ export class KantarRanking extends SpecializedSurveyQuestion {
           }
         });
       },
-      onAfterRenderContentElement(question, _) {
+      onAfterRenderContentElement(question) {
           if (question.sourceQuestion) {
               const s = question.survey as SurveyModel; 
               const sourceQuestion = s.getQuestionByName(question.sourceQuestion);

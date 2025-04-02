@@ -140,7 +140,7 @@ export class KantarCheckbox extends SpecializedSurveyQuestion {
         const checkbox: QuestionCheckboxModel = question.contentPanel?.getQuestionByName("value");
         checkbox.choicesOrder = question.random ? "random" : "none";
       },
-      onPropertyChanged(question, propertyName, _) {
+      onPropertyChanged(question, propertyName) {
         if (propertyName === "choices") {
           reloadChoices(question);
         }

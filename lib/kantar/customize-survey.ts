@@ -1,6 +1,10 @@
-import { Model, QuestionCheckboxModel, QuestionMatrixDropdownModel, QuestionRankingModel, ItemValue } from "survey-core";
+import { Model, QuestionCheckboxModel, QuestionMatrixDropdownModel, ItemValue } from "survey-core";
 import PreloadExternalData from "./preload-external-data";
 import CustomExpressionFunctions from "./custom-expression-functions";
+
+interface KantarQuestionJson {
+  choices: Array<{ value: string; text: string }>;
+}
 
 export function customizeSurvey(survey: Model) {
   PreloadExternalData(survey);
@@ -38,14 +42,13 @@ export function customizeSurvey(survey: Model) {
       }
       // Q6: Fill choices from Q4's selections
       if(options.question.name == "Q6") {
-        
         const Q4 = sender.getQuestionByName("Q4").contentPanel.getQuestionByName("value") as QuestionCheckboxModel;
         const checkboxQuestion = options.question.contentPanel.getQuestionByName("value") as QuestionCheckboxModel;
         console.dir(options.question);
         checkboxQuestion.choices = Q4.choices
           .filter((c: { value: string; text: string }) => Q4.value.includes(c.value))
           .sort(() => Math.random() - 0.5)
-          .concat((options.question as any).jsonObj.choices);
+          .concat((options.question as unknown as { jsonObj: KantarQuestionJson }).jsonObj.choices);
       }
     }
   });
@@ -64,7 +67,7 @@ export function customizeSurvey(survey: Model) {
     if(options.name == "Q13") {
       const q = options.question as QuestionMatrixDropdownModel;
       const max = sender.getQuestionByName("Q12_3").value
-      var sum = 0;
+      let sum = 0;
       const arrValues = Object.values(q.value)
       
       arrValues.forEach(item => {
