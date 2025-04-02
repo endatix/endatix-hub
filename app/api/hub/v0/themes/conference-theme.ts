@@ -1,4 +1,6 @@
-const conferenceThemeLight = {
+import { ITheme } from "survey-core";
+
+const conferenceThemeLight: ITheme = {
   backgroundImage:
     "https://api.surveyjs.io/private/Surveys/files?name=e3cb0700-8696-43d3-ab8a-3309fcd3f637",
   backgroundImageFit: "cover",
@@ -143,7 +145,7 @@ const conferenceThemeLight = {
   headerView: "advanced",
 };
 
-const conferenceThemeDark = {
+const conferenceThemeDark: ITheme = {
   backgroundImage:
     "https://api.surveyjs.io/private/Surveys/files?name=e3cb0700-8696-43d3-ab8a-3309fcd3f637",
   backgroundImageFit: "cover",
