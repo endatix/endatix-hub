@@ -22,6 +22,7 @@ import {
   Serializer,
   SurveyModel,
   surveyLocalization,
+  ITheme,
 } from "survey-core";
 import "survey-core/survey-core.css";
 import {
@@ -45,7 +46,7 @@ registerSpecializedQuestion(SpecializedVideo);
 Serializer.addProperty("theme", {
   name: "id",
   type: "string",
-  category: "general"
+  category: "general",
 });
 
 const saveAsIcon =
@@ -59,6 +60,44 @@ interface FormEditorProps {
   options?: ICreatorOptions;
   slkVal?: string;
 }
+
+const deleteTheme = async (themeId: string) => {
+  const response = await fetch(`/api/hub/v0/themes/${themeId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete theme");
+  }
+
+  return response.json();
+};
+
+const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
+  const response = await fetch(`/api/hub/v0/themes`, {
+    method: "POST",
+    body: JSON.stringify(theme),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create theme");
+  }
+
+  return response.json();
+};
+
+const updateTheme = async (theme: StoredTheme): Promise<StoredTheme> => {
+  const response = await fetch(`/api/hub/v0/themes/${theme.id}`, {
+    method: "PUT",
+    body: JSON.stringify(theme),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update theme");
+  }
+
+  return response.json();
+};
 
 const defaultCreatorOptions: ICreatorOptions = {
   showPreview: true,
@@ -146,14 +185,13 @@ function FormEditor({
 
   const saveThemeDialog = useCallback(
     (
-      title: string,
-      text: string,
-      initialValue: { title: string },
+      dialogTitle: string,
+      templateName: string,
       callback: (status: boolean, data: any) => void,
     ) => {
       const survey = new SurveyModel(
         JSON.parse(
-          '{"pages":[{"name":"page1","elements":[{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Theme Name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme title is required","placeholder":"My new awesome theme"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}',
+          `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to make changes to the <b>&quot;${templateName}&quot;</b> theme.</p>"},{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Enter the new theme name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme name is required","placeholder":"New awesome ${templateName}"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}`,
         ),
       );
       survey.isCompact = true;
@@ -173,7 +211,7 @@ function FormEditor({
             callback(false, undefined);
             return false;
           },
-          title: title,
+          title: dialogTitle,
           displayMode: "popup",
           isFocusedContent: true,
           cssClass: "creator-dialog",
@@ -214,57 +252,51 @@ function FormEditor({
     }
   };
 
-  const deleteTheme = async (themeId: string) => {
-    const response = await fetch(`/api/hub/v0/themes/${themeId}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to delete theme");
-    }
-
-    return response.json();
-  };
-
   const saveThemeHandler = useCallback(() => {
-    // Get the current theme
-    const currentTheme = creator?.theme;
+    const currentTheme = creator?.theme as StoredTheme;
 
-    if (!currentTheme) {
+    if (!currentTheme || currentTheme.themeName === "default") {
       return;
     }
 
     saveThemeDialog(
-      "Do you want to save the current theme configuration?",
-      "Enter a theme title",
-      { title: currentTheme.themeName! },
-      (confirm) => {
-        if (confirm) {
-          debugger;
+      "Do you want to save the current theme?",
+      currentTheme.themeName!,
+      (confirm, data) => {
+        if (confirm && data) {
+          const saveAsNew = data.save_as_new;
+
+          if (saveAsNew) {
+            // create new theme
+            const newThemeName = data.theme_name;
+            const newTheme = {
+              ...currentTheme,
+              themeName: newThemeName,
+            };
+            createTheme(newTheme)
+              .then((newTheme) => {
+                addCustomTheme(newTheme);
+                const themeTabPlugin = creator!.themeEditor!;
+                const themeModel = themeTabPlugin.themeModel;
+                themeModel.setTheme(newTheme);
+              })
+              .catch((error) => {
+                console.error("Error creating new theme: ", error);
+              });
+          } else {
+            // update existing theme
+            updateTheme(currentTheme)
+              .then((updatedTheme) => {
+                console.log("Updated theme: ", updatedTheme);
+              })
+              .catch((error) => {
+                console.error("Error updating theme: ", error);
+              });
+          }
         }
       },
     );
-    // TODO: Get the ID from the database
-    const themeId = Math.random().toString(36).substring(2, 15);
-    // Generate a unique theme name
-    currentTheme.themeName += "_modified_" + themeId;
-    // Generate a human-friendly theme name
-    const themeTitle = "My Custom Theme " + themeId;
-    console.log("themeTitle", themeTitle);
-    // askForThemeName("Do you want to save the current theme configuration?", "Enter a theme title", { title: themeTitle }, (confirm, data) => {
-    //     if (confirm) {
-    //         addCustomTheme(currentTheme, data.title);
-    //         // Set the theme as a current theme; update the theme list and theme options
-    //         const themeModel = themeTabPlugin.themeModel;
-    //         themeModel.setTheme(currentTheme);
-    //         themeId++;
-    //         updateCustomActions();
-    //         // ...
-    //         // (Optional) Save the theme to an external storage here
-    //         // ...
-    //     }
-    // });
-  }, [creator, saveThemeDialog]);
+  }, [creator, saveThemeDialog, addCustomTheme, createTheme, updateTheme]);
 
   const deleteThemeHandler = useCallback(() => {
     const theme = creator?.theme as StoredTheme;
@@ -332,7 +364,6 @@ function FormEditor({
     // TODO: Implement proper theme name/id lookup
     const currentThemeName = creator.theme?.themeName;
     const isCustomTheme = currentThemeName != "default";
-    debugger;
 
     deleteThemeAction.visible = isThemeTab && isCustomTheme;
   }, [creator, saveThemeAction, deleteThemeAction]);

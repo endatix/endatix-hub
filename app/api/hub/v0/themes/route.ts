@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   try {
     const theme = await request.json() as ITheme;
-    
+    console.log("theme: ", theme);
     if (!theme || !theme.themeName) {
       return NextResponse.json(
         { error: "Invalid theme data" },
@@ -50,3 +50,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
