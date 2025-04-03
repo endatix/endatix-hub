@@ -1,19 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/features/auth';
-import { ITheme } from 'survey-core';
 import { StoredTheme, themeRepository } from '../repository';
 
 // GET a specific theme by ID
 export async function GET(
   request: Request,
-  { params }: { params: { themeId: string } }
+  { params }: { params: Promise<{ themeId: string }> }
 ) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { themeId } = params;
+  const { themeId } = await params;
   
   try {
     const theme = await themeRepository.getThemeById(themeId);
@@ -34,17 +33,18 @@ export async function GET(
   }
 }
 
+
 // PUT to update a theme
 export async function PUT(
   request: Request,
-  { params }: { params: { themeId: string } }
+  { params }: { params: Promise<{ themeId: string }> }
 ) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { themeId } = params;
+  const { themeId } = await params;
   
   try {
     const theme = await request.json() as StoredTheme;
@@ -78,14 +78,14 @@ export async function PUT(
 // DELETE a theme
 export async function DELETE(
   request: Request,
-  { params }: { params: { themeId: string } }
+  { params }: { params: Promise<{ themeId: string }> }
 ) {
   const session = await getSession();
   if (!session.isLoggedIn) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { themeId } = params;
+  const { themeId } = await params;
   
   try {
     const success = await themeRepository.deleteTheme(themeId);
