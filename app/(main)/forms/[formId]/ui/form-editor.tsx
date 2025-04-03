@@ -61,6 +61,11 @@ interface FormEditorProps {
   slkVal?: string;
 }
 
+interface SaveThemeData {
+  save_as_new: boolean;
+  theme_name: string;
+}
+
 const deleteTheme = async (themeId: string) => {
   const response = await fetch(`/api/hub/v0/themes/${themeId}`, {
     method: "DELETE",
@@ -187,7 +192,7 @@ function FormEditor({
     (
       dialogTitle: string,
       templateName: string,
-      callback: (status: boolean, data: { save_as_new: boolean; theme_name: string }) => void,
+      callback: (status: boolean, data?: SaveThemeData) => void,
     ) => {
       const survey = new SurveyModel(
         JSON.parse(
@@ -202,13 +207,13 @@ function FormEditor({
           data: { model: survey },
           onApply: () => {
             if (survey.tryComplete()) {
-              callback(true, survey.data);
+              callback(true, survey.data as SaveThemeData);
               return true;
             }
             return false;
           },
           onCancel: () => {
-            callback(false, undefined);
+            callback(false);
             return false;
           },
           title: dialogTitle,
