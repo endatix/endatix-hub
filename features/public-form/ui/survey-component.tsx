@@ -15,17 +15,20 @@ import { DefaultLight } from "survey-core/themes";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
+import { StoredTheme } from '@/app/api/hub/v0/themes/repository';
 
 interface SurveyComponentProps {
   definition: string;
   formId: string;
   submission?: Submission;
+  theme?: StoredTheme;
 }
 
 export default function SurveyComponent({
   definition,
   formId,
   submission,
+  theme,
 }: SurveyComponentProps) {
   const model = useSurveyModel(definition, submission);
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId);
@@ -99,7 +102,7 @@ export default function SurveyComponent({
   );
 
   useEffect(() => {
-    model.applyTheme(DefaultLight);
+    model.applyTheme(theme?? DefaultLight);
     model.onComplete.add(submitForm);
     model.onValueChanged.add(updatePartial);
     model.onCurrentPageChanged.add(updatePartial);
@@ -113,7 +116,7 @@ export default function SurveyComponent({
       model.onDynamicPanelValueChanged.remove(updatePartial);
       model.onMatrixCellValueChanged.remove(updatePartial);
     };
-  }, [model, submitForm, updatePartial]);
+  }, [model, submitForm, updatePartial, theme]);
 
   return <Survey model={model} />;
 }

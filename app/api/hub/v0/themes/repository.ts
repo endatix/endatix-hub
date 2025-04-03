@@ -41,6 +41,18 @@ class ThemeRepository {
     return Array.from(this.themes.values());
   }
 
+  async getThemeByFormId(formId: string): Promise<StoredTheme | null> {
+    // Simulate async DB operation
+    await new Promise((resolve) => setTimeout(resolve, this.getRandomDelay()));
+
+    const RENTAL_FORM_ID = "1356638596852875264";
+    if (formId === RENTAL_FORM_ID) {
+      return { ...rentalThemeLight, id: RENTAL_FORM_ID };
+    }
+
+    return null;
+  }
+
   // Get a theme by ID
   async getThemeById(id: string): Promise<StoredTheme | null> {
     // Simulate async DB operation
@@ -78,7 +90,6 @@ class ThemeRepository {
 
   // Delete a theme
   async deleteTheme(id: string): Promise<boolean> {
-    // Simulate async DB operation
     await new Promise((resolve) => setTimeout(resolve, this.getRandomDelay()));
 
     if (!this.themes.has(id)) {
