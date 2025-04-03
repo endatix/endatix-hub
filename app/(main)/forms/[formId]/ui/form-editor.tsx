@@ -187,7 +187,7 @@ function FormEditor({
     (
       dialogTitle: string,
       templateName: string,
-      callback: (status: boolean, data: any) => void,
+      callback: (status: boolean, data: { save_as_new: boolean; theme_name: string }) => void,
     ) => {
       const survey = new SurveyModel(
         JSON.parse(
@@ -296,7 +296,7 @@ function FormEditor({
         }
       },
     );
-  }, [creator, saveThemeDialog, addCustomTheme, createTheme, updateTheme]);
+  }, [creator, saveThemeDialog, addCustomTheme]);
 
   const deleteThemeHandler = useCallback(() => {
     const theme = creator?.theme as StoredTheme;
