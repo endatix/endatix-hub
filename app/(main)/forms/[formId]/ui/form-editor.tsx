@@ -6,14 +6,22 @@ import { toast } from "@/components/ui/toast";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   Action,
   slk,
-  ITheme,
-  getLocaleStrings,
   settings,
   SvgRegistry,
+  Serializer,
+  SurveyModel,
+  surveyLocalization,
 } from "survey-core";
 import "survey-core/survey-core.css";
 import {
@@ -22,15 +30,23 @@ import {
   SurveyCreatorModel,
   UploadFileEvent,
 } from "survey-creator-core";
+import { BorderlessLightPanelless } from "survey-core/themes";
 import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
+import { StoredTheme } from "@/app/api/hub/v0/themes/repository";
 // import { rentalThemeDark, rentalThemeLight } from "./rental-theme";
 
 registerSpecializedQuestion(SpecializedVideo);
 // registerSurveyTheme(SurveyTheme);
 // registerSurveyTheme(rentalThemeLight, rentalThemeDark);
+
+Serializer.addProperty("theme", {
+  name: "id",
+  type: "string",
+  category: "general"
+});
 
 const saveAsIcon =
   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
@@ -110,22 +126,6 @@ function FormEditor({
     [formId],
   );
 
-  const getThemes = async () => {
-    try {
-      const response = await fetch("/api/hub/v0/themes");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch themes");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error: ", error);
-      return [];
-    }
-  };
-
   const saveTheme = useCallback(
     (saveNo: number, callback: (num: number, status: boolean) => void) => {
       const creatorTheme = creator?.theme;
@@ -144,14 +144,106 @@ function FormEditor({
     [saveTheme],
   );
 
-  const saveCustomTheme = useCallback(() => {
+  const saveThemeDialog = useCallback(
+    (
+      title: string,
+      text: string,
+      initialValue: { title: string },
+      callback: (status: boolean, data: any) => void,
+    ) => {
+      const survey = new SurveyModel(
+        JSON.parse(
+          '{"pages":[{"name":"page1","elements":[{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Theme Name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme title is required","placeholder":"My new awesome theme"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}',
+        ),
+      );
+      survey.isCompact = true;
+      survey.applyTheme(BorderlessLightPanelless);
+      const popupViewModel = settings.showDialog(
+        {
+          componentName: "survey",
+          data: { model: survey },
+          onApply: () => {
+            if (survey.tryComplete()) {
+              callback(true, survey.data);
+              return true;
+            }
+            return false;
+          },
+          onCancel: () => {
+            callback(false, undefined);
+            return false;
+          },
+          title: title,
+          displayMode: "popup",
+          isFocusedContent: true,
+          cssClass: "creator-dialog",
+        },
+        settings.environment.popupMountContainer as HTMLElement,
+      );
+
+      const toolbar = popupViewModel.footerToolbar;
+      const applyBtn = toolbar.getActionById("apply");
+      const cancelBtn = toolbar.getActionById("cancel");
+      cancelBtn.title = surveyLocalization.getString("cancel");
+      applyBtn.title = surveyLocalization.getString("ok");
+    },
+    [],
+  );
+
+  const addCustomTheme = useCallback(
+    (theme: StoredTheme) => {
+      const themeTabPlugin = creator!.themeEditor!;
+      themeTabPlugin.addTheme(theme);
+    },
+    [creator],
+  );
+
+  const getThemes = async () => {
+    try {
+      const response = await fetch("/api/hub/v0/themes");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch themes");
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error: ", error);
+      return [];
+    }
+  };
+
+  const deleteTheme = async (themeId: string) => {
+    const response = await fetch(`/api/hub/v0/themes/${themeId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete theme");
+    }
+
+    return response.json();
+  };
+
+  const saveThemeHandler = useCallback(() => {
     // Get the current theme
     const currentTheme = creator?.theme;
-    debugger;
+
     if (!currentTheme) {
       return;
     }
 
+    saveThemeDialog(
+      "Do you want to save the current theme configuration?",
+      "Enter a theme title",
+      { title: currentTheme.themeName! },
+      (confirm) => {
+        if (confirm) {
+          debugger;
+        }
+      },
+    );
     // TODO: Get the ID from the database
     const themeId = Math.random().toString(36).substring(2, 15);
     // Generate a unique theme name
@@ -172,51 +264,78 @@ function FormEditor({
     //         // ...
     //     }
     // });
-  }, [creator]);
+  }, [creator, saveThemeDialog]);
 
-  const addCustomTheme = useCallback(
-    (theme: ITheme) => {
-      const themeTabPlugin = creator!.themeEditor!;
-      themeTabPlugin.addTheme(theme);
-    },
-    [creator],
-  );
-
-  const deleteCurrentTheme = useCallback(() => {
-    const currentTheme = creator?.theme;
-    debugger;
-    if (!creator || !currentTheme) {
+  const deleteThemeHandler = useCallback(() => {
+    const theme = creator?.theme as StoredTheme;
+    if (!creator || !theme) {
       return;
     }
 
-    const themeName = currentTheme.themeName;
-    if (!themeName) {
+    const themeId = theme.id;
+    if (!themeId) {
       return;
     }
 
-    const builtInThemeIndex = PredefinedThemes.indexOf(themeName);
+    const builtInThemeIndex = PredefinedThemes.indexOf(themeId);
     if (builtInThemeIndex === -1) {
-      // A custom theme
-      const enLocale = getLocaleStrings("en");
       settings.confirmActionAsync(
-        'Do you want to delete the following theme: "' +
-          enLocale.theme.names[themeName] +
-          '"?',
+        'Do you want to delete the following theme: "' + theme.themeName + '"?',
         (confirm) => {
           if (confirm) {
             const themeTabPlugin = creator?.themeEditor;
-            themeTabPlugin.removeTheme(currentTheme, true);
+            themeTabPlugin.removeTheme(theme, true);
             const themeModel = themeTabPlugin.themeModel;
             themeModel.setTheme({ themeName: "default" });
-            //updateCustomActions();
-            // ...
-            // (Optional) Delete the theme from an external storage here
-            // ...
+            deleteTheme(themeId);
           }
+        },
+        {
+          cssClass: "creator-dialog",
         },
       );
     }
   }, [creator]);
+
+  const saveThemeAction = useMemo(
+    () =>
+      new Action({
+        id: "svd-save-custom-theme",
+        title: "Add custom theme to the list",
+        action: saveThemeHandler,
+        iconName: "icon-saveas",
+        showTitle: false,
+      }),
+    [saveThemeHandler],
+  );
+
+  const deleteThemeAction = useMemo(
+    () =>
+      new Action({
+        id: "svd-delete-custom-theme",
+        title: "Delete theme",
+        action: deleteThemeHandler,
+        iconName: "icon-delete",
+        showTitle: false,
+      }),
+    [deleteThemeHandler],
+  );
+
+  const updateCustomActions = useCallback(() => {
+    if (!creator) {
+      return;
+    }
+
+    const isThemeTab = creator.activeTab === "theme";
+    saveThemeAction.visible = isThemeTab;
+
+    // TODO: Implement proper theme name/id lookup
+    const currentThemeName = creator.theme?.themeName;
+    const isCustomTheme = currentThemeName != "default";
+    debugger;
+
+    deleteThemeAction.visible = isThemeTab && isCustomTheme;
+  }, [creator, saveThemeAction, deleteThemeAction]);
 
   useEffect(() => {
     if (creator) {
@@ -265,54 +384,37 @@ function FormEditor({
       });
 
       creator.saveThemeFunc = handleSaveTheme;
-
-      const saveThemeAction = new Action({
-        id: "svd-save-custom-theme",
-        title: "Add custom theme to the list",
-        action: saveCustomTheme,
-        iconName: "icon-saveas",
-        showTitle: false,
-      });
-      const deleteThemeAction = new Action({
-        id: "svd-delete-custom-theme",
-        title: "Delete theme",
-        action: deleteCurrentTheme,
-        iconName: "icon-delete",
-        showTitle: false,
-      });
-
       creator.toolbar.actions.push(saveThemeAction);
       creator.toolbar.actions.push(deleteThemeAction);
       const themeTabPlugin = creator.themeEditor;
-
-      const updateCustomActions = () => {
-        const isThemeTab = creator.activeTab === "theme";
-        saveThemeAction.visible = isThemeTab;
-        // TODO: Implement proper theme name/id lookup
-        const currentThemeName = creator.theme?.themeName;
-        const isCustomTheme =
-          currentThemeName == "Rental Theme" ||
-          (currentThemeName !== undefined &&
-            PredefinedThemes.indexOf(currentThemeName) === -1);
-        deleteThemeAction.visible = isThemeTab && isCustomTheme;
-      };
+      creator.activeTab = "theme";
 
       getThemes()
         .then((themes) => {
-          themes.forEach((theme: ITheme) => {
-            addCustomTheme(theme, theme.themeName!);
+          themes.forEach((theme: StoredTheme) => {
+            addCustomTheme(theme);
+            updateCustomActions();
           });
         })
         .catch((error) => {
           console.error("Error: ", error);
         });
 
-      updateCustomActions();
       themeTabPlugin.onThemeSelected.add(updateCustomActions);
       creator.onActiveTabChanged.add(updateCustomActions);
       themeTabPlugin.advancedModeEnabled = true;
+      updateCustomActions();
     }
-  }, [creator, saveCustomTheme, deleteCurrentTheme, handleSaveTheme]);
+  }, [
+    creator,
+    deleteThemeAction,
+    saveThemeAction,
+    saveThemeHandler,
+    deleteThemeHandler,
+    addCustomTheme,
+    updateCustomActions,
+    handleSaveTheme,
+  ]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
