@@ -9,5 +9,6 @@ export enum QuestionType {
   Comment = "comment",
   File = "file",
   Video = "video",
+  MultipleText = "multipletext",
   Unsupported = "unsupported",
 }

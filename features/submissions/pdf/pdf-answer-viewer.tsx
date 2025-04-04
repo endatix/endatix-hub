@@ -1,6 +1,11 @@
 import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
-import { Question, QuestionFileModel } from "survey-core";
+import {
+  MultipleTextItemModel,
+  Question,
+  QuestionFileModel,
+  QuestionMultipleTextModel,
+} from "survey-core";
 import PdfFileAnswer from "./pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
 import { MessageSquareTextIcon } from "@/features/pdf-export/components/icons";
@@ -109,6 +114,21 @@ const PdfAnswerViewer = ({
     </View>
   );
 
+  const renderMultipleTextAnswer = () => {
+    const question = forQuestion as QuestionMultipleTextModel;
+
+    return (
+      <View style={styles.nonFileAnswerContainer} break={pageBreak}>
+        <Text style={styles.questionLabel}>{questionTitle}:</Text>
+        {question?.items?.map((item: MultipleTextItemModel) => (
+          <Text key={item.name} style={styles.answerText}>
+            {item.value}
+          </Text>
+        ))}
+      </View>
+    );
+  };
+
   const renderUnknownAnswer = () => (
     <View style={styles.nonFileAnswerContainer} break={pageBreak}>
       <Text style={styles.questionLabel}>{questionTitle}</Text>
@@ -136,6 +156,8 @@ const PdfAnswerViewer = ({
     case QuestionType.File:
     case QuestionType.Video:
       return renderFileAnswer();
+    case QuestionType.MultipleText:
+      return renderMultipleTextAnswer();
     default:
       return renderUnknownAnswer();
   }
