@@ -9,6 +9,7 @@ import {
 } from "@react-pdf/renderer";
 import { Model, PanelModel, Question } from "survey-core";
 import PdfAnswerViewer from "@/features/submissions/pdf/pdf-answer-viewer";
+import { setupBrowserPolyfills } from "@/features/submissions/pdf/browser-polyfills";
 import { Submission } from "@/types";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
@@ -50,6 +51,9 @@ export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
   if (!submission.formDefinition) {
     return <Text>Form definition not found</Text>;
   }
+
+  setupBrowserPolyfills();
+
   const json = JSON.parse(submission.formDefinition.jsonData);
   const surveyModel = new Model(json);
 
