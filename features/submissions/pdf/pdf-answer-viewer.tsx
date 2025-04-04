@@ -5,10 +5,12 @@ import {
   Question,
   QuestionFileModel,
   QuestionMultipleTextModel,
+  QuestionSignaturePadModel,
 } from "survey-core";
 import PdfFileAnswer from "./pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
 import { MessageSquareTextIcon } from "@/features/pdf-export/components/icons";
+import PdfSignaturePadAnswer from "./pdf-signaturepad-answer";
 
 export interface ViewAnswerProps {
   forQuestion: Question;
@@ -114,6 +116,14 @@ const PdfAnswerViewer = ({
     </View>
   );
 
+  const renderSignaturePadAnswer = () => (
+    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
+      <PdfSignaturePadAnswer
+        question={forQuestion as QuestionSignaturePadModel}
+      />
+    </View>
+  );
+
   const renderMultipleTextAnswer = () => {
     const question = forQuestion as QuestionMultipleTextModel;
 
@@ -156,6 +166,8 @@ const PdfAnswerViewer = ({
     case QuestionType.File:
     case QuestionType.Video:
       return renderFileAnswer();
+    case QuestionType.SignaturePad:
+      return renderSignaturePadAnswer();
     case QuestionType.MultipleText:
       return renderMultipleTextAnswer();
     default:

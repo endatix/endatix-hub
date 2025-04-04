@@ -1,4 +1,3 @@
-import { Minus } from "lucide-react";
 import React from "react";
 import {
   MultipleTextItemModel,
@@ -17,22 +16,17 @@ const MultipleTextAnswer = ({ question }: MultipleTextAnswerProps) => {
   return (
     <>
       <QuestionLabel forQuestion={question as QuestionMultipleTextModel} />
-      {question.value ? (
-        <div className="grid grid-cols-3 gap-4">
-          {question.items.map((item: MultipleTextItemModel) => (
-            <div key={item.name} className="col-span-1">
-              <Input
-                disabled
-                id={item.name}
-                value={item.value ?? "N/A"}
-                className="col-span-3 bg-accent"
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <Minus className="h-4 w-4" />
-      )}
+      <div className="col-span-3 gap-4">
+        {question.items.map((item: MultipleTextItemModel) => (
+          <Input
+            key={item.name}
+            disabled
+            id={item.name}
+            value={item.value ?? "N/A"}
+            className="bg-accent w-full"
+          />
+        ))}
+      </div>
     </>
   );
 };
