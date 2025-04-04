@@ -3,7 +3,11 @@ import {
   AuthenticationRequest,
   AuthenticationResponse,
 } from "@/features/auth";
-import { CreateFormRequest, CreateFormTemplateRequest, CreateFormTemplateResult } from "@/lib/form-types";
+import {
+  CreateFormRequest,
+  CreateFormTemplateRequest,
+  CreateFormTemplateResult,
+} from "@/lib/form-types";
 import { Form, FormDefinition, FormTemplate, Submission } from "../types";
 import { redirect } from "next/navigation";
 import { HeaderBuilder } from "./header-builder";
@@ -290,8 +294,8 @@ export const getFormTemplate = async (
 
 export const updateFormTemplate = async (
   templateId: string,
-  data: { 
-    name?: string; 
+  data: {
+    name?: string;
     isEnabled?: boolean;
     jsonData?: string;
   },
@@ -314,7 +318,9 @@ export const updateFormTemplate = async (
   }
 };
 
-export const deleteFormTemplate = async (templateId: string): Promise<string> => {
+export const deleteFormTemplate = async (
+  templateId: string,
+): Promise<string> => {
   const session = await getSession();
 
   if (!session.isLoggedIn) {
@@ -334,7 +340,6 @@ export const deleteFormTemplate = async (templateId: string): Promise<string> =>
 
   return response.text();
 };
-
 
 export const getSubmissions = async (formId: string): Promise<Submission[]> => {
   const session = await getSession();

@@ -26,7 +26,7 @@ const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
       <Input
         disabled
         id={forQuestion.name}
-        value={forQuestion.value}
+        value={forQuestion.value ?? "N/A"}
         className="col-span-3 bg-accent"
       />
     </>
