@@ -1,14 +1,19 @@
+import { StoredTheme } from "@/app/api/hub/v0/themes/repository";
 import {
-  getSession,
   AuthenticationRequest,
   AuthenticationResponse,
+  getSession,
 } from "@/features/auth";
-import { CreateFormRequest, CreateFormTemplateRequest, CreateFormTemplateResult } from "@/lib/form-types";
-import { Form, FormDefinition, FormTemplate, Submission } from "../types";
-import { redirect } from "next/navigation";
-import { HeaderBuilder } from "./header-builder";
 import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
-
+import {
+  CreateFormRequest,
+  CreateFormTemplateRequest,
+  CreateFormTemplateResult,
+} from "@/lib/form-types";
+import { redirect } from "next/navigation";
+import { ITheme } from "survey-core";
+import { Form, FormDefinition, FormTemplate, Submission } from "../types";
+import { HeaderBuilder } from "./header-builder";
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
 export const authenticate = async (
@@ -228,6 +233,42 @@ export const updateFormDefinition = async (
   }
 };
 
+export const getThemes = async (): Promise<StoredTheme[]> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
+
+  const response = await fetch(`${API_BASE_URL}/themes`, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch themes");
+  }
+
+  return response.json();
+};
+
+export const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/themes`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(theme),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create theme");
+  }
+
+  return response.json();
+};
+
 export const createFormTemplate = async (
   formTemplateRequest: CreateFormTemplateRequest,
 ): Promise<CreateFormTemplateResult> => {
@@ -290,8 +331,8 @@ export const getFormTemplate = async (
 
 export const updateFormTemplate = async (
   templateId: string,
-  data: { 
-    name?: string; 
+  data: {
+    name?: string;
     isEnabled?: boolean;
     jsonData?: string;
   },
@@ -314,7 +355,9 @@ export const updateFormTemplate = async (
   }
 };
 
-export const deleteFormTemplate = async (templateId: string): Promise<string> => {
+export const deleteFormTemplate = async (
+  templateId: string,
+): Promise<string> => {
   const session = await getSession();
 
   if (!session.isLoggedIn) {
@@ -334,7 +377,6 @@ export const deleteFormTemplate = async (templateId: string): Promise<string> =>
 
   return response.text();
 };
-
 
 export const getSubmissions = async (formId: string): Promise<Submission[]> => {
   const session = await getSession();

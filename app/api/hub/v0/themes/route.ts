@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/features/auth";
-import { themeRepository } from "./repository";
 import { ITheme } from "survey-core";
+import { createTheme, getThemes } from '@/services/api';
 
 // GET all themes
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
 
   try {
     // Use repository to get all themes
-    const themes = await themeRepository.getAllThemes();
+    const themes = await getThemes();
     return NextResponse.json(themes);
   } catch (error) {
     console.error("Error fetching themes:", error);
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       );
     }
     
-    const newTheme = await themeRepository.createTheme(theme);
+    const newTheme = await createTheme(theme);
     return NextResponse.json(newTheme, { status: 201 });
   } catch (error) {
     console.error("Error creating theme:", error);
