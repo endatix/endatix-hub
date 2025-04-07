@@ -1,9 +1,9 @@
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { Minus } from "lucide-react";
 import React from "react";
-import { ItemValue, Question, QuestionMatrixModel } from "survey-core";
-import { QuestionLabel } from "../details/question-label";
+import { ItemValue, QuestionMatrixModel } from "survey-core";
 
 interface MatrixAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   question: Partial<QuestionMatrixModel>;
@@ -14,7 +14,7 @@ interface MatrixAnswer {
   answer: string;
 }
 
-const MatrixAnswer = ({ question }: MatrixAnswerProps) => {
+const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
   const matrixAnswers = React.useMemo(() => {
     if (!question.rows || !question.columns) {
       return [];
@@ -42,9 +42,12 @@ const MatrixAnswer = ({ question }: MatrixAnswerProps) => {
     return answers;
   }, [question.rows, question.columns, question.value]);
 
+  if (matrixAnswers.length === 0) {
+    return <Minus className="h-4 w-4" />;
+  }
+
   return (
-    <>
-      <QuestionLabel forQuestion={question as Question} />
+    <div className={cn("flex flex-col gap-2", className)}>
       {matrixAnswers.map((answer) => (
         <div
           key={answer.question}
@@ -61,9 +64,8 @@ const MatrixAnswer = ({ question }: MatrixAnswerProps) => {
           </div>
         </div>
       ))}
-      {!matrixAnswers.length && <Minus className="h-4 w-4" />}
       {matrixAnswers.length > 0 && <Separator className="col-span-5" />}
-    </>
+    </div>
   );
 };
 

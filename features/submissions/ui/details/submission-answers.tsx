@@ -7,6 +7,7 @@ import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question"
 import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
 import { Model, Question } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
+import { QuestionLabel } from "./question-label";
 
 registerSpecializedQuestion(SpecializedVideo);
 registerSpecializedQuestion(KantarCheckbox);
@@ -43,16 +44,24 @@ export function SubmissionAnswers({
   return (
     <div className="grid gap-4">
       {questions?.map((question) => (
-        <div
-          key={question.id}
-          className="grid grid-cols-5 items-center gap-4 mb-6"
-        >
-          <AnswerViewer key={question.id} forQuestion={question} />
-        </div>
+        <SubmissionItemRow key={question.id} question={question} />
       ))}
     </div>
   );
 }
+
+const SubmissionItemRow = ({ question }: { question: Question }) => {
+  return (
+    <div key={question.id} className="grid grid-cols-5 items-center gap-4 mb-6">
+      <QuestionLabel forQuestion={question} />
+      <AnswerViewer
+        key={question.id}
+        forQuestion={question}
+        className="col-span-3"
+      />
+    </div>
+  );
+};
 
 const ErrorView = () => {
   return <div>Error loading submission answers</div>;

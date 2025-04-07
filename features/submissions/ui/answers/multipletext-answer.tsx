@@ -1,33 +1,30 @@
 import React from "react";
-import {
-  MultipleTextItemModel,
-  Question,
-  QuestionMultipleTextModel,
-} from "survey-core";
-import { QuestionLabel } from "../details/question-label";
+import { MultipleTextItemModel, QuestionMultipleTextModel } from "survey-core";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface MultipleTextAnswerProps
   extends React.HtmlHTMLAttributes<HTMLDivElement> {
-  question: Question;
+  question: QuestionMultipleTextModel;
+  className?: string;
 }
 
-const MultipleTextAnswer = ({ question }: MultipleTextAnswerProps) => {
+const MultipleTextAnswer = ({
+  question,
+  className,
+}: MultipleTextAnswerProps) => {
   return (
-    <>
-      <QuestionLabel forQuestion={question as QuestionMultipleTextModel} />
-      <div className="col-span-3 gap-4">
-        {question.items.map((item: MultipleTextItemModel) => (
-          <Input
-            key={item.name}
-            disabled
-            id={item.name}
-            value={item.value ?? "N/A"}
-            className="bg-accent w-full"
-          />
-        ))}
-      </div>
-    </>
+    <div className={cn("col-span-3 gap-4", className)}>
+      {question.items.map((item: MultipleTextItemModel) => (
+        <Input
+          key={item.name}
+          disabled
+          id={item.name}
+          value={item.value ?? "N/A"}
+          className="bg-accent w-full"
+        />
+      ))}
+    </div>
   );
 };
 
