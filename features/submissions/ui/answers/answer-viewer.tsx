@@ -18,6 +18,7 @@ import { QuestionLabel } from "../details/question-label";
 import { QuestionType } from "@/lib/questions";
 import MultipleTextAnswer from "./multipletext-answer";
 import { SignaturePadAnswer } from "./signaturepad-answer";
+import UnknownAnswerViewer from "./unknown-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -113,10 +114,7 @@ const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
   );
 
   const renderUnknownAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <p className="col-span-3">{forQuestion.value?.toString() ?? "-"}</p>
-    </>
+    <UnknownAnswerViewer forQuestion={forQuestion} />
   );
 
   switch (questionType) {

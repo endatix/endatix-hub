@@ -139,12 +139,24 @@ const PdfAnswerViewer = ({
     );
   };
 
-  const renderUnknownAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}</Text>
-      <Text style={styles.answerText}>{forQuestion.value || "No Answer"}</Text>
-    </View>
-  );
+  const renderUnknownAnswer = () => {
+    if (forQuestion.getType() === "html" || forQuestion.getType() === "image") {
+      return <View />;
+    }
+
+    const isStringValue = typeof forQuestion?.value === "string";
+
+    return (
+      <View style={styles.nonFileAnswerContainer} break={pageBreak}>
+        <Text style={styles.questionLabel}>{questionTitle}</Text>
+        {isStringValue ? (
+          <Text style={styles.answerText}>{forQuestion.value}</Text>
+        ) : (
+          <Text style={styles.answerText}>{JSON.stringify(forQuestion, null, 2)}</Text>
+        )}
+      </View>
+    );
+  };
 
   switch (questionType) {
     case QuestionType.Text:
