@@ -1,8 +1,17 @@
 "use client";
 
 import { customizeSurvey } from "@/lib/kantar/customize-survey";
+import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { KantarCheckbox } from "@/lib/questions/kantar-checkbox/kantar-checkbox-question";
+import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question";
+import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
 import { Model, Question } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
+
+registerSpecializedQuestion(SpecializedVideo);
+registerSpecializedQuestion(KantarCheckbox);
+registerSpecializedQuestion(KantarRadio);
+registerSpecializedQuestion(KantarRanking);
 
 export function SubmissionAnswers({
   formDefinition,

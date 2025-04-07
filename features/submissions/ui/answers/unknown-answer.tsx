@@ -15,7 +15,7 @@ const UnknownAnswerViewer = ({ forQuestion }: ViewAnswerProps) => {
         <p className="col-span-3">{forQuestion.value}</p>
       ) : (
         <pre className="col-span-3 text-muted-foreground text-sm">
-          {JSON.stringify(forQuestion, null, 2)}
+          {JSON.stringify(forQuestion.value, null, 2)}
         </pre>
       )}
     </>

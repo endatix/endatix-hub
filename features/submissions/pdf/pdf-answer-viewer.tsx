@@ -152,7 +152,7 @@ const PdfAnswerViewer = ({
         {isStringValue ? (
           <Text style={styles.answerText}>{forQuestion.value}</Text>
         ) : (
-          <Text style={styles.answerText}>{JSON.stringify(forQuestion, null, 2)}</Text>
+          <Text style={styles.answerText}>{JSON.stringify(forQuestion.value, null, 2)}</Text>
         )}
       </View>
     );
