@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { StyleSheet, Image, Link, Text, View } from "@react-pdf/renderer";
 import { File, FileType, getFileType } from "@/lib/questions/file/file-type";
@@ -77,12 +78,12 @@ const styles = StyleSheet.create({
   image: {
     objectFit: "cover",
     width: "100%",
-    height: "auto",
     wrap: "false",
   },
   portrait: {
     width: 150,
-    height: 200,
+    maxHeight: 200,
+    height: "auto",
   },
   square: {
     width: 150,
