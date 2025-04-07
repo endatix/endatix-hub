@@ -17,7 +17,9 @@ export const getSubmissionDetailsUseCase = async ({
     const response: Submission = await getSubmission(formId, submissionId);
     return Result.success(response);
   } catch (error) {
-    const errorMessage = `Failed to load submission details: ${error instanceof Error ? error.message : "Unknown error"}`;
+    const errorMessage = `Failed to load submission details: ${
+      error instanceof Error ? error.message : "Unknown error"
+    }`;
     console.error(errorMessage);
 
     return Result.error(errorMessage);

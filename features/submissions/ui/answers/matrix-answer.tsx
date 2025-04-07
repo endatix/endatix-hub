@@ -1,6 +1,5 @@
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 import { Minus } from "lucide-react";
 import React from "react";
 import { ItemValue, Question, QuestionMatrixModel } from "survey-core";
