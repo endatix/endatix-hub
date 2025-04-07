@@ -4,6 +4,8 @@ import { SurveyCreator } from "survey-creator-react";
 
 export class KantarRadio extends SpecializedSurveyQuestion {
   get customQuestionConfig(): ICustomQuestionTypeConfiguration {
+    const commentQuestionName = "other";
+    const radioQuestionName = "value";
     return {
       name: "kantar_radiogroup",
       title: "KANTAR Radio Group",
@@ -11,20 +13,20 @@ export class KantarRadio extends SpecializedSurveyQuestion {
       elementsJSON: [
             {
               type: "radiogroup",
-              name: "value",
+              name: radioQuestionName,
               titleLocation: "hidden",
               choicesOrder: "random"
             },
             {
               type: "comment",
-              name: "other",
+              name: commentQuestionName,
               titleLocation: "hidden",
               placeholder: "Please describe"
             }
           ],
       onValueChanged(question, name, newValue) {
-        if(name == "value") {
-          const otherQuestion = question.contentPanel.getQuestionByName("other");
+        if(name == radioQuestionName) {
+          const otherQuestion = question.contentPanel.getQuestionByName(commentQuestionName);
           if(newValue.includes("96")) {
             otherQuestion.visible = true;
           }
@@ -35,7 +37,7 @@ export class KantarRadio extends SpecializedSurveyQuestion {
       },
       onAfterRenderContentElement(_, element, htmlElement) {
         switch(element.name) {
-          case "other": // Moves the "other" text box just below the option with value 96
+          case commentQuestionName: // Moves the "other" text box just below the option with value 96
             const row = htmlElement.closest(".sd-row") as HTMLElement;
 
             row.style.display = "none";
@@ -43,7 +45,7 @@ export class KantarRadio extends SpecializedSurveyQuestion {
             row.classList.add("kantar-other-textbox");
 
             break;
-          case "value":  // Ensusres options with values 96, 97, and 98 are at the end of the list
+          case radioQuestionName:  // Ensures options with values 96, 97, and 98 are at the end of the list
             const choice96 = htmlElement.querySelector('input[value="96"]')?.closest(".sd-item");
             const choice97 = htmlElement.querySelector('input[value="97"]')?.closest(".sd-item");
             const choice98 = htmlElement.querySelector('input[value="98"]')?.closest(".sd-item");
@@ -92,7 +94,7 @@ export class KantarRadio extends SpecializedSurveyQuestion {
       onLoaded(question) {
         reloadChoices(question);
         const radio: QuestionRadiogroupModel = question.contentPanel?.getQuestionByName("value");
-        const other: QuestionCommentModel = question.contentPanel?.getQuestionByName("other");
+        const other: QuestionCommentModel = question.contentPanel?.getQuestionByName(commentQuestionName);
         radio.choicesOrder = question.random ? "random" : "none";
         other.visible = question.enableVerbatimOther;
       },

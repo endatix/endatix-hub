@@ -4,6 +4,8 @@ import { SurveyCreator } from "survey-creator-react";
 
 export class KantarCheckbox extends SpecializedSurveyQuestion {
   get customQuestionConfig(): ICustomQuestionTypeConfiguration {
+    const commentQuestionName = "other";
+    const checkboxQuestionName = "value";
     return {
       name: "kantar_checkbox",
       title: "KANTAR Checkboxes",
@@ -11,25 +13,29 @@ export class KantarCheckbox extends SpecializedSurveyQuestion {
       elementsJSON: [
             {
               type: "checkbox",
-              name: "value",
+              name: checkboxQuestionName,
               title: "",
               titleLocation: "hidden",
               choicesOrder: "random"
             },
             {
               type: "comment",
-              name: "other",
+              name: commentQuestionName,
               titleLocation: "hidden",
               placeholder: "Please describe",
               visibleIf: "{composite.value} contains '96'"
             }
           ],
-        onValueChanging(question, _, newValue) {
+        onValueChanging(question, name, newValue) {
+          if(name === commentQuestionName) {
+            return newValue;
+          }
+
           const exclusiveA = "97";
           const exclusiveB = "98";
-          const containsExclusive = newValue.some((v: string) => [exclusiveA, exclusiveB].includes(v));
+          const containsExclusive = newValue?.some((v: string) => [exclusiveA, exclusiveB].includes(v));
   
-          if(containsExclusive && newValue.length > 1) {
+          if(containsExclusive && newValue?.length > 1) {
             if(newValue.includes(exclusiveA) && !newValue.includes(exclusiveB) && question.currentExclusive != exclusiveA) {
               question.currentExclusive = exclusiveA;
               newValue = [exclusiveA];
@@ -80,7 +86,7 @@ export class KantarCheckbox extends SpecializedSurveyQuestion {
         },
       onAfterRenderContentElement(_, element, htmlElement) {
         switch(element.name) {
-          case "value":  // Ensusres options with values 96, 97, and 98 are at the end of the list
+          case checkboxQuestionName:  // Ensusres options with values 96, 97, and 98 are at the end of the list
             const choice96 = htmlElement.querySelector('input[value="96"]')?.closest(".sd-item");
             const choice97 = htmlElement.querySelector('input[value="97"]')?.closest(".sd-item");
             const choice98 = htmlElement.querySelector('input[value="98"]')?.closest(".sd-item");
