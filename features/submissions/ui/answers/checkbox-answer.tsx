@@ -27,8 +27,6 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
     );
   }
 
-  debugger;
-
   return (
     <div className={className}>
       <div className="flex flex-col gap-2">

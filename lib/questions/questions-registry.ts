@@ -12,5 +12,6 @@ export enum QuestionType {
   SignaturePad = "signaturepad",
   Video = "video",
   MultipleText = "multipletext",
+  PanelDynamic = "paneldynamic",
   Unsupported = "unsupported",
 }

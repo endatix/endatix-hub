@@ -8,6 +8,7 @@ import {
   QuestionCompositeModel,
   QuestionFileModel,
   QuestionMultipleTextModel,
+  QuestionPanelDynamicModel,
   QuestionSignaturePadModel,
 } from "survey-core";
 import CheckboxAnswer from "./checkbox-answer";
@@ -22,6 +23,7 @@ import RankingAnswer from "./ranking-answer";
 import RatingAnswer from "./rating-answer";
 import { SignaturePadAnswer } from "./signaturepad-answer";
 import UnknownAnswerViewer from "./unknown-answer";
+import PanelDynamicAnswer from "./paneldynamic-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -104,6 +106,13 @@ const AnswerViewer = ({
     />
   );
 
+  const renderPanelDynamicAnswer = () => (
+    <PanelDynamicAnswer
+      question={forQuestion as QuestionPanelDynamicModel}
+      className={className}
+    />
+  );
+
   const renderUnknownAnswer = () => (
     <UnknownAnswerViewer forQuestion={forQuestion} className={className} />
   );
@@ -134,6 +143,8 @@ const AnswerViewer = ({
       return renderSignaturePadAnswer();
     case QuestionType.MultipleText:
       return renderMultipleTextAnswer();
+    case QuestionType.PanelDynamic:
+      return renderPanelDynamicAnswer();
     default:
       return renderUnknownAnswer();
   }
