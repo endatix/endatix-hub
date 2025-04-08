@@ -22,7 +22,7 @@ const RadioGroupAnswer = ({ question, className }: RadioGroupAnswerProps) => {
     <RadioGroup disabled defaultValue={question.value} className={className}>
       <div className="flex items-center space-x-2">
         <RadioGroupItem value={question.value} id={question.id} />
-        <Label htmlFor={question.id}>{question.selectedItem?.text}</Label>
+        <Label htmlFor={question.id}>{decodeURIComponent(question.selectedItem?.text)}</Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

@@ -4,11 +4,13 @@ import { QuestionType } from "@/lib/questions";
 import React from "react";
 import {
   Question,
+  QuestionCheckboxModel,
   QuestionCompositeModel,
   QuestionFileModel,
   QuestionMultipleTextModel,
   QuestionSignaturePadModel,
 } from "survey-core";
+import CheckboxAnswer from "./checkbox-answer";
 import CommentAnswer from "./comment-answer";
 import CompositeAnswer from "./composite-answer";
 import DropdownAnswer from "./dropdown-answer";
@@ -33,6 +35,10 @@ const AnswerViewer = ({
 }: ViewAnswerProps): React.JSX.Element => {
   const questionType = forQuestion.getType() ?? "unsupported";
 
+  if (forQuestion instanceof QuestionCompositeModel) {
+    return <CompositeAnswer question={forQuestion} className={className} />;
+  }
+
   const renderTextAnswer = () => (
     <Input
       disabled
@@ -42,8 +48,15 @@ const AnswerViewer = ({
     />
   );
 
-  const renderCheckboxAnswer = () => (
+  const renderBooleanAnswer = () => (
     <Checkbox disabled checked={forQuestion.value} className={className} />
+  );
+
+  const renderCheckboxAnswer = () => (
+    <CheckboxAnswer
+      question={forQuestion as QuestionCheckboxModel}
+      className={className}
+    />
   );
 
   const renderRatingAnswer = () => (
@@ -95,14 +108,12 @@ const AnswerViewer = ({
     <UnknownAnswerViewer forQuestion={forQuestion} className={className} />
   );
 
-  if (forQuestion instanceof QuestionCompositeModel) {
-    return <CompositeAnswer question={forQuestion} className={className} />;
-  }
-
   switch (questionType) {
     case QuestionType.Text:
       return renderTextAnswer();
     case QuestionType.Boolean:
+      return renderBooleanAnswer();
+    case QuestionType.Checkbox:
       return renderCheckboxAnswer();
     case QuestionType.Rating:
       return renderRatingAnswer();

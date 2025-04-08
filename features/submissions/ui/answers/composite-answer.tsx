@@ -16,7 +16,7 @@ const CompositeAnswer = ({ question, className }: CompositeAnswer) => {
   return (
     <div
       className={cn(
-        "flex items-start justify-start flex-col gap-2 w-full",
+        "flex items-start justify-start flex-col gap-4 w-full",
         className,
       )}
     >

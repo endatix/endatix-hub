@@ -5,7 +5,7 @@ import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { KantarCheckbox } from "@/lib/questions/kantar-checkbox/kantar-checkbox-question";
 import { KantarRadio } from "@/lib/questions/kantar-radio/kantar-radio-question";
 import { KantarRanking } from "@/lib/questions/kantar-ranking/kantar-ranking-question";
-import { Model, Question } from "survey-core";
+import { Model, Question, QuestionNonValue } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
 import { QuestionLabel } from "./question-label";
 
@@ -33,9 +33,10 @@ export function SubmissionAnswers({
 
     const parsedData = JSON.parse(submissionData);
     surveyModel.data = parsedData;
+
+    questions = surveyModel.getAllQuestions(false, false, false);
     customizeSurvey(surveyModel);
 
-    questions = surveyModel.getAllQuestions(false, false, true);
   } catch (ex) {
     console.warn("Error while parsing submission's JSON data", ex);
     return <ErrorView />;
@@ -51,6 +52,10 @@ export function SubmissionAnswers({
 }
 
 const SubmissionItemRow = ({ question }: { question: Question }) => {
+  if (question instanceof QuestionNonValue) {
+    return null;
+  }
+
   return (
     <div key={question.id} className="grid grid-cols-5 items-center gap-4 mb-6">
       <QuestionLabel forQuestion={question} />

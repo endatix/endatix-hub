@@ -1,6 +1,7 @@
 export enum QuestionType {
   Text = "text",
   Boolean = "boolean",
+  Checkbox = "checkbox",
   Rating = "rating",
   Radiogroup = "radiogroup",
   Dropdown = "dropdown",

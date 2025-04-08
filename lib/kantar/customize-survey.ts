@@ -35,6 +35,7 @@ export function customizeSurvey(survey: Model) {
 
   survey.onAfterRenderQuestion.add((sender, options) => {
     if(options.question.getType() == "kantar_checkbox") {
+      debugger;
       // Q4: Exclude bought brand from the list of choices
       if(options.question.name == "Q4") {
         const checkboxQuestion = options.question.contentPanel.getQuestionByName("value");
@@ -44,7 +45,7 @@ export function customizeSurvey(survey: Model) {
       if(options.question.name == "Q6") {
         const Q4 = sender.getQuestionByName("Q4").contentPanel.getQuestionByName("value") as QuestionCheckboxModel;
         const checkboxQuestion = options.question.contentPanel.getQuestionByName("value") as QuestionCheckboxModel;
-        console.dir(options.question);
+
         checkboxQuestion.choices = Q4.choices
           .filter((c: { value: string; text: string }) => Q4.value.includes(c.value))
           .sort(() => Math.random() - 0.5)

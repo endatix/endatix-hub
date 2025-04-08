@@ -20,9 +20,9 @@ const CommentIcon = ({ hasComment }: { hasComment: boolean }) => (
     <Tooltip>
       <TooltipTrigger>
         {hasComment ? (
-          <MessageSquareText aria-label="Comment" className="w-4 h-4 mr-2" />
+          <MessageSquareText aria-label="Comment" className="w-4 h-4 mr-1" />
         ) : (
-          <MessageSquareOff aria-label="Comment" className="w-4 h-4 mr-2" />
+          <MessageSquareOff aria-label="Comment" className="w-4 h-4 mr-1" />
         )}
       </TooltipTrigger>
       <TooltipContent>
@@ -37,11 +37,11 @@ const CommentIcon = ({ hasComment }: { hasComment: boolean }) => (
 );
 
 const CommentContent = ({ question }: { question: Question }) => (
-  <Label htmlFor={question.name}>Comment</Label>
+  <Label htmlFor={question.name} className="text-sm font-medium text-muted-foreground">Comment</Label>
 );
 
 const NoCommentContent = () => (
-  <span className="text-sm font-medium">No comment</span>
+  <span className="text-sm font-medium text-muted-foreground">No comment</span>
 );
 
 const CommentAnswer = ({ question, className }: CommentAnswerProps) => {
@@ -50,11 +50,11 @@ const CommentAnswer = ({ question, className }: CommentAnswerProps) => {
   return (
     <div
       className={cn(
-        "flex items-start justify-start flex-col gap-2 w-full",
+        "flex items-start justify-start flex-col gap-1 w-full",
         className,
       )}
     >
-      <div className="flex flex-row items-center justify-start text-muted-foreground">
+      <div className="flex flex-row justify-start text-sm text-muted-foreground">
         <CommentIcon hasComment={hasComment} />
         {hasComment ? (
           <CommentContent question={question} />
