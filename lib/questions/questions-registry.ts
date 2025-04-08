@@ -7,6 +7,7 @@ export enum QuestionType {
   Dropdown = "dropdown",
   Ranking = "ranking",
   Matrix = "matrix",
+  MatrixDropdown = "matrixdropdown",
   Comment = "comment",
   File = "file",
   SignaturePad = "signaturepad",

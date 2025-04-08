@@ -7,6 +7,7 @@ import {
   QuestionCheckboxModel,
   QuestionCompositeModel,
   QuestionFileModel,
+  QuestionMatrixDropdownModel,
   QuestionMultipleTextModel,
   QuestionPanelDynamicModel,
   QuestionSignaturePadModel,
@@ -24,6 +25,7 @@ import RatingAnswer from "./rating-answer";
 import { SignaturePadAnswer } from "./signaturepad-answer";
 import UnknownAnswerViewer from "./unknown-answer";
 import PanelDynamicAnswer from "./paneldynamic-answer";
+import MatrixDropdownAnswer from "./matrixdropdown-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -81,6 +83,13 @@ const AnswerViewer = ({
     <MatrixAnswer question={forQuestion} className={className} />
   );
 
+  const renderMatrixDropdownAnswer = () => (
+    <MatrixDropdownAnswer
+      question={forQuestion as QuestionMatrixDropdownModel}
+      className={className}
+    />
+  );
+
   const renderCommentAnswer = () => (
     <CommentAnswer question={forQuestion} className={className} />
   );
@@ -134,6 +143,8 @@ const AnswerViewer = ({
       return renderRankingAnswer();
     case QuestionType.Matrix:
       return renderMatrixAnswer();
+    case QuestionType.MatrixDropdown:
+      return renderMatrixDropdownAnswer();
     case QuestionType.Comment:
       return renderCommentAnswer();
     case QuestionType.File:

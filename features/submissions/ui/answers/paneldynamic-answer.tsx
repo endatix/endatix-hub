@@ -1,4 +1,4 @@
-import { PanelModel, Question, QuestionPanelDynamicModel } from "survey-core";
+import { PanelModel, QuestionPanelDynamicModel } from "survey-core";
 import AnswerViewer from "./answer-viewer";
 import { Captions, CaptionsOff } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,13 +35,13 @@ const PanelDynamicAnswer = ({
           </h4>
           <div className="flex flex-col gap-2 w-full">
             {panel.getQuestions(true).map((question) => (
-              <>
+              <div key={question.id} className="flex flex-col gap-1">
                 <QuestionLabel
                   forQuestion={question}
                   className="text-sm font-medium text-muted-foreground justify-start text-left"
                 />
                 <AnswerViewer key={question.id} forQuestion={question} />
-              </>
+              </div>
             ))}
           </div>
         </div>
