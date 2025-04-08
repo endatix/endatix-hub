@@ -6,12 +6,14 @@ interface SectionTitleProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
   headingClassName?: string;
   withSeparator?: boolean;
+  children?: React.ReactNode;
 }
 
 export function SectionTitle({
   title,
   withSeparator = true,
   headingClassName,
+  children,
   ...props
 }: SectionTitleProps) {
   return (
@@ -19,6 +21,7 @@ export function SectionTitle({
       <h2
         className={cn("text-2xl font-medium tracking-tight", headingClassName)}
       >
+        {children && children}
         {title}
       </h2>
       {withSeparator && <Separator className="mb-4" />}
