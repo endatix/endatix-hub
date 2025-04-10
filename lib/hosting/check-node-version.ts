@@ -40,7 +40,7 @@ const getWarningMessage = (nodeRuntimeVersion: string, engines: string) => {
   return `⚠️ Warning: Node version check failed ❌ 
             📦 Current Node version (${nodeRuntimeVersion}) does not match the required version of Node (${engines}). 
             💡 Check Readme for how to setup the correct Node version. 
-            🔗 More info at https://github.com/endatix/endatix/tree/main/apps/endatix-hub`;
+            🔗 More info at https://github.com/endatix/endatix-hub`;
 };
 
 checkNodeVersion();

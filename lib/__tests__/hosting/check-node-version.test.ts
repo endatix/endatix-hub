@@ -36,7 +36,7 @@ describe("checkNodeVersion", () => {
         `Current Node version (${current}) does not match the required version of Node (${DEFAULT_REQUIRED_NODE_VERSION})`,
       readmeInfo: "💡 Check Readme for how to setup the correct Node version",
       moreInfo:
-        "🔗 More info at https://github.com/endatix/endatix/tree/main/apps/endatix-hub",
+        "🔗 More info at https://github.com/endatix/endatix-hub",
     },
   };
 
