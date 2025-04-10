@@ -1,6 +1,5 @@
 "use client";
 
-import { StoredTheme } from '@/app/api/hub/v0/themes/repository';
 import { Submission } from "@/types";
 import dynamic from "next/dynamic";
 
@@ -12,7 +11,7 @@ interface SurveyJsWrapperProps {
   definition: string;
   formId: string;
   submission?: Submission | undefined;
-  theme?: StoredTheme;
+  theme?: string;
 }
 
 const SurveyJsWrapper = ({

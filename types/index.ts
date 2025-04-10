@@ -19,6 +19,10 @@ export type FormDefinition = {
   modifiedAt: Date;
 };
 
+export type ActiveDefinition = FormDefinition & {
+  themeJsonData?: string;
+};
+
 export type FormTemplate = {
   id: string;
   name: string;

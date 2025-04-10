@@ -11,7 +11,7 @@ import {
 } from "@/lib/form-types";
 import { redirect } from "next/navigation";
 import { ITheme } from "survey-core";
-import { Form, FormDefinition, FormTemplate, Submission } from "../types";
+import { ActiveDefinition, Form, FormDefinition, FormTemplate, Submission } from "../types";
 import { HeaderBuilder } from "./header-builder";
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
@@ -142,7 +142,7 @@ export const deleteForm = async (formId: string): Promise<string> => {
 export const getActiveFormDefinition = async (
   formId: string,
   allowAnonymous: boolean = false,
-): Promise<FormDefinition> => {
+): Promise<ActiveDefinition> => {
   const requestOptions: RequestInit = {};
   const headerBuilder = new HeaderBuilder();
 
