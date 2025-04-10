@@ -1,9 +1,11 @@
 "use client";
 
 import { updateFormNameAction } from "@/app/(main)/forms/[formId]/update-form-name.action";
+import { StoredTheme } from "@/app/api/hub/v0/themes/theme";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { ThemeResponse } from "@/services/api";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -16,43 +18,44 @@ import {
 } from "react";
 import {
   Action,
-  slk,
-  settings,
-  SvgRegistry,
-  Serializer,
-  SurveyModel,
-  surveyLocalization,
   ITheme,
+  QuestionBooleanModel,
+  QuestionHtmlModel,
+  QuestionTextModel,
+  RegexValidator,
+  Serializer,
+  settings,
+  slk,
+  surveyLocalization,
+  SurveyModel,
+  SvgRegistry,
 } from "survey-core";
 import "survey-core/survey-core.css";
+import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
   ICreatorOptions,
   PredefinedThemes,
+  registerSurveyTheme,
   SurveyCreatorModel,
   UploadFileEvent,
 } from "survey-creator-core";
-import { BorderlessLightPanelless } from "survey-core/themes";
 import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
-import { StoredTheme } from "@/app/api/hub/v0/themes/theme";
-import { ThemeResponse } from "@/services/api";
-// import { rentalThemeDark, rentalThemeLight } from "./rental-theme";
-
-registerSpecializedQuestion(SpecializedVideo);
-// registerSurveyTheme(SurveyTheme);
-// registerSurveyTheme(rentalThemeLight, rentalThemeDark);
 
 Serializer.addProperty("theme", {
   name: "id",
   type: "string",
   category: "general",
+  visible: false,
 });
 
 const saveAsIcon =
   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
 SvgRegistry.registerIcon("icon-saveas", saveAsIcon);
+registerSurveyTheme(DefaultLight);
+registerSpecializedQuestion(SpecializedVideo);
 
 interface FormEditorProps {
   formId: string;
@@ -210,12 +213,10 @@ function FormEditor({
 
   const saveTheme = useCallback(
     (saveNo: number, callback: (num: number, status: boolean) => void) => {
-      const creatorTheme = creator?.theme;
       debugger;
-      console.log("saveTheme", saveNo, creatorTheme);
       callback(saveNo, true);
     },
-    [creator],
+    [],
   );
 
   const handleSaveTheme = useCallback(
@@ -232,12 +233,40 @@ function FormEditor({
       templateName: string,
       callback: (status: boolean, data?: SaveThemeData) => void,
     ) => {
-      const survey = new SurveyModel(
-        JSON.parse(
-          `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to make changes to the <b>&quot;${templateName}&quot;</b> theme.</p>"},{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Enter the new theme name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme name is required","placeholder":"New awesome ${templateName}"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}`,
-        ),
+      const surveyDefinition = JSON.parse(
+        `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to make changes to the <b>&quot;${templateName}&quot;</b> theme.</p>"},{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Enter the new theme name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme name is required","placeholder":"New awesome ${templateName}"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}`,
       );
+
+      const survey = new SurveyModel(surveyDefinition);
       survey.isCompact = true;
+      const isDefaultTheme = templateName?.toLowerCase() === "default";
+      if (isDefaultTheme) {
+        const description = survey.getQuestionByName(
+          "description",
+        ) as QuestionHtmlModel;
+        const saveAsNewCheckbox = survey.getQuestionByName(
+          "save_as_new",
+        ) as QuestionBooleanModel;
+        const templateNameInput = survey.getQuestionByName(
+          "theme_name",
+        ) as QuestionTextModel;
+
+        if (!saveAsNewCheckbox || !templateNameInput || !description) {
+          throw new Error("Default theme cannot be edited");
+        }
+
+        description.html =
+          "<p class='text-muted-foreground'><b>Default theme is reserved.</b> Save as a new theme instead.</p>";
+
+        saveAsNewCheckbox.defaultValue = true;
+        saveAsNewCheckbox.readOnly = true;
+        const regexValidator = new RegexValidator(
+          "^(?![dD][eE][fF][aA][uU][lL][tT]$).+",
+        );
+        regexValidator.text = "Default is reserved. Choose another name.";
+        templateNameInput.validators.push(regexValidator);
+      }
+
       survey.applyTheme(BorderlessLightPanelless);
       const popupViewModel = settings.showDialog(
         {
@@ -307,7 +336,6 @@ function FormEditor({
                 addCustomTheme(createdTheme);
                 const themeTabPlugin = creator!.themeEditor!;
                 const themeModel = themeTabPlugin.themeModel;
-                debugger
                 themeModel.setTheme(createdTheme);
               })
               .catch((error) => {
@@ -411,7 +439,6 @@ function FormEditor({
     SpecializedVideo.customizeEditor(newCreator);
 
     newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
-    // newCreator.theme = rentalThemeLight;
     newCreator.JSON = formJson;
     newCreator.onUploadFile.add(handleUploadFile);
 
@@ -438,32 +465,46 @@ function FormEditor({
   }, [isEditingName, handleNameSave]);
 
   useEffect(() => {
+    const setAsModified = () => {
+      setHasUnsavedChanges(true);
+    };
     if (creator) {
-      creator.onModified.add(() => {
-        setHasUnsavedChanges(true);
-      });
-
+      creator.onModified.add(setAsModified);
       creator.saveThemeFunc = handleSaveTheme;
+      creator.onActiveTabChanged.add(updateCustomActions);
       creator.toolbar.actions.push(saveThemeAction);
       creator.toolbar.actions.push(deleteThemeAction);
-      const themeTabPlugin = creator.themeEditor;
       creator.activeTab = "theme";
+
+      const themeTabPlugin = creator.themeEditor;
+      themeTabPlugin.advancedModeEnabled = true;
+      themeTabPlugin.onThemeSelected.add(setAsModified);
+      themeTabPlugin.onThemePropertyChanged.add(setAsModified);
+      themeTabPlugin.onThemeSelected.add(updateCustomActions);
 
       getThemes()
         .then((themes) => {
           themes.forEach((theme: StoredTheme) => {
             addCustomTheme(theme);
-            updateCustomActions();
           });
+
+          // TODO: Set the form theme if there's one from the DB
+          creator.theme = DefaultLight;
+          updateCustomActions();
         })
         .catch((error) => {
           console.error("Error: ", error);
         });
 
-      themeTabPlugin.onThemeSelected.add(updateCustomActions);
-      creator.onActiveTabChanged.add(updateCustomActions);
-      themeTabPlugin.advancedModeEnabled = true;
       updateCustomActions();
+
+      return () => {
+        creator.onModified.remove(setAsModified);
+        creator.saveThemeFunc = null;
+        creator.onActiveTabChanged.remove(updateCustomActions);
+        themeTabPlugin.onThemeSelected.remove(updateCustomActions);
+        themeTabPlugin.onThemePropertyChanged.remove(updateCustomActions);
+      };
     }
   }, [
     creator,

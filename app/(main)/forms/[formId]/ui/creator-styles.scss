@@ -1,5 +1,6 @@
 $primary-color: rgb(0, 84, 209);
 $gray-color: rgba(144, 144, 144, 0.5);
+$black-color: rgba(0, 0, 0, 0.91);
 
 /* Primary color variable */
 global {
@@ -56,10 +57,24 @@ global {
     color: hsl(var(--primary-foreground));
   }
 
-  .sd-checkbox--checked .sd-checkbox__control:focus + .sd-checkbox__decorator .sd-checkbox__svg use {
+  .sd-checkbox--checked
+    .sd-checkbox__control:focus
+    + .sd-checkbox__decorator
+    .sd-checkbox__svg
+    use {
     fill: hsl(var(--primary-foreground));
   }
-  
+
+  .sd-checkbox--readonly {
+    cursor: not-allowed;
+    opacity: 0.7;
+
+    .sd-checkbox__decorator {
+      background-color: hsl(var(--accent)) !important;
+      border: 1px solid rgba(0, 0, 0, 0.91) !important;
+    }
+  }
+
   .sv-popup__button.sv-modal-popup__button {
     --tw-space-x-reverse: 0;
     margin-right: calc(0.5rem * var(--tw-space-x-reverse));
