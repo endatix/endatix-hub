@@ -5,7 +5,7 @@
   "tsx": true,
   "tailwind": {
     "config": "tailwind.config.ts",
-    "css": "app/(main)/globals.css",
+    "css": "app/globals.css",
     "baseColor": "zinc",
     "cssVariables": true,
     "prefix": ""

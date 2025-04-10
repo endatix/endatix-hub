@@ -1,17 +1,14 @@
-"use client";
-
-import { showComingSoonMessage } from "@/components/layout-ui/teasers/coming-soon-link";
 import Link from "next/link";
 
 const NewAccountLink = () => (
   <div className="mt-4 text-center text-sm">
     Don&apos;t have an account?{" "}
     <Link
-      onClick={() => showComingSoonMessage()}
-      href="#"
+      href="/create-account"
       className="underline"
+      tabIndex={5}
     >
-      Sign up
+      Create Free Account
     </Link>
   </div>
 );

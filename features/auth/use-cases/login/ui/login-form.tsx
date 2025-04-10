@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import Image from "next/image";
 import { useActionState } from "react";
 import { loginAction } from "../login.action";
 import { showComingSoonMessage } from "@/components/layout-ui/teasers/coming-soon-link";
@@ -16,9 +17,17 @@ const LoginForm = () => {
   return (
     <form action={formAction}>
       <div className="grid gap-2 text-center">
-        <h1 className="text-3xl font-bold">Login</h1>
+        <div className="flex justify-center mb-2">
+          <Image 
+            src="/assets/icons/endatix.svg" 
+            alt="Endatix logo" 
+            width={180} 
+            height={60} 
+            priority
+          />
+        </div>
         <p className="mb-6 text-balance text-muted-foreground">
-          Enter your email below to login to your account
+          Sign in to your account
         </p>
       </div>
       <div className="grid gap-4">
@@ -28,8 +37,9 @@ const LoginForm = () => {
             id="email"
             type="email"
             name="email"
-            placeholder="your.email@example.com"
             required
+            autoFocus
+            tabIndex={1}
           />
         </div>
         {state?.errors?.email && (
@@ -42,18 +52,19 @@ const LoginForm = () => {
               href="#"
               onClick={() => showComingSoonMessage()}
               className="ml-auto inline-block text-sm underline"
+              tabIndex={4}
             >
               Forgot your password?
             </Link>
           </div>
-          <Input id="password" type="password" name="password" required />
+          <Input id="password" type="password" name="password" required tabIndex={2} />
         </div>
         {state?.errors?.password && (
           <ErrorMessage message={`Password must ${state.errors.password}`} />
         )}
-        <Button type="submit" className="w-full" disabled={isPending}>
+        <Button type="submit" className="w-full" disabled={isPending} tabIndex={3}>
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
-          Login
+          Sign in with email
         </Button>
       </div>
       {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
