@@ -563,17 +563,8 @@ function FormEditor({
       const isDraft = false;
       const updatedFormJson = creator?.JSON;
       const theme = creator?.theme as StoredTheme;
-
-      debugger;
-      if (theme.id !== themeId) {
-        const updateThemeResult = await updateFormThemeAction(formId, theme.id);
-        if (updateThemeResult.success) {
-          toast.success(`Form theme set to <b>${theme.name}</b>`);
-          setHasUnsavedChanges(false);
-        } else {
-          throw new Error(updateThemeResult.error);
-        }
-      }
+      let isThemeUpdated = false;
+      let isFormUpdated = false;
 
       const updateDefinitionResult = await updateFormDefinitionJsonAction(
         formId,
@@ -582,11 +573,31 @@ function FormEditor({
       );
 
       if (updateDefinitionResult.success) {
-        toast.success("Form saved");
-        setHasUnsavedChanges(false);
+        isFormUpdated = true;
       } else {
         throw new Error(updateDefinitionResult.error);
       }
+
+      if (theme.id !== themeId) {
+        const updateThemeResult = await updateFormThemeAction(formId, theme.id);
+        if (updateThemeResult.success) {
+          isThemeUpdated = true;
+        } else {
+          throw new Error(updateThemeResult.error);
+        }
+      }
+
+      setHasUnsavedChanges(false);
+      toast.success(
+        <p>
+          {isFormUpdated && "Form saved. "}
+          {isThemeUpdated && (
+            <span>
+              Form theme set to <b>{theme.themeName}</b>
+            </span>
+          )}
+        </p>,
+      );
     });
   };
 
