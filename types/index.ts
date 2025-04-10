@@ -6,6 +6,7 @@ export type Form = {
   createdAt: Date;
   modifiedAt?: Date;
   submissionsCount?: number;
+  themeId?: string;
 };
 
 export type FormDefinition = {

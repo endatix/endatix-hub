@@ -98,7 +98,7 @@ export const getForm = async (formId: string): Promise<Form> => {
 
 export const updateForm = async (
   formId: string,
-  data: { name?: string; isEnabled?: boolean },
+  data: { name?: string; isEnabled?: boolean; themeId?: string },
 ): Promise<void> => {
   const session = await getSession();
   const headers = new HeaderBuilder()

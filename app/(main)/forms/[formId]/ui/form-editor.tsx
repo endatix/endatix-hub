@@ -43,6 +43,7 @@ import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
+import { updateFormThemeAction } from "../update-form-theme.action";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -63,6 +64,7 @@ interface FormEditorProps {
   formName: string;
   options?: ICreatorOptions;
   slkVal?: string;
+  themeId?: string;
 }
 
 interface SaveThemeData {
@@ -161,6 +163,7 @@ function FormEditor({
   formName,
   options,
   slkVal,
+  themeId,
 }: FormEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isSaving] = useState(false);
@@ -486,10 +489,15 @@ function FormEditor({
         .then((themes) => {
           themes.forEach((theme: StoredTheme) => {
             addCustomTheme(theme);
+            if (theme.id === themeId) {
+              themeTabPlugin.themeModel.setTheme(theme);
+            }
           });
 
-          // TODO: Set the form theme if there's one from the DB
-          creator.theme = DefaultLight;
+          if (creator.theme === null) {
+            themeTabPlugin.themeModel.setTheme(DefaultLight);
+          }
+
           updateCustomActions();
         })
         .catch((error) => {
@@ -510,6 +518,7 @@ function FormEditor({
     creator,
     deleteThemeAction,
     saveThemeAction,
+    themeId,
     saveThemeHandler,
     deleteThemeHandler,
     addCustomTheme,
@@ -553,16 +562,30 @@ function FormEditor({
     startTransition(async () => {
       const isDraft = false;
       const updatedFormJson = creator?.JSON;
-      const result = await updateFormDefinitionJsonAction(
+      const theme = creator?.theme as StoredTheme;
+
+      debugger;
+      if (theme.id !== themeId) {
+        const updateThemeResult = await updateFormThemeAction(formId, theme.id);
+        if (updateThemeResult.success) {
+          toast.success(`Form theme set to <b>${theme.name}</b>`);
+          setHasUnsavedChanges(false);
+        } else {
+          throw new Error(updateThemeResult.error);
+        }
+      }
+
+      const updateDefinitionResult = await updateFormDefinitionJsonAction(
         formId,
         isDraft,
         updatedFormJson,
       );
-      if (result.success) {
-        setHasUnsavedChanges(false);
+
+      if (updateDefinitionResult.success) {
         toast.success("Form saved");
+        setHasUnsavedChanges(false);
       } else {
-        throw new Error(result.error);
+        throw new Error(updateDefinitionResult.error);
       }
     });
   };

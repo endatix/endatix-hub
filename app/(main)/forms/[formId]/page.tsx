@@ -32,6 +32,7 @@ export default async function FormEditPage({ params }: Params) {
     formJson: formJson,
     formName: form.name,
     slkVal: process.env.NEXT_PUBLIC_SLK,
+    themeId: form.themeId ?? undefined,
   };
 
   return (
