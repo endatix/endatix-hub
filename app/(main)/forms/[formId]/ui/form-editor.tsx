@@ -314,7 +314,6 @@ function FormEditor({
                 console.error("Error creating new theme: ", error);
               });
           } else {
-            // update existing theme
             updateTheme(currentTheme)
               .then((updatedTheme) => {
                 console.log("Updated theme: ", updatedTheme);

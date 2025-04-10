@@ -282,6 +282,30 @@ export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
   return response.json();
 };
 
+export const updateTheme = async (
+  themeId: string,
+  theme: ITheme,
+): Promise<ThemeResponse> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
+    method: "PATCH",
+    headers: headers,
+    body: JSON.stringify({ jsonData: JSON.stringify(theme) }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update theme");
+  }
+
+  return response.json();
+};
+
 export const deleteTheme = async (themeId: string): Promise<string> => {
   const session = await getSession();
 
