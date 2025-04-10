@@ -1,79 +1,79 @@
-import { NextResponse } from 'next/server';
 import { getSession } from '@/features/auth';
-import { StoredTheme, themeRepository } from '../repository';
+import { deleteTheme } from '@/services/api';
+import { NextResponse } from 'next/server';
 
 // GET a specific theme by ID
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ themeId: string }> }
-) {
-  const session = await getSession();
-  if (!session.isLoggedIn) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+// export async function GET(
+//   request: Request,
+//   { params }: { params: Promise<{ themeId: string }> }
+// ) {
+//   const session = await getSession();
+//   if (!session.isLoggedIn) {
+//     return Response.json({ error: 'Unauthorized' }, { status: 401 });
+//   }
 
-  const { themeId } = await params;
+//   const { themeId } = await params;
   
-  try {
-    const theme = await themeRepository.getThemeById(themeId);
-    if (!theme) {
-      return NextResponse.json(
-        { error: 'Theme not found' },
-        { status: 404 }
-      );
-    }
+//   try {
+//     const theme = await themeRepository.getThemeById(themeId);
+//     if (!theme) {
+//       return NextResponse.json(
+//         { error: 'Theme not found' },
+//         { status: 404 }
+//       );
+//     }
     
-    return NextResponse.json(theme);
-  } catch (error) {
-    console.error('Error retrieving theme:', error);
-    return NextResponse.json(
-      { error: 'Failed to retrieve theme' },
-      { status: 500 }
-    );
-  }
-}
+//     return NextResponse.json(theme);
+//   } catch (error) {
+//     console.error('Error retrieving theme:', error);
+//     return NextResponse.json(
+//       { error: 'Failed to retrieve theme' },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 
-// PUT to update a theme
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ themeId: string }> }
-) {
-  const session = await getSession();
-  if (!session.isLoggedIn) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+// // PUT to update a theme
+// export async function PUT(
+//   request: Request,
+//   { params }: { params: Promise<{ themeId: string }> }
+// ) {
+//   const session = await getSession();
+//   if (!session.isLoggedIn) {
+//     return Response.json({ error: 'Unauthorized' }, { status: 401 });
+//   }
 
-  const { themeId } = await params;
+//   const { themeId } = await params;
   
-  try {
-    const theme = await request.json() as StoredTheme;
+//   try {
+//     const theme = await request.json() as StoredTheme;
     
-    if (!theme || !theme.themeName) {
-      return NextResponse.json(
-        { error: 'Invalid theme data' },
-        { status: 400 }
-      );
-    }
+//     if (!theme || !theme.themeName) {
+//       return NextResponse.json(
+//         { error: 'Invalid theme data' },
+//         { status: 400 }
+//       );
+//     }
     
-    const updatedTheme = await themeRepository.updateTheme(themeId, theme);
+//     const updatedTheme = await themeRepository.updateTheme(themeId, theme);
     
-    if (!updatedTheme) {
-      return NextResponse.json(
-        { error: 'Theme not found' },
-        { status: 404 }
-      );
-    }
+//     if (!updatedTheme) {
+//       return NextResponse.json(
+//         { error: 'Theme not found' },
+//         { status: 404 }
+//       );
+//     }
     
-    return NextResponse.json(updatedTheme);
-  } catch (error) {
-    console.error('Error updating theme:', error);
-    return NextResponse.json(
-      { error: 'Failed to update theme' },
-      { status: 500 }
-    );
-  }
-}
+//     return NextResponse.json(updatedTheme);
+//   } catch (error) {
+//     console.error('Error updating theme:', error);
+//     return NextResponse.json(
+//       { error: 'Failed to update theme' },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 // DELETE a theme
 export async function DELETE(
@@ -88,16 +88,9 @@ export async function DELETE(
   const { themeId } = await params;
   
   try {
-    const success = await themeRepository.deleteTheme(themeId);
-    
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Theme not found' },
-        { status: 404 }
-      );
-    }
-    
+    await deleteTheme(themeId);
     return NextResponse.json({ success: true });
+
   } catch (error) {
     console.error('Error deleting theme:', error);
     return NextResponse.json(

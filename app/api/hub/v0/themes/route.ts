@@ -11,7 +11,6 @@ export async function GET() {
   }
 
   try {
-    // Use repository to get all themes
     const themes = await getThemes();
     return NextResponse.json(themes);
   } catch (error) {

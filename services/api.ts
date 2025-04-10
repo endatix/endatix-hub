@@ -1,4 +1,3 @@
-import { StoredTheme } from "@/app/api/hub/v0/themes/repository";
 import {
   AuthenticationRequest,
   AuthenticationResponse,
@@ -233,7 +232,16 @@ export const updateFormDefinition = async (
   }
 };
 
-export const getThemes = async (): Promise<StoredTheme[]> => {
+export interface ThemeResponse {
+  id: string;
+  name: string;
+  description?: string;
+  jsonData: string;
+  createdAt?: Date;
+  modifiedAt?: Date;
+}
+
+export const getThemes = async (): Promise<ThemeResponse[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
@@ -248,7 +256,7 @@ export const getThemes = async (): Promise<StoredTheme[]> => {
   return response.json();
 };
 
-export const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
+export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
   const session = await getSession();
   const headers = new HeaderBuilder()
     .withAuth(session)
@@ -256,10 +264,15 @@ export const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
     .provideJson()
     .build();
 
+  const createThemeRequest = {
+    name: theme.themeName,
+    jsonData: JSON.stringify(theme),
+  };
+
   const response = await fetch(`${API_BASE_URL}/themes`, {
     method: "POST",
     headers: headers,
-    body: JSON.stringify(theme),
+    body: JSON.stringify(createThemeRequest),
   });
 
   if (!response.ok) {
@@ -267,6 +280,27 @@ export const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
   }
 
   return response.json();
+};
+
+export const deleteTheme = async (themeId: string): Promise<string> => {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete theme");
+  }
+
+  return response.text();
 };
 
 export const createFormTemplate = async (

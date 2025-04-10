@@ -36,7 +36,8 @@ import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
-import { StoredTheme } from "@/app/api/hub/v0/themes/repository";
+import { StoredTheme } from "@/app/api/hub/v0/themes/theme";
+import { ThemeResponse } from "@/services/api";
 // import { rentalThemeDark, rentalThemeLight } from "./rental-theme";
 
 registerSpecializedQuestion(SpecializedVideo);
@@ -66,16 +67,32 @@ interface SaveThemeData {
   theme_name: string;
 }
 
-const deleteTheme = async (themeId: string) => {
-  const response = await fetch(`/api/hub/v0/themes/${themeId}`, {
-    method: "DELETE",
-  });
+const getThemes = async () => {
+  try {
+    const response = await fetch("/api/hub/v0/themes");
 
-  if (!response.ok) {
-    throw new Error("Failed to delete theme");
+    if (!response.ok) {
+      throw new Error("Failed to fetch themes");
+    }
+
+    const data = (await response.json()) as ThemeResponse[];
+    if (!data) {
+      throw new Error("Failed to fetch themes");
+    }
+
+    const parsedThemes = data.map((theme: ThemeResponse) => {
+      return {
+        name: theme.name,
+        id: theme.id,
+        ...JSON.parse(theme.jsonData),
+      };
+    });
+
+    return parsedThemes;
+  } catch (error) {
+    console.error("Error: ", error);
+    return [];
   }
-
-  return response.json();
 };
 
 const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
@@ -88,7 +105,16 @@ const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
     throw new Error("Failed to create theme");
   }
 
-  return response.json();
+  const createdTheme = (await response.json()) as ThemeResponse;
+  if (!createdTheme) {
+    throw new Error("Failed to create theme");
+  }
+
+  return {
+    name: createdTheme.name,
+    id: createdTheme.id,
+    ...JSON.parse(createdTheme.jsonData),
+  };
 };
 
 const updateTheme = async (theme: StoredTheme): Promise<StoredTheme> => {
@@ -99,6 +125,18 @@ const updateTheme = async (theme: StoredTheme): Promise<StoredTheme> => {
 
   if (!response.ok) {
     throw new Error("Failed to update theme");
+  }
+
+  return response.json();
+};
+
+const deleteTheme = async (themeId: string) => {
+  const response = await fetch(`/api/hub/v0/themes/${themeId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete theme");
   }
 
   return response.json();
@@ -234,33 +272,18 @@ function FormEditor({
   );
 
   const addCustomTheme = useCallback(
-    (theme: StoredTheme) => {
+    (theme: ITheme) => {
       const themeTabPlugin = creator!.themeEditor!;
       themeTabPlugin.addTheme(theme);
     },
     [creator],
   );
 
-  const getThemes = async () => {
-    try {
-      const response = await fetch("/api/hub/v0/themes");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch themes");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error: ", error);
-      return [];
-    }
-  };
-
   const saveThemeHandler = useCallback(() => {
     const currentTheme = creator?.theme as StoredTheme;
+    currentTheme.name = currentTheme.themeName ?? "Custom Theme";
 
-    if (!currentTheme || currentTheme.themeName === "default") {
+    if (!currentTheme) {
       return;
     }
 
@@ -277,13 +300,15 @@ function FormEditor({
             const newTheme = {
               ...currentTheme,
               themeName: newThemeName,
+              name: newThemeName,
             };
             createTheme(newTheme)
-              .then((newTheme) => {
-                addCustomTheme(newTheme);
+              .then((createdTheme) => {
+                addCustomTheme(createdTheme);
                 const themeTabPlugin = creator!.themeEditor!;
                 const themeModel = themeTabPlugin.themeModel;
-                themeModel.setTheme(newTheme);
+                debugger
+                themeModel.setTheme(createdTheme);
               })
               .catch((error) => {
                 console.error("Error creating new theme: ", error);
