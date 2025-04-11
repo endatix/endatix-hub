@@ -481,9 +481,14 @@ function FormEditor({
 
       const themeTabPlugin = creator.themeEditor;
       themeTabPlugin.advancedModeEnabled = true;
-      themeTabPlugin.onThemeSelected.add(setAsModified);
-      themeTabPlugin.onThemePropertyChanged.add(setAsModified);
-      themeTabPlugin.onThemeSelected.add(updateCustomActions);
+      themeTabPlugin.onThemeSelected.add(() => {
+        if ((creator.theme as StoredTheme)?.id !== themeId) {
+          setHasUnsavedChanges(true);
+        } else {
+          setHasUnsavedChanges(false);
+        }
+        updateCustomActions();
+      });
 
       getThemes()
         .then((themes) => {
