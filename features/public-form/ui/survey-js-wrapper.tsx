@@ -11,18 +11,21 @@ interface SurveyJsWrapperProps {
   definition: string;
   formId: string;
   submission?: Submission | undefined;
+  theme?: string;
 }
 
 const SurveyJsWrapper = ({
   formId,
   definition,
   submission,
+  theme,
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent
       formId={formId}
       definition={definition}
       submission={submission}
+      theme={theme}
     />
   );
 };
