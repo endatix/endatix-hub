@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { FormEditorProps } from "./form-editor";
-import "./creator-styles.scss";
+import "./form-editor-styles.scss";
 
 const FormEditor = dynamic(() => import("./form-editor"), {
   ssr: false,
