@@ -1,11 +1,10 @@
 "use client";
 
-import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
-import { StoredTheme } from "@/app/api/hub/v0/themes/theme";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
 import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
-import { ThemeResponse } from "@/services/api";
+import { Result } from "@/lib/result";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -41,10 +40,14 @@ import {
 import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
-import { Result } from "@/lib/result";
+import { createThemeAction } from "../../application/actions/create-theme.action";
+import { deleteThemeAction as removeThemeAction } from "../../application/actions/delete-theme.action";
+import { getFormsForThemeAction } from "../../application/actions/get-forms-for-theme.action";
+import { getThemesAction } from "../../application/actions/get-themes.action";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
-import { getFormsForThemeAction } from "../../application/actions/get-forms-for-theme.action";
+import { updateThemeAction } from "../../application/actions/update-theme.action";
+import { StoredTheme } from "../../domain/models/theme";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -73,81 +76,6 @@ interface SaveThemeData {
   theme_name: string;
 }
 
-const getThemes = async () => {
-  try {
-    const response = await fetch("/api/hub/v0/themes");
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch themes");
-    }
-
-    const data = (await response.json()) as ThemeResponse[];
-    if (!data) {
-      throw new Error("Failed to fetch themes");
-    }
-
-    const parsedThemes = data.map((theme: ThemeResponse) => {
-      return {
-        name: theme.name,
-        id: theme.id,
-        ...JSON.parse(theme.jsonData),
-      };
-    });
-
-    return parsedThemes;
-  } catch (error) {
-    console.error("Error: ", error);
-    return [];
-  }
-};
-
-const createTheme = async (theme: ITheme): Promise<StoredTheme> => {
-  const response = await fetch(`/api/hub/v0/themes`, {
-    method: "POST",
-    body: JSON.stringify(theme),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to create theme");
-  }
-
-  const createdTheme = (await response.json()) as ThemeResponse;
-  if (!createdTheme) {
-    throw new Error("Failed to create theme");
-  }
-
-  return {
-    name: createdTheme.name,
-    id: createdTheme.id,
-    ...JSON.parse(createdTheme.jsonData),
-  };
-};
-
-const updateTheme = async (theme: StoredTheme): Promise<StoredTheme> => {
-  const response = await fetch(`/api/hub/v0/themes/${theme.id}`, {
-    method: "PUT",
-    body: JSON.stringify(theme),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to update theme");
-  }
-
-  return response.json();
-};
-
-const deleteTheme = async (themeId: string) => {
-  const response = await fetch(`/api/hub/v0/themes/${themeId}`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to delete theme");
-  }
-
-  return response.json();
-};
-
 const defaultCreatorOptions: ICreatorOptions = {
   showPreview: true,
   showJSONEditorTab: true,
@@ -175,6 +103,127 @@ function FormEditor({
   const [originalName, setOriginalName] = useState(formName);
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const getThemes = useCallback(async () => {
+    try {
+      const result = await getThemesAction();
+
+      if (Result.isError(result)) {
+        throw new Error(result.message);
+      }
+
+      const parsedThemes = result.value.map((theme) => {
+        return {
+          name: theme.name,
+          id: theme.id,
+          ...JSON.parse(theme.jsonData),
+        };
+      });
+
+      return parsedThemes;
+    } catch (error) {
+      console.error("Error: ", error);
+      return [];
+    }
+  }, []);
+
+  const createTheme = useCallback(
+    async (theme: ITheme): Promise<StoredTheme> => {
+      return new Promise((resolve, reject) => {
+        startTransition(async () => {
+          try {
+            const result = await createThemeAction(theme);
+
+            if (Result.isError(result)) {
+              toast.error(`Failed to create theme: ${result.message}`);
+              reject(new Error(result.message));
+              return;
+            }
+
+            const createdTheme = result.value;
+            const parsedTheme = {
+              name: createdTheme.name,
+              id: createdTheme.id,
+              ...JSON.parse(createdTheme.jsonData),
+            };
+
+            toast.success(`Theme "${createdTheme.name}" created successfully`);
+            resolve(parsedTheme);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            toast.error(`Failed to create theme: ${message}`);
+            reject(error);
+          }
+        });
+      });
+    },
+    [startTransition],
+  );
+
+  const updateTheme = useCallback(
+    async (theme: StoredTheme): Promise<StoredTheme> => {
+      return new Promise((resolve, reject) => {
+        startTransition(async () => {
+          try {
+            const result = await updateThemeAction({
+              themeId: theme.id,
+              theme: theme,
+            });
+
+            if (Result.isError(result)) {
+              toast.error(`Failed to update theme: ${result.message}`);
+              reject(new Error(result.message));
+              return;
+            }
+
+            const updatedTheme = result.value;
+            const parsedTheme = {
+              name: updatedTheme.name,
+              id: updatedTheme.id,
+              ...JSON.parse(updatedTheme.jsonData),
+            };
+
+            toast.success(`Theme "${updatedTheme.name}" updated successfully`);
+            resolve(parsedTheme);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            toast.error(`Failed to update theme: ${message}`);
+            reject(error);
+          }
+        });
+      });
+    },
+    [startTransition],
+  );
+
+  const deleteTheme = useCallback(
+    async (themeId: string) => {
+      return new Promise((resolve, reject) => {
+        startTransition(async () => {
+          try {
+            const result = await removeThemeAction(themeId);
+
+            if (Result.isError(result)) {
+              toast.error(`Failed to delete theme: ${result.message}`);
+              reject(new Error(result.message));
+              return;
+            }
+
+            toast.success("Theme deleted successfully");
+            resolve(result.value);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Unknown error";
+            toast.error(`Failed to delete theme: ${message}`);
+            reject(error);
+          }
+        });
+      });
+    },
+    [startTransition],
+  );
 
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
@@ -357,7 +406,7 @@ function FormEditor({
         }
       },
     );
-  }, [creator, saveThemeDialog, addCustomTheme]);
+  }, [creator, saveThemeDialog, addCustomTheme, createTheme, updateTheme]);
 
   const deleteThemeHandler = useCallback(() => {
     const theme = creator?.theme as StoredTheme;
@@ -440,9 +489,9 @@ function FormEditor({
         );
       }
     });
-  }, [creator, formId]);
+  }, [creator, formId, deleteTheme]);
 
-  const saveThemeAction = useMemo(
+  const saveThemeActionBtn = useMemo(
     () =>
       new Action({
         id: "svd-save-custom-theme",
@@ -454,7 +503,7 @@ function FormEditor({
     [saveThemeHandler],
   );
 
-  const deleteThemeAction = useMemo(
+  const deleteThemeActionBtn = useMemo(
     () =>
       new Action({
         id: "svd-delete-custom-theme",
@@ -472,14 +521,14 @@ function FormEditor({
     }
 
     const isThemeTab = creator.activeTab === "theme";
-    saveThemeAction.visible = isThemeTab;
+    saveThemeActionBtn.visible = isThemeTab;
 
     // TODO: Implement proper theme name/id lookup
     const currentThemeName = creator.theme?.themeName;
     const isCustomTheme = currentThemeName != "default";
 
-    deleteThemeAction.visible = isThemeTab && isCustomTheme;
-  }, [creator, saveThemeAction, deleteThemeAction]);
+    deleteThemeActionBtn.visible = isThemeTab && isCustomTheme;
+  }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
   useEffect(() => {
     if (creator) {
@@ -528,8 +577,8 @@ function FormEditor({
       creator.onModified.add(setAsModified);
       creator.saveThemeFunc = handleSaveTheme;
       creator.onActiveTabChanged.add(updateCustomActions);
-      creator.toolbar.actions.push(saveThemeAction);
-      creator.toolbar.actions.push(deleteThemeAction);
+      creator.toolbar.actions.push(saveThemeActionBtn);
+      creator.toolbar.actions.push(deleteThemeActionBtn);
       creator.activeTab = "theme";
 
       const themeTabPlugin = creator.themeEditor;
@@ -574,14 +623,15 @@ function FormEditor({
     }
   }, [
     creator,
-    deleteThemeAction,
-    saveThemeAction,
+    deleteThemeActionBtn,
+    saveThemeActionBtn,
     themeId,
     saveThemeHandler,
     deleteThemeHandler,
     addCustomTheme,
     updateCustomActions,
     handleSaveTheme,
+    getThemes,
   ]);
 
   useEffect(() => {
