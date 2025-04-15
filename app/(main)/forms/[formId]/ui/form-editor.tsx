@@ -34,7 +34,6 @@ import "survey-core/survey-core.css";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
   ICreatorOptions,
-  PredefinedThemes,
   registerSurveyTheme,
   SurveyCreatorModel,
   UploadFileEvent,
@@ -44,6 +43,8 @@ import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
 import { updateFormThemeAction } from "../update-form-theme.action";
+import { getFormsForThemeAction } from "../get-forms-for-theme.action";
+import { Result } from "@/lib/result";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -369,25 +370,77 @@ function FormEditor({
       return;
     }
 
-    const builtInThemeIndex = PredefinedThemes.indexOf(themeId);
-    if (builtInThemeIndex === -1) {
-      settings.confirmActionAsync(
-        'Do you want to delete the following theme: "' + theme.themeName + '"?',
-        (confirm) => {
-          if (confirm) {
-            const themeTabPlugin = creator?.themeEditor;
-            themeTabPlugin.removeTheme(theme, true);
-            const themeModel = themeTabPlugin.themeModel;
-            themeModel.setTheme({ themeName: "default" });
-            deleteTheme(themeId);
-          }
-        },
-        {
-          cssClass: "creator-dialog",
-        },
+    startTransition(async () => {
+      const formsWithSameThemeResult = await getFormsForThemeAction(themeId);
+      if (Result.isError(formsWithSameThemeResult)) {
+        toast.error(formsWithSameThemeResult.message);
+        return;
+      }
+
+      const otherFormsWithSameTheme = formsWithSameThemeResult.value.filter(
+        (form) => form.id !== formId,
       );
-    }
-  }, [creator]);
+      const messageForOtherForms =
+        otherFormsWithSameTheme.length > 0
+          ? "There are " +
+            otherFormsWithSameTheme.length +
+            " other forms that use this theme. Do you want to delete the following theme: "
+          : "";
+      if (otherFormsWithSameTheme.length > 0) {
+        const surveyModel = new SurveyModel(
+          `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p></p>"}]}],"showNavigationButtons":false, "questionErrorLocation":"bottom"}`,
+        );
+        surveyModel.applyTheme(BorderlessLightPanelless);
+        const description = surveyModel.getQuestionByName(
+          "description",
+        ) as QuestionHtmlModel;
+        const themesMarkup = otherFormsWithSameTheme
+          .map(
+            (form) =>
+              `<li><a href='/forms/${form.id}' target='_blank'>${form.name}</a></li>`,
+          )
+          .join("");
+        description.html =
+          "<p class='text-muted-foreground'>Make sure theme is not used by other forms before deleting it. Here is the list of forms that use this theme: <ul class='list-disc list-inside'>" +
+          themesMarkup +
+          "</ul></p>";
+        const themeDeleteNotAllowedPopup = settings.showDialog(
+          {
+            componentName: "survey",
+            data: { model: surveyModel },
+            onApply: () => true,
+            title: "Cannot delete '" + theme.themeName + "' theme",
+            displayMode: "popup",
+            cssClass: "creator-dialog",
+          },
+          settings.environment.popupMountContainer as HTMLElement,
+        );
+        const actions = themeDeleteNotAllowedPopup.footerToolbar.actions;
+        actions.splice(0, actions.length - 1);
+        actions[0].title = "OK, I understand";
+        return;
+      } else {
+        settings.confirmActionAsync(
+          messageForOtherForms +
+            'Do you want to delete the following theme: "' +
+            theme.themeName +
+            '"?',
+          (confirm) => {
+            if (confirm) {
+              const themeTabPlugin = creator?.themeEditor;
+              themeTabPlugin.removeTheme(theme, true);
+              const themeModel = themeTabPlugin.themeModel;
+              themeModel.setTheme({ themeName: "default" });
+              deleteTheme(themeId);
+            }
+          },
+          {
+            cssClass: "creator-dialog",
+          },
+        );
+      }
+    });
+  }, [creator, formId]);
 
   const saveThemeAction = useMemo(
     () =>

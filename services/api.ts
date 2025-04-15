@@ -327,6 +327,21 @@ export const deleteTheme = async (themeId: string): Promise<string> => {
   return response.text();
 };
 
+export const getFormsForTheme = async (themeId: string): Promise<Form[]> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/themes/${themeId}/forms`, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch forms for theme");
+  }
+
+  return response.json();
+};
+
 export const createFormTemplate = async (
   formTemplateRequest: CreateFormTemplateRequest,
 ): Promise<CreateFormTemplateResult> => {
