@@ -1,6 +1,6 @@
 "use client";
 
-import { updateFormNameAction } from "@/app/(main)/forms/[formId]/update-form-name.action";
+import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
 import { StoredTheme } from "@/app/api/hub/v0/themes/theme";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -41,10 +41,10 @@ import {
 import "survey-creator-core/survey-creator-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
-import { updateFormDefinitionJsonAction } from "../update-form-definition-json.action";
-import { updateFormThemeAction } from "../update-form-theme.action";
-import { getFormsForThemeAction } from "../get-forms-for-theme.action";
 import { Result } from "@/lib/result";
+import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
+import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
+import { getFormsForThemeAction } from "../../application/actions/get-forms-for-theme.action";
 
 Serializer.addProperty("theme", {
   name: "id",
