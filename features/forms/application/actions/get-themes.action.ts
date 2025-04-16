@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { ensureAuthenticated } from '@/features/auth';
-import { Result } from '@/lib/result';
-import { getThemes } from '@/services/api';
+import { ensureAuthenticated } from "@/features/auth";
+import { Result } from "@/lib/result";
+import { getThemes } from "@/services/api";
 
 export type ThemeItem = {
   id: string;
@@ -25,7 +25,7 @@ export async function getThemesAction(): Promise<GetThemesResult> {
     const themes = await getThemes(FIRST_PAGE, DEFAULT_THEMES_PAGE_LIMIT);
     return Result.success(themes);
   } catch (error) {
-    console.error('Failed to fetch themes', error);
-    return Result.error('Failed to fetch themes');
+    console.error("Failed to fetch themes", error);
+    return Result.error("Failed to fetch themes");
   }
-} 
+}
