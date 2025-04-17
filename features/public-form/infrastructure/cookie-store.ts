@@ -2,6 +2,9 @@ import { Result } from "@/lib/result";
 import { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
+const DEFAULT_COOKIE_NAME = "FPSK";
+const DEFAULT_COOKIE_DURATION = 7;
+
 type FormToken = {
   formId: string;
   token: string;
@@ -19,31 +22,44 @@ type BaseCookieOptions = Omit<
   "expires" | "maxAge" | "name" | "value"
 >;
 
-export class FormTokenCookieStore {
+
+
+class FormTokenCookieStore {
   private readonly COOKIE_CONFIG: CookieConfig;
 
   constructor(
     private readonly cookieStore: ReadonlyRequestCookies,
     config?: Partial<CookieConfig>,
   ) {
-    const cookieName = process.env.NEXT_FORMS_COOKIE_NAME;
-    const cookieDuration = process.env.NEXT_FORMS_COOKIE_DURATION_DAYS;
-
+    const cookieName =
+      process.env.NEXT_FORMS_COOKIE_NAME ?? DEFAULT_COOKIE_NAME;
     if (!cookieName) {
-      throw new Error("NEXT_FORMS_COOKIE_NAME environment variable is not set");
+      throw new Error("Default cookie name is invalid");
     }
 
-    if (!cookieDuration || isNaN(Number(cookieDuration))) {
+    const cookieDurationValue =
+      process.env.NEXT_FORMS_COOKIE_DURATION_DAYS ?? DEFAULT_COOKIE_DURATION;
+    const cookieDuration = Number(cookieDurationValue);
+
+    if (isNaN(cookieDuration)) {
       throw new Error(
-        "NEXT_FORMS_COOKIE_DURATION_DAYS environment variable is not set or invalid",
+        `Cookie duration "${cookieDurationValue}" is not a valid number`,
       );
     }
 
     this.COOKIE_CONFIG = {
       name: config?.name ?? cookieName,
-      expirationInDays: config?.expirationInDays ?? Number(cookieDuration),
+      expirationInDays: config?.expirationInDays ?? cookieDuration,
       secure: config?.secure ?? process.env.NODE_ENV === "production",
     };
+  }
+
+  public getCookieName(): string {
+    return this.COOKIE_CONFIG.name;
+  }
+
+  public getCookieDuration(): number {
+    return this.COOKIE_CONFIG.expirationInDays;
   }
 
   private getExpires(): Date {
@@ -149,3 +165,9 @@ export class FormTokenCookieStore {
     }
   }
 }
+
+export { 
+  DEFAULT_COOKIE_NAME,
+  DEFAULT_COOKIE_DURATION,
+  FormTokenCookieStore,
+};

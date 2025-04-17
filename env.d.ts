@@ -9,7 +9,7 @@ declare namespace NodeJS {
     SESSION_SECRET: string;
 
     // Data Collection
-    NEXT_FORMS_COOKIE_NAME: string;
+    NEXT_FORMS_COOKIE_NAME?: string;
     NEXT_FORMS_COOKIE_DURATION_DAYS?: string;
 
     // Slack
