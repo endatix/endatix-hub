@@ -241,11 +241,11 @@ export interface ThemeResponse {
   modifiedAt?: Date;
 }
 
-export const getThemes = async (): Promise<ThemeResponse[]> => {
+export const getThemes = async (page: number = 1, pageSize: number = 10): Promise<ThemeResponse[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
-  const response = await fetch(`${API_BASE_URL}/themes`, {
+  const response = await fetch(`${API_BASE_URL}/themes?page=${page}&pageSize=${pageSize}`, {
     headers: headers,
   });
 
