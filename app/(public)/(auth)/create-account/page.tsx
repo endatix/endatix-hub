@@ -128,4 +128,4 @@ const LoggedInSuccessMessage = ({
     );
 };
 
-export default CreateAccountPage; 
+export default CreateAccountPage;

@@ -40,11 +40,12 @@ const LoginForm = () => {
             required
             autoFocus
             tabIndex={1}
+            defaultValue={state?.formData?.get("email")?.toString()}
           />
+          {state?.errors?.email && (
+            <ErrorMessage message={state.errors.email.toString()} />
+          )}
         </div>
-        {state?.errors?.email && (
-          <ErrorMessage message={state.errors.email.toString()} />
-        )}
         <div className="grid gap-2">
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
@@ -57,17 +58,24 @@ const LoginForm = () => {
               Forgot your password?
             </Link>
           </div>
-          <Input id="password" type="password" name="password" required tabIndex={2} />
+          <Input 
+            id="password" 
+            type="password" 
+            name="password" 
+            required 
+            tabIndex={2}
+            defaultValue={state?.formData?.get("password")?.toString()}
+          />
+          {state?.errors?.password && (
+            <ErrorMessage message={state.errors.password.toString()} />
+          )}
         </div>
-        {state?.errors?.password && (
-          <ErrorMessage message={`Password must ${state.errors.password}`} />
-        )}
+        {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
         <Button type="submit" className="w-full" disabled={isPending} tabIndex={3}>
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           Sign in with email
         </Button>
       </div>
-      {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
     </form>
   );
 };
