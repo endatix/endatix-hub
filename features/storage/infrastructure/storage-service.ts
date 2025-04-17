@@ -2,10 +2,6 @@ import {
   BlobServiceClient,
   StorageSharedKeyCredential,
 } from "@azure/storage-blob";
-import { optimizeImage } from "next/dist/server/image-optimizer";
-import { parseBoolean } from "../../../lib/utils/type-parsers";
-
-const DEFAULT_IMAGE_WIDTH = 800;
 
 type AzureStorageConfig = {
   isEnabled: boolean;
@@ -27,50 +23,6 @@ export class StorageService {
       `https://${config.hostName}`,
       new StorageSharedKeyCredential(config.accountName, config.accountKey),
     );
-  }
-
-  async optimizeImageSize(
-    imageBuffer: Buffer,
-    contentType: string,
-    quality: number = 80,
-  ): Promise<Buffer> {
-    if (!contentType) {
-      throw new Error("contentType is not provided");
-    }
-
-    if (!imageBuffer) {
-      throw new Error("imageBuffer is not provided");
-    }
-
-    const resizeImages = parseBoolean(process.env.RESIZE_IMAGES);
-    const shouldResize = resizeImages && contentType.startsWith("image/");
-    if (!shouldResize) {
-      return imageBuffer;
-    }
-
-    const STEP_IMAGE_RESIZE_START = performance.now();
-
-    let width = DEFAULT_IMAGE_WIDTH;
-    if (process.env.RESIZE_IMAGES_WIDTH) {
-      const parsedWidth = Number.parseInt(process.env.RESIZE_IMAGES_WIDTH);
-      if (!isNaN(parsedWidth)) {
-        width = parsedWidth;
-      }
-    }
-
-    const optimizedImageBuffer = await optimizeImage({
-      buffer: imageBuffer,
-      contentType: contentType,
-      quality: quality,
-      width: width,
-    });
-
-    const STEP_IMAGE_RESIZE_END = performance.now();
-    console.log(
-      `⏱️ Image resize took ${STEP_IMAGE_RESIZE_END - STEP_IMAGE_RESIZE_START}ms`,
-    );
-
-    return optimizedImageBuffer;
   }
 
   async uploadToStorage(
@@ -131,5 +83,10 @@ export class StorageService {
       accountKey: AZURE_STORAGE_ACCOUNT_KEY,
       hostName: `${AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net`,
     };
+  }
+
+  static isEnabled(): boolean {
+    const config = StorageService.getAzureStorageConfig();
+    return config.isEnabled;
   }
 }

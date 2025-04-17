@@ -3,8 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StorageService } from "@/features/storage/infrastructure/storage-service";
 import { Result } from "@/lib/result";
 import { uploadContentFileUseCase } from "@/features/storage/use-cases/upload-content-file.use-case";
-
+import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
 vi.mock("@/features/storage/infrastructure/storage-service");
+vi.mock("@/features/storage/infrastructure/image-service", () => ({
+  optimizeImageSize: vi.fn().mockResolvedValue(Buffer.from("optimized")),
+}));
 
 describe("uploadContentFileUseCase", () => {
   const mockFileContent = "test";
@@ -56,9 +59,7 @@ describe("uploadContentFileUseCase", () => {
     vi.spyOn(StorageService.prototype, "uploadToStorage").mockResolvedValue(
       mockUrl,
     );
-    vi.spyOn(StorageService.prototype, "optimizeImageSize").mockResolvedValue(
-      Buffer.from("optimized"),
-    );
+    vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
 
     // Act
     const result = await uploadContentFileUseCase(mockCommand);
@@ -73,7 +74,7 @@ describe("uploadContentFileUseCase", () => {
   it("should optimize image before upload for image files", async () => {
     // Arrange
     const optimizeSpy = vi
-      .spyOn(StorageService.prototype, "optimizeImageSize")
+      .mocked(optimizeImageSize)
       .mockResolvedValue(Buffer.from("optimized"));
     vi.spyOn(StorageService.prototype, "uploadToStorage").mockResolvedValue(
       "mock-url",

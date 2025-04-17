@@ -5,7 +5,6 @@ import {
   ContainerClient,
   BlockBlobClient,
 } from "@azure/storage-blob";
-import { optimizeImage } from "next/dist/server/image-optimizer";
 
 vi.mock("@azure/storage-blob");
 vi.mock("next/dist/server/image-optimizer");
@@ -39,57 +38,6 @@ describe("StorageService", () => {
       expect(() => new StorageService()).toThrow(
         "Azure storage is not enabled",
       );
-    });
-  });
-
-  describe("optimizeImageSize", () => {
-    beforeEach(() => {
-      process.env.RESIZE_IMAGES = "true";
-      process.env.RESIZE_IMAGES_WIDTH = "800";
-    });
-
-    it("should optimize image when RESIZE_IMAGES is true", async () => {
-      // Arrange
-      const mockOptimizedBuffer = Buffer.from("optimized");
-      vi.mocked(optimizeImage).mockResolvedValue(mockOptimizedBuffer);
-
-      // Act
-      const result = await service.optimizeImageSize(mockBuffer, "image/jpeg");
-
-      // Assert
-      expect(optimizeImage).toHaveBeenCalledWith({
-        buffer: mockBuffer,
-        contentType: "image/jpeg",
-        quality: 80,
-        width: 800,
-      });
-      expect(result).toBe(mockOptimizedBuffer);
-    });
-
-    it("should return original buffer when RESIZE_IMAGES is false", async () => {
-      // Arrange
-      process.env.RESIZE_IMAGES = "false";
-
-      // Act
-      const result = await service.optimizeImageSize(mockBuffer, "image/jpeg");
-
-      // Assert
-      expect(optimizeImage).not.toHaveBeenCalled();
-      expect(result).toBe(mockBuffer);
-    });
-
-    it("should throw error when contentType is missing", async () => {
-      // Act & Assert
-      await expect(service.optimizeImageSize(mockBuffer, "")).rejects.toThrow(
-        "contentType is not provided",
-      );
-    });
-
-    it("should throw error when imageBuffer is missing", async () => {
-      // Act & Assert
-      await expect(
-        service.optimizeImageSize(undefined as unknown as Buffer, "image/jpeg"),
-      ).rejects.toThrow("imageBuffer is not provided");
     });
   });
 

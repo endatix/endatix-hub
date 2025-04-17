@@ -1,6 +1,7 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
 import { StorageService } from "../infrastructure/storage-service";
+import { optimizeImageSize } from '../infrastructure/image-service';
 
 export type UploadContentFileCommand = {
   formId: string;
@@ -38,10 +39,7 @@ export const uploadContentFileUseCase = async ({
     let fileBuffer = Buffer.from(await file.arrayBuffer());
 
     if (file.type.startsWith("image/")) {
-      fileBuffer = await storageService.optimizeImageSize(
-        fileBuffer,
-        file.type,
-      );
+      fileBuffer = await optimizeImageSize(fileBuffer, file.type);
     }
 
     const uuid = uuidv4();

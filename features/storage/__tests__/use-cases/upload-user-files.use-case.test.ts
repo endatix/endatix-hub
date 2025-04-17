@@ -2,8 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files.use-case";
 import { StorageService } from "@/features/storage/infrastructure/storage-service";
 import { Result } from "@/lib/result";
+import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
 
 vi.mock("@/features/storage/infrastructure/storage-service");
+vi.mock("@/features/storage/infrastructure/image-service", () => ({
+  optimizeImageSize: vi.fn().mockResolvedValue(Buffer.from("optimized")),
+}));
 
 describe("uploadUserFilesUseCase", () => {
   const mockFileContent = "test";
@@ -29,10 +33,7 @@ describe("uploadUserFilesUseCase", () => {
     vi.spyOn(StorageService.prototype, "uploadToStorage").mockResolvedValue(
       mockUrl,
     );
-    vi.spyOn(StorageService.prototype, "optimizeImageSize").mockResolvedValue(
-      Buffer.from("optimized"),
-    );
-
+    vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
     // Act
     const result = await uploadUserFilesUseCase(mockCommand);
 
