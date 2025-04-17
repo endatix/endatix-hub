@@ -51,6 +51,18 @@ describe('AuthService', () => {
     authService = new AuthService(testCookieOptions);
   });
 
+  describe('initialization', () => {
+    it('should throw error when SESSION_SECRET is not provided', () => {
+      // Arrange
+      delete process.env.SESSION_SECRET
+
+      // Act & Assert
+      expect(() => new AuthService()).toThrow(
+        'Required environment variable SESSION_SECRET is not set. Check Readme for more information.'
+      );
+    });
+  });
+
   describe('login', () => {
     const testCredentials = {
       accessToken: 'test-access-token',

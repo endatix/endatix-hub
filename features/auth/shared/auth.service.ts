@@ -8,7 +8,7 @@ import { JwtService } from "../infrastructure/jwt.service";
 
 const HUB_COOKIE_OPTIONS: CookieOptions = {
   name: "session",
-  encryptionKey: `${process.env.SESSION_SECRET}`,
+  encryptionKey: process.env.SESSION_SECRET ?? "",
   secure: process.env.NODE_ENV === "production",
   httpOnly: true,
 };
@@ -43,6 +43,11 @@ export class AuthService {
   constructor(
     private readonly cookieOptions: CookieOptions = HUB_COOKIE_OPTIONS,
   ) {
+    if (!this.cookieOptions.encryptionKey) {
+      throw new Error(
+        "Required environment variable SESSION_SECRET is not set. Check Readme for more information.",
+      );
+    }
     const secretKey = new TextEncoder().encode(
       this.cookieOptions.encryptionKey,
     );
