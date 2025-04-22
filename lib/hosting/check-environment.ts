@@ -10,6 +10,7 @@ import {
   DEFAULT_COOKIE_NAME,
 } from "@/features/public-form/infrastructure/cookie-store";
 import styles from "../utils/console-styles";
+import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
 
 type EnvConfig = {
   name: string;
@@ -100,6 +101,14 @@ function validateEnv(): { valid: boolean; errors: string[] } {
         );
       }
     }
+  }
+
+  if (!STORAGE_SERVICE_CONFIG.isEnabled) {
+    console.log(
+      `${styles.warning(
+        "Storage service is not enabled, so no files will be uploaded to storage. Please check your environment variables to enable it.",
+      )}`,
+    );
   }
 
   return { valid: errors.length === 0, errors };
