@@ -43,11 +43,6 @@ export class AuthService {
   constructor(
     private readonly cookieOptions: CookieOptions = HUB_COOKIE_OPTIONS,
   ) {
-    if (!this.cookieOptions.encryptionKey) {
-      throw new Error(
-        "Required environment variable SESSION_SECRET is not set. Check Readme for more information.",
-      );
-    }
     const secretKey = new TextEncoder().encode(
       this.cookieOptions.encryptionKey,
     );
@@ -93,6 +88,10 @@ export class AuthService {
   async getSession(): Promise<SessionData> {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(this.cookieOptions.name);
+
+    if (!this.cookieOptions.encryptionKey) {
+      return ANONYMOUS_SESSION;
+    }
 
     if (!sessionCookie || !sessionCookie.value) {
       return ANONYMOUS_SESSION;
