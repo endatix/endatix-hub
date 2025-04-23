@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { StorageService } from "@/features/storage/infrastructure/storage-service";
+import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
 import nextConfig from "@/next.config";
 import { TelemetryLogger, TelemetryTracer } from "@/features/telemetry";
 
@@ -39,7 +39,6 @@ const Dashboard = async () => {
   const RESIZE_IMAGES_WIDTH = process.env.RESIZE_IMAGES_WIDTH;
   const NEXT_PUBLIC_NAME = process.env.NEXT_PUBLIC_NAME;
   const NODE_ENV = process.env.NODE_ENV;
-  const azureStorageConfig = StorageService.getAzureStorageConfig();
 
   return (
     <Tabs defaultValue="all">
@@ -128,8 +127,8 @@ const Dashboard = async () => {
             </li>
             <li>NEXT_PUBLIC_SLK: {NEXT_PUBLIC_SLK}</li>
             <li>
-              Is Azure Enabled: {azureStorageConfig.isEnabled} on{" "}
-              {azureStorageConfig.hostName}
+              Is Azure Enabled: {STORAGE_SERVICE_CONFIG.isEnabled} on{" "}
+              {STORAGE_SERVICE_CONFIG.hostName}
             </li>
             <li>RESIZE_IMAGES: {RESIZE_IMAGES}</li>
             <li>RESIZE_IMAGES_WIDTH: {RESIZE_IMAGES_WIDTH}</li>
@@ -147,26 +146,30 @@ const Dashboard = async () => {
 };
 
 async function fetchEndatixForms() {
-  TelemetryLogger.info('Fetching Endatix forms', {
-    'operation': 'get-forms',
-    'component': 'dashboard'
+  TelemetryLogger.info("Fetching Endatix forms", {
+    operation: "get-forms",
+    component: "dashboard",
   });
 
-  return await TelemetryTracer.traceAsync('forms-operations', 'get-forms', async (span) => {
-    try {
-      span.setAttribute('component', 'dashboard');
-      const forms = await getForms();
-      span.setAttribute('forms.count', forms.length);
-      return forms;
-    } catch (error) {
-      // Log any errors that occur
-      TelemetryLogger.error('Failed to fetch forms', error as Error, {
-        'component': 'dashboard',
-        'operation': 'get-forms'
-      });
-      throw error;
-    }
-  });
+  return await TelemetryTracer.traceAsync(
+    "forms-operations",
+    "get-forms",
+    async (span) => {
+      try {
+        span.setAttribute("component", "dashboard");
+        const forms = await getForms();
+        span.setAttribute("forms.count", forms.length);
+        return forms;
+      } catch (error) {
+        // Log any errors that occur
+        TelemetryLogger.error("Failed to fetch forms", error as Error, {
+          component: "dashboard",
+          operation: "get-forms",
+        });
+        throw error;
+      }
+    },
+  );
 }
 
 export default Dashboard;
