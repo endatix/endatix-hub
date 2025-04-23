@@ -114,9 +114,9 @@ function FormEditor({
 
       const parsedThemes = result.value.map((theme) => {
         return {
+          ...JSON.parse(theme.jsonData),
           name: theme.name,
           id: theme.id,
-          ...JSON.parse(theme.jsonData),
         };
       });
 
@@ -142,9 +142,9 @@ function FormEditor({
 
             const createdTheme = result.value;
             const parsedTheme = {
+              ...JSON.parse(createdTheme.jsonData),
               name: createdTheme.name,
               id: createdTheme.id,
-              ...JSON.parse(createdTheme.jsonData),
             };
 
             toast.success(`Theme "${createdTheme.name}" created successfully`);
@@ -180,7 +180,6 @@ function FormEditor({
             const updatedTheme = result.value;
             const parsedTheme = {
               name: updatedTheme.name,
-              id: updatedTheme.id,
               ...JSON.parse(updatedTheme.jsonData),
             };
 
