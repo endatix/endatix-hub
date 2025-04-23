@@ -20,7 +20,7 @@ export type FormDefinition = {
 };
 
 export type ActiveDefinition = FormDefinition & {
-  themeJsonData?: string;
+  themeModel?: string;
 };
 
 export type FormTemplate = {

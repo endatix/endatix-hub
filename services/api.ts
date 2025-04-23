@@ -11,7 +11,13 @@ import {
 } from "@/lib/form-types";
 import { redirect } from "next/navigation";
 import { ITheme } from "survey-core";
-import { ActiveDefinition, Form, FormDefinition, FormTemplate, Submission } from "../types";
+import {
+  ActiveDefinition,
+  Form,
+  FormDefinition,
+  FormTemplate,
+  Submission,
+} from "../types";
 import { HeaderBuilder } from "./header-builder";
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
@@ -56,11 +62,15 @@ export const createForm = async (
   return response.json();
 };
 
-export const getForms = async (): Promise<Form[]> => {
+export const getForms = async (filter?: string): Promise<Form[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
+  let url = `${API_BASE_URL}/forms?pageSize=100`;
+  if (filter) {
+    url += `&filter=${encodeURIComponent(filter)}`;
+  }
 
-  const response = await fetch(`${API_BASE_URL}/forms?pageSize=100`, {
+  const response = await fetch(url, {
     headers: headers,
   });
 
@@ -241,13 +251,19 @@ export interface ThemeResponse {
   modifiedAt?: Date;
 }
 
-export const getThemes = async (page: number = 1, pageSize: number = 10): Promise<ThemeResponse[]> => {
+export const getThemes = async (
+  page: number = 1,
+  pageSize: number = 10,
+): Promise<ThemeResponse[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
-  const response = await fetch(`${API_BASE_URL}/themes?page=${page}&pageSize=${pageSize}`, {
-    headers: headers,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/themes?page=${page}&pageSize=${pageSize}`,
+    {
+      headers: headers,
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch themes");
@@ -325,21 +341,6 @@ export const deleteTheme = async (themeId: string): Promise<string> => {
   }
 
   return response.text();
-};
-
-export const getFormsForTheme = async (themeId: string): Promise<Form[]> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder().withAuth(session).build();
-
-  const response = await fetch(`${API_BASE_URL}/themes/${themeId}/forms`, {
-    headers: headers,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch forms for theme");
-  }
-
-  return response.json();
 };
 
 export const createFormTemplate = async (
