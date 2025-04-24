@@ -1,11 +1,11 @@
 "use server";
 
-import { cookies } from "next/headers";
-import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
-import { Result } from "@/lib/result";
+import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
+import { Result } from "@/lib/result";
+import { cookies } from "next/headers";
 
 type ShareSurveyPage = {
   params: Promise<{ formId: string }>;
@@ -29,13 +29,14 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
     return <div>Form not found</div>;
   }
 
-  const definition = activeDefinitionResult.value;
+  const activeDefinition = activeDefinitionResult.value;
 
   return (
     <SurveyJsWrapper
       formId={formId}
-      definition={definition}
+      definition={activeDefinition.jsonData}
       submission={submission}
+      theme={activeDefinition.themeModel}
     />
   );
 }

@@ -3,7 +3,7 @@ import {
   getRewriteRuleFor,
   includesRemoteImageHostnames,
 } from "./lib/hosting/next-config-helper";
-import { StorageService } from "@/features/storage/infrastructure/storage-service";
+import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 
 const nextConfig: NextConfig = {
@@ -49,11 +49,10 @@ const nextConfig: NextConfig = {
 
 includesRemoteImageHostnames(nextConfig.images?.remotePatterns);
 
-const storageConfig = StorageService.getAzureStorageConfig();
-if (storageConfig.isEnabled) {
+if (STORAGE_SERVICE_CONFIG.isEnabled) {
   nextConfig?.images?.remotePatterns?.push({
     protocol: "https",
-    hostname: storageConfig.hostName,
+    hostname: STORAGE_SERVICE_CONFIG.hostName,
   });
 }
 

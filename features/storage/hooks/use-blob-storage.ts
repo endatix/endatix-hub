@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { SurveyModel, UploadFilesEvent } from "survey-core";
 
 interface UseBlobStorageProps {
@@ -19,54 +19,54 @@ export function useBlobStorage({
   onSubmissionIdChange,
   surveyModel,
 }: UseBlobStorageProps) {
-  const uploadFiles = async (
-    sender: SurveyModel,
-    options: UploadFilesEvent,
-  ) => {
-    try {
-      const formData = new FormData();
-      options.files.forEach((file) => {
-        formData.append(file.name, file);
-      });
+  const uploadFiles = useCallback(
+    async (sender: SurveyModel, options: UploadFilesEvent) => {
+      try {
+        const formData = new FormData();
+        options.files.forEach((file) => {
+          formData.append(file.name, file);
+        });
 
-      const response = await fetch("/api/public/v0/storage/upload", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "edx-form-id": formId,
-          "edx-submission-id": submissionId,
-        },
-      });
+        const response = await fetch("/api/public/v0/storage/upload", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "edx-form-id": formId,
+            "edx-submission-id": submissionId,
+          },
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          data?.error ??
-            "Failed to upload files. Please refresh your page and try again.",
-        );
+        if (!response.ok) {
+          throw new Error(
+            data?.error ??
+              "Failed to upload files. Please refresh your page and try again.",
+          );
+        }
+
+        if (data.submissionId && data.submissionId !== submissionId) {
+          onSubmissionIdChange?.(data.submissionId);
+        }
+
+        const uploadedFiles = options.files.map((file) => {
+          const remoteFile = data.files?.find(
+            (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
+          );
+          return {
+            file: file,
+            content: remoteFile?.url,
+          };
+        });
+
+        options.callback(uploadedFiles);
+      } catch (error) {
+        console.error("Error: ", error);
+        options.callback([], [error instanceof Error ? error.message : ""]);
       }
-
-      if (data.submissionId && data.submissionId !== submissionId) {
-        onSubmissionIdChange?.(data.submissionId);
-      }
-
-      const uploadedFiles = options.files.map((file) => {
-        const remoteFile = data.files?.find(
-          (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
-        );
-        return {
-          file: file,
-          content: remoteFile?.url,
-        };
-      });
-
-      options.callback(uploadedFiles);
-    } catch (error) {
-      console.error("Error: ", error);
-      options.callback([], [error instanceof Error ? error.message : ""]);
-    }
-  };
+    },
+    [formId, submissionId, onSubmissionIdChange],
+  );
 
   useEffect(() => {
     if (surveyModel) {

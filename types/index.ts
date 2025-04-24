@@ -6,6 +6,7 @@ export type Form = {
   createdAt: Date;
   modifiedAt?: Date;
   submissionsCount?: number;
+  themeId?: string;
 };
 
 export type FormDefinition = {
@@ -16,6 +17,10 @@ export type FormDefinition = {
   isActive: boolean;
   createdAt: Date;
   modifiedAt: Date;
+};
+
+export type ActiveDefinition = FormDefinition & {
+  themeModel?: string;
 };
 
 export type FormTemplate = {

@@ -1,18 +1,24 @@
 import {
-  getSession,
   AuthenticationRequest,
   AuthenticationResponse,
+  getSession,
 } from "@/features/auth";
+import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
 import {
   CreateFormRequest,
   CreateFormTemplateRequest,
   CreateFormTemplateResult,
 } from "@/lib/form-types";
-import { Form, FormDefinition, FormTemplate, Submission } from "../types";
 import { redirect } from "next/navigation";
+import { ITheme } from "survey-core";
+import {
+  ActiveDefinition,
+  Form,
+  FormDefinition,
+  FormTemplate,
+  Submission,
+} from "../types";
 import { HeaderBuilder } from "./header-builder";
-import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
-
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
 export const authenticate = async (
@@ -56,11 +62,15 @@ export const createForm = async (
   return response.json();
 };
 
-export const getForms = async (): Promise<Form[]> => {
+export const getForms = async (filter?: string): Promise<Form[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
+  let url = `${API_BASE_URL}/forms?pageSize=100`;
+  if (filter) {
+    url += `&filter=${encodeURIComponent(filter)}`;
+  }
 
-  const response = await fetch(`${API_BASE_URL}/forms?pageSize=100`, {
+  const response = await fetch(url, {
     headers: headers,
   });
 
@@ -98,7 +108,7 @@ export const getForm = async (formId: string): Promise<Form> => {
 
 export const updateForm = async (
   formId: string,
-  data: { name?: string; isEnabled?: boolean },
+  data: { name?: string; isEnabled?: boolean; themeId?: string },
 ): Promise<void> => {
   const session = await getSession();
   const headers = new HeaderBuilder()
@@ -142,7 +152,7 @@ export const deleteForm = async (formId: string): Promise<string> => {
 export const getActiveFormDefinition = async (
   formId: string,
   allowAnonymous: boolean = false,
-): Promise<FormDefinition> => {
+): Promise<ActiveDefinition> => {
   const requestOptions: RequestInit = {};
   const headerBuilder = new HeaderBuilder();
 
@@ -230,6 +240,107 @@ export const updateFormDefinition = async (
   if (!response.ok) {
     throw new Error("Failed to update form definition");
   }
+};
+
+export interface ThemeResponse {
+  id: string;
+  name: string;
+  description?: string;
+  jsonData: string;
+  createdAt?: Date;
+  modifiedAt?: Date;
+}
+
+export const getThemes = async (
+  page: number = 1,
+  pageSize: number = 10,
+): Promise<ThemeResponse[]> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
+
+  const response = await fetch(
+    `${API_BASE_URL}/themes?page=${page}&pageSize=${pageSize}`,
+    {
+      headers: headers,
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch themes");
+  }
+
+  return response.json();
+};
+
+export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const createThemeRequest = {
+    name: theme.themeName,
+    jsonData: JSON.stringify(theme),
+  };
+
+  const response = await fetch(`${API_BASE_URL}/themes`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(createThemeRequest),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create theme");
+  }
+
+  return response.json();
+};
+
+export const updateTheme = async (
+  themeId: string,
+  theme: ITheme,
+): Promise<ThemeResponse> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
+    method: "PATCH",
+    headers: headers,
+    body: JSON.stringify({ jsonData: JSON.stringify(theme) }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update theme");
+  }
+
+  return response.json();
+};
+
+export const deleteTheme = async (themeId: string): Promise<string> => {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete theme");
+  }
+
+  return response.text();
 };
 
 export const createFormTemplate = async (
