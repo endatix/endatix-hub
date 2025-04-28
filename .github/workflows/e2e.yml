@@ -1,9 +1,5 @@
-name: End-to-End Tests
+name: Run e2e tests
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 jobs:
   test:
