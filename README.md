@@ -70,9 +70,12 @@ To run the tests in debug mode, use the following command:
 pnpm exec playwright test --debug
 ```
 
-For CI, we need to install the playwright browsers by running the following command:
-```bash
-pnpm exec playwright install
+For CI or running againt a specific environment we can set the `BASE_URL` environment variable.
+```sh
+export BASE_URL=https://your-ci-url.com
+npx playwright test
+# or
+BASE_URL=https://ci.app.endatix.com  npx playwright test
 ```
 
 
