@@ -75,6 +75,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^20.17.10",
     "@types/react": "19.0.10",
@@ -96,7 +97,7 @@
     "vitest": "^2.1.8"
   },
   "engines": {
-    "pnpm": ">=9.0.0 <10.6.9",
+    "pnpm": ">=9.0.0 <=10.10.0",
     "node": ">=20.0.0 <21.0.0"
   },
   "pnpm": {
@@ -104,5 +105,6 @@
       "@types/react": "19.0.10",
       "@types/react-dom": "19.0.4"
     }
-  }
+  },
+  "packageManager": "pnpm@10.10.0+sha256.fa0f513aa8191764d2b6b432420788c270f07b4f999099b65bb2010eec702a30"
 }
