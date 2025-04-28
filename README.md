@@ -50,7 +50,7 @@ node .next/standalone/server.js
 The end-to-eng test suite (e2e) is built with [Playwright](https://playwright.dev/docs/intro). 
 
 > [!TIP]
-> At this time, we recommend using [Playwright's MCP](https://github.com/microsoft/playwright-mcp) to accelerate the workflow of intiial prototyping, debugging and running the tests. Playwright's team is actgively adding new features and improving the experience, so we recommend using the latest version of MCP.
+> You can use [Playwright's MCP](https://github.com/microsoft/playwright-mcp) to accelerate the workflow of intiial prototyping, debugging and running the e2e tests. Playwright's team is actively adding new features and improving the experience, so for best results we recommend using the latest version of MCP.
 
 Check most common commands below (note you can also use `npx` instead of `pnpm exec`):
 
