@@ -45,6 +45,40 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 node .next/standalone/server.js
 node .next/standalone/server.js
 ```
 
+## E2E Testing
+
+The end-to-eng test suite (e2e) is built with [Playwright](https://playwright.dev/docs/intro). 
+
+> [!TIP]
+> You can use [Playwright's MCP](https://github.com/microsoft/playwright-mcp) to accelerate the workflow of intiial prototyping, debugging and running the e2e tests. Playwright's team is actively adding new features and improving the experience, so for best results we recommend using the latest version of MCP.
+
+Check most common commands below (note you can also use `npx` instead of `pnpm exec`):
+
+```bash
+pnpm exec playwright test
+```
+
+To run the tests in interactive mode, use the following command:
+
+```bash
+pnpm exec playwright test --ui
+```
+
+To run the tests in debug mode, use the following command:
+
+```bash
+pnpm exec playwright test --debug
+```
+
+For CI or running againt a specific environment we can set the `BASE_URL` environment variable.
+```sh
+export BASE_URL=https://your-ci-url.com
+npx playwright test
+# or
+BASE_URL=https://ci.app.endatix.com  npx playwright test
+```
+
+
 ## Learn More
 
 To learn more about Endatix, take a look at the following resources:
