@@ -17,13 +17,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
 import { useActionState, useEffect, useState } from "react";
+import {
+  IPromptResult,
+  PromptResult,
+} from "@/app/(main)/forms/create/prompt-result";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AssistantStore,
+  DefineFormCommand,
+} from "@/app/(main)/forms/create/use-cases/assistant";
 import { redirect } from "next/navigation";
-import { IPromptResult, PromptResult } from '@/app/(main)/forms/create/prompt-result';
-import { AssistantStore, DefineFormCommand } from '@/app/(main)/forms/create/use-cases/assistant';
-import { defineFormAction } from '@/app/(main)/forms/create/define-form.action';
+import { defineFormAction } from "../define-form.action";
 
 const ChatErrorAlert = ({
   errorMessage,

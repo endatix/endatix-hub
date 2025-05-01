@@ -188,26 +188,22 @@ const CreateFormSheet = () => {
           {/* <CreateFormCard
             title="Use our AI Form Assistant"
             description="The recommended way to create a form."
-            icon={Atom}
+            icon={Sparkles}
             action="via_assistant"
             isSelected={selectedOption === "via_assistant"}
-            onClick={(event) => {
-              setSelectedOption("via_assistant");
-              showComingSoonMessage(event);
-            }}
+            onClick={() => setSelectedOption("via_assistant")}
+            disabled={isPending}
           /> */}
         </div>
       </div>
       {pending && <DotLoader className="flex-1 text-center m-auto" />}
       <SheetFooter className="flex-end">
-        {selectedOption === "via_assistant" && (
-          <ChatBox
-            requiresNewContext={false}
-            onPendingChange={(pending) => {
-              setPending(pending);
-            }}
-          />
-        )}
+        <ChatBox
+          requiresNewContext={true}
+          onPendingChange={(pending) => {
+            setPending(pending);
+          }}
+        />
         {selectedOption === "from_template" && (
           <div className="w-full space-y-4">
             <TemplateSelector
