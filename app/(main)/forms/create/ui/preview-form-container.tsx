@@ -11,7 +11,7 @@ interface PreviewFormContainerProps {
 }
 
 const PreviewFormContainer = ({ model }: PreviewFormContainerProps) => {
-  return <PreviewForm model={model} />;
+  return <PreviewForm model={model} slkVal={process.env.NEXT_PUBLIC_SLK} />;
 };
 
 export default PreviewFormContainer;

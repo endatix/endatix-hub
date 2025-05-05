@@ -7,9 +7,11 @@ import "survey-creator-core/survey-creator-core.css";
 import { ICreatorOptions } from "survey-creator-core";
 import { BorderlessLight } from "survey-core/themes";
 import SurveyCreatorTheme from "survey-creator-core/themes";
+import { slk } from "survey-core";
 
 interface PreviewFormProps {
   model: string;
+  slkVal: string | undefined;
 }
 
 const creatorOptions: ICreatorOptions = {
@@ -20,13 +22,17 @@ const creatorOptions: ICreatorOptions = {
   showLogicTab: true,
 };
 
-const PreviewForm = ({ model }: PreviewFormProps) => {
+const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
 
   useEffect(() => {
     if (creator) {
       creator.JSON = model;
       return;
+    }
+
+    if (slkVal) {
+      slk(slkVal);
     }
 
     const newCreator = new SurveyCreator(creatorOptions);
