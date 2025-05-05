@@ -47,7 +47,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
       callback(no, true);
     };
     setCreator(newCreator);
-  }, [creator, model]);
+  }, [creator, model, slkVal]);
 
   return creator && <SurveyCreatorComponent creator={creator} />;
 };
