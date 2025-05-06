@@ -1,7 +1,8 @@
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { Result } from "@/lib/result";
 import { Submission } from "@/types";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DynamicPanelItemValueChangedEvent,
   MatrixCellValueChangedEvent,
@@ -10,8 +11,7 @@ import {
 import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Model, Survey, SurveyModel } from "survey-react-ui";
-
-registerSpecializedQuestion(SpecializedVideo);
+import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -26,45 +26,61 @@ interface EditSurveyWrapperProps {
 
 function useSurveyModel(submission: Submission) {
   const modelRef = useRef<Model | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!modelRef.current) {
-    if (!submission.formDefinition?.jsonData) {
-      return null;
-    }
+  useEffect(() => {
+    const initializeModel = async () => {
+      if (modelRef.current) {
+        setIsLoading(false);
+        return;
+      }
 
-    try {
-      const json = JSON.parse(submission.formDefinition.jsonData);
-      const submissionData = JSON.parse(submission.jsonData);
-      const model = new Model(json);
+      if (!submission.formDefinition?.jsonData) {
+        return;
+      }
 
-      model.data = submissionData;
-      model.showCompletedPage = false;
-      model.validationEnabled = false;
-      model.showPageTitles = true;
-      model.showPageNumbers = false;
-      model.questionsOnPageMode = "singlePage";
-      model.showCompleteButton = false;
-      model.navigationMode = "singlePage" as const;
-      model.showProgressBar = "off" as const;
-      model.showTitle = false;
-      model.getAllPanels().forEach((panel) => {
-        panel.expand();
-      });
+      try {
+        const result = await getCustomQuestionsAction();
+        if (Result.isSuccess(result)) {
+          initializeCustomQuestions(result.value.map(q => q.jsonData));
+        }
 
-      model.applyTheme(SharpLightPanelless);
+        const json = JSON.parse(submission.formDefinition.jsonData);
+        const submissionData = JSON.parse(submission.jsonData);
+        const model = new Model(json);
 
-      modelRef.current = model;
-    } catch (error) {
-      console.error("Error initializing survey model:", error);
-      return null;
-    }
-  }
+        model.data = submissionData;
+        model.showCompletedPage = false;
+        model.validationEnabled = false;
+        model.showPageTitles = true;
+        model.showPageNumbers = false;
+        model.questionsOnPageMode = "singlePage";
+        model.showCompleteButton = false;
+        model.navigationMode = "singlePage" as const;
+        model.showProgressBar = "off" as const;
+        model.showTitle = false;
+        model.getAllPanels().forEach((panel) => {
+          panel.expand();
+        });
 
-  return modelRef.current;
+        model.applyTheme(SharpLightPanelless);
+
+        modelRef.current = model;
+      } catch (error) {
+        console.error("Error initializing survey model:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeModel();
+  }, [submission]);
+
+  return { model: modelRef.current, isLoading };
 }
 
 function EditSurveyWrapper({ submission, onChange }: EditSurveyWrapperProps) {
-  const model = useSurveyModel(submission);
+  const { model, isLoading } = useSurveyModel(submission);
 
   useBlobStorage({
     formId: submission.formId,
@@ -84,6 +100,10 @@ function EditSurveyWrapper({ submission, onChange }: EditSurveyWrapperProps) {
       model.onMatrixCellValueChanged.remove(onChange);
     };
   }, [model, onChange]);
+
+  if (isLoading) {
+    return <div>Loading submission...</div>;
+  }
 
   if (!model) {
     return <div>Submission not found</div>;

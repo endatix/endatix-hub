@@ -697,3 +697,54 @@ export const changePassword = async (
 
   return response.json();
 };
+
+export interface CustomQuestion {
+  id: string;
+  name: string;
+  description: string | null;
+  jsonData: string;
+  createdAt: string;
+  modifiedAt: string | null;
+}
+
+export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/customization/questions`, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch custom questions");
+  }
+
+  return response.json();
+};
+
+export interface CreateCustomQuestionRequest {
+  name: string;
+  description?: string;
+  jsonData: string;
+}
+
+export const createCustomQuestion = async (request: CreateCustomQuestionRequest): Promise<CustomQuestion> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/customization/questions`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create custom question");
+  }
+
+  return response.json();
+};

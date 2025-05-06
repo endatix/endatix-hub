@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
+import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { Result } from "@/lib/result";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -28,6 +29,7 @@ import {
   surveyLocalization,
   SurveyModel,
   SvgRegistry,
+  JsonObject,
 } from "survey-core";
 import "survey-core/survey-core.css";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
@@ -48,6 +50,9 @@ import { updateFormDefinitionJsonAction } from "../../application/actions/update
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { updateThemeAction } from "../../application/actions/update-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
+import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
+import { CustomQuestion, CreateCustomQuestionRequest } from "@/services/api";
+import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -60,7 +65,6 @@ const saveAsIcon =
   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
 SvgRegistry.registerIcon("icon-saveas", saveAsIcon);
 registerSurveyTheme(DefaultLight);
-registerSpecializedQuestion(SpecializedVideo);
 
 interface FormEditorProps {
   formId: string;
@@ -86,6 +90,15 @@ const defaultCreatorOptions: ICreatorOptions = {
   themeForPreview: "Default",
 };
 
+function nameToTitle(name: string): string {
+  const words = name
+    .split(/[_\s-]+/)
+    .flatMap(word => word.split(/(?=[A-Z])/))
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  return words.join(' ');
+}
+
 function FormEditor({
   formJson,
   formId,
@@ -103,6 +116,8 @@ function FormEditor({
   const [originalName, setOriginalName] = useState(formName);
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [questionClasses, setQuestionClasses] = useState<any[]>([]);
 
   const getThemes = useCallback(async () => {
     try {
@@ -529,25 +544,118 @@ function FormEditor({
     deleteThemeActionBtn.visible = isThemeTab && isCustomTheme;
   }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
+  const createCustomQuestion = useCallback(async (element: any) => {
+    try {
+      if (element.name.match(/^(question|panel)\d+$/)) {
+        toast.error("Please give the element a name before saving it as a custom question");
+        return;
+      }
+
+      const json = new JsonObject().toJsonObject(element);
+      const title = nameToTitle(element.name);
+
+      const baseJsonData = {
+        name: element.name,
+        title: title,
+        iconName: "icon-" + element.getType(),
+        category: "custom",
+        defaultQuestionTitle: title,
+        inheritBaseProps: true
+      };
+
+      const request: CreateCustomQuestionRequest = {
+        name: element.name,
+        description: title,
+        jsonData: JSON.stringify({
+          ...baseJsonData,
+          ...(element.getType() === "panel" 
+            ? { elementsJSON: json.elements }
+            : { 
+                questionJSON: {
+                  ...json,
+                  type: element.getType()
+                }
+              }
+          )
+        })
+      };
+
+      const result = await createCustomQuestionAction(request);
+      if (Result.isError(result)) {
+        throw new Error(result.message);
+      }
+
+      const savedQuestion = result.value;
+      const parsedJson = JSON.parse(savedQuestion.jsonData);
+
+      const questionClasses = initializeCustomQuestions([savedQuestion.jsonData]);
+      if (questionClasses.length > 0) {
+        creator?.toolbox.addItem({
+          name: savedQuestion.name,
+          title: parsedJson.title,
+          iconName: parsedJson.iconName,
+          json: {
+            type: savedQuestion.name,
+            name: savedQuestion.name
+          },
+          category: parsedJson.category
+        });
+      }
+      
+      toast.success("Custom question saved and added to toolbox");
+    } catch (error) {
+      console.error("Error saving custom question:", error);
+      toast.error("Failed to save custom question");
+    }
+  }, [creator]);
+
+  useLayoutEffect(() => {
+    if (!creator) return;
+    
+    questionClasses.forEach(QuestionClass => {
+      QuestionClass.customizeEditor(creator);
+    });
+  }, [creator, questionClasses]);
+
   useEffect(() => {
-    if (creator) {
+    const initializeNewCreator = async () => {
+      if (creator) return;
+
+      if (slkVal) {
+        slk(slkVal);
+      }
+
+      try {
+        const result = await getCustomQuestionsAction();
+        if (Result.isError(result)) {
+          throw new Error(result.message);
+        }
+  
+        const newQuestionClasses = initializeCustomQuestions(result.value.map(q => q.jsonData));
+        
+        const newCreator = new SurveyCreator(options || defaultCreatorOptions);
+        newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+        newCreator.onUploadFile.add(handleUploadFile);
+
+        setCreator(newCreator);
+        if (newQuestionClasses.length > 0) {
+          setQuestionClasses(newQuestionClasses);
+        }
+      } catch (error) {
+        console.error("Error loading custom questions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeNewCreator();
+  }, [options, slkVal, handleUploadFile]);
+
+  useEffect(() => {
+    if (creator && formJson) {
       creator.JSON = formJson;
-      return;
     }
-
-    if (slkVal) {
-      slk(slkVal);
-    }
-
-    const newCreator = new SurveyCreator(options || defaultCreatorOptions);
-    SpecializedVideo.customizeEditor(newCreator);
-
-    newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
-    newCreator.JSON = formJson;
-    newCreator.onUploadFile.add(handleUploadFile);
-
-    setCreator(newCreator);
-  }, [formJson, options, creator, slkVal, handleUploadFile]);
+  }, [creator, formJson]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -569,6 +677,29 @@ function FormEditor({
   }, [isEditingName, handleNameSave]);
 
   useEffect(() => {
+    if (!creator) return;
+
+    creator.onElementGetActions.add((_, options) => {
+      const element = options.element as any;
+      if (element.isPage) return;
+      options.actions.unshift({
+        id: "create-custom-question",
+        title: "Create Custom Question",
+        iconName: "icon-toolbox",
+        action: () => createCustomQuestion(element)
+      });
+    });
+
+    return () => {
+      creator.onElementGetActions.remove((_, options) => {
+        const element = options.element as any;
+        if (element.isPage) return;
+        options.actions = options.actions.filter(action => action.id !== "create-custom-question");
+      });
+    };
+  }, [creator, createCustomQuestion]);
+
+  useEffect(() => {
     const setAsModified = () => {
       setHasUnsavedChanges(true);
     };
@@ -578,7 +709,6 @@ function FormEditor({
       creator.onActiveTabChanged.add(updateCustomActions);
       creator.toolbar.actions.push(saveThemeActionBtn);
       creator.toolbar.actions.push(deleteThemeActionBtn);
-      creator.activeTab = "theme";
 
       const themeTabPlugin = creator.themeEditor;
       themeTabPlugin.advancedModeEnabled = true;
@@ -768,10 +898,12 @@ function FormEditor({
         </div>
       </div>
       <div id="creator">
-        {creator ? (
+        {isLoading ? (
+          <div>Loading custom questions...</div>
+        ) : creator ? (
           <SurveyCreatorComponent creator={creator} />
         ) : (
-          <div>Loading...</div>
+          <div>Error loading form editor</div>
         )}
       </div>
     </>

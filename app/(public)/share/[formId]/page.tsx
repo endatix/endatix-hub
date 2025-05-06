@@ -37,6 +37,7 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
       definition={activeDefinition.jsonData}
       submission={submission}
       theme={activeDefinition.themeModel}
+      customQuestions={activeDefinition.customQuestions}
     />
   );
 }
