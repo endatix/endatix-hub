@@ -544,28 +544,22 @@ function FormEditor({
     deleteThemeActionBtn.visible = isThemeTab && isCustomTheme;
   }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
-  const createCustomQuestion = useCallback(async (element: any) => {
+  const saveCustomQuestion = useCallback(async (element: any, questionName: string, questionTitle: string) => {
     try {
-      if (element.name.match(/^(question|panel)\d+$/)) {
-        toast.error("Please give the element a name before saving it as a custom question");
-        return;
-      }
-
       const json = new JsonObject().toJsonObject(element);
-      const title = nameToTitle(element.name);
 
       const baseJsonData = {
-        name: element.name,
-        title: title,
+        name: questionName,
+        title: questionTitle,
         iconName: "icon-" + element.getType(),
         category: "custom",
-        defaultQuestionTitle: title,
+        defaultQuestionTitle: questionTitle,
         inheritBaseProps: true
       };
 
       const request: CreateCustomQuestionRequest = {
-        name: element.name,
-        description: title,
+        name: questionName,
+        description: questionTitle,
         jsonData: JSON.stringify({
           ...baseJsonData,
           ...(element.getType() === "panel" 
@@ -608,6 +602,50 @@ function FormEditor({
       toast.error("Failed to save custom question");
     }
   }, [creator]);
+
+  const createCustomQuestionDialog = useCallback(async (element: any) => {
+    try {
+      const isDefaultName = element.name.match(/^(question|panel)\d+$/);
+      const defaultTitle = isDefaultName ? "" : nameToTitle(element.name);
+
+      const surveyDefinition = JSON.parse(
+        `{"pages":[{"name":"page1","elements":[
+          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${element.name}&quot;</b> as a custom question.</p>"},
+          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${isDefaultName ? "" : element.name}","defaultValue":"${isDefaultName ? "" : element.name}"},
+          {"type":"text","name":"question_title","title":"Enter the custom question title","requiredIf":"true","requiredErrorText":"Question title is required","placeholder":"${defaultTitle}","defaultValue":"${defaultTitle}"}
+        ]}],"showNavigationButtons":false,"questionErrorLocation":"bottom","requiredText":"*"}`
+      );
+
+      const survey = new SurveyModel(surveyDefinition);
+      survey.isCompact = true;
+      survey.applyTheme(BorderlessLightPanelless);
+
+      settings.showDialog(
+        {
+          componentName: "survey",
+          data: { model: survey },
+          onApply: () => {
+            if (survey.tryComplete()) {
+              saveCustomQuestion(element, survey.data.question_name, survey.data.question_title);
+              return true;
+            }
+            return false;
+          },
+          onCancel: () => {
+            return false;
+          },
+          title: "Create Custom Question",
+          displayMode: "popup",
+          isFocusedContent: true,
+          cssClass: "creator-dialog",
+        },
+        settings.environment.popupMountContainer as HTMLElement,
+      );
+    } catch (error) {
+      console.error("Error saving custom question:", error);
+      toast.error("Failed to save custom question");
+    }
+  }, [saveCustomQuestion]);
 
   useLayoutEffect(() => {
     if (!creator) return;
@@ -686,7 +724,7 @@ function FormEditor({
         id: "create-custom-question",
         title: "Create Custom Question",
         iconName: "icon-toolbox",
-        action: () => createCustomQuestion(element)
+        action: () => createCustomQuestionDialog(element)
       });
     });
 
@@ -697,7 +735,7 @@ function FormEditor({
         options.actions = options.actions.filter(action => action.id !== "create-custom-question");
       });
     };
-  }, [creator, createCustomQuestion]);
+  }, [creator, createCustomQuestionDialog]);
 
   useEffect(() => {
     const setAsModified = () => {
