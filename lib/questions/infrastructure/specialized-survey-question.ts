@@ -1,6 +1,7 @@
 import {
   ComponentCollection,
   ICustomQuestionTypeConfiguration,
+  Question,
 } from "survey-core";
 import { SurveyCreator } from "survey-creator-react";
 
@@ -36,8 +37,8 @@ export interface CustomQuestionConfig {
   orderedAfter?: string;
   defaultQuestionTitle?: string;
   inheritBaseProps?: boolean;
-  questionJSON?: any;
-  elementsJSON?: any;
+  questionJSON?: Question;
+  elementsJSON?: Question[];
 }
 
 /**
@@ -83,7 +84,7 @@ export function createCustomQuestionClass(config: CustomQuestionConfig) {
   };
 }
 
-const questionClassMap = new Map<string, any>();
+const questionClassMap = new Map<string, typeof SpecializedSurveyQuestion>();
 
 /**
  * Initializes custom question classes from JSON data and maintains a registry of created classes.
@@ -91,7 +92,7 @@ const questionClassMap = new Map<string, any>();
  * @param questions - Array of JSON strings containing custom question configurations
  * @returns Array of initialized question classes
  */
-export function initializeCustomQuestions(questions: string[]): any[] {
+export function initializeCustomQuestions(questions: string[]): (typeof SpecializedSurveyQuestion)[] {
   const questionClasses = questions.map(jsonData => {
     try {
       const parsedJson = JSON.parse(jsonData);
@@ -123,7 +124,7 @@ export function initializeCustomQuestions(questions: string[]): any[] {
       console.error('Custom question JSON:', jsonData);
       return null;
     }
-  }).filter(Boolean); // Remove null entries
+  }).filter((q): q is typeof SpecializedSurveyQuestion => q !== null);
 
   return questionClasses;
 }
