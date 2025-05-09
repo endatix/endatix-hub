@@ -10,7 +10,7 @@ export interface TelemetryInitStrategy {
    * @param resource The OpenTelemetry resource
    * @returns The initialized SDK
    */
-  initialize(resource: Resource): NodeSDK;
+  initialize(resource: Resource): NodeSDK | undefined;
 
   /**
    * Get the name of the telemetry strategy

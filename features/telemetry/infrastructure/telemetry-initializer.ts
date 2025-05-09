@@ -2,13 +2,13 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { Resource } from "@opentelemetry/resources";
 import { TelemetryConfig } from "./telemetry-config";
 import { TelemetryInitStrategy } from "./strategies/telemetry-init-strategy.interface";
-import { AzureTelemetryStrategy, OtelTelemetryStrategy } from "./strategies";
+import { AzureTelemetryStrategy, VercelTelemetryStrategy } from "./strategies";
 
 /**
  * Telemetry initializer responsible for setting up and starting telemetry
  */
 export class TelemetryInitializer {
-  private sdk: NodeSDK | null = null;
+  private sdk: NodeSDK | undefined;
   private strategy: TelemetryInitStrategy;
   private resource: Resource;
 
@@ -22,7 +22,7 @@ export class TelemetryInitializer {
 
     this.strategy = TelemetryConfig.isAzureConfigured()
       ? new AzureTelemetryStrategy()
-      : new OtelTelemetryStrategy();
+      : new VercelTelemetryStrategy();
   }
 
   /**
@@ -31,6 +31,12 @@ export class TelemetryInitializer {
   initialize(): void {
     try {
       this.sdk = this.strategy.initialize(this.resource);
+
+      if (!this.sdk) {
+        console.error("Telemetry SDK not provided. Skipping further initialization.");
+        return;
+      }
+
       this.sdk.start();
 
       this.registerShutdownHandler();

@@ -22,7 +22,7 @@ export class AzureTelemetryStrategy implements TelemetryInitStrategy {
    * @param resource OpenTelemetry resource
    * @returns The initialized SDK
    */
-  initialize(resource: Resource): NodeSDK {
+  initialize(resource: Resource): NodeSDK | undefined {
     const connectionString = TelemetryConfig.getConnectionString();
 
     // Create Azure Monitor trace exporter
