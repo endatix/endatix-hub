@@ -1,6 +1,7 @@
 import {
   ComponentCollection,
   ICustomQuestionTypeConfiguration,
+  Question,
 } from "survey-core";
 import { SurveyCreator } from "survey-creator-react";
 
@@ -26,6 +27,106 @@ export abstract class SpecializedSurveyQuestion {
 
     throw new Error("customizeEditor method not implemented.");
   }
+}
+
+export interface CustomQuestionConfig {
+  name: string;
+  title: string;
+  iconName?: string;
+  category?: string;
+  orderedAfter?: string;
+  defaultQuestionTitle?: string;
+  inheritBaseProps?: boolean;
+  questionJSON?: Question;
+  elementsJSON?: Question[];
+}
+
+/**
+ * Creates a class that extends SpecializedSurveyQuestion from a config object
+ * @param config - The configuration of the custom question
+ */
+export function createCustomQuestionClass(config: CustomQuestionConfig) {
+  return class extends SpecializedSurveyQuestion {
+    get customQuestionConfig(): ICustomQuestionTypeConfiguration {
+      return {
+        name: config.name,
+        title: config.title,
+        iconName: config.iconName,
+        defaultQuestionTitle: config.defaultQuestionTitle || config.title,
+        inheritBaseProps: config.inheritBaseProps ?? true,
+        ...(config.elementsJSON 
+          ? { elementsJSON: config.elementsJSON }
+          : { questionJSON: config.questionJSON }
+        ),
+      };
+    }
+
+    static customizeEditor(creator: SurveyCreator): void {
+      if (config.category) {
+        creator.toolbox.changeCategory(config.name, config.category);
+      }
+
+      if (config.orderedAfter && Array.isArray(creator.toolbox.orderedQuestions)) {
+        const orderedQuestions = [...creator.toolbox.orderedQuestions];
+        const previousQuestionName = config.orderedAfter;
+        const previousIndex = orderedQuestions.indexOf(previousQuestionName);
+        
+        if (previousIndex !== -1) {
+          orderedQuestions.splice(previousIndex + 1, 0, config.name);
+        } else {
+          orderedQuestions.push(previousQuestionName);
+          orderedQuestions.push(config.name);
+        }
+        
+        creator.toolbox.orderedQuestions = orderedQuestions;
+      }
+    }
+  };
+}
+
+const customQuestionsRegistry = new Map<string, typeof SpecializedSurveyQuestion>();
+
+/**
+ * Initializes custom question classes from JSON data and maintains a registry of created classes.
+ * If a question is already registered, returns the existing class instead of creating a new one.
+ * @param questions - Array of JSON strings containing custom question configurations
+ * @returns Array of initialized question classes
+ */
+export function initializeCustomQuestions(questions: string[]): (typeof SpecializedSurveyQuestion)[] {
+  const questionClasses = questions.map(jsonData => {
+    try {
+      const parsedJson = JSON.parse(jsonData);
+      
+      if (customQuestionsRegistry.has(parsedJson.name)) {
+        return customQuestionsRegistry.get(parsedJson.name);
+      }
+
+      const config: CustomQuestionConfig = {
+        name: parsedJson.name,
+        title: parsedJson.title,
+        iconName: parsedJson.iconName,
+        category: parsedJson.category,
+        orderedAfter: parsedJson.orderedAfter,
+        defaultQuestionTitle: parsedJson.defaultQuestionTitle,
+        inheritBaseProps: parsedJson.inheritBaseProps,
+        ...(parsedJson.elementsJSON 
+          ? { elementsJSON: parsedJson.elementsJSON }
+          : { questionJSON: parsedJson.questionJSON }
+        ),
+      };
+
+      const QuestionClass = createCustomQuestionClass(config);
+      registerSpecializedQuestion(QuestionClass);
+      customQuestionsRegistry.set(config.name, QuestionClass);
+      return QuestionClass;
+    } catch (error) {
+      console.error('Error registering custom question:', error);
+      console.error('Custom question JSON:', jsonData);
+      return null;
+    }
+  }).filter((q): q is typeof SpecializedSurveyQuestion => q !== null);
+
+  return questionClasses;
 }
 
 /**
