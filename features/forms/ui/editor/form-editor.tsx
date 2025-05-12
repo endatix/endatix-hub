@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -647,7 +646,7 @@ function FormEditor({
     }
   }, [saveCustomQuestion]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!creator) return;
     
     questionClasses.forEach(QuestionClass => {

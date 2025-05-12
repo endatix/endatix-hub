@@ -711,7 +711,7 @@ export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(`${API_BASE_URL}/customization/questions`, {
+  const response = await fetch(`${API_BASE_URL}/questions`, {
     headers: headers,
   });
 
@@ -736,7 +736,7 @@ export const createCustomQuestion = async (request: CreateCustomQuestionRequest)
     .provideJson()
     .build();
 
-  const response = await fetch(`${API_BASE_URL}/customization/questions`, {
+  const response = await fetch(`${API_BASE_URL}/questions`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),

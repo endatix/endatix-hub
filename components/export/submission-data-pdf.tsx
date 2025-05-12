@@ -65,23 +65,16 @@ export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
   let questions = surveyModel.getAllQuestions(false, false, true);
 
   // Filter out panel custom questions since their nested questions are already present
-  questions = questions.filter(question => {
-    const customQuestion = question.customQuestion;
-    if (customQuestion?.json.elementsJSON) {
-      return false;
-    }
-    return true;
-  });
-
-  // For custom questions set the JSON from the custom question configuration
-  questions.forEach(question => {
-    const customQuestion = question.customQuestion;
-    if (customQuestion) {
-      if (customQuestion.json.questionJSON) {
+  // and set the JSON from the custom question configuration
+  questions = questions
+    .filter(question => !question.customQuestion?.json.elementsJSON)
+    .map(question => {
+      const customQuestion = question.customQuestion;
+      if (customQuestion?.json.questionJSON) {
         question.fromJSON(customQuestion.json.questionJSON);
       }
-    }
-  });
+      return question;
+    });
 
   // TODO: This is a duplicate of a function in question-label.tsx
   const getPanelTitle = (question: Question) => {

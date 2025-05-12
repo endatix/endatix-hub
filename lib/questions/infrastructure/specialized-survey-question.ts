@@ -84,7 +84,7 @@ export function createCustomQuestionClass(config: CustomQuestionConfig) {
   };
 }
 
-const questionClassMap = new Map<string, typeof SpecializedSurveyQuestion>();
+const customQuestionsRegistry = new Map<string, typeof SpecializedSurveyQuestion>();
 
 /**
  * Initializes custom question classes from JSON data and maintains a registry of created classes.
@@ -97,8 +97,8 @@ export function initializeCustomQuestions(questions: string[]): (typeof Speciali
     try {
       const parsedJson = JSON.parse(jsonData);
       
-      if (questionClassMap.has(parsedJson.name)) {
-        return questionClassMap.get(parsedJson.name);
+      if (customQuestionsRegistry.has(parsedJson.name)) {
+        return customQuestionsRegistry.get(parsedJson.name);
       }
 
       const config: CustomQuestionConfig = {
@@ -117,7 +117,7 @@ export function initializeCustomQuestions(questions: string[]): (typeof Speciali
 
       const QuestionClass = createCustomQuestionClass(config);
       registerSpecializedQuestion(QuestionClass);
-      questionClassMap.set(config.name, QuestionClass);
+      customQuestionsRegistry.set(config.name, QuestionClass);
       return QuestionClass;
     } catch (error) {
       console.error('Error registering custom question:', error);
