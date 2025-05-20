@@ -10,7 +10,6 @@ type Params = {
   searchParams: Promise<{
     page: string;
     pageSize: string;
-    useLegacyTable: boolean;
   }>;
 };
 
@@ -33,7 +32,7 @@ export async function generateMetadata(
 
 export default async function ResponsesPage({ params, searchParams }: Params) {
   const { formId } = await params;
-  const { useLegacyTable, pageSize } = await searchParams;
+  const { pageSize } = await searchParams;
 
   return (
     <>
@@ -43,7 +42,6 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
       <Suspense fallback={<TableLoader pageSize={pageSize} />}>
         <SubmissionsTableData
           formId={formId}
-          useLegacyTable={useLegacyTable ?? false}
         />
       </Suspense>
     </>
@@ -57,16 +55,13 @@ async function PageTitleData({ formId }: { formId: string }) {
 
 async function SubmissionsTableData({
   formId,
-  useLegacyTable,
 }: {
   formId: string;
-  useLegacyTable: boolean;
 }) {
   const submissions = await getSubmissions(formId);
   return (
     <SubmissionsTable
       data={submissions}
-      useLegacyTable={useLegacyTable ?? false}
     />
   );
 }
