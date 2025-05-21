@@ -4,9 +4,9 @@ import { exportSubmissions } from "@/services/api";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { formId: string } },
+  { params }: { params: Promise<{ formId: string }> },
 ) {
-  const formId = params.formId;
+  const { formId } = await params;
   const session = await getSession();
 
   if (!session.isLoggedIn) {
