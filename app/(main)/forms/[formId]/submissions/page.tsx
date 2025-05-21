@@ -62,6 +62,7 @@ async function SubmissionsTableData({
   return (
     <SubmissionsTable
       data={submissions}
+      formId={formId}
     />
   );
 }
