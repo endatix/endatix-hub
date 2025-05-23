@@ -698,6 +698,113 @@ export const changePassword = async (
   return response.json();
 };
 
+/**
+ * Exports form submissions in the specified format (CSV, JSON, etc.)
+ * Returns a streaming response for direct download
+ */
+export const exportSubmissions = async (
+  formId: string,
+  format: string = "csv",
+): Promise<Response> => {
+  if (!formId) {
+    throw new Error("FormId is required");
+  }
+
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const apiUrl = `${API_BASE_URL}/forms/${formId}/submissions/export`;
+
+  // Create a transform stream to handle the data flow
+  const { readable, writable } = new TransformStream();
+
+  // Default content type based on format
+  let contentType = "text/csv";
+  let contentDisposition = `attachment; filename=form-${formId}-submissions.csv`;
+
+  if (format === "json") {
+    contentType = "application/json";
+    contentDisposition = `attachment; filename=form-${formId}-submissions.json`;
+  }
+
+  // Process the API response in the background
+  (async () => {
+    try {
+      const headers = new HeaderBuilder()
+        .withAuth(session)
+        .provideJson()
+        .build();
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+          exportFormat: format,
+        }),
+      });
+
+      if (!response.ok) {
+        const writer = writable.getWriter();
+        const errorBody = await response.json();
+        writer.write(
+          new TextEncoder().encode(
+            JSON.stringify({
+              error: errorBody.Detail || "Export failed",
+              status: response.status,
+              statusText: response.statusText,
+            }),
+          ),
+        );
+        writer.close();
+        return;
+      }
+
+      // Update content disposition and type from response headers if available
+      const responseContentDisposition = response.headers.get(
+        "Content-Disposition",
+      );
+      if (responseContentDisposition) {
+        contentDisposition = responseContentDisposition;
+      }
+
+      const responseContentType = response.headers.get("Content-Type");
+      if (responseContentType) {
+        contentType = responseContentType;
+      }
+
+      // Pipe the response body directly to our writable stream
+      if (response.body) {
+        await response.body.pipeTo(writable);
+      } else {
+        const writer = writable.getWriter();
+        writer.write(new TextEncoder().encode("No data returned from API"));
+        writer.close();
+      }
+    } catch (error) {
+      const writer = writable.getWriter();
+      writer.write(
+        new TextEncoder().encode(
+          JSON.stringify({
+            error: "Failed to export data",
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        ),
+      );
+      writer.close();
+    }
+  })();
+
+  // Return the readable stream with appropriate headers
+  return new Response(readable, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": contentDisposition,
+    },
+  });
+};
+
 export interface CustomQuestion {
   id: string;
   name: string;
@@ -728,7 +835,9 @@ export interface CreateCustomQuestionRequest {
   jsonData: string;
 }
 
-export const createCustomQuestion = async (request: CreateCustomQuestionRequest): Promise<CustomQuestion> => {
+export const createCustomQuestion = async (
+  request: CreateCustomQuestionRequest,
+): Promise<CustomQuestion> => {
   const session = await getSession();
   const headers = new HeaderBuilder()
     .withAuth(session)
