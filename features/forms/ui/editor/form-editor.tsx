@@ -50,8 +50,10 @@ import { updateFormThemeAction } from "../../application/actions/update-form-the
 import { updateThemeAction } from "../../application/actions/update-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
 import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
-import { CustomQuestion, CreateCustomQuestionRequest } from "@/services/api";
+import { CreateCustomQuestionRequest } from "@/services/api";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
+import "survey-core/i18n";
+import "survey-creator-core/i18n";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -92,10 +94,10 @@ const defaultCreatorOptions: ICreatorOptions = {
 function nameToTitle(name: string): string {
   const words = name
     .split(/[_\s-]+/)
-    .flatMap(word => word.split(/(?=[A-Z])/))
+    .flatMap((word) => word.split(/(?=[A-Z])/))
     .filter(Boolean)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
-  return words.join(' ');
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  return words.join(" ");
 }
 
 function FormEditor({
@@ -360,8 +362,8 @@ function FormEditor({
       const toolbar = popupViewModel.footerToolbar;
       const applyBtn = toolbar.getActionById("apply");
       const cancelBtn = toolbar.getActionById("cancel");
-      cancelBtn.title = surveyLocalization.getString("cancel");
-      applyBtn.title = surveyLocalization.getString("ok");
+      cancelBtn.title = "Cancel";
+      applyBtn.title = "OK";
     },
     [],
   );
@@ -543,113 +545,128 @@ function FormEditor({
     deleteThemeActionBtn.visible = isThemeTab && isCustomTheme;
   }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
-  const saveCustomQuestion = useCallback(async (element: any, questionName: string, questionTitle: string) => {
-    try {
-      const json = new JsonObject().toJsonObject(element);
+  const saveCustomQuestion = useCallback(
+    async (element: any, questionName: string, questionTitle: string) => {
+      try {
+        const json = new JsonObject().toJsonObject(element);
 
-      const baseJsonData = {
-        name: questionName,
-        title: questionTitle,
-        iconName: "icon-" + element.getType(),
-        category: "custom",
-        defaultQuestionTitle: questionTitle,
-        inheritBaseProps: true
-      };
+        const baseJsonData = {
+          name: questionName,
+          title: questionTitle,
+          iconName: "icon-" + element.getType(),
+          category: "custom",
+          defaultQuestionTitle: questionTitle,
+          inheritBaseProps: true,
+        };
 
-      const request: CreateCustomQuestionRequest = {
-        name: questionName,
-        description: questionTitle,
-        jsonData: JSON.stringify({
-          ...baseJsonData,
-          ...(element.getType() === "panel" 
-            ? { elementsJSON: json.elements }
-            : { 
-                questionJSON: {
-                  ...json,
-                  type: element.getType()
-                }
-              }
-          )
-        })
-      };
+        const request: CreateCustomQuestionRequest = {
+          name: questionName,
+          description: questionTitle,
+          jsonData: JSON.stringify({
+            ...baseJsonData,
+            ...(element.getType() === "panel"
+              ? { elementsJSON: json.elements }
+              : {
+                  questionJSON: {
+                    ...json,
+                    type: element.getType(),
+                  },
+                }),
+          }),
+        };
 
-      const result = await createCustomQuestionAction(request);
-      if (Result.isError(result)) {
-        throw new Error(result.message);
+        const result = await createCustomQuestionAction(request);
+        if (Result.isError(result)) {
+          throw new Error(result.message);
+        }
+
+        const savedQuestion = result.value;
+        const parsedJson = JSON.parse(savedQuestion.jsonData);
+
+        const questionClasses = initializeCustomQuestions([
+          savedQuestion.jsonData,
+        ]);
+        if (questionClasses.length > 0) {
+          creator?.toolbox.addItem({
+            name: savedQuestion.name,
+            title: parsedJson.title,
+            iconName: parsedJson.iconName,
+            json: {
+              type: savedQuestion.name,
+              name: savedQuestion.name,
+            },
+            category: parsedJson.category,
+          });
+        }
+
+        toast.success("Custom question saved and added to toolbox");
+      } catch (error) {
+        console.error("Error saving custom question:", error);
+        toast.error("Failed to save custom question");
       }
+    },
+    [creator],
+  );
 
-      const savedQuestion = result.value;
-      const parsedJson = JSON.parse(savedQuestion.jsonData);
+  const createCustomQuestionDialog = useCallback(
+    async (element: any) => {
+      try {
+        const isDefaultName = element.name.match(/^(question|panel)\d+$/);
+        const defaultTitle = isDefaultName ? "" : nameToTitle(element.name);
 
-      const questionClasses = initializeCustomQuestions([savedQuestion.jsonData]);
-      if (questionClasses.length > 0) {
-        creator?.toolbox.addItem({
-          name: savedQuestion.name,
-          title: parsedJson.title,
-          iconName: parsedJson.iconName,
-          json: {
-            type: savedQuestion.name,
-            name: savedQuestion.name
-          },
-          category: parsedJson.category
-        });
-      }
-      
-      toast.success("Custom question saved and added to toolbox");
-    } catch (error) {
-      console.error("Error saving custom question:", error);
-      toast.error("Failed to save custom question");
-    }
-  }, [creator]);
-
-  const createCustomQuestionDialog = useCallback(async (element: any) => {
-    try {
-      const isDefaultName = element.name.match(/^(question|panel)\d+$/);
-      const defaultTitle = isDefaultName ? "" : nameToTitle(element.name);
-
-      const surveyDefinition = JSON.parse(
-        `{"pages":[{"name":"page1","elements":[
-          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${element.name}&quot;</b> as a custom question.</p>"},
-          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${isDefaultName ? "" : element.name}","defaultValue":"${isDefaultName ? "" : element.name}"},
+        const surveyDefinition = JSON.parse(
+          `{"pages":[{"name":"page1","elements":[
+          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${
+            element.name
+          }&quot;</b> as a custom question.</p>"},
+          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${
+            isDefaultName ? "" : element.name
+          }","defaultValue":"${isDefaultName ? "" : element.name}"},
           {"type":"text","name":"question_title","title":"Enter the custom question title","requiredIf":"true","requiredErrorText":"Question title is required","placeholder":"${defaultTitle}","defaultValue":"${defaultTitle}"}
-        ]}],"showNavigationButtons":false,"questionErrorLocation":"bottom","requiredText":"*"}`
-      );
+        ]}],"showNavigationButtons":false,"questionErrorLocation":"bottom","requiredText":"*"}`,
+        );
 
-      const survey = new SurveyModel(surveyDefinition);
-      survey.isCompact = true;
-      survey.applyTheme(BorderlessLightPanelless);
+        const survey = new SurveyModel(surveyDefinition);
+        survey.isCompact = true;
+        survey.applyTheme(BorderlessLightPanelless);
 
-      settings.showDialog(
-        {
-          componentName: "survey",
-          data: { model: survey },
-          onApply: () => {
-            if (survey.tryComplete()) {
-              saveCustomQuestion(element, survey.data.question_name, survey.data.question_title);
-              return true;
-            }
-            return false;
+        settings.showDialog(
+          {
+            componentName: "survey",
+            data: { model: survey },
+            onApply: () => {
+              if (survey.tryComplete()) {
+                saveCustomQuestion(
+                  element,
+                  survey.data.question_name,
+                  survey.data.question_title,
+                );
+                return true;
+              }
+              return false;
+            },
+            onCancel: () => {
+              return false;
+            },
+            title: "Create Custom Question",
+            displayMode: "popup",
+            isFocusedContent: true,
+            cssClass: "creator-dialog",
           },
-          onCancel: () => {
-            return false;
-          },
-          title: "Create Custom Question",
-          displayMode: "popup",
-          isFocusedContent: true,
-          cssClass: "creator-dialog",
-        },
-        settings.environment.popupMountContainer as HTMLElement,
-      );
-    } catch (error) {
-      console.error("Error saving custom question:", error);
-      toast.error("Failed to save custom question");
-    }
-  }, [saveCustomQuestion]);
+          settings.environment.popupMountContainer as HTMLElement,
+        );
+      } catch (error) {
+        console.error("Error saving custom question:", error);
+        toast.error("Failed to save custom question");
+      }
+    },
+    [saveCustomQuestion],
+  );
 
   useEffect(() => {
     if (!creator) return;
-    
-    questionClasses.forEach(QuestionClass => {
+
+    questionClasses.forEach((QuestionClass) => {
       QuestionClass.customizeEditor(creator);
     });
   }, [creator, questionClasses]);
@@ -667,9 +684,11 @@ function FormEditor({
         if (Result.isError(result)) {
           throw new Error(result.message);
         }
-  
-        const newQuestionClasses = initializeCustomQuestions(result.value.map(q => q.jsonData));
-        
+
+        const newQuestionClasses = initializeCustomQuestions(
+          result.value.map((q) => q.jsonData),
+        );
+
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
         newCreator.onUploadFile.add(handleUploadFile);
@@ -723,7 +742,7 @@ function FormEditor({
         id: "create-custom-question",
         title: "Create Custom Question",
         iconName: "icon-toolbox",
-        action: () => createCustomQuestionDialog(element)
+        action: () => createCustomQuestionDialog(element),
       });
     });
 
@@ -731,7 +750,9 @@ function FormEditor({
       creator.onElementGetActions.remove((_, options) => {
         const element = options.element as any;
         if (element.isPage) return;
-        options.actions = options.actions.filter(action => action.id !== "create-custom-question");
+        options.actions = options.actions.filter(
+          (action) => action.id !== "create-custom-question",
+        );
       });
     };
   }, [creator, createCustomQuestionDialog]);
