@@ -48,6 +48,7 @@ import { updateFormDefinitionJsonAction } from "../../application/actions/update
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { updateThemeAction } from "../../application/actions/update-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
+import { endatixTheme } from "@/components/editors/endatix-theme";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -542,7 +543,7 @@ function FormEditor({
     const newCreator = new SurveyCreator(options || defaultCreatorOptions);
     SpecializedVideo.customizeEditor(newCreator);
 
-    newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+    newCreator.applyCreatorTheme(endatixTheme);
     newCreator.JSON = formJson;
     newCreator.onUploadFile.add(handleUploadFile);
 

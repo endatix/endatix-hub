@@ -18,6 +18,7 @@ import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
+import { endatixTheme } from "@/components/editors/endatix-theme";
 
 registerSpecializedQuestion(SpecializedVideo);
 
@@ -113,7 +114,7 @@ function FormTemplateEditor({
     const newCreator = new SurveyCreator(options || defaultCreatorOptions);
     SpecializedVideo.customizeEditor(newCreator);
 
-    newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+    newCreator.applyCreatorTheme(endatixTheme);
     newCreator.JSON = templateJson;
     newCreator.saveSurveyFunc = (
       no: number,
