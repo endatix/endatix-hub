@@ -49,7 +49,8 @@ export const uploadUserFilesUseCase = async ({
     for (const { name, file } of files) {
       let fileBuffer = Buffer.from(await file.arrayBuffer());
       if (file.type.startsWith("image/")) {
-        fileBuffer = await optimizeImageSize(fileBuffer, file.type);
+        const optimizedBuffer = await optimizeImageSize(fileBuffer, file.type);
+        fileBuffer = Buffer.from(optimizedBuffer);
       }
 
       const uuid = uuidv4();

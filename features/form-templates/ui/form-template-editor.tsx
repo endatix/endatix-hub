@@ -20,6 +20,8 @@ import { updateTemplateNameAction } from "../application/update-template-name.ac
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import "survey-core/i18n";
+import "survey-creator-core/i18n";
 
 export interface FormTemplateEditorProps {
   templateId: string;
