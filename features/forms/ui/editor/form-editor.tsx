@@ -54,6 +54,7 @@ import { CreateCustomQuestionRequest } from "@/services/api";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
+import { endatixTheme } from "@/components/editors/endatix-theme";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -690,7 +691,7 @@ function FormEditor({
         );
 
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
-        newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+        newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
 
         setCreator(newCreator);

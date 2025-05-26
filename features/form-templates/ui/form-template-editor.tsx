@@ -17,6 +17,7 @@ import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
+import { endatixTheme } from "@/components/editors/endatix-theme";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
@@ -129,7 +130,7 @@ function FormTemplateEditor({
         const newQuestionClasses = initializeCustomQuestions(result.value.map(q => q.jsonData));
         
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
-        newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
+        newCreator.applyCreatorTheme(endatixTheme);
         newCreator.saveSurveyFunc = (
           no: number,
           callback: (num: number, status: boolean) => void,
