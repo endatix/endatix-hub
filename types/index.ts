@@ -21,6 +21,7 @@ export type FormDefinition = {
 
 export type ActiveDefinition = FormDefinition & {
   themeModel?: string;
+  customQuestions?: string[];
 };
 
 export type FormTemplate = {

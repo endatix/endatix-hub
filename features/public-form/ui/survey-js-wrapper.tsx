@@ -12,6 +12,7 @@ interface SurveyJsWrapperProps {
   formId: string;
   submission?: Submission | undefined;
   theme?: string;
+  customQuestions?: string[];
 }
 
 const SurveyJsWrapper = ({
@@ -19,6 +20,7 @@ const SurveyJsWrapper = ({
   definition,
   submission,
   theme,
+  customQuestions,
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent
@@ -26,6 +28,7 @@ const SurveyJsWrapper = ({
       definition={definition}
       submission={submission}
       theme={theme}
+      customQuestions={customQuestions}
     />
   );
 };

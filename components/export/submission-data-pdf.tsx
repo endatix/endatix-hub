@@ -12,7 +12,6 @@ import PdfAnswerViewer from "@/features/submissions/pdf/pdf-answer-viewer";
 import { setupBrowserPolyfills } from "@/features/submissions/pdf/browser-polyfills";
 import { Submission } from "@/types";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 
 Font.register({
   family: "Roboto",
@@ -45,8 +44,6 @@ const getFormattedDate = (date: Date): string => {
   });
 };
 
-registerSpecializedQuestion(SpecializedVideo);
-
 export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
   if (!submission.formDefinition) {
     return <Text>Form definition not found</Text>;
@@ -65,7 +62,19 @@ export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
   }
 
   surveyModel.data = submissionData;
-  const questions = surveyModel.getAllQuestions(false, false, true);
+  let questions = surveyModel.getAllQuestions(false, false, true);
+
+  // Filter out panel custom questions since their nested questions are already present
+  // and set the JSON from the custom question configuration
+  questions = questions
+    .filter(question => !question.customQuestion?.json.elementsJSON)
+    .map(question => {
+      const customQuestion = question.customQuestion;
+      if (customQuestion?.json.questionJSON) {
+        question.fromJSON(customQuestion.json.questionJSON);
+      }
+      return question;
+    });
 
   // TODO: This is a duplicate of a function in question-label.tsx
   const getPanelTitle = (question: Question) => {

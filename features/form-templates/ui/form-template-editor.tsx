@@ -2,10 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, useLayoutEffect } from "react";
 import { slk } from "survey-core";
 import "survey-core/survey-core.css";
 import SurveyCreatorTheme from "survey-creator-core/themes";
@@ -19,8 +18,11 @@ import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
 import { endatixTheme } from "@/components/editors/endatix-theme";
-
-registerSpecializedQuestion(SpecializedVideo);
+import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { Result } from "@/lib/result";
+import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import "survey-core/i18n";
+import "survey-creator-core/i18n";
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -56,6 +58,8 @@ function FormTemplateEditor({
   const [originalName, setOriginalName] = useState(templateName);
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [questionClasses, setQuestionClasses] = useState<any[]>([]);
 
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
@@ -101,32 +105,60 @@ function FormTemplateEditor({
     [templateId],
   );
 
+  useLayoutEffect(() => {
+    if (!creator) return;
+    
+    questionClasses.forEach(QuestionClass => {
+      QuestionClass.customizeEditor(creator);
+    });
+  }, [creator, questionClasses]);
+
   useEffect(() => {
-    if (creator) {
-      creator.JSON = templateJson;
-      return;
-    }
+    const initializeNewCreator = async () => {
+      if (creator) return;
 
-    if (slkVal) {
-      slk(slkVal);
-    }
+      if (slkVal) {
+        slk(slkVal);
+      }
 
-    const newCreator = new SurveyCreator(options || defaultCreatorOptions);
-    SpecializedVideo.customizeEditor(newCreator);
+      try {
+        const result = await getCustomQuestionsAction();
+        if (Result.isError(result)) {
+          throw new Error(result.message);
+        }
 
-    newCreator.applyCreatorTheme(endatixTheme);
-    newCreator.JSON = templateJson;
-    newCreator.saveSurveyFunc = (
-      no: number,
-      callback: (num: number, status: boolean) => void,
-    ) => {
-      console.log(JSON.stringify(newCreator?.JSON));
-      callback(no, true);
+        const newQuestionClasses = initializeCustomQuestions(result.value.map(q => q.jsonData));
+        
+        const newCreator = new SurveyCreator(options || defaultCreatorOptions);
+        newCreator.applyCreatorTheme(endatixTheme);
+        newCreator.saveSurveyFunc = (
+          no: number,
+          callback: (num: number, status: boolean) => void,
+        ) => {
+          console.log(JSON.stringify(newCreator?.JSON));
+          callback(no, true);
+        };
+        newCreator.onUploadFile.add(handleUploadFile);
+
+        setCreator(newCreator);
+        if (newQuestionClasses.length > 0) {
+          setQuestionClasses(newQuestionClasses);
+        }
+      } catch (error) {
+        console.error("Error loading custom questions:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    newCreator.onUploadFile.add(handleUploadFile);
 
-    setCreator(newCreator);
-  }, [templateJson, options, creator, slkVal, handleUploadFile]);
+    initializeNewCreator();
+  }, [options, slkVal, handleUploadFile]);
+
+  useEffect(() => {
+    if (creator && templateJson) {
+      creator.JSON = templateJson;
+    }
+  }, [creator, templateJson]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -261,7 +293,18 @@ function FormTemplateEditor({
       </div>
 
       <div id="surveyCreatorContainer">
-        {creator && <SurveyCreatorComponent creator={creator} />}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-muted-foreground">Loading designer...</p>
+            </div>
+          </div>
+        ) : creator ? (
+          <SurveyCreatorComponent creator={creator} />
+        ) : (
+          <div>Error loading form editor</div>
+        )}
       </div>
     </>
   );

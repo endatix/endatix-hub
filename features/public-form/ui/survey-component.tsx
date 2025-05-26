@@ -21,6 +21,7 @@ interface SurveyComponentProps {
   formId: string;
   submission?: Submission;
   theme?: string;
+  customQuestions?: string[];
 }
 
 export default function SurveyComponent({
@@ -28,8 +29,9 @@ export default function SurveyComponent({
   formId,
   submission,
   theme,
+  customQuestions,
 }: SurveyComponentProps) {
-  const model = useSurveyModel(definition, submission);
+  const model = useSurveyModel(definition, submission, customQuestions);
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId);
   const [isSubmitting, startSubmitting] = useTransition();
   const [submissionId, setSubmissionId] = useState<string>(

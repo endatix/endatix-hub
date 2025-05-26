@@ -23,7 +23,13 @@ const PdfAnswerViewer = ({
   panelTitle,
   pageBreak,
 }: ViewAnswerProps): React.ReactElement => {
-  const questionType = forQuestion.getType() ?? "unsupported";
+  let questionType = forQuestion.getType() ?? "unsupported";
+
+  // If the type is not a valid QuestionType, try to get it from jsonObj
+  if (!Object.values(QuestionType).includes(questionType as QuestionType)) {
+    questionType = (forQuestion as any).jsonObj?.type ?? questionType;
+  }
+
   const questionTitle = panelTitle
     ? `(${panelTitle}) ${forQuestion.title}`
     : forQuestion.title;
