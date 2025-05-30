@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { FilePlus2 } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
-import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
 import FormsList from "@/features/forms/ui/forms-list";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
+import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 
 export default async function FormsPage() {
+  const ai = await aiFeaturesFlag();
+
   return (
     <>
       <PageTitle title="Forms" />
@@ -24,7 +27,7 @@ export default async function FormsPage() {
                     Create a Form
                   </Button>
                 </SheetTrigger>
-                <CreateFormSheet />
+                <CreateFormSheet aiFeatureFlag={ai} />
               </Sheet>
             </div>
           </div>
