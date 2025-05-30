@@ -34,7 +34,7 @@ export function AgentChat() {
           <AgentChatBox
             className="h-full"
             placeholder="How can I help you today?"
-            onPendingChange={(pending: boolean) => {
+            onPendingChange={() => {
               // Handle pending state if needed
             }}
           />
