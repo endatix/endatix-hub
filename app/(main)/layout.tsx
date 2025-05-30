@@ -5,6 +5,7 @@ import MainNav from "@/components/layout-ui/navigation/main-nav";
 import { Toaster } from "sonner";
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
+import { AgentChat } from "@/components/agent/agent-chat";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -49,6 +50,7 @@ export default async function RootLayout({ children, header }: RootLayoutProps) 
             </div>
           </div>
           <Toaster expand={false} duration={Infinity} visibleToasts={5} />
+          <AgentChat />
         </AppProvider>
       </body>
     </html>
