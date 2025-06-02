@@ -1,6 +1,10 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
-import { StorageService } from "../infrastructure/storage-service";
+import { optimizeImageSize } from "../infrastructure/image-service";
+import {
+  STORAGE_SERVICE_CONFIG,
+  uploadToStorage,
+} from "../infrastructure/storage-service";
 
 export type UploadUserFilesCommand = {
   formId: string;
@@ -42,18 +46,16 @@ export const uploadUserFilesUseCase = async ({
   const uploadedFiles: UploadFileResult[] = [];
 
   try {
-    const storageService = new StorageService();
     for (const { name, file } of files) {
       let fileBuffer = Buffer.from(await file.arrayBuffer());
       if (file.type.startsWith("image/")) {
-        fileBuffer = await storageService.optimizeImageSize(
-          fileBuffer,
-          file.type,
-        );
+        const optimizedBuffer = await optimizeImageSize(fileBuffer, file.type);
+        fileBuffer = Buffer.from(optimizedBuffer);
       }
 
       const uuid = uuidv4();
-      const fileExtension = file.name.split(".").pop();
+      const fileNameParts = file.name.split('.');
+      const fileExtension = fileNameParts.length > 1 ? fileNameParts.pop() : undefined;
 
       if (!fileExtension) {
         return Result.validationError(
@@ -63,14 +65,20 @@ export const uploadUserFilesUseCase = async ({
 
       const fileName = `${uuid}.${fileExtension}`;
 
-      const fileUrl = await storageService.uploadToStorage(
-        fileBuffer,
-        fileName,
-        containerName,
-        folderPath,
-      );
-
-      uploadedFiles.push({ name: name, url: fileUrl });
+      if (STORAGE_SERVICE_CONFIG.isEnabled) {
+        const fileUrl = await uploadToStorage(
+          fileBuffer,
+          fileName,
+          containerName,
+          folderPath,
+        );
+        uploadedFiles.push({ name: name, url: fileUrl });
+      } else {
+        const base64Content = `data:${file.type};base64,${fileBuffer.toString(
+          "base64",
+        )}`;
+        uploadedFiles.push({ name: name, url: base64Content });
+      }
     }
 
     return Result.success(uploadedFiles);

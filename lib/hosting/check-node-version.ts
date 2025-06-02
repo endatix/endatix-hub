@@ -1,6 +1,7 @@
 import packageJson from "@/package.json" assert { type: "json" };
 import semver from "semver";
 import { isEdgeRuntime } from "./runtime";
+import styles from '../utils/console-styles';
 
 export interface PackageJson {
   engines?: {
@@ -17,7 +18,7 @@ export function checkNodeVersion() {
   const { engines } = packageJson as PackageJson;
 
   if (!engines || !engines.node) {
-    console.log(getSuccessMessage(nodeRuntimeVersion));
+    console.log(getSuccessMessage());
     return;
   }
 
@@ -28,16 +29,22 @@ export function checkNodeVersion() {
   ) {
     console.log(getWarningMessage(nodeRuntimeVersion, engines.node));
   } else {
-    console.log(getSuccessMessage(nodeRuntimeVersion));
+    console.log(getInfoMessage(nodeRuntimeVersion));
+    console.log(getSuccessMessage());
   }
 }
 
-const getSuccessMessage = (nodeRuntimeVersion: string) => {
-  return `📦 Node version is ${nodeRuntimeVersion}. Node version check passed ✅`;
+
+const getInfoMessage = (nodeRuntimeVersion: string) => {
+  return `📦 Node version is ${nodeRuntimeVersion}`;
+};
+
+const getSuccessMessage = () => {
+  return `${styles.success("Node version check passed")}`;
 };
 
 const getWarningMessage = (nodeRuntimeVersion: string, engines: string) => {
-  return `⚠️ Warning: Node version check failed ❌ 
+  return `${styles.warning("Warning: Node version check failed ❌")} 
             📦 Current Node version (${nodeRuntimeVersion}) does not match the required version of Node (${engines}). 
             💡 Check Readme for how to setup the correct Node version. 
             🔗 More info at https://github.com/endatix/endatix-hub`;

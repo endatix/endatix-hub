@@ -1,7 +1,9 @@
 import { Form, FormDefinition } from "@/types";
 import { getForm, getActiveFormDefinition } from "@/services/api";
-import { FormEditorProps } from "./ui/form-editor";
-import FormEditorContainer from "./ui/form-editor-container";
+import { FormEditorProps } from "@/features/forms/ui/editor/form-editor";
+import FormEditorContainer from "@/features/forms/ui/editor/form-editor-container";
+import { Suspense } from "react";
+import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -32,11 +34,14 @@ export default async function FormEditPage({ params }: Params) {
     formJson: formJson,
     formName: form.name,
     slkVal: process.env.NEXT_PUBLIC_SLK,
+    themeId: form.themeId ?? undefined,
   };
 
   return (
-    <div className="h-dvh overflow-hidden gap-4">
-      <FormEditorContainer {...props} />
-    </div>
+    <Suspense fallback={<FormEditorLoader />}>
+      <div className="h-dvh overflow-hidden gap-4">
+        <FormEditorContainer {...props} />
+      </div>
+    </Suspense>
   );
 }

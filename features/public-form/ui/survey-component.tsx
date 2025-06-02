@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrackEvent } from "@/features/analytics/posthog/client";
 import {
   SubmissionData,
   submitFormAction,
@@ -11,28 +12,32 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { CompleteEvent, SurveyModel } from "survey-core";
 import "survey-core/survey-core.css";
 import { Survey } from "survey-react-ui";
-import { DefaultLight } from "survey-core/themes";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
-import { useTrackEvent } from "@/features/analytics/posthog/client";
+import { useSurveyTheme } from "./use-survey-theme";
 
 interface SurveyComponentProps {
   definition: string;
   formId: string;
   submission?: Submission;
+  theme?: string;
+  customQuestions?: string[];
 }
 
 export default function SurveyComponent({
   definition,
   formId,
   submission,
+  theme,
+  customQuestions,
 }: SurveyComponentProps) {
-  const model = useSurveyModel(definition, submission);
+  const model = useSurveyModel(definition, submission, customQuestions);
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId);
   const [isSubmitting, startSubmitting] = useTransition();
   const [submissionId, setSubmissionId] = useState<string>(
     submission?.id ?? "",
   );
+  useSurveyTheme(theme, model);
   const { trackException } = useTrackEvent();
   useBlobStorage({
     formId,
@@ -85,13 +90,10 @@ export default function SurveyComponent({
           event.showSaveError(
             "Failed to submit form. Please try again and contact us if the problem persists.",
           );
-          trackException(
-            "Form submission failed",
-            {
-              form_id: formId,
-              error_message: result.message,
-            },
-          );
+          trackException("Form submission failed", {
+            form_id: formId,
+            error_message: result.message,
+          });
         }
       });
     },
@@ -99,7 +101,6 @@ export default function SurveyComponent({
   );
 
   useEffect(() => {
-    model.applyTheme(DefaultLight);
     model.onComplete.add(submitForm);
     model.onValueChanged.add(updatePartial);
     model.onCurrentPageChanged.add(updatePartial);

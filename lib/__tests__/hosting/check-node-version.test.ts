@@ -28,10 +28,9 @@ describe("checkNodeVersion", () => {
   const DEFAULT_REQUIRED_NODE_VERSION = ">=20.0.0 <21.0.0";
 
   const messages = {
-    success: (version: string) =>
-      `Node version is ${version}. Node version check passed ✅`,
+    success: () => `Node version check passed`,
     warning: {
-      header: "⚠️ Warning: Node version check failed ❌",
+      header: "Warning: Node version check failed",
       versionMismatch: (current: string) =>
         `Current Node version (${current}) does not match the required version of Node (${DEFAULT_REQUIRED_NODE_VERSION})`,
       readmeInfo: "💡 Check Readme for how to setup the correct Node version",
@@ -55,9 +54,15 @@ describe("checkNodeVersion", () => {
     );
   };
 
-  const assertSuccessMessage = (version: string) => {
+  const assertSuccessMessage = () => {
     expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining(messages.success(version)),
+      expect.stringContaining(messages.success()),
+    );
+  };
+
+  const assertInfoMessage = (version: string) => {
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Node version is ${version}`),
     );
   };
 
@@ -86,7 +91,8 @@ describe("checkNodeVersion", () => {
     checkNodeVersion();
 
     // Assert
-    assertSuccessMessage(validVersion);
+    assertSuccessMessage();
+    assertInfoMessage(validVersion);
   });
 
   it("should log warning when node version is lower than required", () => {
@@ -122,7 +128,8 @@ describe("checkNodeVersion", () => {
     checkNodeVersion();
 
     // Assert
-    assertSuccessMessage(prereleaseVersion);
+    assertSuccessMessage();
+    assertInfoMessage(prereleaseVersion);
   });
 
   it("should handle invalid futureprerelease versions correctly", () => {
@@ -159,7 +166,8 @@ describe("checkNodeVersion", () => {
     checkNodeVersion();
 
     // Assert
-    assertSuccessMessage(exactVersion);
+    assertSuccessMessage();
+    assertInfoMessage(exactVersion);
   });
 
   it("should handle no engines in package.json", () => {
@@ -171,7 +179,7 @@ describe("checkNodeVersion", () => {
     checkNodeVersion();
 
     // Assert
-    assertSuccessMessage(originalVersion);
+    assertSuccessMessage();
   });
 
   it("should handle no engines.node in package.json", () => {
@@ -183,6 +191,6 @@ describe("checkNodeVersion", () => {
     checkNodeVersion();
 
     // Assert
-    assertSuccessMessage(originalVersion);
+    assertSuccessMessage();
   });
 });

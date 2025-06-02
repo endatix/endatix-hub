@@ -1,6 +1,10 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
-import { StorageService } from "../infrastructure/storage-service";
+import {
+  STORAGE_SERVICE_CONFIG,
+  uploadToStorage,
+} from "../infrastructure/storage-service";
+import { optimizeImageSize } from "../infrastructure/image-service";
 
 export type UploadContentFileCommand = {
   formId: string;
@@ -34,18 +38,17 @@ export const uploadContentFileUseCase = async ({
     DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME;
 
   try {
-    const storageService = new StorageService();
     let fileBuffer = Buffer.from(await file.arrayBuffer());
 
     if (file.type.startsWith("image/")) {
-      fileBuffer = await storageService.optimizeImageSize(
-        fileBuffer,
-        file.type,
-      );
+      const optimizedBuffer = await optimizeImageSize(fileBuffer, file.type);
+      fileBuffer = Buffer.from(optimizedBuffer);
     }
 
     const uuid = uuidv4();
-    const fileExtension = file.name.split(".").pop();
+    const fileNameParts = file.name.split(".");
+    const fileExtension =
+      fileNameParts.length > 1 ? fileNameParts.pop() : undefined;
 
     if (!fileExtension) {
       return Result.validationError(
@@ -54,12 +57,17 @@ export const uploadContentFileUseCase = async ({
     }
 
     const fileName = `${uuid}.${fileExtension}`;
-    const fileUrl = await storageService.uploadToStorage(
-      fileBuffer,
-      fileName,
-      containerName,
-      folderPath,
-    );
+    let fileUrl: string = "";
+    if (STORAGE_SERVICE_CONFIG.isEnabled) {
+      fileUrl = await uploadToStorage(
+        fileBuffer,
+        fileName,
+        containerName,
+        folderPath,
+      );
+    } else {
+      fileUrl = `data:${file.type};base64,${fileBuffer.toString("base64")}`;
+    }
 
     return Result.success({
       name: file.name,

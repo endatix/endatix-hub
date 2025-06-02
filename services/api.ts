@@ -1,14 +1,24 @@
 import {
-  getSession,
   AuthenticationRequest,
   AuthenticationResponse,
+  getSession,
 } from "@/features/auth";
-import { CreateFormRequest, CreateFormTemplateRequest, CreateFormTemplateResult } from "@/lib/form-types";
-import { Form, FormDefinition, FormTemplate, Submission } from "../types";
-import { redirect } from "next/navigation";
-import { HeaderBuilder } from "./header-builder";
 import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
-
+import {
+  CreateFormRequest,
+  CreateFormTemplateRequest,
+  CreateFormTemplateResult,
+} from "@/lib/form-types";
+import { redirect } from "next/navigation";
+import { ITheme } from "survey-core";
+import {
+  ActiveDefinition,
+  Form,
+  FormDefinition,
+  FormTemplate,
+  Submission,
+} from "../types";
+import { HeaderBuilder } from "./header-builder";
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
 export const authenticate = async (
@@ -52,11 +62,15 @@ export const createForm = async (
   return response.json();
 };
 
-export const getForms = async (): Promise<Form[]> => {
+export const getForms = async (filter?: string): Promise<Form[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
+  let url = `${API_BASE_URL}/forms?pageSize=100`;
+  if (filter) {
+    url += `&filter=${encodeURIComponent(filter)}`;
+  }
 
-  const response = await fetch(`${API_BASE_URL}/forms?pageSize=100`, {
+  const response = await fetch(url, {
     headers: headers,
   });
 
@@ -94,7 +108,7 @@ export const getForm = async (formId: string): Promise<Form> => {
 
 export const updateForm = async (
   formId: string,
-  data: { name?: string; isEnabled?: boolean },
+  data: { name?: string; isEnabled?: boolean; themeId?: string },
 ): Promise<void> => {
   const session = await getSession();
   const headers = new HeaderBuilder()
@@ -138,7 +152,7 @@ export const deleteForm = async (formId: string): Promise<string> => {
 export const getActiveFormDefinition = async (
   formId: string,
   allowAnonymous: boolean = false,
-): Promise<FormDefinition> => {
+): Promise<ActiveDefinition> => {
   const requestOptions: RequestInit = {};
   const headerBuilder = new HeaderBuilder();
 
@@ -228,6 +242,107 @@ export const updateFormDefinition = async (
   }
 };
 
+export interface ThemeResponse {
+  id: string;
+  name: string;
+  description?: string;
+  jsonData: string;
+  createdAt?: Date;
+  modifiedAt?: Date;
+}
+
+export const getThemes = async (
+  page: number = 1,
+  pageSize: number = 10,
+): Promise<ThemeResponse[]> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
+
+  const response = await fetch(
+    `${API_BASE_URL}/themes?page=${page}&pageSize=${pageSize}`,
+    {
+      headers: headers,
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch themes");
+  }
+
+  return response.json();
+};
+
+export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const createThemeRequest = {
+    name: theme.themeName,
+    jsonData: JSON.stringify(theme),
+  };
+
+  const response = await fetch(`${API_BASE_URL}/themes`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(createThemeRequest),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create theme");
+  }
+
+  return response.json();
+};
+
+export const updateTheme = async (
+  themeId: string,
+  theme: ITheme,
+): Promise<ThemeResponse> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
+    method: "PATCH",
+    headers: headers,
+    body: JSON.stringify({ jsonData: JSON.stringify(theme) }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update theme");
+  }
+
+  return response.json();
+};
+
+export const deleteTheme = async (themeId: string): Promise<string> => {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete theme");
+  }
+
+  return response.text();
+};
+
 export const createFormTemplate = async (
   formTemplateRequest: CreateFormTemplateRequest,
 ): Promise<CreateFormTemplateResult> => {
@@ -290,8 +405,8 @@ export const getFormTemplate = async (
 
 export const updateFormTemplate = async (
   templateId: string,
-  data: { 
-    name?: string; 
+  data: {
+    name?: string;
     isEnabled?: boolean;
     jsonData?: string;
   },
@@ -314,7 +429,9 @@ export const updateFormTemplate = async (
   }
 };
 
-export const deleteFormTemplate = async (templateId: string): Promise<string> => {
+export const deleteFormTemplate = async (
+  templateId: string,
+): Promise<string> => {
   const session = await getSession();
 
   if (!session.isLoggedIn) {
@@ -334,7 +451,6 @@ export const deleteFormTemplate = async (templateId: string): Promise<string> =>
 
   return response.text();
 };
-
 
 export const getSubmissions = async (formId: string): Promise<Submission[]> => {
   const session = await getSession();
@@ -577,6 +693,166 @@ export const changePassword = async (
 
   if (!response.ok) {
     throw new Error("Failed to change password");
+  }
+
+  return response.json();
+};
+
+/**
+ * Exports form submissions in the specified format (CSV, JSON, etc.)
+ * Returns a streaming response for direct download
+ */
+export const exportSubmissions = async (
+  formId: string,
+  format: string = "csv",
+): Promise<Response> => {
+  if (!formId) {
+    throw new Error("FormId is required");
+  }
+
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const apiUrl = `${API_BASE_URL}/forms/${formId}/submissions/export`;
+
+  // Create a transform stream to handle the data flow
+  const { readable, writable } = new TransformStream();
+
+  // Default content type based on format
+  let contentType = "text/csv";
+  let contentDisposition = `attachment; filename=form-${formId}-submissions.csv`;
+
+  if (format === "json") {
+    contentType = "application/json";
+    contentDisposition = `attachment; filename=form-${formId}-submissions.json`;
+  }
+
+  // Process the API response in the background
+  (async () => {
+    try {
+      const headers = new HeaderBuilder()
+        .withAuth(session)
+        .provideJson()
+        .build();
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+          exportFormat: format,
+        }),
+      });
+
+      if (!response.ok) {
+        const writer = writable.getWriter();
+        const errorBody = await response.json();
+        writer.write(
+          new TextEncoder().encode(
+            JSON.stringify({
+              error: errorBody.Detail || "Export failed",
+              status: response.status,
+              statusText: response.statusText,
+            }),
+          ),
+        );
+        writer.close();
+        return;
+      }
+
+      // Update content disposition and type from response headers if available
+      const responseContentDisposition = response.headers.get(
+        "Content-Disposition",
+      );
+      if (responseContentDisposition) {
+        contentDisposition = responseContentDisposition;
+      }
+
+      const responseContentType = response.headers.get("Content-Type");
+      if (responseContentType) {
+        contentType = responseContentType;
+      }
+
+      // Pipe the response body directly to our writable stream
+      if (response.body) {
+        await response.body.pipeTo(writable);
+      } else {
+        const writer = writable.getWriter();
+        writer.write(new TextEncoder().encode("No data returned from API"));
+        writer.close();
+      }
+    } catch (error) {
+      const writer = writable.getWriter();
+      writer.write(
+        new TextEncoder().encode(
+          JSON.stringify({
+            error: "Failed to export data",
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        ),
+      );
+      writer.close();
+    }
+  })();
+
+  // Return the readable stream with appropriate headers
+  return new Response(readable, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": contentDisposition,
+    },
+  });
+};
+
+export interface CustomQuestion {
+  id: string;
+  name: string;
+  description: string | null;
+  jsonData: string;
+  createdAt: string;
+  modifiedAt: string | null;
+}
+
+export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  const response = await fetch(`${API_BASE_URL}/questions`, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch custom questions");
+  }
+
+  return response.json();
+};
+
+export interface CreateCustomQuestionRequest {
+  name: string;
+  description?: string;
+  jsonData: string;
+}
+
+export const createCustomQuestion = async (
+  request: CreateCustomQuestionRequest,
+): Promise<CustomQuestion> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/questions`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create custom question");
   }
 
   return response.json();

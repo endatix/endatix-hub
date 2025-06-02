@@ -8,6 +8,8 @@ export enum QuestionType {
   Matrix = "matrix",
   Comment = "comment",
   File = "file",
+  SignaturePad = "signaturepad",
   Video = "video",
+  MultipleText = "multipletext",
   Unsupported = "unsupported",
 }

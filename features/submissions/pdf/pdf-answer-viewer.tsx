@@ -1,9 +1,16 @@
 import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
-import { Question, QuestionFileModel } from "survey-core";
+import {
+  MultipleTextItemModel,
+  Question,
+  QuestionFileModel,
+  QuestionMultipleTextModel,
+  QuestionSignaturePadModel,
+} from "survey-core";
 import PdfFileAnswer from "./pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
 import { MessageSquareTextIcon } from "@/features/pdf-export/components/icons";
+import PdfSignaturePadAnswer from "./pdf-signaturepad-answer";
 
 export interface ViewAnswerProps {
   forQuestion: Question;
@@ -16,7 +23,13 @@ const PdfAnswerViewer = ({
   panelTitle,
   pageBreak,
 }: ViewAnswerProps): React.ReactElement => {
-  const questionType = forQuestion.getType() ?? "unsupported";
+  let questionType = forQuestion.getType() ?? "unsupported";
+
+  // If the type is not a valid QuestionType, try to get it from jsonObj
+  if (!Object.values(QuestionType).includes(questionType as QuestionType)) {
+    questionType = (forQuestion as any).jsonObj?.type ?? questionType;
+  }
+
   const questionTitle = panelTitle
     ? `(${panelTitle}) ${forQuestion.title}`
     : forQuestion.title;
@@ -109,6 +122,29 @@ const PdfAnswerViewer = ({
     </View>
   );
 
+  const renderSignaturePadAnswer = () => (
+    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
+      <PdfSignaturePadAnswer
+        question={forQuestion as QuestionSignaturePadModel}
+      />
+    </View>
+  );
+
+  const renderMultipleTextAnswer = () => {
+    const question = forQuestion as QuestionMultipleTextModel;
+
+    return (
+      <View style={styles.nonFileAnswerContainer} break={pageBreak}>
+        <Text style={styles.questionLabel}>{questionTitle}:</Text>
+        {question?.items?.map((item: MultipleTextItemModel) => (
+          <Text key={item.name} style={styles.answerText}>
+            {item.value}
+          </Text>
+        ))}
+      </View>
+    );
+  };
+
   const renderUnknownAnswer = () => (
     <View style={styles.nonFileAnswerContainer} break={pageBreak}>
       <Text style={styles.questionLabel}>{questionTitle}</Text>
@@ -136,6 +172,10 @@ const PdfAnswerViewer = ({
     case QuestionType.File:
     case QuestionType.Video:
       return renderFileAnswer();
+    case QuestionType.SignaturePad:
+      return renderSignaturePadAnswer();
+    case QuestionType.MultipleText:
+      return renderMultipleTextAnswer();
     default:
       return renderUnknownAnswer();
   }

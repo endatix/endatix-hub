@@ -8,7 +8,7 @@ import { JwtService } from "../infrastructure/jwt.service";
 
 const HUB_COOKIE_OPTIONS: CookieOptions = {
   name: "session",
-  encryptionKey: `${process.env.SESSION_SECRET}`,
+  encryptionKey: process.env.SESSION_SECRET ?? "",
   secure: process.env.NODE_ENV === "production",
   httpOnly: true,
 };
@@ -88,6 +88,10 @@ export class AuthService {
   async getSession(): Promise<SessionData> {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(this.cookieOptions.name);
+
+    if (!this.cookieOptions.encryptionKey) {
+      return ANONYMOUS_SESSION;
+    }
 
     if (!sessionCookie || !sessionCookie.value) {
       return ANONYMOUS_SESSION;

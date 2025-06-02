@@ -1,7 +1,7 @@
 import { RemotePattern } from "next/dist/shared/lib/image-config";
 
 function includesRemoteImageHostnames(
-  remotePatterns: RemotePattern[] | undefined,
+  remotePatterns: (URL | RemotePattern)[] | undefined,
 ): void {
   if (!remotePatterns) {
     return;
@@ -17,7 +17,7 @@ function includesRemoteImageHostnames(
     remotePatterns.push({
       protocol: "https",
       hostname: "**",
-    });
+    } as RemotePattern);
     return;
   }
 

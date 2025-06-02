@@ -25,7 +25,7 @@ import { SectionTitle } from "@/components/headings/section-title";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useTransition, useState } from "react";
-import { updateFormStatusAction } from "../../../app/(main)/forms/[formId]/update-form-status.action";
+import { updateFormStatusAction } from "../application/actions/update-form-status.action";
 import { toast } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";

@@ -18,13 +18,15 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { registerSpecializedQuestion, SpecializedVideo } from "@/lib/questions";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { getTemplateAction } from "../application/get-template.action";
 import { UseTemplateButton } from "./use-template-button";
+import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { Result } from "@/lib/result";
+import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -39,8 +41,6 @@ interface FormTemplatePreviewProps {
   onOpenChange: (open: boolean) => void;
   templateId: string;
 }
-
-registerSpecializedQuestion(SpecializedVideo);
 
 export function FormTemplatePreview({
   open,
@@ -58,6 +58,12 @@ export function FormTemplatePreview({
         try {
           setLoading(true);
           setError(null);
+
+          const questionsResult = await getCustomQuestionsAction();
+          if (Result.isSuccess(questionsResult)) {
+            initializeCustomQuestions(questionsResult.value.map(q => q.jsonData));
+          }
+
           const data = await getTemplateAction(templateId);
           setTemplate(data);
         } catch (err) {

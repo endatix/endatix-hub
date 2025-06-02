@@ -6,10 +6,10 @@ declare namespace NodeJS {
     ROBOTS_ALLOWED_DOMAINS?: string;
 
     // Session
-    SESSION_SECRET: string;
+    SESSION_SECRET?: string;
 
     // Data Collection
-    NEXT_FORMS_COOKIE_NAME: string;
+    NEXT_FORMS_COOKIE_NAME?: string;
     NEXT_FORMS_COOKIE_DURATION_DAYS?: string;
 
     // Slack

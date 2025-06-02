@@ -1,9 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files.use-case";
-import { StorageService } from "@/features/storage/infrastructure/storage-service";
-import { Result } from "@/lib/result";
+import * as storageService from "@/features/storage/infrastructure/storage-service";
+import { ErrorType, Result } from "@/lib/result";
+import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
 
-vi.mock("@/features/storage/infrastructure/storage-service");
+// Mock the entire modules
+vi.mock("@/features/storage/infrastructure/storage-service", () => ({
+  uploadToStorage: vi.fn().mockResolvedValue("mock-url"),
+  // Mock STORAGE_SERVICE_CONFIG as an object
+  STORAGE_SERVICE_CONFIG: {
+    isEnabled: true,
+    accountName: "mock-account-name",
+    accountKey: "mock-account-key",
+    hostName: "mock-host-name",
+  },
+}));
+
+vi.mock("@/features/storage/infrastructure/image-service", () => ({
+  optimizeImageSize: vi.fn().mockResolvedValue(Buffer.from("optimized")),
+}));
+
+vi.mock("uuid", () => ({
+  v4: vi.fn().mockReturnValue("mock-uuid"),
+}));
 
 describe("uploadUserFilesUseCase", () => {
   const mockFileContent = "test";
@@ -23,15 +42,17 @@ describe("uploadUserFilesUseCase", () => {
     vi.clearAllMocks();
   });
 
-  it("should successfully upload files and return urls", async () => {
+  it("should successfully upload files to Azure when storage is enabled", async () => {
     // Arrange
     const mockUrl = "https://storage.test/test.jpg";
-    vi.spyOn(StorageService.prototype, "uploadToStorage").mockResolvedValue(
-      mockUrl,
-    );
-    vi.spyOn(StorageService.prototype, "optimizeImageSize").mockResolvedValue(
-      Buffer.from("optimized"),
-    );
+    vi.mocked(storageService.uploadToStorage).mockResolvedValue(mockUrl);
+    vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
+    vi.spyOn(storageService, 'STORAGE_SERVICE_CONFIG', 'get').mockReturnValue({
+      isEnabled: true,
+      accountName: "mock-account-name",
+      accountKey: "mock-account-key",
+      hostName: "mock-host-name",
+    });
 
     // Act
     const result = await uploadUserFilesUseCase(mockCommand);
@@ -41,6 +62,36 @@ describe("uploadUserFilesUseCase", () => {
     if (Result.isSuccess(result)) {
       expect(result.value).toEqual([{ name: "test", url: mockUrl }]);
     }
+    expect(storageService.uploadToStorage).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "mock-uuid.jpg",
+      expect.any(String),
+      `s/${mockCommand.formId}/${mockCommand.submissionId}`
+    );
+  });
+
+  it("should generate base64 URLs when storage is disabled", async () => {
+    // Arrange
+    vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
+    
+    // Set STORAGE_SERVICE_CONFIG.isEnabled to false
+    vi.spyOn(storageService, 'STORAGE_SERVICE_CONFIG', 'get').mockReturnValue({
+      isEnabled: false,
+      accountName: "",
+      accountKey: "",
+      hostName: "",
+    });
+
+    // Act
+    const result = await uploadUserFilesUseCase(mockCommand);
+
+    // Assert
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value[0].name).toBe("test");
+      expect(result.value[0].url).toContain("data:image/jpeg;base64,");
+    }
+    expect(storageService.uploadToStorage).not.toHaveBeenCalled();
   });
 
   it("should return validation error when formId is missing", async () => {
@@ -52,6 +103,75 @@ describe("uploadUserFilesUseCase", () => {
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.message).toBe("Form ID is required");
+    }
+  });
+
+  it("should return validation error when submissionId is missing", async () => {
+    const result = await uploadUserFilesUseCase({
+      ...mockCommand,
+      submissionId: undefined,
+    });
+
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.message).toBe("Submission ID is required");
+    }
+  });
+
+  it("should return validation error when files are empty", async () => {
+    const result = await uploadUserFilesUseCase({
+      ...mockCommand,
+      files: [],
+    });
+
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.message).toBe("Files are required");
+    }
+  });
+
+  it("should return error when file has no extension", async () => {
+    // Arrange
+    const fileWithoutExtension = new Blob([mockFileContent], { type: "image/jpeg" }) as File;
+    Object.defineProperty(fileWithoutExtension, "name", { value: "testfile" });
+    Object.defineProperty(fileWithoutExtension, "arrayBuffer", {
+      value: async () => new TextEncoder().encode(mockFileContent).buffer,
+    });
+    const uploadUserFilesCommand = {
+      ...mockCommand,
+      files: [{ name: "test", file: fileWithoutExtension }],
+    };
+
+    // Act
+    const result = await uploadUserFilesUseCase(uploadUserFilesCommand);
+
+    // Assert
+    console.log(result);
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.errorType).toBe(ErrorType.ValidationError);
+      expect(result.message).toBe("File extension is required. Please provide a valid file.");
+    }
+  });
+
+  it("should handle upload errors gracefully", async () => {
+    // Arrange
+    vi.mocked(storageService.uploadToStorage).mockRejectedValue(new Error("Upload failed"));
+    vi.spyOn(storageService, 'STORAGE_SERVICE_CONFIG', 'get').mockReturnValue({
+      isEnabled: true,
+      accountName: "mock-account-name",
+      accountKey: "mock-account-key",
+      hostName: "mock-host-name",
+    });
+
+    // Act
+    const result = await uploadUserFilesUseCase(mockCommand);
+
+    // Assert
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.message).toBe("Failed to upload file. Please refresh your page and try again.");
+      expect(result.details).toBe("Upload failed");
     }
   });
 });

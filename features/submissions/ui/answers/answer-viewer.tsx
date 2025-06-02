@@ -1,7 +1,12 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import React from "react";
-import { Question, QuestionFileModel } from "survey-core";
+import {
+  Question,
+  QuestionFileModel,
+  QuestionMultipleTextModel,
+  QuestionSignaturePadModel,
+} from "survey-core";
 import RatingAnswer from "./rating-answer";
 import RadioGroupAnswer from "./radiogroup-answer";
 import DropdownAnswer from "./dropdown-answer";
@@ -11,6 +16,8 @@ import CommentAnswer from "./comment-answer";
 import { FileAnswer } from "./file-answer";
 import { QuestionLabel } from "../details/question-label";
 import { QuestionType } from "@/lib/questions";
+import MultipleTextAnswer from "./multipletext-answer";
+import { SignaturePadAnswer } from "./signaturepad-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -18,7 +25,12 @@ export interface ViewAnswerProps
 }
 
 const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
-  const questionType = forQuestion.getType() ?? "unsupported";
+  let questionType = forQuestion.getType() ?? "unsupported";
+
+  // If the type is not a valid QuestionType, try to get it from jsonObj
+  if (!Object.values(QuestionType).includes(questionType as QuestionType)) {
+    questionType = (forQuestion as any).jsonObj?.type ?? questionType;
+  }
 
   const renderTextAnswer = () => (
     <>
@@ -26,7 +38,7 @@ const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
       <Input
         disabled
         id={forQuestion.name}
-        value={forQuestion.value}
+        value={forQuestion.value ?? "N/A"}
         className="col-span-3 bg-accent"
       />
     </>
@@ -91,6 +103,20 @@ const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
     </>
   );
 
+  const renderSignaturePadAnswer = () => (
+    <>
+      <QuestionLabel forQuestion={forQuestion} />
+      <SignaturePadAnswer
+        className="col-span-3"
+        question={forQuestion as QuestionSignaturePadModel}
+      />
+    </>
+  );
+
+  const renderMultipleTextAnswer = () => (
+    <MultipleTextAnswer question={forQuestion as QuestionMultipleTextModel} />
+  );
+
   const renderUnknownAnswer = () => (
     <>
       <QuestionLabel forQuestion={forQuestion} />
@@ -118,6 +144,10 @@ const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
     case QuestionType.File:
     case QuestionType.Video:
       return renderFileAnswer();
+    case QuestionType.SignaturePad:
+      return renderSignaturePadAnswer();
+    case QuestionType.MultipleText:
+      return renderMultipleTextAnswer();
     default:
       return renderUnknownAnswer();
   }
