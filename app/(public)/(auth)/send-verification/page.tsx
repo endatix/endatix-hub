@@ -15,12 +15,14 @@ export const metadata: Metadata = {
   ],
 };
 
-const SendVerificationPage = ({
+const SendVerificationPage = async ({
   searchParams,
 }: {
-  searchParams: { email?: string };
+  params: Promise<Record<string, never>>;
+  searchParams: Promise<{ email?: string }>;
 }) => {
-  const email = searchParams.email;
+  const resolvedSearchParams = await searchParams;
+  const email = resolvedSearchParams.email;
 
   if (!email) {
     return (
