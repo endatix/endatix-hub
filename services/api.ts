@@ -857,3 +857,31 @@ export const createCustomQuestion = async (
 
   return response.json();
 };
+
+export interface RegistrationRequest {
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface RegistrationResponse {
+  success: boolean;
+  message: string;
+}
+
+export const register = async (request: RegistrationRequest): Promise<RegistrationResponse> => {
+  const headers = new HeaderBuilder().acceptJson().provideJson().build();
+
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.title || "Failed to register");
+  }
+
+  return response.json();
+};

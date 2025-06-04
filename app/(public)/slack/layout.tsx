@@ -1,6 +1,6 @@
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
-import "@/app/(main)/globals.css";
+import "@/app/globals.css";
 import { AppOptions } from '@/components/providers/app-provider';
 
 export const metadata = {

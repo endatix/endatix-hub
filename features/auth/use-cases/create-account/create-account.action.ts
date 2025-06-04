@@ -1,13 +1,11 @@
 "use server";
 
-import { AuthService } from "@/features/auth";
-import { authenticate } from "@/services/api";
-import { AuthenticationRequestSchema } from "../../shared/auth.schemas";
-import { AuthenticationRequest } from "../../shared/auth.types";
+import { register, RegistrationResponse } from "@/services/api";
+import { RegistrationRequestSchema } from "../../shared/auth.schemas";
 
 const CONNECTION_REFUSED_CODE = "ECONNREFUSED";
 
-interface LoginActionState {
+interface CreateAccountActionState {
   success: boolean;
   errors?: FieldErrors;
   errorMessage?: string;
@@ -19,14 +17,14 @@ interface FieldErrors {
   password?: string[];
 }
 
-export async function loginAction(
+export async function createAccountAction(
   _: unknown,
   formData: FormData,
-): Promise<LoginActionState> {
+): Promise<CreateAccountActionState> {
   const email = formData.get("email");
   const password = formData.get("password");
 
-  const validatedFields = AuthenticationRequestSchema.safeParse({
+  const validatedFields = RegistrationRequestSchema.safeParse({
     email: email,
     password: password,
   });
@@ -36,23 +34,27 @@ export async function loginAction(
       success: false,
       errors: validatedFields.error.flatten().fieldErrors,
       formData
-    } as LoginActionState;
+    } as CreateAccountActionState;
   }
 
-  const data = validatedFields.data;
-  const authRequest: AuthenticationRequest = {
-    email: data.email,
-    password: data.password,
-  };
-
   try {
-    const authenticationResponse = await authenticate(authRequest);
-    const { email, accessToken, refreshToken } = authenticationResponse;
+    const response = await register({
+      email: validatedFields.data.email,
+      password: validatedFields.data.password,
+      confirmPassword: validatedFields.data.password,
+    });
 
-    const authService = new AuthService();
-    await authService.login(accessToken, refreshToken, email);
+    if (!response.success) {
+      return {
+        success: false,
+        errorMessage: response.message,
+        formData
+      };
+    }
+
+    return { success: true };
   } catch (error: unknown) {
-    let errorMessage = "We cannot log you in at this time. Please check your credentials and try again";
+    let errorMessage = "We cannot create your account at this time. Please try again later.";
     
     if (error instanceof Error) {
       if (error?.cause &&
@@ -69,8 +71,6 @@ export async function loginAction(
       success: false,
       errorMessage: errorMessage,
       formData
-    } as LoginActionState;
+    } as CreateAccountActionState;
   }
-
-  return { success: true };
 }

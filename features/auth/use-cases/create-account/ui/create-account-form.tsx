@@ -3,16 +3,38 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
 import Image from "next/image";
-import { useActionState } from "react";
-import { loginAction } from "../login.action";
-import { showComingSoonMessage } from "@/components/layout-ui/teasers/coming-soon-link";
 import { Spinner } from "@/components/loaders/spinner";
 import { ErrorMessage } from "@/components/forms/error-message";
+import { createAccountAction } from "../create-account.action";
+import { useActionState } from "react";
+import { useRouter } from "next/navigation";
 
-const LoginForm = () => {
-  const [state, formAction, isPending] = useActionState(loginAction, null);
+interface CreateAccountActionState {
+  success: boolean;
+  errors?: {
+    email?: string[];
+    password?: string[];
+  };
+  errorMessage?: string;
+  formData?: FormData;
+}
+
+const CreateAccountForm = () => {
+  const router = useRouter();
+  const [state, formAction, isPending] = useActionState<CreateAccountActionState, FormData>(
+    async (_, formData) => {
+      const result = await createAccountAction(null, formData);
+      if (result.success) {
+        const email = formData.get("email");
+        if (email) {
+          router.push(`/send-verification?email=${encodeURIComponent(email.toString())}`);
+        }
+      }
+      return result;
+    },
+    { success: false }
+  );
 
   return (
     <form action={formAction}>
@@ -27,7 +49,7 @@ const LoginForm = () => {
           />
         </div>
         <p className="mb-6 text-balance text-muted-foreground">
-          Sign in to your account
+          Collect data with highly customizable forms in minutes
         </p>
       </div>
       <div className="grid gap-4">
@@ -47,17 +69,7 @@ const LoginForm = () => {
           )}
         </div>
         <div className="grid gap-2">
-          <div className="flex items-center">
-            <Label htmlFor="password">Password</Label>
-            <Link
-              href="#"
-              onClick={() => showComingSoonMessage()}
-              className="ml-auto inline-block text-sm underline"
-              tabIndex={4}
-            >
-              Forgot your password?
-            </Link>
-          </div>
+          <Label htmlFor="password">Password</Label>
           <Input 
             id="password" 
             type="password" 
@@ -70,14 +82,16 @@ const LoginForm = () => {
             <ErrorMessage message={state.errors.password.toString()} />
           )}
         </div>
-        {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
-        <Button type="submit" className="w-full" disabled={isPending} tabIndex={3}>
-          {isPending && <Spinner className="mr-2 h-4 w-4" />}
-          Sign in with email
+        {state?.errorMessage && (
+          <ErrorMessage message={state.errorMessage} />
+        )}
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? <Spinner className="mr-2" /> : null}
+          Create account with email
         </Button>
       </div>
     </form>
   );
 };
 
-export default LoginForm;
+export default CreateAccountForm;
