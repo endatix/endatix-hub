@@ -142,7 +142,6 @@ const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
     case QuestionType.Comment:
       return renderCommentAnswer();
     case QuestionType.File:
-    case QuestionType.Video:
       return renderFileAnswer();
     case QuestionType.SignaturePad:
       return renderSignaturePadAnswer();

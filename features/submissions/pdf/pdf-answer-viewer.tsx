@@ -170,7 +170,6 @@ const PdfAnswerViewer = ({
     case QuestionType.Comment:
       return renderCommentAnswer();
     case QuestionType.File:
-    case QuestionType.Video:
       return renderFileAnswer();
     case QuestionType.SignaturePad:
       return renderSignaturePadAnswer();
