@@ -39,6 +39,7 @@ export interface CustomQuestionConfig {
   inheritBaseProps?: boolean;
   questionJSON?: Question;
   elementsJSON?: Question[];
+  onAfterRenderContentElement?: string;
 }
 
 /**
@@ -58,6 +59,14 @@ export function createCustomQuestionClass(config: CustomQuestionConfig) {
           ? { elementsJSON: config.elementsJSON }
           : { questionJSON: config.questionJSON }
         ),
+        onAfterRenderContentElement: config.onAfterRenderContentElement 
+          ? (new Function(
+              'question',
+              'element',
+              'htmlElement',
+              config.onAfterRenderContentElement
+            ) as (question: Question, element: Question, htmlElement: HTMLElement) => void)
+          : undefined,
       };
     }
 
@@ -113,6 +122,9 @@ export function initializeCustomQuestions(questions: string[]): (typeof Speciali
           ? { elementsJSON: parsedJson.elementsJSON }
           : { questionJSON: parsedJson.questionJSON }
         ),
+        onAfterRenderContentElement: parsedJson.onAfterRenderContentElement 
+          ? parsedJson.onAfterRenderContentElement
+          : undefined,
       };
 
       const QuestionClass = createCustomQuestionClass(config);
