@@ -857,3 +857,34 @@ export const createCustomQuestion = async (
 
   return response.json();
 };
+
+export interface AgentMessage {
+  content: string;
+  sessionId?: string;
+}
+
+export interface AgentResponse {
+  message: string;
+  sessionId: string;
+}
+
+export const sendAgentMessage = async (message: AgentMessage): Promise<AgentResponse> => {
+  const session = await getSession();
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+
+  const response = await fetch(`${API_BASE_URL}/assistant/agent`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(message),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to send message to agent");
+  }
+
+  return response.json();
+};
