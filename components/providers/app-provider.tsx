@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { ThemeProvider } from "./theme-provider";
 import { PostHogProvider } from "@/features/analytics/posthog/client";
 import type { SessionData } from "@/features/auth";
+import type { ThemeProviderProps } from "next-themes";
 
 // Options for enabling specific features
 interface AppProviderOptions {
@@ -11,13 +12,8 @@ interface AppProviderOptions {
   enableAnalytics?: boolean;
 }
 
-// Theme options - all optional. Defaults will be used when not provided
-interface ThemeOptions {
-  attribute?: string;
-  defaultTheme?: string;
-  enableSystem?: boolean;
-  disableTransitionOnChange?: boolean;
-}
+// Theme options - use next-themes types for compatibility
+type ThemeOptions = Partial<Omit<ThemeProviderProps, 'children'>>;
 
 // Predefined options
 export const AppOptions = {
