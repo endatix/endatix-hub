@@ -6,9 +6,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { MoreHorizontal, FilePenLine, Trash2, LinkIcon } from "lucide-react";
+import {
+  MoreHorizontal,
+  FilePenLine,
+  Trash2,
+  LinkIcon,
+  FolderDown,
+} from "lucide-react";
 import Link from "next/link";
 import { StatusDropdownMenuItem } from "@/features/submissions/use-cases/change-status";
+import { toast } from "@/components/ui/toast";
 
 interface SubmissionActionsDropdownProps extends ButtonProps {
   submissionId: string;
@@ -36,6 +43,13 @@ export function SubmissionActionsDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="text-gray-600" align="end">
+        <DropdownMenuItem className="md:hidden cursor-pointer" asChild>
+          <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
+            <FilePenLine className="w-4 h-4 mr-2" />
+            <span>Edit</span>
+          </Link>
+        </DropdownMenuItem>
+
         <DropdownMenuItem className="cursor-pointer" asChild>
           <Link href={`/share/${formId}`} target="_blank">
             <LinkIcon className="mr-2 h-4 w-4" />
@@ -43,11 +57,33 @@ export function SubmissionActionsDropdown({
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem className="md:hidden cursor-pointer" asChild>
-          <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
-            <FilePenLine className="w-4 h-4 mr-2" />
-            <span>Edit</span>
-          </Link>
+        <DropdownMenuItem
+          onClick={async () => {
+            toast.info('Downloading files...');
+            try {
+              const res = await fetch(`/api/forms/${formId}/submissions/${submissionId}/files`);
+              if (!res.ok) throw new Error('Download failed');
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'submission-files.jpg'; // You can make this dynamic later
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              window.URL.revokeObjectURL(url);
+              toast.success('Download started');
+            } catch (err: unknown) {
+              if (err instanceof Error) {
+                toast.error(err.message);
+              } else {
+                toast.error('Failed to download files');
+              }
+            }
+          }}
+        >
+          <FolderDown className="w-4 h-4 mr-2" />
+          Download Files
         </DropdownMenuItem>
 
         <StatusDropdownMenuItem

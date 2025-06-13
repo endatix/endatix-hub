@@ -4,6 +4,7 @@ declare namespace NodeJS {
     NODE_ENV: "development" | "production" | "test";
     REMOTE_IMAGE_HOSTNAMES?: string;
     ROBOTS_ALLOWED_DOMAINS?: string;
+    ENDATIX_BASE_URL: string;
 
     // Session
     SESSION_SECRET?: string;
