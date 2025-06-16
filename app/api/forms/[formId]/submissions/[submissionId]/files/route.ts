@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { Model } from "survey-core";
+import { getSubmission, getFormDefinition } from "@/services/api";
 
 export async function GET(
   request: NextRequest,
@@ -6,10 +8,28 @@ export async function GET(
 ) {
   const { formId, submissionId } = await params;
 
-  // Construct backend URL
+  // 1. Fetch submission and form definition
+  const submission = await getSubmission(formId, submissionId);
+  const formDefinition = await getFormDefinition(formId, submission.formDefinitionId);
+
+  // 2. Instantiate survey model
+  const model = new Model(formDefinition.jsonData);
+
+  // 3. Populate with submission data
+  model.data = JSON.parse(submission.jsonData);
+
+  // 4. Evaluate the prefix expression (hard-coded for now)
+  // Expression: "{refNumber} + '-' + {gender} + '-' + {age} +'-'"
+  // We'll use runExpression for each variable and concatenate
+  const refNumber = model.runExpression('{refNumber}') ?? '';
+  const gender = model.runExpression('{gender}') ?? '';
+  const age = model.runExpression('{age}') ?? '';
+  const prefix = `${refNumber}-${gender}-${age}-`;
+
+  // 5. Proxy the request, passing the prefix as a query param
   const backendUrl = `${
     process.env.ENDATIX_BASE_URL || ""
-  }/api/forms/${formId}/submissions/${submissionId}/files`;
+  }/api/forms/${formId}/submissions/${submissionId}/files?fileNamesPrefix=${encodeURIComponent(prefix)}`;
 
   console.log("backendUrl", backendUrl);
 
