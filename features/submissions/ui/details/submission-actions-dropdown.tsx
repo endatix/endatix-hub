@@ -64,10 +64,16 @@ export function SubmissionActionsDropdown({
               const res = await fetch(`/api/forms/${formId}/submissions/${submissionId}/files`);
               if (!res.ok) throw new Error('Download failed');
               const blob = await res.blob();
+              const disposition = res.headers.get('content-disposition');
+              let filename = 'submission-files.zip';
+              if (disposition) {
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match) filename = match[1];
+              }
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = 'submission-files.jpg'; // You can make this dynamic later
+              a.download = filename;
               document.body.appendChild(a);
               a.click();
               a.remove();
