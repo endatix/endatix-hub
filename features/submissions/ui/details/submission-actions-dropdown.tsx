@@ -59,31 +59,46 @@ export function SubmissionActionsDropdown({
 
         <DropdownMenuItem
           onClick={async () => {
-            toast.info('Downloading files...');
+            const toastId = `download-toast-${submissionId}`;
+            toast.info({
+              title: "Preparing download...",
+              id: toastId,
+            });
             try {
-              const res = await fetch(`/api/forms/${formId}/submissions/${submissionId}/files`);
-              if (!res.ok) throw new Error('Download failed');
+              const res = await fetch(
+                `/api/forms/${formId}/submissions/${submissionId}/files`,
+              );
+              if (!res.ok) throw new Error("Download failed");
               const blob = await res.blob();
-              const disposition = res.headers.get('content-disposition');
-              let filename = 'submission-files.zip';
+              const disposition = res.headers.get("content-disposition");
+              let filename = "submission-files.zip";
               if (disposition) {
                 const match = disposition.match(/filename="?([^"]+)"?/);
                 if (match) filename = match[1];
               }
               const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
+              const a = document.createElement("a");
               a.href = url;
               a.download = filename;
               document.body.appendChild(a);
               a.click();
               a.remove();
               window.URL.revokeObjectURL(url);
-              toast.success('Download started');
+              toast.success({
+                title: "Download ready!",
+                id: toastId,
+              });
             } catch (err: unknown) {
               if (err instanceof Error) {
-                toast.error(err.message);
+                toast.error({
+                  title: err.message,
+                  id: toastId,
+                });
               } else {
-                toast.error('Failed to download files');
+                toast.error({
+                  title: "Failed to download files",
+                  id: toastId,
+                });
               }
             }
           }}

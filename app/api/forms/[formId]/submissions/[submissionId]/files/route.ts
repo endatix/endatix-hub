@@ -1,31 +1,35 @@
 import { NextRequest } from "next/server";
-import { Model } from "survey-core";
-import { getSubmission, getFormDefinition } from "@/services/api";
+import { Model, Serializer } from "survey-core";
+import { getSubmissionDetailsUseCase } from '@/features/submissions/use-cases/get-submission-details.use-case';
+import { Result } from '@/lib/result';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string; submissionId: string }> },
 ) {
   const { formId, submissionId } = await params;
-
-  // 1. Fetch submission and form definition
-  const submission = await getSubmission(formId, submissionId);
-  const formDefinition = await getFormDefinition(
+  const submission = await getSubmissionDetailsUseCase({
     formId,
-    submission.formDefinitionId,
-  );
+    submissionId,
+  });
 
-  // 2. Instantiate survey model
-  const model = new Model(formDefinition.jsonData);
+  if (Result.isError(submission) || !submission.value?.formDefinition) {
+    return new Response("Submission not found", { status: 404 });
+  }
 
-  // 3. Populate with submission data
-  model.data = JSON.parse(submission.jsonData);
+  Serializer.addProperty("survey", {
+    name: "fileNamesPrefix",
+    category: "downloadSettings",
+    displayName: "File names prefix",
+    type: "expression",
+    visibleIndex: 0,
+  });
 
-  // 4. Evaluate the prefix expression (hard-coded for now)
-  const expression = "{refNumber} + '-' + {gender} + '-' + {age}";
+  const model = new Model(submission.value.formDefinition.jsonData);
+  model.data = JSON.parse(submission.value.jsonData);
+
+  const expression = model.getPropertyValue("fileNamesPrefix") ?? "";
   const prefix = model.runExpression(expression) ?? "";
-
-  // 5. Proxy the request, passing the prefix as a query param
   const backendUrl = `${
     process.env.ENDATIX_BASE_URL || ""
   }/api/forms/${formId}/submissions/${submissionId}/files?fileNamesPrefix=${encodeURIComponent(

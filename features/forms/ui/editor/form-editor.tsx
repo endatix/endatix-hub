@@ -25,7 +25,6 @@ import {
   Serializer,
   settings,
   slk,
-  surveyLocalization,
   SurveyModel,
   SvgRegistry,
   JsonObject,
@@ -39,7 +38,6 @@ import {
   UploadFileEvent,
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
-import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { createThemeAction } from "../../application/actions/create-theme.action";
 import { deleteThemeAction as removeThemeAction } from "../../application/actions/delete-theme.action";
@@ -62,6 +60,17 @@ Serializer.addProperty("theme", {
   category: "general",
   visible: false,
 });
+
+Serializer.addProperty("survey", {
+  name: "fileNamesPrefix",
+  category: "downloadSettings",
+  displayName: "File names prefix",
+  type: "expression",
+  visibleIndex: 0,
+});
+
+const downloadSettingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-down-icon lucide-folder-down"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m15 13-3 3-3-3"/></svg>`;
+SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
 
 const saveAsIcon =
   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
@@ -119,7 +128,7 @@ function FormEditor({
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [questionClasses, setQuestionClasses] = useState<any[]>([]);
+  const [questionClasses, setQuestionClasses] = useState<unknown[]>([]);
 
   const getThemes = useCallback(async () => {
     try {
@@ -693,6 +702,17 @@ function FormEditor({
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
+        newCreator.onSurveyInstanceCreated.add((_, options) => {
+          // Assign the icon to the custom category
+          if (options.area === "property-grid") {
+            const downloadSettingsCategory =
+              options.survey.getPageByName("downloadSettings");
+            if (downloadSettingsCategory) {
+              downloadSettingsCategory.iconName = "icon-download-settings";
+              downloadSettingsCategory.title = "Download Settings";
+            }
+          }
+        });
 
         setCreator(newCreator);
         if (newQuestionClasses.length > 0) {
