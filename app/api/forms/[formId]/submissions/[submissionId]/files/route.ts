@@ -10,7 +10,10 @@ export async function GET(
 
   // 1. Fetch submission and form definition
   const submission = await getSubmission(formId, submissionId);
-  const formDefinition = await getFormDefinition(formId, submission.formDefinitionId);
+  const formDefinition = await getFormDefinition(
+    formId,
+    submission.formDefinitionId,
+  );
 
   // 2. Instantiate survey model
   const model = new Model(formDefinition.jsonData);
@@ -19,19 +22,15 @@ export async function GET(
   model.data = JSON.parse(submission.jsonData);
 
   // 4. Evaluate the prefix expression (hard-coded for now)
-  // Expression: "{refNumber} + '-' + {gender} + '-' + {age} +'-'"
-  // We'll use runExpression for each variable and concatenate
-  const refNumber = model.runExpression('{refNumber}') ?? '';
-  const gender = model.runExpression('{gender}') ?? '';
-  const age = model.runExpression('{age}') ?? '';
-  const prefix = `${refNumber}-${gender}-${age}-`;
+  const expression = "{refNumber} + '-' + {gender} + '-' + {age}";
+  const prefix = model.runExpression(expression) ?? "";
 
   // 5. Proxy the request, passing the prefix as a query param
   const backendUrl = `${
     process.env.ENDATIX_BASE_URL || ""
-  }/api/forms/${formId}/submissions/${submissionId}/files?fileNamesPrefix=${encodeURIComponent(prefix)}`;
-
-  console.log("backendUrl", backendUrl);
+  }/api/forms/${formId}/submissions/${submissionId}/files?fileNamesPrefix=${encodeURIComponent(
+    prefix,
+  )}`;
 
   try {
     const backendRes = await fetch(backendUrl, {
