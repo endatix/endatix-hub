@@ -36,6 +36,7 @@ import {
 import "survey-core/survey-core.css";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
+  getLocaleStrings,
   ICreatorOptions,
   registerSurveyTheme,
   SurveyCreatorModel,
@@ -67,11 +68,23 @@ Serializer.addProperty("theme", {
 
 Serializer.addProperty("survey", {
   name: "fileNamesPrefix",
-  category: "downloadSettings",
   displayName: "File names prefix",
   type: "expression",
+  category: "downloadSettings",
+  categoryIndex: 901,
   visibleIndex: 0,
+  isLocalizable: true,
 });
+
+const translations = getLocaleStrings("en");
+translations.pehelp.fileNamesPrefix =
+  "Set a prefix for the downloaded submission files using an expression. <br/>" +
+  "You can reference question values with curly braces, e.g. <em>{gender}</em> or <em>{age}</em>. Example: <br/>" +
+  "<b>Example:</b> <input disabled name='example-expression' class='spg-comment spg-text p-1' value='{gender} + \"-\" + {age}'></input><br/>" +
+  'creates file names like <em>"male-25-q1.pdf"</em> or <em>"female-30-profilePic-2.png"</em><br/>' +
+  "This helps organize files by including specific answers provided by the respondent in the file name.<br/><br/>" +
+  "<b>Note:</b> The expression is evaluated for each submission prior to donwloading the files provided by the respondent. The unique question's name, for which the file was uploaded is always added to the filename.<br/><br/>" +
+  "For more information on how to write expression, see <a class='hover:underline' href='https://surveyjs.io/survey-creator/documentation/end-user-guide/expression-syntax'>Expression Syntax</a>.";
 
 const downloadSettingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-down-icon lucide-folder-down"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m15 13-3 3-3-3"/></svg>`;
 SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
@@ -708,8 +721,8 @@ function FormEditor({
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
-        newCreator.onSurveyInstanceCreated.add((_, options) => {
-          // Assign the icon to the custom category
+        newCreator.activatePropertyGridCategory("creatorSettings");
+        newCreator.onSurveyInstanceCreated.add((creator, options) => {
           if (options.area === "property-grid") {
             const downloadSettingsCategory =
               options.survey.getPageByName("downloadSettings");
