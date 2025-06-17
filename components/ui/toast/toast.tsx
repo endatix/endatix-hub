@@ -1,90 +1,74 @@
-import React, { useCallback } from 'react';
-import { toast as sonnerToast } from 'sonner';
-import { ToastProps } from './types';
-import { Button } from '../button';
-import { ToastProgress } from './toast-progress';
-import { ToastIcon } from './toast-icon';
+import React, { useCallback } from "react";
+import { toast as sonnerToast } from "sonner";
+import { ToastProps, ToastVariant } from "./types";
+import { Button } from "../button";
+import { ToastProgress } from "./toast-progress";
+import { ToastIcon } from "./toast-icon";
 
 const DEFAULT_DURATION = 5000;
 
-const DEFAULT_TOAST_PROPS: Partial<Omit<ToastProps, 'id'>> = {
-  variant: 'info',
+const DEFAULT_TOAST_PROPS: Partial<Omit<ToastProps, "id">> = {
+  variant: "info",
   duration: DEFAULT_DURATION,
   description: undefined,
-  progressBar: 'right-to-left',
+  progressBar: "right-to-left",
   includeIcon: true,
   action: undefined,
   SvgIcon: undefined,
 };
 
 // Type for variant method arguments
-type ToastContentInput = 
-  | string 
-  | React.ReactElement 
-  | Partial<Omit<ToastProps, 'id' | 'variant'>>;
+type ToastOptions = Omit<
+  ToastProps,
+  "id" | "type" | "jsx" | "delete" | "promise" | "variant"
+> & {
+  id?: string | number;
+};
+type ToastContentInput = string | React.ReactElement | ToastOptions;
 
-// Type guard to check if value is a React element
-function isReactElement(value: unknown): value is React.ReactElement {
-  return React.isValidElement(value);
+function normalizeArgs(
+  arg1: ToastContentInput,
+  arg2?: Omit<ToastOptions, "variant">,
+): Omit<ToastOptions, "variant"> & { title: ToastOptions["title"] } {
+  if (typeof arg1 === "string" || React.isValidElement(arg1)) {
+    return { ...arg2, title: arg1 };
+  }
+  return arg1;
 }
 
-function createToast(toast: Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] }) {
+function createToast(toast: ToastOptions & { variant?: ToastVariant }) {
   const mergedProps = {
     ...DEFAULT_TOAST_PROPS,
     ...toast,
   };
-
-  return sonnerToast.custom((id) => <Toast {...mergedProps as ToastProps} id={id} />);
+  if (!mergedProps.title) {
+    throw new Error("Toast title is required");
+  }
+  if (!mergedProps.variant) {
+    throw new Error("Toast variant is required");
+  }
+  return sonnerToast.custom(
+    (id) => <Toast {...(mergedProps as ToastProps)} id={id} />,
+    { id: toast.id },
+  );
 }
 
 const toast = Object.assign(createToast, {
-  success: (props: ToastContentInput) => {
-    if (typeof props === 'string' || isReactElement(props)) {
-      return createToast({ 
-        title: props, 
-        variant: 'success' 
-      });
-    }
-    return createToast({ 
-      ...props as object, 
-      variant: 'success' 
-    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  success: (arg1: ToastContentInput, arg2?: Omit<ToastOptions, "variant">) => {
+    const props = normalizeArgs(arg1, arg2);
+    return createToast({ ...props, variant: "success" });
   },
-  error: (props: ToastContentInput) => {
-    if (typeof props === 'string' || isReactElement(props)) {
-      return createToast({ 
-        title: props, 
-        variant: 'error' 
-      });
-    }
-    return createToast({ 
-      ...props as object, 
-      variant: 'error' 
-    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  error: (arg1: ToastContentInput, arg2?: Omit<ToastOptions, "variant">) => {
+    const props = normalizeArgs(arg1, arg2);
+    return createToast({ ...props, variant: "error" });
   },
-  warning: (props: ToastContentInput) => {
-    if (typeof props === 'string' || isReactElement(props)) {
-      return createToast({ 
-        title: props, 
-        variant: 'warning' 
-      });
-    }
-    return createToast({ 
-      ...props as object, 
-      variant: 'warning' 
-    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  warning: (arg1: ToastContentInput, arg2?: Omit<ToastOptions, "variant">) => {
+    const props = normalizeArgs(arg1, arg2);
+    return createToast({ ...props, variant: "warning" });
   },
-  info: (props: ToastContentInput) => {
-    if (typeof props === 'string' || isReactElement(props)) {
-      return createToast({ 
-        title: props, 
-        variant: 'info' 
-      });
-    }
-    return createToast({ 
-      ...props as object, 
-      variant: 'info' 
-    } as Partial<Omit<ToastProps, 'id'>> & { title: ToastProps['title'] });
+  info: (arg1: ToastContentInput, arg2?: Omit<ToastOptions, "variant">) => {
+    const props = normalizeArgs(arg1, arg2);
+    return createToast({ ...props, variant: "info" });
   },
 });
 
@@ -129,10 +113,10 @@ function Toast({
         const now = Date.now();
         const timePassed = now - lastUpdatedRef.current;
         lastUpdatedRef.current = now;
-        
+
         remainingTimeRef.current = Math.max(
           0,
-          remainingTimeRef.current - timePassed
+          remainingTimeRef.current - timePassed,
         );
       }, UPDATE_TIME_INTERVAL);
     }
@@ -141,7 +125,7 @@ function Toast({
   }, [isPaused]);
 
   return (
-    <div 
+    <div
       className="flex flex-col w-full min-w-[356px] md:max-w-[364px] gap-0 justify-between items-center rounded-lg bg-white shadow-lg ring-1 ring-black/5 relative overflow-hidden"
       onMouseEnter={handlePause}
       onMouseLeave={handleResume}
@@ -156,7 +140,9 @@ function Toast({
         )}
         <div className="flex flex-col justify-start w-full">
           <div className="text-sm font-medium">{title}</div>
-          {description && <div className="text-sm text-muted-foreground">{description}</div>}
+          {description && (
+            <div className="text-sm text-muted-foreground">{description}</div>
+          )}
         </div>
         {action && (
           <div className="flex ml-5 items-center text-sm">
@@ -174,11 +160,11 @@ function Toast({
           </div>
         )}
       </div>
-      {progressBar !== 'none' && (
+      {progressBar !== "none" && (
         <ToastProgress
           duration={duration ?? DEFAULT_DURATION}
           variant={variant}
-          direction={progressBar ?? 'left-to-right'}
+          direction={progressBar ?? "left-to-right"}
           onComplete={handleDismiss}
           remainingTimeRef={remainingTimeRef}
           isPaused={isPaused}
