@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { Model, Serializer } from "survey-core";
-import { getSubmissionDetailsUseCase } from '@/features/submissions/use-cases/get-submission-details.use-case';
-import { Result } from '@/lib/result';
+import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
+import { Result } from "@/lib/result";
 
 export async function GET(
   request: NextRequest,
@@ -30,11 +30,13 @@ export async function GET(
 
   const expression = model.getPropertyValue("fileNamesPrefix") ?? "";
   const prefix = model.runExpression(expression) ?? "";
-  const backendUrl = `${
+  let backendUrl = `${
     process.env.ENDATIX_BASE_URL || ""
-  }/api/forms/${formId}/submissions/${submissionId}/files?fileNamesPrefix=${encodeURIComponent(
-    prefix,
-  )}`;
+  }/api/forms/${formId}/submissions/${submissionId}/files`;
+
+  if (prefix) {
+    backendUrl += `?fileNamesPrefix=${encodeURIComponent(prefix)}`;
+  }
 
   try {
     const backendRes = await fetch(backendUrl, {

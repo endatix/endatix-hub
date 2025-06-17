@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from 'react';
+import { DownloadFilesDropdownItem } from '../download-files-dropdown-item';
 
 interface RowActionsProps<TData> {
   row: Row<TData>;
@@ -53,6 +54,7 @@ export function RowActions<TData>({ row }: RowActionsProps<TData>) {
             <span>Edit</span>
           </Link>
         </DropdownMenuItem>
+        <DownloadFilesDropdownItem formId={item.formId} submissionId={item.id} />
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-not-allowed">
           <FileDown className="w-4 h-4 mr-2" />

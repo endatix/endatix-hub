@@ -6,16 +6,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import {
-  MoreHorizontal,
-  FilePenLine,
-  Trash2,
-  LinkIcon,
-  FolderDown,
-} from "lucide-react";
+import { MoreHorizontal, FilePenLine, Trash2, LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { StatusDropdownMenuItem } from "@/features/submissions/use-cases/change-status";
-import { toast } from "@/components/ui/toast";
+import { DownloadFilesDropdownItem } from "@/features/submissions/ui/download-files-dropdown-item";
 
 interface SubmissionActionsDropdownProps extends ButtonProps {
   submissionId: string;
@@ -57,55 +51,10 @@ export function SubmissionActionsDropdown({
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem
-          onClick={async () => {
-            const toastId = `download-toast-${submissionId}`;
-            toast.info({
-              title: "Preparing download...",
-              id: toastId,
-            });
-            try {
-              const res = await fetch(
-                `/api/forms/${formId}/submissions/${submissionId}/files`,
-              );
-              if (!res.ok) throw new Error("Download failed");
-              const blob = await res.blob();
-              const disposition = res.headers.get("content-disposition");
-              let filename = "submission-files.zip";
-              if (disposition) {
-                const match = disposition.match(/filename="?([^"]+)"?/);
-                if (match) filename = match[1];
-              }
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              window.URL.revokeObjectURL(url);
-              toast.success({
-                title: "Download ready!",
-                id: toastId,
-              });
-            } catch (err: unknown) {
-              if (err instanceof Error) {
-                toast.error({
-                  title: err.message,
-                  id: toastId,
-                });
-              } else {
-                toast.error({
-                  title: "Failed to download files",
-                  id: toastId,
-                });
-              }
-            }
-          }}
-        >
-          <FolderDown className="w-4 h-4 mr-2" />
-          Download Files
-        </DropdownMenuItem>
+        <DownloadFilesDropdownItem
+          formId={formId}
+          submissionId={submissionId}
+        />
 
         <StatusDropdownMenuItem
           className="md:hidden cursor-pointer"
