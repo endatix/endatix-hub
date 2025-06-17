@@ -3,7 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import {
+  initializeCustomQuestions,
+  SpecializedSurveyQuestionType,
+} from "@/lib/questions/infrastructure/specialized-survey-question";
+import type { Question } from "survey-core";
 import { Result } from "@/lib/result";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -128,7 +132,9 @@ function FormEditor({
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [questionClasses, setQuestionClasses] = useState<unknown[]>([]);
+  const [questionClasses, setQuestionClasses] = useState<
+    SpecializedSurveyQuestionType[]
+  >([]);
 
   const getThemes = useCallback(async () => {
     try {
@@ -556,7 +562,7 @@ function FormEditor({
   }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
   const saveCustomQuestion = useCallback(
-    async (element: any, questionName: string, questionTitle: string) => {
+    async (element: Question, questionName: string, questionTitle: string) => {
       try {
         const json = new JsonObject().toJsonObject(element);
 
@@ -619,7 +625,7 @@ function FormEditor({
   );
 
   const createCustomQuestionDialog = useCallback(
-    async (element: any) => {
+    async (element: Question) => {
       try {
         const isDefaultName = element.name.match(/^(question|panel)\d+$/);
         const defaultTitle = isDefaultName ? "" : nameToTitle(element.name);
@@ -708,7 +714,9 @@ function FormEditor({
             const downloadSettingsCategory =
               options.survey.getPageByName("downloadSettings");
             if (downloadSettingsCategory) {
-              downloadSettingsCategory.iconName = "icon-download-settings";
+              (
+                downloadSettingsCategory as unknown as { iconName: string }
+              ).iconName = "icon-download-settings";
               downloadSettingsCategory.title = "Download Settings";
             }
           }
@@ -726,7 +734,7 @@ function FormEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile]);
+  }, [options, slkVal, handleUploadFile, creator]);
 
   useEffect(() => {
     if (creator && formJson) {
@@ -757,23 +765,25 @@ function FormEditor({
     if (!creator) return;
 
     creator.onElementGetActions.add((_, options) => {
-      const element = options.element as any;
-      if (element.isPage) return;
-      options.actions.unshift({
-        id: "create-custom-question",
-        title: "Create Custom Question",
-        iconName: "icon-toolbox",
-        action: () => createCustomQuestionDialog(element),
-      });
+      const element = options.element as Question;
+      if (element?.isQuestion) {
+        options.actions.unshift({
+          id: "create-custom-question",
+          title: "Create Custom Question",
+          iconName: "icon-toolbox",
+          action: () => createCustomQuestionDialog(element),
+        });
+      }
     });
 
     return () => {
       creator.onElementGetActions.remove((_, options) => {
-        const element = options.element as any;
-        if (element.isPage) return;
-        options.actions = options.actions.filter(
-          (action) => action.id !== "create-custom-question",
-        );
+        const element = options.element as Question;
+        if (element?.isQuestion) {
+          options.actions = options.actions.filter(
+            (action) => action.id !== "create-custom-question",
+          );
+        }
       });
     };
   }, [creator, createCustomQuestionDialog]);
