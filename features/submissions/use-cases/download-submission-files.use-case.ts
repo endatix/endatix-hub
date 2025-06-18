@@ -15,7 +15,9 @@ export async function downloadSubmissionFilesUseCase({
   const toastId = `download-toast-${submissionId}`;
   toast.info({
     title: "Preparing download...",
+    description: "Your download will start in a few seconds.",
     id: toastId,
+    duration: 0
   });
   try {
     const response = await fetch(

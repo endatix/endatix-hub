@@ -116,6 +116,9 @@ function Toast({
 
   React.useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    if (duration === 0) {
+      return;
+    }
 
     if (!isPaused) {
       timeoutId = setInterval(() => {
@@ -131,7 +134,7 @@ function Toast({
     }
 
     return () => clearInterval(timeoutId);
-  }, [isPaused]);
+  }, [isPaused, duration]);
 
   return (
     <div
