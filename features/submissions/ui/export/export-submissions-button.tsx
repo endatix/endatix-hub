@@ -5,6 +5,7 @@ import { Spinner } from "@/components/loaders/spinner";
 import { toast } from "@/components/ui/toast";
 import { Download } from "lucide-react";
 import { useState } from "react";
+import { getFilenameFromContentDisposition, initiateFileDownload } from "@/lib/utils/files-download";
 
 interface ExportSubmissionsButtonProps {
   formId: string;
@@ -36,31 +37,14 @@ export const ExportSubmissionsButton = ({
         throw new Error(`Export failed with status: ${response.status}`);
       }
 
-      // Get content info from response headers
-      const contentDisposition =
-        response.headers.get("Content-Disposition") || "";
-      let filename = `form-${formId}-submissions.csv`;
-
-      // Try to extract filename from Content-Disposition header
-      const filenameMatch = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(
-        contentDisposition,
+      const filename = getFilenameFromContentDisposition(
+        response.headers,
+        `form-${formId}-submissions.csv`,
       );
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1].replace(/['"]/g, "");
-      }
 
       // Create blob from response and trigger download
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Clean up object URL
-      window.URL.revokeObjectURL(url);
+      initiateFileDownload(blob, filename);
 
       // Now we can safely show success message
       toast.success({

@@ -135,7 +135,9 @@ const CreateFormSheet = () => {
         }
       } catch (error) {
         console.error("Error creating form from template:", error);
-        toast.error(error || "Failed to create form from template");
+        toast.error(
+          (error as string) || "Failed to create form from template",
+        );
       }
     });
   };

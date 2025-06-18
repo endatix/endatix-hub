@@ -582,7 +582,7 @@ export const updateSubmissionStatus = async (
 ): Promise<UpdateSubmissionStatusRequest> => {
   const session = await getSession();
 
-  if (!session.isLoggedIn) {
+  if (!session?.isLoggedIn) {
     redirect("/login");
   }
 
@@ -660,6 +660,49 @@ export const getSubmission = async (
   }
 
   return response.json();
+};
+
+export const getSubmissionFiles = async (
+  formId: string,
+  submissionId: string,
+  fileNamesPrefix?: string,
+): Promise<Response> => {
+  const session = await getSession();
+
+  if (!session?.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const headers = new HeaderBuilder().withAuth(session).build();
+
+  let requestUrl = `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}/files`;
+  if (fileNamesPrefix) {
+    requestUrl += `?fileNamesPrefix=${encodeURIComponent(fileNamesPrefix)}`;
+  }
+
+  const response = await fetch(requestUrl, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Failed to download submission files";
+    if (response.status === 400) {
+      const error = await response.json();
+
+      // Extract fileNamesPrefix error if present
+      const fileNamesPrefixError =
+        error?.errors?.fileNamesPrefix?.length > 0
+          ? error.errors.fileNamesPrefix.join(', ')
+          : undefined;
+
+      // Use the extracted error or fallback to the general message
+      errorMessage = fileNamesPrefixError || error.message || errorMessage;
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return response;
 };
 
 export const changePassword = async (
@@ -869,7 +912,9 @@ export interface RegistrationResponse {
   message: string;
 }
 
-export const register = async (request: RegistrationRequest): Promise<RegistrationResponse> => {
+export const register = async (
+  request: RegistrationRequest,
+): Promise<RegistrationResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
   const response = await fetch(`${API_BASE_URL}/auth/register`, {

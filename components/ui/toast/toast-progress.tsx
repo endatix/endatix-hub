@@ -22,19 +22,19 @@ function ToastProgress({
   const UI_UPDATE_INTERVAL = 25;
 
   useEffect(() => {
+    if (duration === 0) return; // No JS progress for indeterminate
     if (isPaused) return;
 
     const interval = setInterval(() => {
       const currentRemaining = remainingTimeRef.current;
       setDisplayTime(currentRemaining);
-
       if (currentRemaining <= 0) {
         onComplete();
       }
     }, UI_UPDATE_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [isPaused, remainingTimeRef, onComplete]);
+  }, [isPaused, remainingTimeRef, onComplete, duration]);
 
   const progressPercentage =
     direction === "left-to-right"
@@ -51,17 +51,39 @@ function ToastProgress({
   const baseColor = variantColors[variant];
 
   return (
-    <div className="relative w-full h-1.5">
+    <div className="relative w-full h-1.5 overflow-hidden">
       <div
         className={`absolute bottom-0 left-0 right-0 h-full w-full ${baseColor} opacity-10`}
       />
-      <div
-        className={`absolute bottom-0 left-0 h-full w-full ${baseColor} transition-transform duration-300 ease-linear`}
-        style={{
-          transform: `translateX(${progressPercentage - 100}%)`,
-          width: "100%",
-        }}
-      />
+      {duration === 0 ? (
+        <>
+          <div
+            className={`absolute bottom-0 left-0 h-full w-1/3 ${baseColor} animate-toast-indeterminate`}
+            style={{ minWidth: "80px" }}
+          />
+          <style jsx>{`
+            @keyframes toast-indeterminate {
+              0% {
+                left: -33%;
+              }
+              100% {
+                left: 100%;
+              }
+            }
+            .animate-toast-indeterminate {
+              animation: toast-indeterminate 1.2s linear infinite;
+            }
+          `}</style>
+        </>
+      ) : (
+        <div
+          className={`absolute bottom-0 left-0 h-full w-full ${baseColor} transition-transform duration-300 ease-linear`}
+          style={{
+            transform: `translateX(${progressPercentage - 100}%)`,
+            width: "100%",
+          }}
+        />
+      )}
     </div>
   );
 }

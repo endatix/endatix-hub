@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { MoreHorizontal, FilePenLine, Trash2, LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { StatusDropdownMenuItem } from "@/features/submissions/use-cases/change-status";
+import { DownloadFilesDropdownItem } from "@/features/submissions/ui/download-files-dropdown-item";
 
 interface SubmissionActionsDropdownProps extends ButtonProps {
   submissionId: string;
@@ -36,6 +37,13 @@ export function SubmissionActionsDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="text-gray-600" align="end">
+        <DropdownMenuItem className="md:hidden cursor-pointer" asChild>
+          <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
+            <FilePenLine className="w-4 h-4 mr-2" />
+            <span>Edit</span>
+          </Link>
+        </DropdownMenuItem>
+
         <DropdownMenuItem className="cursor-pointer" asChild>
           <Link href={`/share/${formId}`} target="_blank">
             <LinkIcon className="mr-2 h-4 w-4" />
@@ -43,12 +51,10 @@ export function SubmissionActionsDropdown({
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem className="md:hidden cursor-pointer" asChild>
-          <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
-            <FilePenLine className="w-4 h-4 mr-2" />
-            <span>Edit</span>
-          </Link>
-        </DropdownMenuItem>
+        <DownloadFilesDropdownItem
+          formId={formId}
+          submissionId={submissionId}
+        />
 
         <StatusDropdownMenuItem
           className="md:hidden cursor-pointer"

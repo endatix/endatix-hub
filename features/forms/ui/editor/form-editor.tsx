@@ -3,7 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import {
+  initializeCustomQuestions,
+  SpecializedSurveyQuestionType,
+} from "@/lib/questions/infrastructure/specialized-survey-question";
+import type { Question } from "survey-core";
 import { Result } from "@/lib/result";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -25,7 +29,6 @@ import {
   Serializer,
   settings,
   slk,
-  surveyLocalization,
   SurveyModel,
   SvgRegistry,
   JsonObject,
@@ -33,13 +36,13 @@ import {
 import "survey-core/survey-core.css";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
+  getLocaleStrings,
   ICreatorOptions,
   registerSurveyTheme,
   SurveyCreatorModel,
   UploadFileEvent,
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
-import SurveyCreatorTheme from "survey-creator-core/themes";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { createThemeAction } from "../../application/actions/create-theme.action";
 import { deleteThemeAction as removeThemeAction } from "../../application/actions/delete-theme.action";
@@ -62,6 +65,29 @@ Serializer.addProperty("theme", {
   category: "general",
   visible: false,
 });
+
+Serializer.addProperty("survey", {
+  name: "fileNamesPrefix",
+  displayName: "File names prefix",
+  type: "expression",
+  category: "downloadSettings",
+  categoryIndex: 901,
+  visibleIndex: 1,
+  isLocalizable: true,
+});
+
+const translations = getLocaleStrings("en");
+translations.pehelp.fileNamesPrefix =
+  "Set a prefix for the downloaded submission files using an expression. <br/>" +
+  "You can reference question values with curly braces, e.g. <em>{gender}</em> or <em>{age}</em>. Example: <br/>" +
+  "<b>Example:</b> <input disabled name='example-expression' class='spg-comment spg-text p-1' value='{gender} + \"-\" + {age}'></input><br/>" +
+  'creates file names like <em>"male-25-q1.pdf"</em> or <em>"female-30-profilePic-2.png"</em><br/>' +
+  "This helps organize files by including specific answers provided by the respondent in the file name.<br/><br/>" +
+  "<b>Note:</b> The expression is evaluated for each submission prior to donwloading the files provided by the respondent. The unique question's name, for which the file was uploaded is always added to the filename.<br/><br/>" +
+  "For more information on how to write expression, see <a target='_blank' class='hover:underline' href='https://surveyjs.io/survey-creator/documentation/end-user-guide/expression-syntax'>Expression Syntax</a>.";
+
+const downloadSettingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-down-icon lucide-folder-down"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m15 13-3 3-3-3"/></svg>`;
+SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
 
 const saveAsIcon =
   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
@@ -119,7 +145,9 @@ function FormEditor({
   const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [questionClasses, setQuestionClasses] = useState<any[]>([]);
+  const [questionClasses, setQuestionClasses] = useState<
+    SpecializedSurveyQuestionType[]
+  >([]);
 
   const getThemes = useCallback(async () => {
     try {
@@ -547,7 +575,7 @@ function FormEditor({
   }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
   const saveCustomQuestion = useCallback(
-    async (element: any, questionName: string, questionTitle: string) => {
+    async (element: Question, questionName: string, questionTitle: string) => {
       try {
         const json = new JsonObject().toJsonObject(element);
 
@@ -610,7 +638,7 @@ function FormEditor({
   );
 
   const createCustomQuestionDialog = useCallback(
-    async (element: any) => {
+    async (element: Question) => {
       try {
         const isDefaultName = element.name.match(/^(question|panel)\d+$/);
         const defaultTitle = isDefaultName ? "" : nameToTitle(element.name);
@@ -693,6 +721,18 @@ function FormEditor({
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
+        newCreator.onSurveyInstanceCreated.add((_, options) => {
+          if (options.area === "property-grid") {
+            const downloadSettingsCategory =
+              options.survey.getPageByName("downloadSettings");
+            if (downloadSettingsCategory) {
+              (
+                downloadSettingsCategory as unknown as { iconName: string }
+              ).iconName = "icon-download-settings";
+              downloadSettingsCategory.title = "Download Settings";
+            }
+          }
+        });
 
         setCreator(newCreator);
         if (newQuestionClasses.length > 0) {
@@ -706,7 +746,7 @@ function FormEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile]);
+  }, [options, slkVal, handleUploadFile, creator]);
 
   useEffect(() => {
     if (creator && formJson) {
@@ -737,23 +777,25 @@ function FormEditor({
     if (!creator) return;
 
     creator.onElementGetActions.add((_, options) => {
-      const element = options.element as any;
-      if (element.isPage) return;
-      options.actions.unshift({
-        id: "create-custom-question",
-        title: "Create Custom Question",
-        iconName: "icon-toolbox",
-        action: () => createCustomQuestionDialog(element),
-      });
+      const element = options.element as Question;
+      if (element?.isQuestion) {
+        options.actions.unshift({
+          id: "create-custom-question",
+          title: "Create Custom Question",
+          iconName: "icon-toolbox",
+          action: () => createCustomQuestionDialog(element),
+        });
+      }
     });
 
     return () => {
       creator.onElementGetActions.remove((_, options) => {
-        const element = options.element as any;
-        if (element.isPage) return;
-        options.actions = options.actions.filter(
-          (action) => action.id !== "create-custom-question",
-        );
+        const element = options.element as Question;
+        if (element?.isQuestion) {
+          options.actions = options.actions.filter(
+            (action) => action.id !== "create-custom-question",
+          );
+        }
       });
     };
   }, [creator, createCustomQuestionDialog]);

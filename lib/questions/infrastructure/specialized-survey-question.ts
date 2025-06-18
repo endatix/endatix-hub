@@ -55,17 +55,20 @@ export function createCustomQuestionClass(config: CustomQuestionConfig) {
         iconName: config.iconName,
         defaultQuestionTitle: config.defaultQuestionTitle || config.title,
         inheritBaseProps: config.inheritBaseProps ?? true,
-        ...(config.elementsJSON 
+        ...(config.elementsJSON
           ? { elementsJSON: config.elementsJSON }
-          : { questionJSON: config.questionJSON }
-        ),
-        onAfterRenderContentElement: config.onAfterRenderContentElement 
+          : { questionJSON: config.questionJSON }),
+        onAfterRenderContentElement: config.onAfterRenderContentElement
           ? (new Function(
-              'question',
-              'element',
-              'htmlElement',
-              config.onAfterRenderContentElement
-            ) as (question: Question, element: Question, htmlElement: HTMLElement) => void)
+              "question",
+              "element",
+              "htmlElement",
+              config.onAfterRenderContentElement,
+            ) as (
+              question: Question,
+              element: Question,
+              htmlElement: HTMLElement,
+            ) => void)
           : undefined,
       };
     }
@@ -75,25 +78,33 @@ export function createCustomQuestionClass(config: CustomQuestionConfig) {
         creator.toolbox.changeCategory(config.name, config.category);
       }
 
-      if (config.orderedAfter && Array.isArray(creator.toolbox.orderedQuestions)) {
+      if (
+        config.orderedAfter &&
+        Array.isArray(creator.toolbox.orderedQuestions)
+      ) {
         const orderedQuestions = [...creator.toolbox.orderedQuestions];
         const previousQuestionName = config.orderedAfter;
         const previousIndex = orderedQuestions.indexOf(previousQuestionName);
-        
+
         if (previousIndex !== -1) {
           orderedQuestions.splice(previousIndex + 1, 0, config.name);
         } else {
           orderedQuestions.push(previousQuestionName);
           orderedQuestions.push(config.name);
         }
-        
+
         creator.toolbox.orderedQuestions = orderedQuestions;
       }
     }
   };
 }
 
-const customQuestionsRegistry = new Map<string, typeof SpecializedSurveyQuestion>();
+export type SpecializedSurveyQuestionType = typeof SpecializedSurveyQuestion;
+
+const customQuestionsRegistry = new Map<
+  string,
+  SpecializedSurveyQuestionType
+>();
 
 /**
  * Initializes custom question classes from JSON data and maintains a registry of created classes.
@@ -101,42 +112,45 @@ const customQuestionsRegistry = new Map<string, typeof SpecializedSurveyQuestion
  * @param questions - Array of JSON strings containing custom question configurations
  * @returns Array of initialized question classes
  */
-export function initializeCustomQuestions(questions: string[]): (typeof SpecializedSurveyQuestion)[] {
-  const questionClasses = questions.map(jsonData => {
-    try {
-      const parsedJson = JSON.parse(jsonData);
-      
-      if (customQuestionsRegistry.has(parsedJson.name)) {
-        return customQuestionsRegistry.get(parsedJson.name);
+export function initializeCustomQuestions(
+  questions: string[],
+): SpecializedSurveyQuestionType[] {
+  const questionClasses = questions
+    .map((jsonData) => {
+      try {
+        const parsedJson = JSON.parse(jsonData);
+
+        if (customQuestionsRegistry.has(parsedJson.name)) {
+          return customQuestionsRegistry.get(parsedJson.name);
+        }
+
+        const config: CustomQuestionConfig = {
+          name: parsedJson.name,
+          title: parsedJson.title,
+          iconName: parsedJson.iconName,
+          category: parsedJson.category,
+          orderedAfter: parsedJson.orderedAfter,
+          defaultQuestionTitle: parsedJson.defaultQuestionTitle,
+          inheritBaseProps: parsedJson.inheritBaseProps,
+          ...(parsedJson.elementsJSON
+            ? { elementsJSON: parsedJson.elementsJSON }
+            : { questionJSON: parsedJson.questionJSON }),
+          onAfterRenderContentElement: parsedJson.onAfterRenderContentElement
+            ? parsedJson.onAfterRenderContentElement
+            : undefined,
+        };
+
+        const QuestionClass = createCustomQuestionClass(config);
+        registerSpecializedQuestion(QuestionClass);
+        customQuestionsRegistry.set(config.name, QuestionClass);
+        return QuestionClass;
+      } catch (error) {
+        console.error("Error registering custom question:", error);
+        console.error("Custom question JSON:", jsonData);
+        return null;
       }
-
-      const config: CustomQuestionConfig = {
-        name: parsedJson.name,
-        title: parsedJson.title,
-        iconName: parsedJson.iconName,
-        category: parsedJson.category,
-        orderedAfter: parsedJson.orderedAfter,
-        defaultQuestionTitle: parsedJson.defaultQuestionTitle,
-        inheritBaseProps: parsedJson.inheritBaseProps,
-        ...(parsedJson.elementsJSON 
-          ? { elementsJSON: parsedJson.elementsJSON }
-          : { questionJSON: parsedJson.questionJSON }
-        ),
-        onAfterRenderContentElement: parsedJson.onAfterRenderContentElement 
-          ? parsedJson.onAfterRenderContentElement
-          : undefined,
-      };
-
-      const QuestionClass = createCustomQuestionClass(config);
-      registerSpecializedQuestion(QuestionClass);
-      customQuestionsRegistry.set(config.name, QuestionClass);
-      return QuestionClass;
-    } catch (error) {
-      console.error('Error registering custom question:', error);
-      console.error('Custom question JSON:', jsonData);
-      return null;
-    }
-  }).filter((q): q is typeof SpecializedSurveyQuestion => q !== null);
+    })
+    .filter((q): q is SpecializedSurveyQuestionType => q !== null);
 
   return questionClasses;
 }
@@ -146,7 +160,7 @@ export function initializeCustomQuestions(questions: string[]): (typeof Speciali
  * @param questionClass - The specialized question class to register
  */
 export function registerSpecializedQuestion(
-  questionClass: typeof SpecializedSurveyQuestion,
+  questionClass: SpecializedSurveyQuestionType,
 ) {
   const instance =
     new (questionClass as unknown as new () => SpecializedSurveyQuestion)();
