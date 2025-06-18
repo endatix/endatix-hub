@@ -3,6 +3,7 @@ import { Model, Serializer } from "survey-core";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
 import { getActiveDefinitionUseCase } from '@/features/public-form/use-cases/get-active-definition.use-case';
+import { EMPTY_FILE_HEADER } from '@/lib/utils/files-download';
 
 export async function GET(
   request: NextRequest,
@@ -63,9 +64,13 @@ export async function GET(
       backendRes.headers.get("content-type") || "application/octet-stream";
     const contentDisposition = backendRes.headers.get("content-disposition");
     const headers: HeadersInit = { "content-type": contentType };
-    if (contentDisposition) headers["content-disposition"] = contentDisposition;
-    const emptyZipHeader = backendRes.headers.get("x-endatix-empty-zip");
-    if (emptyZipHeader) headers["x-endatix-empty-zip"] = emptyZipHeader;
+    if (contentDisposition) {
+      headers["content-disposition"] = contentDisposition;
+    }
+    const emptyFile = backendRes.headers.get(EMPTY_FILE_HEADER);
+    if (emptyFile) {
+      headers[EMPTY_FILE_HEADER] = emptyFile;
+    }
 
     return new Response(backendRes.body, {
       status: 200,

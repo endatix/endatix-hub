@@ -1,4 +1,5 @@
 import { toast } from "@/components/ui/toast";
+import { getFilenameFromContentDisposition, initiateFileDownload } from '@/lib/utils/files-download';
 import { FolderDown, FolderX } from "lucide-react";
 
 export async function downloadSubmissionFilesUseCase({
@@ -11,45 +12,42 @@ export async function downloadSubmissionFilesUseCase({
   const toastId = `download-toast-${submissionId}`;
   toast.info({
     title: "Preparing download...",
-    id: toastId
+    id: toastId,
   });
   try {
-    const res = await fetch(
+    const response = await fetch(
       `/api/forms/${formId}/submissions/${submissionId}/files`,
     );
-    if (!res.ok) throw new Error("Download failed");
-    const blob = await res.blob();
-    const disposition = res.headers.get("content-disposition");
-    const emptyZipHeader = res.headers.get("x-endatix-empty-zip");
-    if (emptyZipHeader) {
+
+    if (!response.ok) {
+      throw new Error("Download failed");
+    }
+
+    const emptyFileHeader = response.headers.get("x-endatix-empty-file");
+    if (emptyFileHeader) {
       toast.warning({
         id: toastId,
         title: "No files to download",
         description: "This submission has no files to download.",
         SvgIcon: FolderX,
-        duration: 1000
+        duration: 1000,
       });
       return;
     }
-    let filename = "submission-files.zip";
-    if (disposition) {
-      const match = disposition.match(/filename="?([^\"]+)"?/);
-      if (match) filename = match[1];
-    }
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+    const filename = getFilenameFromContentDisposition(
+      response.headers,
+      `submission-${submissionId}-files.zip`,
+    );
+
+    const blob = await response.blob();
+    initiateFileDownload(blob, filename);
+
     toast.success({
       id: toastId,
       title: "Download ready!",
       description: "Check your downloads folder.",
       SvgIcon: FolderDown,
-      duration: 1000
+      duration: 1000,
     });
   } catch (err: unknown) {
     if (err instanceof Error) {
