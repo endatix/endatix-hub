@@ -1,5 +1,5 @@
 import { toast } from "@/components/ui/toast";
-import { FolderDown } from "lucide-react";
+import { FolderDown, FolderX } from "lucide-react";
 
 export async function downloadSubmissionFilesUseCase({
   formId,
@@ -20,6 +20,17 @@ export async function downloadSubmissionFilesUseCase({
     if (!res.ok) throw new Error("Download failed");
     const blob = await res.blob();
     const disposition = res.headers.get("content-disposition");
+    const emptyZipHeader = res.headers.get("x-endatix-empty-zip");
+    if (emptyZipHeader) {
+      toast.warning({
+        id: toastId,
+        title: "No files to download",
+        description: "This submission has no files to download.",
+        SvgIcon: FolderX,
+        duration: 1000
+      });
+      return;
+    }
     let filename = "submission-files.zip";
     if (disposition) {
       const match = disposition.match(/filename="?([^\"]+)"?/);

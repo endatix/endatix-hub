@@ -76,8 +76,6 @@ Serializer.addProperty("survey", {
   isLocalizable: true,
 });
 
-debugger;
-
 const translations = getLocaleStrings("en");
 translations.pehelp.fileNamesPrefix =
   "Set a prefix for the downloaded submission files using an expression. <br/>" +

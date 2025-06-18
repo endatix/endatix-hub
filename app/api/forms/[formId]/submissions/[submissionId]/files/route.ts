@@ -64,6 +64,8 @@ export async function GET(
     const contentDisposition = backendRes.headers.get("content-disposition");
     const headers: HeadersInit = { "content-type": contentType };
     if (contentDisposition) headers["content-disposition"] = contentDisposition;
+    const emptyZipHeader = backendRes.headers.get("x-endatix-empty-zip");
+    if (emptyZipHeader) headers["x-endatix-empty-zip"] = emptyZipHeader;
 
     return new Response(backendRes.body, {
       status: 200,

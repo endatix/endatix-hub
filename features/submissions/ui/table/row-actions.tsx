@@ -54,7 +54,6 @@ export function RowActions<TData>({ row }: RowActionsProps<TData>) {
             <span>Edit</span>
           </Link>
         </DropdownMenuItem>
-        <DownloadFilesDropdownItem formId={item.formId} submissionId={item.id} />
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-not-allowed">
           <FileDown className="w-4 h-4 mr-2" />
@@ -66,6 +65,7 @@ export function RowActions<TData>({ row }: RowActionsProps<TData>) {
             <span>Share Links</span>
           </Link>
         </DropdownMenuItem>
+        <DownloadFilesDropdownItem formId={item.formId} submissionId={item.id} />
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-not-allowed">
           <Trash2 className="w-4 h-4 mr-2" />
