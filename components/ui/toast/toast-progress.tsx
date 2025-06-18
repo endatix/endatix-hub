@@ -10,8 +10,6 @@ interface ToastProgressProps {
   remainingTimeRef: RefObject<number>;
 }
 
-const DEFAULT_DURATION = 5000;
-
 function ToastProgress({
   duration,
   variant,
