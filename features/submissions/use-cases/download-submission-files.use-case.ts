@@ -1,5 +1,8 @@
 import { toast } from "@/components/ui/toast";
-import { getFilenameFromContentDisposition, initiateFileDownload } from '@/lib/utils/files-download';
+import {
+  getFilenameFromContentDisposition,
+  initiateFileDownload,
+} from "@/lib/utils/files-download";
 import { FolderDown, FolderX } from "lucide-react";
 
 export async function downloadSubmissionFilesUseCase({
@@ -20,7 +23,8 @@ export async function downloadSubmissionFilesUseCase({
     );
 
     if (!response.ok) {
-      throw new Error("Download failed");
+      const errorMessage = await response.text();
+      throw new Error(`Download failed: ${errorMessage}`);
     }
 
     const emptyFileHeader = response.headers.get("x-endatix-empty-file");

@@ -673,9 +673,7 @@ export const getSubmissionFiles = async (
     redirect("/login");
   }
 
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .build();
+  const headers = new HeaderBuilder().withAuth(session).build();
 
   let requestUrl = `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}/files`;
   if (fileNamesPrefix) {
@@ -687,7 +685,21 @@ export const getSubmissionFiles = async (
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch submission files");
+    let errorMessage = "Failed to download submission files";
+    if (response.status === 400) {
+      const error = await response.json();
+
+      // Extract fileNamesPrefix error if present
+      const fileNamesPrefixError =
+        error?.errors?.fileNamesPrefix?.length > 0
+          ? error.errors.fileNamesPrefix.join(', ')
+          : undefined;
+
+      // Use the extracted error or fallback to the general message
+      errorMessage = fileNamesPrefixError || error.message || errorMessage;
+    }
+
+    throw new Error(errorMessage);
   }
 
   return response;

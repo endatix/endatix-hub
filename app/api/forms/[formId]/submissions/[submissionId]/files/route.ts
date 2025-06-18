@@ -58,7 +58,16 @@ export async function GET(
       status: 200,
       headers,
     });
-  } catch {
-    return new Response("Failed to proxy file download", { status: 500 });
+  } catch (error) {
+    return new Response(
+      `${
+        error instanceof Error
+          ? error.message
+          : "Failed to download submission files"
+      }`,
+      {
+        status: 500,
+      },
+    );
   }
 }
