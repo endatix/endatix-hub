@@ -47,10 +47,19 @@ function createToast(toast: ToastOptions & { variant?: ToastVariant }) {
   if (!mergedProps.variant) {
     throw new Error("Toast variant is required");
   }
-  return sonnerToast.custom(
-    (id) => <Toast {...(mergedProps as ToastProps)} id={id} />,
-    { id: toast.id },
-  );
+
+  if (mergedProps.id) {
+    return sonnerToast.custom(
+      (id) => (
+        <Toast {...(mergedProps as ToastProps)} id={mergedProps.id ?? id} />
+      ),
+      mergedProps.id ? { id: mergedProps.id } : undefined,
+    );
+  }
+
+  return sonnerToast.custom((id) => (
+    <Toast {...(mergedProps as ToastProps)} id={id} />
+  ));
 }
 
 const toast = Object.assign(createToast, {
