@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { Model, Serializer } from "survey-core";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
+import { getActiveDefinitionUseCase } from '@/features/public-form/use-cases/get-active-definition.use-case';
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +14,11 @@ export async function GET(
     submissionId,
   });
 
-  if (Result.isError(submission) || !submission.value?.formDefinition) {
+  const activeDefinition = await getActiveDefinitionUseCase({
+    formId,
+  });
+
+  if (Result.isError(submission) || Result.isError(activeDefinition)) {
     return new Response("Submission not found", { status: 404 });
   }
 
@@ -25,7 +30,7 @@ export async function GET(
     visibleIndex: 0,
   });
 
-  const model = new Model(submission.value.formDefinition.jsonData);
+  const model = new Model(activeDefinition.value.jsonData);
   model.data = JSON.parse(submission.value.jsonData);
 
   const expression = model.getPropertyValue("fileNamesPrefix") ?? "";

@@ -72,9 +72,11 @@ Serializer.addProperty("survey", {
   type: "expression",
   category: "downloadSettings",
   categoryIndex: 901,
-  visibleIndex: 0,
+  visibleIndex: 1,
   isLocalizable: true,
 });
+
+debugger;
 
 const translations = getLocaleStrings("en");
 translations.pehelp.fileNamesPrefix =
@@ -721,8 +723,7 @@ function FormEditor({
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
-        newCreator.activatePropertyGridCategory("creatorSettings");
-        newCreator.onSurveyInstanceCreated.add((creator, options) => {
+        newCreator.onSurveyInstanceCreated.add((_, options) => {
           if (options.area === "property-grid") {
             const downloadSettingsCategory =
               options.survey.getPageByName("downloadSettings");
