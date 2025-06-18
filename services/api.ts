@@ -582,7 +582,7 @@ export const updateSubmissionStatus = async (
 ): Promise<UpdateSubmissionStatusRequest> => {
   const session = await getSession();
 
-  if (!session.isLoggedIn) {
+  if (!session?.isLoggedIn) {
     redirect("/login");
   }
 
@@ -660,6 +660,37 @@ export const getSubmission = async (
   }
 
   return response.json();
+};
+
+export const getSubmissionFiles = async (
+  formId: string,
+  submissionId: string,
+  fileNamesPrefix?: string,
+): Promise<Response> => {
+  const session = await getSession();
+
+  if (!session?.isLoggedIn) {
+    redirect("/login");
+  }
+
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .build();
+
+  let requestUrl = `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}/files`;
+  if (fileNamesPrefix) {
+    requestUrl += `?fileNamesPrefix=${encodeURIComponent(fileNamesPrefix)}`;
+  }
+
+  const response = await fetch(requestUrl, {
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch submission files");
+  }
+
+  return response;
 };
 
 export const changePassword = async (
@@ -869,7 +900,9 @@ export interface RegistrationResponse {
   message: string;
 }
 
-export const register = async (request: RegistrationRequest): Promise<RegistrationResponse> => {
+export const register = async (
+  request: RegistrationRequest,
+): Promise<RegistrationResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
