@@ -2,11 +2,10 @@
 
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
-import { SubmissionProperties } from "./submission-properties";
 import { BackToSubmissionsButton } from "./back-to-submissions-button";
-import { SubmissionHeader } from "./submission-header";
 import { SubmissionAnswers } from "./submission-answers";
-import { SectionTitle } from "@/components/headings/section-title";
+import { SubmissionHeader } from "./submission-header";
+import { SubmissionProperties } from "./submission-properties";
 
 async function SubmissionDetails({
   formId,
@@ -45,10 +44,10 @@ async function SubmissionDetails({
         status={submission.status}
       />
       <SubmissionProperties submission={submission} />
-      <SectionTitle title="Submission Answers" headingClassName="py-2 my-0" />
       <SubmissionAnswers
         formDefinition={submission.formDefinition.jsonData}
         submissionData={submission.jsonData}
+        formId={formId}
       />
     </>
   );

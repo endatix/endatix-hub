@@ -1,133 +1,137 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { QuestionType } from "@/lib/questions";
 import React from "react";
 import {
   Question,
+  QuestionCheckboxModel,
+  QuestionCompositeModel,
   QuestionFileModel,
+  QuestionMatrixDropdownModel,
   QuestionMultipleTextModel,
+  QuestionPanelDynamicModel,
   QuestionSignaturePadModel,
 } from "survey-core";
-import RatingAnswer from "./rating-answer";
-import RadioGroupAnswer from "./radiogroup-answer";
-import DropdownAnswer from "./dropdown-answer";
-import RankingAnswer from "./ranking-answer";
-import MatrixAnswer from "./matrix-answer";
 import CommentAnswer from "./comment-answer";
+import CompositeAnswer from "./composite-answer";
+import DropdownAnswer from "./dropdown-answer";
 import { FileAnswer } from "./file-answer";
-import { QuestionLabel } from "../details/question-label";
-import { QuestionType } from "@/lib/questions";
+import MatrixAnswer from "./matrix-answer";
 import MultipleTextAnswer from "./multipletext-answer";
+import RadioGroupAnswer from "./radiogroup-answer";
+import RankingAnswer from "./ranking-answer";
+import RatingAnswer from "./rating-answer";
 import { SignaturePadAnswer } from "./signaturepad-answer";
+import UnknownAnswerViewer from "./unknown-answer";
+import PanelDynamicAnswer from "./paneldynamic-answer";
+import CheckboxAnswer from "./checkbox-answer";
+import MatrixDropdownAnswer from "./matrixdropdown-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
   forQuestion: Question;
+  className?: string;
 }
 
-const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
-  let questionType = forQuestion.getType() ?? "unsupported";
+const AnswerViewer = ({
+  forQuestion,
+  className,
+}: ViewAnswerProps): React.JSX.Element => {
+  const questionType = forQuestion.getType() ?? "unsupported";
 
-  // If the type is not a valid QuestionType, try to get it from jsonObj
-  if (!Object.values(QuestionType).includes(questionType as QuestionType)) {
-    questionType = (forQuestion as any).jsonObj?.type ?? questionType;
+  if (forQuestion instanceof QuestionCompositeModel) {
+    return <CompositeAnswer question={forQuestion} className={className} />;
   }
 
   const renderTextAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <Input
-        disabled
-        id={forQuestion.name}
-        value={forQuestion.value ?? "N/A"}
-        className="col-span-3 bg-accent"
-      />
-    </>
+    <Input
+      disabled
+      id={forQuestion.name}
+      value={forQuestion.value ?? "N/A"}
+      className={className}
+    />
+  );
+
+  const renderBooleanAnswer = () => (
+    <Checkbox disabled checked={forQuestion.value} className={className} />
   );
 
   const renderCheckboxAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <Checkbox
-        disabled
-        checked={forQuestion.value}
-        className="col-span-3 self-start"
-      />
-    </>
+    <CheckboxAnswer
+      question={forQuestion as QuestionCheckboxModel}
+      className={className}
+    />
   );
 
   const renderRatingAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <RatingAnswer question={forQuestion} className="col-span-3 self-start" />
-    </>
+    <RatingAnswer question={forQuestion} className={className} />
   );
 
   const renderRadiogroupAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <RadioGroupAnswer
-        question={forQuestion}
-        className="col-span-3 self-start"
-      />
-    </>
+    <RadioGroupAnswer question={forQuestion} className={className} />
   );
 
   const renderDropdownAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <DropdownAnswer
-        question={forQuestion}
-        className="col-span-3 self-start"
-      />
-    </>
+    <DropdownAnswer question={forQuestion} className={className} />
   );
 
   const renderRankingAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <RankingAnswer question={forQuestion} className="col-span-3 self-start" />
-    </>
+    <RankingAnswer question={forQuestion} className={className} />
   );
 
-  const renderMatrixAnswer = () => <MatrixAnswer question={forQuestion} />;
+  const renderMatrixAnswer = () => (
+    <MatrixAnswer question={forQuestion} className={className} />
+  );
 
-  const renderCommentAnswer = () => <CommentAnswer question={forQuestion} />;
+  const renderMatrixDropdownAnswer = () => (
+    <MatrixDropdownAnswer
+      question={forQuestion as QuestionMatrixDropdownModel}
+      className={className}
+    />
+  );
+
+  const renderCommentAnswer = () => (
+    <CommentAnswer question={forQuestion} className={className} />
+  );
 
   const renderFileAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <FileAnswer
-        question={forQuestion as QuestionFileModel}
-        className="col-span-3"
-      />
-    </>
+    <FileAnswer
+      question={forQuestion as QuestionFileModel}
+      className={className}
+    />
+  );
+
+  const renderPanelDynamicAnswer = () => (
+    <PanelDynamicAnswer
+      question={forQuestion as QuestionPanelDynamicModel}
+      className={className}
+    />
   );
 
   const renderSignaturePadAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <SignaturePadAnswer
-        className="col-span-3"
-        question={forQuestion as QuestionSignaturePadModel}
-      />
-    </>
+    <SignaturePadAnswer
+      className={className}
+      question={forQuestion as QuestionSignaturePadModel}
+    />
   );
 
   const renderMultipleTextAnswer = () => (
-    <MultipleTextAnswer question={forQuestion as QuestionMultipleTextModel} />
+    <MultipleTextAnswer
+      question={forQuestion as QuestionMultipleTextModel}
+      className={className}
+    />
   );
 
   const renderUnknownAnswer = () => (
-    <>
-      <QuestionLabel forQuestion={forQuestion} />
-      <p className="col-span-3">{forQuestion.value?.toString() ?? "-"}</p>
-    </>
+    <UnknownAnswerViewer forQuestion={forQuestion} className={className} />
   );
 
   switch (questionType) {
     case QuestionType.Text:
       return renderTextAnswer();
     case QuestionType.Boolean:
+      return renderBooleanAnswer();
+    case QuestionType.Checkbox:
       return renderCheckboxAnswer();
     case QuestionType.Rating:
       return renderRatingAnswer();
@@ -139,10 +143,14 @@ const AnswerViewer = ({ forQuestion }: ViewAnswerProps): React.JSX.Element => {
       return renderRankingAnswer();
     case QuestionType.Matrix:
       return renderMatrixAnswer();
+    case QuestionType.MatrixDropdown:
+      return renderMatrixDropdownAnswer()
     case QuestionType.Comment:
       return renderCommentAnswer();
     case QuestionType.File:
       return renderFileAnswer();
+    case QuestionType.PanelDynamic:
+      return renderPanelDynamicAnswer();
     case QuestionType.SignaturePad:
       return renderSignaturePadAnswer();
     case QuestionType.MultipleText:

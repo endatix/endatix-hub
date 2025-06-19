@@ -1,95 +1,150 @@
 "use client";
 
-import { Model, Question } from "survey-core";
+import { SectionTitle } from "@/components/headings/section-title";
+import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronsUpDown, UserRoundSearch } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Model, Question, QuestionNonValue } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
-import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { useEffect, useState } from "react";
-import { CustomQuestion } from "@/services/api";
-import { Result } from "@/lib/result";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import { QuestionLabel } from "./question-label";
 
 export function SubmissionAnswers({
   formDefinition,
   submissionData,
+  formId,
 }: {
   formDefinition: string;
   submissionData: string;
+  formId: string;
 }) {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [surveyModel, setSurveyModel] = useState<Model | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadQuestions = async () => {
-      try {
-        const result = await getCustomQuestionsAction();
-        if (Result.isSuccess(result)) {
-          initializeCustomQuestions(result.value.map((q: CustomQuestion) => q.jsonData));
-        }
-        
+    try {
+      if (!formDefinition || !submissionData) {
+        setError("Form definition or submission data is missing");
+        return;
+      }
+
+      if (!surveyModel) {
         const json = JSON.parse(formDefinition);
-        const surveyModel = new Model(json);
+        const surveyModelNew = new Model(json);
+
+        // TODO: Add preload external data here
 
         const parsedData = JSON.parse(submissionData);
-        surveyModel.data = parsedData;
 
-        const allQuestions = surveyModel.getAllQuestions(false, false, true);
-        
-        // Filter out panel questions since their nested questions are already present
-        const questions = allQuestions.filter(question => {
-          const customQuestion = question.customQuestion;
-          if (customQuestion?.json.elementsJSON) {
-            return false;
-          }
-          return true;
-        });
-
-        // Convert remaining custom questions to their base types
-        questions.forEach(question => {
-          const customQuestion = question.customQuestion;
-          if (customQuestion?.json.questionJSON) {
-            question.fromJSON(customQuestion.json.questionJSON);
-          }
-        });
-
-        setQuestions(questions);
-      } catch (ex) {
-        console.error("Error while loading submission's data", ex);
-      } finally {
-        setIsLoading(false);
+        surveyModelNew.data = parsedData;
+        const surveyQuestions = surveyModelNew.getAllQuestions(
+          false,
+          false,
+          false,
+        );
+        setQuestions(surveyQuestions);
+        setSurveyModel(surveyModelNew);
       }
-    };
+    } catch (ex) {
+      console.warn("Error while parsing submission's JSON data", ex);
+      setError("Error while parsing submission's JSON data");
+    }
+  }, [formDefinition, formId, submissionData, surveyModel]);
 
-    loadQuestions();
-  }, [formDefinition, submissionData]);
-
-  if (!formDefinition || !submissionData) {
+  if (error || !surveyModel) {
     return <ErrorView />;
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-muted-foreground">Loading answers...</p>
-        </div>
+  return (
+    <>
+      <SectionTitle title="Submission Answers" headingClassName="py-2 my-0" />
+      <div className="grid gap-4">
+        <DynamicVariablesView surveyModel={surveyModel} />
+        {questions?.map((question) => (
+          <SubmissionItemRow key={question.id} question={question} />
+        ))}
       </div>
-    );
+    </>
+  );
+}
+
+const SubmissionItemRow = ({ question }: { question: Question }) => {
+  if (question instanceof QuestionNonValue) {
+    return null;
   }
 
   return (
-    <div className="grid gap-4">
-      {questions?.map((question) => (
-        <div
-          key={question.id}
-          className="grid grid-cols-5 items-center gap-4 mb-6"
-        >
-          <AnswerViewer key={question.id} forQuestion={question} />
-        </div>
-      ))}
+    <div key={question.id} className="grid grid-cols-5 items-center gap-4 mb-6">
+      <QuestionLabel forQuestion={question} />
+      <AnswerViewer
+        key={question.id}
+        forQuestion={question}
+        className="col-span-3"
+      />
     </div>
   );
+};
+
+interface DynamicVariablesViewProps {
+  surveyModel: Model;
 }
+
+const DynamicVariablesView = ({ surveyModel }: DynamicVariablesViewProps) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  const dynamicVariableNames = useMemo(
+    () => surveyModel?.getVariableNames() ?? [],
+    [surveyModel],
+  );
+
+  const hasVariables = dynamicVariableNames.length > 0;
+
+  if (!hasVariables) {
+    return null;
+  }
+
+  return (
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="grid grid-cols-5 items-start gap-4 mb-6 h-full"
+    >
+      <div className="text-right col-span-2 flex top-0 justify-end">
+        <h4 className="text-sm font-semibold flex items-center gap-2">
+          <UserRoundSearch /> Dynamic Variables
+        </h4>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-9 p-0">
+            <ChevronsUpDown className="h-4 w-4" />
+            <span className="sr-only">Toggle</span>
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <div className="col-span-3">
+        <CollapsibleContent className="space-y-2">
+          {dynamicVariableNames.map((name) => (
+            <div
+              key={name}
+              className="flex items-center rounded-md border p-0.5 px-2"
+            >
+              <span className="text-sm font-medium text-muted-foreground pr-1">
+                {`@${name} =`}
+              </span>
+              <span className="text-sm font-medium">
+                {` ${surveyModel.getVariable(name)}`}
+              </span>
+            </div>
+          ))}
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+};
 
 const ErrorView = () => {
   return <div>Error loading submission answers</div>;
