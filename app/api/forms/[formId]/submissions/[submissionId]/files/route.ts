@@ -5,12 +5,28 @@ import { Result } from "@/lib/result";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { EMPTY_FILE_HEADER } from "@/lib/utils/files-download";
 import { getSubmissionFiles } from "@/services/api";
+import { getSession } from "@/features/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string; submissionId: string }> },
 ) {
   const { formId, submissionId } = await params;
+
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    return new Response(
+      JSON.stringify({
+        error: "Unauthorized",
+      }),
+      {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
   const submission = await getSubmissionDetailsUseCase({
     formId,
     submissionId,
@@ -54,10 +70,7 @@ export async function GET(
       headers[EMPTY_FILE_HEADER] = emptyFile;
     }
 
-    return new Response(response.body, {
-      status: 200,
-      headers,
-    });
+    return response;
   } catch (error) {
     return new Response(
       `${

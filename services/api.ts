@@ -673,15 +673,15 @@ export const getSubmissionFiles = async (
     redirect("/login");
   }
 
-  const headers = new HeaderBuilder().withAuth(session).build();
+  const headers = new HeaderBuilder().withAuth(session).provideJson().build();
 
-  let requestUrl = `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}/files`;
-  if (fileNamesPrefix) {
-    requestUrl += `?fileNamesPrefix=${encodeURIComponent(fileNamesPrefix)}`;
-  }
+  const requestUrl = `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}/files`;
+  const requestBody = fileNamesPrefix ? { fileNamesPrefix } : {};
 
   const response = await fetch(requestUrl, {
+    method: "POST",
     headers: headers,
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -692,7 +692,7 @@ export const getSubmissionFiles = async (
       // Extract fileNamesPrefix error if present
       const fileNamesPrefixError =
         error?.errors?.fileNamesPrefix?.length > 0
-          ? error.errors.fileNamesPrefix.join(', ')
+          ? error.errors.fileNamesPrefix.join(", ")
           : undefined;
 
       // Use the extracted error or fallback to the general message
