@@ -22,7 +22,7 @@ function ToastProgress({
   const UI_UPDATE_INTERVAL = 25;
 
   useEffect(() => {
-    if (duration === 0) return; // No JS progress for indeterminate
+    if (duration === 0) return;
     if (isPaused) return;
 
     const interval = setInterval(() => {
@@ -35,6 +35,10 @@ function ToastProgress({
 
     return () => clearInterval(interval);
   }, [isPaused, remainingTimeRef, onComplete, duration]);
+
+  useEffect(() => {
+    setDisplayTime(duration);
+  }, [duration]);
 
   const progressPercentage =
     direction === "left-to-right"
