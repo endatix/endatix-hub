@@ -36,7 +36,7 @@ export async function downloadSubmissionFilesUseCase({
         title: "No files to download",
         description: "This submission has no files to download.",
         SvgIcon: FolderX,
-        duration: 1000,
+        duration: 2000,
       });
       return;
     }
@@ -53,7 +53,7 @@ export async function downloadSubmissionFilesUseCase({
       title: "Download ready!",
       description: "Check your downloads folder.",
       SvgIcon: FolderDown,
-      duration: 1000,
+      duration: 2000,
     });
   } catch (err: unknown) {
     if (err instanceof Error) {

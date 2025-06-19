@@ -115,6 +115,11 @@ function Toast({
   }, []);
 
   React.useEffect(() => {
+    remainingTimeRef.current = duration ?? DEFAULT_DURATION;
+    lastUpdatedRef.current = Date.now();
+  }, [duration]);
+
+  React.useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     if (duration === 0) {
       return;
