@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -32,8 +33,9 @@ const TagBoxAnswer = ({ question, className }: TagBoxAnswerProps) => {
 
 const TagItem = ({ choice, value }: { choice: Question; value: string }) => {
   return (
-    <div
-      className="flex flex-row items-center gap-2 bg-primary text-primary-foreground mr-2 rounded-lg px-2 py-1 text-sm font-medium opacity-70"
+    <Badge
+      variant="outline"
+      className="flex flex-row items-center gap-2 text-sm font-medium"
       key={choice.value}
     >
       {choice.title}
@@ -42,7 +44,7 @@ const TagItem = ({ choice, value }: { choice: Question; value: string }) => {
           <TooltipTrigger asChild>
             <Info
               aria-label="Question Value"
-              className="w-4 h-4 cursor-pointer text-primary-foreground"
+              className="w-4 h-4 cursor-pointer text-muted-foreground"
             />
           </TooltipTrigger>
           <TooltipContent>
@@ -50,7 +52,7 @@ const TagItem = ({ choice, value }: { choice: Question; value: string }) => {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-    </div>
+    </Badge>
   );
 };
 

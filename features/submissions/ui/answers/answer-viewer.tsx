@@ -1,9 +1,9 @@
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { QuestionType } from "@/lib/questions";
 import React from "react";
 import {
   Question,
+  QuestionBooleanModel,
   QuestionCheckboxModel,
   QuestionCompositeModel,
   QuestionFileModel,
@@ -26,7 +26,8 @@ import UnknownAnswerViewer from "./unknown-answer";
 import PanelDynamicAnswer from "./paneldynamic-answer";
 import CheckboxAnswer from "./checkbox-answer";
 import MatrixDropdownAnswer from "./matrixdropdown-answer";
-import TagBoxAnswer from './tagbox-answer';
+import TagBoxAnswer from "./tagbox-answer";
+import BooleanAnswer from "./boolean-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -54,7 +55,10 @@ const AnswerViewer = ({
   );
 
   const renderBooleanAnswer = () => (
-    <Checkbox disabled checked={forQuestion.value} className={className} />
+    <BooleanAnswer
+      question={forQuestion as QuestionBooleanModel}
+      className={className}
+    />
   );
 
   const renderCheckboxAnswer = () => (
@@ -149,7 +153,7 @@ const AnswerViewer = ({
     case QuestionType.Matrix:
       return renderMatrixAnswer();
     case QuestionType.MatrixDropdown:
-      return renderMatrixDropdownAnswer()
+      return renderMatrixDropdownAnswer();
     case QuestionType.Comment:
       return renderCommentAnswer();
     case QuestionType.File:
