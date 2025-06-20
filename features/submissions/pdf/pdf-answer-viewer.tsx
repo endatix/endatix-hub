@@ -3,80 +3,100 @@ import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import {
   MultipleTextItemModel,
   Question,
+  QuestionBooleanModel,
   QuestionFileModel,
+  QuestionMatrixDropdownModel,
   QuestionMultipleTextModel,
+  QuestionPanelDynamicModel,
   QuestionSignaturePadModel,
+  QuestionCheckboxModel,
 } from "survey-core";
 import PdfFileAnswer from "./pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
 import { MessageSquareTextIcon } from "@/features/pdf-export/components/icons";
 import PdfSignaturePadAnswer from "./pdf-signaturepad-answer";
+import PdfPanelDynamicAnswer from "./pdf-paneldynamic-answer";
+import PdfMatrixDropdownAnswer from './pdf-matrixdropdown-answer';
+import PdfTagBoxAnswer from './pdf-tagbox-answer';
+import PdfCheckboxAnswer from './pdf-checkbox-answer';
+import PdfBooleanAnswer from './pdf-boolean-answer';
 
 export interface ViewAnswerProps {
   forQuestion: Question;
-  panelTitle: string;
-  pageBreak: boolean;
+  panelTitle?: string;
+  pageBreak?: boolean;
+  hideTitle?: boolean;
 }
 
 const PdfAnswerViewer = ({
   forQuestion,
   panelTitle,
   pageBreak,
+  hideTitle,
 }: ViewAnswerProps): React.ReactElement => {
   let questionType = forQuestion.getType() ?? "unsupported";
 
   // If the type is not a valid QuestionType, try to get it from jsonObj
   if (!Object.values(QuestionType).includes(questionType as QuestionType)) {
-    questionType = (forQuestion as any).jsonObj?.type ?? questionType;
+    questionType = (forQuestion as Question).getType() ?? questionType;
   }
 
   const questionTitle = panelTitle
     ? `(${panelTitle}) ${forQuestion.title}`
     : forQuestion.title;
 
+  const renderTitle = () => {
+    if (hideTitle) return null;
+    return <Text style={PDF_STYLES.questionLabel}>{questionTitle}:</Text>;
+  };
+
   const renderTextAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      <Text style={styles.answerText}>{forQuestion.value || "No Answer"}</Text>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <Text style={PDF_STYLES.answerText}>
+        {forQuestion.value || "No Answer"} 
+      </Text>
     </View>
   );
 
-  const renderCheckboxAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      {forQuestion.value ? (
-        <Text style={[styles.booleanAnswer, styles.booleanYes]}>YES</Text>
-      ) : (
-        <Text style={[styles.booleanAnswer, styles.booleanNo]}>NO</Text>
-      )}
+  const renderBooleanAnswer = () => (
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <PdfBooleanAnswer question={forQuestion as QuestionBooleanModel} />
     </View>
   );
 
   const renderRatingAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      <Text style={styles.answerText}>{forQuestion.value || "No Answer"}</Text>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <Text style={PDF_STYLES.answerText}>
+        {forQuestion.value || "No Answer"}
+      </Text>
     </View>
   );
 
   const renderRadiogroupAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      <Text style={styles.answerText}>{forQuestion.value || "No Answer"}</Text>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <Text style={PDF_STYLES.answerText}>
+        {forQuestion.value || "No Answer"}
+      </Text>
     </View>
   );
 
   const renderDropdownAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      <Text style={styles.answerText}>{forQuestion.value || "No Answer"}</Text>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <Text style={PDF_STYLES.answerText}>
+        {forQuestion.value || "No Answer"}
+      </Text>
     </View>
   );
 
   const renderRankingAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      <Text style={styles.answerText}>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <Text style={PDF_STYLES.answerText}>
         {Array.isArray(forQuestion.value)
           ? forQuestion.value.join(", ")
           : "No Answer"}
@@ -85,35 +105,44 @@ const PdfAnswerViewer = ({
   );
 
   const renderMatrixAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      <Text style={styles.answerText}>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <Text style={PDF_STYLES.answerText}>
         {JSON.stringify(forQuestion.value, null, 2) || "No Answer"}
       </Text>
     </View>
   );
 
   const renderCommentAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
-      <Text style={styles.answerText}>{forQuestion.value || "No Answer"}</Text>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <Text style={PDF_STYLES.answerText}>
+        {forQuestion.value || "No Answer"}
+      </Text>
+    </View>
+  );
+
+  const renderTagBoxAnswer = () => (
+    <View style={PDF_STYLES.nonFileAnswerContainer} wrap={false}>
+      {renderTitle()}
+      <PdfTagBoxAnswer question={forQuestion} />
     </View>
   );
 
   const renderFileAnswer = () => (
-    <View style={styles.fileAnswerContainer} break={pageBreak} wrap={false}>
-      <Text style={styles.questionLabel}>{questionTitle}:</Text>
+    <View style={PDF_STYLES.fileAnswerContainer} break={pageBreak} wrap={false}>
+      {renderTitle()}
       <PdfFileAnswer question={forQuestion as QuestionFileModel} />
       {forQuestion?.supportComment() &&
         forQuestion?.hasComment &&
         forQuestion?.comment && (
-          <View style={styles.flexRow}>
+          <View style={PDF_STYLES.flexRow}>
             <MessageSquareTextIcon />
-            <View style={styles.flexColumn}>
-              <Text style={[styles.questionLabel, styles.smallText]}>
+            <View style={PDF_STYLES.flexColumn}>
+              <Text style={[PDF_STYLES.questionLabel, PDF_STYLES.smallText]}>
                 Comment:
               </Text>
-              <Text style={[styles.mutedText, styles.smallText]}>
+              <Text style={[PDF_STYLES.mutedText, PDF_STYLES.smallText]}>
                 {forQuestion?.comment}
               </Text>
             </View>
@@ -123,10 +152,27 @@ const PdfAnswerViewer = ({
   );
 
   const renderSignaturePadAnswer = () => (
-    <View style={styles.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
       <PdfSignaturePadAnswer
         question={forQuestion as QuestionSignaturePadModel}
       />
+    </View>
+  );
+
+  const renderPanelDynamicAnswer = () => (
+    <View>
+      {renderTitle()}
+      <PdfPanelDynamicAnswer
+        question={forQuestion as QuestionPanelDynamicModel}
+      />
+    </View>
+  );
+
+  const renderMatrixDropdownAnswer = () => (
+    <View>
+      {renderTitle()}
+      <PdfMatrixDropdownAnswer question={forQuestion as QuestionMatrixDropdownModel} />
     </View>
   );
 
@@ -134,16 +180,23 @@ const PdfAnswerViewer = ({
     const question = forQuestion as QuestionMultipleTextModel;
 
     return (
-      <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-        <Text style={styles.questionLabel}>{questionTitle}:</Text>
+      <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+        {renderTitle()}
         {question?.items?.map((item: MultipleTextItemModel) => (
-          <Text key={item.name} style={styles.answerText}>
+          <Text key={item.name} style={PDF_STYLES.answerText}>
             {item.value}
           </Text>
         ))}
       </View>
     );
   };
+
+  const renderCheckboxAnswer = () => (
+    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      {renderTitle()}
+      <PdfCheckboxAnswer question={forQuestion as QuestionCheckboxModel} />
+    </View>
+  );
 
   const renderUnknownAnswer = () => {
     if (forQuestion.getType() === "html" || forQuestion.getType() === "image") {
@@ -153,12 +206,12 @@ const PdfAnswerViewer = ({
     const isStringValue = typeof forQuestion?.value === "string";
 
     return (
-      <View style={styles.nonFileAnswerContainer} break={pageBreak}>
-        <Text style={styles.questionLabel}>{questionTitle}</Text>
+      <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+        {renderTitle()}
         {isStringValue ? (
-          <Text style={styles.answerText}>{forQuestion.value}</Text>
+          <Text style={PDF_STYLES.answerText}>{forQuestion.value}</Text>
         ) : (
-          <Text style={styles.answerText}>
+          <Text style={PDF_STYLES.answerText}>
             {JSON.stringify(forQuestion.value, null, 2)}
           </Text>
         )}
@@ -170,7 +223,7 @@ const PdfAnswerViewer = ({
     case QuestionType.Text:
       return renderTextAnswer();
     case QuestionType.Boolean:
-      return renderCheckboxAnswer();
+      return renderBooleanAnswer();
     case QuestionType.Rating:
       return renderRatingAnswer();
     case QuestionType.Radiogroup:
@@ -189,12 +242,20 @@ const PdfAnswerViewer = ({
       return renderSignaturePadAnswer();
     case QuestionType.MultipleText:
       return renderMultipleTextAnswer();
+    case QuestionType.TagBox:
+      return renderTagBoxAnswer();
+    case QuestionType.PanelDynamic:
+      return renderPanelDynamicAnswer();
+    case QuestionType.MatrixDropdown:
+      return renderMatrixDropdownAnswer();
+    case QuestionType.Checkbox:
+      return renderCheckboxAnswer();
     default:
       return renderUnknownAnswer();
   }
 };
 
-export const styles = StyleSheet.create({
+export const PDF_STYLES = StyleSheet.create({
   fileAnswerContainer: {
     marginBottom: 8,
     padding: 8,
@@ -219,7 +280,8 @@ export const styles = StyleSheet.create({
   },
   answerText: {
     fontFamily: "Roboto",
-    fontSize: 12,
+    fontSize: 10,
+    flex: 1,
   },
   nonFileAnswerContainer: {
     fontFamily: "Roboto",
@@ -231,7 +293,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: "#f0f0f0",
     borderBottomStyle: "solid",
     padding: 8,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   flexRow: {
     display: "flex",
