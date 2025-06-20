@@ -1,6 +1,12 @@
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Minus } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info, Minus } from "lucide-react";
 import { Question } from "survey-core";
 
 interface RadioGroupAnswerProps
@@ -16,7 +22,20 @@ const RadioGroupAnswer = ({ question, className }: RadioGroupAnswerProps) => {
     <RadioGroup disabled defaultValue={question.value} className={className}>
       <div className="flex items-center space-x-2">
         <RadioGroupItem value={question.value} id={question.id} />
-        <Label htmlFor={question.id}>{question.value}</Label>
+        <Label htmlFor={question.id}>{decodeURIComponent(question.selectedItem?.text)}</Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info
+                aria-label="Question Value"
+                className="w-4 h-4 cursor-pointer text-muted-foreground"
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Question Value: {question.value}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </RadioGroup>
   );

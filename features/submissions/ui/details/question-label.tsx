@@ -11,7 +11,7 @@ interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
 const getPanelTitle = (question: Question) => {
   const panel = question.parent;
   if (panel instanceof PanelModel) {
-    return panel.title;
+    return panel.processedTitle ?? panel.title;
   }
   return "";
 };
@@ -22,10 +22,13 @@ export function QuestionLabel({
   ...props
 }: QuestionLabelProps) {
   const panelTitle = useMemo(() => getPanelTitle(forQuestion), [forQuestion]);
+  const processedTitle = useMemo(() => {
+    return forQuestion.processedTitle ?? forQuestion.title;
+  }, [forQuestion]);
 
   return (
     <div className={cn("text-right col-span-2", className)} {...props}>
-      <Label htmlFor={forQuestion.name}>{forQuestion.title}</Label>
+      <Label htmlFor={forQuestion.name}>{processedTitle}</Label>
       {panelTitle && (
         <p className="text-xs text-muted-foreground">{panelTitle}</p>
       )}
