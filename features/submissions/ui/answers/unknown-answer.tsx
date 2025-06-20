@@ -21,6 +21,7 @@ const UnknownAnswerViewer = ({ forQuestion, className }: ViewAnswerProps) => {
 
   return (
     <pre className={cn("w-full text-muted-foreground text-sm", className)}>
+      type: {forQuestion.getType()} <br />
       {JSON.stringify(forQuestion.value, null, 2)}
     </pre>
   );

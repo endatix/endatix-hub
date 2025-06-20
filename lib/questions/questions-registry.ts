@@ -13,5 +13,6 @@ export enum QuestionType {
   SignaturePad = "signaturepad",
   MatrixDropdown = "matrixdropdown",
   MultipleText = "multipletext",
+  TagBox = "tagbox",
   Unsupported = "unsupported",
 }

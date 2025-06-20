@@ -26,6 +26,7 @@ import UnknownAnswerViewer from "./unknown-answer";
 import PanelDynamicAnswer from "./paneldynamic-answer";
 import CheckboxAnswer from "./checkbox-answer";
 import MatrixDropdownAnswer from "./matrixdropdown-answer";
+import TagBoxAnswer from './tagbox-answer';
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -122,6 +123,10 @@ const AnswerViewer = ({
     />
   );
 
+  const renderTagBoxAnswer = () => (
+    <TagBoxAnswer question={forQuestion} className={className} />
+  );
+
   const renderUnknownAnswer = () => (
     <UnknownAnswerViewer forQuestion={forQuestion} className={className} />
   );
@@ -155,6 +160,8 @@ const AnswerViewer = ({
       return renderSignaturePadAnswer();
     case QuestionType.MultipleText:
       return renderMultipleTextAnswer();
+    case QuestionType.TagBox:
+      return renderTagBoxAnswer();
     default:
       return renderUnknownAnswer();
   }

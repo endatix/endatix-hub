@@ -34,7 +34,7 @@ const PanelDynamicAnswer = ({
             {panel.title ? panel.title : "Panel " + (index + 1)}
           </h4>
           <div className="flex flex-col gap-2 w-full">
-            {panel.getQuestions(true).map((question) => (
+            {panel.getQuestions(false).map((question) => (
               <div key={question.id} className="flex flex-col gap-1">
                 <QuestionLabel
                   forQuestion={question}

@@ -27,9 +27,9 @@ const RatingAnswer: React.FC<RatingAnswerProps> = ({ question, ...props }) => {
       {ratingScale.map((scale, index) => (
         <React.Fragment key={index}>
           {scale <= ratingValue ? (
-            <Star className="h-4 w-4 text-primary fill-primary cursor-not-allowed" />
+            <Star className="h-4 w-4 text-primary fill-primary cursor-not-allowed opacity-70" />
           ) : (
-            <Star className="h-4 w-4 text-primary cursor-not-allowed" />
+            <Star className="h-4 w-4 text-primary cursor-not-allowed opacity-70" />
           )}
         </React.Fragment>
       ))}

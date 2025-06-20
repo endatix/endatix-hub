@@ -310,7 +310,6 @@ function FormEditor({
 
   const saveTheme = useCallback(
     (saveNo: number, callback: (num: number, status: boolean) => void) => {
-      debugger;
       callback(saveNo, true);
     },
     [],
@@ -318,7 +317,6 @@ function FormEditor({
 
   const handleSaveTheme = useCallback(
     (saveNo: number, callback: (num: number, status: boolean) => void) => {
-      debugger;
       saveTheme(saveNo, callback);
     },
     [saveTheme],
