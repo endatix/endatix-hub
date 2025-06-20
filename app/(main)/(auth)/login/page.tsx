@@ -1,7 +1,7 @@
 import Image from "next/image";
-import CreateAccountForm from "@/features/auth/use-cases/create-account/ui/create-account-form";
-import { Metadata } from "next";
-import SignInLink from "@/features/auth/use-cases/create-account/ui/sign-in-link";
+import LoginForm from "@/features/auth/use-cases/login/ui/login-form";
+import type { Metadata } from "next";
+// import NewAccountLink from "@/features/auth/use-cases/login/ui/new-account-link";
 import { getSession, SessionData } from "@/features/auth";
 import {
   Card,
@@ -18,9 +18,9 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 export const metadata: Metadata = {
-  title: "Create account | Endatix Hub",
+  title: "Sign in | Endatix Hub",
   description:
-    "Create a new account in the Endatix Hub form management portal.",
+    "Sign in the Endatix Hub form management portal.",
   authors: [
     {
       name: "Endatix Team",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     description:
-      "Create a new account in the Endatix Hub form management portal.",
+      "Sign in the Endatix Hub form management portal.",
     images: [
       {
         url: "/assets/endatix-og-image.jpg",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
 };
 
-const CreateAccountPage = async () => {
+const LoginPage = async () => {
   const user = await getSession();
 
   const shouldRedirectUser = async (user: SessionData): Promise<boolean> => {
@@ -53,8 +53,8 @@ const CreateAccountPage = async () => {
     }
 
     const refererUrl = new URL(referer);
-    const isOriginatingFromCreateAccountPage = refererUrl.pathname === "/create-account";
-    if (!isOriginatingFromCreateAccountPage) {
+    const isOriginatingFromLoginPage = refererUrl.pathname === "/login";
+    if (!isOriginatingFromLoginPage) {
       return false;
     }
 
@@ -66,7 +66,7 @@ const CreateAccountPage = async () => {
   }
 
   return (
-    <div className="w-full h-screen lg:grid lg:grid-cols-2">
+    <div className="w-full h-screen lg:grid lg:grid-cols-2 -m-4 sm:-mx-6 sm:-my-4 sm:-ml-14">
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[400px] gap-6">
           {user.isLoggedIn ? (
@@ -75,21 +75,20 @@ const CreateAccountPage = async () => {
               isLoggedIn={user.isLoggedIn}
             />
           ) : (
-            <>
-              <CreateAccountForm />
-              <SignInLink />
-            </>
+            <LoginFormWrapper />
           )}
         </div>
       </div>
-      <div className="hidden h-full bg-muted lg:block">
-        <Image
-          src="/assets/lines-and-stuff.svg"
-          alt="Lines and dots pattern"
-          width="1920"
-          height="1080"
-          className="h-full w-full object-cover dark:brightness-[0.6] dark:grayscale"
-        />
+      <div className="hidden lg:flex lg:flex-col lg:justify-center lg:items-center lg:h-full">
+        <div className="h-[60%] w-full flex items-center justify-center">
+          <Image
+            src="/assets/lines-and-stuff.svg"
+            alt="Lines and dots pattern"
+            width="600"
+            height="600"
+            className="w-auto h-full max-w-full max-h-full object-contain dark:brightness-[0.6] dark:grayscale"
+          />
+        </div>
       </div>
     </div>
   );
@@ -128,4 +127,11 @@ const LoggedInSuccessMessage = ({
     );
 };
 
-export default CreateAccountPage;
+const LoginFormWrapper = () => (
+  <>
+    <LoginForm />
+    {/* <NewAccountLink /> */}
+  </>
+);
+
+export default LoginPage;
