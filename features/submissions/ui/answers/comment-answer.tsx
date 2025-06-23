@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { MessageSquareOff, MessageSquareText } from "lucide-react";
-import React from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { Question } from "survey-core";
 
 interface CommentAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
@@ -37,7 +37,12 @@ const CommentIcon = ({ hasComment }: { hasComment: boolean }) => (
 );
 
 const CommentContent = ({ question }: { question: Question }) => (
-  <Label htmlFor={question.name} className="text-sm font-medium text-muted-foreground">Comment</Label>
+  <Label
+    htmlFor={question.name}
+    className="text-sm font-medium text-muted-foreground"
+  >
+    Comment
+  </Label>
 );
 
 const NoCommentContent = () => (
@@ -46,6 +51,20 @@ const NoCommentContent = () => (
 
 const CommentAnswer = ({ question, className }: CommentAnswerProps) => {
   const hasComment = question.value?.length > 0;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isOversized = useMemo(() => question.value?.length > 1000, [question.value]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) {
+      return;
+    }
+
+    if (!isOversized) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + 4 + "px";
+    }
+  }, [question.value, isOversized]);
 
   return (
     <div
@@ -64,9 +83,14 @@ const CommentAnswer = ({ question, className }: CommentAnswerProps) => {
       </div>
       {hasComment && (
         <Textarea
+          ref={textareaRef}
           id={question.name}
           disabled
-          className="text-sm min-h-6"
+          rows={1}
+          className={cn(
+            "text-sm min-h-6 resize-none",
+            isOversized && "h-auto",
+          )}
           value={question.value}
         />
       )}
