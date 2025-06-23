@@ -27,23 +27,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#c0c0c0',
   },
-  tableCol: {
-    flex: 1,
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderColor: '#c0c0c0',
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    padding: 4,
-  },
   firstCol: {
-    flex: 1.5,
+    flex: 1,
+    padding: 4,
     borderStyle: 'solid',
     borderWidth: 1,
     borderColor: '#c0c0c0',
     borderLeftWidth: 0,
     borderTopWidth: 0,
+  },
+  col: {
+    flex: 1.5,
     padding: 4,
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderColor: '#c0c0c0',
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
   },
   tableCell: {
     fontSize: 10,
@@ -57,9 +57,9 @@ const styles = StyleSheet.create({
 });
 
 const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
-  const hasAnswers = question.visibleRows?.some((row) =>
-    row.cells?.some((cell) => cell.question.value)
-  );
+  const headerCells = question.renderedTable.headerRow?.cells ?? [];
+  const renderedRows = question.renderedTable.renderedRows.filter(row => !row.isErrorsRow);
+  const hasAnswers = renderedRows.some(row => row.cells?.some(cell => cell.question?.value));
 
   if (!hasAnswers) {
     return (
@@ -74,30 +74,36 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
     <View style={styles.container} break>
       <Text style={PDF_STYLES.questionLabel}>{question.title}</Text>
       <View style={styles.table}>
+        {/* Header Row */}
         <View style={[styles.tableRow, styles.tableHeader]} fixed>
-          <View style={styles.firstCol}>
-            <Text style={styles.tableCellHeader}></Text>
-          </View>
-          {question.visibleRows.map((row) => (
-            <View style={styles.tableCol} key={row.id}>
-              <Text style={styles.tableCellHeader}>{row.text}</Text>
+          {headerCells.map((cell, index) => (
+            <View
+              key={index}
+              style={index === 0 ? styles.firstCol : styles.col}
+            >
+              <Text style={styles.tableCellHeader}>
+                {cell.hasTitle ? cell.locTitle?.textOrHtml : ''}
+              </Text>
             </View>
           ))}
         </View>
-        {question.columns.map((column, columnIndex) => (
-          <View style={styles.tableRow} key={column.name} wrap={false}>
-            <View style={styles.firstCol}>
-              <Text style={styles.tableCell}>{column.title}</Text>
-            </View>
-            {question.visibleRows.map((row) => {
-              const cellQuestion = row.cells[columnIndex]?.question;
+        {/* Data Rows */}
+        {renderedRows.map((row, rowIndex) => (
+          <View style={styles.tableRow} key={rowIndex} wrap={false}>
+            {row.cells.map((cell, cellIndex) => {
+              const cellStyle = cellIndex === 0 ? styles.firstCol : styles.col;
+              if (cell.hasQuestion) {
+                return (
+                  <View key={cellIndex} style={cellStyle}>
+                    <PdfAnswerViewer forQuestion={cell.question} hideTitle />
+                  </View>
+                );
+              }
               return (
-                <View style={styles.tableCol} key={row.id}>
-                  {cellQuestion ? (
-                    <PdfAnswerViewer forQuestion={cellQuestion} hideTitle />
-                  ) : (
-                    <Text style={styles.tableCell}>N/A</Text>
-                  )}
+                <View key={cellIndex} style={cellStyle}>
+                  <Text style={styles.tableCell}>
+                    {cell.hasTitle ? cell.locTitle.textOrHtml : ''}
+                  </Text>
                 </View>
               );
             })}

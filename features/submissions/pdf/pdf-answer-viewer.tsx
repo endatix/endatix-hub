@@ -247,6 +247,7 @@ const PdfAnswerViewer = ({
     case QuestionType.PanelDynamic:
       return renderPanelDynamicAnswer();
     case QuestionType.MatrixDropdown:
+    case QuestionType.MatrixDynamic:
       return renderMatrixDropdownAnswer();
     case QuestionType.Checkbox:
       return renderCheckboxAnswer();
