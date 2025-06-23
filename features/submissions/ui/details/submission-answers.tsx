@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronsUpDown, UserRoundSearch } from "lucide-react";
+import { ChevronsUpDown, EyeOff, UserRoundSearch } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Model, Question, QuestionNonValue } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
@@ -65,9 +65,9 @@ export function SubmissionAnswers({
       <SectionTitle title="Submission Answers" headingClassName="py-2 my-0" />
       <div className="grid gap-4">
         <DynamicVariablesView surveyModel={surveyModel} />
-        {questions?.map((question) => (
-          <SubmissionItemRow key={question.id} question={question} />
-        ))}
+        {questions.map((question) => (
+            <SubmissionItemRow key={question.id} question={question} />
+          ))}
       </div>
     </>
   );
@@ -78,9 +78,23 @@ const SubmissionItemRow = ({ question }: { question: Question }) => {
     return null;
   }
 
+  if (!question.isVisibleInSurvey) {
+    return (
+    <div key={question.id} className="grid grid-cols-5 items-start gap-4 mb-6">
+      <QuestionLabel forQuestion={question} title={question.title} />
+      <div className="col-span-3 flex items-center gap-2 pt-2">
+        <EyeOff className="w-4 h-4 text-muted-foreground" />
+        <p className="text-xs text-muted-foreground">
+          This question was not visible in the survey.
+        </p> 
+      </div>
+    </div>
+    );
+  }
+
   return (
     <div key={question.id} className="grid grid-cols-5 items-start gap-4 mb-6">
-      <QuestionLabel forQuestion={question} />
+      <QuestionLabel forQuestion={question} title={question.title} />
       <AnswerViewer
         key={question.id}
         forQuestion={question}
