@@ -31,7 +31,7 @@ const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
   if (question && question.value) {
     return (
       <Select disabled>
-        <SelectTrigger className={cn("w-[180px]", className)}>
+        <SelectTrigger className={cn("min-w-[180px] w-auto", className)}>
           <SelectValue placeholder={text} />
         </SelectTrigger>
         <SelectContent>
