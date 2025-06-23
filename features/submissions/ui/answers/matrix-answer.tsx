@@ -1,15 +1,23 @@
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import { Minus } from "lucide-react";
-import React from "react";
-import { ItemValue, QuestionMatrixModel } from "survey-core";
+import React from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCaption,
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import { ItemValue, QuestionMatrixModel } from 'survey-core';
+import { ValueTooltip } from './value-tooltip';
 
-interface MatrixAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
+interface MatrixAnswerProps {
   question: Partial<QuestionMatrixModel>;
+  className?: string;
 }
 
-interface MatrixAnswer {
+interface IMatrixAnswer {
   question: string;
   answer: string;
 }
@@ -20,16 +28,15 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
       return [];
     }
 
-    const answers: Array<MatrixAnswer> = [];
-    question.rows.forEach((row: { text: string; id: number }) => {
+    const answers: Array<IMatrixAnswer> = [];
+    question.rows.forEach((row: ItemValue) => {
       if (!question?.value || !question?.columns) {
         return;
       }
       const rowText = row.text;
-      const answer = question.value[row.id];
+      const answer = question.value[row.value]; // Using row.value which is standard
       const answerText =
-        question.columns.find((c: ItemValue) => c.value === answer)?.title ??
-        "";
+        question.columns.find((c: ItemValue) => c.value === answer)?.text ?? '';
 
       if (answerText && rowText) {
         answers.push({
@@ -42,30 +49,37 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
     return answers;
   }, [question.rows, question.columns, question.value]);
 
-  if (matrixAnswers.length === 0) {
-    return <Minus className="h-4 w-4" />;
+  if (!matrixAnswers || matrixAnswers.length === 0) {
+    return (
+      <p className='text-sm text-muted-foreground'>
+        <em>No answer</em>
+      </p>
+    );
   }
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
-      {matrixAnswers.map((answer) => (
-        <div
-          key={answer.question}
-          className="grid grid-cols-5 col-span-5 gap-4"
-        >
-          <Label
-            htmlFor={answer.question}
-            className="pl-8 text-right col-span-2 text-sm text-muted-foreground col-span-2"
-          >
-            {answer.question}
-          </Label>
-          <div className="items-center text-left text-sm col-span-3">
-            {answer.answer}
-          </div>
-        </div>
-      ))}
-      {matrixAnswers.length > 0 && <Separator className="col-span-5" />}
-    </div>
+    <Table className={cn('table-auto', className)}>
+      <TableCaption>
+        Answers for the &quot;{question.title}&quot; question
+      </TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead className='w-1/3'>Question</TableHead>
+          <TableHead>Answer</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {matrixAnswers.map((answer) => (
+          <TableRow key={answer.question}>
+            <TableCell className='font-medium'>{answer.question}</TableCell>
+            <TableCell className='flex flex-row items-center gap-2'>
+              {answer.answer}
+              <ValueTooltip value={answer.answer} />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 };
 

@@ -1,13 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Info, Minus } from "lucide-react";
+import { Minus } from "lucide-react";
 import { Question } from "survey-core";
+import { ValueTooltip } from "./value-tooltip";
 
 interface RadioGroupAnswerProps
   extends React.HtmlHTMLAttributes<HTMLDivElement> {
@@ -23,19 +18,7 @@ const RadioGroupAnswer = ({ question, className }: RadioGroupAnswerProps) => {
       <div className="flex items-center space-x-2">
         <RadioGroupItem value={question.value} id={question.id} />
         <Label htmlFor={question.id}>{decodeURIComponent(question.selectedItem?.text)}</Label>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info
-                aria-label="Question Value"
-                className="w-4 h-4 cursor-pointer text-muted-foreground"
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Question Value: {question.value}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <ValueTooltip value={question} />
       </div>
     </RadioGroup>
   );

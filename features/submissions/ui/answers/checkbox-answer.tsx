@@ -1,13 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
+import { Label } from "@/components/ui/label";;
 import { ItemValue, QuestionCheckboxModel } from "survey-core";
+import { ValueTooltip } from "./value-tooltip";
 
 interface CheckboxAnswerProps {
   question: QuestionCheckboxModel;
@@ -50,19 +44,7 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
             >
               {decodeURIComponent(checkedItem.text)}
             </Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info
-                    aria-label="Question Value"
-                    className="w-4 h-4 cursor-pointer text-muted-foreground"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Question Value: {question.value}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <ValueTooltip value={question} />
           </div>
         ))}
       </div>
