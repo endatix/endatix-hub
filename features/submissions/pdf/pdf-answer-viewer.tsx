@@ -10,16 +10,18 @@ import {
   QuestionPanelDynamicModel,
   QuestionSignaturePadModel,
   QuestionCheckboxModel,
+  QuestionMatrixModel,
 } from "survey-core";
 import PdfFileAnswer from "./pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
 import { MessageSquareTextIcon } from "@/features/pdf-export/components/icons";
 import PdfSignaturePadAnswer from "./pdf-signaturepad-answer";
 import PdfPanelDynamicAnswer from "./pdf-paneldynamic-answer";
-import PdfMatrixDropdownAnswer from './pdf-matrixdropdown-answer';
-import PdfTagBoxAnswer from './pdf-tagbox-answer';
-import PdfCheckboxAnswer from './pdf-checkbox-answer';
-import PdfBooleanAnswer from './pdf-boolean-answer';
+import PdfMatrixDropdownAnswer from "./pdf-matrixdropdown-answer";
+import PdfTagBoxAnswer from "./pdf-tagbox-answer";
+import PdfCheckboxAnswer from "./pdf-checkbox-answer";
+import PdfBooleanAnswer from "./pdf-boolean-answer";
+import PdfMatrixAnswer from "./pdf-matrix-answer";
 
 export interface ViewAnswerProps {
   forQuestion: Question;
@@ -51,23 +53,23 @@ const PdfAnswerViewer = ({
   };
 
   const renderTextAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={PDF_STYLES.answerText}>
-        {forQuestion.value || "No Answer"} 
+        {forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
 
   const renderBooleanAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <PdfBooleanAnswer question={forQuestion as QuestionBooleanModel} />
     </View>
   );
 
   const renderRatingAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={PDF_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
@@ -76,7 +78,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderRadiogroupAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={PDF_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
@@ -85,7 +87,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderDropdownAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={PDF_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
@@ -94,7 +96,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderRankingAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={PDF_STYLES.answerText}>
         {Array.isArray(forQuestion.value)
@@ -104,17 +106,8 @@ const PdfAnswerViewer = ({
     </View>
   );
 
-  const renderMatrixAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
-      {renderTitle()}
-      <Text style={PDF_STYLES.answerText}>
-        {JSON.stringify(forQuestion.value, null, 2) || "No Answer"}
-      </Text>
-    </View>
-  );
-
   const renderCommentAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={PDF_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
@@ -123,7 +116,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderTagBoxAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} wrap={false}>
+    <View style={PDF_STYLES.answerContainer} wrap={false}>
       {renderTitle()}
       <PdfTagBoxAnswer question={forQuestion} />
     </View>
@@ -152,7 +145,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderSignaturePadAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <PdfSignaturePadAnswer
         question={forQuestion as QuestionSignaturePadModel}
@@ -169,10 +162,19 @@ const PdfAnswerViewer = ({
     </View>
   );
 
+  const renderMatrixAnswer = () => (
+    <View>
+      {renderTitle()}
+      <PdfMatrixAnswer question={forQuestion as QuestionMatrixModel} />
+    </View>
+  );
+
   const renderMatrixDropdownAnswer = () => (
     <View>
       {renderTitle()}
-      <PdfMatrixDropdownAnswer question={forQuestion as QuestionMatrixDropdownModel} />
+      <PdfMatrixDropdownAnswer
+        question={forQuestion as QuestionMatrixDropdownModel}
+      />
     </View>
   );
 
@@ -180,7 +182,7 @@ const PdfAnswerViewer = ({
     const question = forQuestion as QuestionMultipleTextModel;
 
     return (
-      <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      <View style={PDF_STYLES.answerContainer} break={pageBreak}>
         {renderTitle()}
         {question?.items?.map((item: MultipleTextItemModel) => (
           <Text key={item.name} style={PDF_STYLES.answerText}>
@@ -192,7 +194,7 @@ const PdfAnswerViewer = ({
   };
 
   const renderCheckboxAnswer = () => (
-    <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <PdfCheckboxAnswer question={forQuestion as QuestionCheckboxModel} />
     </View>
@@ -206,7 +208,7 @@ const PdfAnswerViewer = ({
     const isStringValue = typeof forQuestion?.value === "string";
 
     return (
-      <View style={PDF_STYLES.nonFileAnswerContainer} break={pageBreak}>
+      <View style={PDF_STYLES.answerContainer} break={pageBreak}>
         {renderTitle()}
         {isStringValue ? (
           <Text style={PDF_STYLES.answerText}>{forQuestion.value}</Text>
@@ -284,18 +286,28 @@ export const PDF_STYLES = StyleSheet.create({
     fontSize: 10,
     flex: 1,
   },
+  answerContainer: {
+    fontFamily: "Roboto",
+    display: "flex",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    padding: 8,
+    marginBottom: 8,
+  },
   nonFileAnswerContainer: {
     fontFamily: "Roboto",
     display: "flex",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+    padding: 8,
+    marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     borderBottomStyle: "solid",
-    padding: 8,
-    marginBottom: 8,
   },
+
   flexRow: {
     display: "flex",
     flexDirection: "row",

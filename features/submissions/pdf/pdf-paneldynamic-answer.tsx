@@ -29,7 +29,7 @@ const PdfPanelDynamicAnswer = ({ question }: PanelDynamicAnswerProps) => {
   const panels: PanelModel[] = question.panels;
   if (!panels || panels.length === 0) {
     return (
-      <View style={PDF_STYLES.nonFileAnswerContainer}>
+      <View style={PDF_STYLES.answerContainer}>
         <Text style={PDF_STYLES.questionLabel}>{question.title}:</Text>
         <Text style={styles.noPanelsText}>There are no panels filled</Text>
       </View>

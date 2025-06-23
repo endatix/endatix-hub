@@ -1,69 +1,24 @@
-import { Text, View, StyleSheet } from '@react-pdf/renderer';
-import { QuestionMatrixDropdownModel } from 'survey-core';
-import PdfAnswerViewer, { PDF_STYLES } from './pdf-answer-viewer';
+import { Text, View } from "@react-pdf/renderer";
+import { QuestionMatrixDropdownModel } from "survey-core";
+import PdfAnswerViewer, { PDF_STYLES } from "./pdf-answer-viewer";
+import { PDF_TABLE_STYLES } from "@/features/pdf-export/components/pdf-styles";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 8,
-  },
-  table: {
-    width: 'auto',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderColor: '#c0c0c0',
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    marginTop: 8,
-  },
-  tableRow: {
-    flexDirection: 'row',
-  },
-  tableHeader: {
-    backgroundColor: '#f0f0f0',
-    borderBottomWidth: 1,
-    borderBottomColor: '#c0c0c0',
-  },
-  firstCol: {
-    flex: 1,
-    padding: 4,
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderColor: '#c0c0c0',
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-  },
-  col: {
-    flex: 1.5,
-    padding: 4,
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderColor: '#c0c0c0',
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-  },
-  tableCell: {
-    fontSize: 10,
-    fontFamily: 'Roboto',
-  },
-  tableCellHeader: {
-    fontSize: 10,
-    fontFamily: 'Roboto-Bold',
-    textAlign: 'center',
-  },
-});
-
 const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
   const headerCells = question.renderedTable.headerRow?.cells ?? [];
-  const renderedRows = question.renderedTable.renderedRows.filter(row => !row.isErrorsRow);
-  const hasAnswers = renderedRows.some(row => row.cells?.some(cell => cell.question?.value));
+  const renderedRows = question.renderedTable.renderedRows.filter(
+    (row) => !row.isErrorsRow,
+  );
+  const hasAnswers = renderedRows.some((row) =>
+    row.cells?.some((cell) => cell.question?.value),
+  );
 
   if (!hasAnswers) {
     return (
-      <View style={PDF_STYLES.nonFileAnswerContainer}>
+      <View style={PDF_STYLES.answerContainer}>
         <Text style={PDF_STYLES.questionLabel}>{question.title}:</Text>
         <Text style={PDF_STYLES.answerText}>No Answer</Text>
       </View>
@@ -71,27 +26,34 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
   }
 
   return (
-    <View style={styles.container} break>
+    <View style={PDF_TABLE_STYLES.container} break>
       <Text style={PDF_STYLES.questionLabel}>{question.title}</Text>
-      <View style={styles.table}>
+      <View style={PDF_TABLE_STYLES.table}>
         {/* Header Row */}
-        <View style={[styles.tableRow, styles.tableHeader]} fixed>
+        <View
+          style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}
+          fixed
+        >
           {headerCells.map((cell, index) => (
-            <View
+            <Text
               key={index}
-              style={index === 0 ? styles.firstCol : styles.col}
+              style={{
+                ...PDF_TABLE_STYLES.tableCellHeader,
+                flex: index === 0 ? 1 : 1.5,
+              }}
             >
-              <Text style={styles.tableCellHeader}>
-                {cell.hasTitle ? cell.locTitle?.textOrHtml : ''}
-              </Text>
-            </View>
+              {cell.hasTitle ? cell.locTitle?.textOrHtml : ""}
+            </Text>
           ))}
         </View>
         {/* Data Rows */}
         {renderedRows.map((row, rowIndex) => (
-          <View style={styles.tableRow} key={rowIndex} wrap={false}>
+          <View style={PDF_TABLE_STYLES.tableRow} key={rowIndex} wrap={false}>
             {row.cells.map((cell, cellIndex) => {
-              const cellStyle = cellIndex === 0 ? styles.firstCol : styles.col;
+              const cellStyle = {
+                ...PDF_TABLE_STYLES.tableCell,
+                flex: cellIndex === 0 ? 1 : 1.5,
+              };
               if (cell.hasQuestion) {
                 return (
                   <View key={cellIndex} style={cellStyle}>
@@ -100,11 +62,9 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
                 );
               }
               return (
-                <View key={cellIndex} style={cellStyle}>
-                  <Text style={styles.tableCell}>
-                    {cell.hasTitle ? cell.locTitle.textOrHtml : ''}
-                  </Text>
-                </View>
+                <Text key={cellIndex} style={cellStyle}>
+                  {cell.hasTitle ? cell.locTitle.textOrHtml : ""}
+                </Text>
               );
             })}
           </View>

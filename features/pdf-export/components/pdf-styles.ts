@@ -46,3 +46,60 @@ export const PDF_STYLES = StyleSheet.create({
     marginBottom: 8,
   },
 });
+
+export const PDF_TABLE_STYLES = StyleSheet.create({
+  container: {
+    marginBottom: 12,
+  },
+  caption: {
+    fontSize: 11,
+    fontFamily: "Roboto-Bold",
+    marginBottom: 6,
+  },
+  table: {
+    width: "auto",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#c0c0c0",
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    marginTop: 8,
+  },
+  tableRow: {
+    flexDirection: "row",
+  },
+  tableHeader: {
+    backgroundColor: "#f0f0f0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#c0c0c0",
+  },
+  tableCell: {
+    fontSize: 10,
+    fontFamily: "Roboto",
+    padding: 4,
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#c0c0c0",
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    flex: 1,
+  },
+  tableCellHeader: {
+    fontSize: 10,
+    fontFamily: "Roboto-Bold",
+    textAlign: "center",
+    padding: 4,
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#c0c0c0",
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    flex: 1,
+  },
+  noAnswer: {
+    fontSize: 10,
+    color: "#888",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+});
