@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import AnswerViewer from "./answer-viewer";
+import { useMemo } from "react";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
@@ -21,6 +22,16 @@ const MatrixDropdownAnswer = ({
   question,
   className,
 }: MatrixDropdownAnswerProps) => {
+  const headerCells = useMemo(() => {
+    return question.renderedTable.headerRow.cells;
+  }, [question]);
+
+  const renderedRows = useMemo(() => {
+    return question.renderedTable.renderedRows.filter(
+      (row) => !row.isErrorsRow,
+    );
+  }, [question]);
+
   return (
     <div className={cn(className, "flex flex-col gap-2")}>
       <ScrollArea className="overflow-x-auto">
@@ -30,21 +41,34 @@ const MatrixDropdownAnswer = ({
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead></TableHead>
-              {question.visibleRows.map((row) => (
-                <TableHead key={row.id}>{row.text}</TableHead>
-              ))}
+              {headerCells.map((cell, index) => {
+                if (cell.hasTitle) {
+                  return (
+                    <TableHead key={index}>
+                      {cell.locTitle?.textOrHtml}
+                    </TableHead>
+                  );
+                }
+
+                return <TableHead key={index} />;
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {question.columns.map((column, columnIndex) => (
-              <TableRow key={column.name}>
-                <TableCell className="font-medium">{column.title}</TableCell>
-                {question.visibleRows.map((row, rowIndex) => {
-                  const cellQuestion = row.cells[columnIndex]?.question;
+            {renderedRows.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {row.cells.map((cell, cellIndex) => {
+                  if (cell.hasQuestion) {
+                    return (
+                      <TableCell key={cellIndex} className="justify-start">
+                        <AnswerViewer forQuestion={cell.question} />
+                      </TableCell>
+                    );
+                  }
+
                   return (
-                    <TableCell key={row.id} className="justify-start">
-                      <AnswerViewer key={rowIndex} forQuestion={cellQuestion} />
+                    <TableCell key={cellIndex} className="font-medium">
+                      {cell.hasTitle ? cell.locTitle.textOrHtml : null}
                     </TableCell>
                   );
                 })}
