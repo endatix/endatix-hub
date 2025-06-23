@@ -11,6 +11,10 @@ export const PDF_STYLES = StyleSheet.create({
     width: 24,
     height: 24,
   },
+  smallIcon: {
+    width: 16,
+    height: 16,
+  },
   flexRow: {
     display: "flex",
     flexDirection: "row",
