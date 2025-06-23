@@ -10,9 +10,15 @@ interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
 
 const getPanelTitle = (question: Question) => {
   const panel = question.parent;
+
   if (panel instanceof PanelModel) {
     return panel.processedTitle ?? panel.title;
   }
+
+  if (panel.isPage) {
+    return panel.shortcutText ?? "";
+  }
+
   return "";
 };
 
