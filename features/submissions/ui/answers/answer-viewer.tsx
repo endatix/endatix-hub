@@ -153,6 +153,7 @@ const AnswerViewer = ({
     case QuestionType.Matrix:
       return renderMatrixAnswer();
     case QuestionType.MatrixDropdown:
+    case QuestionType.MatrixDynamic:
       return renderMatrixDropdownAnswer();
     case QuestionType.Comment:
       return renderCommentAnswer();

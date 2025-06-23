@@ -31,7 +31,7 @@ const CheckboxAnswer = ({ question, className }: CheckboxAnswerProps) => {
     <div className={className}>
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium text-muted-foreground">
-          Checked items
+          Checked items:
         </p>
         {checkedItems.map((checkedItem) => (
           <div

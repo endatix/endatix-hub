@@ -9,7 +9,6 @@ interface BooleanAnswerProps {
 }
 
 const BooleanAnswer = ({ question, className }: BooleanAnswerProps) => {
-  debugger;
   return (
     <div className={cn(className, "flex flex-row gap-2 items-center")}>
       <Label htmlFor={question.name}>{question.labelFalse}</Label>

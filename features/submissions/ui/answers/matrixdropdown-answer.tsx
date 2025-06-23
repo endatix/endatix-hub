@@ -13,6 +13,8 @@ import { QuestionMatrixDropdownModel } from "survey-core";
 import AnswerViewer from "./answer-viewer";
 import { useMemo } from "react";
 
+const FIRST_COLUMN_WIDTH_CSS_CLASSES = "min-w-[100px] max-w-[160px]";
+
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
   className?: string;
@@ -23,7 +25,7 @@ const MatrixDropdownAnswer = ({
   className,
 }: MatrixDropdownAnswerProps) => {
   const headerCells = useMemo(() => {
-    return question.renderedTable.headerRow.cells;
+    return question.renderedTable.headerRow?.cells ?? [];
   }, [question]);
 
   const renderedRows = useMemo(() => {
@@ -35,39 +37,44 @@ const MatrixDropdownAnswer = ({
   return (
     <div className={cn(className, "flex flex-col gap-2")}>
       <ScrollArea className="overflow-x-auto">
-        <Table>
+        <Table className="table-auto">
           <TableCaption>
             Answers for the &quot;{question.title}&quot; question
           </TableCaption>
           <TableHeader>
             <TableRow>
-              {headerCells.map((cell, index) => {
-                if (cell.hasTitle) {
-                  return (
-                    <TableHead key={index}>
-                      {cell.locTitle?.textOrHtml}
-                    </TableHead>
-                  );
-                }
-
-                return <TableHead key={index} />;
-              })}
+              {headerCells.map((cell, index) => (
+                <TableHead
+                  className={index === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : ""}
+                  key={index}
+                >
+                  {cell.hasTitle ? cell.locTitle?.textOrHtml : null}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {renderedRows.map((row, rowIndex) => (
               <TableRow key={rowIndex}>
                 {row.cells.map((cell, cellIndex) => {
+                  const cellClass =
+                    cellIndex === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : "";
                   if (cell.hasQuestion) {
                     return (
-                      <TableCell key={cellIndex} className="justify-start">
+                      <TableCell
+                        key={cellIndex}
+                        className={cn("justify-start", cellClass)}
+                      >
                         <AnswerViewer forQuestion={cell.question} />
                       </TableCell>
                     );
                   }
 
                   return (
-                    <TableCell key={cellIndex} className="font-medium">
+                    <TableCell
+                      key={cellIndex}
+                      className={cn("font-medium", cellClass)}
+                    >
                       {cell.hasTitle ? cell.locTitle.textOrHtml : null}
                     </TableCell>
                   );
