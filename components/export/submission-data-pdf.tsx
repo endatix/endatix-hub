@@ -7,11 +7,12 @@ import {
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
-import { Model, PanelModel, Question } from "survey-core";
+import { Model, PanelModel, Question, QuestionNonValue } from "survey-core";
 import PdfAnswerViewer from "@/features/submissions/pdf/pdf-answer-viewer";
 import { setupBrowserPolyfills } from "@/features/submissions/pdf/browser-polyfills";
 import { Submission } from "@/types";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
+import EyeOffIcon from "@/features/pdf-export/components/icons/eye-off-icon";
 
 Font.register({
   family: "Roboto",
@@ -76,6 +77,10 @@ export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
       return question;
     });
 
+  // Dynamic variables logic
+  const dynamicVariableNames = surveyModel.getVariableNames?.() ?? [];
+  const hasVariables = dynamicVariableNames.length > 0;
+
   // TODO: This is a duplicate of a function in question-label.tsx
   const getPanelTitle = (question: Question) => {
     const panel = question.parent;
@@ -110,29 +115,57 @@ export const SubmissionDataPdf = ({ submission }: SubmissionDataPdfProps) => {
         </View>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Submission Answers</Text>
+          {/* Dynamic Variables Section */}
+          {hasVariables && (
+            <View style={styles.dynamicVariablesSection}>
+              <Text style={styles.dynamicVariablesTitle}>Dynamic Variables</Text>
+              {dynamicVariableNames.map((name) => (
+                <View key={name} style={styles.dynamicVariableRow}>
+                  <Text style={styles.dynamicVariableName}>{`@${name} =`}</Text>
+                  <Text style={styles.dynamicVariableValue}>{` ${surveyModel.getVariable(name)}`}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           <View style={styles.questions}>
             {questions?.map((question) => {
+              // Skip non-value questions
+              if (question instanceof QuestionNonValue) {
+                return null;
+              }
+
               const panelTitle = getPanelTitle(question);
-              let pageBreak: boolean = false;
+              let showPanelTitle = false;
 
               if (!lastPanel) {
                 lastPanel = panelTitle;
-              }
-
-              if (lastPanel != panelTitle) {
-                pageBreak = true;
+                showPanelTitle = !!panelTitle;
+              } else if (lastPanel !== panelTitle) {
+                showPanelTitle = !!panelTitle;
                 lastPanel = panelTitle;
-              } else {
-                pageBreak = false;
               }
 
+              // If not visible, render EyeOffIcon and message
+              if (!question.isVisibleInSurvey) {
+                return (
+                  <View key={question.id} style={styles.questionInvisible}>
+                    {showPanelTitle && (
+                      <Text style={styles.panelTitle}>{panelTitle}</Text>
+                    )}
+                    <Text style={styles.questionLabel}>{question.title}</Text>
+                    <View style={styles.invisibleRow}>
+                      <EyeOffIcon />
+                      <Text style={styles.invisibleText}>
+                        This question was not visible in the survey.
+                      </Text>
+                    </View>
+                  </View>
+                );
+              }
+
+              // Otherwise, render label and answer
               return (
-                <PdfAnswerViewer
-                  key={question.id}
-                  forQuestion={question}
-                  panelTitle={panelTitle}
-                  pageBreak={pageBreak}
-                />
+                <PdfAnswerViewer key={question.id} forQuestion={question} />
               );
             })}
           </View>
@@ -167,7 +200,64 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   question: {
-    flexDirection: "row",
+    flexDirection: "column",
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  questionLabel: {
+    fontSize: 12,
+    fontFamily: "Roboto-Bold",
+    marginBottom: 2,
+  },
+  panelTitle: {
+    fontSize: 11,
+    fontFamily: "Roboto-Bold",
     marginBottom: 4,
+    color: '#444',
+  },
+  questionInvisible: {
+    flexDirection: "column",
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  invisibleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  invisibleText: {
+    fontSize: 10,
+    color: '#888',
+    marginLeft: 4,
+  },
+  dynamicVariablesSection: {
+    marginBottom: 12,
+    padding: 8,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 4,
+  },
+  dynamicVariablesTitle: {
+    fontSize: 11,
+    fontFamily: 'Roboto-Bold',
+    marginBottom: 4,
+  },
+  dynamicVariableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  dynamicVariableName: {
+    fontSize: 10,
+    color: '#666',
+    marginRight: 2,
+  },
+  dynamicVariableValue: {
+    fontSize: 10,
+    color: '#222',
   },
 });

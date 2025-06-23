@@ -11,7 +11,7 @@ const RatingAnswer: React.FC<RatingAnswerProps> = ({ question, ...props }) => {
   const minRating = question.rateMin;
   const maxRating = question.rateMax;
   const ratingStep = question.rateStep;
-  const ratingValue = question.value;
+  const ratingValue = question?.value ?? 0;
   const ratingText = `${ratingValue} out of ${maxRating}`;
   const ratingScale = Array.from(
     { length: (maxRating - minRating) / ratingStep + 1 },
@@ -23,17 +23,22 @@ const RatingAnswer: React.FC<RatingAnswerProps> = ({ question, ...props }) => {
   }
 
   return (
-    <div {...props} className={cn("flex items-center gap-1", props.className)}>
-      {ratingScale.map((scale, index) => (
-        <React.Fragment key={index}>
-          {scale <= ratingValue ? (
-            <Star className="h-4 w-4 text-primary fill-primary cursor-not-allowed opacity-70" />
-          ) : (
-            <Star className="h-4 w-4 text-primary cursor-not-allowed opacity-70" />
-          )}
-        </React.Fragment>
-      ))}
-      <span className="pt-2 text-sm text-muted-foreground">{ratingText}</span>
+    <div
+      {...props}
+      className={cn("flex flex-col items-start gap-2", props.className)}
+    >
+      <div className="flex justify-start gap-1">
+        {ratingScale.map((scale, index) => (
+          <React.Fragment key={index}>
+            {scale <= ratingValue ? (
+              <Star className="h-4 w-4 text-primary fill-primary cursor-not-allowed opacity-70" />
+            ) : (
+              <Star className="h-4 w-4 text-primary cursor-not-allowed opacity-70" />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+      <p className="text-muted-foreground text-xs">{ratingText}</p>
     </div>
   );
 };

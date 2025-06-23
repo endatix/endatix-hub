@@ -11,6 +11,9 @@ import {
 import { cn } from "@/lib/utils";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import AnswerViewer from "./answer-viewer";
+import { useMemo } from "react";
+
+const FIRST_COLUMN_WIDTH_CSS_CLASSES = "min-w-[100px] max-w-[160px]";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
@@ -21,30 +24,58 @@ const MatrixDropdownAnswer = ({
   question,
   className,
 }: MatrixDropdownAnswerProps) => {
+  const headerCells = useMemo(() => {
+    return question.renderedTable.headerRow?.cells ?? [];
+  }, [question]);
+
+  const renderedRows = useMemo(() => {
+    return question.renderedTable.renderedRows.filter(
+      (row) => !row.isErrorsRow,
+    );
+  }, [question]);
+
   return (
     <div className={cn(className, "flex flex-col gap-2")}>
       <ScrollArea className="overflow-x-auto">
-        <Table>
+        <Table className="table-auto">
           <TableCaption>
             Answers for the &quot;{question.title}&quot; question
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead></TableHead>
-              {question.visibleRows.map((row) => (
-                <TableHead key={row.id}>{row.text}</TableHead>
+              {headerCells.map((cell, index) => (
+                <TableHead
+                  className={index === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : ""}
+                  key={index}
+                >
+                  {cell.hasTitle ? cell.locTitle?.textOrHtml : null}
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {question.columns.map((column, columnIndex) => (
-              <TableRow key={column.name}>
-                <TableCell className="font-medium">{column.title}</TableCell>
-                {question.visibleRows.map((row, rowIndex) => {
-                  const cellQuestion = row.cells[columnIndex]?.question;
+            {renderedRows.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {row.cells.map((cell, cellIndex) => {
+                  const cellClass =
+                    cellIndex === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : "";
+                  if (cell.hasQuestion) {
+                    return (
+                      <TableCell
+                        key={cellIndex}
+                        className={cn("justify-start", cellClass)}
+                      >
+                        <AnswerViewer forQuestion={cell.question} />
+                      </TableCell>
+                    );
+                  }
+
                   return (
-                    <TableCell key={row.id} className="justify-start">
-                      <AnswerViewer key={rowIndex} forQuestion={cellQuestion} />
+                    <TableCell
+                      key={cellIndex}
+                      className={cn("font-medium", cellClass)}
+                    >
+                      {cell.hasTitle ? cell.locTitle.textOrHtml : null}
                     </TableCell>
                   );
                 })}
