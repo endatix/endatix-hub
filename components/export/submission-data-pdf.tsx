@@ -96,21 +96,38 @@ export const SubmissionDataPdf = ({
       <Page style={styles.page}>
         <View style={[styles.section, styles.sectionProperties]}>
           <Text style={styles.sectionTitle}>Submission Properties</Text>
-          <Text>ID: {submission.id}</Text>
-          <Text>Completed: {submission.isComplete ? "Yes" : "No"}</Text>
-          <Text>Created at: {getFormattedDate(submission.createdAt)}</Text>
-          <Text>Comleted on: {getFormattedDate(submission.completedAt)}</Text>
-          <Text>
-            Completion time:{" "}
-            {getElapsedTimeString(
-              submission.createdAt,
-              submission.completedAt,
-              "long",
-            )}
-          </Text>
-          <Text>
-            Last modified on: {getFormattedDate(submission.modifiedAt)}
-          </Text>
+          <View style={styles.propertiesTable}>
+            <View style={styles.propertyRow}>
+              <Text style={styles.propertyLabel}>ID:</Text>
+              <Text style={styles.propertyValue}>{submission.id}</Text>
+            </View>
+            <View style={styles.propertyRow}>
+              <Text style={styles.propertyLabel}>Is Complete?</Text>
+              <Text style={styles.propertyValue}>{submission.isComplete ? "YES" : "NO"}</Text>
+            </View>
+            <View style={styles.propertyRow}>
+              <Text style={styles.propertyLabel}>Created at</Text>
+              <Text style={styles.propertyValue}>{getFormattedDate(submission.createdAt)}</Text>
+            </View>
+            <View style={styles.propertyRow}>
+              <Text style={styles.propertyLabel}>Completed at</Text>
+              <Text style={styles.propertyValue}>{getFormattedDate(submission.completedAt)}</Text>
+            </View>
+            <View style={styles.propertyRow}>
+              <Text style={styles.propertyLabel}>Completion time</Text>
+              <Text style={styles.propertyValue}>
+                {getElapsedTimeString(
+                  submission.createdAt,
+                  submission.completedAt,
+                  "long"
+                )}
+              </Text>
+            </View>
+            <View style={styles.propertyRow}>
+              <Text style={styles.propertyLabel}>Last modified on</Text>
+              <Text style={styles.propertyValue}>{getFormattedDate(submission.modifiedAt)}</Text>
+            </View>
+          </View>
         </View>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Submission Answers</Text>
@@ -219,7 +236,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   sectionProperties: {
-    fontSize: 8,
+    fontSize: 10,
     backgroundColor: "#f0f0f0",
     borderRadius: 4,
     gap: 4,
@@ -317,5 +334,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
     width: "100%",
+  },
+  propertiesTable: {
+    marginTop: 8,
+    width: '100%',
+  },
+  propertyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  propertyLabel: {
+    flex: 2,
+    textAlign: 'right',
+    fontFamily: 'Roboto-Bold',
+    color: '#666',
+    fontSize: 10,
+    paddingRight: 16,
+  },
+  propertyValue: {
+    flex: 3,
+    textAlign: 'left',
+    fontFamily: 'Roboto',
+    color: '#222',
+    fontSize: 10,
   },
 });
