@@ -11,6 +11,9 @@ import {
   QuestionSignaturePadModel,
   QuestionCheckboxModel,
   QuestionMatrixModel,
+  QuestionCustomModel,
+  QuestionCompositeModel,
+  QuestionRankingModel,
 } from "survey-core";
 import PdfFileAnswer from "./pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
@@ -22,20 +25,27 @@ import PdfTagBoxAnswer from "./pdf-tagbox-answer";
 import PdfCheckboxAnswer from "./pdf-checkbox-answer";
 import PdfBooleanAnswer from "./pdf-boolean-answer";
 import PdfMatrixAnswer from "./pdf-matrix-answer";
+import PdfCustomAnswer from "./pdf-custom-answer";
+import PdfRankingAnswer from "./pdf-ranking-answer";
 
 export interface ViewAnswerProps {
   forQuestion: Question;
-  panelTitle?: string;
   pageBreak?: boolean;
   hideTitle?: boolean;
 }
 
 const PdfAnswerViewer = ({
   forQuestion,
-  panelTitle,
   pageBreak,
   hideTitle,
 }: ViewAnswerProps): React.ReactElement => {
+  if (
+    forQuestion instanceof QuestionCustomModel ||
+    forQuestion instanceof QuestionCompositeModel
+  ) {
+    return <PdfCustomAnswer question={forQuestion} />;
+  }
+
   let questionType = forQuestion.getType() ?? "unsupported";
 
   // If the type is not a valid QuestionType, try to get it from jsonObj
@@ -43,99 +53,92 @@ const PdfAnswerViewer = ({
     questionType = (forQuestion as Question).getType() ?? questionType;
   }
 
-  const questionTitle = panelTitle
-    ? `(${panelTitle}) ${forQuestion.title}`
-    : forQuestion.title;
+  const questionTitle = forQuestion.processedTitle ?? forQuestion.title;
 
   const renderTitle = () => {
     if (hideTitle) return null;
-    return <Text style={PDF_STYLES.questionLabel}>{questionTitle}:</Text>;
+    return <Text style={VIEWER_STYLES.questionLabel}>{questionTitle}:</Text>;
   };
 
   const renderTextAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
-      <Text style={PDF_STYLES.answerText}>
+      <Text style={VIEWER_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
 
   const renderBooleanAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <PdfBooleanAnswer question={forQuestion as QuestionBooleanModel} />
     </View>
   );
 
   const renderRatingAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
-      <Text style={PDF_STYLES.answerText}>
+      <Text style={VIEWER_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
 
   const renderRadiogroupAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
-      <Text style={PDF_STYLES.answerText}>
+      <Text style={VIEWER_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
 
   const renderDropdownAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
-      <Text style={PDF_STYLES.answerText}>
+      <Text style={VIEWER_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
 
-  const renderRankingAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
-      {renderTitle()}
-      <Text style={PDF_STYLES.answerText}>
-        {Array.isArray(forQuestion.value)
-          ? forQuestion.value.join(", ")
-          : "No Answer"}
-      </Text>
-    </View>
-  );
-
   const renderCommentAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
-      <Text style={PDF_STYLES.answerText}>
+      <Text style={VIEWER_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
 
   const renderTagBoxAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} wrap={false}>
+    <View style={VIEWER_STYLES.answerContainer} wrap={false}>
       {renderTitle()}
       <PdfTagBoxAnswer question={forQuestion} />
     </View>
   );
 
   const renderFileAnswer = () => (
-    <View style={PDF_STYLES.fileAnswerContainer} break={pageBreak} wrap={false}>
+    <View
+      style={VIEWER_STYLES.fileAnswerContainer}
+      break={pageBreak}
+      wrap={false}
+    >
       {renderTitle()}
       <PdfFileAnswer question={forQuestion as QuestionFileModel} />
       {forQuestion?.supportComment() &&
         forQuestion?.hasComment &&
         forQuestion?.comment && (
-          <View style={PDF_STYLES.flexRow}>
+          <View style={VIEWER_STYLES.flexRow}>
             <MessageSquareTextIcon />
-            <View style={PDF_STYLES.flexColumn}>
-              <Text style={[PDF_STYLES.questionLabel, PDF_STYLES.smallText]}>
+            <View style={VIEWER_STYLES.flexColumn}>
+              <Text
+                style={[VIEWER_STYLES.questionLabel, VIEWER_STYLES.smallText]}
+              >
                 Comment:
               </Text>
-              <Text style={[PDF_STYLES.mutedText, PDF_STYLES.smallText]}>
+              <Text style={[VIEWER_STYLES.mutedText, VIEWER_STYLES.smallText]}>
                 {forQuestion?.comment}
               </Text>
             </View>
@@ -145,7 +148,7 @@ const PdfAnswerViewer = ({
   );
 
   const renderSignaturePadAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <PdfSignaturePadAnswer
         question={forQuestion as QuestionSignaturePadModel}
@@ -155,7 +158,6 @@ const PdfAnswerViewer = ({
 
   const renderPanelDynamicAnswer = () => (
     <View>
-      {renderTitle()}
       <PdfPanelDynamicAnswer
         question={forQuestion as QuestionPanelDynamicModel}
       />
@@ -182,10 +184,10 @@ const PdfAnswerViewer = ({
     const question = forQuestion as QuestionMultipleTextModel;
 
     return (
-      <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+      <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
         {renderTitle()}
         {question?.items?.map((item: MultipleTextItemModel) => (
-          <Text key={item.name} style={PDF_STYLES.answerText}>
+          <Text key={item.name} style={VIEWER_STYLES.answerText}>
             {item.value}
           </Text>
         ))}
@@ -193,8 +195,15 @@ const PdfAnswerViewer = ({
     );
   };
 
+  const renderRankingAnswer = () => (
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+      {renderTitle()}
+      <PdfRankingAnswer question={forQuestion as QuestionRankingModel} />
+    </View>
+  );
+
   const renderCheckboxAnswer = () => (
-    <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <PdfCheckboxAnswer question={forQuestion as QuestionCheckboxModel} />
     </View>
@@ -208,12 +217,12 @@ const PdfAnswerViewer = ({
     const isStringValue = typeof forQuestion?.value === "string";
 
     return (
-      <View style={PDF_STYLES.answerContainer} break={pageBreak}>
+      <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
         {renderTitle()}
         {isStringValue ? (
-          <Text style={PDF_STYLES.answerText}>{forQuestion.value}</Text>
+          <Text style={VIEWER_STYLES.answerText}>{forQuestion.value}</Text>
         ) : (
-          <Text style={PDF_STYLES.answerText}>
+          <Text style={VIEWER_STYLES.answerText}>
             {JSON.stringify(forQuestion.value, null, 2)}
           </Text>
         )}
@@ -232,8 +241,6 @@ const PdfAnswerViewer = ({
       return renderRadiogroupAnswer();
     case QuestionType.Dropdown:
       return renderDropdownAnswer();
-    case QuestionType.Ranking:
-      return renderRankingAnswer();
     case QuestionType.Matrix:
       return renderMatrixAnswer();
     case QuestionType.Comment:
@@ -244,6 +251,8 @@ const PdfAnswerViewer = ({
       return renderSignaturePadAnswer();
     case QuestionType.MultipleText:
       return renderMultipleTextAnswer();
+    case QuestionType.Ranking:
+      return renderRankingAnswer();
     case QuestionType.TagBox:
       return renderTagBoxAnswer();
     case QuestionType.PanelDynamic:
@@ -258,7 +267,7 @@ const PdfAnswerViewer = ({
   }
 };
 
-export const PDF_STYLES = StyleSheet.create({
+export const VIEWER_STYLES = StyleSheet.create({
   fileAnswerContainer: {
     marginBottom: 8,
     padding: 8,
@@ -291,9 +300,9 @@ export const PDF_STYLES = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-    padding: 8,
-    marginBottom: 8,
+    gap: 4,
+    padding: 4,
+    marginBottom: 4,
   },
   nonFileAnswerContainer: {
     fontFamily: "Roboto",

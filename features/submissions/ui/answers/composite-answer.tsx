@@ -1,5 +1,9 @@
 import { Minus } from "lucide-react";
-import { Question, QuestionCompositeModel } from "survey-core";
+import {
+  Question,
+  QuestionCompositeModel,
+  QuestionNonValue,
+} from "survey-core";
 import { cn } from "@/lib/utils";
 import AnswerViewer from "./answer-viewer";
 
@@ -11,7 +15,10 @@ const CompositeAnswer = ({ question, className }: CompositeAnswer) => {
     return <Minus className="h-4 w-4" />;
   }
 
-  const childQuestions = question.contentPanel?.getQuestions(true);
+  const childQuestions = question
+    ?.contentPanel
+    ?.getQuestions(true)
+    ?.filter((q: Question) => !(q instanceof QuestionNonValue));
 
   return (
     <div

@@ -3,8 +3,9 @@ import { SubmissionDataPdf } from "@/components/export/submission-data-pdf";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
 import { pdf } from "@react-pdf/renderer";
-import { getCustomQuestions } from "@/services/api";
+import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 
 type Params = {
   params: Promise<{
@@ -20,30 +21,37 @@ export async function GET(req: NextRequest, { params }: Params) {
   const searchParams = req.nextUrl.searchParams;
   const inline = searchParams.get(INLINE_QUERY_PARAM);
 
-  const submissionResult = await getSubmissionDetailsUseCase({
-    formId,
-    submissionId,
-  });
+  let customQuestions: CustomQuestion[] = [];
+  const [submissionResult, customQuestionsResult] = await Promise.all([
+    getSubmissionDetailsUseCase({
+      formId,
+      submissionId,
+    }),
+    getCustomQuestionsAction(),
+  ]);
+
   if (Result.isError(submissionResult)) {
     return NextResponse.json(
       { error: "Submission not found" },
       { status: 404 },
     );
   }
-  const submission = submissionResult.value;
 
-  const customQuestions = await getCustomQuestions();
-  if (!customQuestions) {
-    return NextResponse.json(
-      { error: "Failed to fetch custom questions" },
-      { status: 500 },
-    );
+  if (Result.isSuccess(customQuestionsResult)) {
+    customQuestions = customQuestionsResult.value;
   }
 
-  initializeCustomQuestions(customQuestions.map(q => q.jsonData));
+  const submission = submissionResult.value;
+
+  initializeCustomQuestions(
+    customQuestions.map((q: CustomQuestion) => q.jsonData),
+  );
 
   const pdfBlob = await pdf(
-    <SubmissionDataPdf submission={submission} />,
+    <SubmissionDataPdf
+      submission={submission}
+      customQuestions={customQuestions}
+    />,
   ).toBlob();
 
   const contentDisposition = inline === "true" ? "inline" : "attachment";

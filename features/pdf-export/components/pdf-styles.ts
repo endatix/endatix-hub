@@ -27,6 +27,11 @@ export const PDF_STYLES = StyleSheet.create({
     flexDirection: "column",
     flexWrap: "wrap",
   },
+  rightAlign: {
+    textAlign: "right",
+    textWrap: "wrap",
+    hyphenationCallback: (word: string) => [word]
+  },
   justifyBetween: {
     justifyContent: "space-between",
   },
@@ -44,6 +49,17 @@ export const PDF_STYLES = StyleSheet.create({
   },
   marginBottom: {
     marginBottom: 8,
+  },
+  questionTitle: {
+    fontSize: 12,
+    fontFamily: "Roboto-Bold",
+    marginBottom: 2,
+  },
+  questionSubTitle: {
+    fontFamily: "Roboto",
+    fontSize: 9,
+    width: "100%",
+    color: "gray",
   },
 });
 

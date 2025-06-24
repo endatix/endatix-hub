@@ -15,5 +15,6 @@ export enum QuestionType {
   MatrixDynamic = "matrixdynamic",
   MultipleText = "multipletext",
   TagBox = "tagbox",
+  Custom = "custom",
   Unsupported = "unsupported",
 }

@@ -6,6 +6,7 @@ import {
   QuestionBooleanModel,
   QuestionCheckboxModel,
   QuestionCompositeModel,
+  QuestionCustomModel,
   QuestionFileModel,
   QuestionMatrixDropdownModel,
   QuestionMultipleTextModel,
@@ -13,7 +14,6 @@ import {
   QuestionSignaturePadModel,
 } from "survey-core";
 import CommentAnswer from "./comment-answer";
-import CompositeAnswer from "./composite-answer";
 import DropdownAnswer from "./dropdown-answer";
 import { FileAnswer } from "./file-answer";
 import MatrixAnswer from "./matrix-answer";
@@ -28,11 +28,13 @@ import CheckboxAnswer from "./checkbox-answer";
 import MatrixDropdownAnswer from "./matrixdropdown-answer";
 import TagBoxAnswer from "./tagbox-answer";
 import BooleanAnswer from "./boolean-answer";
+import CustomAnswer from "./custom-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
   forQuestion: Question;
   className?: string;
+  isCustomQuestion?: boolean;
 }
 
 const AnswerViewer = ({
@@ -41,8 +43,16 @@ const AnswerViewer = ({
 }: ViewAnswerProps): React.JSX.Element => {
   const questionType = forQuestion.getType() ?? "unsupported";
 
-  if (forQuestion instanceof QuestionCompositeModel) {
-    return <CompositeAnswer question={forQuestion} className={className} />;
+  if (
+    forQuestion instanceof QuestionCustomModel ||
+    forQuestion instanceof QuestionCompositeModel
+  ) {
+    return (
+      <CustomAnswer
+        question={forQuestion as QuestionCustomModel | QuestionCompositeModel}
+        className={className}
+      />
+    );
   }
 
   const renderTextAnswer = () => (
