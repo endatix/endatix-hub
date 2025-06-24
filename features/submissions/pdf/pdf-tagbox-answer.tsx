@@ -1,6 +1,6 @@
 import { Text, View, StyleSheet } from '@react-pdf/renderer';
 import { ItemValue, Question } from 'survey-core';
-import { PDF_STYLES } from './pdf-answer-viewer';
+import { VIEWER_STYLES } from './pdf-answer-viewer';
 
 interface TagBoxAnswerProps {
   question: Question;
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
 
 const PdfTagBoxAnswer = ({ question }: TagBoxAnswerProps) => {
   if (!question?.value || question.value.length === 0) {
-    return <Text style={PDF_STYLES.answerText}>No Answer</Text>;
+    return <Text style={VIEWER_STYLES.answerText}>No Answer</Text>;
   }
 
   return (

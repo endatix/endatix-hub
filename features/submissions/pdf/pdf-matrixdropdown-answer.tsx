@@ -1,6 +1,6 @@
 import { Text, View } from "@react-pdf/renderer";
 import { QuestionMatrixDropdownModel } from "survey-core";
-import PdfAnswerViewer, { PDF_STYLES } from "./pdf-answer-viewer";
+import PdfAnswerViewer, { VIEWER_STYLES } from "./pdf-answer-viewer";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/components/pdf-styles";
 
 interface MatrixDropdownAnswerProps {
@@ -18,16 +18,16 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
 
   if (!hasAnswers) {
     return (
-      <View style={PDF_STYLES.answerContainer}>
-        <Text style={PDF_STYLES.questionLabel}>{question.title}:</Text>
-        <Text style={PDF_STYLES.answerText}>No Answer</Text>
+      <View style={VIEWER_STYLES.answerContainer}>
+        <Text style={VIEWER_STYLES.questionLabel}>{question.title}:</Text>
+        <Text style={VIEWER_STYLES.answerText}>No Answer</Text>
       </View>
     );
   }
 
   return (
     <View style={PDF_TABLE_STYLES.container} break>
-      <Text style={PDF_STYLES.questionLabel}>{question.title}</Text>
+      <Text style={VIEWER_STYLES.questionLabel}>{question.title}</Text>
       <View style={PDF_TABLE_STYLES.table}>
         {/* Header Row */}
         <View
