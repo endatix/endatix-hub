@@ -89,6 +89,16 @@ export const SubmissionDataPdf = ({
     return "";
   };
 
+  // Helper to check if a question should render answer full width
+  const isFullWidthAnswer = (question: Question) => {
+    const type = question.getType();
+    return (
+      type === 'matrixdropdown' ||
+      type === 'matrixdynamic' ||
+      type === 'paneldynamic'
+    );
+  };
+
   let lastPanel: string | null = null;
 
   return (
@@ -177,6 +187,21 @@ export const SubmissionDataPdf = ({
                     <Text style={styles.groupHeaderText}>{panelTitle}</Text>
                   </View>,
                 );
+              }
+
+              // Full width answer logic
+              if (isFullWidthAnswer(question)) {
+                rows.push(
+                  <View key={question.id} style={styles.questionRow}>
+                    <View style={styles.labelCol}>
+                      <PdfQuestionLabel question={question} style={styles.questionLabel} />
+                    </View>
+                    <View style={styles.answerCol}>
+                      <PdfAnswerViewer forQuestion={question} hideTitle />
+                    </View>
+                  </View>
+                );
+                return rows;
               }
 
               // If not visible, render label and not-visible message in two columns
@@ -358,5 +383,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto',
     color: '#222',
     fontSize: 10,
+  },
+  fullWidthAnswerRow: {
+    width: '100%',
+    marginBottom: 12,
   },
 });
