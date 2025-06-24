@@ -6,6 +6,8 @@ import { BackToSubmissionsButton } from "./back-to-submissions-button";
 import { SubmissionAnswers } from "./submission-answers";
 import { SubmissionHeader } from "./submission-header";
 import { SubmissionProperties } from "./submission-properties";
+import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { CustomQuestion } from "@/services/api";
 
 async function SubmissionDetails({
   formId,
@@ -14,10 +16,18 @@ async function SubmissionDetails({
   formId: string;
   submissionId: string;
 }) {
-  const submissionResult = await getSubmissionDetailsUseCase({
-    formId,
-    submissionId,
-  });
+  let customQuestions: CustomQuestion[] = [];
+  const [submissionResult, customQuestionsResult] = await Promise.all([
+    getSubmissionDetailsUseCase({
+      formId,
+      submissionId,
+    }),
+    getCustomQuestionsAction(),
+  ]);
+
+  if (Result.isSuccess(customQuestionsResult)) {
+    customQuestions = customQuestionsResult.value;
+  }
 
   if (Result.isError(submissionResult)) {
     return (
@@ -48,6 +58,7 @@ async function SubmissionDetails({
         formDefinition={submission.formDefinition.jsonData}
         submissionData={submission.jsonData}
         formId={formId}
+        customQuestions={customQuestions}
       />
     </>
   );

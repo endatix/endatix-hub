@@ -1,4 +1,4 @@
-import { Question } from "survey-core";
+import { Question, QuestionCustomModel } from "survey-core";
 import { PanelModel } from "survey-core";
 import { useMemo } from "react";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,10 @@ const getPanelTitle = (question: Question) => {
   return "";
 };
 
+interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
+  forQuestion: Question;
+}
+
 export function QuestionLabel({
   forQuestion,
   className,
@@ -29,6 +33,13 @@ export function QuestionLabel({
 }: QuestionLabelProps) {
   const panelTitle = useMemo(() => getPanelTitle(forQuestion), [forQuestion]);
   const processedTitle = useMemo(() => {
+    if (forQuestion instanceof QuestionCustomModel) {
+      return (
+        forQuestion.contentQuestion?.processedTitle ??
+        forQuestion.contentQuestion?.title
+      );
+    }
+
     return forQuestion.processedTitle ?? forQuestion.title;
   }, [forQuestion]);
 

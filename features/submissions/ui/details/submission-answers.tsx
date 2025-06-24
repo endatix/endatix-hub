@@ -12,19 +12,38 @@ import { useEffect, useMemo, useState } from "react";
 import { Model, Question, QuestionNonValue } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
 import { QuestionLabel } from "./question-label";
+import { CustomQuestion } from "@/services/api";
+import { initializeCustomQuestions } from "@/lib/questions";
+
+interface SubmissionAnswersProps {
+  formDefinition: string;
+  submissionData: string;
+  formId: string;
+  customQuestions: CustomQuestion[];
+}
+
+interface DynamicVariablesViewProps {
+  surveyModel: Model;
+}
+
+interface SubmissionItemRowProps {
+  question: Question;
+  customQuestionTypes: string[];
+}
 
 export function SubmissionAnswers({
   formDefinition,
   submissionData,
   formId,
-}: {
-  formDefinition: string;
-  submissionData: string;
-  formId: string;
-}) {
+  customQuestions,
+}: SubmissionAnswersProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const customQuestionTypes = useMemo(
+    () => customQuestions.map((q: CustomQuestion) => q.name),
+    [customQuestions],
+  );
 
   useEffect(() => {
     try {
@@ -33,6 +52,10 @@ export function SubmissionAnswers({
         return;
       }
 
+      initializeCustomQuestions(
+        customQuestions.map((q: CustomQuestion) => q.jsonData),
+      );
+
       if (!surveyModel) {
         const json = JSON.parse(formDefinition);
         const surveyModelNew = new Model(json);
@@ -40,13 +63,13 @@ export function SubmissionAnswers({
         // TODO: Add preload external data here
 
         const parsedData = JSON.parse(submissionData);
-
         surveyModelNew.data = parsedData;
         const surveyQuestions = surveyModelNew.getAllQuestions(
           false,
           false,
           false,
         );
+
         setQuestions(surveyQuestions);
         setSurveyModel(surveyModelNew);
       }
@@ -54,7 +77,7 @@ export function SubmissionAnswers({
       console.warn("Error while parsing submission's JSON data", ex);
       setError("Error while parsing submission's JSON data");
     }
-  }, [formDefinition, formId, submissionData, surveyModel]);
+  }, [customQuestions, formDefinition, formId, submissionData, surveyModel]);
 
   if (error || !surveyModel) {
     return <ErrorView />;
@@ -66,29 +89,38 @@ export function SubmissionAnswers({
       <div className="grid gap-4">
         <DynamicVariablesView surveyModel={surveyModel} />
         {questions.map((question) => (
-            <SubmissionItemRow key={question.id} question={question} />
-          ))}
+          <SubmissionItemRow
+            key={question.id}
+            question={question}
+            customQuestionTypes={customQuestionTypes}
+          />
+        ))}
       </div>
     </>
   );
 }
 
-const SubmissionItemRow = ({ question }: { question: Question }) => {
+const SubmissionItemRow = ({
+  question,
+}: SubmissionItemRowProps) => {
   if (question instanceof QuestionNonValue) {
     return null;
   }
 
   if (!question.isVisibleInSurvey) {
     return (
-    <div key={question.id} className="grid grid-cols-5 items-start gap-4 mb-6">
-      <QuestionLabel forQuestion={question} title={question.title} />
-      <div className="col-span-3 flex items-center gap-2 pt-2">
-        <EyeOff className="w-4 h-4 text-muted-foreground" />
-        <p className="text-xs text-muted-foreground">
-          This question was not visible in the survey.
-        </p> 
+      <div
+        key={question.id}
+        className="grid grid-cols-5 items-start gap-4 mb-6"
+      >
+        <QuestionLabel forQuestion={question} title={question.title} />
+        <div className="col-span-3 flex items-center gap-2 pt-2">
+          <EyeOff className="w-4 h-4 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            This question was not visible in the survey.
+          </p>
+        </div>
       </div>
-    </div>
     );
   }
 
@@ -104,12 +136,15 @@ const SubmissionItemRow = ({ question }: { question: Question }) => {
   );
 };
 
-interface DynamicVariablesViewProps {
-  surveyModel: Model;
-}
-
 const DynamicVariablesView = ({ surveyModel }: DynamicVariablesViewProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  surveyModel.setVariable("utm_medium", "Google Search");
+  surveyModel.setVariable("utm_campaign", "Mornign AI Coffee");
+  surveyModel.setVariable("utm_source", "Google");
+  surveyModel.setVariable("utm_content", "Mornign AI Coffee");
+  surveyModel.setVariable("utm_term", "Mornign AI Coffee");
+  surveyModel.setVariable("utm_id", "1234567890");
+  surveyModel.setVariable("utm_adgroup", "Mornign AI Coffee");
 
   const dynamicVariableNames = useMemo(
     () => surveyModel?.getVariableNames() ?? [],
