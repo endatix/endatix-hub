@@ -13,6 +13,7 @@ import {
   QuestionMatrixModel,
   QuestionCustomModel,
   QuestionCompositeModel,
+  QuestionRankingModel,
 } from "survey-core";
 import PdfFileAnswer from "./pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
@@ -25,6 +26,7 @@ import PdfCheckboxAnswer from "./pdf-checkbox-answer";
 import PdfBooleanAnswer from "./pdf-boolean-answer";
 import PdfMatrixAnswer from "./pdf-matrix-answer";
 import PdfCustomAnswer from "./pdf-custom-answer";
+import PdfRankingAnswer from "./pdf-ranking-answer";
 
 export interface ViewAnswerProps {
   forQuestion: Question;
@@ -97,17 +99,6 @@ const PdfAnswerViewer = ({
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
-      </Text>
-    </View>
-  );
-
-  const renderRankingAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
-      {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {Array.isArray(forQuestion.value)
-          ? forQuestion.value.join(", ")
-          : "No Answer"}
       </Text>
     </View>
   );
@@ -204,6 +195,13 @@ const PdfAnswerViewer = ({
     );
   };
 
+  const renderRankingAnswer = () => (
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+      {renderTitle()}
+      <PdfRankingAnswer question={forQuestion as QuestionRankingModel} />
+    </View>
+  );
+
   const renderCheckboxAnswer = () => (
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
@@ -243,8 +241,6 @@ const PdfAnswerViewer = ({
       return renderRadiogroupAnswer();
     case QuestionType.Dropdown:
       return renderDropdownAnswer();
-    case QuestionType.Ranking:
-      return renderRankingAnswer();
     case QuestionType.Matrix:
       return renderMatrixAnswer();
     case QuestionType.Comment:
@@ -255,6 +251,8 @@ const PdfAnswerViewer = ({
       return renderSignaturePadAnswer();
     case QuestionType.MultipleText:
       return renderMultipleTextAnswer();
+    case QuestionType.Ranking:
+      return renderRankingAnswer();
     case QuestionType.TagBox:
       return renderTagBoxAnswer();
     case QuestionType.PanelDynamic:
