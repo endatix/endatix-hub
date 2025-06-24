@@ -138,13 +138,6 @@ const SubmissionItemRow = ({
 
 const DynamicVariablesView = ({ surveyModel }: DynamicVariablesViewProps) => {
   const [isOpen, setIsOpen] = useState(true);
-  surveyModel.setVariable("utm_medium", "Google Search");
-  surveyModel.setVariable("utm_campaign", "Mornign AI Coffee");
-  surveyModel.setVariable("utm_source", "Google");
-  surveyModel.setVariable("utm_content", "Mornign AI Coffee");
-  surveyModel.setVariable("utm_term", "Mornign AI Coffee");
-  surveyModel.setVariable("utm_id", "1234567890");
-  surveyModel.setVariable("utm_adgroup", "Mornign AI Coffee");
 
   const dynamicVariableNames = useMemo(
     () => surveyModel?.getVariableNames() ?? [],
