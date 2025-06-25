@@ -19,7 +19,7 @@ export const PDF_STYLES = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 4,
     alignItems: "center",
   },
   flexColumn: {
