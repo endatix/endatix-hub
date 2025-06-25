@@ -88,7 +88,7 @@ function EditSubmission({ submission }: EditSubmissionProps) {
         toast.error("Failed to save changes");
       }
     },
-    [changes],
+    [changes, router, submission.formId, submission.id, surveyModel?.data],
   );
 
   const handleDiscard = useCallback(() => {

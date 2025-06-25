@@ -14,8 +14,8 @@ import "survey-core/survey-core.css";
 import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
-import { useSurveyTheme } from "./use-survey-theme";
-import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
+import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
+import { useSurveyTheme } from './use-survey-theme.hook';
 
 interface SurveyComponentProps {
   definition: string;
@@ -32,20 +32,24 @@ export default function SurveyComponent({
   theme,
   customQuestions,
 }: SurveyComponentProps) {
-  const model = useSurveyModel(definition, submission, customQuestions);
+  const { surveyModel } = useSurveyModel(
+    definition,
+    submission,
+    customQuestions,
+  );
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId);
   const [isSubmitting, startSubmitting] = useTransition();
   const [submissionId, setSubmissionId] = useState<string>(
     submission?.id ?? "",
   );
-  useSurveyTheme(theme, model);
-  const { variables } = useDynamicVariables(model, formId);
+  useSurveyTheme(theme, surveyModel);
+  useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
 
   useBlobStorage({
     formId,
     submissionId,
-    surveyModel: model,
+    surveyModel,
     onSubmissionIdChange: setSubmissionId,
   });
 
@@ -104,25 +108,28 @@ export default function SurveyComponent({
   );
 
   useEffect(() => {
-    model.onComplete.add(submitForm);
-    model.onValueChanged.add(updatePartial);
-    model.onCurrentPageChanged.add(updatePartial);
-    model.onDynamicPanelValueChanged.add(updatePartial);
-    model.onMatrixCellValueChanged.add(updatePartial);
+    if (!surveyModel) {
+      return;
+    }
+
+    surveyModel.onComplete.add(submitForm);
+    surveyModel.onValueChanged.add(updatePartial);
+    surveyModel.onCurrentPageChanged.add(updatePartial);
+    surveyModel.onDynamicPanelValueChanged.add(updatePartial);
+    surveyModel.onMatrixCellValueChanged.add(updatePartial);
 
     return () => {
-      model.onComplete.remove(submitForm);
-      model.onValueChanged.remove(updatePartial);
-      model.onCurrentPageChanged.remove(updatePartial);
-      model.onDynamicPanelValueChanged.remove(updatePartial);
-      model.onMatrixCellValueChanged.remove(updatePartial);
+      surveyModel.onComplete.remove(submitForm);
+      surveyModel.onValueChanged.remove(updatePartial);
+      surveyModel.onCurrentPageChanged.remove(updatePartial);
+      surveyModel.onDynamicPanelValueChanged.remove(updatePartial);
+      surveyModel.onMatrixCellValueChanged.remove(updatePartial);
     };
-  }, [model, submitForm, updatePartial]);
+  }, [surveyModel, submitForm, updatePartial]);
 
-  return (
-    <>
-      <Survey model={model} />
-      <pre>{JSON.stringify(variables, null, 2)}</pre>
-    </>
-  );
+  if (!surveyModel) {
+    return <div>Loading...</div>;
+  }
+
+  return <Survey model={surveyModel} />;
 }

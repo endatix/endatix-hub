@@ -56,7 +56,7 @@ async function SubmissionDetails({
       <SubmissionProperties submission={submission} />
       <SubmissionAnswers
         formDefinition={submission.formDefinition.jsonData}
-        submissionData={submission.jsonData}
+        submission={submission}
         formId={formId}
         customQuestions={customQuestions}
       />

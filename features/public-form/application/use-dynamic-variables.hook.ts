@@ -1,63 +1,73 @@
-import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { DynamicVariables, MetadataSchema } from "../types";
 import { SurveyModel } from "survey-react-ui";
-import { useSubmissionQueue } from "./submission-queue";
-import { SubmissionData } from "./actions/submit-form.action";
 
-export type DynamicVariable = string | number | boolean | object | undefined;
+export const useDynamicVariables = (model: SurveyModel | null) => {
+  const [variablesState, setVariablesState] = useState<DynamicVariables>({});
 
-export const useDynamicVariables = (
-  model: SurveyModel,
-  formId: string,
-  onChange?: (vars: Record<string, DynamicVariable>) => void,
-) => {
-  const searchParams = useSearchParams();
-  const { enqueueSubmission } = useSubmissionQueue(formId);
-  const [variables, setVariables] = useState<Record<string, DynamicVariable>>(
-    {},
-  );
-
-  const onVariableChanged = useCallback(
-    (vars: Record<string, DynamicVariable>) => {
-      setVariables(vars);
-
-      if (onChange) {
-        onChange(vars);
+  const setVariables = useCallback(
+    (vars: DynamicVariables) => {
+      if (!model) {
+        return;
       }
 
-      const submissionData: SubmissionData = {
-        metadata: JSON.stringify({
-          variables: vars,
-        }),
-      };
-
-      enqueueSubmission(submissionData);
+      Object.entries(vars).forEach(([key, value]) => {
+        model.setVariable(key, value);
+      });
+      setVariablesState(vars);
     },
-    [onChange, enqueueSubmission],
+    [model],
   );
 
   useEffect(() => {
-    const initialVars: Record<string, string> = {};
-    const variablesChangedHandler = (sender: SurveyModel) => {
-      const variables: Record<string, DynamicVariable> = {};
+    if (!model) {
+      return;
+    }
+
+    const surveyVariableChanged = (sender: SurveyModel) => {
+      const variables: DynamicVariables = {};
       sender.getVariableNames().forEach((name) => {
         variables[name] = sender.getVariable(name);
       });
-      onVariableChanged(variables);
+      setVariablesState(variables);
     };
 
-    searchParams?.forEach((value, key) => {
-      initialVars[key] = value;
-      model.setVariable(key, value);
-    });
-
-    onVariableChanged(initialVars);
-    model.onVariableChanged.add(variablesChangedHandler);
+    model.onVariableChanged.add(surveyVariableChanged);
 
     return () => {
-      model.onVariableChanged.remove(variablesChangedHandler);
+      model.onVariableChanged.remove(surveyVariableChanged);
     };
-  }, [model, searchParams, onVariableChanged]);
+  }, [model]);
 
-  return { variables };
+  const setFromMetadata = useCallback(
+    (metadata: string) => {
+      if (!metadata) {
+        return;
+      }
+
+      try {
+        const parsedMetadata = JSON.parse(metadata);
+        const result = MetadataSchema.safeParse(parsedMetadata);
+        if (!result.success) {
+          console.error("Invalid initial variables:", result.error);
+          return;
+        }
+        const variables = result.data.variables;
+        setVariables(variables);
+      } catch (error) {
+        console.error("Invalid initial variables:", error);
+      }
+    },
+    [setVariables],
+  );
+
+  const clearVars = useCallback(() => {
+    setVariables({});
+  }, [setVariables]);
+
+  return {
+    variables: variablesState,
+    setFromMetadata,
+    clearVars,
+  };
 };

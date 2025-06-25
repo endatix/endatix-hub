@@ -15,12 +15,16 @@ export class SubmissionQueue {
   private isProcessing = false;
 
   private async processQueue() {
-    if (this.isProcessing || this.queue.length === 0) return;
+    if (this.isProcessing || this.queue.length === 0) {
+      return;
+    }
 
     this.isProcessing = true;
     try {
       const itemToProcess = this.queue.shift();
-      if (!itemToProcess) return;
+      if (!itemToProcess) {
+        return;
+      }
 
       const result = await submitFormAction(
         itemToProcess.formId,
@@ -33,7 +37,7 @@ export class SubmissionQueue {
           form_id: itemToProcess.formId,
           error_message: result.message,
         };
-        
+
         console.error(errorMessage, result.message);
         captureException("Form submission failed", errorData);
       }
@@ -43,7 +47,7 @@ export class SubmissionQueue {
         error_type: "submission_queue_processing_error",
         queue_length: this.queue.length,
       };
-      
+
       console.error(errorMessage, error);
       captureException(error, errorData);
     } finally {
@@ -62,7 +66,7 @@ export class SubmissionQueue {
         has_form_id: !!item.formId,
         has_data: !!item.data,
       };
-      
+
       console.error(errorMessage, errorData);
       captureException(errorMessage, errorData);
       return;

@@ -12,6 +12,7 @@ import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Model, Survey, SurveyModel } from "survey-react-ui";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -42,7 +43,7 @@ function useSurveyModel(submission: Submission) {
       try {
         const result = await getCustomQuestionsAction();
         if (Result.isSuccess(result)) {
-          initializeCustomQuestions(result.value.map(q => q.jsonData));
+          initializeCustomQuestions(result.value.map((q) => q.jsonData));
         }
 
         const json = JSON.parse(submission.formDefinition.jsonData);
@@ -81,6 +82,7 @@ function useSurveyModel(submission: Submission) {
 
 function EditSurveyWrapper({ submission, onChange }: EditSurveyWrapperProps) {
   const { model, isLoading } = useSurveyModel(submission);
+  const { setFromMetadata } = useDynamicVariables(model);
 
   useBlobStorage({
     formId: submission.formId,
@@ -89,17 +91,20 @@ function EditSurveyWrapper({ submission, onChange }: EditSurveyWrapperProps) {
   });
 
   useEffect(() => {
-    if (!model) return;
+    if (!model) {
+      return;
+    }
 
+    setFromMetadata(submission.metadata);
     model.onValueChanged.add(onChange);
-    model.onDynamicPanelItemValueChanged.add(onChange);
+    model.onDynamicPanelValueChanged.add(onChange);
     model.onMatrixCellValueChanged.add(onChange);
     return () => {
       model.onValueChanged.remove(onChange);
-      model.onDynamicPanelItemValueChanged.remove(onChange);
+      model.onDynamicPanelValueChanged.remove(onChange);
       model.onMatrixCellValueChanged.remove(onChange);
     };
-  }, [model, onChange]);
+  }, [model, onChange, setFromMetadata, submission.metadata]);
 
   if (isLoading) {
     return (

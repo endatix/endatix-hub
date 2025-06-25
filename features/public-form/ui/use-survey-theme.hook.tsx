@@ -4,7 +4,7 @@ import { DefaultLight } from "survey-core/themes";
 
 export function useSurveyTheme(
   themeString: string | undefined,
-  model: SurveyModel,
+  model: SurveyModel | null,
 ) {
   const [parsedTheme, setParsedTheme] = useState<ITheme | undefined>(undefined);
   const [error, setError] = useState<Error | null>(null);
@@ -28,7 +28,9 @@ export function useSurveyTheme(
 
   // Apply theme to the model
   useEffect(() => {
-    if (!model) return;
+    if (!model) {
+      return;
+    }
 
     if (parsedTheme) {
       model.applyTheme(parsedTheme);

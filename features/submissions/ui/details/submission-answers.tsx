@@ -1,85 +1,58 @@
 "use client";
 
 import { SectionTitle } from "@/components/headings/section-title";
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ChevronsUpDown, EyeOff, UserRoundSearch } from "lucide-react";
+import { EyeOff } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Model, Question, QuestionNonValue } from "survey-core";
+import { Question, QuestionNonValue } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
 import { QuestionLabel } from "./question-label";
 import { CustomQuestion } from "@/services/api";
-import { initializeCustomQuestions } from "@/lib/questions";
-
-interface SubmissionAnswersProps {
-  formDefinition: string;
-  submissionData: string;
-  formId: string;
-  customQuestions: CustomQuestion[];
-}
-
-interface DynamicVariablesViewProps {
-  surveyModel: Model;
-}
+import { Submission } from "@/types";
+import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
+import DynamicVariablesList from "./dynamic-variables-list";
 
 interface SubmissionItemRowProps {
   question: Question;
   customQuestionTypes: string[];
 }
 
+interface SubmissionAnswersProps {
+  formDefinition: string;
+  submission: Submission;
+  formId: string;
+  customQuestions: CustomQuestion[];
+}
+
 export function SubmissionAnswers({
   formDefinition,
-  submissionData,
-  formId,
+  submission,
   customQuestions,
 }: SubmissionAnswersProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [surveyModel, setSurveyModel] = useState<Model | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { surveyModel, error } = useSurveyModel(
+    formDefinition,
+    submission,
+    customQuestions.map((q: CustomQuestion) => q.jsonData),
+  );
   const customQuestionTypes = useMemo(
     () => customQuestions.map((q: CustomQuestion) => q.name),
     [customQuestions],
   );
 
   useEffect(() => {
-    try {
-      if (!formDefinition || !submissionData) {
-        setError("Form definition or submission data is missing");
-        return;
-      }
-
-      initializeCustomQuestions(
-        customQuestions.map((q: CustomQuestion) => q.jsonData),
-      );
-
-      if (!surveyModel) {
-        const json = JSON.parse(formDefinition);
-        const surveyModelNew = new Model(json);
-
-        // TODO: Add preload external data here
-
-        const parsedData = JSON.parse(submissionData);
-        surveyModelNew.data = parsedData;
-        const surveyQuestions = surveyModelNew.getAllQuestions(
-          false,
-          false,
-          false,
-        );
-
-        setQuestions(surveyQuestions);
-        setSurveyModel(surveyModelNew);
-      }
-    } catch (ex) {
-      console.warn("Error while parsing submission's JSON data", ex);
-      setError("Error while parsing submission's JSON data");
+    if (!surveyModel) {
+      return;
     }
-  }, [customQuestions, formDefinition, formId, submissionData, surveyModel]);
 
-  if (error || !surveyModel) {
+    const surveyQuestions = surveyModel.getAllQuestions(false, false, false);
+    setQuestions(surveyQuestions);
+  }, [surveyModel]);
+
+  if (!surveyModel) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
     return <ErrorView />;
   }
 
@@ -87,7 +60,7 @@ export function SubmissionAnswers({
     <>
       <SectionTitle title="Submission Answers" headingClassName="py-2 my-0" />
       <div className="grid gap-4">
-        <DynamicVariablesView surveyModel={surveyModel} />
+        <DynamicVariablesList surveyModel={surveyModel} />
         {questions.map((question) => (
           <SubmissionItemRow
             key={question.id}
@@ -100,9 +73,7 @@ export function SubmissionAnswers({
   );
 }
 
-const SubmissionItemRow = ({
-  question,
-}: SubmissionItemRowProps) => {
+const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
   if (question instanceof QuestionNonValue) {
     return null;
   }
@@ -133,58 +104,6 @@ const SubmissionItemRow = ({
         className="col-span-3"
       />
     </div>
-  );
-};
-
-const DynamicVariablesView = ({ surveyModel }: DynamicVariablesViewProps) => {
-  const [isOpen, setIsOpen] = useState(true);
-
-  const dynamicVariableNames = useMemo(
-    () => surveyModel?.getVariableNames() ?? [],
-    [surveyModel],
-  );
-
-  const hasVariables = dynamicVariableNames.length > 0;
-
-  if (!hasVariables) {
-    return null;
-  }
-
-  return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className="grid grid-cols-5 items-start gap-4 mb-6 h-full"
-    >
-      <div className="text-right col-span-2 flex top-0 justify-end">
-        <h4 className="text-sm font-semibold flex items-center gap-2">
-          <UserRoundSearch /> Dynamic Variables
-        </h4>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-9 p-0">
-            <ChevronsUpDown className="h-4 w-4" />
-            <span className="sr-only">Toggle</span>
-          </Button>
-        </CollapsibleTrigger>
-      </div>
-      <div className="col-span-3">
-        <CollapsibleContent className="space-y-2">
-          {dynamicVariableNames.map((name) => (
-            <div
-              key={name}
-              className="flex items-center rounded-md border p-0.5 px-2"
-            >
-              <span className="text-sm font-medium text-muted-foreground pr-1">
-                {`@${name} =`}
-              </span>
-              <span className="text-sm font-medium">
-                {` ${surveyModel.getVariable(name)}`}
-              </span>
-            </div>
-          ))}
-        </CollapsibleContent>
-      </div>
-    </Collapsible>
   );
 };
 
