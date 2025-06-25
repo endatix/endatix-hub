@@ -15,6 +15,7 @@ import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme";
+import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
 
 interface SurveyComponentProps {
   definition: string;
@@ -38,7 +39,9 @@ export default function SurveyComponent({
     submission?.id ?? "",
   );
   useSurveyTheme(theme, model);
+  const { variables } = useDynamicVariables(model, formId);
   const { trackException } = useTrackEvent();
+
   useBlobStorage({
     formId,
     submissionId,
@@ -116,5 +119,10 @@ export default function SurveyComponent({
     };
   }, [model, submitForm, updatePartial]);
 
-  return <Survey model={model} />;
+  return (
+    <>
+      <Survey model={model} />
+      <pre>{JSON.stringify(variables, null, 2)}</pre>
+    </>
+  );
 }
