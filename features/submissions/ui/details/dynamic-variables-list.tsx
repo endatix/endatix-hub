@@ -8,6 +8,7 @@ import { Collapsible } from "@radix-ui/react-collapsible";
 import { ChevronsUpDown, UserRoundSearch } from "lucide-react";
 import { useState } from "react";
 import { Model } from "survey-react-ui";
+import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
 
 interface DynamicVariablesListProps {
   surveyModel: Model;
@@ -15,8 +16,13 @@ interface DynamicVariablesListProps {
 const DynamicVariablesList = ({ surveyModel }: DynamicVariablesListProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const { variables } = useDynamicVariables(surveyModel);
+  const { options } = useSubmissionDetailsViewOptions();
 
   if (!variables || Object.keys(variables).length === 0) {
+    return null;
+  }
+
+  if (!options.showDynamicVariables) {
     return null;
   }
 

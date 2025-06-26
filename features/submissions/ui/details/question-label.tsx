@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Result } from "@/lib/result";
+import { useSubmissionDetailsViewOptions } from './submission-details-view-options-context';
 
 interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   forQuestion: Question;
@@ -39,6 +40,7 @@ export function QuestionLabel({
   ...props
 }: QuestionLabelProps) {
   const panelTitle = useMemo(() => getPanelTitle(forQuestion), [forQuestion]);
+  const { options } = useSubmissionDetailsViewOptions();
 
   if (!forQuestion) {
     return null;
@@ -50,7 +52,7 @@ export function QuestionLabel({
 
   return (
     <div className={cn("text-right col-span-2", className)} {...props}>
-      {isPersonalized ? (
+      {isPersonalized && options.showDynamicVariables ? (
         <PersonalizedTextLabel question={forQuestion} />
       ) : (
         <TextLabel question={forQuestion} />

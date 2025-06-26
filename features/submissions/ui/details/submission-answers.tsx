@@ -10,6 +10,7 @@ import { CustomQuestion } from "@/services/api";
 import { Submission } from "@/types";
 import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
 import DynamicVariablesList from "./dynamic-variables-list";
+import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
 
 interface SubmissionItemRowProps {
   question: Question;
@@ -74,12 +75,13 @@ export function SubmissionAnswers({
 }
 
 const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
+  const { options } = useSubmissionDetailsViewOptions();
   if (question instanceof QuestionNonValue) {
     return null;
   }
 
   if (!question.isVisibleInSurvey) {
-    return (
+    return options.showInvisibleItems ? (
       <div
         key={question.id}
         className="grid grid-cols-5 items-start gap-4 mb-6"
@@ -92,7 +94,7 @@ const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
           </p>
         </div>
       </div>
-    );
+    ) : null;
   }
 
   return (

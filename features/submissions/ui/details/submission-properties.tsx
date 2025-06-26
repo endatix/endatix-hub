@@ -1,8 +1,7 @@
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
 import { CellCompleteStatus } from "../table/cell-complete-status";
 import { PropertyDisplay } from "./property-display";
-import { Submission, SubmissionStatus, SubmissionStatusKind } from "@/types";
-import { Badge } from "@/components/ui/badge";
+import { Submission } from "@/types";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
 
 interface SubmissionPropertiesProps {
@@ -28,8 +27,6 @@ const getFormattedDate = (date: Date): string => {
 export function SubmissionProperties({
   submission,
 }: SubmissionPropertiesProps) {
-  const status = SubmissionStatus.fromCode(submission.status);
-
   return (
     <div className="px-4">
       <PropertyDisplay label="Created at">
