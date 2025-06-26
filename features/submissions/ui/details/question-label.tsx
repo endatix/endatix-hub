@@ -1,5 +1,4 @@
 import { Question } from "survey-core";
-import { PanelModel } from "survey-core";
 import { useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -11,24 +10,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Result } from "@/lib/result";
 import { useSubmissionDetailsViewOptions } from './submission-details-view-options-context';
-
-interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
-  forQuestion: Question;
-}
-
-const getPanelTitle = (question: Question) => {
-  const panel = question.parent;
-
-  if (panel instanceof PanelModel) {
-    return panel.processedTitle ?? panel.title;
-  }
-
-  if (panel.isPage) {
-    return panel.shortcutText ?? "";
-  }
-
-  return "";
-};
+import { getPanelTitle } from '@/lib/questions/question-utils';
+import { extractReplacedTokens, Token } from '@/lib/questions/personalization/reverse-text-processor';
 
 interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   forQuestion: Question;
@@ -65,116 +48,14 @@ export function QuestionLabel({
   );
 }
 
-interface TextPreProcessorItem {
-  start: number;
-  end: number;
-}
-
-interface Token {
-  value: string;
-  isVariable: boolean;
-  replacedValue?: string;
-}
-
-const isValidItemName = (name: string) => {
-  return name.length > 0 && name.length < 100;
-};
-
 function TextLabel({ question }: { question: Question }) {
   return <Label htmlFor={question.name}>{question.title}</Label>;
 }
 
 function PersonalizedTextLabel({ question }: { question: Question }) {
-  const extractReplacedTokens = (
-    text: string,
-    processedText: string,
-  ): Result<Token[]> => {
-    const tokens: Token[] = [];
-
-    if (text === processedText) {
-      return Result.validationError("No personalized tokens found");
-    }
-
-    const items: TextPreProcessorItem[] = [];
-    const length = text.length;
-    let start = -1;
-    let ch = "";
-    for (let i = 0; i < length; i++) {
-      ch = text[i];
-      if (ch == "{") start = i;
-      if (ch == "}") {
-        if (start > -1) {
-          const item: TextPreProcessorItem = {
-            start,
-            end: i,
-          };
-          if (isValidItemName(text.substring(start + 1, i - 1))) {
-            items.push(item);
-          }
-        }
-        start = -1;
-      }
-    }
-
-    const numItems = items.length;
-    for (let i = 0; i < numItems; i++) {
-      const item = items[i];
-      if (i == 0) {
-        tokens.push({
-          value: text.substring(0, item.start),
-          isVariable: false,
-        });
-      }
-      tokens.push({
-        value: text.substring(item.start + 1, item.end),
-        isVariable: true,
-      });
-
-      if (i == numItems - 1) {
-        const lastToken = text.substring(item.end + 1);
-        if (lastToken.length > 0) {
-          tokens.push({
-            value: lastToken,
-            isVariable: false,
-          });
-        }
-      }
-    }
-
-    let processedTextMap = processedText;
-    const numTokens = tokens.length;
-    for (let i = 0; i < numTokens; i++) {
-      const token = tokens[i];
-      if (!token?.isVariable) {
-        const areTokensEqual =
-          processedTextMap.substring(0, token.value.length) === token.value;
-        if (!areTokensEqual) {
-          return Result.error("Error extracting persinalized tokens");
-        }
-        processedTextMap = processedTextMap.substring(token.value.length);
-      } else {
-        if (i == numTokens - 1) {
-          token.replacedValue = processedTextMap;
-        } else {
-          const nextToken = tokens[i + 1];
-          const indexOfNextToken = processedTextMap.indexOf(nextToken.value);
-          if (indexOfNextToken > -1) {
-            token.replacedValue = processedTextMap.substring(
-              0,
-              indexOfNextToken,
-            );
-          } else {
-            return Result.error("Error extracting persinalized tokens");
-          }
-        }
-      }
-    }
-    return Result.success(tokens);
-  };
-
-  const extractionTokensResult = extractReplacedTokens(
-    question.title,
-    question.processedTitle,
+  const extractionTokensResult = useMemo(
+    () => extractReplacedTokens(question.title, question.processedTitle),
+    [question.title, question.processedTitle]
   );
 
   if (Result.isError(extractionTokensResult)) {
@@ -186,7 +67,7 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
   return (
     <TooltipProvider>
       <Label htmlFor={question.name}>
-        {personalizedTokens.map((token, index) =>
+        {personalizedTokens.map((token: Token, index: number) =>
           token.isVariable ? (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
@@ -211,7 +92,7 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
             </Tooltip>
           ) : (
             <span key={index}>{token.value}</span>
-          ),
+          )
         )}
       </Label>
     </TooltipProvider>
