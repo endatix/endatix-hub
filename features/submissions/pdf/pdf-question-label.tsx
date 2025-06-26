@@ -1,7 +1,8 @@
 import React from "react";
 import { Text, StyleSheet, View } from "@react-pdf/renderer";
-import { PanelModel, Question, QuestionCustomModel } from "survey-core";
+import { Question, QuestionCustomModel } from "survey-core";
 import { PDF_STYLES } from "@/features/pdf-export/components/pdf-styles";
+import { getPanelTitle } from "@/lib/questions";
 
 interface PdfQuestionLabelProps {
   question: Question;
@@ -19,20 +20,6 @@ function getProcessedTitle(question: Question): string {
   }
   return question.processedTitle ?? question.title;
 }
-
-const getPanelTitle = (question: Question) => {
-  const panel = question.parent;
-
-  if (panel instanceof PanelModel) {
-    return panel.processedTitle ?? panel.title;
-  }
-
-  if (panel.isPage) {
-    return panel.shortcutText ?? "";
-  }
-
-  return "";
-};
 
 export const PDF_LABEL_STYLES = StyleSheet.create({
   rightAlign: {

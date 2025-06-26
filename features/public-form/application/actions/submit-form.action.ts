@@ -8,7 +8,7 @@ import { getPostHog } from "@/features/analytics/posthog/server/node-client";
 
 export type SubmissionData = {
   isComplete?: boolean;
-  jsonData: string;
+  jsonData?: string;
   currentPage?: number;
   metadata?: string;
 };

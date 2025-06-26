@@ -8,6 +8,7 @@ import { SubmissionHeader } from "./submission-header";
 import { SubmissionProperties } from "./submission-properties";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { CustomQuestion } from "@/services/api";
+import { SubmissionDetailsViewOptionsProvider } from "./submission-details-view-options-context";
 
 async function SubmissionDetails({
   formId,
@@ -47,7 +48,7 @@ async function SubmissionDetails({
   }
 
   return (
-    <>
+    <SubmissionDetailsViewOptionsProvider>
       <SubmissionHeader
         formId={formId}
         submissionId={submissionId}
@@ -56,11 +57,11 @@ async function SubmissionDetails({
       <SubmissionProperties submission={submission} />
       <SubmissionAnswers
         formDefinition={submission.formDefinition.jsonData}
-        submissionData={submission.jsonData}
+        submission={submission}
         formId={formId}
         customQuestions={customQuestions}
       />
-    </>
+    </SubmissionDetailsViewOptionsProvider>
   );
 }
 

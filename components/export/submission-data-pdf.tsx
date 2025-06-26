@@ -16,6 +16,9 @@ import EyeOffIcon from "@/features/pdf-export/components/icons/eye-off-icon";
 import { PdfQuestionLabel } from "@/features/submissions/pdf/pdf-question-label";
 import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions";
+import { DynamicVariables, MetadataSchema } from "@/features/public-form/types";
+import { UserRoundSearchIcon } from "@/features/pdf-export/components/icons";
+import { PDF_STYLES } from '@/features/pdf-export/components/pdf-styles';
 
 Font.register({
   family: "Roboto",
@@ -74,6 +77,24 @@ export const SubmissionDataPdf = ({
   }
 
   surveyModel.data = submissionData;
+
+  let metadata: DynamicVariables = {};
+  try {
+    const parsedMetadata = JSON.parse(submission.metadata);
+    const metadataResult = MetadataSchema.safeParse(parsedMetadata);
+    if (!metadataResult.success) {
+      console.warn("Invalid initial variables:", metadataResult.error);
+    } else {
+      metadata = metadataResult.data.variables;
+    }
+  } catch (ex) {
+    console.warn("Error while parsing submission's metadata", ex);
+  }
+
+  Object.entries(metadata).forEach(([key, value]) => {
+    surveyModel.setVariable(key, value);
+  });
+
   const questions = surveyModel.getAllQuestions(false, false, false);
 
   // Dynamic variables logic
@@ -93,9 +114,9 @@ export const SubmissionDataPdf = ({
   const isFullWidthAnswer = (question: Question) => {
     const type = question.getType();
     return (
-      type === 'matrixdropdown' ||
-      type === 'matrixdynamic' ||
-      type === 'paneldynamic'
+      type === "matrixdropdown" ||
+      type === "matrixdynamic" ||
+      type === "paneldynamic"
     );
   };
 
@@ -113,15 +134,21 @@ export const SubmissionDataPdf = ({
             </View>
             <View style={styles.propertyRow}>
               <Text style={styles.propertyLabel}>Is Complete?</Text>
-              <Text style={styles.propertyValue}>{submission.isComplete ? "YES" : "NO"}</Text>
+              <Text style={styles.propertyValue}>
+                {submission.isComplete ? "YES" : "NO"}
+              </Text>
             </View>
             <View style={styles.propertyRow}>
               <Text style={styles.propertyLabel}>Created at</Text>
-              <Text style={styles.propertyValue}>{getFormattedDate(submission.createdAt)}</Text>
+              <Text style={styles.propertyValue}>
+                {getFormattedDate(submission.createdAt)}
+              </Text>
             </View>
             <View style={styles.propertyRow}>
               <Text style={styles.propertyLabel}>Completed at</Text>
-              <Text style={styles.propertyValue}>{getFormattedDate(submission.completedAt)}</Text>
+              <Text style={styles.propertyValue}>
+                {getFormattedDate(submission.completedAt)}
+              </Text>
             </View>
             <View style={styles.propertyRow}>
               <Text style={styles.propertyLabel}>Completion time</Text>
@@ -129,13 +156,15 @@ export const SubmissionDataPdf = ({
                 {getElapsedTimeString(
                   submission.createdAt,
                   submission.completedAt,
-                  "long"
+                  "long",
                 )}
               </Text>
             </View>
             <View style={styles.propertyRow}>
               <Text style={styles.propertyLabel}>Last modified on</Text>
-              <Text style={styles.propertyValue}>{getFormattedDate(submission.modifiedAt)}</Text>
+              <Text style={styles.propertyValue}>
+                {getFormattedDate(submission.modifiedAt)}
+              </Text>
             </View>
           </View>
         </View>
@@ -144,17 +173,24 @@ export const SubmissionDataPdf = ({
           {/* Dynamic Variables Section */}
           {hasVariables && (
             <View style={styles.dynamicVariablesSection}>
-              <Text style={styles.dynamicVariablesTitle}>
-                Dynamic Variables
-              </Text>
-              {dynamicVariableNames.map((name) => (
-                <View key={name} style={styles.dynamicVariableRow}>
-                  <Text style={styles.dynamicVariableName}>{`@${name} =`}</Text>
-                  <Text
-                    style={styles.dynamicVariableValue}
-                  >{` ${surveyModel.getVariable(name)}`}</Text>
-                </View>
-              ))}
+              <View style={PDF_STYLES.flexRow}>
+                <UserRoundSearchIcon />
+                <Text style={styles.dynamicVariablesTitle}>
+                  Dynamic Variables
+                </Text>
+              </View>
+              <View style={styles.dynamicVariablesList}>
+                {dynamicVariableNames.map((name) => (
+                  <View key={name} style={styles.dynamicVariableRow}>
+                    <Text
+                      style={styles.dynamicVariableName}
+                    >{`@${name} =`}</Text>
+                    <Text
+                      style={styles.dynamicVariableValue}
+                    >{` ${surveyModel.getVariable(name)}`}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
           <View style={styles.questions}>
@@ -194,12 +230,15 @@ export const SubmissionDataPdf = ({
                 rows.push(
                   <View key={question.id} style={styles.questionRow}>
                     <View style={styles.labelCol}>
-                      <PdfQuestionLabel question={question} style={styles.questionLabel} />
+                      <PdfQuestionLabel
+                        question={question}
+                        style={styles.questionLabel}
+                      />
                     </View>
                     <View style={styles.answerCol}>
                       <PdfAnswerViewer forQuestion={question} hideTitle />
                     </View>
-                  </View>
+                  </View>,
                 );
                 return rows;
               }
@@ -331,10 +370,20 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto-Bold",
     marginBottom: 4,
   },
+  dynamicVariablesList: {
+    marginTop: 2,
+    gap: 2,
+  },
   dynamicVariableRow: {
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 3,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     marginBottom: 2,
+    backgroundColor: "#fff",
   },
   dynamicVariableName: {
     fontSize: 10,
@@ -362,30 +411,30 @@ const styles = StyleSheet.create({
   },
   propertiesTable: {
     marginTop: 8,
-    width: '100%',
+    width: "100%",
   },
   propertyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   propertyLabel: {
     flex: 2,
-    textAlign: 'right',
-    fontFamily: 'Roboto-Bold',
-    color: '#666',
+    textAlign: "right",
+    fontFamily: "Roboto-Bold",
+    color: "#666",
     fontSize: 10,
     paddingRight: 16,
   },
   propertyValue: {
     flex: 3,
-    textAlign: 'left',
-    fontFamily: 'Roboto',
-    color: '#222',
+    textAlign: "left",
+    fontFamily: "Roboto",
+    color: "#222",
     fontSize: 10,
   },
   fullWidthAnswerRow: {
-    width: '100%',
+    width: "100%",
     marginBottom: 12,
   },
 });
