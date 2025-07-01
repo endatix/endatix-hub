@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { AgentForm, agentSchema } from "../types";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 interface AgentFormProps {
   initialValues: AgentForm;
@@ -33,6 +36,16 @@ export function AgentFormContainer({
   const [errors, setErrors] = useState<
     Partial<Record<keyof AgentForm, string>>
   >({});
+  const router = useRouter();
+  const systemPromptRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (systemPromptRef.current) {
+      systemPromptRef.current.style.height = "auto";
+      systemPromptRef.current.style.height =
+        systemPromptRef.current.scrollHeight + 4 + "px";
+    }
+  }, [form.systemPrompt]);
 
   const validate = (field: keyof AgentForm, value: string | number) => {
     try {
@@ -157,6 +170,7 @@ export function AgentFormContainer({
           <Label htmlFor="systemPrompt">System Prompt</Label>
           <Textarea
             id="systemPrompt"
+            ref={systemPromptRef}
             name="systemPrompt"
             placeholder="Enter system prompt for the agent"
             rows={4}
@@ -195,6 +209,11 @@ export function AgentFormContainer({
       </div>
 
       <div className="flex justify-end space-x-2">
+        {mode === "edit" && (
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+        )}
         <Button type="submit" disabled={isPending || !isFormValid()}>
           {isPending ? (
             <>

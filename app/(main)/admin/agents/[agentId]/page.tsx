@@ -39,7 +39,9 @@ export default async function AgentDetailsPage({ params }: Params) {
           <Button asChild variant="outline">
             <Link href={`/admin/agents/${agentId}/edit`}>Edit</Link>
           </Button>
-          <Button variant="destructive">Delete</Button>
+          <Button variant="destructive" disabled={true}>
+            Delete
+          </Button>
         </div>
       </div>
       <div className="bg-card border rounded-lg p-6 mb-8">
