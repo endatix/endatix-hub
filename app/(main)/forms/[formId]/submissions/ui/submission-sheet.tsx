@@ -37,14 +37,7 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
       return;
     }
 
-    return new Date(date).toLocaleString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour12: true,
-    });
+    return getFormattedDate(date);
   };
 
   useEffect(() => {

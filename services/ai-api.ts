@@ -5,6 +5,7 @@ import {
 import { getSession } from "@/features/auth";
 import { HeaderBuilder } from "./header-builder";
 import { redirect } from "next/navigation";
+import { Agent, CreateAgentRequest } from "@/features/agents/types";
 
 const API_BASE_URL =
   process.env.AI_API_BASE_URL || process.env.ENDATIX_BASE_URL;
@@ -24,15 +25,54 @@ export const defineForm = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${AI_API_BASE_URL}/assistant/forms/define`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(request),
-  });
+  const response = await fetch(
+    `${AI_API_BASE_URL}/assistant/forms/define/azure-openai`,
+    {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(request),
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to process your prompt");
   }
 
+  return response.json();
+};
+
+export const getAgents = async (): Promise<Agent[]> => {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+  const headers = new HeaderBuilder().withAuth(session).build();
+  const response = await fetch(`${AI_API_BASE_URL}/agents`, { headers });
+  if (!response.ok) {
+    throw new Error("Failed to fetch agents");
+  }
+  return response.json();
+};
+
+export const createAgent = async (
+  request: CreateAgentRequest,
+): Promise<Agent> => {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+  const headers = new HeaderBuilder()
+    .withAuth(session)
+    .acceptJson()
+    .provideJson()
+    .build();
+  const response = await fetch(`${AI_API_BASE_URL}/agents`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create agent");
+  }
   return response.json();
 };

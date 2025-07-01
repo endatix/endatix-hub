@@ -77,3 +77,19 @@ export function getElapsedTimeString(
 
   return `${formattedHours} hours ${formattedMins} minutes`;
 }
+
+/**
+ * Formats a date into a string in the format of HH:MM:SS
+ * @param date - The date to format
+ * @returns Formatted string of the date in the format of HH:MM:SS
+ */
+export function getFormattedDate(date: Date): string {
+  return new Date(date).toLocaleString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour12: true,
+  });
+}
