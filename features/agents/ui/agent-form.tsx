@@ -1,0 +1,213 @@
+import { useState } from "react";
+import { AgentForm, agentSchema } from "../types";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface AgentFormProps {
+  initialValues: AgentForm;
+  onSubmit: (data: AgentForm) => Promise<void>;
+  mode: "create" | "edit";
+  isPending?: boolean;
+}
+
+const ENABLED_MODELS = ["o4-mini"];
+
+export function AgentFormContainer({
+  initialValues,
+  onSubmit,
+  mode,
+  isPending,
+}: AgentFormProps) {
+  const [form, setForm] = useState<AgentForm>(initialValues);
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof AgentForm, string>>
+  >({});
+
+  const validate = (field: keyof AgentForm, value: string | number) => {
+    try {
+      agentSchema.shape[field].parse(value);
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    } catch (e: unknown) {
+      if (e instanceof z.ZodError) {
+        setErrors((prev) => ({ ...prev, [field]: e.errors[0]?.message }));
+      }
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    let val: string | number = value;
+    if (type === "number") val = Number(value);
+    setForm((prev) => ({ ...prev, [name]: val }));
+    validate(name as keyof AgentForm, val);
+  };
+
+  const isFormValid = () => {
+    const result = agentSchema.safeParse(form);
+    return result.success;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const result = agentSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof AgentForm, string>> = {};
+      for (const err of result.error.errors) {
+        fieldErrors[err.path[0] as keyof AgentForm] = err.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+    if (isPending) return;
+    await onSubmit(form);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            name="name"
+            placeholder="Enter agent name"
+            required
+            autoFocus
+            disabled={isPending}
+            value={form.name}
+            onChange={handleChange}
+            aria-invalid={!!errors.name}
+            aria-describedby="name-error"
+          />
+          {errors.name && (
+            <div id="name-error" className="text-destructive text-sm">
+              {errors.name}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="model">Model</Label>
+          <Select
+            value={form.model}
+            onValueChange={(value) => {
+              setForm((prev) => ({ ...prev, model: value }));
+              validate("model", value);
+            }}
+            disabled={isPending}
+            name="model"
+            required
+          >
+            <SelectTrigger
+              id="model"
+              aria-invalid={!!errors.model}
+              aria-describedby="model-error"
+            >
+              <SelectValue placeholder="Select a model" />
+            </SelectTrigger>
+            <SelectContent>
+              {ENABLED_MODELS.map((model) => (
+                <SelectItem key={model} value={model}>
+                  {model}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.model && (
+            <div id="model-error" className="text-destructive text-sm">
+              {errors.model}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="temperature">Temperature</Label>
+          <Input
+            id="temperature"
+            name="temperature"
+            type="number"
+            min={0}
+            max={2}
+            step={0.1}
+            required
+            disabled={isPending}
+            value={form.temperature}
+            onChange={handleChange}
+            aria-invalid={!!errors.temperature}
+            aria-describedby="temperature-error"
+          />
+          {errors.temperature && (
+            <div id="temperature-error" className="text-destructive text-sm">
+              {errors.temperature}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="systemPrompt">System Prompt</Label>
+          <Textarea
+            id="systemPrompt"
+            name="systemPrompt"
+            placeholder="Enter system prompt for the agent"
+            rows={4}
+            required
+            disabled={isPending}
+            value={form.systemPrompt}
+            onChange={handleChange}
+            aria-invalid={!!errors.systemPrompt}
+            aria-describedby="systemPrompt-error"
+          />
+          {errors.systemPrompt && (
+            <div id="systemPrompt-error" className="text-destructive text-sm">
+              {errors.systemPrompt}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="tenantId">Tenant ID</Label>
+          <Input
+            id="tenantId"
+            name="tenantId"
+            type="number"
+            required
+            disabled={isPending || mode === "edit"}
+            value={form.tenantId}
+            onChange={handleChange}
+            aria-invalid={!!errors.tenantId}
+            aria-describedby="tenantId-error"
+          />
+          {errors.tenantId && (
+            <div id="tenantId-error" className="text-destructive text-sm">
+              {errors.tenantId}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button type="submit" disabled={isPending || !isFormValid()}>
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {mode === "edit" ? "Saving..." : "Creating..."}
+            </>
+          ) : mode === "edit" ? (
+            "Save Changes"
+          ) : (
+            "Create Agent"
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}

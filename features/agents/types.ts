@@ -22,3 +22,13 @@ export const agentSchema = z.object({
 
 export type CreateAgentRequest = z.infer<typeof agentSchema>;
 export type AgentForm = CreateAgentRequest;
+
+export interface Conversation {
+  agentId: number;
+  userId: number;
+  title: string | null;
+  result: string | null;
+  createdAt: string;
+  modifiedAt: string;
+  messagesCount: number;
+  }

@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 export function AdminMenuCards() {
   const router = useRouter();
   return (
-    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
       <Card
         className="@container/card cursor-pointer"
         onClick={() => router.push("/admin/agents")}
@@ -36,7 +36,7 @@ export function AdminMenuCards() {
         onClick={() => router.push("/admin/tenants")}
       >
         <CardHeader>
-          <CardDescription>ManageTenants</CardDescription>
+          <CardDescription>Manage Tenants</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             Tenants
           </CardTitle>

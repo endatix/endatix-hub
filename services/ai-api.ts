@@ -5,7 +5,11 @@ import {
 import { getSession } from "@/features/auth";
 import { HeaderBuilder } from "./header-builder";
 import { redirect } from "next/navigation";
-import { Agent, CreateAgentRequest } from "@/features/agents/types";
+import {
+  Agent,
+  CreateAgentRequest,
+  Conversation,
+} from "@/features/agents/types";
 
 const API_BASE_URL =
   process.env.AI_API_BASE_URL || process.env.ENDATIX_BASE_URL;
@@ -76,3 +80,23 @@ export const createAgent = async (
   }
   return response.json();
 };
+
+export const getAgentConversations = async (
+  agentId: string | number,
+): Promise<Conversation[]> => {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    redirect("/login");
+  }
+  const headers = new HeaderBuilder().withAuth(session).build();
+  const response = await fetch(
+    `${AI_API_BASE_URL}/agents/${agentId}/conversations`,
+    { headers },
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch conversations");
+  }
+  return response.json();
+};
+
+export { AI_API_BASE_URL };
