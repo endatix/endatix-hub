@@ -17,7 +17,9 @@ export default async function AgentDetailsPage({ params }: Params) {
   try {
     const agents = await getAgents();
     agent = agents.find((a) => String(a.id) === String(agentId));
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
     conversations = await getAgentConversations(agentId);
   } catch (e: unknown) {
     if (e instanceof Error) {

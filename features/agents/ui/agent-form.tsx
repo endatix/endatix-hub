@@ -25,6 +25,7 @@ interface AgentFormProps {
 }
 
 const ENABLED_MODELS = ["o4-mini"];
+const AGENTS_NAMES = ["DefineForm"];
 
 export function AgentFormContainer({
   initialValues,
@@ -91,23 +92,36 @@ export function AgentFormContainer({
   return (
     <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            name="name"
-            placeholder="Enter agent name"
-            required
-            autoFocus
-            disabled={isPending}
+      <div className="space-y-2">
+          <Label htmlFor="name">Agent Name</Label>
+          <Select
             value={form.name}
-            onChange={handleChange}
-            aria-invalid={!!errors.name}
-            aria-describedby="name-error"
-          />
-          {errors.name && (
-            <div id="name-error" className="text-destructive text-sm">
-              {errors.name}
+            onValueChange={(value) => {
+              setForm((prev) => ({ ...prev, name: value }));
+              validate("name", value);
+            }}
+            disabled={isPending}
+            name="name"
+            required
+          >
+            <SelectTrigger
+              id="name"
+              aria-invalid={!!errors.model}
+              aria-describedby="model-error"
+            >
+              <SelectValue placeholder="Select an agent name" />
+            </SelectTrigger>
+            <SelectContent>
+              {AGENTS_NAMES.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.model && (
+            <div id="model-error" className="text-destructive text-sm">
+              {errors.model}
             </div>
           )}
         </div>

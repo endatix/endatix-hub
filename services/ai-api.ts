@@ -88,7 +88,8 @@ export const getAgentConversations = async (
   if (!session.isLoggedIn) {
     redirect("/login");
   }
-  const headers = new HeaderBuilder().withAuth(session).build();
+  const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
+
   const response = await fetch(
     `${AI_API_BASE_URL}/agents/${agentId}/conversations`,
     { headers },
