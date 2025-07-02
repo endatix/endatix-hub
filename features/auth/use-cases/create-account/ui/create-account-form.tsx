@@ -28,7 +28,7 @@ const CreateAccountForm = () => {
       if (result.success) {
         const email = formData.get("email");
         if (email) {
-          router.push(`/send-verification?email=${encodeURIComponent(email.toString())}`);
+          router.push(`/account-verification?email=${encodeURIComponent(email.toString())}`);
         }
       }
       return result;
