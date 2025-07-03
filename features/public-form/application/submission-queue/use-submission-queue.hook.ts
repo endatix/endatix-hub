@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { submissionQueue } from "./submission-queue";
-import { SubmissionData } from "../actions/submit-form.action";
+import { SubmissionData } from "@/features/submissions/types";
 
 export function useSubmissionQueue(formId: string) {
   const enqueueSubmission = useCallback(

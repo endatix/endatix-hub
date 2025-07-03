@@ -3,7 +3,7 @@ import {
   AuthenticationResponse,
   getSession,
 } from "@/features/auth";
-import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
+import { SubmissionData } from "@/features/submissions/types";
 import {
   CreateFormRequest,
   CreateFormTemplateRequest,

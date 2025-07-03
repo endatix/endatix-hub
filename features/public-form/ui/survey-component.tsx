@@ -1,10 +1,7 @@
 "use client";
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import {
-  SubmissionData,
-  submitFormAction,
-} from "@/features/public-form/application/actions/submit-form.action";
+import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { Result } from "@/lib/result";
 import { Submission } from "@/types";
@@ -15,7 +12,13 @@ import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
-import { useSurveyTheme } from './use-survey-theme.hook';
+import { useSurveyTheme } from "./use-survey-theme.hook";
+import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
+import {
+  isReCaptchaEnabled,
+  RECAPTCHA_ACTIONS,
+} from "@/features/recaptcha/shared/recaptcha-config";
+import { SubmissionData } from "@/features/submissions/types";
 
 interface SurveyComponentProps {
   definition: string;
@@ -90,6 +93,13 @@ export default function SurveyComponent({
       };
 
       startSubmitting(async () => {
+        if (isReCaptchaEnabled()) {
+          const reCaptchaToken = await getReCaptchaToken(
+            RECAPTCHA_ACTIONS.FORM_SUBMIT,
+          );
+          submissionData.reCaptchaToken = reCaptchaToken;
+        }
+
         const result = await submitFormAction(formId, submissionData);
         if (Result.isSuccess(result)) {
           event.showSaveSuccess("The results were saved successfully!");

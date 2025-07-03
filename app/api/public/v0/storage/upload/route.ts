@@ -1,8 +1,6 @@
-import {
-  SubmissionData,
-  submitFormAction,
-} from "@/features/public-form/application/actions/submit-form.action";
+import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files.use-case";
+import { SubmissionData } from "@/features/submissions/types";
 import { Result } from "@/lib/result";
 import { headers } from "next/headers";
 

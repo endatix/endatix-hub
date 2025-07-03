@@ -13,6 +13,9 @@ declare namespace NodeJS {
     NEXT_FORMS_COOKIE_NAME?: string;
     NEXT_FORMS_COOKIE_DURATION_DAYS?: string;
 
+    // ReCaptcha
+    NEXT_PUBLIC_RECAPTCHA_SITE_KEY?: string;
+
     // Slack
     SLACK_CLIENT_ID?: string;
     SLACK_CLIENT_SECRET?: string;

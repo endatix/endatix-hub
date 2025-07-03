@@ -2,7 +2,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 import { DynamicVariable } from "../types";
 import { useSubmissionQueue } from "./submission-queue";
-import { SubmissionData } from "./actions/submit-form.action";
+import { SubmissionData } from "@/features/submissions/types";
 import { SurveyModel } from "survey-react-ui";
 
 interface UseSearchParamsVarsOptions {

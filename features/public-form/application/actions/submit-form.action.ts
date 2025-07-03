@@ -5,13 +5,7 @@ import { createSubmissionPublic, updateSubmissionPublic } from "@/services/api";
 import { Result } from "@/lib/result";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { getPostHog } from "@/features/analytics/posthog/server/node-client";
-
-export type SubmissionData = {
-  isComplete?: boolean;
-  jsonData?: string;
-  currentPage?: number;
-  metadata?: string;
-};
+import { SubmissionData } from "@/features/submissions/types";
 
 export type SubmissionOperation = {
   submissionId: string;
@@ -72,7 +66,7 @@ async function updateExistingSubmissionViaToken(
     if (postHog) {
       postHog.captureException(err, "", {
         formId,
-        token
+        token,
       });
     }
     return Result.error(

@@ -1,9 +1,7 @@
 import { Result } from "@/lib/result";
-import {
-  SubmissionData,
-  submitFormAction,
-} from "../actions/submit-form.action";
 import { captureException } from "@/features/analytics/posthog/client";
+import { SubmissionData } from "@/features/submissions/types";
+import { submitFormAction } from "../actions/submit-form.action";
 
 interface QueueItem {
   formId: string;
