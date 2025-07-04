@@ -776,7 +776,7 @@ function FormEditor({
 
     creator.onElementGetActions.add((_, options) => {
       const element = options.element as Question;
-      if (element?.isQuestion) {
+      if (element?.isQuestion || element?.isPanel) {
         options.actions.unshift({
           id: "create-custom-question",
           title: "Create Custom Question",
@@ -789,7 +789,7 @@ function FormEditor({
     return () => {
       creator.onElementGetActions.remove((_, options) => {
         const element = options.element as Question;
-        if (element?.isQuestion) {
+        if (element?.isQuestion || element?.isPanel) {
           options.actions = options.actions.filter(
             (action) => action.id !== "create-custom-question",
           );
