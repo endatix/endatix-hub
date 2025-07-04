@@ -14,10 +14,7 @@ import { useSurveyModel } from "./use-survey-model.hook";
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
-import {
-  isReCaptchaEnabled,
-  RECAPTCHA_ACTIONS,
-} from "@/features/recaptcha/shared/recaptcha-config";
+import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
 
 interface SurveyComponentProps {
@@ -26,6 +23,7 @@ interface SurveyComponentProps {
   submission?: Submission;
   theme?: string;
   customQuestions?: string[];
+  requiresReCaptcha?: boolean;
 }
 
 export default function SurveyComponent({
@@ -34,6 +32,7 @@ export default function SurveyComponent({
   submission,
   theme,
   customQuestions,
+  requiresReCaptcha,
 }: SurveyComponentProps) {
   const { surveyModel } = useSurveyModel(
     definition,
@@ -93,9 +92,9 @@ export default function SurveyComponent({
       };
 
       startSubmitting(async () => {
-        if (isReCaptchaEnabled()) {
+        if (recaptchaConfig.isReCaptchaEnabled() && requiresReCaptcha) {
           const reCaptchaToken = await getReCaptchaToken(
-            RECAPTCHA_ACTIONS.FORM_SUBMIT,
+            recaptchaConfig.ACTIONS.SUBMIT_FORM,
           );
           submissionData.reCaptchaToken = reCaptchaToken;
         }
@@ -114,7 +113,14 @@ export default function SurveyComponent({
         }
       });
     },
-    [formId, isSubmitting, clearQueue, startSubmitting, trackException],
+    [
+      formId,
+      isSubmitting,
+      clearQueue,
+      startSubmitting,
+      trackException,
+      requiresReCaptcha,
+    ],
   );
 
   useEffect(() => {

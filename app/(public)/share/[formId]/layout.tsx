@@ -17,6 +17,10 @@ export default async function ShareLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://www.google.com" />
+        <link rel="preconnect" href="https://www.gstatic.com" crossOrigin="" />
+      </head>
       <body>
         <AppProvider options={AppOptions.NoTheme} session={session}>
           <div
