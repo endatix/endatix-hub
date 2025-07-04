@@ -19,6 +19,11 @@ import {
   Submission,
 } from "../types";
 import { HeaderBuilder } from "./header-builder";
+import {
+  parseErrorResponse,
+  ERROR_CODE,
+  getErrorMessage,
+} from "@/lib/error-handling";
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
 export const authenticate = async (
@@ -526,6 +531,12 @@ export const updateSubmissionPublic = async (
   );
 
   if (!response.ok) {
+    const error = await parseErrorResponse(response);
+    if (error?.errorCode === ERROR_CODE.RECAPTCHA_VERIFICATION_FAILED) {
+      throw new Error(
+        getErrorMessage(error.errorCode) ?? "Failed to submit response",
+      );
+    }
     throw new Error("Failed to submit response");
   }
 

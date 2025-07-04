@@ -60,8 +60,10 @@ async function updateExistingSubmissionViaToken(
       tokenStore.deleteToken(formId);
     }
     return Result.success({ submissionId: updatedSubmission.id });
-  } catch (err) {
-    tokenStore.deleteToken(formId);
+  } catch (err: unknown) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Failed to submit form.";
+
     const postHog = getPostHog();
     if (postHog) {
       postHog.captureException(err, "", {
@@ -70,7 +72,7 @@ async function updateExistingSubmissionViaToken(
       });
     }
     return Result.error(
-      "Failed to update existing submission. Details: " + err,
+      `${errorMessage} Please try again and contact us if the problem persists.`,
     );
   }
 }
@@ -91,7 +93,11 @@ async function createNewSubmission(
       tokenStore.setToken({ formId, token: createSubmissionResponse.token });
     }
     return Result.success({ submissionId: createSubmissionResponse.id });
-  } catch {
-    return Result.error("Failed to create new submission");
+  } catch (err: unknown) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Failed to create new submission.";
+    return Result.error(
+      `${errorMessage} Please try again and contact us if the problem persists.`,
+    );
   }
 }

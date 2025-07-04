@@ -104,7 +104,8 @@ export default function SurveyComponent({
           event.showSaveSuccess("The results were saved successfully!");
         } else {
           event.showSaveError(
-            "Failed to submit form. Please try again and contact us if the problem persists.",
+            result.message ??
+              "Failed to submit form. Please try again and contact us if the problem persists.",
           );
           trackException("Form submission failed", {
             form_id: formId,
