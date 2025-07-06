@@ -7,7 +7,7 @@ import {
   TableCell,
   Table,
 } from "@/components/ui/table";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import {
   ColumnDef,
   flexRender,

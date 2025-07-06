@@ -1,6 +1,6 @@
 import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 
 interface EditSubmissionHeaderProps {
   submission: Submission;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import dynamic from "next/dynamic";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {

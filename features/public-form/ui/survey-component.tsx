@@ -4,7 +4,7 @@ import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { Result } from "@/lib/result";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { CompleteEvent, SurveyModel } from "survey-core";
 import "survey-core/survey-core.css";

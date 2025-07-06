@@ -1,4 +1,4 @@
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { FormTokenCookieStore } from "../infrastructure/cookie-store";
 import { getPartialSubmissionPublic } from "@/services/api";
 import { Result } from "@/lib/result";
@@ -33,7 +33,9 @@ export const getPartialSubmissionUseCase = async ({
     const submission = await getPartialSubmissionPublic(formId, token);
     return Result.success(submission);
   } catch (error) {
-    const errorMessage = `Failed to load submission: ${error instanceof Error ? error.message : "Unknown error"}`;
+    const errorMessage = `Failed to load submission: ${
+      error instanceof Error ? error.message : "Unknown error"
+    }`;
     tokenStore.deleteToken(formId);
     console.error(errorMessage);
 

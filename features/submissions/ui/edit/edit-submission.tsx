@@ -2,7 +2,7 @@
 
 import { toast } from "@/components/ui/toast";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { Info } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";

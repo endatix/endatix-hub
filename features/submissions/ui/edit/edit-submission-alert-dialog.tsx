@@ -12,7 +12,7 @@ import {
 import { AlertDialogProps } from "@radix-ui/react-alert-dialog";
 import { PencilLine } from "lucide-react";
 import ChangedQuestion from "./changed-question";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { Question } from "survey-core";
 
 interface EditSubmissionAlertDialogProps extends AlertDialogProps {

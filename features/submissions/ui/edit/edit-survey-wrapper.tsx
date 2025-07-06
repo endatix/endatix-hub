@@ -1,7 +1,7 @@
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { useEffect, useRef, useState } from "react";
 import {
   DynamicPanelItemValueChangedEvent,

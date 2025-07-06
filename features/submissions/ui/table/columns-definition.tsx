@@ -1,11 +1,10 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { RowActions } from "./row-actions";
 import { ColumnHeader } from "./column-header";
 import { CellDate } from "./cell-date";
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
-import { CellReadStatus } from "./cell-read-status";
 import { CellStatusDropdown } from "./cell-status-dropdown";
 
 export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
