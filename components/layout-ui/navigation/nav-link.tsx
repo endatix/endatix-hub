@@ -11,6 +11,7 @@ type NavLinkProps = {
   setIsActive?: boolean;
   className?: string;
   activeClassName?: string;
+  onComingSoon?: (featureName: string) => void;
   children: ReactNode;
 };
 
@@ -19,12 +20,13 @@ const NavLink = ({
   path,
   setIsActive = true,
   children,
+  onComingSoon,
   className = "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8",
   activeClassName = "bg-accent text-accent-foreground",
 }: NavLinkProps) => {
   const currentPath = usePathname();
 
-  const ALLOWED_PAGES = ["/", "/forms", "/settings/security", "/forms/templates"];
+  const ALLOWED_PAGES = ["/forms", "/settings/security", "/forms/templates"];
 
   const isActive = useMemo(() => {
     if (!setIsActive || !path.startsWith("/")) {
@@ -37,13 +39,20 @@ const NavLink = ({
     return isActive ? `${className} ${activeClassName}` : `${className}`;
   }, [activeClassName, className, isActive]);
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (!ALLOWED_PAGES.some((allowedPath) => allowedPath === path)) {
+      e.preventDefault();
+      if (onComingSoon) {
+        onComingSoon(text);
+      } else {
+        showComingSoonMessage();
+      }
+    }
+  };
+
   return (
     <Link
-      onClick={() => {
-        if (!ALLOWED_PAGES.some((allowedPath) => allowedPath === path)) {
-          showComingSoonMessage();
-        }
-      }}
+      onClick={handleClick}
       href={path}
       className={_className}
     >

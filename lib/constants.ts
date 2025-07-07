@@ -1,41 +1,27 @@
 import { INavItem } from "@/types/navigation-models";
 import {
-  Blocks,
-  GitCompareArrows,
-  Home,
+  ClipboardList,
   LayoutTemplate,
   LineChart,
+  Plug,
+  Repeat,
   Settings,
-  TextCursorInput,
-  Users2,
 } from "lucide-react";
 
 export const HOME_ROUTE_PATH = "/";
 
 const sitemapArray: INavItem[] = [
   {
-    key: "home",
-    text: "Home",
-    path: "/",
-    IconType: Home,
-  },
-  {
     key: "forms",
     text: "Forms",
     path: "/forms",
-    IconType: TextCursorInput,
+    IconType: ClipboardList,
   },
   {
     key: "formTemplates",
     text: "Form Templates",
     path: "/forms/templates",
     IconType: LayoutTemplate,
-  },
-  {
-    key: "customers",
-    text: "Customers",
-    path: "/",
-    IconType: Users2,
   },
   {
     key: "analytics",
@@ -47,13 +33,13 @@ const sitemapArray: INavItem[] = [
     key: "workflows",
     text: "Workflows",
     path: "/",
-    IconType: GitCompareArrows,
+    IconType: Repeat,
   },
   {
     key: "integrations",
     text: "Integrations",
     path: "/",
-    IconType: Blocks,
+    IconType: Plug,
   },
   {
     key: "settings",

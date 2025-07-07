@@ -49,7 +49,6 @@ const LoggedInUserOptions = () => (
     <DropdownMenuItem>
       <Link href="/settings/security">Settings</Link>
     </DropdownMenuItem>
-    <DropdownMenuItem>Support</DropdownMenuItem>
     <DropdownMenuSeparator />
     <DropdownMenuItem>
       <LogoutButton />

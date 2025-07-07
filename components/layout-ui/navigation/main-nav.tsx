@@ -1,11 +1,9 @@
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
 import NavLink from "./nav-link";
+import { NavItemsWithDialog } from "./nav-items-with-dialog";
 import { sitemap } from "@/lib/constants";
 import { SitemapService } from "@/services/sitemap-service";
 import EndatixLogoSvg from "@/public/assets/icons/icon.svg";
@@ -13,7 +11,15 @@ import EndatixLogoSvg from "@/public/assets/icons/icon.svg";
 const MainNav = () => {
   const logo = SitemapService.getLogo();
   const sitemapList = SitemapService.getTopLevelSitemap(true);
-  const settingsNavItem = sitemap.settings
+  const settingsNavItem = sitemap.settings;
+
+  // Render icons on server side to avoid passing functions to client components
+  const navItemsWithIcons = sitemapList.map((navItem) => ({
+    path: navItem.path,
+    text: navItem.text,
+    icon: <navItem.IconType className="h-6 w-6" />,
+  }));
+
   return (
     <TooltipProvider>
       <nav className="flex flex-col items-center gap-4 px-2 sm:py-5 space-y-1">
@@ -30,19 +36,13 @@ const MainNav = () => {
             alt="logo"
           />
         </NavLink>
-        {sitemapList.map((navItem) => (
-          <Tooltip key={navItem.text}>
-            <TooltipTrigger asChild={false}>
-              <NavLink path={navItem.path} text={navItem.text}>
-                <navItem.IconType className="h-6 w-6" />
-              </NavLink>
-            </TooltipTrigger>
-            <TooltipContent side="right">{navItem.text}</TooltipContent>
-          </Tooltip>
-        ))}
+        <NavItemsWithDialog navItems={navItemsWithIcons} />
       </nav>
       <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-        <NavLink path={settingsNavItem.path} text={settingsNavItem.text}>
+        <NavLink 
+          path={settingsNavItem.path} 
+          text={settingsNavItem.text}
+        >
           <settingsNavItem.IconType className="h-6 w-6" />
         </NavLink>
       </nav>
