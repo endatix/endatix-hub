@@ -3,8 +3,7 @@
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
-import { Result } from "@/lib/result";
-import { Submission } from "@/lib/endatix-api";
+import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { CompleteEvent, SurveyModel } from "survey-core";
 import "survey-core/survey-core.css";
@@ -82,7 +81,8 @@ export default function SurveyComponent({
       }
 
       clearQueue();
-      event.showSaveInProgress();
+      sender.showCompletePage = true;
+      event.showSaveInProgress("Saving your answers...");
       const formData = JSON.stringify(sender.data, null, 3);
 
       const submissionData: SubmissionData = {
@@ -100,16 +100,16 @@ export default function SurveyComponent({
         }
 
         const result = await submitFormAction(formId, submissionData);
-        if (Result.isSuccess(result)) {
+        if (ApiResult.isSuccess(result)) {
           event.showSaveSuccess("The results were saved successfully!");
         } else {
           event.showSaveError(
-            result.message ??
+            result.error.message ??
               "Failed to submit form. Please try again and contact us if the problem persists.",
           );
           trackException("Form submission failed", {
             form_id: formId,
-            error_message: result.message,
+            error_message: result.error.message,
           });
         }
       });

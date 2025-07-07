@@ -2,7 +2,8 @@ const DEFAULT_ERROR_MESSAGE = "An unexpected error occurred.";
 
 // Error code to user-friendly message mapping
 const ERROR_CODES = Object.freeze({
-  recaptcha_verification_failed: "reCAPTCHA validation failed.",
+  recaptcha_verification_failed:
+    "reCAPTCHA validation failed. If you are a human, try again later.",
   form_not_found: "The form you are trying to access does not exist.",
   submission_token_invalid: "Your submission session has expired.",
   network_error:

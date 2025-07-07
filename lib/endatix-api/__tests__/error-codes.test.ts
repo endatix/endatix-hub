@@ -38,7 +38,7 @@ describe("ERROR_CODES", () => {
   it("should have specific user-friendly messages", () => {
     // Arrange & Act & Assert
     expect(ERROR_CODES.recaptcha_verification_failed).toBe(
-      "reCAPTCHA validation failed.",
+      "reCAPTCHA validation failed. If you are a human, try again later.",
     );
     expect(ERROR_CODES.form_not_found).toBe(
       "The form you are trying to access does not exist.",
