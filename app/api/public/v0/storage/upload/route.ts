@@ -1,6 +1,7 @@
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files.use-case";
 import { SubmissionData } from "@/features/submissions/types";
+import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { headers } from "next/headers";
 
@@ -36,14 +37,14 @@ export async function POST(request: Request) {
       submissionData,
     );
 
-    if (Result.isError(initialSubmissionResult)) {
+    if (ApiResult.isError(initialSubmissionResult)) {
       return Response.json(
-        { error: initialSubmissionResult.message },
+        { error: initialSubmissionResult.error.message },
         { status: 400 },
       );
     }
 
-    submissionId = initialSubmissionResult.value.submissionId;
+    submissionId = initialSubmissionResult.data.submissionId;
   }
 
   const files: { name: string; file: File }[] = [];

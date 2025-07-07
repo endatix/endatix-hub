@@ -5,6 +5,7 @@ import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
+import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import Script from "next/script";
@@ -23,8 +24,8 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
     getActiveDefinitionUseCase({ formId }),
   ]);
 
-  const submission = Result.isSuccess(submissionResult)
-    ? submissionResult.value
+  const submission = ApiResult.isSuccess(submissionResult)
+    ? submissionResult.data
     : undefined;
 
   if (Result.isError(activeDefinitionResult)) {

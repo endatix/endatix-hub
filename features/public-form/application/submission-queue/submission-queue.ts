@@ -1,7 +1,7 @@
-import { Result } from "@/lib/result";
 import { captureException } from "@/features/analytics/posthog/client";
 import { SubmissionData } from "@/features/submissions/types";
 import { submitFormAction } from "../actions/submit-form.action";
+import { ApiResult } from "@/lib/endatix-api";
 
 interface QueueItem {
   formId: string;
@@ -24,19 +24,19 @@ export class SubmissionQueue {
         return;
       }
 
-      const result = await submitFormAction(
+      const submitResult = await submitFormAction(
         itemToProcess.formId,
         itemToProcess.data,
       );
 
-      if (Result.isError(result)) {
+      if (ApiResult.isError(submitResult)) {
         const errorMessage = "Failed to submit form";
         const errorData = {
           form_id: itemToProcess.formId,
-          error_message: result.message,
+          error_message: submitResult.error.message,
         };
 
-        console.error(errorMessage, result.message);
+        console.error(errorMessage, submitResult.error.message);
         captureException("Form submission failed", errorData);
       }
     } catch (error) {

@@ -1,9 +1,8 @@
-import { Submission } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi, Submission } from "@/lib/endatix-api";
 import { FormTokenCookieStore } from "../infrastructure/cookie-store";
-import { getPartialSubmissionPublic } from "@/services/api";
 import { Result } from "@/lib/result";
 
-export type PartialSubmissionResult = Result<Submission>;
+export type PartialSubmissionResult = ApiResult<Submission>;
 
 export type GetPartialSubmissionQuery = {
   formId: string;
@@ -15,30 +14,26 @@ export const getPartialSubmissionUseCase = async ({
   tokenStore,
 }: GetPartialSubmissionQuery): Promise<PartialSubmissionResult> => {
   if (!formId) {
-    return Result.error("Form ID is required");
+    return ApiResult.validationError("Form ID is required");
   }
 
   if (!tokenStore) {
-    return Result.error("Token store is required");
+    return ApiResult.validationError("Token store is required");
   }
 
   const tokenResult = tokenStore.getToken(formId);
   if (Result.isError(tokenResult)) {
-    return Result.error(tokenResult.message);
+    return ApiResult.validationError(tokenResult.message);
   }
 
   const token = tokenResult.value;
 
-  try {
-    const submission = await getPartialSubmissionPublic(formId, token);
-    return Result.success(submission);
-  } catch (error) {
-    const errorMessage = `Failed to load submission: ${
-      error instanceof Error ? error.message : "Unknown error"
-    }`;
-    tokenStore.deleteToken(formId);
-    console.error(errorMessage);
+  const endatixApi = new EndatixApi();
+  // eslint-disable-next-line testing-library/no-await-sync-queries
+  const submissionResult = await endatixApi.submissions.public.getByToken(
+    formId,
+    token,
+  );
 
-    return Result.error(errorMessage);
-  }
+  return submissionResult;
 };

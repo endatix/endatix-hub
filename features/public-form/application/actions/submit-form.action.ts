@@ -1,17 +1,18 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { createSubmissionPublic, updateSubmissionPublic } from "@/services/api";
 import { Result } from "@/lib/result";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { getPostHog } from "@/features/analytics/posthog/server/node-client";
 import { SubmissionData } from "@/features/submissions/types";
+import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
+import { getSession } from "@/features/auth";
 
 export type SubmissionOperation = {
   submissionId: string;
 };
 
-export type SubmissionOperationResult = Result<SubmissionOperation>;
+export type SubmissionOperationResult = ApiResult<SubmissionOperation>;
 
 /**
  * Handles form submission by either updating an existing submission or creating a new one.
@@ -30,18 +31,16 @@ export async function submitFormAction(
   const tokenStore = new FormTokenCookieStore(cookieStore);
   const tokenResult = tokenStore.getToken(formId);
 
-  // If we have a valid token, update the existing submission and update the cookie if the submission fails or is complete
-  if (Result.isSuccess(tokenResult)) {
-    return await updateExistingSubmissionViaToken(
-      formId,
-      tokenResult.value,
-      submissionData,
-      tokenStore,
-    );
-  }
+  const submissionOperationResult = Result.isSuccess(tokenResult)
+    ? await updateExistingSubmissionViaToken(
+        formId,
+        tokenResult.value,
+        submissionData,
+        tokenStore,
+      )
+    : await createNewSubmission(formId, submissionData, tokenStore);
 
-  // Otherwise create a new submission and update the cookie with the new token
-  return await createNewSubmission(formId, submissionData, tokenStore);
+  return submissionOperationResult;
 }
 
 async function updateExistingSubmissionViaToken(
@@ -49,31 +48,38 @@ async function updateExistingSubmissionViaToken(
   token: string,
   submissionData: SubmissionData,
   tokenStore: FormTokenCookieStore,
-): Promise<Result<SubmissionOperation>> {
-  try {
-    const updatedSubmission = await updateSubmissionPublic(
-      formId,
-      token,
-      submissionData,
-    );
-    if (updatedSubmission.isComplete) {
+): Promise<ApiResult<SubmissionOperation>> {
+  const session = await getSession();
+  const endatix = new EndatixApi(session);
+  const updateByTokenResult = await endatix.submissions.public.updateByToken(
+    formId,
+    token,
+    submissionData,
+  );
+
+  if (ApiResult.isSuccess(updateByTokenResult)) {
+    if (updateByTokenResult.data.isComplete) {
       tokenStore.deleteToken(formId);
     }
-    return Result.success({ submissionId: updatedSubmission.id });
-  } catch (err: unknown) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Failed to submit form.";
+
+    return ApiResult.success({ submissionId: updateByTokenResult.data.id });
+  } else {
+    if (
+      updateByTokenResult.error.errorCode ===
+      ERROR_CODE.SUBMISSION_TOKEN_INVALID
+    ) {
+      tokenStore.deleteToken(formId);
+    }
 
     const postHog = getPostHog();
     if (postHog) {
-      postHog.captureException(err, "", {
+      postHog.captureException(updateByTokenResult.error, "", {
         formId,
         token,
       });
     }
-    return Result.error(
-      `${errorMessage} Please try again and contact us if the problem persists.`,
-    );
+
+    return updateByTokenResult;
   }
 }
 
@@ -81,23 +87,36 @@ async function createNewSubmission(
   formId: string,
   submissionData: SubmissionData,
   tokenStore: FormTokenCookieStore,
-): Promise<Result<SubmissionOperation>> {
-  try {
-    const createSubmissionResponse = await createSubmissionPublic(
-      formId,
-      submissionData,
-    );
-    if (createSubmissionResponse.isComplete) {
+): Promise<ApiResult<SubmissionOperation>> {
+  const session = await getSession();
+  const endatix = new EndatixApi(session);
+  const createSubmissionResult = await endatix.submissions.public.create(
+    formId,
+    submissionData,
+  );
+
+  if (ApiResult.isSuccess(createSubmissionResult)) {
+    if (createSubmissionResult.data.isComplete) {
       tokenStore.deleteToken(formId);
     } else {
-      tokenStore.setToken({ formId, token: createSubmissionResponse.token });
+      tokenStore.setToken({ formId, token: createSubmissionResult.data.token });
     }
-    return Result.success({ submissionId: createSubmissionResponse.id });
-  } catch (err: unknown) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Failed to create new submission.";
-    return Result.error(
-      `${errorMessage} Please try again and contact us if the problem persists.`,
-    );
+    return ApiResult.success({ submissionId: createSubmissionResult.data.id });
+  } else {
+    if (
+      createSubmissionResult.error.errorCode ===
+      ERROR_CODE.SUBMISSION_TOKEN_INVALID
+    ) {
+      tokenStore.deleteToken(formId);
+    }
+
+    const postHog = getPostHog();
+    if (postHog) {
+      postHog.captureException(createSubmissionResult.error, "", {
+        formId,
+      });
+    }
+
+    return createSubmissionResult;
   }
 }

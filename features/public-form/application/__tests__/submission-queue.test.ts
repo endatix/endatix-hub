@@ -3,6 +3,7 @@ import { SubmissionQueue } from "../submission-queue/submission-queue";
 import { submitFormAction } from "../actions/submit-form.action";
 import { Result } from "@/lib/result";
 import { captureException } from "@/features/analytics/posthog/client";
+import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
 
 // Mock the submitFormAction and captureException
 vi.mock("../actions/submit-form.action", () => ({
@@ -184,11 +185,16 @@ describe("SubmissionQueue", () => {
     expect(queue.queueLength).toBe(0);
   });
 
-  it("should handle failed submissions with Result.error", async () => {
+  it("should handle submission token invalid error properly", async () => {
     // Arrange
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const errorMessage = "Submission failed";
-    mockSubmitForm.mockResolvedValue(Result.error(errorMessage));
+    const errorMessage = "Your submission session has expired.";
+    mockSubmitForm.mockResolvedValue(
+      ApiResult.validationError(
+        errorMessage,
+        ERROR_CODE.SUBMISSION_TOKEN_INVALID,
+      ),
+    );
 
     // Act
     queue.enqueue({
@@ -207,10 +213,13 @@ describe("SubmissionQueue", () => {
       "Failed to submit form",
       errorMessage,
     );
-    expect(mockCaptureException).toHaveBeenCalledWith("Form submission failed", {
-      form_id: "1",
-      error_message: errorMessage,
-    });
+    expect(mockCaptureException).toHaveBeenCalledWith(
+      "Form submission failed",
+      {
+        form_id: "1",
+        error_message: errorMessage,
+      },
+    );
   });
 
   it("should process items added while processing previous items", async () => {
