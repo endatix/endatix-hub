@@ -1,5 +1,4 @@
 import {
-  Check,
   Eye,
   LucideProps,
   Sparkles,

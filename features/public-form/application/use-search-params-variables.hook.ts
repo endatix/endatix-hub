@@ -2,7 +2,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 import { DynamicVariable } from "../types";
 import { useSubmissionQueue } from "./submission-queue";
-import { SubmissionData } from "./actions/submit-form.action";
+import { SubmissionData } from "@/features/submissions/types";
 import { SurveyModel } from "survey-react-ui";
 
 interface UseSearchParamsVarsOptions {
@@ -27,25 +27,37 @@ export const useSearchParamsVariables = (
     }
 
     const searchParamsVars: Record<string, DynamicVariable> = {};
+
     searchParams.forEach((value, key) => {
       searchParamsVars[key] = value;
     });
 
-    if (searchParamsVars.length === 0) {
+    if (Object.keys(searchParamsVars).length === 0) {
       return;
     }
 
+    let hasNewOrModifiedVars = false;
     Object.entries(searchParamsVars).forEach(([key, value]) => {
+      if (value !== model.getVariable(key)) {
+        hasNewOrModifiedVars = true;
+      }
+
       model.setVariable(key, value);
     });
+
+    if (!hasNewOrModifiedVars) {
+      return;
+    }
 
     onSetVariables?.(searchParamsVars);
 
     const surveyVars: Record<string, DynamicVariable> = {};
+    
     model.getVariableNames().forEach((name) => {
       surveyVars[name] = model.getVariable(name);
     });
 
+    
     const submissionData: SubmissionData = {
       metadata: JSON.stringify({ variables: surveyVars }),
     };

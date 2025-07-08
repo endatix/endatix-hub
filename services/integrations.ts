@@ -1,7 +1,7 @@
 "use server";
 
 import { SlackAuthResponse } from "@/types";
-import { HeaderBuilder } from "./header-builder";
+import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
 
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 const SLACK_CLIENT_ID = `${process.env.SLACK_CLIENT_ID}`;
@@ -26,11 +26,9 @@ export const getSlackBearerToken = async (
 };
 
 export const sendSlackBearerToken = async (token: string): Promise<boolean> => {
-  const requestOptions: RequestInit = {};
-
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  var endpointUrl = `${API_BASE_URL}/slacktoken`;
+  const endpointUrl = `${API_BASE_URL}/slacktoken`;
 
   const response = await fetch(endpointUrl, {
     method: "POST",

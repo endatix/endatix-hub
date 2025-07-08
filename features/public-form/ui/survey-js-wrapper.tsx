@@ -1,6 +1,6 @@
 "use client";
 
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import dynamic from "next/dynamic";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
@@ -13,6 +13,7 @@ interface SurveyJsWrapperProps {
   submission?: Submission | undefined;
   theme?: string;
   customQuestions?: string[];
+  requiresReCaptcha?: boolean;
 }
 
 const SurveyJsWrapper = ({
@@ -21,6 +22,7 @@ const SurveyJsWrapper = ({
   submission,
   theme,
   customQuestions,
+  requiresReCaptcha,
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent
@@ -29,6 +31,7 @@ const SurveyJsWrapper = ({
       submission={submission}
       theme={theme}
       customQuestions={customQuestions}
+      requiresReCaptcha={requiresReCaptcha}
     />
   );
 };

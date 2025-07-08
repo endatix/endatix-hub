@@ -3,7 +3,7 @@ import {
   AuthenticationResponse,
   getSession,
 } from "@/features/auth";
-import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
+import { SubmissionData } from "@/features/submissions/types";
 import {
   CreateFormRequest,
   CreateFormTemplateRequest,
@@ -11,14 +11,10 @@ import {
 } from "@/lib/form-types";
 import { redirect } from "next/navigation";
 import { ITheme } from "survey-core";
-import {
-  ActiveDefinition,
-  Form,
-  FormDefinition,
-  FormTemplate,
-  Submission,
-} from "../types";
-import { HeaderBuilder } from "./header-builder";
+import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
+import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
+import { Submission } from "@/lib/endatix-api";
+
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
 export const authenticate = async (
@@ -470,63 +466,6 @@ export const getSubmissions = async (formId: string): Promise<Submission[]> => {
 
   if (!response.ok) {
     throw new Error("Failed to fetch data");
-  }
-
-  return response.json();
-};
-
-export const createSubmissionPublic = async (
-  formId: string,
-  submissionData: SubmissionData,
-): Promise<Submission> => {
-  if (!formId) {
-    throw new Error("FormId is required");
-  }
-
-  const headers = new HeaderBuilder().acceptJson().provideJson().build();
-
-  const requestOptions: RequestInit = {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(submissionData),
-  };
-
-  const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions`,
-    requestOptions,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to submit response");
-  }
-
-  return response.json();
-};
-
-export const updateSubmissionPublic = async (
-  formId: string,
-  token: string,
-  submissionData: SubmissionData,
-): Promise<Submission> => {
-  if (!formId || !token) {
-    throw new Error("FormId or token is required");
-  }
-
-  const headers = new HeaderBuilder().acceptJson().provideJson().build();
-
-  const requestOptions: RequestInit = {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify(submissionData),
-  };
-
-  const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions/by-token/${token}`,
-    requestOptions,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to submit response");
   }
 
   return response.json();

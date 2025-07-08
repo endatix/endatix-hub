@@ -9,7 +9,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Submission } from "@/types";
 import { startTransition, useEffect, useState } from "react";
 import { Model, Question } from "survey-core";
 import { Download, Link as Link2, Trash } from "lucide-react";
@@ -22,6 +21,7 @@ import {
   GetDefinitionRequest,
   SelectedDefinitionResult,
 } from "../get-definition.action";
+import { Submission } from '@/lib/endatix-api';
 
 type SubmissionSheetProps = {
   submission: Submission | null;
