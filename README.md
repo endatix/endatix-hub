@@ -26,6 +26,13 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. 
 
+## Development
+
+For information on project structure, feature organization, and vertical slice architecture patterns, see:
+
+- **[Project Structure](./project-structure.md)** - Quick reference for organizing features and use cases
+- **[Vertical Slice Architecture](./docs/vertical-slice-architecture.md)** - Detailed architecture explanation
+
 ## Environment Variables
 
 Check the [.env.example](./.env.example) file for all variables and their description. The required variables are marked with a `[REQUIRED]` tag.
