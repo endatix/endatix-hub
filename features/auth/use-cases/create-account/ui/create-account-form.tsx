@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { Spinner } from "@/components/loaders/spinner";
+// import { Spinner } from "@/components/loaders/spinner";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { createAccountAction } from "../create-account.action";
 import { useActionState } from "react";
@@ -85,10 +85,10 @@ const CreateAccountForm = () => {
         {state?.errorMessage && (
           <ErrorMessage message={state.errorMessage} />
         )}
-        <Button type="submit" className="w-full" disabled={isPending}>
+        {/* <Button type="submit" className="w-full" disabled={isPending}>
           {isPending ? <Spinner className="mr-2" /> : null}
           Create account with email
-        </Button>
+        </Button> */}
       </div>
     </form>
   );

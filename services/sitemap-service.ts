@@ -21,10 +21,8 @@ export class SitemapService {
     excludeSettings: boolean = false,
   ): INavItem[] {
     const sitemapList: INavItem[] = [
-      sitemap.home,
       sitemap.forms,
       sitemap.formTemplates,
-      sitemap.customers,
       sitemap.analytics,
       sitemap.workflows,
       sitemap.integrations,
