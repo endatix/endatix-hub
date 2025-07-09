@@ -10,7 +10,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import GitHubIcon from "@/public/assets/icons/github.svg";
 
 interface ComingSoonDialogProps {
   isOpen: boolean;
@@ -23,25 +22,14 @@ export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDia
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            <Image
-              src="/assets/icons/endatix.svg"
-              alt="Endatix logo"
-              width={180}
-              height={38}
-              priority
-            />
+          <DialogTitle className="text-center">
+            Coming soon
           </DialogTitle>
-          <div className="text-center py-2">
-            <p className="text-lg font-medium">Coming soon!</p>
-          </div>
-          <DialogDescription className="mx-auto px-10 text-balance leading-relaxed">
-            <span className="font-semibold text-foreground">
-              {featureName}
-            </span>{" "}
-            is coming soon! Endatix Hub is the new exciting way to manage your
-            data collection and processing workflows. We&apos;re constantly adding new features
-            and enhancing existing ones to make your data management experience even better.
+          <div className="mt-20" />
+          <DialogDescription className="text-left px-4 leading-relaxed">
+            <span className="font-semibold text-foreground">{featureName}</span> is coming soon!
+            Endatix Hub is the new exciting way to manage your data collection and processing workflows.
+            We're constantly adding new features and enhancing existing ones to make your data management experience even better.
           </DialogDescription>
         </DialogHeader>
 
@@ -62,23 +50,6 @@ export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDia
               rel="noopener noreferrer"
             >
               Read our Docs
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <a 
-              href="https://github.com/endatix/endatix?tab=readme-ov-file#endatix-platform"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Image
-                aria-hidden
-                className="dark:invert mr-2"
-                src={GitHubIcon}
-                alt="GitHub icon"
-                width={16}
-                height={16}
-              />
-              Follow us on GitHub
             </a>
           </Button>
         </DialogFooter>
