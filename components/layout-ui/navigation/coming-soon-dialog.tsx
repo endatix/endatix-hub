@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,7 +28,7 @@ export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDia
           <DialogDescription className="text-left px-4 leading-relaxed">
             <span className="font-semibold text-foreground">{featureName}</span> is coming soon!
             Endatix Hub is the new exciting way to manage your data collection and processing workflows.
-            We're constantly adding new features and enhancing existing ones to make your data management experience even better.
+            We&apos;re constantly adding new features and enhancing existing ones to make your data management experience even better.
           </DialogDescription>
         </DialogHeader>
 
