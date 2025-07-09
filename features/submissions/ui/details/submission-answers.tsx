@@ -7,7 +7,7 @@ import { Question, QuestionNonValue } from "survey-core";
 import AnswerViewer from "../answers/answer-viewer";
 import { QuestionLabel } from "./question-label";
 import { CustomQuestion } from "@/services/api";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
 import DynamicVariablesList from "./dynamic-variables-list";
 import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";

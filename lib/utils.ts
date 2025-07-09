@@ -47,8 +47,8 @@ type ElapsedTimeFormat = "short" | "long";
  * @returns Formatted string of elapsed time in HH:MM:SS format, or "-" if invalid input
  */
 export function getElapsedTimeString(
-  startedAt: Date,
-  completedAt: Date,
+  startedAt?: Date,
+  completedAt?: Date,
   format: ElapsedTimeFormat = "short",
 ): string {
   if (!startedAt || !completedAt) return "-";

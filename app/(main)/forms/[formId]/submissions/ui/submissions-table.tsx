@@ -2,7 +2,7 @@
 
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { COLUMNS_DEFINITION, DataTable } from "@/features/submissions/ui/table";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { useEffect, useState } from "react";
 
 type SubmissionsTableProps = {

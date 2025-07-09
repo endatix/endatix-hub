@@ -1,6 +1,6 @@
-import { Submission } from "@/types";
 import { getSubmission } from "@/services/api";
 import { Result } from "@/lib/result";
+import { Submission } from "@/lib/endatix-api";
 
 export type GetSubmissionDetailsQuery = {
   formId: string;

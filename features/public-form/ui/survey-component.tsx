@@ -1,13 +1,9 @@
 "use client";
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import {
-  SubmissionData,
-  submitFormAction,
-} from "@/features/public-form/application/actions/submit-form.action";
+import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
-import { Result } from "@/lib/result";
-import { Submission } from "@/types";
+import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { CompleteEvent, SurveyModel } from "survey-core";
 import "survey-core/survey-core.css";
@@ -15,7 +11,10 @@ import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
-import { useSurveyTheme } from './use-survey-theme.hook';
+import { useSurveyTheme } from "./use-survey-theme.hook";
+import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
+import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
+import { SubmissionData } from "@/features/submissions/types";
 
 interface SurveyComponentProps {
   definition: string;
@@ -23,6 +22,7 @@ interface SurveyComponentProps {
   submission?: Submission;
   theme?: string;
   customQuestions?: string[];
+  requiresReCaptcha?: boolean;
 }
 
 export default function SurveyComponent({
@@ -31,6 +31,7 @@ export default function SurveyComponent({
   submission,
   theme,
   customQuestions,
+  requiresReCaptcha,
 }: SurveyComponentProps) {
   const { surveyModel } = useSurveyModel(
     definition,
@@ -80,7 +81,8 @@ export default function SurveyComponent({
       }
 
       clearQueue();
-      event.showSaveInProgress();
+      sender.showCompletePage = true;
+      event.showSaveInProgress("Saving your answers...");
       const formData = JSON.stringify(sender.data, null, 3);
 
       const submissionData: SubmissionData = {
@@ -90,21 +92,36 @@ export default function SurveyComponent({
       };
 
       startSubmitting(async () => {
+        if (recaptchaConfig.isReCaptchaEnabled() && requiresReCaptcha) {
+          const reCaptchaToken = await getReCaptchaToken(
+            recaptchaConfig.ACTIONS.SUBMIT_FORM,
+          );
+          submissionData.reCaptchaToken = reCaptchaToken;
+        }
+
         const result = await submitFormAction(formId, submissionData);
-        if (Result.isSuccess(result)) {
+        if (ApiResult.isSuccess(result)) {
           event.showSaveSuccess("The results were saved successfully!");
         } else {
           event.showSaveError(
-            "Failed to submit form. Please try again and contact us if the problem persists.",
+            result.error.message ??
+              "Failed to submit form. Please try again and contact us if the problem persists.",
           );
           trackException("Form submission failed", {
             form_id: formId,
-            error_message: result.message,
+            error_message: result.error.message,
           });
         }
       });
     },
-    [formId, isSubmitting, clearQueue, startSubmitting, trackException],
+    [
+      formId,
+      isSubmitting,
+      clearQueue,
+      startSubmitting,
+      trackException,
+      requiresReCaptcha,
+    ],
   );
 
   useEffect(() => {

@@ -28,14 +28,15 @@ export async function middleware(request: NextRequest) {
  * - login - the login page
  * - create-account - the create account page
  * - ingest - the ingest proxy route for PostHog
- * - send-verification - the send verification page
+ * - account-verification - the account verification page
+ * - verify-email - the email verification page
  * - Note the the `missing: [{ type: 'header', key: 'next-action' }]` is to exclude server-actions
  */
 export const config = {
   matcher: [
     {
       source:
-        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|login|create-account|send-verification).*)",
+        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|login|create-account|account-verification|verify-email).*)",
       missing: [{ type: "header", key: "next-action" }],
     },
   ],

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Model } from "survey-core";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
 

@@ -13,7 +13,7 @@ const HUB_COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
 };
 
-const ANONYMOUS_SESSION: SessionData = {
+export const ANONYMOUS_SESSION: SessionData = {
   username: "",
   accessToken: "",
   refreshToken: "",

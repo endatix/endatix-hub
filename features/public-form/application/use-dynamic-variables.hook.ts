@@ -49,7 +49,6 @@ export const useDynamicVariables = (model: SurveyModel | null) => {
         const parsedMetadata = JSON.parse(metadata);
         const result = MetadataSchema.safeParse(parsedMetadata);
         if (!result.success) {
-          console.error("Invalid initial variables:", result.error);
           return;
         }
         const variables = result.data.variables;

@@ -1,14 +1,18 @@
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
 import { CellCompleteStatus } from "../table/cell-complete-status";
 import { PropertyDisplay } from "./property-display";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
 
 interface SubmissionPropertiesProps {
   submission: Submission;
 }
 
-const getFormattedDate = (date: Date): string => {
+const getFormattedDate = (date?: Date): string => {
+  if (!date) {
+    return "-";
+  }
+
   const parsedDate = parseDate(date);
   if (!parsedDate) {
     return "-";

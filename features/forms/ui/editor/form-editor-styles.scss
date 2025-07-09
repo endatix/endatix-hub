@@ -9,9 +9,11 @@ global {
 
 #creator {
   width: 100%;
-  height: calc(100vh - 60px);
-  margin-top: 4px;
+  height: calc(100vh - 112px);
   position: relative;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 
   .svc-flex-row {
     background: transparent !important;

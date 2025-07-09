@@ -2,7 +2,7 @@ import { getElapsedTimeString } from "@/lib/utils";
 
 interface CellCompletionTimeProps {
   startedAt: Date;
-  completedAt: Date;
+  completedAt?: Date;
 }
 
 export function CellCompletionTime({

@@ -3,7 +3,7 @@ import {
   AuthenticationResponse,
   getSession,
 } from "@/features/auth";
-import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
+import { SubmissionData } from "@/features/submissions/types";
 import {
   CreateFormRequest,
   CreateFormTemplateRequest,
@@ -11,14 +11,10 @@ import {
 } from "@/lib/form-types";
 import { redirect } from "next/navigation";
 import { ITheme } from "survey-core";
-import {
-  ActiveDefinition,
-  Form,
-  FormDefinition,
-  FormTemplate,
-  Submission,
-} from "../types";
-import { HeaderBuilder } from "./header-builder";
+import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
+import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
+import { Submission } from "@/lib/endatix-api";
+
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 
 export const authenticate = async (
@@ -475,63 +471,6 @@ export const getSubmissions = async (formId: string): Promise<Submission[]> => {
   return response.json();
 };
 
-export const createSubmissionPublic = async (
-  formId: string,
-  submissionData: SubmissionData,
-): Promise<Submission> => {
-  if (!formId) {
-    throw new Error("FormId is required");
-  }
-
-  const headers = new HeaderBuilder().acceptJson().provideJson().build();
-
-  const requestOptions: RequestInit = {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(submissionData),
-  };
-
-  const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions`,
-    requestOptions,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to submit response");
-  }
-
-  return response.json();
-};
-
-export const updateSubmissionPublic = async (
-  formId: string,
-  token: string,
-  submissionData: SubmissionData,
-): Promise<Submission> => {
-  if (!formId || !token) {
-    throw new Error("FormId or token is required");
-  }
-
-  const headers = new HeaderBuilder().acceptJson().provideJson().build();
-
-  const requestOptions: RequestInit = {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify(submissionData),
-  };
-
-  const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions/by-token/${token}`,
-    requestOptions,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to submit response");
-  }
-
-  return response.json();
-};
-
 export const updateSubmission = async (
   formId: string,
   submissionId: string,
@@ -911,6 +850,78 @@ export interface RegistrationResponse {
   success: boolean;
   message: string;
 }
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface VerifyEmailResponse {
+  success: boolean;
+  message: string;
+}
+
+// Actual API response type - the API returns a string (user ID)
+export type VerifyEmailApiResponse = string;
+
+export interface SendVerificationRequest {
+  email: string;
+}
+
+// Actual API response type - the API returns a string message
+export type SendVerificationApiResponse = string;
+
+export const sendVerification = async (
+  request: SendVerificationRequest,
+): Promise<SendVerificationApiResponse> => {
+  const headers = new HeaderBuilder().acceptJson().provideJson().build();
+
+  const response = await fetch(`${API_BASE_URL}/auth/send-verification-email`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.title || "Failed to send verification email");
+  }
+
+  return response.json();
+};
+
+export const verifyEmail = async (
+  request: VerifyEmailRequest,
+): Promise<VerifyEmailApiResponse> => {
+  const headers = new HeaderBuilder().acceptJson().provideJson().build();
+
+  const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Failed to verify email";
+    
+    try {
+      const error = await response.json();
+      errorMessage = error.title || errorMessage;
+    } catch (parseError) {
+      // If response body is empty or not JSON, use status-based message
+      if (response.status === 404) {
+        errorMessage = "Invalid verification token";
+      } else if (response.status === 400) {
+        errorMessage = "Invalid verification request";
+      } else if (response.status >= 500) {
+        errorMessage = "Server error occurred while verifying email";
+      }
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+};
 
 export const register = async (
   request: RegistrationRequest,

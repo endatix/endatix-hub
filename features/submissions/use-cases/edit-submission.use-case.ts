@@ -1,7 +1,7 @@
 "use server";
 
-import { SubmissionData } from "@/features/public-form/application/actions/submit-form.action";
 import { updateSubmission } from "@/services/api";
+import { SubmissionData } from "../types";
 
 export const editSubmissionUseCase = async (
   formId: string,

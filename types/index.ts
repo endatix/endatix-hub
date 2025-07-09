@@ -21,6 +21,7 @@ export type FormDefinition = {
 
 export type ActiveDefinition = FormDefinition & {
   themeModel?: string;
+  requiresReCaptcha?: boolean;
   customQuestions?: string[];
 };
 
@@ -32,22 +33,6 @@ export type FormTemplate = {
   createdAt: Date;
   modifiedAt?: Date;
   jsonData?: string;
-};
-
-export type Submission = {
-  id: string;
-  formId: string;
-  isComplete: boolean;
-  jsonData: string;
-  formDefinitionId: string;
-  formDefinition?: FormDefinition;
-  currentPage: number;
-  metadata: string;
-  token: string;
-  completedAt: Date;
-  createdAt: Date;
-  modifiedAt: Date;
-  status: string;
 };
 
 export type SlackAuthResponse = {

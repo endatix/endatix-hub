@@ -10,7 +10,7 @@ import {
 import { Model, PanelModel, Question, QuestionNonValue } from "survey-core";
 import PdfAnswerViewer from "@/features/submissions/pdf/pdf-answer-viewer";
 import { setupBrowserPolyfills } from "@/features/submissions/pdf/browser-polyfills";
-import { Submission } from "@/types";
+import { Submission } from "@/lib/endatix-api";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
 import EyeOffIcon from "@/features/pdf-export/components/icons/eye-off-icon";
 import { PdfQuestionLabel } from "@/features/submissions/pdf/pdf-question-label";
@@ -18,7 +18,7 @@ import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { DynamicVariables, MetadataSchema } from "@/features/public-form/types";
 import { UserRoundSearchIcon } from "@/features/pdf-export/components/icons";
-import { PDF_STYLES } from '@/features/pdf-export/components/pdf-styles';
+import { PDF_STYLES } from "@/features/pdf-export/components/pdf-styles";
 
 Font.register({
   family: "Roboto",
@@ -31,7 +31,11 @@ Font.register({
 });
 
 // TODO: This is a duplicate of function in submission-properties.tsx
-const getFormattedDate = (date: Date): string => {
+const getFormattedDate = (date?: Date): string => {
+  if (!date) {
+    return "-";
+  }
+
   const parsedDate = parseDate(date);
   if (!parsedDate) {
     return "-";
