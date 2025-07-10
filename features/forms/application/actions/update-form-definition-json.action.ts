@@ -2,6 +2,7 @@
 
 import { ensureAuthenticated } from "@/features/auth";
 import { updateFormDefinition } from "@/services/api";
+import { revalidatePath } from "next/cache";
 
 export async function updateFormDefinitionJsonAction(
   formId: string,
@@ -12,6 +13,8 @@ export async function updateFormDefinitionJsonAction(
 
   try {
     await updateFormDefinition(formId, isDraft, JSON.stringify(formJson));
+    revalidatePath(`/forms/${formId}`);
+
     return { success: true };
   } catch (error) {
     console.error("Failed to update form definition", error);
