@@ -30,10 +30,11 @@ export const getSession = cache(async (): Promise<SessionData> => {
 });
 
 // Authentication guard for protected routes
-export const ensureAuthenticated = async (): Promise<void> => {
+export const ensureAuthenticated = async (redirectTo?: string): Promise<void> => {
   const currentSession = await getSession();
   if (!currentSession.isLoggedIn) {
-    redirect("/login", RedirectType.push);
+    const loginUrl = redirectTo ? `/login?redirectTo=${encodeURIComponent(redirectTo)}` : "/login";
+    redirect(loginUrl, RedirectType.push);
   }
 };
 

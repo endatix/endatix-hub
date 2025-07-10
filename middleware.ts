@@ -13,7 +13,10 @@ export async function middleware(request: NextRequest) {
       `Redirecting to login from originally requested path: ${requestedPath}`,
     );
 
-    return NextResponse.redirect(new URL(LOGIN_PATH, request.url));
+    // Create login URL with the original path as a query parameter
+    const loginUrl = new URL(LOGIN_PATH, request.url);
+    loginUrl.searchParams.set("redirectTo", requestedPath);
+    return NextResponse.redirect(loginUrl);
   }
 }
 

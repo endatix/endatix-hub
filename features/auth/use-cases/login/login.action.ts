@@ -12,6 +12,7 @@ interface LoginActionState {
   errors?: FieldErrors;
   errorMessage?: string;
   formData?: FormData;
+  redirectTo?: string;
 }
 
 interface FieldErrors {
@@ -19,12 +20,23 @@ interface FieldErrors {
   password?: string[];
 }
 
+// Validation for redirect URLs - only allow relative URLs starting with /
+const validateRedirectUrl = (url: string): string | null => {
+  if (url.startsWith('/') && !url.includes('://')) {
+    return url;
+  }
+  return null;
+};
+
 export async function loginAction(
   _: unknown,
   formData: FormData,
 ): Promise<LoginActionState> {
   const email = formData.get("email");
   const password = formData.get("password");
+  const redirectTo = formData.get("redirectTo")?.toString();
+
+  console.log("loginAction called with:", { email, redirectTo });
 
   const validatedFields = AuthenticationRequestSchema.safeParse({
     email: email,
@@ -72,5 +84,17 @@ export async function loginAction(
     } as LoginActionState;
   }
 
-  return { success: true };
+  const validatedRedirect = redirectTo ? validateRedirectUrl(redirectTo) : null;
+  
+  console.log("loginAction returning:", { 
+    success: true, 
+    redirectTo: validatedRedirect || "/forms",
+    originalRedirectTo: redirectTo,
+    validatedRedirect 
+  });
+
+  return { 
+    success: true, 
+    redirectTo: validatedRedirect || "/forms"
+  };
 }

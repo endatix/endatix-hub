@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image";
 import { useActionState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { loginAction } from "../login.action";
 import { showComingSoonMessage } from "@/components/layout-ui/teasers/coming-soon-link";
 import { Spinner } from "@/components/loaders/spinner";
@@ -13,9 +15,36 @@ import { ErrorMessage } from "@/components/forms/error-message";
 
 const LoginForm = () => {
   const [state, formAction, isPending] = useActionState(loginAction, null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo");
+  const hasRedirected = useRef(false);
+
+  // Handle redirect after successful login
+  useEffect(() => {
+    if (state?.success && state.redirectTo && !hasRedirected.current) {
+      hasRedirected.current = true;
+      router.push(state.redirectTo);
+    }
+  }, [state, router]);
+
+  // Reset redirect flag when redirectTo changes
+  useEffect(() => {
+    hasRedirected.current = false;
+  }, [redirectTo]);
+
+  const handleSubmit = async (formData: FormData) => {
+    const result = await loginAction(null, formData);
+    if (result.success && result.redirectTo) {
+      router.push(result.redirectTo);
+    }
+  };
 
   return (
-    <form action={formAction}>
+    <form action={handleSubmit}>
+      {redirectTo && (
+        <input type="hidden" name="redirectTo" value={redirectTo} />
+      )}
       <div className="grid gap-2 text-center">
         <div className="flex justify-center mb-2">
           <Image 
