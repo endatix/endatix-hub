@@ -5,6 +5,7 @@ import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
+import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
@@ -39,7 +40,12 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
 
   return (
     <>
-      {shouldLoadReCaptcha && <Script src={recaptchaConfig.JS_URL} />}
+      {shouldLoadReCaptcha && (
+        <>
+          <Script src={recaptchaConfig.JS_URL} strategy="beforeInteractive" />
+          <ReCaptchaStyleFix />
+        </>
+      )}
       <SurveyJsWrapper
         formId={formId}
         definition={activeDefinition.jsonData}
