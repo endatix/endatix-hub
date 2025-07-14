@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { ThemeProvider } from "./theme-provider";
 import { PostHogProvider } from "@/features/analytics/posthog/client";
+import { SessionProvider } from "next-auth/react";
 import type { SessionData } from "@/features/auth";
 import type { ThemeProviderProps } from "next-themes";
 
@@ -10,6 +11,7 @@ import type { ThemeProviderProps } from "next-themes";
 interface AppProviderOptions {
   enableTheme?: boolean;
   enableAnalytics?: boolean;
+  enableAuth?: boolean;
 }
 
 // Theme options - use next-themes types for compatibility
@@ -35,13 +37,18 @@ interface AppProviderProps {
 export function AppProvider({
   children,
   session,
-  options = { enableTheme: true, enableAnalytics: true },
+  options = { enableTheme: true, enableAnalytics: true, enableAuth: true },
   themeOptions = {},
 }: AppProviderProps) {
-  const { enableTheme = true, enableAnalytics = true } = options;
+  const { enableTheme = true, enableAnalytics = true, enableAuth = true } = options;
 
   // Build the provider stack based on enabled features
   let content = <>{children}</>;
+
+  // Add NextAuth session provider if enabled
+  if (enableAuth) {
+    content = <SessionProvider>{content}</SessionProvider>;
+  }
 
   // Add analytics provider if enabled
   if (enableAnalytics) {

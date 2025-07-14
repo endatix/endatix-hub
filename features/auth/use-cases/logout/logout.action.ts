@@ -1,11 +1,9 @@
 "use server";
 
-import { AuthService } from "@/features/auth";
-import { redirect } from "next/navigation";
+import { signOut } from "@/auth";
 
 export async function logoutAction() {
-  const authService = new AuthService();
-  await authService.logout();
-
-  redirect("/login");
+  await signOut({
+    redirectTo: "/login",
+  });
 }
