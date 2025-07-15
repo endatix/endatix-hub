@@ -12,7 +12,7 @@ function ScanditComponent({ question }: any) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (inputRef.current) {
-    inputRef.current.value ="test";
+    inputRef.current.value ="";
   }
 
   useEffect(() => {

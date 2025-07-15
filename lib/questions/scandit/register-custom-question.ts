@@ -1,5 +1,5 @@
 import { Serializer, QuestionFactory } from "survey-core";
-import { ScanditQuestionModel } from "../scandit/scandit-question-model";
+import { ScanditQuestionModel } from "./scandit-question-model";
 
 Serializer.addClass("scandit", [], () => new ScanditQuestionModel(""), "question");
 

@@ -35,12 +35,22 @@ if (webViewRef.current) {
 
 Create a folder for your custom question under `app/lib/questions/`. Add the custom question code in that folder, using `scandit-question-model.tsx` as a template or following this guide: https://surveyjs.io/form-library/documentation/customize-question-types/third-party-component-integration-react
 
-Register the custom question by adding it to `app/lib/questions/infrastructure/custom-questions.ts`, as follows:
+Register the custom question by creating `app/lib/questions/scandit/register-custom-question.ts`, as follows:
 
 ```
 QuestionFactory.Instance.registerQuestion("scandit", name => {
   return new ScanditQuestionModel(name);
 });
+```
+
+And import the custom question in the following files:
+- `features/forms/ui/editor/form-editor.tsx`
+- `features/public-form/ui/survey-component.tsx`
+
+by adding:
+
+```
+import "@/lib/questions/scandit/register-custom-question";
 ```
 
 ## Send and receive messages from the custom question

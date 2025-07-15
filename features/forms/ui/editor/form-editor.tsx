@@ -43,6 +43,7 @@ import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
 import "@/lib/questions/infrastructure/custom-questions";
+import "@/lib/questions/scandit/register-custom-question";
 
 Serializer.addProperty("theme", {
   name: "id",
