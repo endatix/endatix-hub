@@ -42,6 +42,14 @@ import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
+import "@/lib/questions/infrastructure/custom-questions";
+
+Serializer.addProperty("theme", {
+  name: "id",
+  type: "string",
+  category: "general",
+  visible: false,
+});
 
 Serializer.addProperty("survey", {
   name: "fileNamesPrefix",

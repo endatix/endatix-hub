@@ -23,6 +23,7 @@ import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
 import { LanguageSelector } from "./language-selector";
 import "survey-core/survey.i18n";
+import "@/lib/questions/infrastructure/custom-questions";
 
 interface SurveyComponentProps {
   definition: string;
