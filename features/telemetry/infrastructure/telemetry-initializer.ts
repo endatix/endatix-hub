@@ -9,7 +9,7 @@ import { AzureTelemetryStrategy, OtelTelemetryStrategy } from "./strategies";
  */
 export class TelemetryInitializer {
   private sdk: NodeSDK | null = null;
-  private strategy: TelemetryInitStrategy;
+  private strategy: TelemetryInitStrategy | null = null;
   private resource: Resource;
 
   /**
@@ -20,15 +20,22 @@ export class TelemetryInitializer {
       [TelemetryConfig.ATTR_SERVICE_NAME]: TelemetryConfig.SERVICE_NAME,
     });
 
-    this.strategy = TelemetryConfig.isAzureConfigured()
-      ? new AzureTelemetryStrategy()
-      : new OtelTelemetryStrategy();
+    if (TelemetryConfig.isAzureConfigured()) {
+      this.strategy = new AzureTelemetryStrategy();
+    } else if (TelemetryConfig.isOtelConfigured()) {
+      this.strategy = new OtelTelemetryStrategy();
+    }
   }
 
   /**
    * Initialize and start the telemetry SDK
    */
   initialize(): void {
+    if (!this.strategy?.initialize) {
+      console.warn("No telemetry strategy configured");
+      return;
+    }
+
     try {
       this.sdk = this.strategy.initialize(this.resource);
       this.sdk.start();

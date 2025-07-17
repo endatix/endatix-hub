@@ -23,52 +23,46 @@ export class OtelTelemetryStrategy implements TelemetryInitStrategy {
   initialize(resource: Resource): NodeSDK {
     const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
-    if (otlpEndpoint) {
-      console.log(`Initializing OpenTelemetry for endpoint: ${otlpEndpoint}`);
-      const isHttps = otlpEndpoint.startsWith("https://");
-      const exporterConfig = {
-        credentials: !isHttps
-          ? credentials.createInsecure()
-          : credentials.createSsl(),
-      };
-
-      // Create exporters
-      const traceExporter = new OTLPTraceExporter(exporterConfig);
-      const logExporter = new OTLPLogExporter(exporterConfig);
-
-      // Create processors and readers
-      const spanProcessor = new BatchSpanProcessor(traceExporter, {
-        scheduledDelayMillis: 1000,
-        maxQueueSize: 2048,
-        maxExportBatchSize: 512,
-      });
-
-      const logProcessor = new BatchLogRecordProcessor(logExporter);
-
-      const sdk = new NodeSDK({
-        resource,
-        autoDetectResources: true,
-        resourceDetectors: [processDetectorSync],
-        spanProcessors: [spanProcessor],
-        logRecordProcessors: [logProcessor],
-        traceExporter: traceExporter,
-        contextManager: new AsyncLocalStorageContextManager(),
-        sampler: new AlwaysOnSampler(),
-        instrumentations: [
-          new HttpInstrumentation(),
-          new FetchInstrumentation()
-        ],
-      });
-
-      console.log("OpenTelemetry SDK configured successfully");
-      return sdk;
+    if (!otlpEndpoint) {
+      throw new Error("OTEL_EXPORTER_OTLP_ENDPOINT is not configured");
     }
 
-    console.warn("No OTLP endpoint configured, using fallback SDK");
-    return new NodeSDK({
-      resource,
-      instrumentations: [new HttpInstrumentation()],
+    console.log(`Initializing OpenTelemetry for endpoint: ${otlpEndpoint}`);
+    const isHttps = otlpEndpoint.startsWith("https://");
+    const exporterConfig = {
+      credentials: !isHttps
+        ? credentials.createInsecure()
+        : credentials.createSsl(),
+    };
+
+    // Create exporters
+    const traceExporter = new OTLPTraceExporter(exporterConfig);
+    const logExporter = new OTLPLogExporter(exporterConfig);
+
+    // Create processors and readers
+    const spanProcessor = new BatchSpanProcessor(traceExporter, {
+      scheduledDelayMillis: 1000,
+      maxQueueSize: 2048,
+      maxExportBatchSize: 512,
     });
+
+    const logProcessor = new BatchLogRecordProcessor(logExporter);
+
+    const sdk = new NodeSDK({
+      resource,
+      autoDetectResources: true,
+      resourceDetectors: [processDetectorSync],
+      spanProcessors: [spanProcessor],
+      logRecordProcessors: [logProcessor],
+      traceExporter: traceExporter,
+      contextManager: new AsyncLocalStorageContextManager(),
+      sampler: new AlwaysOnSampler(),
+      instrumentations: [new HttpInstrumentation(), new FetchInstrumentation()],
+    });
+
+    console.log("OpenTelemetry SDK configured successfully");
+
+    return sdk;
   }
 
   name: string = "OpenTelemetry";
