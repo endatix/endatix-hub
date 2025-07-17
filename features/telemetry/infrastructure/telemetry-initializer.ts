@@ -1,5 +1,5 @@
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import { Resource } from "@opentelemetry/resources";
+import { Resource, resourceFromAttributes } from "@opentelemetry/resources";
 import { TelemetryConfig } from "./telemetry-config";
 import { TelemetryInitStrategy } from "./strategies/telemetry-init-strategy.interface";
 import { AzureTelemetryStrategy, OtelTelemetryStrategy } from "./strategies";
@@ -16,7 +16,7 @@ export class TelemetryInitializer {
    * Create a telemetry initializer with the appropriate strategy based on environment
    */
   constructor() {
-    this.resource = new Resource({
+    this.resource = resourceFromAttributes({
       [TelemetryConfig.ATTR_SERVICE_NAME]: TelemetryConfig.SERVICE_NAME,
     });
 

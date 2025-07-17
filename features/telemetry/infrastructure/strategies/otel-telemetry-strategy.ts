@@ -3,7 +3,7 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { credentials } from "@grpc/grpc-js";
 import { TelemetryInitStrategy } from "./telemetry-init-strategy.interface";
-import { processDetectorSync, Resource } from "@opentelemetry/resources";
+import { Resource } from "@opentelemetry/resources";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
@@ -51,7 +51,6 @@ export class OtelTelemetryStrategy implements TelemetryInitStrategy {
     const sdk = new NodeSDK({
       resource,
       autoDetectResources: true,
-      resourceDetectors: [processDetectorSync],
       spanProcessors: [spanProcessor],
       logRecordProcessors: [logProcessor],
       traceExporter: traceExporter,
@@ -65,5 +64,5 @@ export class OtelTelemetryStrategy implements TelemetryInitStrategy {
     return sdk;
   }
 
-  name: string = "OpenTelemetry";
+  name: string = "OTel";
 }

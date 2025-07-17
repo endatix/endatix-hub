@@ -25,20 +25,21 @@ export class AzureTelemetryStrategy implements TelemetryInitStrategy {
    */
   initialize(resource: Resource): NodeSDK {
     const azureTelemetryOptions = {
-      connectionString: process.env.APPINSIGHTS_CONNECTIONSTRING,
+      connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
     };
 
     if (!azureTelemetryOptions.connectionString) {
-      throw new Error("APPINSIGHTS_CONNECTIONSTRING is not configured");
+      throw new Error(
+        "APPLICATIONINSIGHTS_CONNECTION_STRING is not configured",
+      );
     }
 
     const traceExporter = new AzureMonitorTraceExporter(azureTelemetryOptions);
     const logExporter = new AzureMonitorLogExporter(azureTelemetryOptions);
 
-    const loggerProvider = new LoggerProvider();
-    loggerProvider.addLogRecordProcessor(
-      new BatchLogRecordProcessor(logExporter),
-    );
+    const loggerProvider = new LoggerProvider({
+      processors: [new BatchLogRecordProcessor(logExporter)],
+    });
 
     // Register logger provider as global
     logs.setGlobalLoggerProvider(loggerProvider);
@@ -47,12 +48,9 @@ export class AzureTelemetryStrategy implements TelemetryInitStrategy {
     const sdk = new NodeSDK({
       resource,
       autoDetectResources: true,
-      traceExporter,
+      traceExporter: traceExporter,
       spanProcessor: new BatchSpanProcessor(traceExporter),
-      instrumentations: [
-        new HttpInstrumentation(),
-        new FetchInstrumentation(),
-      ],
+      instrumentations: [new HttpInstrumentation(), new FetchInstrumentation()],
     });
 
     return sdk;
