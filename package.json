@@ -20,11 +20,8 @@
   "dependencies": {
     "@azure/monitor-opentelemetry-exporter": "1.0.0-beta.32",
     "@azure/storage-blob": "^12.26.0",
-<<<<<<< HEAD
     "@grpc/grpc-js": "^1.13.4",
-=======
     "@flags-sdk/posthog": "^0.1.0",
->>>>>>> 342527d (Adding support for feature flags via PostHog and Environment Variables)
     "@hookform/resolvers": "^3.10.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.203.0",
