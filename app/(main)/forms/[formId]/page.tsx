@@ -39,7 +39,7 @@ export default async function FormEditPage({ params }: Params) {
 
   return (
     <Suspense fallback={<FormEditorLoader />}>
-      <div className="h-dvh overflow-hidden gap-4">
+      <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
         <FormEditorContainer {...props} />
       </div>
     </Suspense>
