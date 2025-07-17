@@ -10,8 +10,9 @@ import {
   LoggerProvider,
   BatchLogRecordProcessor,
 } from "@opentelemetry/sdk-logs";
-import { TelemetryConfig } from "../telemetry-config";
 import { TelemetryInitStrategy } from "./telemetry-init-strategy.interface";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
 
 /**
  * Azure Application Insights telemetry initialization strategy
@@ -23,22 +24,22 @@ export class AzureTelemetryStrategy implements TelemetryInitStrategy {
    * @returns The initialized SDK
    */
   initialize(resource: Resource): NodeSDK {
-    const connectionString = TelemetryConfig.getConnectionString();
+    const azureTelemetryOptions = {
+      connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+    };
 
-    // Create Azure Monitor trace exporter
-    const traceExporter = new AzureMonitorTraceExporter({
-      connectionString,
+    if (!azureTelemetryOptions.connectionString) {
+      throw new Error(
+        "APPLICATIONINSIGHTS_CONNECTION_STRING is not configured",
+      );
+    }
+
+    const traceExporter = new AzureMonitorTraceExporter(azureTelemetryOptions);
+    const logExporter = new AzureMonitorLogExporter(azureTelemetryOptions);
+
+    const loggerProvider = new LoggerProvider({
+      processors: [new BatchLogRecordProcessor(logExporter)],
     });
-
-    // Create log exporter and provider
-    const logExporter = new AzureMonitorLogExporter({
-      connectionString,
-    });
-
-    const loggerProvider = new LoggerProvider();
-    loggerProvider.addLogRecordProcessor(
-      new BatchLogRecordProcessor(logExporter),
-    );
 
     // Register logger provider as global
     logs.setGlobalLoggerProvider(loggerProvider);
@@ -46,8 +47,10 @@ export class AzureTelemetryStrategy implements TelemetryInitStrategy {
     // Create the SDK
     const sdk = new NodeSDK({
       resource,
-      traceExporter,
+      autoDetectResources: true,
+      traceExporter: traceExporter,
       spanProcessor: new BatchSpanProcessor(traceExporter),
+      instrumentations: [new HttpInstrumentation(), new FetchInstrumentation()],
     });
 
     return sdk;

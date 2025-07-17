@@ -1,4 +1,4 @@
-export const register = async () => {
+export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("@/lib/hosting/check-node-version");
     await import("@/lib/hosting/check-environment");

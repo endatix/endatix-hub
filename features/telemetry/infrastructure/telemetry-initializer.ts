@@ -1,5 +1,5 @@
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import { Resource } from "@opentelemetry/resources";
+import { Resource, resourceFromAttributes } from "@opentelemetry/resources";
 import { TelemetryConfig } from "./telemetry-config";
 import { TelemetryInitStrategy } from "./strategies/telemetry-init-strategy.interface";
 import { AzureTelemetryStrategy, OtelTelemetryStrategy } from "./strategies";
@@ -9,26 +9,33 @@ import { AzureTelemetryStrategy, OtelTelemetryStrategy } from "./strategies";
  */
 export class TelemetryInitializer {
   private sdk: NodeSDK | null = null;
-  private strategy: TelemetryInitStrategy;
+  private strategy: TelemetryInitStrategy | null = null;
   private resource: Resource;
 
   /**
    * Create a telemetry initializer with the appropriate strategy based on environment
    */
   constructor() {
-    this.resource = new Resource({
+    this.resource = resourceFromAttributes({
       [TelemetryConfig.ATTR_SERVICE_NAME]: TelemetryConfig.SERVICE_NAME,
     });
 
-    this.strategy = TelemetryConfig.isAzureConfigured()
-      ? new AzureTelemetryStrategy()
-      : new OtelTelemetryStrategy();
+    if (TelemetryConfig.isAzureConfigured()) {
+      this.strategy = new AzureTelemetryStrategy();
+    } else if (TelemetryConfig.isOtelConfigured()) {
+      this.strategy = new OtelTelemetryStrategy();
+    }
   }
 
   /**
    * Initialize and start the telemetry SDK
    */
   initialize(): void {
+    if (!this.strategy?.initialize) {
+      console.warn("No telemetry strategy configured");
+      return;
+    }
+
     try {
       this.sdk = this.strategy.initialize(this.resource);
       this.sdk.start();

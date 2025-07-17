@@ -5,11 +5,6 @@ import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
  */
 export const TelemetryConfig = {
   /**
-   * Application Insights connection string environment variable name
-   */
-  APP_INSIGHTS_CONNECTION_STRING_ENV: "APPLICATIONINSIGHTS_CONNECTION_STRING",
-
-  /**
    * Service name for telemetry
    */
   SERVICE_NAME: "endatix-hub",
@@ -27,14 +22,9 @@ export const TelemetryConfig = {
   },
 
   /**
-   * Get the Application Insights connection string
+   * Determine if OpenTelemetry is configured
    */
-  getConnectionString(): string {
-    if (!this.isAzureConfigured()) {
-      throw new Error(
-        "Application Insights connection string is not configured",
-      );
-    }
-    return process.env.APPLICATIONINSIGHTS_CONNECTION_STRING!;
+  isOtelConfigured(): boolean {
+    return !!process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   },
 };
