@@ -19,7 +19,7 @@ import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
-import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
+import { BicepsFlexed, Code, Copy, Folder, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FC, useState, useTransition } from "react";
 import ChatBox from "./chat-box";
@@ -40,6 +40,10 @@ interface FormCreateSheetProps {
   isSelected?: boolean;
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
+}
+
+interface CreateFormSheetContainerProps {
+  aiFeatureFlag: boolean;
 }
 
 const CreateFormCard: FC<FormCreateSheetProps> = ({
@@ -74,7 +78,9 @@ const CreateFormCard: FC<FormCreateSheetProps> = ({
   );
 };
 
-const CreateFormSheet = () => {
+const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
+  aiFeatureFlag,
+}) => {
   const [pending, setPending] = useState(false);
   const [selectedOption, setSelectedOption] = useState<CreateFormOption>();
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
@@ -187,25 +193,29 @@ const CreateFormSheet = () => {
             onClick={() => setSelectedOption("from_json")}
             disabled
           />
-          {/* <CreateFormCard
-            title="Use our AI Form Assistant"
-            description="The recommended way to create a form."
-            icon={Sparkles}
-            action="via_assistant"
-            isSelected={selectedOption === "via_assistant"}
-            onClick={() => setSelectedOption("via_assistant")}
-            disabled={isPending}
-          /> */}
+          {aiFeatureFlag && (
+            <CreateFormCard
+              title={`Use AI Assistant`}
+              description="The recommended way to create a form."
+              icon={Sparkles}
+              action="via_assistant"
+              isSelected={selectedOption === "via_assistant"}
+              onClick={() => setSelectedOption("via_assistant")}
+              disabled={isPending}
+            />
+          )}
         </div>
       </div>
       {pending && <DotLoader className="flex-1 text-center m-auto" />}
       <SheetFooter className="flex-end">
-        <ChatBox
-          requiresNewContext={true}
-          onPendingChange={(pending) => {
-            setPending(pending);
-          }}
-        />
+        {aiFeatureFlag && (
+          <ChatBox
+            requiresNewContext={true}
+            onPendingChange={(pending) => {
+              setPending(pending);
+            }}
+          />
+        )}
         {selectedOption === "from_template" && (
           <div className="w-full space-y-4">
             <TemplateSelector
