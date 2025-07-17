@@ -32,7 +32,11 @@ export default async function FormTemplateEditPage({ params }: Params) {
       isEnabled: template.isEnabled,
     };
 
-    return <FormTemplateEditorContainer {...props} />;
+    return (
+      <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
+        <FormTemplateEditorContainer {...props} />
+      </div>
+    );
   } catch (error) {
     console.error("Error fetching template:", error);
     notFound();
