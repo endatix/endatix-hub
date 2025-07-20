@@ -799,15 +799,65 @@ function FormEditor({
   }, [creator, createCustomQuestionDialog]);
 
   useEffect(() => {
+    let isLeavingJsonTab = false;
+
     const setAsModified = () => {
+      if (isLeavingJsonTab) {
+        return;
+      }
+      
       setHasUnsavedChanges(true);
     };
+
+    const attachJsonTextareaListener = (jsonTextarea: HTMLTextAreaElement) => {
+      if (!(jsonTextarea as any).__handlerAttached) {
+        const handleInput = () => {
+          setHasUnsavedChanges(true);
+        };
+        
+        jsonTextarea.addEventListener('input', handleInput);
+        
+        (jsonTextarea as any).__handlerAttached = true;
+        (jsonTextarea as any).__inputHandler = handleInput;
+      }
+    };
+
+    const waitForTextarea = (attempt = 1, maxAttempts = 4) => {
+      const textarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+      if (textarea) {
+        attachJsonTextareaListener(textarea);
+      } else if (attempt < maxAttempts) {
+        const delay = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms
+        setTimeout(() => waitForTextarea(attempt + 1, maxAttempts), delay);
+      }
+    };
+
+    const handleTabChanging = (sender: SurveyCreatorModel, options: any) => {
+      if (creator?.activeTab === "json" && options.tabName !== "json") {
+        isLeavingJsonTab = true;
+      }
+    };
+
+    const handleTabChange = (sender: SurveyCreatorModel, options: any) => {
+      isLeavingJsonTab = false;
+      
+      if (options.tabName === "json") {
+        waitForTextarea();
+      }
+    };
+
     if (creator) {
       creator.onModified.add(setAsModified);
       creator.saveThemeFunc = handleSaveTheme;
+      creator.onActiveTabChanging.add(handleTabChanging);
       creator.onActiveTabChanged.add(updateCustomActions);
+      creator.onActiveTabChanged.add(handleTabChange);
       creator.toolbar.actions.push(saveThemeActionBtn);
       creator.toolbar.actions.push(deleteThemeActionBtn);
+
+      if (creator.activeTab === "json") {
+        waitForTextarea();
+      }
 
       const themeTabPlugin = creator.themeEditor;
       themeTabPlugin.advancedModeEnabled = true;
@@ -844,7 +894,15 @@ function FormEditor({
       return () => {
         creator.onModified.remove(setAsModified);
         creator.saveThemeFunc = null;
+        creator.onActiveTabChanging.remove(handleTabChanging);
         creator.onActiveTabChanged.remove(updateCustomActions);
+        creator.onActiveTabChanged.remove(handleTabChange);
+        
+        const jsonTextarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+        if (jsonTextarea && (jsonTextarea as any).__handlerAttached) {
+          jsonTextarea.removeEventListener('input', (jsonTextarea as any).__inputHandler);
+        }
+        
         themeTabPlugin.onThemeSelected.remove(updateCustomActions);
         themeTabPlugin.onThemePropertyChanged.remove(updateCustomActions);
       };
@@ -894,10 +952,44 @@ function FormEditor({
     }
   };
 
+  const getJsonForSaving = () => {
+    if (creator?.activeTab === "json") {
+      const errorsList = document.querySelector('.svc-json-editor-tab__errros_list') as HTMLElement;
+      const errorsContainer = document.querySelector('.svc-json-errors') as HTMLElement;
+      
+      const isErrorsListVisible = errorsList && getComputedStyle(errorsList).display !== 'none';
+      const hasErrorChildren = errorsContainer && errorsContainer.children.length > 0;
+      
+      if (isErrorsListVisible && hasErrorChildren) {
+        toast.error("Please fix the errors in the JSON editor before saving.");
+        return null;
+      }
+
+      const jsonTextarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+      if (jsonTextarea) {
+        try {
+          const currentJsonText = jsonTextarea.value;
+          return JSON.parse(currentJsonText);
+        } catch (error) {
+          toast.error("Invalid JSON format. Please fix the JSON before saving.");
+          return null;
+        }
+      } else {
+        return creator?.JSON;
+      }
+    } else {
+      return creator?.JSON;
+    }
+  };
+
   const saveForm = () => {
     startTransition(async () => {
       const isDraft = false;
-      const updatedFormJson = creator?.JSON;
+      
+      const updatedFormJson = getJsonForSaving();
+      if (updatedFormJson === null) {
+        return;
+      }
       const theme = creator?.theme as StoredTheme;
       let isThemeUpdated = false;
       let isFormUpdated = false;
