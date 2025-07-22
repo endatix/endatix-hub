@@ -1,8 +1,8 @@
 import { getSession } from "@/features/auth";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { Model } from "survey-core";
-import ConversationHistory from './conversation-history';
-import { Suspense } from 'react';
+import ConversationDetails from "@/features/agents/ui/conversation-details";
+import { Suspense } from "react";
 
 interface Params {
   params: Promise<{ agentId: string; conversationId: string }>;
@@ -52,7 +52,7 @@ async function ConversationDetailsPageContent({
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ConversationHistory
+      <ConversationDetails
         formModel={formModel}
         formModelError={formModelError}
         conversation={conversationResult.data}

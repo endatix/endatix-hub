@@ -23,7 +23,6 @@ import {
 import { formatNumber, getFormattedDate } from "@/lib/utils";
 import {
   ArrowLeftIcon,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
@@ -35,7 +34,7 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 const SHEET_CSS = "absolute inset-x-0 top-0 h-screen";
 const CRITICAL_WIDTH = 600;
 
-interface ConversationHistoryProps {
+interface ConversationDetailsProps {
   formModel?: string;
   formModelError?: string;
   conversation: Conversation;
@@ -43,11 +42,11 @@ interface ConversationHistoryProps {
 
 type TokenUsageStats = Omit<TokenUsage, "model">;
 
-export default function ConversationHistory({
+export default function ConversationDetails({
   formModel,
   formModelError,
   conversation,
-}: ConversationHistoryProps) {
+}: ConversationDetailsProps) {
   const chatPanelRef = useRef<ImperativePanelHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -169,54 +168,52 @@ export default function ConversationHistory({
                 </Button>
               </div>
               <Separator className="p-0" />
-              <div className="px-4 flex flex-col gap-1">
-                <Collapsible defaultOpen={true}>
-                  <CollapsibleTrigger className="flex flex-row gap-2 justify-between items-center w-full">
-                    <h3 className="text-l font-bold">Conversation Details</h3>
-                    <ChevronsUpDown className="w-4 h-4" />
-                    <span className="sr-only">Toggle</span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <PropertyDisplay label="Created at">
-                      {getFormattedDate(new Date(conversation.createdAt))}
-                    </PropertyDisplay>
-                    <PropertyDisplay label="Modified at">
-                      {getFormattedDate(new Date(conversation.modifiedAt))}
-                    </PropertyDisplay>
-                    <PropertyDisplay label="User ID">
-                      {conversation.userId}
-                    </PropertyDisplay>
-                    <PropertyDisplay label="Title">
-                      {conversation.title ?? (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </PropertyDisplay>
-                  </CollapsibleContent>
-                </Collapsible>
-                <Collapsible defaultOpen={true}>
-                  <CollapsibleTrigger className="flex flex-row gap-2 justify-between items-center w-full">
-                    <h3 className="text-l font-bold">Token Statistics</h3>
-                    <ChevronsUpDown className="w-4 h-4" />
-                    <span className="sr-only">Toggle</span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <PropertyDisplay label="Message count">
-                      {conversation.messages.length}
-                    </PropertyDisplay>
-                    <PropertyDisplay label="Input tokens">
-                      {formatNumber(tokenUsageStats.inputTokens)}
-                    </PropertyDisplay>
-                    <PropertyDisplay label="Output tokens">
-                      {formatNumber(tokenUsageStats.outputTokens)}
-                    </PropertyDisplay>
-                    <PropertyDisplay label="Total tokens used">
-                      {formatNumber(tokenUsageStats.totalTokens)}
-                    </PropertyDisplay>
-                  </CollapsibleContent>
-                </Collapsible>
-                <h3 className="text-l font-bold">Chat History</h3>
-                <ChatThread isTyping={false} messages={chatMessages} />
-              </div>
+              <Collapsible defaultOpen={true}>
+                <CollapsibleTrigger className="flex flex-row gap-2 justify-between items-center w-full">
+                  <h3 className="text-l font-bold">Conversation Details</h3>
+                  <ChevronsUpDown className="w-4 h-4" />
+                  <span className="sr-only">Toggle</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <PropertyDisplay label="Created at">
+                    {getFormattedDate(new Date(conversation.createdAt))}
+                  </PropertyDisplay>
+                  <PropertyDisplay label="Modified at">
+                    {getFormattedDate(new Date(conversation.modifiedAt))}
+                  </PropertyDisplay>
+                  <PropertyDisplay label="User ID">
+                    {conversation.userId}
+                  </PropertyDisplay>
+                  <PropertyDisplay label="Title">
+                    {conversation.title ?? (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </PropertyDisplay>
+                </CollapsibleContent>
+              </Collapsible>
+              <Collapsible defaultOpen={true}>
+                <CollapsibleTrigger className="flex flex-row gap-2 justify-between items-center w-full">
+                  <h3 className="text-l font-bold">Token Statistics</h3>
+                  <ChevronsUpDown className="w-4 h-4" />
+                  <span className="sr-only">Toggle</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <PropertyDisplay label="Message count">
+                    {conversation.messages.length}
+                  </PropertyDisplay>
+                  <PropertyDisplay label="Input tokens">
+                    {formatNumber(tokenUsageStats.inputTokens)}
+                  </PropertyDisplay>
+                  <PropertyDisplay label="Output tokens">
+                    {formatNumber(tokenUsageStats.outputTokens)}
+                  </PropertyDisplay>
+                  <PropertyDisplay label="Total tokens used">
+                    {formatNumber(tokenUsageStats.totalTokens)}
+                  </PropertyDisplay>
+                </CollapsibleContent>
+              </Collapsible>
+              <h3 className="text-l font-bold">Chat History</h3>
+              <ChatThread isTyping={false} messages={chatMessages} />
             </div>
           )}
         </div>
