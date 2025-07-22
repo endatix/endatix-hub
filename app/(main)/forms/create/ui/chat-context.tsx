@@ -1,9 +1,9 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
-import { Message } from "../use-cases/assistant";
+import { ChatMessage } from "../use-cases/assistant";
 
 interface ChatContextType {
-  messages: Message[];
-  addMessage: (message: Message) => void;
+  messages: ChatMessage[];
+  addMessage: (message: ChatMessage) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -11,9 +11,9 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [messages, setMessages] = useState<Message[]>(new Array<Message>());
+  const [messages, setMessages] = useState<ChatMessage[]>(new Array<ChatMessage>());
 
-  const addMessage = (message: Message) => {
+  const addMessage = (message: ChatMessage) => {
     setMessages((prevMessages) => [...prevMessages, message]);
   };
 

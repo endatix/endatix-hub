@@ -3,13 +3,15 @@ import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { getSession } from "@/features/auth";
+import { getFormattedDate } from "@/lib/utils";
+import { List } from "lucide-react";
 
 interface Params {
-  params: { agentId: string };
+  params: Promise<{ agentId: string }>;
 }
 
 export default async function AgentDetailsPage({ params }: Params) {
-  const agentId = params.agentId;
+  const { agentId } = await params;
 
   const session = await getSession();
   const endatixApi = new EndatixApi(session);
@@ -48,13 +50,16 @@ export default async function AgentDetailsPage({ params }: Params) {
           Model: <span className="font-normal">{agent.data.model}</span>
         </div>
         <div className="mb-2">
-          Temperature: <span className="font-mono">{agent.data.temperature}</span>
+          Temperature:{" "}
+          <span className="font-mono">{agent.data.temperature}</span>
         </div>
         <div className="mb-2">
           System Prompt:{" "}
           <span className="font-mono">{agent.data.systemPrompt}</span>
         </div>
-        <div className="mb-2">Created: {agent.data.createdAt}</div>
+        <div className="mb-2">
+          Created: {getFormattedDate(new Date(agent.data.createdAt))}
+        </div>
         <div className="mb-2">Conversations: {conversations.data.length}</div>
       </div>
       <div>
@@ -68,10 +73,11 @@ export default async function AgentDetailsPage({ params }: Params) {
             <thead>
               <tr className="bg-muted">
                 <th className="p-2 text-left">Title</th>
-                <th className="p-2 text-left">User</th>
+                <th className="p-2 text-left">User ID</th>
                 <th className="p-2 text-left">Messages</th>
-                <th className="p-2 text-left">Created</th>
-                <th className="p-2 text-left">Modified</th>
+                <th className="p-2 text-left">Created at</th>
+                <th className="p-2 text-left">Modified on</th>
+                <th className="p-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -79,13 +85,27 @@ export default async function AgentDetailsPage({ params }: Params) {
                 <tr key={conv.createdAt + conv.userId} className="border-t">
                   <td className="p-2">
                     {conv.title || (
-                      <span className="text-muted-foreground">(untitled)</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </td>
                   <td className="p-2">{conv.userId}</td>
-                  <td className="p-2">{conv.messagesCount}</td>
-                  <td className="p-2">{conv.createdAt}</td>
-                  <td className="p-2">{conv.modifiedAt}</td>
+                  <td className="p-2">{conv.messageCount}</td>
+                  <td className="p-2">
+                    {getFormattedDate(new Date(conv.createdAt))}
+                  </td>
+                  <td className="p-2">
+                    {getFormattedDate(new Date(conv.modifiedAt))}
+                  </td>
+                  <td className="p-2">
+                    <Button variant="outline" className="flex items-center" asChild>
+                      <Link
+                        href={`/admin/agents/${agentId}/conversations/${conv.id}`}
+                      >
+                        <List className="w-4 h-4 mr-2" />
+                        Details
+                      </Link>
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

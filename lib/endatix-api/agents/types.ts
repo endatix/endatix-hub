@@ -28,14 +28,42 @@ export type UpdateAgentRequest = Omit<
 >;
 
 export interface Conversation {
-  agentId: number;
-  userId: number;
+  id: string;
+  agentId: string;
+  userId: string;
+  resultJson: string | null;
   title: string | null;
   result: string | null;
   createdAt: string;
   modifiedAt: string;
-  messagesCount: number;
+  messageCount: number;
+  messages: Message[];
 }
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  role: MessageRole;
+  content: string;
+  tokenUsage: string | null;
+  metadataJson: string | null;
+  createdAt: Date;
+  modifiedAt?: Date;
+  deletedAt?: Date;
+  sequence: number;
+  isDeleted: boolean;
+}
+
+export type MessageRole = "system" | "user" | "assistant" | "tool";
+
+export const TokenUsageSchema = z.object({
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+  totalTokens: z.number(),
+  model: z.string(),
+});
+
+export type TokenUsage = z.infer<typeof TokenUsageSchema>;
 
 export const DefineFormRequestSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),

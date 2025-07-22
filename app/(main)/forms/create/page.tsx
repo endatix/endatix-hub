@@ -14,7 +14,7 @@ import {
   AssistantStore,
   CreateFormRequest,
   DefineFormCommand,
-  Message,
+  ChatMessage,
 } from "./use-cases/assistant";
 import DotLoader from "@/components/loaders/dot-loader";
 import {
@@ -38,7 +38,7 @@ const CreateForm: NextPage = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [shouldType, setShouldType] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
-  const [messages, setMessages] = useState(new Array<Message>());
+  const [messages, setMessages] = useState(new Array<ChatMessage>());
   const [formModel, setFormModel] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 

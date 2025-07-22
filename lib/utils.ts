@@ -93,3 +93,20 @@ export function getFormattedDate(date: Date): string {
     hour12: true,
   });
 }
+
+/**
+ * Formats a number into a string in the format of 1.2k, 1.2m, 1.2b, etc.
+ * @param number - The number to format
+ * @param fallback - The fallback value if the number is null or undefined
+ * @returns Formatted string of the number in the format of 1.2k, 1.2m, 1.2b, etc.
+ */
+export function formatNumber(number: number, fallback: string = "-"): string {
+  if (!number) {
+    return fallback;
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(number);
+}

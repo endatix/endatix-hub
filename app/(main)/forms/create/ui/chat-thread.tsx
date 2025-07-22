@@ -6,10 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import UserAvatar from "@/components/user/user-avatar";
 import { Pencil } from "lucide-react";
 import React, { useEffect, useRef } from "react";
-import { Message } from "../use-cases/assistant/types";
+import { ChatMessage } from "../use-cases/assistant/types";
 
 interface ChatThreadProps {
-  messages: Message[];
+  messages: ChatMessage[];
   isTyping: boolean;
 }
 

@@ -1,4 +1,4 @@
-export type Message = {
+export type ChatMessage = {
     isAi: boolean;
     content: string;
 }
@@ -6,7 +6,7 @@ export type Message = {
 export type ChatContext = {
     agentId: string,
     threadId: string,
-    messages: Message[],
+    messages: ChatMessage[],
     isInitialPrompt?: boolean,
 };
 
