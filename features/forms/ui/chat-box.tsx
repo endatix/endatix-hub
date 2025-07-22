@@ -21,9 +21,12 @@ import { cn } from "@/lib/utils";
 import { useActionState, useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { redirect } from "next/navigation";
-import { IPromptResult, PromptResult } from '@/app/(main)/forms/create/prompt-result';
-import { AssistantStore, DefineFormCommand } from '@/app/(main)/forms/create/use-cases/assistant';
-import { defineFormAction } from '@/app/(main)/forms/create/define-form.action';
+import {
+  AssistantStore,
+  DefineFormCommand,
+} from "@/app/(main)/forms/create/use-cases/assistant";
+import { defineFormAction } from "@/app/(main)/forms/create/define-form.action";
+import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
 
 const ChatErrorAlert = ({
   errorMessage,
@@ -83,7 +86,7 @@ const ChatBox = ({
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
   const [state, action, pending] = useActionState(
-    async (prevState: IPromptResult, formData: FormData) => {
+    async (prevState: PromptResult, formData: FormData) => {
       const contextStore = new AssistantStore();
 
       if (requiresNewContext) {
@@ -91,7 +94,7 @@ const ChatBox = ({
         contextStore.setChatContext({
           messages: [],
           threadId: "",
-          assistantId: "",
+          agentId: "",
           isInitialPrompt: true,
         });
       }
@@ -99,17 +102,17 @@ const ChatBox = ({
       const formContext = contextStore.getChatContext();
       if (formContext) {
         formData.set("threadId", formContext.threadId ?? "");
-        formData.set("assistantId", formContext.assistantId ?? "");
+        formData.set("agentId", formContext.agentId ?? "");
       }
 
       const promptResult = await defineFormAction(prevState, formData);
 
-      if (promptResult.success && promptResult.value?.definition) {
+      if (promptResult.success && promptResult.data?.definition) {
         const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(promptResult.value?.definition);
+        contextStore.setFormModel(promptResult.data.definition);
         const currentContext = contextStore.getChatContext();
-        currentContext.threadId = promptResult.value?.threadId ?? "";
-        currentContext.assistantId = promptResult.value?.assistantId ?? "";
+        currentContext.threadId = promptResult.data.threadId ?? "";
+        currentContext.agentId = promptResult.data.agentId ?? "";
 
         if (currentContext.messages === undefined) {
           currentContext.messages = [];
@@ -124,10 +127,10 @@ const ChatBox = ({
           currentContext.isInitialPrompt = false;
         }
 
-        if (promptResult.value?.assistantResponse) {
+        if (promptResult.data.agentResponse) {
           currentContext.messages.push({
             isAi: true,
-            content: promptResult.value?.assistantResponse,
+            content: promptResult.data.agentResponse,
           });
         }
 
@@ -156,8 +159,8 @@ const ChatBox = ({
 
   return (
     <div className={`flex flex-col flex-1 gap-2 ${className}`} {...props}>
-      {state.success === false && (
-        <ChatErrorAlert errorMessage={state.errorMessage} />
+      {!PromptResult.isError(state) ? null : (
+        <ChatErrorAlert errorMessage={PromptResult.getErrorMessage(state)} />
       )}
       <form
         action={action}

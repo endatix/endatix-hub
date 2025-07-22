@@ -4,18 +4,11 @@ export type Message = {
 }
 
 export type ChatContext = {
-    assistantId?: string,
+    agentId: string,
     threadId: string,
     messages: Message[],
     isInitialPrompt?: boolean,
 };
-
-export interface DefineFormRequest {
-    prompt: string;
-    definition?: string,
-    assistantId?: string,
-    threadId?: string
-}
 
 export interface DefineFormContext {
     assistantResponse: string,

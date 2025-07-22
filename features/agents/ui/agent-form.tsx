@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AgentForm, agentSchema } from "../types";
+import {
+  AgentRequestSchema,
+  CreateUpdateAgentRequestSchema,
+} from "@/lib/endatix-api/agents/types";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,8 +21,8 @@ import {
 import { useRouter } from "next/navigation";
 
 interface AgentFormProps {
-  initialValues: AgentForm;
-  onSubmit: (data: AgentForm) => Promise<void>;
+  initialValues: CreateUpdateAgentRequestSchema;
+  onSubmit: (data: CreateUpdateAgentRequestSchema) => Promise<void>;
   mode: "create" | "edit";
   isPending?: boolean;
 }
@@ -33,9 +36,10 @@ export function AgentFormContainer({
   mode,
   isPending,
 }: AgentFormProps) {
-  const [form, setForm] = useState<AgentForm>(initialValues);
+  const [form, setForm] =
+    useState<CreateUpdateAgentRequestSchema>(initialValues);
   const [errors, setErrors] = useState<
-    Partial<Record<keyof AgentForm, string>>
+    Partial<Record<keyof CreateUpdateAgentRequestSchema, string>>
   >({});
   const router = useRouter();
   const systemPromptRef = useRef<HTMLTextAreaElement>(null);
@@ -48,9 +52,12 @@ export function AgentFormContainer({
     }
   }, [form.systemPrompt]);
 
-  const validate = (field: keyof AgentForm, value: string | number) => {
+  const validate = (
+    field: keyof CreateUpdateAgentRequestSchema,
+    value: string | number,
+  ) => {
     try {
-      agentSchema.shape[field].parse(value);
+      AgentRequestSchema.shape[field].parse(value);
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     } catch (e: unknown) {
       if (e instanceof z.ZodError) {
@@ -66,21 +73,24 @@ export function AgentFormContainer({
     let val: string | number = value;
     if (type === "number") val = Number(value);
     setForm((prev) => ({ ...prev, [name]: val }));
-    validate(name as keyof AgentForm, val);
+    validate(name as keyof CreateUpdateAgentRequestSchema, val);
   };
 
   const isFormValid = () => {
-    const result = agentSchema.safeParse(form);
+    const result = AgentRequestSchema.safeParse(form);
     return result.success;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const result = agentSchema.safeParse(form);
+    const result = AgentRequestSchema.safeParse(form);
     if (!result.success) {
-      const fieldErrors: Partial<Record<keyof AgentForm, string>> = {};
+      const fieldErrors: Partial<
+        Record<keyof CreateUpdateAgentRequestSchema, string>
+      > = {};
       for (const err of result.error.errors) {
-        fieldErrors[err.path[0] as keyof AgentForm] = err.message;
+        fieldErrors[err.path[0] as keyof CreateUpdateAgentRequestSchema] =
+          err.message;
       }
       setErrors(fieldErrors);
       return;
@@ -92,7 +102,7 @@ export function AgentFormContainer({
   return (
     <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
       <div className="space-y-4">
-      <div className="space-y-2">
+        <div className="space-y-2">
           <Label htmlFor="name">Agent Name</Label>
           <Select
             value={form.name}

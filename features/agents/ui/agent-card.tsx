@@ -1,6 +1,6 @@
 "use client";
 
-import { Agent } from "@/features/agents/types";
+import { Agent } from "@/lib/endatix-api/agents/types";
 import { getFormattedDate } from "@/lib/utils";
 import { Calendar, MessageCircle, Sparkles } from "lucide-react";
 

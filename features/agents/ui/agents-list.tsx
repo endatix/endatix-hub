@@ -1,6 +1,6 @@
 "use client";
 
-import { Agent } from "@/features/agents/types";
+import { Agent } from "@/lib/endatix-api/agents/types";
 import AgentCard from "./agent-card";
 import { useRouter } from "next/navigation";
 

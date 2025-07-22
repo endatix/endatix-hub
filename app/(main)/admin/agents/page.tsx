@@ -1,5 +1,4 @@
 import PageTitle from "@/components/headings/page-title";
-import { getAgents } from "@/services/ai-api";
 import AgentsList from "@/features/agents/ui/agents-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense } from "react";
@@ -7,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { getSession } from "@/features/auth";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 
 export default async function AgentsPage() {
   return (
@@ -34,11 +35,17 @@ export default async function AgentsPage() {
 }
 
 async function AgentsTabsContent() {
-  const agents = await getAgents();
+  const session = await getSession();
+  const endatixApi = new EndatixApi(session);
+  const agents = await endatixApi.agents.list();
+
+  if (ApiResult.isError(agents)) {
+    return <div className="p-8 text-destructive">{agents.error.message}</div>;
+  }
 
   return (
     <TabsContent value="all">
-      <AgentsList agents={agents} />
+      <AgentsList agents={agents.data} />
     </TabsContent>
   );
 }

@@ -1,8 +1,8 @@
-import { getAgentConversations, getAgents } from "@/services/ai-api";
-import { Conversation, Agent } from "@/features/agents/types";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
+import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { getSession } from "@/features/auth";
 
 interface Params {
   params: { agentId: string };
@@ -10,33 +10,30 @@ interface Params {
 
 export default async function AgentDetailsPage({ params }: Params) {
   const agentId = params.agentId;
-  let agent: Agent | undefined;
-  let conversations: Conversation[] = [];
-  let error: string | null = null;
 
-  try {
-    const agents = await getAgents();
-    agent = agents.find((a) => String(a.id) === String(agentId));
-    if (!agent) {
-      throw new Error("Agent not found");
+  const session = await getSession();
+  const endatixApi = new EndatixApi(session);
+  const agent = await endatixApi.agents.get(agentId);
+
+  if (ApiResult.isError(agent)) {
+    if (agent.error.type === ApiErrorType.NotFoundError) {
+      return <div className="p-8 text-destructive">Agent not found</div>;
     }
-    conversations = await getAgentConversations(agentId);
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      error = e.message;
-    } else {
-      error = "Failed to load agent details";
-    }
+
+    return <div className="p-8 text-destructive">{agent.error.message}</div>;
   }
 
-  if (error) {
-    return <div className="p-8 text-destructive">{error}</div>;
+  const conversations = await endatixApi.agents.conversations.list(agentId);
+  if (ApiResult.isError(conversations)) {
+    return (
+      <div className="p-8 text-destructive">{conversations.error.message}</div>
+    );
   }
 
   return (
     <div className="container max-w-3xl py-8">
       <div className="flex items-center justify-between mb-6">
-        <PageTitle title={agent?.name || "Agent Details"} />
+        <PageTitle title={agent.data.name || "Agent Details"} />
         <div className="flex gap-2">
           <Button asChild variant="outline">
             <Link href={`/admin/agents/${agentId}/edit`}>Edit</Link>
@@ -48,21 +45,21 @@ export default async function AgentDetailsPage({ params }: Params) {
       </div>
       <div className="bg-card border rounded-lg p-6 mb-8">
         <div className="mb-2 text-lg font-semibold">
-          Model: <span className="font-normal">{agent?.model}</span>
+          Model: <span className="font-normal">{agent.data.model}</span>
         </div>
         <div className="mb-2">
-          Temperature: <span className="font-mono">{agent?.temperature}</span>
+          Temperature: <span className="font-mono">{agent.data.temperature}</span>
         </div>
         <div className="mb-2">
           System Prompt:{" "}
-          <span className="font-mono">{agent?.systemPrompt}</span>
+          <span className="font-mono">{agent.data.systemPrompt}</span>
         </div>
-        <div className="mb-2">Created: {agent?.createdAt}</div>
-        <div className="mb-2">Conversations: {conversations.length}</div>
+        <div className="mb-2">Created: {agent.data.createdAt}</div>
+        <div className="mb-2">Conversations: {conversations.data.length}</div>
       </div>
       <div>
         <h2 className="text-xl font-semibold mb-4">Conversations</h2>
-        {conversations.length === 0 ? (
+        {conversations.data.length === 0 ? (
           <div className="text-muted-foreground">
             No conversations found for this agent.
           </div>
@@ -78,7 +75,7 @@ export default async function AgentDetailsPage({ params }: Params) {
               </tr>
             </thead>
             <tbody>
-              {conversations.map((conv) => (
+              {conversations.data.map((conv) => (
                 <tr key={conv.createdAt + conv.userId} className="border-t">
                   <td className="p-2">
                     {conv.title || (
