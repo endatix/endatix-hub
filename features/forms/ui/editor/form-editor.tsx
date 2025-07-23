@@ -40,6 +40,7 @@ import {
   ICreatorOptions,
   registerSurveyTheme,
   SurveyCreatorModel,
+  TabJsonEditorTextareaPlugin,
   UploadFileEvent,
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
@@ -88,6 +89,8 @@ translations.pehelp.fileNamesPrefix =
 
 const downloadSettingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-down-icon lucide-folder-down"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m15 13-3 3-3-3"/></svg>`;
 SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
+
+const invalidJsonErrorMessage = "Invalid JSON! Please fix all errors in the JSON editor before saving.";
 
 const saveAsIcon =
   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
@@ -799,15 +802,65 @@ function FormEditor({
   }, [creator, createCustomQuestionDialog]);
 
   useEffect(() => {
+    let isLeavingJsonTab = false;
+
     const setAsModified = () => {
+      if (isLeavingJsonTab) {
+        return;
+      }
+      
       setHasUnsavedChanges(true);
     };
+
+    const attachJsonTextareaListener = (jsonTextarea: HTMLTextAreaElement) => {
+      if (!(jsonTextarea as any).__handlerAttached) {
+        const handleInput = () => {
+          setHasUnsavedChanges(true);
+        };
+        
+        jsonTextarea.addEventListener('input', handleInput);
+        
+        (jsonTextarea as any).__handlerAttached = true;
+        (jsonTextarea as any).__inputHandler = handleInput;
+      }
+    };
+
+    const waitForTextarea = (attempt = 1, maxAttempts = 4) => {
+      const textarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+      if (textarea) {
+        attachJsonTextareaListener(textarea);
+      } else if (attempt < maxAttempts) {
+        const delay = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms
+        setTimeout(() => waitForTextarea(attempt + 1, maxAttempts), delay);
+      }
+    };
+
+    const handleTabChanging = (sender: SurveyCreatorModel, options: any) => {
+      if (creator?.activeTab === "json" && options.tabName !== "json") {
+        isLeavingJsonTab = true;
+      }
+    };
+
+    const handleTabChange = (sender: SurveyCreatorModel, options: any) => {
+      isLeavingJsonTab = false;
+      
+      if (options.tabName === "json") {
+        waitForTextarea();
+      }
+    };
+
     if (creator) {
       creator.onModified.add(setAsModified);
       creator.saveThemeFunc = handleSaveTheme;
+      creator.onActiveTabChanging.add(handleTabChanging);
       creator.onActiveTabChanged.add(updateCustomActions);
+      creator.onActiveTabChanged.add(handleTabChange);
       creator.toolbar.actions.push(saveThemeActionBtn);
       creator.toolbar.actions.push(deleteThemeActionBtn);
+
+      if (creator.activeTab === "json") {
+        waitForTextarea();
+      }
 
       const themeTabPlugin = creator.themeEditor;
       themeTabPlugin.advancedModeEnabled = true;
@@ -844,7 +897,15 @@ function FormEditor({
       return () => {
         creator.onModified.remove(setAsModified);
         creator.saveThemeFunc = null;
+        creator.onActiveTabChanging.remove(handleTabChanging);
         creator.onActiveTabChanged.remove(updateCustomActions);
+        creator.onActiveTabChanged.remove(handleTabChange);
+        
+        const jsonTextarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+        if (jsonTextarea && (jsonTextarea as any).__handlerAttached) {
+          jsonTextarea.removeEventListener('input', (jsonTextarea as any).__inputHandler);
+        }
+        
         themeTabPlugin.onThemeSelected.remove(updateCustomActions);
         themeTabPlugin.onThemePropertyChanged.remove(updateCustomActions);
       };
@@ -894,10 +955,39 @@ function FormEditor({
     }
   };
 
+  const getJsonForSaving = () => {
+    if (creator?.activeTab === "json") {
+      const errorsList = document.querySelector('.svc-json-editor-tab__errros_list') as HTMLElement;
+      const errorsContainer = document.querySelector('.svc-json-errors') as HTMLElement;
+      
+      const isErrorsListVisible = errorsList && getComputedStyle(errorsList).display !== 'none';
+      const hasErrorChildren = errorsContainer && errorsContainer.children.length > 0;
+      
+      if (isErrorsListVisible && hasErrorChildren) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+
+      const jsonAreaPlugin = creator.getPlugin("json") as TabJsonEditorTextareaPlugin
+      try {
+        return JSON.parse(jsonAreaPlugin.model.text);
+      } catch (error) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+    } else {
+      return creator?.JSON;
+    }
+  };
+
   const saveForm = () => {
     startTransition(async () => {
       const isDraft = false;
-      const updatedFormJson = creator?.JSON;
+      
+      const updatedFormJson = getJsonForSaving();
+      if (updatedFormJson === null) {
+        return;
+      }
       const theme = creator?.theme as StoredTheme;
       let isThemeUpdated = false;
       let isFormUpdated = false;

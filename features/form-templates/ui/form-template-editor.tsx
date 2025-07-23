@@ -11,6 +11,7 @@ import SurveyCreatorTheme from "survey-creator-core/themes";
 import {
   ICreatorOptions,
   SurveyCreatorModel,
+  TabJsonEditorTextareaPlugin,
   UploadFileEvent,
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
@@ -23,6 +24,8 @@ import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
+
+const invalidJsonErrorMessage = "Invalid JSON! Please fix all errors in the JSON editor before saving.";
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -181,10 +184,72 @@ function FormTemplateEditor({
   }, [isEditingName, handleNameSave]);
 
   useEffect(() => {
+    let isLeavingJsonTab = false;
+
+    const setAsModified = () => {
+      if (isLeavingJsonTab) {
+        return;
+      }
+      
+      setHasUnsavedChanges(true);
+    };
+
+    const attachJsonTextareaListener = (jsonTextarea: HTMLTextAreaElement) => {
+      if (!(jsonTextarea as any).__handlerAttached) {
+        const handleInput = () => {
+          setHasUnsavedChanges(true);
+        };
+        
+        jsonTextarea.addEventListener('input', handleInput);
+        
+        (jsonTextarea as any).__handlerAttached = true;
+        (jsonTextarea as any).__inputHandler = handleInput;
+      }
+    };
+
+    const waitForTextarea = (attempt = 1, maxAttempts = 4) => {
+      const textarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+      if (textarea) {
+        attachJsonTextareaListener(textarea);
+      } else if (attempt < maxAttempts) {
+        const delay = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms
+        setTimeout(() => waitForTextarea(attempt + 1, maxAttempts), delay);
+      }
+    };
+
+    const handleTabChanging = (sender: SurveyCreatorModel, options: any) => {
+      if (creator?.activeTab === "json" && options.tabName !== "json") {
+        isLeavingJsonTab = true;
+      }
+    };
+
+    const handleTabChange = (sender: SurveyCreatorModel, options: any) => {
+      isLeavingJsonTab = false;
+      
+      if (options.tabName === "json") {
+        waitForTextarea();
+      }
+    };
+
     if (creator) {
-      creator.onModified.add(() => {
-        setHasUnsavedChanges(true);
-      });
+      creator.onModified.add(setAsModified);
+      creator.onActiveTabChanging.add(handleTabChanging);
+      creator.onActiveTabChanged.add(handleTabChange);
+
+      if (creator.activeTab === "json") {
+        waitForTextarea();
+      }
+
+      return () => {
+        creator.onModified.remove(setAsModified);
+        creator.onActiveTabChanging.remove(handleTabChanging);
+        creator.onActiveTabChanged.remove(handleTabChange);
+
+        const jsonTextarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+        if (jsonTextarea && (jsonTextarea as any).__handlerAttached) {
+          jsonTextarea.removeEventListener('input', (jsonTextarea as any).__inputHandler);
+        }
+      };
     }
   }, [creator]);
 
@@ -213,9 +278,39 @@ function FormTemplateEditor({
     }
   };
 
+  const getJsonForSaving = () => {
+    if (creator?.activeTab === "json") {
+      const errorsList = document.querySelector('.svc-json-editor-tab__errros_list') as HTMLElement;
+      const errorsContainer = document.querySelector('.svc-json-errors') as HTMLElement;
+      
+      const isErrorsListVisible = errorsList && getComputedStyle(errorsList).display !== 'none';
+      const hasErrorChildren = errorsContainer && errorsContainer.children.length > 0;
+      
+      if (isErrorsListVisible && hasErrorChildren) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+
+      const jsonAreaPlugin = creator.getPlugin("json") as TabJsonEditorTextareaPlugin
+      try {
+        return JSON.parse(jsonAreaPlugin.model.text);
+      } catch (error) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+    } else {
+      return creator?.JSON;
+    }
+  };
+
   const saveTemplate = () => {
     startTransition(async () => {
-      const result = await updateTemplateJsonAction(templateId, creator?.JSON);
+      const updatedFormJson = getJsonForSaving();
+      if (updatedFormJson === null) {
+        return;
+      }
+
+      const result = await updateTemplateJsonAction(templateId, updatedFormJson);
 
       if (result.success) {
         setHasUnsavedChanges(false);
