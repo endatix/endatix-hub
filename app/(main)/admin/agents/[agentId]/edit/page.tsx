@@ -3,12 +3,15 @@ import EditAgent from "@/features/agents/ui/edit-agent";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import { getSession } from "@/features/auth";
 import { ApiErrorType, ApiResult } from "@/lib/endatix-api";
+import { requireAdmin } from "@/components/admin-ui/admin-protection";
 
 export default async function EditAgentPage({
   params,
 }: {
   params: Promise<{ agentId: string }>;
 }) {
+  await requireAdmin();
+
   const { agentId } = await params;
 
   const session = await getSession();

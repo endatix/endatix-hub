@@ -5,12 +5,15 @@ import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { getSession } from "@/features/auth";
 import { getFormattedDate } from "@/lib/utils";
 import { List } from "lucide-react";
+import { requireAdmin } from '@/components/admin-ui/admin-protection';
 
 interface Params {
   params: Promise<{ agentId: string }>;
 }
 
 export default async function AgentDetailsPage({ params }: Params) {
+  await requireAdmin();
+  
   const { agentId } = await params;
 
   const session = await getSession();

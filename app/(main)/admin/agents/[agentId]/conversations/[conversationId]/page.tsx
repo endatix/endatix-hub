@@ -3,12 +3,15 @@ import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { Model } from "survey-core";
 import ConversationDetails from "@/features/agents/ui/conversation-details";
 import { Suspense } from "react";
+import { requireAdmin } from "@/components/admin-ui/admin-protection";
 
 interface Params {
   params: Promise<{ agentId: string; conversationId: string }>;
 }
 
 export default async function ConversationDetailsPage({ params }: Params) {
+  await requireAdmin();
+
   const { agentId, conversationId } = await params;
 
   return (

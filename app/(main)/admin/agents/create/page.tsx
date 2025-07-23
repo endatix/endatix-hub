@@ -1,43 +1,12 @@
-"use client";
+"use server";
 
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
-import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/toast";
-import { useTransition } from "react";
-import { createAgentAction } from "@/features/agents/application/create-agent.action";
-import { CreateAgentRequest } from "@/lib/endatix-api/agents/types";
-import { AgentFormContainer } from "@/features/agents/ui/agent-form";
-import { ApiResult } from "@/lib/endatix-api";
+import { requireAdmin } from "@/components/admin-ui/admin-protection";
+import CreateAgent from "@/features/agents/ui/create-agent";
 
-const INITIAL_FORM: CreateAgentRequest = {
-  name: "",
-  model: "",
-  temperature: 1,
-  systemPrompt: "",
-  tenantId: 0,
-};
-
-export default function CreateAgentPage() {
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-
-  const handleSubmit = async (form: CreateAgentRequest) => {
-    startTransition(async () => {
-      const formData = new FormData();
-      Object.entries(form).forEach(([k, v]) => formData.append(k, String(v)));
-      const result = await createAgentAction(formData);
-      if (ApiResult.isSuccess(result)) {
-        toast.success({
-          title: "Agent created successfully",
-          description: "You can now use this agent.",
-        });
-        router.push("/admin/agents");
-      } else {
-        toast.error(result.error.message || "Failed to create agent");
-      }
-    });
-  };
+export default async function CreateAgentPage() {
+  await requireAdmin();
 
   return (
     <>
@@ -54,12 +23,7 @@ export default function CreateAgentPage() {
             Agents let you configure LLMs with custom settings and system
             messages.
           </p>
-          <AgentFormContainer
-            initialValues={INITIAL_FORM}
-            onSubmit={handleSubmit}
-            mode="create"
-            isPending={isPending}
-          />
+          <CreateAgent />
         </div>
       </div>
     </>

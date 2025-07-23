@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { getSession } from "@/features/auth";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { getSession } from "@/features/auth";
+import { requireAdmin } from "@/components/admin-ui/admin-protection";
 
 export default async function AgentsPage() {
+  await requireAdmin();
+
   return (
     <>
       <PageTitle title="Agents" />
