@@ -127,6 +127,7 @@ export function LanguageSelector({
                 fontSize: "14px",
                 fontFamily: "inherit",
                 fontWeight: "inherit",
+                textTransform: "capitalize",
                 color: "inherit",
                 lineHeight: "inherit",
                 padding: "0 12px",
@@ -189,6 +190,7 @@ export function LanguageSelector({
                 style={{
                   cursor: "pointer",
                   padding: "6px 8px",
+                  textTransform: "capitalize",
                   borderBottom: "1px solid var(--sjs-border-default, #d6d6d6)",
                   backgroundColor:
                     option.value === currentLocale
