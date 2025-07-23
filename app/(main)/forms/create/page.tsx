@@ -22,7 +22,6 @@ import {
   ChevronRight,
   FilePenLine,
   Globe,
-  PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImperativePanelHandle } from "react-resizable-panels";
@@ -130,9 +129,7 @@ const CreateForm: NextPage = () => {
     >
       <ResizablePanel defaultSize={70}>
         <div className="flex h-screen sm:pl-14 lg-pl-16 sm:pt-12 md:pt-4">
-          {formModel && (
-            <PreviewFormContainer model={formModel} />
-          )}
+          {formModel && <PreviewFormContainer model={formModel} />}
         </div>
       </ResizablePanel>
       <ResizableHandle />
@@ -162,12 +159,12 @@ const CreateForm: NextPage = () => {
             )}
           </Button>
           {!isCollapsed && (
-            <div className="flex flex-col gap-4 sm:pt-12 p-6">
+            <div className="flex flex-col gap-4 sm:pt-12 p-2 w-full">
               <ChatThread isTyping={shouldType} messages={messages} />
               {isWaiting && (
                 <DotLoader className="flex flex-none items-center m-auto" />
               )}
-              <div className="items-center gap-2 flex">
+              <div className="items-center gap-2 flex justify-end">
                 <Button
                   variant="outline"
                   size="sm"
@@ -176,14 +173,7 @@ const CreateForm: NextPage = () => {
                   <Globe className="mr-2 h-4 w-4" />
                   Add languages
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 border-dashed"
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Generate submissions
-                </Button>
+
                 <Button
                   disabled={isPending}
                   onClick={openFormInEditor}
