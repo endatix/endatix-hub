@@ -4,7 +4,13 @@ import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { ApiResult, Submission } from "@/lib/endatix-api";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { CompleteEvent, SurveyModel } from "survey-core";
 import "survey-core/survey-core.css";
 import { Survey } from "survey-react-ui";
@@ -15,6 +21,8 @@ import { useSurveyTheme } from "./use-survey-theme.hook";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
+import { LanguageSelector } from "./language-selector";
+import "survey-core/survey.i18n";
 
 interface SurveyComponentProps {
   definition: string;
@@ -59,6 +67,10 @@ export default function SurveyComponent({
       setSubmissionId(submission.id);
     }
   }, [submission?.id]);
+
+  const surveyLocales = useMemo(() => {
+    return surveyModel?.getUsedLocales() ?? [];
+  }, [surveyModel]);
 
   const updatePartial = useCallback(
     (sender: SurveyModel) => {
@@ -148,5 +160,13 @@ export default function SurveyComponent({
     return <div>Loading...</div>;
   }
 
-  return <Survey model={surveyModel} />;
+  return (
+    <>
+      <LanguageSelector
+        availableLocales={surveyLocales}
+        surveyModel={surveyModel}
+      />
+      <Survey model={surveyModel} />
+    </>
+  );
 }
