@@ -111,14 +111,14 @@ function getBrowserPreferredLocale(availableLocales: string[]): string {
     return DEFAULT_LOCALE;
   }
 
-  const browserLanguages = navigator.languages || [navigator.language];
+  const browserLanguages = navigator.languages || [navigator.language] || [];
 
   for (const browserLang of browserLanguages) {
     if (availableLocales.includes(browserLang)) {
       return browserLang;
     }
 
-    const languageCode = browserLang.split("-")[0];
+    const languageCode = browserLang?.split("-")[0];
     if (availableLocales.includes(languageCode)) {
       return languageCode;
     }
