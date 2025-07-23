@@ -13,7 +13,7 @@ import { ApiResult } from "@/lib/endatix-api";
 const INITIAL_FORM: CreateAgentRequest = {
   name: "",
   model: "",
-  temperature: 0.7,
+  temperature: 1,
   systemPrompt: "",
   tenantId: 0,
 };

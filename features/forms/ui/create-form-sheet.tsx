@@ -19,7 +19,7 @@ import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
-import { BicepsFlexed, Code, Copy, Folder, Sparkles } from "lucide-react";
+import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FC, useState, useTransition } from "react";
 import ChatBox from "./chat-box";
@@ -191,17 +191,6 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
             onClick={() => setSelectedOption("from_json")}
             disabled
           />
-          {aiFeatureFlag && (
-            <CreateFormCard
-              title={`Use AI Assistant`}
-              description="The recommended way to create a form."
-              icon={Sparkles}
-              action="via_assistant"
-              isSelected={selectedOption === "via_assistant"}
-              onClick={() => setSelectedOption("via_assistant")}
-              disabled={isPending}
-            />
-          )}
         </div>
       </div>
       {pending && <DotLoader className="flex-1 text-center m-auto" />}

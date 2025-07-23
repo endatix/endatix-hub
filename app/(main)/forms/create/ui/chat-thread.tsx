@@ -34,65 +34,73 @@ const ChatThread: React.FC<ChatThreadProps> = ({ messages, isTyping }) => {
 
   return (
     <ScrollArea className="relative h-full p-4">
-      {messages.map((message, index) => (
-        <div
-          key={index}
-          className={`flex relative ${
-            message.isAi ? "justify-start" : "justify-end"
-          } mb-4`}
-          ref={index === messages.length - 1 ? lastMessageRef : null}
-        >
-          <div
-            className={`flex items-start gap-2 max-w-[90%] ${
-              message.isAi ? "flex-row" : "flex-row-reverse"
-            }`}
-          >
-            {message.isAi ? (
-              <Avatar className="w-12 h-12 p-2 bg-muted">
-                <AvatarImage
-                  className="h-10 p-1 pb-2.5 opacity-50"
-                  src={"/icons/atom.svg?height=16&width=16"}
-                />
-                <AvatarFallback>AI</AvatarFallback>
-              </Avatar>
-            ) : (
-              <UserAvatar
-                className="w-10 h-10 bg-muted"
-                isLoggedIn={true}
-                userName={"endatix"}
-              />
-            )}
+      {messages.map(
+        (message, index) =>
+          message.content !== "null" && (
             <div
-              className={`flex p-3 rounded-lg ${
-                message.isAi ? "bg-secondary" : "bg-blue-100 dark:bg-blue-900"
-              }`}
+              key={index}
+              className={`flex relative ${
+                message.isAi ? "justify-start" : "justify-end"
+              } mb-4`}
+              ref={index === messages.length - 1 ? lastMessageRef : null}
             >
-              {message.isAi ? (
-                <TypingEffect
-                  shouldAddEffect={
-                    isTyping && message.isAi && index === messages.length - 1
-                  }
-                  content={message.content}
-                  onNewWordTyped={() => scrollToLastMessage()}
-                />
-              ) : (
-                <p className="line-height-sm">{message.content}</p>
-              )}
-              {!message.isAi && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-2"
-                  // onClick={() => handleEditPrompt(message.id)}
+              <div
+                className={`flex items-start gap-2 max-w-[90%] ${
+                  message.isAi ? "flex-row" : "flex-row-reverse"
+                }`}
+              >
+                {message.isAi ? (
+                  <Avatar className="w-12 h-12 p-2 bg-muted">
+                    <AvatarImage
+                      className="h-10 p-1 pb-2.5 opacity-50"
+                      src={"/icons/atom.svg?height=16&width=16"}
+                    />
+                    <AvatarFallback>AI</AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <UserAvatar
+                    className="w-10 h-10 bg-muted"
+                    isLoggedIn={true}
+                    userName={"endatix"}
+                  />
+                )}
+                <div
+                  className={`flex p-3 rounded-lg ${
+                    message.isAi
+                      ? "bg-secondary"
+                      : "bg-blue-100 dark:bg-blue-900"
+                  }`}
                 >
-                  <Pencil className="h-4 w-4 ml-auto flex-end" />
-                  <span className="sr-only">Edit prompt</span>
-                </Button>
-              )}
+                  {message.isAi ? (
+                    <TypingEffect
+                      shouldAddEffect={
+                        isTyping &&
+                        message.isAi &&
+                        index === messages.length - 1
+                      }
+                      content={message.content}
+                      onNewWordTyped={() => scrollToLastMessage()}
+                    />
+                  ) : (
+                    <p className="line-height-sm">{message.content}</p>
+                  )}
+                  {!message.isAi && false && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-2"
+                      title="Edit prompt - coming soon"
+                      // onClick={() => handleEditPrompt(message.id)}
+                    >
+                      <Pencil className="h-4 w-4 ml-auto flex-end" />
+                      <span className="sr-only">Edit prompt</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      ))}
+          ),
+      )}
     </ScrollArea>
   );
 };

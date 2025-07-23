@@ -17,12 +17,7 @@ import {
   ChatMessage,
 } from "./use-cases/assistant";
 import DotLoader from "@/components/loaders/dot-loader";
-import {
-  ChevronLeft,
-  ChevronRight,
-  FilePenLine,
-  Globe,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, FilePenLine, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import { redirect } from "next/navigation";
@@ -40,6 +35,8 @@ const CreateForm: NextPage = () => {
   const [messages, setMessages] = useState(new Array<ChatMessage>());
   const [formModel, setFormModel] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isTranslationMode, setIsTranslationMode] = useState(false);
+  const [targetLanguage, setTargetLanguage] = useState("");
 
   useEffect(() => {
     const contextStore = new AssistantStore();
@@ -104,7 +101,7 @@ const CreateForm: NextPage = () => {
     startTransition(async () => {
       const survey = new SurveyModel(formModel);
       const request: CreateFormRequest = {
-        name: survey.title,
+        name: survey.title || "New Form",
         isEnabled: false,
         description: survey.description,
         formDefinitionJsonData: JSON.stringify(formModel),
@@ -116,6 +113,18 @@ const CreateForm: NextPage = () => {
         alert(formResult.error);
       }
     });
+  };
+
+  const handleAddLanguages = () => {
+    setIsTranslationMode(!isTranslationMode);
+    if (isTranslationMode) {
+      setTargetLanguage("");
+    }
+  };
+
+  const handleCancelTranslation = () => {
+    setIsTranslationMode(false);
+    setTargetLanguage("");
   };
 
   if (isMobile) {
@@ -165,25 +174,42 @@ const CreateForm: NextPage = () => {
                 <DotLoader className="flex flex-none items-center m-auto" />
               )}
               <div className="items-center gap-2 flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 border-dashed"
-                >
-                  <Globe className="mr-2 h-4 w-4" />
-                  Add languages
-                </Button>
+                {isTranslationMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 border-dashed"
+                    onClick={handleCancelTranslation}
+                    disabled={isWaiting || isPending}
+                  >
+                    Cancel Translation
+                  </Button>
+                )}
 
-                <Button
-                  disabled={isPending}
-                  onClick={openFormInEditor}
-                  variant="default"
-                  size="sm"
-                  className="h-8 border-dashed"
-                >
-                  <FilePenLine className="mr-2 h-4 w-4" />
-                  {isPending ? "Creating Form..." : "Continue in Editor"}
-                </Button>
+                {!isTranslationMode && (
+                  <>
+                    <Button
+                      disabled={isWaiting || isPending}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-dashed"
+                      onClick={handleAddLanguages}
+                    >
+                      <Globe className="mr-2 h-4 w-4" />
+                      Add languages
+                    </Button>
+                    <Button
+                      disabled={isWaiting || isPending}
+                      onClick={openFormInEditor}
+                      variant="default"
+                      size="sm"
+                      className="h-8 border-dashed"
+                    >
+                      <FilePenLine className="mr-2 h-4 w-4" />
+                      {isPending ? "Creating Form..." : "Continue in Editor"}
+                    </Button>
+                  </>
+                )}
               </div>
               <ChatBox
                 className="flex-end flex-none"
@@ -194,6 +220,10 @@ const CreateForm: NextPage = () => {
                 onStateChange={(stateCommand) => {
                   defineFormHandler(stateCommand);
                 }}
+                isTranslationMode={isTranslationMode}
+                targetLanguage={targetLanguage}
+                onTargetLanguageChange={setTargetLanguage}
+                onTranslationModeChange={setIsTranslationMode}
               />
             </div>
           )}

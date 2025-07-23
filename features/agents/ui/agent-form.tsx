@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Brain, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 interface AgentFormProps {
   initialValues: CreateUpdateAgentRequestSchema;
@@ -184,6 +185,16 @@ export function AgentFormContainer({
             aria-invalid={!!errors.temperature}
             aria-describedby="temperature-error"
           />
+          {form.model === "o4-mini" && (
+            <Alert variant="default" className="text-sm p-2 align-center justify-center">
+              <Brain className="h-4 w-4" />
+              <AlertTitle>
+                <strong>Note:</strong> The temperature is NOT available for the
+                o4-mini model. It will be set to default value of 1 as the model
+                is deterministic.
+              </AlertTitle>
+            </Alert>
+          )}
           {errors.temperature && (
             <div id="temperature-error" className="text-destructive text-sm">
               {errors.temperature}
