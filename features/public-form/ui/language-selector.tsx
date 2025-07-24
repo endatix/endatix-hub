@@ -17,22 +17,34 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
-  const { currentLocale, currentOption, languageOptions, changeLocale } = useLanguageSelection({
+
+  const {
+    currentLocale,
+    currentOption,
+    languageOptions,
+    changeLocale,
+    hasMultipleLocales,
+  } = useLanguageSelection({
     availableLocales,
     surveyModel,
     preselectedLocale: initialLocale,
   });
 
-  const handleLocaleChange = useCallback((newLocale: string) => {
-    changeLocale(newLocale);
-    setIsOpen(false);
-  }, [changeLocale]);
+  const handleLocaleChange = useCallback(
+    (newLocale: string) => {
+      changeLocale(newLocale);
+      setIsOpen(false);
+    },
+    [changeLocale],
+  );
 
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -55,8 +67,17 @@ export function LanguageSelector({
     };
   }, [isOpen]);
 
-  // Don't show selector if only one locale available
-  if (!languageOptions.length || languageOptions.length <= 1) {
+  useEffect(() => {
+    if (hasMultipleLocales) {
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [hasMultipleLocales]);
+
+  if (!hasMultipleLocales) {
     return null;
   }
 
