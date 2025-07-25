@@ -65,11 +65,6 @@ export const useThemeManagement = ({
   const [, startTransition] = useTransition();
 
   const themeManagementInitializedRef = useRef(false);
-  const stableThemeId = useRef(themeId);
-
-  useEffect(() => {
-    stableThemeId.current = themeId;
-  }, [onThemeIdChanged, themeId]);
 
   const saveTheme = useCallback(
     (saveNo: number, callback: (num: number, status: boolean) => void) => {
@@ -506,7 +501,7 @@ export const useThemeManagement = ({
       themeTabPlugin.advancedModeEnabled = true;
       themeTabPlugin.onThemeSelected.add(() => {
         const currentThemeId = (creator.theme as StoredTheme)?.id;
-        if (currentThemeId !== stableThemeId.current) {
+        if (currentThemeId !== themeId) {
           onThemeIdChanged?.(currentThemeId);
         }
         updateCustomActions();
@@ -516,7 +511,7 @@ export const useThemeManagement = ({
         .then((themes) => {
           themes.forEach((theme: StoredTheme) => {
             addCustomTheme(theme);
-            if (theme.id === stableThemeId.current) {
+            if (theme.id === themeId) {
               themeTabPlugin.themeModel.setTheme(theme);
             }
           });
@@ -555,6 +550,8 @@ export const useThemeManagement = ({
     getThemes,
     addCustomTheme,
     removeActionsFromToolbar,
+    themeId,
+    onThemeIdChanged,
   ]);
 
   return;
