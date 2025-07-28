@@ -6,6 +6,7 @@ import {
   Mic,
   Paperclip,
   StopCircle,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,16 +18,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
+import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { redirect } from "next/navigation";
 import {
   AssistantStore,
   DefineFormCommand,
 } from "@/app/(main)/forms/create/use-cases/assistant";
-import { defineFormAction } from "@/app/(main)/forms/create/define-form.action";
-import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
+import { redirect } from "next/navigation";
+import { defineFormAction } from "../define-form.action";
+import { ApiResult } from "@/lib/endatix-api";
 
 const ChatErrorAlert = ({
   errorMessage,
@@ -74,6 +75,10 @@ interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
   onStateChange?: (stateCommand: DefineFormCommand) => void;
+  isTranslationMode?: boolean;
+  targetLanguage?: string;
+  onTargetLanguageChange?: (language: string) => void;
+  onTranslationModeChange?: (isTranslationMode: boolean) => void;
 }
 
 const ChatBox = ({
@@ -82,6 +87,10 @@ const ChatBox = ({
   requiresNewContext,
   onPendingChange,
   onStateChange,
+  isTranslationMode = false,
+  targetLanguage = "",
+  onTargetLanguageChange,
+  onTranslationModeChange,
   ...props
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
@@ -107,12 +116,16 @@ const ChatBox = ({
 
       const promptResult = await defineFormAction(prevState, formData);
 
-      if (promptResult.success && promptResult.data?.definition) {
+      if (ApiResult.isError(promptResult)) {
+        return promptResult;
+      }
+
+      if (promptResult.data?.definition) {
         const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(promptResult.data.definition);
+        contextStore.setFormModel(promptResult.data?.definition);
         const currentContext = contextStore.getChatContext();
-        currentContext.threadId = promptResult.data.threadId ?? "";
-        currentContext.agentId = promptResult.data.agentId ?? "";
+        currentContext.threadId = promptResult.data?.threadId ?? "";
+        currentContext.agentId = promptResult.data?.agentId ?? "";
 
         if (currentContext.messages === undefined) {
           currentContext.messages = [];
@@ -127,10 +140,10 @@ const ChatBox = ({
           currentContext.isInitialPrompt = false;
         }
 
-        if (promptResult.data.agentResponse) {
+        if (promptResult.data?.agentResponse) {
           currentContext.messages.push({
             isAi: true,
-            content: promptResult.data.agentResponse,
+            content: promptResult.data?.agentResponse,
           });
         }
 
@@ -157,11 +170,66 @@ const ChatBox = ({
     }
   }, [pending, onPendingChange]);
 
+  // Hide translation UI when operation starts or completes
+  useEffect(() => {
+    if (pending && isTranslationMode) {
+      onTranslationModeChange?.(false);
+    }
+  }, [pending, isTranslationMode, onTranslationModeChange]);
+
+  // Handle translation submission
+  const handleTranslateSubmit = () => {
+    if (!targetLanguage.trim()) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set(
+      "prompt",
+      `Add ${targetLanguage} translations to this form...`,
+    );
+
+    const contextStore = new AssistantStore();
+    const formContext = contextStore.getChatContext();
+    if (formContext) {
+      formData.set("threadId", formContext.threadId ?? "");
+      formData.set("agentId", formContext.agentId ?? "");
+    }
+
+    startTransition(() => {
+      action(formData);
+    });
+  };
+
   return (
     <div className={`flex flex-col flex-1 gap-2 ${className}`} {...props}>
-      {!PromptResult.isError(state) ? null : (
-        <ChatErrorAlert errorMessage={PromptResult.getErrorMessage(state)} />
+      {ApiResult.isError(state) && (
+        <ChatErrorAlert errorMessage={state.error.message} />
       )}
+
+      {isTranslationMode && (
+        <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+          <span className="text-sm font-medium">Add new languages:</span>
+          <input
+            type="text"
+            value={targetLanguage}
+            onChange={(e) => onTargetLanguageChange?.(e.target.value)}
+            placeholder="e.g., Spanish, French, German..."
+            className="flex-1 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <Button
+            disabled={pending || !targetLanguage.trim()}
+            variant="default"
+            size="sm"
+            onClick={handleTranslateSubmit}
+            className="h-8"
+          >
+            <Globe className="mr-2 h-4 w-4" />
+            {pending ? "Translating..." : "Translate"}
+          </Button>
+        </div>
+      )}
+
       <form
         action={action}
         className="flex-1 relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
@@ -186,7 +254,9 @@ const ChatBox = ({
             }
           }}
           placeholder={
-            placeholder ?? "What would you like to achieve with your form?"
+            isTranslationMode && targetLanguage
+              ? `Add ${targetLanguage} translations to this form...`
+              : placeholder ?? "What would you like to achieve with your form?"
           }
           className="min-h-12 resize-none border-0 p-3 shadow-none focus:outline-none focus-visible:ring-0"
         />

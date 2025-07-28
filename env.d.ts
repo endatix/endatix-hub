@@ -4,7 +4,8 @@ declare namespace NodeJS {
     NODE_ENV: "development" | "production" | "test";
     REMOTE_IMAGE_HOSTNAMES?: string;
     ROBOTS_ALLOWED_DOMAINS?: string;
-    ENDATIX_BASE_URL: string;
+    ENDATIX_BASE_URL?: string;
+    AI_API_BASE_URL?: string;
 
     // Session
     SESSION_SECRET?: string;
@@ -43,6 +44,7 @@ declare namespace NodeJS {
     NEXT_PUBLIC_POSTHOG_KEY?: string;
     NEXT_PUBLIC_POSTHOG_HOST?: string;
     NEXT_PUBLIC_POSTHOG_UI_HOST?: string;
+    ENABLE_POSTHOG_ADAPTER?: string;
     // Application settings
     NEXT_PUBLIC_IS_DEBUG_MODE?: string; // Application-level debug flag
   }

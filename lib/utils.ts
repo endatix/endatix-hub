@@ -77,3 +77,40 @@ export function getElapsedTimeString(
 
   return `${formattedHours} hours ${formattedMins} minutes`;
 }
+
+/**
+ * Formats a date into a string in the format of HH:MM:SS
+ * @param date - The date to format
+ * @returns Formatted string of the date in the format of HH:MM:SS
+ */
+export function getFormattedDate(date?: Date | null): string {
+  if (!date) {
+    return "-";
+  }
+
+  return new Date(date).toLocaleString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour12: true,
+  });
+}
+
+/**
+ * Formats a number into a string in the format of 1.2k, 1.2m, 1.2b, etc.
+ * @param number - The number to format
+ * @param fallback - The fallback value if the number is null or undefined
+ * @returns Formatted string of the number in the format of 1.2k, 1.2m, 1.2b, etc.
+ */
+export function formatNumber(number: number, fallback: string = "-"): string {
+  if (!number) {
+    return fallback;
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(number);
+}

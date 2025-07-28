@@ -14,14 +14,14 @@ import { Model, Question } from "survey-core";
 import { Download, Link as Link2, Trash } from "lucide-react";
 import { showComingSoonMessage } from "@/components/layout-ui/teasers/coming-soon-link";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, getFormattedDate } from "@/lib/utils";
 import AnswerViewer from "@/features/submissions/ui/answers/answer-viewer";
 import {
   getDefinition,
   GetDefinitionRequest,
   SelectedDefinitionResult,
 } from "../get-definition.action";
-import { Submission } from '@/lib/endatix-api';
+import { Submission } from "@/lib/endatix-api";
 
 type SubmissionSheetProps = {
   submission: Submission | null;
@@ -32,21 +32,6 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
   const [surveyModel, setSurveyModel] = useState<Model>();
   const [questions, setQuestions] = useState<Question[]>();
 
-  const getFormattedDate = (date?: Date) => {
-    if (!date) {
-      return;
-    }
-
-    return new Date(date).toLocaleString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour12: true,
-    });
-  };
-
   useEffect(() => {
     const changeSelectedSubmission = async () => {
       startTransition(async () => {
@@ -54,8 +39,9 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
           formId: params.formId,
           definitionId: submission?.formDefinitionId,
         };
-        const result: SelectedDefinitionResult =
-          await getDefinition(getDefinitionRequest);
+        const result: SelectedDefinitionResult = await getDefinition(
+          getDefinitionRequest,
+        );
         if (result.isSuccess && result.definitionsData && submission) {
           const json = JSON.parse(result.definitionsData);
           const survey = new Model(json);

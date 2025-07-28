@@ -42,6 +42,10 @@ interface FormCreateSheetProps {
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
 }
 
+interface CreateFormSheetContainerProps {
+  aiFeatureFlag: boolean;
+}
+
 const CreateFormCard: FC<FormCreateSheetProps> = ({
   title,
   description,
@@ -74,7 +78,9 @@ const CreateFormCard: FC<FormCreateSheetProps> = ({
   );
 };
 
-const CreateFormSheet = () => {
+const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
+  aiFeatureFlag,
+}) => {
   const [pending, setPending] = useState(false);
   const [selectedOption, setSelectedOption] = useState<CreateFormOption>();
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
@@ -135,9 +141,7 @@ const CreateFormSheet = () => {
         }
       } catch (error) {
         console.error("Error creating form from template:", error);
-        toast.error(
-          (error as string) || "Failed to create form from template",
-        );
+        toast.error((error as string) || "Failed to create form from template");
       }
     });
   };
@@ -187,24 +191,13 @@ const CreateFormSheet = () => {
             onClick={() => setSelectedOption("from_json")}
             disabled
           />
-          {/* <CreateFormCard
-            title="Use our AI Form Assistant"
-            description="The recommended way to create a form."
-            icon={Atom}
-            action="via_assistant"
-            isSelected={selectedOption === "via_assistant"}
-            onClick={(event) => {
-              setSelectedOption("via_assistant");
-              showComingSoonMessage(event);
-            }}
-          /> */}
         </div>
       </div>
       {pending && <DotLoader className="flex-1 text-center m-auto" />}
       <SheetFooter className="flex-end">
-        {selectedOption === "via_assistant" && (
+        {aiFeatureFlag && (
           <ChatBox
-            requiresNewContext={false}
+            requiresNewContext={true}
             onPendingChange={(pending) => {
               setPending(pending);
             }}

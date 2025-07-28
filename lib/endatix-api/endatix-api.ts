@@ -4,6 +4,7 @@ import { ERROR_CODE, getErrorMessageWithFallback } from "./shared/error-codes";
 import { Submissions } from "./submissions/submissions";
 import type { SessionData } from "@/features/auth";
 import { parseErrorResponse } from './shared/problem-details';
+import Agents from './agents/agents';
 
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 const DEFAULT_HEADERS = {};
@@ -25,6 +26,7 @@ export class EndatixApi {
   private readonly defaultHeaders: Record<string, string>;
   private readonly session?: SessionData;
   private _submissions?: Submissions;
+  private _agents?: Agents;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -56,6 +58,16 @@ export class EndatixApi {
       this._submissions = new Submissions(this);
     }
     return this._submissions;
+  }
+
+  /**
+   * Lazy-loaded agents API - only creates instance when first accessed
+   */
+  get agents(): Agents {
+    if (!this._agents) {
+      this._agents = new Agents(this);
+    }
+    return this._agents;
   }
 
   /**
