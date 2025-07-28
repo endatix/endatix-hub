@@ -6,7 +6,14 @@ import { getThemesAction } from "@/features/forms/application/actions/get-themes
 import { updateThemeAction } from "@/features/forms/application/actions/update-theme.action";
 import { StoredTheme } from "@/features/forms/domain/models/theme";
 import { Result } from "@/lib/result";
-import { useCallback, useEffect, useMemo, useTransition, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useTransition,
+  useRef,
+  useState,
+} from "react";
 import {
   Action,
   ITheme,
@@ -20,9 +27,8 @@ import {
   SvgRegistry,
 } from "survey-core";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
+import { ThemeTabPlugin } from "survey-creator-core";
 import { SurveyCreator } from "survey-creator-react";
-
-const THEME_PLUGIN_NAME = "theme";
 
 interface SaveThemeData {
   save_as_new: boolean;
@@ -34,6 +40,7 @@ interface UseThemeManagementProps {
   creator?: SurveyCreator | null;
   themeId?: string;
   onThemeIdChanged?: (themeId: string) => void;
+  onPostThemeSave?: () => Promise<void>;
 }
 
 Serializer.addProperty("theme", {
@@ -41,15 +48,6 @@ Serializer.addProperty("theme", {
   type: "string",
   category: "general",
   visible: false,
-});
-
-Serializer.addProperty(THEME_PLUGIN_NAME, {
-  name: "theme",
-  category: "general",
-  visible: true,
-  type: "string",
-  visibleIndex: 0,
-  default: "default",
 });
 
 const saveAsIcon =
@@ -61,9 +59,17 @@ export const useThemeManagement = ({
   creator,
   themeId,
   onThemeIdChanged,
+  onPostThemeSave,
 }: UseThemeManagementProps) => {
-  const [, startTransition] = useTransition();
-
+  const [isThemeUpdatePending, startTransition] = useTransition();
+  const [isThemeModified, setIsThemeModified] = useState(false);
+  const [currentThemeId, setCurrentThemeId] = useState<string | undefined>(
+    themeId,
+  );
+  const [themeModifiedTracker, setThemeModifiedTracker] = useState<
+    Record<string, boolean>
+  >({});
+  const [originalThemeId] = useState<string | undefined>(themeId);
   const themeManagementInitializedRef = useRef(false);
 
   const saveTheme = useCallback(
@@ -267,28 +273,39 @@ export const useThemeManagement = ({
       const toolbar = popupViewModel.footerToolbar;
       const applyBtn = toolbar.getActionById("apply");
       const cancelBtn = toolbar.getActionById("cancel");
-      cancelBtn.title = "Cancel";
-      applyBtn.title = "OK";
+      cancelBtn.title = "Skip theme changes";
+      applyBtn.title = "Save theme changes";
     },
     [],
   );
 
   const addCustomTheme = useCallback(
-    (theme: ITheme) => {
-      const themeTabPlugin = creator!.themeEditor!;
-      themeTabPlugin.addTheme(theme);
+    (theme: StoredTheme) => {
+      creator!.themeEditor!.addTheme(theme);
+
+      if (theme.id === currentThemeId) {
+        creator!.theme = theme;
+      }
     },
-    [creator],
+    [creator, currentThemeId],
   );
 
-  const saveThemeHandler = useCallback(() => {
-    const currentTheme = creator?.theme as StoredTheme;
-    currentTheme.name = currentTheme.themeName ?? "Custom Theme";
+  const saveThemeHandler = useCallback((): boolean => {
+    let isThemeUpdateFlow = false;
+    const isCurrentThemeModified =
+      themeModifiedTracker[currentThemeId!] ?? false;
 
-    if (!currentTheme) {
-      return;
+    if (!isCurrentThemeModified) {
+      return isThemeUpdateFlow;
     }
 
+    const currentTheme = creator?.theme as StoredTheme;
+    if (!currentTheme) {
+      return isThemeUpdateFlow;
+    }
+
+    isThemeUpdateFlow = true;
+    currentTheme.name = currentTheme.themeName ?? "Custom Theme";
     saveThemeDialog(
       "Do you want to save the current theme?",
       currentTheme.themeName!,
@@ -307,12 +324,13 @@ export const useThemeManagement = ({
             createTheme(newTheme)
               .then((createdTheme) => {
                 addCustomTheme(createdTheme);
-                const themeTabPlugin = creator!.themeEditor!;
-                const themeModel = themeTabPlugin.themeModel;
-                themeModel.setTheme(createdTheme);
+                creator!.theme = createdTheme;
               })
               .catch((error) => {
                 console.error("Error creating new theme: ", error);
+              })
+              .finally(async () => {
+                await onPostThemeSave?.();
               });
           } else {
             updateTheme(currentTheme)
@@ -321,12 +339,26 @@ export const useThemeManagement = ({
               })
               .catch((error) => {
                 console.error("Error updating theme: ", error);
+              })
+              .finally(async () => {
+                await onPostThemeSave?.();
               });
           }
         }
       },
     );
-  }, [creator, saveThemeDialog, addCustomTheme, createTheme, updateTheme]);
+
+    return isThemeUpdateFlow;
+  }, [
+    themeModifiedTracker,
+    currentThemeId,
+    creator,
+    saveThemeDialog,
+    createTheme,
+    addCustomTheme,
+    onPostThemeSave,
+    updateTheme,
+  ]);
 
   const deleteThemeHandler = useCallback(() => {
     const theme = creator?.theme as StoredTheme;
@@ -396,10 +428,8 @@ export const useThemeManagement = ({
             '"?',
           (confirm) => {
             if (confirm) {
-              const themeTabPlugin = creator?.themeEditor;
-              themeTabPlugin.removeTheme(theme, true);
-              const themeModel = themeTabPlugin.themeModel;
-              themeModel.setTheme({ themeName: "default" });
+              creator?.themeEditor?.removeTheme(theme, true);
+              creator!.theme = { themeName: "default" };
               deleteTheme(themeId);
             }
           },
@@ -431,28 +461,15 @@ export const useThemeManagement = ({
         action: deleteThemeHandler,
         iconName: "icon-delete",
         showTitle: false,
+        enabledIf: () => {
+          return creator?.theme?.themeName !== "default";
+        },
       }),
-    [deleteThemeHandler],
+    [deleteThemeHandler, creator],
   );
-
-  const updateCustomActions = useCallback(() => {
-    if (!creator) {
-      return;
-    }
-
-    const isThemeTab = creator.activeTab === "theme";
-    saveThemeActionBtn.visible = isThemeTab;
-
-    // TODO: Implement proper theme name/id lookup
-    const currentThemeName = creator.theme?.themeName;
-    const isCustomTheme = currentThemeName != "default";
-
-    deleteThemeActionBtn.visible = isThemeTab && isCustomTheme;
-  }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
   const addActionsToToolbar = useCallback(
     (creator: SurveyCreator) => {
-      // Check if actions already exist
       const saveActionExists = creator.toolbar.actions.some(
         (action) => action.id === "svd-save-custom-theme",
       );
@@ -470,75 +487,96 @@ export const useThemeManagement = ({
     [saveThemeActionBtn, deleteThemeActionBtn],
   );
 
-  const removeActionsFromToolbar = useCallback((creator: SurveyCreator) => {
-    const saveActionIndex = creator.toolbar.actions.findIndex(
-      (action) => action.id === "svd-save-custom-theme",
-    );
-    const deleteActionIndex = creator.toolbar.actions.findIndex(
-      (action) => action.id === "svd-delete-custom-theme",
-    );
+  const handleThemeChanged = useCallback(
+    (
+      sender: ThemeTabPlugin,
+      options: {
+        theme: ITheme;
+      },
+    ) => {
+      const selectedThemeId = (options.theme as StoredTheme)?.id;
+      if (!selectedThemeId) {
+        return;
+      }
 
-    if (saveActionIndex !== -1) {
-      creator.toolbar.actions.splice(saveActionIndex, 1);
-    }
-    if (deleteActionIndex !== -1) {
-      creator.toolbar.actions.splice(deleteActionIndex, 1);
-    }
+      const isCurrentThemeModified = sender.isModified;
+      console.log(
+        "handleThemeChanged:isCurrentThemeModified: ",
+        isCurrentThemeModified,
+      );
+
+      setCurrentThemeId(selectedThemeId);
+      setIsThemeModified(true);
+
+      if (selectedThemeId !== originalThemeId) {
+        onThemeIdChanged?.(selectedThemeId);
+      }
+    },
+    [originalThemeId, onThemeIdChanged],
+  );
+
+  const handleThemePropertyChanged = useCallback((sender: ThemeTabPlugin) => {
+    const currentTheme = sender.getCurrentTheme() as StoredTheme;
+    setThemeModifiedTracker((prev) => ({
+      ...prev,
+      [currentTheme.id!]: true,
+    }));
   }, []);
 
   useEffect(() => {
+    const removeActionsFromToolbar = (creator: SurveyCreator) => {
+      const resetThemeActionIndex = creator.toolbar.actions.findIndex(
+        (action) => action.id === "svc-reset-theme",
+      );
+
+      if (resetThemeActionIndex !== -1) {
+        creator.toolbar.actions.splice(resetThemeActionIndex, 1);
+      }
+    };
+
     if (!creator) {
       return;
     }
 
-    // Only add actions once
     if (!themeManagementInitializedRef.current) {
-      addActionsToToolbar(creator);
+      removeActionsFromToolbar(creator);
       creator.saveThemeFunc = handleSaveTheme;
-      creator.onActiveTabChanged.add(updateCustomActions);
-      creator.activeTab = THEME_PLUGIN_NAME;
+      creator.onPropertyEditorUpdateTitleActions.add((_, options) => {
+        const propertyName = options.property?.name;
+        if (propertyName === "themeName") {
+          options.titleActions.push(deleteThemeActionBtn);
+        }
+      });
+
       const themeTabPlugin = creator.themeEditor;
       themeTabPlugin.advancedModeEnabled = true;
-      themeTabPlugin.onThemeSelected.add(() => {
-        const currentThemeId = (creator.theme as StoredTheme)?.id;
-        if (currentThemeId !== themeId) {
-          onThemeIdChanged?.(currentThemeId);
-        }
-        updateCustomActions();
-      });
+      themeTabPlugin.onThemeSelected.add(handleThemeChanged);
+      themeTabPlugin.onThemePropertyChanged.add(handleThemePropertyChanged);
 
       getThemes()
         .then((themes) => {
           themes.forEach((theme: StoredTheme) => {
             addCustomTheme(theme);
-            if (theme.id === themeId) {
-              themeTabPlugin.themeModel.setTheme(theme);
-            }
           });
 
           if (creator.theme === null) {
-            themeTabPlugin.themeModel.setTheme(DefaultLight);
+            creator!.theme = DefaultLight;
           }
-
-          updateCustomActions();
         })
         .catch((error) => {
           console.error("Error: ", error);
         });
 
-      updateCustomActions();
-
       themeManagementInitializedRef.current = true;
-      console.log("theme management initialized");
     }
 
     return () => {
       if (themeManagementInitializedRef.current) {
-        removeActionsFromToolbar(creator);
-        creator.onActiveTabChanged.remove(updateCustomActions);
-        creator.themeEditor?.onThemeSelected.remove(updateCustomActions);
-        creator.themeEditor?.onThemePropertyChanged.remove(updateCustomActions);
         creator.saveThemeFunc = null;
+        creator.themeEditor.onThemeSelected.remove(handleThemeChanged);
+        creator.themeEditor.onThemePropertyChanged.remove(
+          handleThemePropertyChanged,
+        );
         themeManagementInitializedRef.current = false;
       }
     };
@@ -546,13 +584,21 @@ export const useThemeManagement = ({
     creator,
     addActionsToToolbar,
     handleSaveTheme,
-    updateCustomActions,
     getThemes,
     addCustomTheme,
-    removeActionsFromToolbar,
     themeId,
     onThemeIdChanged,
+    saveThemeActionBtn,
+    deleteThemeActionBtn,
+    deleteThemeHandler,
+    handleThemeChanged,
+    handleThemePropertyChanged,
   ]);
 
-  return;
+  return {
+    currentThemeId,
+    isThemeModified,
+    isThemeUpdatePending,
+    saveThemeHandler,
+  };
 };

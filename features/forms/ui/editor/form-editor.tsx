@@ -124,7 +124,7 @@ function FormEditor({
     setHasUnsavedChanges(true);
   }, []);
 
-  useThemeManagement({
+  const { saveThemeHandler } = useThemeManagement({
     formId,
     creator,
     themeId,
@@ -538,51 +538,59 @@ function FormEditor({
     }
   };
 
-  const saveForm = () => {
+  const saveFormHandler = () => {
     startTransition(async () => {
-      const isDraft = false;
+      const isThemeSavedFlow = await saveThemeHandler();
 
-      const updatedFormJson = getJsonForSaving();
-      if (updatedFormJson === null) {
-        return;
+      if (!isThemeSavedFlow) {
+        await saveForm();
       }
-      const theme = creator?.theme as StoredTheme;
-      let isThemeUpdated = false;
-      let isFormUpdated = false;
-
-      const updateDefinitionResult = await updateFormDefinitionJsonAction(
-        formId,
-        isDraft,
-        updatedFormJson,
-      );
-
-      if (updateDefinitionResult.success) {
-        isFormUpdated = true;
-      } else {
-        throw new Error(updateDefinitionResult.error);
-      }
-
-      if (theme.id !== themeId) {
-        const updateThemeResult = await updateFormThemeAction(formId, theme.id);
-        if (updateThemeResult.success) {
-          isThemeUpdated = true;
-        } else {
-          throw new Error(updateThemeResult.error);
-        }
-      }
-
-      setHasUnsavedChanges(false);
-      toast.success(
-        <p>
-          {isFormUpdated && "Form saved. "}
-          {isThemeUpdated && (
-            <span>
-              Form theme set to <b>{theme.themeName}</b>
-            </span>
-          )}
-        </p>,
-      );
     });
+  };
+
+  const saveForm = async () => {
+    const isDraft = false;
+
+    const updatedFormJson = getJsonForSaving();
+    if (updatedFormJson === null) {
+      return;
+    }
+    const theme = creator?.theme as StoredTheme;
+    let isThemeUpdated = false;
+    let isFormUpdated = false;
+
+    const updateDefinitionResult = await updateFormDefinitionJsonAction(
+      formId,
+      isDraft,
+      updatedFormJson,
+    );
+
+    if (updateDefinitionResult.success) {
+      isFormUpdated = true;
+    } else {
+      throw new Error(updateDefinitionResult.error);
+    }
+
+    if (theme.id !== themeId) {
+      const updateThemeResult = await updateFormThemeAction(formId, theme.id);
+      if (updateThemeResult.success) {
+        isThemeUpdated = true;
+      } else {
+        throw new Error(updateThemeResult.error);
+      }
+    }
+
+    setHasUnsavedChanges(false);
+    toast.success(
+      <p>
+        {isFormUpdated && "Form changes saved. "}
+        {isThemeUpdated && (
+          <span>
+            Theme set to <b>{theme.themeName}</b>
+          </span>
+        )}
+      </p>,
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -634,7 +642,7 @@ function FormEditor({
           )}
           <Button
             disabled={isPending}
-            onClick={saveForm}
+            onClick={saveFormHandler}
             variant="default"
             size="sm"
           >
