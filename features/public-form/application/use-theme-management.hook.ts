@@ -213,7 +213,7 @@ export const useThemeManagement = ({
       callback: (status: boolean, data?: SaveThemeData) => void,
     ) => {
       const surveyDefinition = JSON.parse(
-        `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to make changes to the <b>&quot;${templateName}&quot;</b> theme.</p>"},{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Enter the new theme name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme name is required","placeholder":"New awesome ${templateName}"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}`,
+        `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p class='text-muted-foreground'>You have unsaved changes in the <b>&quot;${templateName}&quot;</b> theme.</p>"},{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Enter the new theme name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme name is required","placeholder":"New awesome ${templateName}"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}`,
       );
 
       const survey = new SurveyModel(surveyDefinition);
@@ -290,65 +290,66 @@ export const useThemeManagement = ({
     [creator, currentThemeId],
   );
 
-  const saveThemeHandler = useCallback((): boolean => {
-    let isThemeUpdateFlow = false;
+  const saveThemeHandler = useCallback(async (): Promise<boolean> => {
     const isCurrentThemeModified =
       themeModifiedTracker[currentThemeId!] ?? false;
 
     if (!isCurrentThemeModified) {
-      return isThemeUpdateFlow;
+      return false;
     }
 
+    const themeModel = creator?.themeEditor?.themeModel;
     const currentTheme = creator?.theme as StoredTheme;
-    if (!currentTheme) {
-      return isThemeUpdateFlow;
+
+    const currentThemeFromModel = themeModel
+      ? ({
+          ...currentTheme,
+          ...themeModel.toJSON(),
+        } as StoredTheme)
+      : currentTheme;
+
+    if (!currentThemeFromModel) {
+      return false;
     }
 
-    isThemeUpdateFlow = true;
-    currentTheme.name = currentTheme.themeName ?? "Custom Theme";
-    saveThemeDialog(
-      "Do you want to save the current theme?",
-      currentTheme.themeName!,
-      (confirm, data) => {
-        if (confirm && data) {
-          const saveAsNew = data.save_as_new;
+    return new Promise((resolve) => {
+      currentThemeFromModel.name =
+        currentThemeFromModel.themeName ?? "Custom Theme";
+      saveThemeDialog(
+        "Theme has unsaved changes",
+        currentThemeFromModel.themeName!,
+        async (confirm, data) => {
+          if (confirm && data) {
+            const saveAsNew = data.save_as_new;
 
-          if (saveAsNew) {
-            // create new theme
-            const newThemeName = data.theme_name;
-            const newTheme = {
-              ...currentTheme,
-              themeName: newThemeName,
-              name: newThemeName,
-            };
-            createTheme(newTheme)
-              .then((createdTheme) => {
+            try {
+              if (saveAsNew) {
+                const newThemeName = data.theme_name;
+                const newTheme = {
+                  ...currentThemeFromModel,
+                  themeName: newThemeName,
+                  name: newThemeName,
+                };
+                const createdTheme = await createTheme(newTheme);
+                setCurrentThemeId(createdTheme.id!);
                 addCustomTheme(createdTheme);
-                creator!.theme = createdTheme;
-              })
-              .catch((error) => {
-                console.error("Error creating new theme: ", error);
-              })
-              .finally(async () => {
-                await onPostThemeSave?.();
-              });
-          } else {
-            updateTheme(currentTheme)
-              .then((updatedTheme) => {
-                console.log("Updated theme: ", updatedTheme);
-              })
-              .catch((error) => {
-                console.error("Error updating theme: ", error);
-              })
-              .finally(async () => {
-                await onPostThemeSave?.();
-              });
-          }
-        }
-      },
-    );
+                creator!.themeEditor!.themeModel.setTheme(createdTheme);
+              } else {
+                await updateTheme(currentThemeFromModel);
+              }
 
-    return isThemeUpdateFlow;
+              await onPostThemeSave?.();
+              resolve(true);
+            } catch (error) {
+              console.error("Error saving theme:", error);
+              resolve(false);
+            }
+          } else {
+            resolve(false);
+          }
+        },
+      );
+    });
   }, [
     themeModifiedTracker,
     currentThemeId,
@@ -541,10 +542,18 @@ export const useThemeManagement = ({
     if (!themeManagementInitializedRef.current) {
       removeActionsFromToolbar(creator);
       creator.saveThemeFunc = handleSaveTheme;
+
       creator.onPropertyEditorUpdateTitleActions.add((_, options) => {
         const propertyName = options.property?.name;
         if (propertyName === "themeName") {
-          options.titleActions.push(deleteThemeActionBtn);
+          // Check if the delete button already exists to prevent duplicates
+          const deleteButtonExists = options.titleActions.some(
+            (action: unknown) =>
+              (action as { id: string })?.id === "svd-delete-custom-theme",
+          );
+          if (!deleteButtonExists) {
+            options.titleActions.push(deleteThemeActionBtn);
+          }
         }
       });
 

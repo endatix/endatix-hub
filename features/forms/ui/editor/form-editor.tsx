@@ -124,13 +124,6 @@ function FormEditor({
     setHasUnsavedChanges(true);
   }, []);
 
-  const { saveThemeHandler } = useThemeManagement({
-    formId,
-    creator,
-    themeId,
-    onThemeIdChanged: handleThemeIdChanged,
-  });
-
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
       startTransition(async () => {
@@ -232,6 +225,107 @@ function FormEditor({
     },
     [creator],
   );
+
+  const getJsonForSaving = useCallback(() => {
+    if (creator?.activeTab === "json") {
+      const errorsList = document.querySelector(
+        ".svc-json-editor-tab__errros_list",
+      ) as HTMLElement;
+      const errorsContainer = document.querySelector(
+        ".svc-json-errors",
+      ) as HTMLElement;
+
+      const isErrorsListVisible =
+        errorsList && getComputedStyle(errorsList).display !== "none";
+      const hasErrorChildren =
+        errorsContainer && errorsContainer.children.length > 0;
+
+      if (isErrorsListVisible && hasErrorChildren) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+
+      const jsonAreaPlugin = creator.getPlugin(
+        "json",
+      ) as TabJsonEditorTextareaPlugin;
+      try {
+        return JSON.parse(jsonAreaPlugin.model.text);
+      } catch (error) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+    } else {
+      return creator?.JSON;
+    }
+  }, [creator]);
+
+  const saveForm = useCallback(async () => {
+    const isDraft = false;
+
+    const updatedFormJson = getJsonForSaving();
+    if (updatedFormJson === null) {
+      return;
+    }
+    const theme = creator?.theme as StoredTheme;
+    let isThemeUpdated = false;
+    let isFormUpdated = false;
+
+    const updateDefinitionResult = await updateFormDefinitionJsonAction(
+      formId,
+      isDraft,
+      updatedFormJson,
+    );
+
+    if (updateDefinitionResult.success) {
+      isFormUpdated = true;
+    } else {
+      throw new Error(updateDefinitionResult.error);
+    }
+
+    if (theme.id !== themeId) {
+      const updateThemeResult = await updateFormThemeAction(formId, theme.id);
+      if (updateThemeResult.success) {
+        isThemeUpdated = true;
+      } else {
+        throw new Error(updateThemeResult.error);
+      }
+    }
+
+    setHasUnsavedChanges(false);
+    toast.success(
+      <p>
+        {isFormUpdated && "Form changes saved. "}
+        {isThemeUpdated && (
+          <span>
+            Theme set to <b>{theme.themeName}</b>
+          </span>
+        )}
+      </p>,
+    );
+  }, [getJsonForSaving, creator?.theme, formId, themeId]);
+
+  const { saveThemeHandler } = useThemeManagement({
+    formId,
+    creator,
+    themeId,
+    onThemeIdChanged: handleThemeIdChanged,
+    onPostThemeSave: saveForm,
+  });
+
+  const saveFormHandler = async () => {
+    startTransition(async () => {
+      try {
+        const isThemeSavedFlow = await saveThemeHandler();
+
+        if (!isThemeSavedFlow) {
+          await saveForm();
+        }
+      } catch (error) {
+        console.error("Error in save flow:", error);
+        toast.error("Failed to save changes");
+      }
+    });
+  };
 
   const createCustomQuestionDialog = useCallback(
     async (element: Question) => {
@@ -505,94 +599,6 @@ function FormEditor({
     }
   };
 
-  const getJsonForSaving = () => {
-    if (creator?.activeTab === "json") {
-      const errorsList = document.querySelector(
-        ".svc-json-editor-tab__errros_list",
-      ) as HTMLElement;
-      const errorsContainer = document.querySelector(
-        ".svc-json-errors",
-      ) as HTMLElement;
-
-      const isErrorsListVisible =
-        errorsList && getComputedStyle(errorsList).display !== "none";
-      const hasErrorChildren =
-        errorsContainer && errorsContainer.children.length > 0;
-
-      if (isErrorsListVisible && hasErrorChildren) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-
-      const jsonAreaPlugin = creator.getPlugin(
-        "json",
-      ) as TabJsonEditorTextareaPlugin;
-      try {
-        return JSON.parse(jsonAreaPlugin.model.text);
-      } catch (error) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-    } else {
-      return creator?.JSON;
-    }
-  };
-
-  const saveFormHandler = () => {
-    startTransition(async () => {
-      const isThemeSavedFlow = await saveThemeHandler();
-
-      if (!isThemeSavedFlow) {
-        await saveForm();
-      }
-    });
-  };
-
-  const saveForm = async () => {
-    const isDraft = false;
-
-    const updatedFormJson = getJsonForSaving();
-    if (updatedFormJson === null) {
-      return;
-    }
-    const theme = creator?.theme as StoredTheme;
-    let isThemeUpdated = false;
-    let isFormUpdated = false;
-
-    const updateDefinitionResult = await updateFormDefinitionJsonAction(
-      formId,
-      isDraft,
-      updatedFormJson,
-    );
-
-    if (updateDefinitionResult.success) {
-      isFormUpdated = true;
-    } else {
-      throw new Error(updateDefinitionResult.error);
-    }
-
-    if (theme.id !== themeId) {
-      const updateThemeResult = await updateFormThemeAction(formId, theme.id);
-      if (updateThemeResult.success) {
-        isThemeUpdated = true;
-      } else {
-        throw new Error(updateThemeResult.error);
-      }
-    }
-
-    setHasUnsavedChanges(false);
-    toast.success(
-      <p>
-        {isFormUpdated && "Form changes saved. "}
-        {isThemeUpdated && (
-          <span>
-            Theme set to <b>{theme.themeName}</b>
-          </span>
-        )}
-      </p>,
-    );
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleNameSave();
@@ -660,7 +666,7 @@ function FormEditor({
             </div>
           </div>
         ) : creator ? (
-          <SurveyCreatorComponent creator={creator} />
+          <SurveyCreatorComponent key={`creator-${formId}`} creator={creator} />
         ) : (
           <div>Error loading form editor</div>
         )}
