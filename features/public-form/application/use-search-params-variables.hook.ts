@@ -10,6 +10,24 @@ interface UseSearchParamsVarsOptions {
   debugMode?: boolean;
 }
 
+/**
+ * React hook for processing search parameters as dynamic variables for a survey model.
+ *
+ * - Reads search params from the URL and sets them as variables on the SurveyModel.
+ * - Optionally removes search params from the URL after processing.
+ * - Optionally enables debug logging.
+ * - Calls onSetVariables callback with the parsed variables.
+ *
+ * @param formId - The form identifier.
+ * @param model - The SurveyModel instance to update.
+ * @param onSetVariables - Optional callback invoked with the parsed variables.
+ * @param options - Optional settings:
+ *   - removeAfterProcessing: Remove params from URL after processing (default: true)
+ *   - debugMode: Enable debug logging (default: false)
+ *
+ * Usage:
+ *   useSearchParamsVariables(formId, model, onSetVariables, { removeAfterProcessing: false });
+ */
 export const useSearchParamsVariables = (
   formId: string,
   model: SurveyModel | null,

@@ -11,21 +11,8 @@ import type { Question } from "survey-core";
 import { Result } from "@/lib/result";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-import {
-  Action,
-  ITheme,
-  QuestionBooleanModel,
-  QuestionHtmlModel,
-  QuestionTextModel,
-  RegexValidator,
   Serializer,
   settings,
   slk,
@@ -45,13 +32,8 @@ import {
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
-import { createThemeAction } from "../../application/actions/create-theme.action";
-import { deleteThemeAction as removeThemeAction } from "../../application/actions/delete-theme.action";
-import { getFormsForThemeAction } from "../../application/actions/get-forms-for-theme.action";
-import { getThemesAction } from "../../application/actions/get-themes.action";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
-import { updateThemeAction } from "../../application/actions/update-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
 import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
 import { CreateCustomQuestionRequest } from "@/services/api";
@@ -59,13 +41,7 @@ import { createCustomQuestionAction } from "../../application/actions/create-cus
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
-
-Serializer.addProperty("theme", {
-  name: "id",
-  type: "string",
-  category: "general",
-  visible: false,
-});
+import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
 
 Serializer.addProperty("survey", {
   name: "fileNamesPrefix",
@@ -90,11 +66,9 @@ translations.pehelp.fileNamesPrefix =
 const downloadSettingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-down-icon lucide-folder-down"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m15 13-3 3-3-3"/></svg>`;
 SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
 
-const invalidJsonErrorMessage = "Invalid JSON! Please fix all errors in the JSON editor before saving.";
+const invalidJsonErrorMessage =
+  "Invalid JSON! Please fix all errors in the JSON editor before saving.";
 
-const saveAsIcon =
-  '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d = "M24 11H22V13H20V11H18V9H20V7H22V9H24V11ZM20 14H22V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V4L4 2H20C21.1 2 22 2.9 22 4V6H20V4H17V8H7V4H4.83L4 4.83V20H6V13H18V20H20V14ZM9 6H15V4H9V6ZM16 15H8V20H16V15Z" fill="black" fill-opacity="1" /></svg>';
-SvgRegistry.registerIcon("icon-saveas", saveAsIcon);
 registerSurveyTheme(DefaultLight);
 
 interface FormEditorProps {
@@ -104,11 +78,6 @@ interface FormEditorProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
-}
-
-interface SaveThemeData {
-  save_as_new: boolean;
-  theme_name: string;
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -151,126 +120,9 @@ function FormEditor({
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
-
-  const getThemes = useCallback(async () => {
-    try {
-      const result = await getThemesAction();
-
-      if (Result.isError(result)) {
-        throw new Error(result.message);
-      }
-
-      const parsedThemes = result.value.map((theme) => {
-        return {
-          ...JSON.parse(theme.jsonData),
-          name: theme.name,
-          id: theme.id,
-        };
-      });
-
-      return parsedThemes;
-    } catch (error) {
-      console.error("Error: ", error);
-      return [];
-    }
+  const handleThemeIdChanged = useCallback(() => {
+    setHasUnsavedChanges(true);
   }, []);
-
-  const createTheme = useCallback(
-    async (theme: ITheme): Promise<StoredTheme> => {
-      return new Promise((resolve, reject) => {
-        startTransition(async () => {
-          try {
-            const result = await createThemeAction(theme);
-
-            if (Result.isError(result)) {
-              toast.error(`Failed to create theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            const createdTheme = result.value;
-            const parsedTheme = {
-              ...JSON.parse(createdTheme.jsonData),
-              name: createdTheme.name,
-              id: createdTheme.id,
-            };
-
-            toast.success(`Theme "${createdTheme.name}" created successfully`);
-            resolve(parsedTheme);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to create theme: ${message}`);
-            reject(error);
-          }
-        });
-      });
-    },
-    [startTransition],
-  );
-
-  const updateTheme = useCallback(
-    async (theme: StoredTheme): Promise<StoredTheme> => {
-      return new Promise((resolve, reject) => {
-        startTransition(async () => {
-          try {
-            const result = await updateThemeAction({
-              themeId: theme.id,
-              theme: theme,
-            });
-
-            if (Result.isError(result)) {
-              toast.error(`Failed to update theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            const updatedTheme = result.value;
-            const parsedTheme = {
-              name: updatedTheme.name,
-              ...JSON.parse(updatedTheme.jsonData),
-            };
-
-            toast.success(`Theme "${updatedTheme.name}" updated successfully`);
-            resolve(parsedTheme);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to update theme: ${message}`);
-            reject(error);
-          }
-        });
-      });
-    },
-    [startTransition],
-  );
-
-  const deleteTheme = useCallback(
-    async (themeId: string) => {
-      return new Promise((resolve, reject) => {
-        startTransition(async () => {
-          try {
-            const result = await removeThemeAction(themeId);
-
-            if (Result.isError(result)) {
-              toast.error(`Failed to delete theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            toast.success("Theme deleted successfully");
-            resolve(result.value);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to delete theme: ${message}`);
-            reject(error);
-          }
-        });
-      });
-    },
-    [startTransition],
-  );
 
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
@@ -310,270 +162,6 @@ function FormEditor({
     },
     [formId],
   );
-
-  const saveTheme = useCallback(
-    (saveNo: number, callback: (num: number, status: boolean) => void) => {
-      callback(saveNo, true);
-    },
-    [],
-  );
-
-  const handleSaveTheme = useCallback(
-    (saveNo: number, callback: (num: number, status: boolean) => void) => {
-      saveTheme(saveNo, callback);
-    },
-    [saveTheme],
-  );
-
-  const saveThemeDialog = useCallback(
-    (
-      dialogTitle: string,
-      templateName: string,
-      callback: (status: boolean, data?: SaveThemeData) => void,
-    ) => {
-      const surveyDefinition = JSON.parse(
-        `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to make changes to the <b>&quot;${templateName}&quot;</b> theme.</p>"},{"type":"boolean","name":"save_as_new","title":"Save theme as new instead?","titleLocation":"hidden","renderAs":"checkbox"},{"type":"text","name":"theme_name","visibleIf":"{save_as_new} = true","title":"Enter the new theme name","requiredIf":"{save_as_new} = true","requiredErrorText":"Theme name is required","placeholder":"New awesome ${templateName}"}]}],"showNavigationButtons":false,"questionErrorLocation":"bottom"}`,
-      );
-
-      const survey = new SurveyModel(surveyDefinition);
-      survey.isCompact = true;
-      const isDefaultTheme = templateName?.toLowerCase() === "default";
-      if (isDefaultTheme) {
-        const description = survey.getQuestionByName(
-          "description",
-        ) as QuestionHtmlModel;
-        const saveAsNewCheckbox = survey.getQuestionByName(
-          "save_as_new",
-        ) as QuestionBooleanModel;
-        const templateNameInput = survey.getQuestionByName(
-          "theme_name",
-        ) as QuestionTextModel;
-
-        if (!saveAsNewCheckbox || !templateNameInput || !description) {
-          throw new Error("Default theme cannot be edited");
-        }
-
-        description.html =
-          "<p class='text-muted-foreground'><b>Default theme is reserved.</b> Save as a new theme instead.</p>";
-
-        saveAsNewCheckbox.defaultValue = true;
-        saveAsNewCheckbox.readOnly = true;
-        const regexValidator = new RegexValidator(
-          "^(?![dD][eE][fF][aA][uU][lL][tT]$).+",
-        );
-        regexValidator.text = "Default is reserved. Choose another name.";
-        templateNameInput.validators.push(regexValidator);
-      }
-
-      survey.applyTheme(BorderlessLightPanelless);
-      const popupViewModel = settings.showDialog(
-        {
-          componentName: "survey",
-          data: { model: survey },
-          onApply: () => {
-            if (survey.tryComplete()) {
-              callback(true, survey.data as SaveThemeData);
-              return true;
-            }
-            return false;
-          },
-          onCancel: () => {
-            callback(false);
-            return false;
-          },
-          title: dialogTitle,
-          displayMode: "popup",
-          isFocusedContent: true,
-          cssClass: "creator-dialog",
-        },
-        settings.environment.popupMountContainer as HTMLElement,
-      );
-
-      const toolbar = popupViewModel.footerToolbar;
-      const applyBtn = toolbar.getActionById("apply");
-      const cancelBtn = toolbar.getActionById("cancel");
-      cancelBtn.title = "Cancel";
-      applyBtn.title = "OK";
-    },
-    [],
-  );
-
-  const addCustomTheme = useCallback(
-    (theme: ITheme) => {
-      const themeTabPlugin = creator!.themeEditor!;
-      themeTabPlugin.addTheme(theme);
-    },
-    [creator],
-  );
-
-  const saveThemeHandler = useCallback(() => {
-    const currentTheme = creator?.theme as StoredTheme;
-    currentTheme.name = currentTheme.themeName ?? "Custom Theme";
-
-    if (!currentTheme) {
-      return;
-    }
-
-    saveThemeDialog(
-      "Do you want to save the current theme?",
-      currentTheme.themeName!,
-      (confirm, data) => {
-        if (confirm && data) {
-          const saveAsNew = data.save_as_new;
-
-          if (saveAsNew) {
-            // create new theme
-            const newThemeName = data.theme_name;
-            const newTheme = {
-              ...currentTheme,
-              themeName: newThemeName,
-              name: newThemeName,
-            };
-            createTheme(newTheme)
-              .then((createdTheme) => {
-                addCustomTheme(createdTheme);
-                const themeTabPlugin = creator!.themeEditor!;
-                const themeModel = themeTabPlugin.themeModel;
-                themeModel.setTheme(createdTheme);
-              })
-              .catch((error) => {
-                console.error("Error creating new theme: ", error);
-              });
-          } else {
-            updateTheme(currentTheme)
-              .then((updatedTheme) => {
-                console.log("Updated theme: ", updatedTheme);
-              })
-              .catch((error) => {
-                console.error("Error updating theme: ", error);
-              });
-          }
-        }
-      },
-    );
-  }, [creator, saveThemeDialog, addCustomTheme, createTheme, updateTheme]);
-
-  const deleteThemeHandler = useCallback(() => {
-    const theme = creator?.theme as StoredTheme;
-    if (!creator || !theme) {
-      return;
-    }
-
-    const themeId = theme.id;
-    if (!themeId) {
-      return;
-    }
-
-    startTransition(async () => {
-      const formsWithSameThemeResult = await getFormsForThemeAction(themeId);
-      if (Result.isError(formsWithSameThemeResult)) {
-        toast.error(formsWithSameThemeResult.message);
-        return;
-      }
-
-      const otherFormsWithSameTheme = formsWithSameThemeResult.value.filter(
-        (form) => form.id !== formId,
-      );
-      const messageForOtherForms =
-        otherFormsWithSameTheme.length > 0
-          ? "There are " +
-            otherFormsWithSameTheme.length +
-            " other forms that use this theme. Do you want to delete the following theme: "
-          : "";
-      if (otherFormsWithSameTheme.length > 0) {
-        const surveyModel = new SurveyModel(
-          `{"pages":[{"name":"page1","elements":[{"type":"html","name":"description","html":"<p></p>"}]}],"showNavigationButtons":false, "questionErrorLocation":"bottom"}`,
-        );
-        surveyModel.applyTheme(BorderlessLightPanelless);
-        const description = surveyModel.getQuestionByName(
-          "description",
-        ) as QuestionHtmlModel;
-        const themesMarkup = otherFormsWithSameTheme
-          .map(
-            (form) =>
-              `<li><a href='/forms/${form.id}' target='_blank'>${form.name}</a></li>`,
-          )
-          .join("");
-        description.html =
-          "<p class='text-muted-foreground'>Make sure theme is not used by other forms before deleting it. Here is the list of forms that use this theme: <ul class='list-disc list-inside'>" +
-          themesMarkup +
-          "</ul></p>";
-        const themeDeleteNotAllowedPopup = settings.showDialog(
-          {
-            componentName: "survey",
-            data: { model: surveyModel },
-            onApply: () => true,
-            title: "Cannot delete '" + theme.themeName + "' theme",
-            displayMode: "popup",
-            cssClass: "creator-dialog",
-          },
-          settings.environment.popupMountContainer as HTMLElement,
-        );
-        const actions = themeDeleteNotAllowedPopup.footerToolbar.actions;
-        actions.splice(0, actions.length - 1);
-        actions[0].title = "OK, I understand";
-        return;
-      } else {
-        settings.confirmActionAsync(
-          messageForOtherForms +
-            'Do you want to delete the following theme: "' +
-            theme.themeName +
-            '"?',
-          (confirm) => {
-            if (confirm) {
-              const themeTabPlugin = creator?.themeEditor;
-              themeTabPlugin.removeTheme(theme, true);
-              const themeModel = themeTabPlugin.themeModel;
-              themeModel.setTheme({ themeName: "default" });
-              deleteTheme(themeId);
-            }
-          },
-          {
-            cssClass: "creator-dialog",
-          },
-        );
-      }
-    });
-  }, [creator, formId, deleteTheme]);
-
-  const saveThemeActionBtn = useMemo(
-    () =>
-      new Action({
-        id: "svd-save-custom-theme",
-        title: "Add custom theme to the list",
-        action: saveThemeHandler,
-        iconName: "icon-saveas",
-        showTitle: false,
-      }),
-    [saveThemeHandler],
-  );
-
-  const deleteThemeActionBtn = useMemo(
-    () =>
-      new Action({
-        id: "svd-delete-custom-theme",
-        title: "Delete theme",
-        action: deleteThemeHandler,
-        iconName: "icon-delete",
-        showTitle: false,
-      }),
-    [deleteThemeHandler],
-  );
-
-  const updateCustomActions = useCallback(() => {
-    if (!creator) {
-      return;
-    }
-
-    const isThemeTab = creator.activeTab === "theme";
-    saveThemeActionBtn.visible = isThemeTab;
-
-    // TODO: Implement proper theme name/id lookup
-    const currentThemeName = creator.theme?.themeName;
-    const isCustomTheme = currentThemeName != "default";
-
-    deleteThemeActionBtn.visible = isThemeTab && isCustomTheme;
-  }, [creator, saveThemeActionBtn, deleteThemeActionBtn]);
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -637,6 +225,112 @@ function FormEditor({
     },
     [creator],
   );
+
+  const getJsonForSaving = useCallback(() => {
+    if (creator?.activeTab === "json") {
+      const errorsList = document.querySelector(
+        ".svc-json-editor-tab__errros_list",
+      ) as HTMLElement;
+      const errorsContainer = document.querySelector(
+        ".svc-json-errors",
+      ) as HTMLElement;
+
+      const isErrorsListVisible =
+        errorsList && getComputedStyle(errorsList).display !== "none";
+      const hasErrorChildren =
+        errorsContainer && errorsContainer.children.length > 0;
+
+      if (isErrorsListVisible && hasErrorChildren) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+
+      const jsonAreaPlugin = creator.getPlugin(
+        "json",
+      ) as TabJsonEditorTextareaPlugin;
+      try {
+        return JSON.parse(jsonAreaPlugin.model.text);
+      } catch (error) {
+        toast.error(invalidJsonErrorMessage);
+        return null;
+      }
+    } else {
+      return creator?.JSON;
+    }
+  }, [creator]);
+
+  const saveForm = useCallback(async () => {
+    const isDraft = false;
+
+    const updatedFormJson = getJsonForSaving();
+    if (updatedFormJson === null) {
+      return;
+    }
+    const theme = creator?.theme as StoredTheme;
+    let isThemeUpdated = false;
+    let isFormUpdated = false;
+
+    const updateDefinitionResult = await updateFormDefinitionJsonAction(
+      formId,
+      isDraft,
+      updatedFormJson,
+    );
+
+    if (updateDefinitionResult.success) {
+      isFormUpdated = true;
+    } else {
+      throw new Error(updateDefinitionResult.error);
+    }
+
+    if (theme.id !== themeId) {
+      const updateThemeResult = await updateFormThemeAction(formId, theme.id);
+      if (updateThemeResult.success) {
+        isThemeUpdated = true;
+      } else {
+        throw new Error(updateThemeResult.error);
+      }
+    }
+
+    setHasUnsavedChanges(false);
+    toast.success(
+      <p>
+        {isFormUpdated && "Form changes saved. "}
+        {isThemeUpdated && (
+          <span>
+            Theme set to <b>{theme.themeName}</b>
+          </span>
+        )}
+      </p>,
+    );
+  }, [getJsonForSaving, creator?.theme, formId, themeId]);
+
+  const { saveThemeHandler, isCurrentThemeModified } = useThemeManagement({
+    formId,
+    creator,
+    themeId,
+    onThemeIdChanged: handleThemeIdChanged,
+    onPostThemeSave: saveForm,
+  });
+
+  const saveFormHandler = async () => {
+    startTransition(async () => {
+      try {
+        if (!hasUnsavedChanges && !isCurrentThemeModified) {
+          toast.info("Nothing to save");
+          return;
+        }
+
+        const isThemeSavedFlow = await saveThemeHandler();
+
+        if (!isThemeSavedFlow) {
+          await saveForm();
+        }
+      } catch (error) {
+        console.error("Error in save flow:", error);
+        toast.error("Failed to save changes");
+      }
+    });
+  };
 
   const createCustomQuestionDialog = useCallback(
     async (element: Question) => {
@@ -808,7 +502,7 @@ function FormEditor({
       if (isLeavingJsonTab) {
         return;
       }
-      
+
       setHasUnsavedChanges(true);
     };
 
@@ -817,16 +511,18 @@ function FormEditor({
         const handleInput = () => {
           setHasUnsavedChanges(true);
         };
-        
-        jsonTextarea.addEventListener('input', handleInput);
-        
+
+        jsonTextarea.addEventListener("input", handleInput);
+
         (jsonTextarea as any).__handlerAttached = true;
         (jsonTextarea as any).__inputHandler = handleInput;
       }
     };
 
     const waitForTextarea = (attempt = 1, maxAttempts = 4) => {
-      const textarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+      const textarea = document.querySelector(
+        ".svc-json-editor-tab__content-area",
+      ) as HTMLTextAreaElement;
       if (textarea) {
         attachJsonTextareaListener(textarea);
       } else if (attempt < maxAttempts) {
@@ -843,7 +539,7 @@ function FormEditor({
 
     const handleTabChange = (sender: SurveyCreatorModel, options: any) => {
       isLeavingJsonTab = false;
-      
+
       if (options.tabName === "json") {
         waitForTextarea();
       }
@@ -851,81 +547,34 @@ function FormEditor({
 
     if (creator) {
       creator.onModified.add(setAsModified);
-      creator.saveThemeFunc = handleSaveTheme;
       creator.onActiveTabChanging.add(handleTabChanging);
-      creator.onActiveTabChanged.add(updateCustomActions);
       creator.onActiveTabChanged.add(handleTabChange);
-      creator.toolbar.actions.push(saveThemeActionBtn);
-      creator.toolbar.actions.push(deleteThemeActionBtn);
 
       if (creator.activeTab === "json") {
         waitForTextarea();
       }
 
-      const themeTabPlugin = creator.themeEditor;
-      themeTabPlugin.advancedModeEnabled = true;
-      themeTabPlugin.onThemeSelected.add(() => {
-        if ((creator.theme as StoredTheme)?.id !== themeId) {
-          setHasUnsavedChanges(true);
-        } else {
-          setHasUnsavedChanges(false);
-        }
-        updateCustomActions();
-      });
-
-      getThemes()
-        .then((themes) => {
-          themes.forEach((theme: StoredTheme) => {
-            addCustomTheme(theme);
-            if (theme.id === themeId) {
-              themeTabPlugin.themeModel.setTheme(theme);
-            }
-          });
-
-          if (creator.theme === null) {
-            themeTabPlugin.themeModel.setTheme(DefaultLight);
-          }
-
-          updateCustomActions();
-        })
-        .catch((error) => {
-          console.error("Error: ", error);
-        });
-
-      updateCustomActions();
-
       return () => {
         creator.onModified.remove(setAsModified);
-        creator.saveThemeFunc = null;
         creator.onActiveTabChanging.remove(handleTabChanging);
-        creator.onActiveTabChanged.remove(updateCustomActions);
         creator.onActiveTabChanged.remove(handleTabChange);
-        
-        const jsonTextarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+
+        const jsonTextarea = document.querySelector(
+          ".svc-json-editor-tab__content-area",
+        ) as HTMLTextAreaElement;
         if (jsonTextarea && (jsonTextarea as any).__handlerAttached) {
-          jsonTextarea.removeEventListener('input', (jsonTextarea as any).__inputHandler);
+          jsonTextarea.removeEventListener(
+            "input",
+            (jsonTextarea as any).__inputHandler,
+          );
         }
-        
-        themeTabPlugin.onThemeSelected.remove(updateCustomActions);
-        themeTabPlugin.onThemePropertyChanged.remove(updateCustomActions);
       };
     }
-  }, [
-    creator,
-    deleteThemeActionBtn,
-    saveThemeActionBtn,
-    themeId,
-    saveThemeHandler,
-    deleteThemeHandler,
-    addCustomTheme,
-    updateCustomActions,
-    handleSaveTheme,
-    getThemes,
-  ]);
+  }, [creator, themeId]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      if (hasUnsavedChanges || isCurrentThemeModified) {
         e.preventDefault();
         e.returnValue = ""; // Required for Chrome
       }
@@ -933,7 +582,7 @@ function FormEditor({
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, isCurrentThemeModified]);
 
   useEffect(() => {
     document.body.classList.add("overflow-hidden");
@@ -943,7 +592,7 @@ function FormEditor({
   }, []);
 
   const handleSaveAndGoBack = () => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges || isCurrentThemeModified) {
       const confirm = window.confirm(
         "There are unsaved changes. Are you sure you want to leave?",
       );
@@ -953,78 +602,6 @@ function FormEditor({
     } else {
       router.push("/forms");
     }
-  };
-
-  const getJsonForSaving = () => {
-    if (creator?.activeTab === "json") {
-      const errorsList = document.querySelector('.svc-json-editor-tab__errros_list') as HTMLElement;
-      const errorsContainer = document.querySelector('.svc-json-errors') as HTMLElement;
-      
-      const isErrorsListVisible = errorsList && getComputedStyle(errorsList).display !== 'none';
-      const hasErrorChildren = errorsContainer && errorsContainer.children.length > 0;
-      
-      if (isErrorsListVisible && hasErrorChildren) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-
-      const jsonAreaPlugin = creator.getPlugin("json") as TabJsonEditorTextareaPlugin
-      try {
-        return JSON.parse(jsonAreaPlugin.model.text);
-      } catch (error) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-    } else {
-      return creator?.JSON;
-    }
-  };
-
-  const saveForm = () => {
-    startTransition(async () => {
-      const isDraft = false;
-      
-      const updatedFormJson = getJsonForSaving();
-      if (updatedFormJson === null) {
-        return;
-      }
-      const theme = creator?.theme as StoredTheme;
-      let isThemeUpdated = false;
-      let isFormUpdated = false;
-
-      const updateDefinitionResult = await updateFormDefinitionJsonAction(
-        formId,
-        isDraft,
-        updatedFormJson,
-      );
-
-      if (updateDefinitionResult.success) {
-        isFormUpdated = true;
-      } else {
-        throw new Error(updateDefinitionResult.error);
-      }
-
-      if (theme.id !== themeId) {
-        const updateThemeResult = await updateFormThemeAction(formId, theme.id);
-        if (updateThemeResult.success) {
-          isThemeUpdated = true;
-        } else {
-          throw new Error(updateThemeResult.error);
-        }
-      }
-
-      setHasUnsavedChanges(false);
-      toast.success(
-        <p>
-          {isFormUpdated && "Form saved. "}
-          {isThemeUpdated && (
-            <span>
-              Form theme set to <b>{theme.themeName}</b>
-            </span>
-          )}
-        </p>,
-      );
-    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1069,14 +646,14 @@ function FormEditor({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {hasUnsavedChanges && (
-            <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
+          {(hasUnsavedChanges || isCurrentThemeModified) && (
+              <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
               Unsaved changes
             </span>
           )}
           <Button
             disabled={isPending}
-            onClick={saveForm}
+            onClick={saveFormHandler}
             variant="default"
             size="sm"
           >
@@ -1094,7 +671,7 @@ function FormEditor({
             </div>
           </div>
         ) : creator ? (
-          <SurveyCreatorComponent creator={creator} />
+          <SurveyCreatorComponent key={`creator-${formId}`} creator={creator} />
         ) : (
           <div>Error loading form editor</div>
         )}
