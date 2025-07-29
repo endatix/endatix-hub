@@ -304,7 +304,7 @@ function FormEditor({
     );
   }, [getJsonForSaving, creator?.theme, formId, themeId]);
 
-  const { saveThemeHandler } = useThemeManagement({
+  const { saveThemeHandler, isCurrentThemeModified } = useThemeManagement({
     formId,
     creator,
     themeId,
@@ -315,6 +315,11 @@ function FormEditor({
   const saveFormHandler = async () => {
     startTransition(async () => {
       try {
+        if (!hasUnsavedChanges && !isCurrentThemeModified) {
+          toast.info("Nothing to save");
+          return;
+        }
+
         const isThemeSavedFlow = await saveThemeHandler();
 
         if (!isThemeSavedFlow) {
@@ -569,7 +574,7 @@ function FormEditor({
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      if (hasUnsavedChanges || isCurrentThemeModified) {
         e.preventDefault();
         e.returnValue = ""; // Required for Chrome
       }
@@ -577,7 +582,7 @@ function FormEditor({
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, isCurrentThemeModified]);
 
   useEffect(() => {
     document.body.classList.add("overflow-hidden");
@@ -587,7 +592,7 @@ function FormEditor({
   }, []);
 
   const handleSaveAndGoBack = () => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges || isCurrentThemeModified) {
       const confirm = window.confirm(
         "There are unsaved changes. Are you sure you want to leave?",
       );
@@ -641,8 +646,8 @@ function FormEditor({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {hasUnsavedChanges && (
-            <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
+          {(hasUnsavedChanges || isCurrentThemeModified) && (
+              <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
               Unsaved changes
             </span>
           )}

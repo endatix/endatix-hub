@@ -62,7 +62,7 @@ export const useThemeManagement = ({
   onPostThemeSave,
 }: UseThemeManagementProps) => {
   const [isThemeUpdatePending, startTransition] = useTransition();
-  const [isThemeModified, setIsThemeModified] = useState(false);
+  const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
   const [currentThemeId, setCurrentThemeId] = useState<string | undefined>(
     themeId,
   );
@@ -333,9 +333,11 @@ export const useThemeManagement = ({
                 const createdTheme = await createTheme(newTheme);
                 setCurrentThemeId(createdTheme.id!);
                 addCustomTheme(createdTheme);
+                setIsCurrentThemeModified(false);
                 creator!.themeEditor!.themeModel.setTheme(createdTheme);
               } else {
                 await updateTheme(currentThemeFromModel);
+                setIsCurrentThemeModified(false);
               }
 
               await onPostThemeSave?.();
@@ -432,6 +434,7 @@ export const useThemeManagement = ({
               creator?.themeEditor?.removeTheme(theme, true);
               creator!.theme = { themeName: "default" };
               deleteTheme(themeId);
+              setIsCurrentThemeModified(false);
             }
           },
           {
@@ -500,20 +503,14 @@ export const useThemeManagement = ({
         return;
       }
 
-      const isCurrentThemeModified = sender.isModified;
-      console.log(
-        "handleThemeChanged:isCurrentThemeModified: ",
-        isCurrentThemeModified,
-      );
-
       setCurrentThemeId(selectedThemeId);
-      setIsThemeModified(true);
+      setIsCurrentThemeModified(themeModifiedTracker[selectedThemeId] ?? false);
 
       if (selectedThemeId !== originalThemeId) {
         onThemeIdChanged?.(selectedThemeId);
       }
     },
-    [originalThemeId, onThemeIdChanged],
+    [themeModifiedTracker, originalThemeId, onThemeIdChanged],
   );
 
   const handleThemePropertyChanged = useCallback((sender: ThemeTabPlugin) => {
@@ -522,6 +519,8 @@ export const useThemeManagement = ({
       ...prev,
       [currentTheme.id!]: true,
     }));
+
+    setIsCurrentThemeModified(true);
   }, []);
 
   useEffect(() => {
@@ -606,7 +605,7 @@ export const useThemeManagement = ({
 
   return {
     currentThemeId,
-    isThemeModified,
+    isCurrentThemeModified,
     isThemeUpdatePending,
     saveThemeHandler,
   };
