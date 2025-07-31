@@ -4,7 +4,6 @@ import { getSession } from "@/features/auth";
 
 const LOGIN_PATH = "/login";
 
-
 export async function middleware(request: NextRequest) {
   const currentSession = await getSession();
 
