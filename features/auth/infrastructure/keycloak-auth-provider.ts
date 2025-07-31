@@ -35,8 +35,6 @@ export class KeycloakAuthProvider implements IAuthProvider {
   }): Promise<Session> {
     const { session, token } = params;
 
-    console.log("keycloak session", { session, token });
-
     // Pass the access token to the session
     session.accessToken = token.accessToken as string;
     session.user = {

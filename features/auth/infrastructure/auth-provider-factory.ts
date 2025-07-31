@@ -1,11 +1,8 @@
 import Keycloak from "next-auth/providers/keycloak";
 import Credentials from "next-auth/providers/credentials";
-import { getAuthConfig, getEnabledProviders } from "./auth-config";
-import { authenticate } from "../../services/api";
-import {
-  AuthenticationRequest,
-  AuthenticationRequestSchema,
-} from "../../features/auth";
+import { getAuthConfig, getEnabledProviders } from "../../config/auth-config";
+import { authenticate } from "../../../services/api";
+import { AuthenticationRequest, AuthenticationRequestSchema } from "..";
 
 export function createAuthProviders() {
   const config = getAuthConfig();

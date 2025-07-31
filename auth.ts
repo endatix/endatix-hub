@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import { createAuthProviders } from "./lib/auth/auth-provider-factory";
+import { createAuthProviders } from "./features/auth/infrastructure/auth-provider-factory";
 import {
   AuthProviderRouter,
   EndatixAuthProvider,

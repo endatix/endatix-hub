@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
-import { withEndatix } from "./lib/auth/with-endatix";
 import {
   getRewriteRuleFor,
   includesRemoteImageHostnames,
 } from "./lib/hosting/next-config-helper";
 import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
+import { withEndatix } from "@/features/config";
 
 const nextConfig: NextConfig = {
   /* config options here */

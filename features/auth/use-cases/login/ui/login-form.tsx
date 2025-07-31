@@ -13,7 +13,7 @@ import { ErrorMessage } from "@/components/forms/error-message";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { KeycloakSignInButton } from "./keycloak-signin-button";
-import { getEnabledProviders } from "@/lib/auth/auth-config";
+import { getEnabledProviders } from "@/features/config/auth-config";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");

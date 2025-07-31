@@ -11,6 +11,8 @@ export interface IAuthProvider {
   }): Promise<JWT>;
 
   handleSession(params: { session: Session; token: JWT }): Promise<Session>;
+
+  validateSetup?(config: any): Promise<boolean>;
 }
 
 export interface IAuthProviderRouter {
