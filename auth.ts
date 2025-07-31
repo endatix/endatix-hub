@@ -1,11 +1,5 @@
 import NextAuth from "next-auth";
-import Keycloak from "next-auth/providers/keycloak";
-import Credentials from "next-auth/providers/credentials";
-import { authenticate } from "./services/api";
-import {
-  AuthenticationRequest,
-  AuthenticationRequestSchema,
-} from "./features/auth";
+import { createAuthProviders } from "./lib/auth/auth-provider-factory";
 import {
   AuthProviderRouter,
   CredentialsAuthProvider,
@@ -17,65 +11,7 @@ authRouter.registerProvider("credentials", new CredentialsAuthProvider());
 authRouter.registerProvider("keycloak", new KeycloakAuthProvider());
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Keycloak({
-      authorization: {
-        params: {
-          scope: "openid email",
-        },
-      },
-    }),
-    Credentials({
-      credentials: {
-        email: {
-          label: "Email",
-          type: "text",
-          placeholder: "john.doe@example.com",
-        },
-        password: { label: "Password", type: "password" },
-      },
-      authorize: async (credentials) => {
-        try {
-          const validatedFields = AuthenticationRequestSchema.safeParse({
-            email: credentials.email,
-            password: credentials.password,
-          });
-
-          if (!validatedFields.success) {
-            console.error(
-              "Invalid credentials:",
-              validatedFields.error.flatten().fieldErrors,
-            );
-            return null;
-          }
-
-          const authRequest: AuthenticationRequest = {
-            email: validatedFields.data.email,
-            password: validatedFields.data.password,
-          };
-
-          // Authenticate against the Endatix API
-          const authenticationResponse = await authenticate(authRequest);
-
-          if (!authenticationResponse) {
-            console.error("Authentication failed: No response from API");
-            return null;
-          }
-
-          return {
-            id: authenticationResponse.email,
-            email: authenticationResponse.email,
-            name: authenticationResponse.email,
-            accessToken: authenticationResponse.accessToken,
-            refreshToken: authenticationResponse.refreshToken,
-          };
-        } catch (error) {
-          console.error("Authentication error:", error);
-          return null;
-        }
-      },
-    }),
-  ],
+  providers: createAuthProviders(),
   callbacks: {
     async jwt({ token, user, account, trigger }) {
       const provider = account?.provider || (token.provider as string);

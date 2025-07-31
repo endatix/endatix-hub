@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withEndatix } from "./lib/auth/with-endatix";
 import {
   getRewriteRuleFor,
   includesRemoteImageHostnames,
@@ -57,4 +58,4 @@ if (STORAGE_SERVICE_CONFIG.isEnabled) {
   });
 }
 
-export default nextConfig;
+export default withEndatix(nextConfig);

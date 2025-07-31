@@ -9,6 +9,17 @@ declare namespace NodeJS {
 
     // Session
     SESSION_SECRET?: string;
+    SESSION_MAX_AGE?: string;
+
+    // Auth Providers
+    KEYCLOAK_ENABLED?: string;
+    KEYCLOAK_CLIENT_ID?: string;
+    KEYCLOAK_CLIENT_SECRET?: string;
+    KEYCLOAK_ISSUER?: string;
+    KEYCLOAK_AUTHORIZATION_URL?: string;
+    KEYCLOAK_TOKEN_URL?: string;
+    KEYCLOAK_USERINFO_URL?: string;
+    KEYCLOAK_SCOPE?: string;
 
     // Data Collection
     NEXT_FORMS_COOKIE_NAME?: string;

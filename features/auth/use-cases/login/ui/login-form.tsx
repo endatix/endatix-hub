@@ -13,6 +13,7 @@ import { ErrorMessage } from "@/components/forms/error-message";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { KeycloakSignInButton } from "./keycloak-signin-button";
+import { getEnabledProviders } from "@/lib/auth/auth-config";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -142,17 +143,21 @@ const LoginForm = () => {
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           Sign in with email
         </Button>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
-            </span>
-          </div>
-        </div>
-        <KeycloakSignInButton />
+        {getEnabledProviders().includes("keycloak") && (
+          <>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+            <KeycloakSignInButton />
+          </>
+        )}
       </div>
     </form>
   );
