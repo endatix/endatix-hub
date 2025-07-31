@@ -1,17 +1,21 @@
-import { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getSession } from "@/features/auth";
 
-// export { auth as middleware } from "@/auth";
+const LOGIN_PATH = "/login";
+
+
 export async function middleware(request: NextRequest) {
-  // const currentSession = await getSession();
+  const currentSession = await getSession();
 
-  // if (!currentSession.isLoggedIn) {
-  //   const requestedPath = request.nextUrl.pathname;
-  //   console.debug(
-  //     `Redirecting to login from originally requested path: ${requestedPath}`,
-  //   );
+  if (!currentSession.isLoggedIn) {
+    const requestedPath = request.nextUrl.pathname;
+    console.debug(
+      `Redirecting to login from originally requested path: ${requestedPath}`,
+    );
 
-  //   return NextResponse.redirect(new URL(LOGIN_PATH, request.url));
-  // }
+    return NextResponse.redirect(new URL(LOGIN_PATH, request.url));
+  }
 }
 
 /*
