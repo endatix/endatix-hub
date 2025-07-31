@@ -9,7 +9,7 @@ interface ExtendedUser extends User {
   refreshToken?: string;
 }
 
-export class CredentialsAuthProvider implements IAuthProvider {
+export class EndatixAuthProvider implements IAuthProvider {
   async handleJWT(params: {
     token: JWT;
     user?: User;
@@ -18,12 +18,8 @@ export class CredentialsAuthProvider implements IAuthProvider {
   }): Promise<JWT> {
     const { token, user, account } = params;
 
-    console.log("credentials jwt", { token, user, account });
-
-    // On initial sign in, the user object contains the authentication response
     if (user && account?.provider === "credentials") {
       const extendedUser = user as ExtendedUser;
-      // Store the tokens from the Endatix API response
       token.accessToken = extendedUser.accessToken;
       token.refreshToken = extendedUser.refreshToken;
       token.email = extendedUser.email;
@@ -40,9 +36,6 @@ export class CredentialsAuthProvider implements IAuthProvider {
   }): Promise<Session> {
     const { session, token } = params;
 
-    console.log("credentials session", { session, token });
-
-    // Pass the access token to the session
     session.accessToken = token.accessToken as string;
     session.user = {
       ...session.user,

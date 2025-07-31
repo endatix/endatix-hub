@@ -124,7 +124,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
 ## Current Providers
 
-### CredentialsAuthProvider
+### EndatixAuthProvider
 - Authenticates against the Endatix API
 - Validates credentials using Zod schema
 - Stores access and refresh tokens from API response

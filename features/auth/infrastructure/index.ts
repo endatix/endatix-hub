@@ -2,7 +2,7 @@
 export * from "./auth-providers";
 
 // Provider implementations
-export * from "./credentials-auth-provider";
+export * from "./endatix-auth-provider";
 export * from "./keycloak-auth-provider";
 
 // JWT utilities

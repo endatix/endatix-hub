@@ -2,12 +2,12 @@ import NextAuth from "next-auth";
 import { createAuthProviders } from "./lib/auth/auth-provider-factory";
 import {
   AuthProviderRouter,
-  CredentialsAuthProvider,
+  EndatixAuthProvider,
   KeycloakAuthProvider,
 } from "./features/auth/infrastructure";
 
 const authRouter = new AuthProviderRouter();
-authRouter.registerProvider("credentials", new CredentialsAuthProvider());
+authRouter.registerProvider("credentials", new EndatixAuthProvider());
 authRouter.registerProvider("keycloak", new KeycloakAuthProvider());
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
