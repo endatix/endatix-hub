@@ -11,7 +11,7 @@ export interface AuthProviderConfig {
 
 export interface EndatixAuthConfig {
   providers: {
-    credentials: AuthProviderConfig;
+    endatix: AuthProviderConfig;
     keycloak: AuthProviderConfig;
   };
   session: {
@@ -23,7 +23,7 @@ export interface EndatixAuthConfig {
 export function getAuthConfig(): EndatixAuthConfig {
   return {
     providers: {
-      credentials: {
+      endatix: {
         enabled: true, // Always enabled as fallback
       },
       keycloak: {
@@ -48,8 +48,8 @@ export function getEnabledProviders(): string[] {
   const config = getAuthConfig();
   const enabledProviders: string[] = [];
 
-  if (config.providers.credentials.enabled) {
-    enabledProviders.push("credentials");
+  if (config.providers.endatix.enabled) {
+    enabledProviders.push("endatix");
   }
 
   if (config.providers.keycloak.enabled) {

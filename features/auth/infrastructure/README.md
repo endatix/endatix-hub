@@ -35,7 +35,7 @@ import { withEndatix } from "./features/config/with-endatix";
 const authConfig = {
   auth: {
     providers: {
-      credentials: { enabled: true },
+      endatix: { enabled: true },
       keycloak: {
         enabled: process.env.KEYCLOAK_ENABLED === "true",
         clientId: process.env.KEYCLOAK_CLIENT_ID!,
@@ -86,8 +86,8 @@ The ability to add custom authentication providers will be available in a future
 
 ### Current Supported Providers
 
-- **EndatixAuthProvider** - Username/password authentication against Endatix API
-- **KeycloakAuthProvider** - OAuth2 flow with Keycloak identity provider
+- **EndatixAuthProvider** - Username/password authentication against Endatix API (provider: "endatix")
+- **KeycloakAuthProvider** - OAuth2 flow with Keycloak identity provider (provider: "keycloak")
 
 ### Provider Validation
 

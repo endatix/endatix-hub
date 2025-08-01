@@ -1,11 +1,10 @@
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
 import { Account, User } from "next-auth";
-import { IAuthProvider } from "./auth-providers";
-
-const KEYCLOAK_PROVIDER_NAME = "keycloak";
+import { IAuthProvider, AUTH_PROVIDER_NAMES } from "./auth-providers";
 
 export class KeycloakAuthProvider implements IAuthProvider {
+  readonly name = AUTH_PROVIDER_NAMES.KEYCLOAK;
   async handleJWT(params: {
     token: JWT;
     user?: User;
@@ -14,10 +13,10 @@ export class KeycloakAuthProvider implements IAuthProvider {
   }): Promise<JWT> {
     const { token, user, account } = params;
 
-    if (account?.provider === KEYCLOAK_PROVIDER_NAME && account.access_token) {
+    if (account?.provider === this.name && account.access_token) {
       token.accessToken = account.access_token;
       token.refreshToken = account.refresh_token;
-      token.provider = KEYCLOAK_PROVIDER_NAME;
+      token.provider = this.name;
 
       // Store user information
       if (user) {

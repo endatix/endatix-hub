@@ -4,17 +4,19 @@ import {
   AuthProviderRouter,
   EndatixAuthProvider,
   KeycloakAuthProvider,
+  AUTH_PROVIDER_NAMES,
+  AuthProviderName,
 } from "./features/auth/infrastructure";
 
 const authRouter = new AuthProviderRouter();
-authRouter.registerProvider("credentials", new EndatixAuthProvider());
-authRouter.registerProvider("keycloak", new KeycloakAuthProvider());
+authRouter.registerProvider(AUTH_PROVIDER_NAMES.ENDATIX, new EndatixAuthProvider());
+authRouter.registerProvider(AUTH_PROVIDER_NAMES.KEYCLOAK, new KeycloakAuthProvider());
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: createAuthProviders(),
   callbacks: {
     async jwt({ token, user, account, trigger }) {
-      const provider = account?.provider || (token.provider as string);
+      const provider = (account?.provider || token.provider) as AuthProviderName;
 
       if (provider && authRouter.hasProvider(provider)) {
         const authProvider = authRouter.getProvider(provider);
@@ -30,7 +32,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      const provider = token.provider as string;
+      const provider = token.provider as AuthProviderName;
 
       if (provider && authRouter.hasProvider(provider)) {
         const authProvider = authRouter.getProvider(provider);

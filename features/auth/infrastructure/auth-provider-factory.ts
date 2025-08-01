@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { getAuthConfig, getEnabledProviders } from "../../config/auth-config";
 import { authenticate } from "../../../services/api";
 import { AuthenticationRequest, AuthenticationRequestSchema } from "..";
+import { AUTH_PROVIDER_NAMES } from "./auth-providers";
 
 export function createAuthProviders() {
   const config = getAuthConfig();
@@ -11,10 +12,12 @@ export function createAuthProviders() {
     ReturnType<typeof Credentials> | ReturnType<typeof Keycloak>
   > = [];
 
-  // Always add credentials provider as fallback
-  if (enabledProviders.includes("credentials")) {
+  if (enabledProviders.includes(AUTH_PROVIDER_NAMES.ENDATIX)) {
     providers.push(
       Credentials({
+        id: AUTH_PROVIDER_NAMES.ENDATIX,
+        name: AUTH_PROVIDER_NAMES.ENDATIX,
+        type: "credentials",
         credentials: {
           email: {
             label: "Email",
@@ -69,7 +72,7 @@ export function createAuthProviders() {
 
   // Add Keycloak provider if enabled and configured
   if (
-    enabledProviders.includes("keycloak") &&
+    enabledProviders.includes(AUTH_PROVIDER_NAMES.KEYCLOAK) &&
     config.providers.keycloak.enabled
   ) {
     const keycloakConfig = config.providers.keycloak;

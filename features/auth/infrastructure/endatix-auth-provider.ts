@@ -1,7 +1,7 @@
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
 import { Account, User } from "next-auth";
-import { IAuthProvider } from "./auth-providers";
+import { IAuthProvider, AUTH_PROVIDER_NAMES } from "./auth-providers";
 
 // Extend the User type to include our custom properties
 interface ExtendedUser extends User {
@@ -10,6 +10,8 @@ interface ExtendedUser extends User {
 }
 
 export class EndatixAuthProvider implements IAuthProvider {
+  readonly name = AUTH_PROVIDER_NAMES.ENDATIX;
+
   async handleJWT(params: {
     token: JWT;
     user?: User;
@@ -18,13 +20,13 @@ export class EndatixAuthProvider implements IAuthProvider {
   }): Promise<JWT> {
     const { token, user, account } = params;
 
-    if (user && account?.provider === "credentials") {
+    if (user && account?.provider === this.name) {
       const extendedUser = user as ExtendedUser;
       token.accessToken = extendedUser.accessToken;
       token.refreshToken = extendedUser.refreshToken;
       token.email = extendedUser.email;
       token.name = extendedUser.name || extendedUser.email;
-      token.provider = "credentials";
+      token.provider = this.name;
     }
 
     return token;
