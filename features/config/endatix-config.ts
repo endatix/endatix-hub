@@ -43,8 +43,8 @@ export const withEndatix = (
 
   const mergedAuthConfig: EndatixAuthConfig = {
     providers: {
-      credentials: {
-        ...baseAuthConfig.providers.credentials,
+      endatix: {
+        ...baseAuthConfig.providers.endatix,
         ...options.auth?.providers?.credentials,
       },
       keycloak: {
