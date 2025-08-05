@@ -4,6 +4,7 @@ import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
+import { customQuestions as customQuestionsList } from "@/customizations/questions/custom-questions";
 
 export function useSurveyModel(
   definition: string,
@@ -24,7 +25,7 @@ export function useSurveyModel(
           initializeCustomQuestions(customQuestions);
         }
         // Load dynamic questions from form metadata
-        for (const questionName of questionLoaderModule.customQuestions) {
+        for (const questionName of customQuestionsList) {
           try {
             await questionLoaderModule.loadQuestion(questionName);
             console.debug(`✅ Loaded custom question: ${questionName}`);

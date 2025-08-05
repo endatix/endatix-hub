@@ -6,7 +6,7 @@
     "dev": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --turbopack",
     "dev:inspect": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_OPTIONS='--inspect' next dev --turbopack",
     "dev-https": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --turbopack",
-    "build": "pnpm discover-questions && next build",
+    "build": "pnpm discover-questions && next build --turbopack",
     "build:standalone": "pnpm build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "next start",
     "lint": "next lint",

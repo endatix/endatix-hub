@@ -3,9 +3,6 @@
  * This acts as a bridge between Turbopack's static alias resolution
  * and our dynamic question loading system
  */
-
-import { customQuestions } from "@/customizations/questions/custom-questions";
-
 interface QuestionModule {
   name: string;
   title: string;
@@ -15,7 +12,7 @@ interface QuestionModule {
   model?: unknown;
 }
 
-export const QUESTIONS_DIR = "customizations/questions";
+const QUESTIONS_DIR = "customizations/questions";
 
 /**
  * Dynamic question loader that works with Turbopack's static alias resolution
@@ -97,10 +94,6 @@ class QuestionLoaderModule {
    */
   getLoadedQuestions(): string[] {
     return Array.from(this.loadedQuestions.keys());
-  }
-
-  public get customQuestions(): string[] {
-    return customQuestions;
   }
 
   /**

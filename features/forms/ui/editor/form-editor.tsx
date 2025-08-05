@@ -43,6 +43,7 @@ import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
+import { customQuestions } from "@/customizations/questions/custom-questions";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -423,7 +424,7 @@ function FormEditor({
         );
 
         // Load dynamic questions using greedy loading strategy (load all custom questions for now)
-        for (const questionName of questionLoaderModule.customQuestions) {
+        for (const questionName of customQuestions) {
           try {
             await questionLoaderModule.loadQuestion(questionName);
             console.debug(`✅ Loaded custom question: ${questionName}`);

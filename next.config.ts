@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   turbopack: {
     resolveAlias: {
-      questions: "./lib/questions/question-loader-module.ts",
     },
   },
   experimental: {
