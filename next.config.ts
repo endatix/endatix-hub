@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "20mb",
     },
     authInterrupts: true,
+    // Enable Turbopack for better performance and simpler configuration
+    turbo: {
+      resolveAlias: {
+        // Simple alias for dynamic question imports
+        questions: "./examples/questions",
+      },
+    },
   },
   images: {
     remotePatterns: [],
