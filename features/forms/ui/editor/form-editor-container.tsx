@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { FormEditorProps } from "./form-editor";
-import "@/lib/questions/all-questions";
+import "@/customizations/questions/custom-questions";
 import "./form-editor-styles.scss";
 
 const FormEditor = dynamic(() => import("./form-editor"), {

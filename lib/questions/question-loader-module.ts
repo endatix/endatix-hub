@@ -4,6 +4,8 @@
  * and our dynamic question loading system
  */
 
+import { customQuestions } from "@/customizations/questions/custom-questions";
+
 interface QuestionModule {
   name: string;
   title: string;
@@ -13,6 +15,8 @@ interface QuestionModule {
   model?: unknown;
 }
 
+export const QUESTIONS_DIR = "customizations/questions";
+
 /**
  * Dynamic question loader that works with Turbopack's static alias resolution
  */
@@ -21,7 +25,7 @@ class QuestionLoaderModule {
   private loadingPromises = new Map<string, Promise<QuestionModule>>();
 
   /**
-   * Load a question dynamically using the examples/questions directory
+   * Load a question dynamically using the customizations/questions directory
    * @param questionName - The name of the question to load
    */
   async loadQuestion(questionName: string): Promise<QuestionModule> {
@@ -36,7 +40,7 @@ class QuestionLoaderModule {
     }
 
     // Start loading
-    const loadPromise = this.loadQuestionFromExamples(questionName);
+    const loadPromise = this.loadCustomQuestion(questionName);
     this.loadingPromises.set(questionName, loadPromise);
 
     try {
@@ -57,15 +61,15 @@ class QuestionLoaderModule {
   }
 
   /**
-   * Load question from the examples/questions directory
+   * Load question from the customizations/questions directory
    */
-  private async loadQuestionFromExamples(
+  private async loadCustomQuestion(
     questionName: string,
   ): Promise<QuestionModule> {
     try {
-      // Use relative path to examples/questions directory, specifically index.ts
+      // Use relative path to customizations/questions directory, specifically index.ts
       const questionModule = await import(
-        `../../examples/questions/${questionName}/index.ts`
+        `@/${QUESTIONS_DIR}/${questionName}/index.ts`
       );
       const question = questionModule.default || questionModule;
 
@@ -93,6 +97,10 @@ class QuestionLoaderModule {
    */
   getLoadedQuestions(): string[] {
     return Array.from(this.loadedQuestions.keys());
+  }
+
+  public get customQuestions(): string[] {
+    return customQuestions;
   }
 
   /**

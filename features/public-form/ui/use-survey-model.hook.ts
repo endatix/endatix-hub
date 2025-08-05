@@ -4,7 +4,6 @@ import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
-import { discoveredQuestions } from '@/lib/questions/all-questions';
 
 export function useSurveyModel(
   definition: string,
@@ -24,16 +23,14 @@ export function useSurveyModel(
         if (customQuestions?.length) {
           initializeCustomQuestions(customQuestions);
         }
-
         // Load dynamic questions from form metadata
-        const dynamicQuestions = discoveredQuestions;
-        for (const questionName of dynamicQuestions) {
+        for (const questionName of questionLoaderModule.customQuestions) {
           try {
             await questionLoaderModule.loadQuestion(questionName);
-            console.debug(`✅ Loaded dynamic question: ${questionName}`);
+            console.debug(`✅ Loaded custom question: ${questionName}`);
           } catch (error) {
             console.warn(
-              `⚠️ Failed to load dynamic question: ${questionName}`,
+              `⚠️ Failed to load custom question: ${questionName}`,
               error,
             );
           }

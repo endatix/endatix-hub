@@ -422,15 +422,14 @@ function FormEditor({
           result.value.map((q) => q.jsonData),
         );
 
-        // Load dynamic questions using our simple loader
-        const dynamicQuestions = ["scandit"]; // Could be configurable
-        for (const questionName of dynamicQuestions) {
+        // Load dynamic questions using greedy loading strategy (load all custom questions for now)
+        for (const questionName of questionLoaderModule.customQuestions) {
           try {
             await questionLoaderModule.loadQuestion(questionName);
-            console.debug(`✅ Loaded dynamic question: ${questionName}`);
+            console.debug(`✅ Loaded custom question: ${questionName}`);
           } catch (error) {
             console.warn(
-              `⚠️ Failed to load dynamic question: ${questionName}`,
+              `⚠️ Failed to load custom question: ${questionName}`,
               error,
             );
           }
