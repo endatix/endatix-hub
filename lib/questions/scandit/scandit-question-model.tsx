@@ -8,7 +8,9 @@ export class ScanditQuestionModel extends Question {
   }
 }
 
-function ScanditComponent({ question }: any) {
+function ScanditComponent({ question }: { question: ScanditQuestionModel }) {
+  console.log("ScanditComponent", question);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (inputRef.current) {
@@ -22,8 +24,8 @@ function ScanditComponent({ question }: any) {
         inputRef.current.value = event.data;
       }
     };
-    (document as any).addEventListener("message", handler);
-    return () => (document as any).removeEventListener("message", handler);
+    (document as unknown as Document).addEventListener("message", handler as EventListener);
+    return () => (document as unknown as Document).removeEventListener("message", handler as EventListener);
   }, []);
 
   const handleClick = () => {

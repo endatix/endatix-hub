@@ -51,7 +51,7 @@ async function testSimpleApproach() {
     console.log('   Title:', question.title);
     console.log('   Category:', question.category);
   } catch (error) {
-    console.log('⚠️  Could not load question (server may not be running):', error.message);
+    console.log('⚠️  Could not load question (server may not be running):', error as Error);
   }
 
   console.log('\n🎉 Simple Approach Summary:');
