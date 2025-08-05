@@ -25,7 +25,7 @@ export const generateKeycloakLogoutUrl = (
 };
 
 export default function SignOutButton({ name }: SignOutProps) {
-  console.log("name", name);
+  console.debug("name", name);
 
   return (
     <Link

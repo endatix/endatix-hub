@@ -1,16 +1,89 @@
 import { JWT } from "next-auth/jwt";
-import { Session } from "next-auth";
-import { Account, User } from "next-auth";
-import { IAuthProvider, AUTH_PROVIDER_NAMES } from "./auth-providers";
+import { Session, Account, User } from "next-auth";
+import {
+  IAuthProvider,
+  AUTH_PROVIDER_NAMES,
+  AuthProviderName,
+} from "./auth-providers";
+import { AuthenticationRequest } from "../shared/auth.types";
+import { authenticate } from "@/services/api";
+import { AuthenticationRequestSchema } from "../shared/auth.schemas";
+import Credentials from "next-auth/providers/credentials";
+import { Provider } from "next-auth/providers";
 
-// Extend the User type to include our custom properties
-interface ExtendedUser extends User {
-  accessToken?: string;
-  refreshToken?: string;
-}
+const ENDATIX_AUTH_PROVIDER: AuthProviderName = AUTH_PROVIDER_NAMES.ENDATIX;
 
 export class EndatixAuthProvider implements IAuthProvider {
-  readonly name = AUTH_PROVIDER_NAMES.ENDATIX;
+  readonly name: AuthProviderName = ENDATIX_AUTH_PROVIDER;
+
+  
+  /**
+   * Registers the Endatix credentials provider with the NextAuth providers array.
+   *
+   * @param providers - The array of NextAuth providers to register with.
+   */
+  public static register(providers: Provider[]): void {
+    if (!providers) {
+      return;
+    }
+
+    providers.push(
+      Credentials({
+        id: ENDATIX_AUTH_PROVIDER,
+        name: ENDATIX_AUTH_PROVIDER,
+        type: "credentials",
+        credentials: {
+          email: {
+            label: "Email",
+            type: "text",
+            placeholder: "john.doe@example.com",
+          },
+          password: { label: "Password", type: "password" },
+        },
+        authorize: async (credentials) => {
+          try {
+            const validatedFields = AuthenticationRequestSchema.safeParse({
+              email: credentials.email,
+              password: credentials.password,
+            });
+
+            if (!validatedFields.success) {
+              console.error(
+                "Invalid credentials:",
+                validatedFields.error.flatten().fieldErrors,
+              );
+              return null;
+            }
+
+            const authRequest: AuthenticationRequest = {
+              email: validatedFields.data.email,
+              password: validatedFields.data.password,
+            };
+
+            const authenticationResponse = await authenticate(authRequest);
+
+            if (!authenticationResponse) {
+              console.error("Authentication failed: No response from API");
+              return null;
+            }
+
+            const user: User = {
+              id: authenticationResponse.email,
+              email: authenticationResponse.email,
+              name: authenticationResponse.email,
+              accessToken: authenticationResponse.accessToken,
+              refreshToken: authenticationResponse.refreshToken,
+            };
+
+            return user;
+          } catch (error) {
+            console.error("Authentication error:", error);
+            return null;
+          }
+        },
+      }),
+    );
+  }
 
   async handleJWT(params: {
     token: JWT;
@@ -21,11 +94,10 @@ export class EndatixAuthProvider implements IAuthProvider {
     const { token, user, account } = params;
 
     if (user && account?.provider === this.name) {
-      const extendedUser = user as ExtendedUser;
-      token.accessToken = extendedUser.accessToken;
-      token.refreshToken = extendedUser.refreshToken;
-      token.email = extendedUser.email;
-      token.name = extendedUser.name || extendedUser.email;
+      token.accessToken = user.accessToken;
+      token.refreshToken = user.refreshToken;
+      token.email = user.email;
+      token.name = user.name || user.email;
       token.provider = this.name;
     }
 

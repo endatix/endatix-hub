@@ -1,7 +1,7 @@
 import { signOut } from "@/auth";
 
 export const GET = async (req: Request) => {
-  console.log("req", req);
+  console.debug("req", req);
   
   await signOut({
     redirect: true,

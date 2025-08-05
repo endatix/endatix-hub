@@ -12,7 +12,7 @@ export type AuthProviderName = typeof AUTH_PROVIDER_NAMES[keyof typeof AUTH_PROV
 
 export interface IAuthProvider {
   readonly name: AuthProviderName;
-  
+
   handleJWT(params: {
     token: JWT;
     user?: User;
@@ -21,8 +21,6 @@ export interface IAuthProvider {
   }): Promise<JWT>;
 
   handleSession(params: { session: Session; token: JWT }): Promise<Session>;
-
-  validateSetup?(config: any): Promise<boolean>;
 }
 
 export interface IAuthProviderRouter {

@@ -9,14 +9,21 @@ import {
 } from "./features/auth/infrastructure";
 
 const authRouter = new AuthProviderRouter();
-authRouter.registerProvider(AUTH_PROVIDER_NAMES.ENDATIX, new EndatixAuthProvider());
-authRouter.registerProvider(AUTH_PROVIDER_NAMES.KEYCLOAK, new KeycloakAuthProvider());
+authRouter.registerProvider(
+  AUTH_PROVIDER_NAMES.ENDATIX,
+  new EndatixAuthProvider(),
+);
+authRouter.registerProvider(
+  AUTH_PROVIDER_NAMES.KEYCLOAK,
+  new KeycloakAuthProvider(),
+);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: createAuthProviders(),
   callbacks: {
     async jwt({ token, user, account, trigger }) {
-      const provider = (account?.provider || token.provider) as AuthProviderName;
+      const provider = (account?.provider ||
+        token.provider) as AuthProviderName;
 
       if (provider && authRouter.hasProvider(provider)) {
         const authProvider = authRouter.getProvider(provider);

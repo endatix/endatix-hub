@@ -1,100 +1,23 @@
-import Keycloak from "next-auth/providers/keycloak";
-import Credentials from "next-auth/providers/credentials";
+import { Provider } from "next-auth/providers";
 import { getAuthConfig, getEnabledProviders } from "../../config/auth-config";
-import { authenticate } from "../../../services/api";
-import { AuthenticationRequest, AuthenticationRequestSchema } from "..";
 import { AUTH_PROVIDER_NAMES } from "./auth-providers";
+import { EndatixAuthProvider } from "./endatix-auth-provider";
+import { KeycloakAuthProvider } from "./keycloak-auth-provider";
 
 export function createAuthProviders() {
   const config = getAuthConfig();
   const enabledProviders = getEnabledProviders();
-  const providers: Array<
-    ReturnType<typeof Credentials> | ReturnType<typeof Keycloak>
-  > = [];
+  const providers: Provider[] = [];
 
   if (enabledProviders.includes(AUTH_PROVIDER_NAMES.ENDATIX)) {
-    providers.push(
-      Credentials({
-        id: AUTH_PROVIDER_NAMES.ENDATIX,
-        name: AUTH_PROVIDER_NAMES.ENDATIX,
-        type: "credentials",
-        credentials: {
-          email: {
-            label: "Email",
-            type: "text",
-            placeholder: "john.doe@example.com",
-          },
-          password: { label: "Password", type: "password" },
-        },
-        authorize: async (credentials) => {
-          try {
-            const validatedFields = AuthenticationRequestSchema.safeParse({
-              email: credentials.email,
-              password: credentials.password,
-            });
-
-            if (!validatedFields.success) {
-              console.error(
-                "Invalid credentials:",
-                validatedFields.error.flatten().fieldErrors,
-              );
-              return null;
-            }
-
-            const authRequest: AuthenticationRequest = {
-              email: validatedFields.data.email,
-              password: validatedFields.data.password,
-            };
-
-            // Authenticate against the Endatix API
-            const authenticationResponse = await authenticate(authRequest);
-
-            if (!authenticationResponse) {
-              console.error("Authentication failed: No response from API");
-              return null;
-            }
-
-            return {
-              id: authenticationResponse.email,
-              email: authenticationResponse.email,
-              name: authenticationResponse.email,
-              accessToken: authenticationResponse.accessToken,
-              refreshToken: authenticationResponse.refreshToken,
-            };
-          } catch (error) {
-            console.error("Authentication error:", error);
-            return null;
-          }
-        },
-      }),
-    );
+    EndatixAuthProvider.register(providers);
   }
 
-  // Add Keycloak provider if enabled and configured
   if (
     enabledProviders.includes(AUTH_PROVIDER_NAMES.KEYCLOAK) &&
     config.providers.keycloak.enabled
   ) {
-    const keycloakConfig = config.providers.keycloak;
-
-    if (!keycloakConfig.clientId || !keycloakConfig.clientSecret) {
-      console.warn(
-        "Keycloak is enabled but missing required configuration (clientId, clientSecret)",
-      );
-    } else {
-      providers.push(
-        Keycloak({
-          clientId: keycloakConfig.clientId,
-          clientSecret: keycloakConfig.clientSecret,
-          issuer: keycloakConfig.issuer,
-          authorization: {
-            params: {
-              scope: keycloakConfig.scope || "openid email profile",
-            },
-          },
-        }),
-      );
-    }
+    KeycloakAuthProvider.register(providers);
   }
 
   return providers;
