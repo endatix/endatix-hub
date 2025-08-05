@@ -1,199 +1,241 @@
-# Endatix Auth System
+# Endatix Authentication System
 
-Flexible authentication system for Endatix Hub with environment-based configuration and extensible provider architecture.
+A flexible, extensible authentication system built on NextAuth.js with support for multiple providers and easy customization.
 
-## Quick Start
+## Architecture Overview
 
-### Environment Variables
+The system uses a **Provider Registry** pattern that allows for:
+
+- **Easy provider registration** - Add any auth provider with a simple API
+- **Type-safe provider handling** - Full TypeScript support
+- **Environment-based configuration** - Enable/disable providers via env vars
+- **Clean separation of concerns** - Provider config vs callback handling
+
+## Getting Started
+
+### Simple Provider Registration
+
+The system provides a pre-configured registry with built-in providers already registered:
+
+```typescript
+// hub/auth.ts (Template)
+import NextAuth from "next-auth";
+import { authRegistry } from "./features/auth/infrastructure/registry";
+import { createAuthConfig } from "./features/auth/infrastructure/config-factory";
+
+// TODO: Add your custom providers here
+// import { GitHubAuthProvider } from "./features/auth/infrastructure/github-auth-provider";
+// authRegistry.register(new GitHubAuthProvider());
+
+// Create NextAuth configuration from registry
+const authConfig = createAuthConfig(authRegistry);
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
+});
+```
+
+**To customize:**
+1. Import your custom provider
+2. Register it with `authRegistry.register(new MyProvider())`
+3. Add environment variables
+4. Done!
+
+## Built-in Providers
+
+### Endatix (Credentials)
+
+Always enabled as the fallback authentication method.
+
+**Environment Variables:**
+
+- No configuration required (built-in)
+
+### Keycloak (OIDC)
+
+Enterprise SSO provider for organizational deployments.
+
+**Environment Variables:**
 
 ```bash
-# Session Configuration (Required)
-SESSION_SECRET=your-super-secret-key-here
-SESSION_MAX_AGE=86400
-
-# Keycloak Configuration (Optional)
 KEYCLOAK_ENABLED=true
-KEYCLOAK_CLIENT_ID=your-keycloak-client-id
-KEYCLOAK_CLIENT_SECRET=your-keycloak-client-secret
-KEYCLOAK_ISSUER=https://your-keycloak-instance/auth/realms/your-realm
-KEYCLOAK_SCOPE=openid email profile
+KEYCLOAK_CLIENT_ID=your-client-id
+KEYCLOAK_CLIENT_SECRET=your-client-secret
+KEYCLOAK_ISSUER=https://your-keycloak.com/realms/your-realm
+# Optional overrides:
+KEYCLOAK_AUTHORIZATION_URL=https://custom-auth-url
+KEYCLOAK_TOKEN_URL=https://custom-token-url
+KEYCLOAK_USERINFO_URL=https://custom-userinfo-url
+KEYCLOAK_SCOPE="openid email profile custom-scope"
 ```
 
-### Environment Variable Validation
+## Adding Custom Providers
 
-The system validates required environment variables at startup:
-
-- **SESSION_SECRET** - Required for session encryption
-- **Keycloak variables** - Required only if `KEYCLOAK_ENABLED=true`
-
-### Programmatic Configuration
+### 1. Implement IAuthProvider
 
 ```typescript
-// next.config.ts
-import { withEndatix } from "./features/config/with-endatix";
+import { IAuthProvider, JWTParams, SessionParams } from "./types";
+import MyProvider from "next-auth/providers/my-provider";
 
-const authConfig = {
-  auth: {
-    providers: {
-      endatix: { enabled: true },
-      keycloak: {
-        enabled: process.env.KEYCLOAK_ENABLED === "true",
-        clientId: process.env.KEYCLOAK_CLIENT_ID!,
-        clientSecret: process.env.KEYCLOAK_CLIENT_SECRET!,
-        issuer: process.env.KEYCLOAK_ISSUER!,
-        // Custom scope with additional permissions
-        scope: process.env.KEYCLOAK_SCOPE || "openid email profile roles",
-        // Custom authorization URL for specific realm
-        authorizationUrl: process.env.KEYCLOAK_AUTHORIZATION_URL,
-        // Custom token URL for load-balanced setup
-        tokenUrl: process.env.KEYCLOAK_TOKEN_URL,
-      },
-    },
-    session: {
-      secret: process.env.SESSION_SECRET!,
-      // Extended session duration for SSO
-      maxAge: parseInt(process.env.SESSION_MAX_AGE || "604800"), // 7 days
-    },
-  },
-};
+export class MyCustomProvider implements IAuthProvider {
+  readonly id = "my-provider";
+  readonly name = "My Provider";
+  readonly type = "oauth" as const;
 
-export default withEndatix(nextConfig, authConfig);
-```
-
-## Architecture
-
-### Core Components
-
-- **IAuthProvider Interface** - Contract for all authentication providers
-- **AuthProviderRouter** - Routes authentication calls to appropriate providers
-- **Provider Implementations** - Individual classes for each authentication provider
-
-### Current Providers
-
-- **EndatixAuthProvider** - Username/password authentication against Endatix API
-- **KeycloakAuthProvider** - OAuth2 flow with Keycloak identity provider
-
-## Adding a New Provider
-
-### Custom Providers (Coming Soon)
-
-The ability to add custom authentication providers will be available in a future release. This will include:
-
-- **Provider Factory Pattern** - Easy registration of custom providers
-- **Extensible Configuration** - Add providers via configuration
-- **NPM Package Support** - Ship as `@endatix/auth` package
-- **Type-Safe Extensions** - Full TypeScript support for custom providers
-
-### Current Supported Providers
-
-- **EndatixAuthProvider** - Username/password authentication against Endatix API (provider: "endatix")
-- **KeycloakAuthProvider** - OAuth2 flow with Keycloak identity provider (provider: "keycloak")
-
-### Provider Validation
-
-Providers can implement optional validation to ensure proper configuration:
-
-```typescript
-// Example: Keycloak provider validation
-export class KeycloakAuthProvider implements IAuthProvider {
-  async validateSetup(config: KeycloakConfig): Promise<boolean> {
-    if (config.enabled) {
-      if (!config.clientId || !config.clientSecret || !config.issuer) {
-        throw new Error("Keycloak enabled but missing required configuration");
-      }
-
-      // Validate issuer URL format
-      try {
-        new URL(config.issuer);
-      } catch {
-        throw new Error("Invalid Keycloak issuer URL");
-      }
-    }
-
-    return true;
+  getProviderConfig() {
+    return MyProvider({
+      id: this.id,
+      name: this.name,
+      clientId: process.env.MY_PROVIDER_CLIENT_ID,
+      clientSecret: process.env.MY_PROVIDER_CLIENT_SECRET,
+    });
   }
 
-  // ... other methods
+  validateConfig(): boolean {
+    return (
+      process.env.MY_PROVIDER_ENABLED === "true" &&
+      !!process.env.MY_PROVIDER_CLIENT_ID &&
+      !!process.env.MY_PROVIDER_CLIENT_SECRET
+    );
+  }
+
+  async handleJWT(params: JWTParams) {
+    // Handle JWT token processing
+    return params.token;
+  }
+
+  async handleSession(params: SessionParams) {
+    // Handle session data
+    return params.session;
+  }
 }
 ```
 
-### Future Use Case Example
+### 2. Register the Provider
+
+Update `auth.ts`:
 
 ```typescript
-// Future implementation (not yet supported)
-import { createEndatixAuth } from "@endatix/auth";
-import GitHub from "next-auth/providers/github";
+import { MyCustomProvider } from "./features/auth/infrastructure/my-custom-provider";
 
-export const { handlers, signIn, signOut, auth } = createEndatixAuth({
-  providers: [
-    {
-      name: "github",
-      provider: GitHub({
-        clientId: process.env.GITHUB_CLIENT_ID!,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      }),
-      handler: new GitHubAuthProvider(),
-    },
-  ],
-});
+// Add to registry
+authRegistry.register(new MyCustomProvider());
 ```
 
-### Recommended Practices
-
-#### Environment Variables
-
-Always use environment variables for sensitive configuration:
+### 3. Environment Configuration
 
 ```bash
-# .env.local
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
+MY_PROVIDER_ENABLED=true
+MY_PROVIDER_CLIENT_ID=your-client-id
+MY_PROVIDER_CLIENT_SECRET=your-client-secret
 ```
 
-#### Configuration Validation
+## Extending Built-in Providers
 
-Validate required environment variables:
+You can extend existing providers to customize behavior:
 
 ```typescript
-// Validate required env vars
-if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
-  throw new Error("GitHub OAuth credentials not configured");
+export class CustomKeycloakProvider extends KeycloakAuthProvider {
+  getProviderConfig() {
+    return {
+      ...super.getProviderConfig(),
+      // Custom overrides
+      authorization: {
+        params: {
+          scope: "custom-scope additional-permissions",
+        },
+      },
+    };
+  }
+
+  async handleJWT(params: JWTParams) {
+    const token = await super.handleJWT(params);
+
+    // Add custom JWT processing
+    if (params.account?.provider === this.id) {
+      token.customField = "custom-value";
+    }
+
+    return token;
+  }
+}
+
+// Register the extended provider
+authRegistry.register(new CustomKeycloakProvider());
+```
+
+## Docker Compose Configuration
+
+```yaml
+services:
+  endatix-hub:
+    environment:
+      # Endatix (always enabled)
+
+      # Keycloak
+      - KEYCLOAK_ENABLED=true
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}
+
+      # Custom provider
+      - GITHUB_ENABLED=true
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+```
+
+## Key Interfaces
+
+### IAuthProvider
+
+The core interface all providers must implement:
+
+```typescript
+interface IAuthProvider {
+  readonly id: string; // Unique provider ID
+  readonly name: string; // Display name
+  readonly type: "credentials" | "oauth" | "oidc" | "email";
+
+  getProviderConfig(): Provider; // NextAuth provider config
+  handleJWT(params: JWTParams): Promise<JWT>; // Token processing
+  handleSession(params: SessionParams): Promise<Session>; // Session handling
+  validateConfig?(): boolean; // Optional: check if enabled
 }
 ```
 
-#### Conditional Provider Loading
+### authRegistry
 
-Only load providers when properly configured:
+Pre-configured registry with built-in providers:
 
 ```typescript
-const providers = [];
+import { authRegistry } from "./features/auth/infrastructure/registry";
 
-if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-  providers.push({
-    name: "github",
-    provider: GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    }),
-    handler: new GitHubAuthProvider(),
-  });
-}
+// Add custom providers
+authRegistry.register(new MyProvider());
 
-export const { handlers, signIn, signOut, auth } = createEndatixAuth({
-  providers,
-});
+// Check enabled providers
+const enabledProviders = authRegistry.getEnabledProviderIds();
 ```
+
+## Examples
+
+See `examples/` folder for complete provider implementations:
+
+- `github-auth-provider.example.ts` - OAuth provider example
+
+## Migration Guide
+
+If upgrading from the old system:
+
+1. **Provider constants** - Replace `AUTH_PROVIDER_NAMES.ENDATIX` with `'endatix'`
+2. **Provider registration** - Use `authRegistry.register()` instead of static register methods
+3. **Callback handling** - Handled automatically by the registry system
 
 ## Benefits
 
-- **Environment-based configuration** - Configure via environment variables
-- **Extensible architecture** - Easy to add new auth providers
-- **Type safety** - Full TypeScript support
-- **Clean separation** - Each provider handles its own logic
-- **Sensible defaults** - Works out of the box with minimal configuration
-
-## Troubleshooting
-
-- **Keycloak not working**: Ensure `KEYCLOAK_ENABLED=true` and all required env vars are set
-- **Session issues**: Verify `SESSION_SECRET` is set and unique
-- **Provider not loading**: Check environment variables and browser console for errors
+- **Simplicity** - Clean, minimal API for adding providers
+- **Flexibility** - Support any NextAuth provider + custom logic
+- **Type Safety** - Full TypeScript support throughout
+- **Environment Driven** - Easy Docker/Kubernetes deployment
+- **Extensibility** - Extend built-in providers or create custom ones
+- **Maintainability** - Clear separation of concerns

@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { KeycloakSignInButton } from "./keycloak-signin-button";
 import { getEnabledProviders } from "@/features/config/auth-config";
-import { AUTH_PROVIDER_NAMES } from "@/features/auth/infrastructure/auth-providers";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -52,7 +51,7 @@ const LoginForm = () => {
 
     startTransition(async () => {
       try {
-        const result = await signIn(AUTH_PROVIDER_NAMES.ENDATIX, {
+        const result = await signIn("endatix", {
           email,
           password,
           redirect: false,
@@ -144,7 +143,7 @@ const LoginForm = () => {
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           Sign in with email
         </Button>
-        {getEnabledProviders().includes(AUTH_PROVIDER_NAMES.KEYCLOAK) && (
+        {getEnabledProviders().includes("keycloak") && (
           <>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

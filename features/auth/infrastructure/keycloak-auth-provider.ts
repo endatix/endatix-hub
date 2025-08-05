@@ -1,66 +1,62 @@
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
-import { Account, User } from "next-auth";
-import {
-  IAuthProvider,
-  AUTH_PROVIDER_NAMES,
-  AuthProviderName,
-} from "./auth-providers";
+import { IAuthProvider, JWTParams, SessionParams } from "./types";
 import Keycloak from "next-auth/providers/keycloak";
 import { Provider } from "next-auth/providers";
 
-const KEYCLOAK_AUTH_PROVIDER: AuthProviderName = AUTH_PROVIDER_NAMES.KEYCLOAK;
+export const KEYCLOAK_ID = "keycloak";
 
 export class KeycloakAuthProvider implements IAuthProvider {
-  readonly name = AUTH_PROVIDER_NAMES.KEYCLOAK;
+  readonly id = KEYCLOAK_ID;
+  readonly name = "Keycloak";
+  readonly type = "oidc" as const;
 
-  /**
-   * Registers the Keycloak provider with the NextAuth providers array.
-   *
-   * @param providers - The array of NextAuth providers to register with.
-   */
-  public static register(providers: Provider[]): void {
-    if (!providers) {
-      return;
-    }
-
-    providers.push(
-      Keycloak({
-        id: KEYCLOAK_AUTH_PROVIDER,
-        name: KEYCLOAK_AUTH_PROVIDER,
-        clientId: process.env.KEYCLOAK_CLIENT_ID || "",
-        clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || "",
-        issuer: process.env.KEYCLOAK_ISSUER,
-        authorization: {
-          url: process.env.KEYCLOAK_AUTHORIZATION_URL,
-          params: {
-            scope: process.env.KEYCLOAK_SCOPE || "openid email profile",
-          },
+  getProviderConfig(): Provider {
+    return Keycloak({
+      id: this.id,
+      name: this.name,
+      clientId: process.env.KEYCLOAK_CLIENT_ID || "",
+      clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || "",
+      issuer: process.env.KEYCLOAK_ISSUER,
+      authorization: {
+        url: process.env.KEYCLOAK_AUTHORIZATION_URL,
+        params: {
+          scope: process.env.KEYCLOAK_SCOPE || "openid email profile",
         },
-        token: {
-          url: process.env.KEYCLOAK_TOKEN_URL,
-        },
-        userinfo: {
-          url: process.env.KEYCLOAK_USERINFO_URL,
-        },
-      }),
-    );
+      },
+      token: {
+        url: process.env.KEYCLOAK_TOKEN_URL,
+      },
+      userinfo: {
+        url: process.env.KEYCLOAK_USERINFO_URL,
+      },
+    });
   }
 
-  async handleJWT({
-    token,
-    user,
-    account,
-  }: {
-    token: JWT;
-    user?: User;
-    account?: Account;
-    trigger?: "signIn" | "signUp" | "update";
-  }): Promise<JWT> {
-    if (account?.provider === this.name) {
+  validateConfig(): boolean {
+    // Check if Keycloak is enabled and has required configuration
+    const isEnabled = process.env.KEYCLOAK_ENABLED === "true";
+    const hasRequiredConfig = !!(
+      process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET
+    );
+
+    if (isEnabled && !hasRequiredConfig) {
+      console.warn(
+        "Keycloak is enabled but missing required configuration (clientId, clientSecret)",
+      );
+      return false;
+    }
+
+    return isEnabled;
+  }
+
+  async handleJWT(params: JWTParams): Promise<JWT> {
+    const { token, user, account } = params;
+
+    if (account?.provider === this.id) {
       token.accessToken = account.access_token;
       token.refreshToken = account.refresh_token;
-      token.provider = this.name;
+      token.provider = this.id;
     }
 
     if (user) {
@@ -72,13 +68,9 @@ export class KeycloakAuthProvider implements IAuthProvider {
     return token;
   }
 
-  async handleSession({
-    session,
-    token,
-  }: {
-    session: Session;
-    token: JWT;
-  }): Promise<Session> {
+  async handleSession(params: SessionParams): Promise<Session> {
+    const { session, token } = params;
+
     session.accessToken = token.accessToken as string;
     session.user = {
       ...session.user,
