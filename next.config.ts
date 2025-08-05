@@ -10,18 +10,16 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: "standalone", // Used to decrease the size of the application, check https://nextjs.org/docs/pages/api-reference/next-config-js/output
   reactStrictMode: true,
+  turbopack: {
+    resolveAlias: {
+      questions: "./lib/questions/question-loader-module.ts",
+    },
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "20mb",
     },
     authInterrupts: true,
-    // Enable Turbopack for better performance and simpler configuration
-    turbo: {
-      resolveAlias: {
-        // Static alias for question loading module
-        questions: "./lib/questions/question-loader-module.ts",
-      },
-    },
   },
   images: {
     remotePatterns: [],

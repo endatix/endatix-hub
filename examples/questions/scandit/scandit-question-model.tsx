@@ -29,7 +29,6 @@ function ScanditComponent({ question }: { question: ScanditQuestionModel }) {
   }, []);
 
   const handleClick = () => {
-    console.log("handleClick");
     if (window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage("Scandit requested");
     }
