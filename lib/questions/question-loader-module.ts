@@ -12,8 +12,6 @@ interface QuestionModule {
   model?: unknown;
 }
 
-const QUESTIONS_DIR = "customizations/questions";
-
 /**
  * Dynamic question loader that works with Turbopack's static alias resolution
  */
@@ -66,7 +64,7 @@ class QuestionLoaderModule {
     try {
       // Use relative path to customizations/questions directory, specifically index.ts
       const questionModule = await import(
-        `@/${QUESTIONS_DIR}/${questionName}/index.ts`
+        `@/customizations/questions/${questionName}/index.ts`
       );
       const question = questionModule.default || questionModule;
 

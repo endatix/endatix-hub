@@ -1,6 +1,6 @@
 import { Question } from "survey-core";
-import { ReactElementFactory } from "survey-react-ui";
 import { useEffect, useRef } from "react";
+import { ReactElementFactory } from "survey-react-ui";
 
 export class ScanditQuestionModel extends Question {
   getType() {
@@ -14,7 +14,7 @@ function ScanditComponent({ question }: { question: ScanditQuestionModel }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (inputRef.current) {
-    inputRef.current.value ="";
+    inputRef.current.value = "";
   }
 
   useEffect(() => {
@@ -24,8 +24,15 @@ function ScanditComponent({ question }: { question: ScanditQuestionModel }) {
         inputRef.current.value = event.data;
       }
     };
-    (document as unknown as Document).addEventListener("message", handler as EventListener);
-    return () => (document as unknown as Document).removeEventListener("message", handler as EventListener);
+    (document as unknown as Document).addEventListener(
+      "message",
+      handler as EventListener,
+    );
+    return () =>
+      (document as unknown as Document).removeEventListener(
+        "message",
+        handler as EventListener,
+      );
   }, []);
 
   const handleClick = () => {
@@ -42,4 +49,6 @@ function ScanditComponent({ question }: { question: ScanditQuestionModel }) {
   );
 }
 
-ReactElementFactory.Instance.registerElement("scandit", props => <ScanditComponent {...props} />);
+ReactElementFactory.Instance.registerElement("scandit", (props) => (
+  <ScanditComponent {...props} />
+));
