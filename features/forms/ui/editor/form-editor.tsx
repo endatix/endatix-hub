@@ -42,7 +42,6 @@ import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
-import "@/lib/questions/infrastructure/custom-questions";
 import "@/lib/questions/scandit/register-custom-question";
 
 Serializer.addProperty("theme", {
@@ -656,7 +655,7 @@ function FormEditor({
         </div>
         <div className="flex items-center gap-2">
           {(hasUnsavedChanges || isCurrentThemeModified) && (
-              <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
+            <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
               Unsaved changes
             </span>
           )}
