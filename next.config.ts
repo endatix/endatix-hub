@@ -18,8 +18,8 @@ const nextConfig: NextConfig = {
     // Enable Turbopack for better performance and simpler configuration
     turbo: {
       resolveAlias: {
-        // Simple alias for dynamic question imports
-        questions: "./examples/questions",
+        // Static alias for question loading module
+        questions: "./lib/questions/question-loader-module.ts",
       },
     },
   },

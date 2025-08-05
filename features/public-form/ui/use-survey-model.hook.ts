@@ -3,27 +3,57 @@ import { Model } from "survey-core";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
+import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 
 export function useSurveyModel(
   definition: string,
   submission?: Submission,
   customQuestions?: string[],
 ) {
-  if (customQuestions?.length) {
-    initializeCustomQuestions(customQuestions);
-  }
-
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const { setFromMetadata } = useDynamicVariables(surveyModel);
 
+  // Load custom questions before creating survey model
   useEffect(() => {
-    if (definition) {
+    const loadQuestions = async () => {
+      try {
+        // Load built-in custom questions
+        if (customQuestions?.length) {
+          initializeCustomQuestions(customQuestions);
+        }
+
+        // Load dynamic questions
+        const dynamicQuestions = ["scandit"]; // Could be configurable
+        for (const questionName of dynamicQuestions) {
+          try {
+            await questionLoaderModule.loadQuestion(questionName);
+            console.debug(`✅ Loaded dynamic question: ${questionName}`);
+          } catch (error) {
+            console.warn(
+              `⚠️ Failed to load dynamic question: ${questionName}`,
+              error,
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error loading questions:", error);
+      } finally {
+        setIsLoadingQuestions(false);
+      }
+    };
+
+    loadQuestions();
+  }, [customQuestions]);
+
+  useEffect(() => {
+    if (definition && !isLoadingQuestions) {
       setSurveyModel(new Model(definition));
-    } else {
+    } else if (!definition) {
       setSurveyModel(null);
     }
-  }, [definition]);
+  }, [definition, isLoadingQuestions]);
 
   useEffect(() => {
     if (submission && surveyModel) {
@@ -40,7 +70,7 @@ export function useSurveyModel(
 
   return {
     surveyModel,
-    isLoading: !surveyModel,
+    isLoading: !surveyModel || isLoadingQuestions,
     error,
   };
 }

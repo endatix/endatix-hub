@@ -42,7 +42,7 @@ import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
-import "@/lib/questions/scandit/register-custom-question";
+import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -412,6 +412,7 @@ function FormEditor({
       }
 
       try {
+        // Load built-in custom questions (from database)
         const result = await getCustomQuestionsAction();
         if (Result.isError(result)) {
           throw new Error(result.message);
@@ -420,6 +421,20 @@ function FormEditor({
         const newQuestionClasses = initializeCustomQuestions(
           result.value.map((q) => q.jsonData),
         );
+
+        // Load dynamic questions using our simple loader
+        const dynamicQuestions = ["scandit"]; // Could be configurable
+        for (const questionName of dynamicQuestions) {
+          try {
+            await questionLoaderModule.loadQuestion(questionName);
+            console.debug(`✅ Loaded dynamic question: ${questionName}`);
+          } catch (error) {
+            console.warn(
+              `⚠️ Failed to load dynamic question: ${questionName}`,
+              error,
+            );
+          }
+        }
 
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);

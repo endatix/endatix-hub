@@ -1,16 +1,14 @@
-import { ScanditQuestionModel } from "./question-model";
-import { registerScanditQuestion } from "./register";
+import { ScanditQuestionModel } from "./scandit-question-model";
+import { createCustomQuestion } from "@/lib/questions/question-factory";
 
 // Default export for dynamic loading
-export default {
-  name: "scandit",
-  title: "Barcode Scanner",
-  iconName: "icon-barcode",
-  category: "custom",
-  register: registerScanditQuestion,
-  model: ScanditQuestionModel,
-};
+const scanditQuestion = createCustomQuestion(
+  "scandit",
+  "Barcode Scanner",
+  ScanditQuestionModel,
+);
+
+export default scanditQuestion;
 
 // Named exports for direct imports
-export { ScanditQuestionModel } from "./question-model";
-export { registerScanditQuestion } from "./register";
+export { ScanditQuestionModel } from "./scandit-question-model";
