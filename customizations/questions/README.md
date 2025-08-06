@@ -6,7 +6,7 @@ This directory contains your custom question implementations.
 
 1. **Copy from examples:**
    ```bash
-   cp -r /examples/questions/scandit ./customizations/questions/
+   cp -r ./examples/questions/scandit ./customizations/questions/
    ```
 
 2. **Questions are automatically discovered and loaded**

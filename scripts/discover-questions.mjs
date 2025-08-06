@@ -58,16 +58,16 @@ export const customQuestions = ${JSON.stringify(questions, null, 2)};
 // Write the file
 fs.writeFileSync(outputFile, content);
 
-console.log(
-  ` 🔎 Found ${questions.length} custom ${
-    questions.length === 1 ? "question" : "questions"
-  }`,
-);
 if (questions.length > 0) {
+  console.log(
+    ` 🔎 Found ${questions.length} custom ${
+      questions.length === 1 ? "question" : "questions"
+    }`,
+  );
   questions.forEach((q) => console.log(`\t- ${q}`));
   console.log(" \x1b[32m✓\x1b[0m custom-questions.ts generated");
 } else {
-  console.log(" 🔎 No questions found");
+  console.log(" 🔎 No custom questions found");
 }
 
 console.log("\n");

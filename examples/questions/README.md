@@ -4,23 +4,21 @@ This directory contains example custom questions to help developers get started.
 
 ## Quick Start
 
-1. **Copy an example question:**
+1. Open a terminal and cd into the hub directory
+
+2. **Copy an example question:**
    ```bash
-   cp -r /examples/questions/scandit /customizations/questions/
+   cp -r ./examples/questions/scandit ./customizations/questions/
    ```
 
-2. **Customize as needed:**
+3. **Customize as needed:**
    - Modify the question logic in `*-question-model.ts`
    - Update the React component in `*-question-component.tsx`
    - Adjust metadata in `index.ts`
 
-3. **Run discovery script:**
-   ```bash
-   pnpm discover-questions
-   ```
-
 4. **Start development:**
    ```bash
+   # This will also run the discovery script and update the custom-questions.ts file
    pnpm dev
    ```
 
