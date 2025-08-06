@@ -3,28 +3,23 @@
 This directory contains example custom questions to help developers get started.
 
 ## Quick Start
+Test the scandit example question:
 
-1. Open a terminal and cd into the hub directory
+1. Open a terminal and cd into the root of the endatix-hub project
 
-2. **Copy an example question:**
+2. Copy the scandit question to the customizations folder:
    ```bash
    cp -r ./examples/questions/scandit ./customizations/questions/
    ```
 
-3. **Customize as needed:**
-   - Modify the question logic in `*-question-model.ts`
-   - Update the React component in `*-question-component.tsx`
-   - Adjust metadata in `index.ts`
-
-4. **Start development:**
+3. Start development:
    ```bash
    # This will also run the discovery script and update the custom-questions.ts file
    pnpm dev
    ```
+For more info on how to create custom questions, see the [customizations/questions/README.md](../../customizations/questions/README.md#development-workflow) section.
 
-## Examples
-
-### Scandit Barcode Scanner
+### Scandit Barcode Scanner Example
 A complete example showing React Native WebView integration for barcode scanning.
 
 **Files:**
@@ -32,6 +27,3 @@ A complete example showing React Native WebView integration for barcode scanning
 - `scandit-question-component.tsx` - React component and registration
 - `index.ts` - Module export and icon registration
 - `README.md` - Usage instructions
-
-**Usage:**
-Copy to your customizations folder and the question will be automatically discovered and available in the form editor one your run `pnpm dev` or `pnpm build`.
