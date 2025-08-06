@@ -694,7 +694,7 @@ function FormEditor({
             </div>
           </div>
         ) : creator ? (
-          <SurveyCreatorComponent key={`creator-${formId}`} creator={creator} />
+          <SurveyCreatorComponent creator={creator} />
         ) : (
           <div>Error loading form editor</div>
         )}
