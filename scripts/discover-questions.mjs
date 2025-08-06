@@ -8,7 +8,10 @@ const __dirname = path.dirname(__filename);
 const QUESTIONS_DIR = "customizations/questions";
 
 const questionsDir = path.join(__dirname, `../${QUESTIONS_DIR}`);
-const outputFile = path.join(__dirname, `../${QUESTIONS_DIR}/custom-questions.ts`);
+const outputFile = path.join(
+  __dirname,
+  `../${QUESTIONS_DIR}/custom-questions.ts`,
+);
 
 // Ensure the output directory exists
 const outputDir = path.dirname(outputFile);
@@ -56,10 +59,15 @@ export const customQuestions = ${JSON.stringify(questions, null, 2)};
 fs.writeFileSync(outputFile, content);
 
 console.log(
-  `  ✅ Generated custom-questions.ts with ${questions.length} questions:`,
+  ` 🔎 Found ${questions.length} custom ${
+    questions.length === 1 ? "question" : "questions"
+  }`,
 );
 if (questions.length > 0) {
-  questions.forEach((q) => console.log(`  - ${q}`));
+  questions.forEach((q) => console.log(`\t- ${q}`));
+  console.log(" \x1b[32m✓\x1b[0m custom-questions.ts generated");
 } else {
-  console.log(`    (no questions found)`);
+  console.log(" 🔎 No questions found");
 }
+
+console.log("\n");
