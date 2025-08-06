@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --turbopack",
-    "dev:inspect": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_OPTIONS='--inspect' next dev --turbo",
-    "dev-https": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --turbo",
-    "build": "next build",
+    "dev": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --turbopack",
+    "dev:inspect": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_OPTIONS='--inspect' next dev --turbopack",
+    "dev-https": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --turbopack",
+    "build": "pnpm discover-questions && next build",
     "build:standalone": "pnpm build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "next start",
     "lint": "next lint",
@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "discover-questions": "node scripts/discover-questions.mjs"
   },
   "dependencies": {
     "@azure/monitor-opentelemetry-exporter": "1.0.0-beta.32",
