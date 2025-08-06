@@ -8,12 +8,12 @@ interface QuestionModule {
   title: string;
   iconName?: string;
   category?: string;
-  register: () => void;
   model?: unknown;
 }
 
 /**
  * Dynamic question loader that works with Turbopack's static alias resolution
+ * Questions are automatically registered when loaded (pure SurveyJS pattern)
  */
 class QuestionLoaderModule {
   private loadedQuestions = new Map<string, QuestionModule>();
@@ -43,10 +43,7 @@ class QuestionLoaderModule {
       this.loadedQuestions.set(questionName, questionModule);
       this.loadingPromises.delete(questionName);
 
-      // Register with SurveyJS if register function exists
-      if (questionModule.register) {
-        questionModule.register();
-      }
+      console.debug(`✅ Loaded custom question: ${questionName}`);
 
       return questionModule;
     } catch (error) {

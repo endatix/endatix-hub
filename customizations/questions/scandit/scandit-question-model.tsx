@@ -1,12 +1,27 @@
-import { Question } from "survey-core";
+import { Question, Serializer, QuestionFactory } from "survey-core";
 import { useEffect, useRef } from "react";
 import { ReactElementFactory } from "survey-react-ui";
 
+export const SCANDIT_QUESTION_TYPE = "scandit";
+
 export class ScanditQuestionModel extends Question {
   getType() {
-    return "scandit";
+    return SCANDIT_QUESTION_TYPE;
   }
 }
+
+// Register model with Serializer (following SurveyJS pattern)
+Serializer.addClass(
+  SCANDIT_QUESTION_TYPE,
+  [],
+  () => new ScanditQuestionModel(""),
+  "question",
+);
+
+// Register model with QuestionFactory (following SurveyJS pattern)
+QuestionFactory.Instance.registerQuestion(SCANDIT_QUESTION_TYPE, (name) => {
+  return new ScanditQuestionModel(name);
+});
 
 function ScanditComponent({ question }: { question: ScanditQuestionModel }) {
   console.log("ScanditComponent", question);
@@ -49,6 +64,7 @@ function ScanditComponent({ question }: { question: ScanditQuestionModel }) {
   );
 }
 
-ReactElementFactory.Instance.registerElement("scandit", (props) => (
+// Register React component (following SurveyJS pattern)
+ReactElementFactory.Instance.registerElement(SCANDIT_QUESTION_TYPE, (props) => (
   <ScanditComponent {...props} />
 ));

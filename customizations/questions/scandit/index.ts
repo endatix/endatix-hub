@@ -1,8 +1,5 @@
 import { SvgRegistry } from "survey-core";
-import {
-  SCANDIT_QUESTION_TYPE,
-  ScanditQuestionModel,
-} from "./scandit-question-model";
+import { SCANDIT_QUESTION_TYPE, ScanditQuestionModel } from "./scandit-question-model";
 import { createCustomQuestion } from "@/lib/questions/question-factory";
 
 const barcodeIcon =
