@@ -84,22 +84,27 @@ function createDefaultRegisterFunction(
 
 /**
  * Helper function to create a question module with common defaults
- * @param name - Question name (e.g., 'scandit')
- * @param title - Question title (e.g., 'Barcode Scanner')
- * @param model - Question model class (optional)
- * @param register - Registration function (optional - will auto-generate if not provided)
+ * @param options - Question configuration options
  * @returns Question module object
+ * 
+ * @example
+ * ```typescript
+ * const myQuestion = createCustomQuestion({
+ *   name: "my-question",
+ *   title: "My Custom Question",
+ *   model: MyQuestionModel,
+ *   iconName: "icon-custom",
+ *   category: "custom"
+ * });
+ * ```
  */
-export function createCustomQuestion(
-  name: string,
-  title: string,
-  model?: unknown,
-  register?: () => void,
-) {
-  return createQuestionModule({
-    name,
-    title,
-    model,
-    register,
-  });
+export function createCustomQuestion(options: {
+  name: string;
+  title: string;
+  model?: unknown;
+  register?: () => void;
+  iconName?: string;
+  category?: string;
+}) {
+  return createQuestionModule(options);
 }
