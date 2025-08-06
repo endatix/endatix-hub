@@ -1,5 +1,3 @@
-import { Serializer, QuestionFactory } from "survey-core";
-
 /**
  * Factory function for creating question modules
  * Ensures consistent structure and provides validation
