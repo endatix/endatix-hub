@@ -3,6 +3,7 @@ import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
+  noIndex: true,
   title: "Endatix Hub Documentation",
   tagline: "Official documentation for Endatix Hub",
   favicon: "img/endatix.svg",
