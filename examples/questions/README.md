@@ -27,3 +27,13 @@ A complete example showing React Native WebView integration for barcode scanning
 - `scandit-question-component.tsx` - React component and registration
 - `index.ts` - Module export and icon registration
 - `README.md` - Usage instructions
+
+### Color Picker Example
+A complete example showing React Color integration for color selection in surveys following the SurveyJS [documentation](https://surveyjs.io/form-library/documentation/customize-question-types/third-party-component-integration-react).
+
+**Files:**
+- `color-picker-icon.tsx` - SVG icon for the question type
+- `color-picker.question-model.ts` - Question model and SurveyJS registration
+- `color-picker.question-component.tsx` - React component and registration
+- `index.ts` - Module export and icon registration
+- `README.md` - Usage instructions
