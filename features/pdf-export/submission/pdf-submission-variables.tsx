@@ -10,15 +10,15 @@ import {
 import { tryParseJson } from "@/lib/utils/type-parsers";
 import { Result } from "@/lib/result";
 
-interface PdfDynamicVariablesProps {
+interface PdfSubmissionVariablesProps {
   surveyModel: Model;
   stringifiedMetadata: string;
 }
 
-export const PdfDynamicVariables = ({
+export const PdfSubmissionVariables = ({
   surveyModel,
   stringifiedMetadata,
-}: PdfDynamicVariablesProps) => {
+}: PdfSubmissionVariablesProps) => {
   let dynamicVariables: DynamicVariables = {};
   const parseResult = tryParseJson<Metadata>(stringifiedMetadata);
   let parsedMetadata: Metadata = {};

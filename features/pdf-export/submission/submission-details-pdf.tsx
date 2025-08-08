@@ -15,7 +15,7 @@ import EyeOffIcon from "@/features/pdf-export/submission/icons/eye-off-icon";
 import { PdfQuestionLabel } from "@/features/pdf-export/submission/pdf-question-label";
 import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions";
-import { PdfDynamicVariables } from "./pdf-dynamic-variables";
+import { PdfSubmissionVariables } from "./pdf-submission-variables";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
 import { PDF_STYLES } from "./pdf-styles";
 
@@ -85,15 +85,15 @@ export const SubmissionDetailsPdf = ({
 
   return (
     <Document>
-      <Page style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <PdfSubmissionProperties submission={submission} />
         <View style={PDF_STYLES.section}>
           <Text style={PDF_STYLES.sectionTitle}>Submission Answers</Text>
-          <PdfDynamicVariables
+          <PdfSubmissionVariables
             surveyModel={surveyModel}
             stringifiedMetadata={submission.metadata}
           />
-          <View style={styles.questions}>
+          <View style={{ marginTop: 8 }}>
             {questions?.map((question) => {
               // Skip non-value questions
               if (question instanceof QuestionNonValue) {
@@ -194,9 +194,6 @@ const styles = StyleSheet.create({
     padding: 20,
     fontSize: 12,
     fontFamily: "Roboto",
-  },
-  questions: {
-    marginTop: 8,
   },
   questionRow: {
     flexDirection: "row",

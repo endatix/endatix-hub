@@ -51,7 +51,7 @@ export const useDynamicVariables = (model: SurveyModel | null) => {
         if (!result.success) {
           return;
         }
-        const variables = result.data.variables;
+        const variables = result.data?.variables || {};
         setVariables(variables);
       } catch (error) {
         console.error("Invalid initial variables:", error);
