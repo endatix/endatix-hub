@@ -61,7 +61,7 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   if (isFullWidthAnswer(question)) {
     rows.push(
       <View key={question.id} style={styles.fullWidthAnswerRow}>
-        <PdfAnswerViewer forQuestion={question} hideTitle />
+        <PdfAnswerViewer forQuestion={question} hideTitle pageBreak={true} />
       </View>,
     );
     return rows;
@@ -89,12 +89,12 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
 
   // Otherwise, render label and answer in two columns
   rows.push(
-    <View key={question.id} style={styles.questionRow}>
+    <View key={question.id} style={styles.questionRow} wrap={true}>
       <View style={styles.labelCol}>
         <PdfQuestionLabel question={question} style={styles.questionLabel} />
       </View>
       <View style={styles.answerCol}>
-        <PdfAnswerViewer forQuestion={question} hideTitle />
+        <PdfAnswerViewer forQuestion={question} hideTitle pageBreak={true} />
       </View>
     </View>,
   );
