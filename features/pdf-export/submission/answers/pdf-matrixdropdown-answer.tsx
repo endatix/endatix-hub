@@ -34,17 +34,22 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
           style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}
           fixed
         >
-          {headerCells.map((cell, index) => (
-            <Text
-              key={index}
-              style={{
-                ...PDF_TABLE_STYLES.tableCellHeader,
-                flex: index === 0 ? 1 : 1.5,
-              }}
-            >
-              {cell.hasTitle ? cell.locTitle?.textOrHtml : ""}
-            </Text>
-          ))}
+          {headerCells.map((cell, index) => {
+            if (cell.isEmpty) {
+              return null;
+            }
+            return (
+              <Text
+                key={index}
+                style={{
+                  ...PDF_TABLE_STYLES.tableCellHeader,
+                  flex: index === 0 ? 1 : 1.5,
+                }}
+              >
+                {cell.hasTitle ? cell.locTitle?.textOrHtml : null}
+              </Text>
+            );
+          })}
         </View>
         {/* Data Rows */}
         {renderedRows.map((row, rowIndex) => (
@@ -61,9 +66,13 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
                   </View>
                 );
               }
+              if (cell.isActionsCell) {
+                return null;
+              }
+
               return (
                 <Text key={cellIndex} style={cellStyle}>
-                  {cell.hasTitle ? cell.locTitle.textOrHtml : ""}
+                  {cell.hasTitle ? cell.locTitle.textOrHtml : null}
                 </Text>
               );
             })}

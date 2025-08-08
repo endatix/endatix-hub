@@ -59,13 +59,8 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   // Full width answer logic
   if (isFullWidthAnswer(question)) {
     rows.push(
-      <View key={question.id} style={styles.questionRow}>
-        <View style={styles.labelCol}>
-          <PdfQuestionLabel question={question} style={styles.questionLabel} />
-        </View>
-        <View style={styles.answerCol}>
-          <PdfAnswerViewer forQuestion={question} hideTitle />
-        </View>
+      <View key={question.id} style={styles.fullWidthAnswerRow}>
+        <PdfAnswerViewer forQuestion={question} hideTitle />
       </View>,
     );
     return rows;
@@ -121,6 +116,10 @@ const styles = StyleSheet.create({
   },
   answerCol: {
     flex: 3,
+    justifyContent: "flex-start",
+  },
+  answerColFullWidth: {
+    flex: 1,
     justifyContent: "flex-start",
   },
   questionLabel: {
