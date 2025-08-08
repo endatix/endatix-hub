@@ -288,7 +288,7 @@ export const VIEWER_STYLES = StyleSheet.create({
     fontFamily: "Roboto-Bold",
     fontSize: 12,
     marginBottom: 4,
-    width: "40%",
+    flexGrow: 1,
   },
   answerText: {
     fontFamily: "Roboto",

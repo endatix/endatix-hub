@@ -62,7 +62,7 @@ export const SubmissionDetailsPdf = ({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap={true}>
         <PdfSubmissionProperties submission={submission} />
         <View style={PDF_STYLES.section}>
           <Text style={PDF_STYLES.sectionTitle}>Submission Answers</Text>

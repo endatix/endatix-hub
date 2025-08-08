@@ -92,6 +92,8 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
   },
   tableRow: {
     flexDirection: "row",
+    alignItems: "stretch",
+    minHeight: 20,
   },
   tableHeader: {
     backgroundColor: "#f0f0f0",
