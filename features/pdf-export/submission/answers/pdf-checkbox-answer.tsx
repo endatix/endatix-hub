@@ -1,5 +1,5 @@
-import { Text, View, StyleSheet } from '@react-pdf/renderer';
-import { ItemValue, QuestionCheckboxModel } from 'survey-core';
+import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { ItemValue, QuestionCheckboxModel } from "survey-core";
 
 interface CheckboxAnswerProps {
   question: QuestionCheckboxModel;
@@ -7,28 +7,28 @@ interface CheckboxAnswerProps {
 
 const styles = StyleSheet.create({
   container: {
-    display: 'flex',
-    flexDirection: 'column',
+    display: "flex",
+    flexDirection: "column",
     gap: 4,
   },
   item: {
-    display: 'flex',
-    flexDirection: 'row',
+    display: "flex",
+    flexDirection: "row",
     gap: 4,
-    alignItems: 'center',
+    alignItems: "center",
   },
   label: {
     fontSize: 10,
-    fontFamily: 'Roboto',
+    fontFamily: "Roboto",
   },
   checkedIndicator: {
     fontSize: 10,
-    fontFamily: 'Roboto-Bold',
+    fontFamily: "Roboto-Bold",
   },
   title: {
     fontSize: 10,
-    fontFamily: 'Roboto-Bold',
-    color: 'gray',
+    fontFamily: "Roboto-Bold",
+    color: "gray",
     marginBottom: 4,
   },
 });

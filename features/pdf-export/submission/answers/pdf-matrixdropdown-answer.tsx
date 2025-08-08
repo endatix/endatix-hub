@@ -1,7 +1,7 @@
 import { Text, View } from "@react-pdf/renderer";
 import { QuestionMatrixDropdownModel } from "survey-core";
-import PdfAnswerViewer, { VIEWER_STYLES } from "./pdf-answer-viewer";
-import { PDF_TABLE_STYLES } from "@/features/pdf-export/components/pdf-styles";
+import PdfAnswerViewer, { VIEWER_STYLES } from "../pdf-answer-viewer";
+import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;

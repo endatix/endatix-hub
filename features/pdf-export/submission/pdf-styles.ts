@@ -98,8 +98,12 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     borderColor: "#c0c0c0",
     borderLeftWidth: 0,
     borderTopWidth: 0,
-    flex: 1,
+    flexShrink: 1,             // Allow column to shrink
+    flexGrow: 1,               // Allow column to grow
+    wordBreak: "break-word",   // Enable text wrapping
+    minWidth: 50,              // Prevent too small columns
   },
+  
   tableCellHeader: {
     fontSize: 10,
     fontFamily: "Roboto-Bold",
@@ -110,7 +114,10 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     borderColor: "#c0c0c0",
     borderLeftWidth: 0,
     borderTopWidth: 0,
-    flex: 1,
+    flexShrink: 1,
+    flexGrow: 1,
+    wordBreak: "break-word",
+    minWidth: 50,
   },
   noAnswer: {
     fontSize: 10,

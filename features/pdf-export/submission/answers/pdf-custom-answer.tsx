@@ -1,6 +1,6 @@
 import React from "react";
 import { QuestionCustomModel, QuestionCompositeModel } from "survey-core";
-import PdfAnswerViewer from "./pdf-answer-viewer";
+import PdfAnswerViewer from "../pdf-answer-viewer";
 import PdfCompositeAnswer from "./pdf-composite-answer";
 
 interface PdfCustomAnswerProps {

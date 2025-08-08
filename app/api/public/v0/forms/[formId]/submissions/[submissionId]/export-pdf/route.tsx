@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SubmissionDataPdf } from "@/components/export/submission-data-pdf";
+import { SubmissionViewPdf } from "@/features/pdf-export/submission/submission-pdf-view";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
 import { pdf } from "@react-pdf/renderer";
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   );
 
   const pdfBlob = await pdf(
-    <SubmissionDataPdf
+    <SubmissionViewPdf
       submission={submission}
       customQuestions={customQuestions}
     />,

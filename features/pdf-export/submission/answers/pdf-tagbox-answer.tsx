@@ -1,6 +1,6 @@
-import { Text, View, StyleSheet } from '@react-pdf/renderer';
-import { ItemValue, Question } from 'survey-core';
-import { VIEWER_STYLES } from './pdf-answer-viewer';
+import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { ItemValue, Question } from "survey-core";
+import { VIEWER_STYLES } from "../pdf-answer-viewer";
 
 interface TagBoxAnswerProps {
   question: Question;
@@ -8,20 +8,20 @@ interface TagBoxAnswerProps {
 
 const styles = StyleSheet.create({
   tagsContainer: {
-    display: 'flex',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    display: "flex",
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 4,
   },
   tag: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     paddingTop: 2,
     paddingBottom: 2,
     paddingLeft: 4,
     paddingRight: 4,
     borderRadius: 4,
     fontSize: 10,
-    fontFamily: 'Roboto',
+    fontFamily: "Roboto",
   },
 });
 
@@ -33,7 +33,9 @@ const PdfTagBoxAnswer = ({ question }: TagBoxAnswerProps) => {
   return (
     <View style={styles.tagsContainer}>
       {question.value.map((value: string) => {
-        const choice = question.choices.find((c: ItemValue) => c.value === value);
+        const choice = question.choices.find(
+          (c: ItemValue) => c.value === value,
+        );
         return (
           <Text key={value} style={styles.tag}>
             {choice?.title || value}
