@@ -1,6 +1,10 @@
-import React from 'react';
-import { Question, QuestionCompositeModel, QuestionNonValue } from 'survey-core';
-import PdfAnswerViewer from './pdf-answer-viewer';
+import React from "react";
+import {
+  Question,
+  QuestionCompositeModel,
+  QuestionNonValue,
+} from "survey-core";
+import PdfAnswerViewer from "../pdf-answer-viewer";
 
 interface PdfCompositeAnswerProps {
   question: QuestionCompositeModel;
@@ -11,8 +15,7 @@ const PdfCompositeAnswer = ({ question }: PdfCompositeAnswerProps) => {
     return null;
   }
 
-  const childQuestions = question
-    ?.contentPanel
+  const childQuestions = question?.contentPanel
     ?.getQuestions(true)
     ?.filter((q: Question) => !(q instanceof QuestionNonValue));
 

@@ -1,6 +1,6 @@
 import { PanelModel, QuestionPanelDynamicModel } from "survey-core";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
-import PdfAnswerViewer, { VIEWER_STYLES } from "./pdf-answer-viewer";
+import PdfAnswerViewer, { VIEWER_STYLES } from "../pdf-answer-viewer";
 
 interface PanelDynamicAnswerProps {
   question: QuestionPanelDynamicModel;

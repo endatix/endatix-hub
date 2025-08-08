@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, StyleSheet, View } from "@react-pdf/renderer";
 import { Question, QuestionCustomModel } from "survey-core";
-import { PDF_STYLES } from "@/features/pdf-export/components/pdf-styles";
+import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { getPanelTitle } from "@/lib/questions";
 
 interface PdfQuestionLabelProps {

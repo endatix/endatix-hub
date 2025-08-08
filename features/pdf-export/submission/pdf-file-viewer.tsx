@@ -6,8 +6,8 @@ import {
   DocumentFileIcon,
   UnknownFileIcon,
   VideoFileIcon,
-} from "@/features/pdf-export/components/icons";
-import { PDF_STYLES } from "@/features/pdf-export/components/pdf-styles";
+} from "@/features/pdf-export/submission/icons";
+import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 
 interface FileViewerProps {
   file: File;

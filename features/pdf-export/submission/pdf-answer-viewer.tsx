@@ -15,18 +15,18 @@ import {
   QuestionCompositeModel,
   QuestionRankingModel,
 } from "survey-core";
-import PdfFileAnswer from "./pdf-file-answer";
+import PdfFileAnswer from "./answers/pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
-import { MessageSquareTextIcon } from "@/features/pdf-export/components/icons";
-import PdfSignaturePadAnswer from "./pdf-signaturepad-answer";
-import PdfPanelDynamicAnswer from "./pdf-paneldynamic-answer";
-import PdfMatrixDropdownAnswer from "./pdf-matrixdropdown-answer";
-import PdfTagBoxAnswer from "./pdf-tagbox-answer";
-import PdfCheckboxAnswer from "./pdf-checkbox-answer";
-import PdfBooleanAnswer from "./pdf-boolean-answer";
-import PdfMatrixAnswer from "./pdf-matrix-answer";
-import PdfCustomAnswer from "./pdf-custom-answer";
-import PdfRankingAnswer from "./pdf-ranking-answer";
+import { MessageSquareTextIcon } from "@/features/pdf-export/submission/icons";
+import PdfSignaturePadAnswer from "./answers/pdf-signaturepad-answer";
+import PdfPanelDynamicAnswer from "./answers/pdf-paneldynamic-answer";
+import PdfMatrixDropdownAnswer from "./answers/pdf-matrixdropdown-answer";
+import PdfTagBoxAnswer from "./answers/pdf-tagbox-answer";
+import PdfCheckboxAnswer from "./answers/pdf-checkbox-answer";
+import PdfBooleanAnswer from "./answers/pdf-boolean-answer";
+import PdfMatrixAnswer from "./answers/pdf-matrix-answer";
+import PdfCustomAnswer from "./answers/pdf-custom-answer";
+import PdfRankingAnswer from "./answers/pdf-ranking-answer";
 
 export interface ViewAnswerProps {
   forQuestion: Question;

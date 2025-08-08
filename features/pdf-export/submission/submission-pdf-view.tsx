@@ -8,17 +8,17 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import { Model, PanelModel, Question, QuestionNonValue } from "survey-core";
-import PdfAnswerViewer from "@/features/submissions/pdf/pdf-answer-viewer";
-import { setupBrowserPolyfills } from "@/features/submissions/pdf/browser-polyfills";
+import PdfAnswerViewer from "@/features/pdf-export/submission/pdf-answer-viewer";
+import { setupBrowserPolyfills } from "@/features/pdf-export/submission/browser-polyfills";
 import { Submission } from "@/lib/endatix-api";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
-import EyeOffIcon from "@/features/pdf-export/components/icons/eye-off-icon";
-import { PdfQuestionLabel } from "@/features/submissions/pdf/pdf-question-label";
+import EyeOffIcon from "@/features/pdf-export/submission/icons/eye-off-icon";
+import { PdfQuestionLabel } from "@/features/pdf-export/submission/pdf-question-label";
 import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { DynamicVariables, MetadataSchema } from "@/features/public-form/types";
-import { UserRoundSearchIcon } from "@/features/pdf-export/components/icons";
-import { PDF_STYLES } from "@/features/pdf-export/components/pdf-styles";
+import { UserRoundSearchIcon } from "@/features/pdf-export/submission/icons";
+import { PDF_STYLES } from "./pdf-styles";
 
 Font.register({
   family: "Roboto",
@@ -51,15 +51,15 @@ const getFormattedDate = (date?: Date): string => {
   });
 };
 
-interface SubmissionDataPdfProps {
+interface SubmissionPdfViewProps {
   submission: Submission;
   customQuestions: CustomQuestion[];
 }
 
-export const SubmissionDataPdf = ({
+export const SubmissionViewPdf = ({
   submission,
   customQuestions,
-}: SubmissionDataPdfProps) => {
+}: SubmissionPdfViewProps) => {
   if (!submission.formDefinition) {
     return <Text>Form definition not found</Text>;
   }

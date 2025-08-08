@@ -1,7 +1,7 @@
-import React from 'react';
-import { Text, View } from '@react-pdf/renderer';
-import { ItemValue, QuestionMatrixModel } from 'survey-core';
-import { PDF_TABLE_STYLES } from '@/features/pdf-export/components/pdf-styles';
+import React from "react";
+import { Text, View } from "@react-pdf/renderer";
+import { ItemValue, QuestionMatrixModel } from "survey-core";
+import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 
 interface MatrixAnswerPdfProps {
   question: Partial<QuestionMatrixModel>;
@@ -26,7 +26,7 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
       const rowText = row.text;
       const answer = question.value[row.value];
       const answerText =
-        question.columns.find((c: ItemValue) => c.value === answer)?.text ?? '';
+        question.columns.find((c: ItemValue) => c.value === answer)?.text ?? "";
       if (answerText && rowText) {
         answers.push({
           question: rowText,
@@ -47,12 +47,19 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
         Answers for the &quot;{question.title}&quot; question
       </Text>
       <View style={PDF_TABLE_STYLES.table}>
-        <View style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]} fixed>
+        <View
+          style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}
+          fixed
+        >
           <Text style={PDF_TABLE_STYLES.tableCellHeader}>Question</Text>
           <Text style={PDF_TABLE_STYLES.tableCellHeader}>Answer</Text>
         </View>
         {matrixAnswers.map((answer) => (
-          <View style={PDF_TABLE_STYLES.tableRow} key={answer.question} wrap={false}>
+          <View
+            style={PDF_TABLE_STYLES.tableRow}
+            key={answer.question}
+            wrap={false}
+          >
             <Text style={PDF_TABLE_STYLES.tableCell}>{answer.question}</Text>
             <Text style={PDF_TABLE_STYLES.tableCell}>{answer.answer}</Text>
           </View>

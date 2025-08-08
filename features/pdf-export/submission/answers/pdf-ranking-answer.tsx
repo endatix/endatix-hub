@@ -1,7 +1,7 @@
-import React from 'react';
-import { Text, View, StyleSheet } from '@react-pdf/renderer';
-import { Question } from 'survey-core';
-import { GripVerticalIcon } from '@/features/pdf-export/components/icons';
+import React from "react";
+import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Question } from "survey-core";
+import { GripVerticalIcon } from "@/features/pdf-export/submission/icons";
 
 interface PdfRankingAnswerProps {
   question: Question;
@@ -9,20 +9,20 @@ interface PdfRankingAnswerProps {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 2,
     marginBottom: 4,
   },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     fontSize: 10,
     marginBottom: 2,
   },
   noAnswer: {
     fontSize: 10,
-    color: '#888',
-    fontStyle: 'italic',
+    color: "#888",
+    fontStyle: "italic",
   },
 });
 

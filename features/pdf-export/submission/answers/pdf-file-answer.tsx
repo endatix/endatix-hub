@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
-import { PdfFileViewer } from "./pdf-file-viewer";
+import { PdfFileViewer } from "../pdf-file-viewer";
 import { QuestionFileModel } from "survey-core";
 import { File } from "@/lib/questions/file/file-type";
 interface FileAnswerProps {

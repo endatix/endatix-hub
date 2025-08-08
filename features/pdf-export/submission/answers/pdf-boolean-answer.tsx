@@ -1,6 +1,6 @@
-import { Text, View, StyleSheet } from '@react-pdf/renderer';
-import { QuestionBooleanModel } from 'survey-core';
-import { VIEWER_STYLES } from './pdf-answer-viewer';
+import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { QuestionBooleanModel } from "survey-core";
+import { VIEWER_STYLES } from "../pdf-answer-viewer";
 
 interface BooleanAnswerProps {
   question: QuestionBooleanModel;
@@ -8,22 +8,22 @@ interface BooleanAnswerProps {
 
 const styles = StyleSheet.create({
   valueContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   booleanText: {
-    fontFamily: 'Roboto-Bold',
+    fontFamily: "Roboto-Bold",
     fontSize: 12,
   },
   yes: {
-    color: '#006105',
+    color: "#006105",
   },
   no: {
-    color: '#FF0000',
+    color: "#FF0000",
   },
 });
 
 const PdfBooleanAnswer = ({ question }: BooleanAnswerProps) => {
-  if (question.value === null || typeof question.value === 'undefined') {
+  if (question.value === null || typeof question.value === "undefined") {
     return <Text style={VIEWER_STYLES.answerText}>No Answer</Text>;
   }
 
