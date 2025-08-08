@@ -24,7 +24,8 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
     return (
       type === "matrixdropdown" ||
       type === "matrixdynamic" ||
-      type === "paneldynamic"
+      type === "paneldynamic" ||
+      type === "matrix"
     );
   };
 

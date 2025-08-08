@@ -111,6 +111,7 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     flexGrow: 1, // Allow column to grow
     wordBreak: "break-word", // Enable text wrapping
     minWidth: 50, // Prevent too small columns
+    flex: 1,
   },
 
   tableCellHeader: {
@@ -127,6 +128,7 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     flexGrow: 1,
     wordBreak: "break-word",
     minWidth: 50,
+    flex: 1,
   },
   noAnswer: {
     fontSize: 10,
