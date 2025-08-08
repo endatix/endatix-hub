@@ -19,3 +19,5 @@ export const MetadataSchema = z
     variables: VariablesSchema.optional(),
   })
   .optional();
+
+export type Metadata = z.infer<typeof MetadataSchema>;

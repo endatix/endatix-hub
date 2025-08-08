@@ -16,9 +16,7 @@ import EyeOffIcon from "@/features/pdf-export/submission/icons/eye-off-icon";
 import { PdfQuestionLabel } from "@/features/pdf-export/submission/pdf-question-label";
 import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions";
-import { DynamicVariables, MetadataSchema } from "@/features/public-form/types";
-import { UserRoundSearchIcon } from "@/features/pdf-export/submission/icons";
-import { PDF_STYLES } from "./pdf-styles";
+import { PdfDynamicVariables } from "./pdf-dynamic-variables";
 
 Font.register({
   family: "Roboto",
@@ -82,28 +80,7 @@ export const SubmissionViewPdf = ({
 
   surveyModel.data = submissionData;
 
-  let dynamicVariables: DynamicVariables = {};
-  try {
-    const parsedMetadata = JSON.parse(submission.metadata);
-    const metadataResult = MetadataSchema.safeParse(parsedMetadata);
-    if (!metadataResult.success) {
-      console.warn("Invalid initial variables:", metadataResult.error);
-    } else {
-      dynamicVariables = metadataResult.data?.variables ?? {};
-    }
-  } catch (ex) {
-    console.warn("Error while parsing submission's metadata", ex);
-  }
-
-  Object.entries(dynamicVariables).forEach(([key, value]) => {
-    surveyModel.setVariable(key, value);
-  });
-
   const questions = surveyModel.getAllQuestions(false, false, false);
-
-  // Dynamic variables logic
-  const dynamicVariableNames = surveyModel.getVariableNames?.() ?? [];
-  const hasVariables = dynamicVariableNames.length > 0;
 
   // TODO: This is a duplicate of a function in question-label.tsx
   const getPanelTitle = (question: Question) => {
@@ -174,29 +151,10 @@ export const SubmissionViewPdf = ({
         </View>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Submission Answers</Text>
-          {/* Dynamic Variables Section */}
-          {hasVariables && (
-            <View style={styles.dynamicVariablesSection}>
-              <View style={PDF_STYLES.flexRow}>
-                <UserRoundSearchIcon />
-                <Text style={styles.dynamicVariablesTitle}>
-                  Dynamic Variables
-                </Text>
-              </View>
-              <View style={styles.dynamicVariablesList}>
-                {dynamicVariableNames.map((name) => (
-                  <View key={name} style={styles.dynamicVariableRow}>
-                    <Text
-                      style={styles.dynamicVariableName}
-                    >{`@${name} =`}</Text>
-                    <Text
-                      style={styles.dynamicVariableValue}
-                    >{` ${surveyModel.getVariable(name)}`}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
+          <PdfDynamicVariables
+            surveyModel={surveyModel}
+            stringifiedMetadata={submission.metadata}
+          />
           <View style={styles.questions}>
             {questions?.map((question) => {
               // Skip non-value questions
@@ -362,41 +320,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#888",
     marginLeft: 4,
-  },
-  dynamicVariablesSection: {
-    marginBottom: 12,
-    padding: 8,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 4,
-  },
-  dynamicVariablesTitle: {
-    fontSize: 11,
-    fontFamily: "Roboto-Bold",
-    marginBottom: 4,
-  },
-  dynamicVariablesList: {
-    marginTop: 2,
-    gap: 2,
-  },
-  dynamicVariableRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 3,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    marginBottom: 2,
-    backgroundColor: "#fff",
-  },
-  dynamicVariableName: {
-    fontSize: 10,
-    color: "#666",
-    marginRight: 2,
-  },
-  dynamicVariableValue: {
-    fontSize: 10,
-    color: "#222",
   },
   groupHeaderRow: {
     flexDirection: "row",
