@@ -82,20 +82,20 @@ export const SubmissionViewPdf = ({
 
   surveyModel.data = submissionData;
 
-  let metadata: DynamicVariables = {};
+  let dynamicVariables: DynamicVariables = {};
   try {
     const parsedMetadata = JSON.parse(submission.metadata);
     const metadataResult = MetadataSchema.safeParse(parsedMetadata);
     if (!metadataResult.success) {
       console.warn("Invalid initial variables:", metadataResult.error);
     } else {
-      metadata = metadataResult.data.variables;
+      dynamicVariables = metadataResult.data?.variables ?? {};
     }
   } catch (ex) {
     console.warn("Error while parsing submission's metadata", ex);
   }
 
-  Object.entries(metadata).forEach(([key, value]) => {
+  Object.entries(dynamicVariables).forEach(([key, value]) => {
     surveyModel.setVariable(key, value);
   });
 
