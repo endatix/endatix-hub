@@ -30,7 +30,7 @@ export const PDF_STYLES = StyleSheet.create({
   rightAlign: {
     textAlign: "right",
     textWrap: "wrap",
-    hyphenationCallback: (word: string) => [word]
+    hyphenationCallback: (word: string) => [word],
   },
   justifyBetween: {
     justifyContent: "space-between",
@@ -60,6 +60,15 @@ export const PDF_STYLES = StyleSheet.create({
     fontSize: 9,
     width: "100%",
     color: "gray",
+  },
+  section: {
+    marginBottom: 16,
+    padding: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    marginBottom: 8,
+    fontFamily: "Roboto-Bold",
   },
 });
 
@@ -98,12 +107,12 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     borderColor: "#c0c0c0",
     borderLeftWidth: 0,
     borderTopWidth: 0,
-    flexShrink: 1,             // Allow column to shrink
-    flexGrow: 1,               // Allow column to grow
-    wordBreak: "break-word",   // Enable text wrapping
-    minWidth: 50,              // Prevent too small columns
+    flexShrink: 1, // Allow column to shrink
+    flexGrow: 1, // Allow column to grow
+    wordBreak: "break-word", // Enable text wrapping
+    minWidth: 50, // Prevent too small columns
   },
-  
+
   tableCellHeader: {
     fontSize: 10,
     fontFamily: "Roboto-Bold",
