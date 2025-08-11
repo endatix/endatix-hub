@@ -1,23 +1,15 @@
-import { PanelModel, Question, QuestionNonValue } from "survey-core";
+import { Question, QuestionNonValue } from "survey-core";
 import { PdfQuestionLabel } from "./pdf-question-label";
 import PdfAnswerViewer from "./pdf-answer-viewer";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { EyeOffIcon } from "./icons";
+import { getPanelTitle } from "@/lib/questions/question-utils";
 
 interface PdfSubmissionAnswerProps {
   question: Question;
 }
 
 export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
-  // TODO: This is a duplicate of a function in question-label.tsx
-  const getPanelTitle = (question: Question) => {
-    const panel = question.parent;
-    if (panel instanceof PanelModel) {
-      return panel.title;
-    }
-    return "";
-  };
-
   // Helper to check if a question should render answer full width
   const isFullWidthAnswer = (question: Question) => {
     const type = question.getType();
