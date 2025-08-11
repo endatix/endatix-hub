@@ -30,11 +30,13 @@ Font.register({
 interface SubmissionDetailsPdfProps {
   submission: Submission;
   customQuestions: CustomQuestion[];
+  locale?: string;
 }
 
 export const SubmissionDetailsPdf = ({
   submission,
   customQuestions,
+  locale,
 }: SubmissionDetailsPdfProps) => {
   if (!submission.formDefinition) {
     return <Text>Form definition not found</Text>;
@@ -48,6 +50,9 @@ export const SubmissionDetailsPdf = ({
 
   const json = JSON.parse(submission.formDefinition.jsonData);
   const surveyModel = new Model(json);
+  if (locale && typeof locale === "string" && locale.length > 0) {
+    surveyModel.locale = locale;
+  }
 
   let submissionData = {};
   try {

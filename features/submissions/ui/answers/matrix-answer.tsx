@@ -47,7 +47,7 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
     });
 
     return answers;
-  }, [question.rows, question.columns, question.value]);
+  }, [question.rows, question.columns, question.value, (question as any)?.survey?.locale]);
 
   if (!matrixAnswers || matrixAnswers.length === 0) {
     return (

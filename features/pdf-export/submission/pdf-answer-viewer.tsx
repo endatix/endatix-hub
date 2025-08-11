@@ -89,7 +89,7 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {forQuestion.value || "No Answer"}
+        {((forQuestion as any).selectedItem?.text as string) || forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
@@ -98,7 +98,7 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {forQuestion.value || "No Answer"}
+        {((forQuestion as any).selectedItem?.text as string) || forQuestion.value || "No Answer"}
       </Text>
     </View>
   );

@@ -11,6 +11,7 @@ import { Submission } from "@/lib/endatix-api";
 import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
 import DynamicVariablesList from "./dynamic-variables-list";
 import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import { surveyLocalization } from "survey-core";
 
 interface SubmissionItemRowProps {
   question: Question;
@@ -40,14 +41,33 @@ export function SubmissionAnswers({
     [customQuestions],
   );
 
+  const { options } = useSubmissionDetailsViewOptions();
+
   useEffect(() => {
     if (!surveyModel) {
       return;
     }
 
+    // Set locale from submission metadata if provided
+    try {
+      if (submission?.metadata) {
+        const parsed = JSON.parse(submission.metadata);
+        const submittedLang = parsed?.language;
+        if (options.useSubmissionLanguage) {
+          if (typeof submittedLang === "string" && submittedLang.length > 0) {
+            surveyModel.locale = submittedLang;
+          }
+        } else {
+          surveyModel.locale = surveyLocalization.defaultLocale;
+        }
+      }
+    } catch {
+      // ignore metadata parse errors here
+    }
+
     const surveyQuestions = surveyModel.getAllQuestions(false, false, false);
     setQuestions(surveyQuestions);
-  }, [surveyModel]);
+  }, [surveyModel, submission?.metadata, options.useSubmissionLanguage]);
 
   if (!surveyModel) {
     return <div>Loading...</div>;

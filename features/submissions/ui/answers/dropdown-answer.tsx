@@ -15,18 +15,12 @@ interface DropdownAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
 }
 const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
   const text = React.useMemo(() => {
-    const value = question.value;
-    let text = value;
-
-    const selectedChoice = question.choices.find(
-      (c: Question) => c.value === 2,
-    );
-    if (selectedChoice) {
-      text = selectedChoice.title;
+    const selectedItem = (question as unknown as { selectedItem?: { text?: string } }).selectedItem;
+    if (selectedItem?.text) {
+      return selectedItem.text;
     }
-
-    return text;
-  }, [question]);
+    return String(question.value ?? "");
+  }, [question, question.value, (question as any)?.selectedItem?.text]);
 
   if (question && question.value) {
     return (
@@ -35,7 +29,7 @@ const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
           <SelectValue placeholder={text} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={question.value}>{text}</SelectItem>
+          <SelectItem value={String(question.value)}>{text}</SelectItem>
         </SelectContent>
       </Select>
     );

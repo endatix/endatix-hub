@@ -81,9 +81,13 @@ export default function SurveyComponent({
         currentPage: sender.currentPageNo,
       };
 
+      if (surveyLocales.length > 1) {
+        submissionData.metadata = JSON.stringify({ language: sender.locale });
+      }
+
       enqueueSubmission(submissionData);
     },
-    [enqueueSubmission],
+    [enqueueSubmission, surveyLocales.length],
   );
 
   const submitForm = useCallback(
@@ -102,6 +106,10 @@ export default function SurveyComponent({
         jsonData: formData,
         currentPage: sender.currentPageNo ?? 0,
       };
+
+      if (surveyLocales.length > 1) {
+        submissionData.metadata = JSON.stringify({ language: sender.locale });
+      }
 
       startSubmitting(async () => {
         if (recaptchaConfig.isReCaptchaEnabled() && requiresReCaptcha) {

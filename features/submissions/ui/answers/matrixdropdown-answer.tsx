@@ -26,13 +26,13 @@ const MatrixDropdownAnswer = ({
 }: MatrixDropdownAnswerProps) => {
   const headerCells = useMemo(() => {
     return question.renderedTable.headerRow?.cells ?? [];
-  }, [question]);
+  }, [question, question.renderedTable, (question as any)?.survey?.locale]);
 
   const renderedRows = useMemo(() => {
     return question.renderedTable.renderedRows.filter(
       (row) => !row.isErrorsRow,
     );
-  }, [question]);
+  }, [question, question.renderedTable, (question as any)?.survey?.locale]);
 
   return (
     <div className={cn(className, "flex flex-col gap-2")}>

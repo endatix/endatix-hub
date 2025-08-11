@@ -47,12 +47,23 @@ async function SubmissionDetails({
     return <div>Form definition not found</div>;
   }
 
+  const getLanguageDisplayName = (code?: string): string | undefined => {
+    if (!code) return undefined;
+    try {
+      const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
+      return displayNames.of(code) ?? code;
+    } catch {
+      return code;
+    }
+  };
+
   return (
     <SubmissionDetailsViewOptionsProvider>
       <SubmissionHeader
         formId={formId}
         submissionId={submissionId}
         status={submission.status}
+        submissionLanguageName={getLanguageDisplayName((() => { try { const p = JSON.parse(submission.metadata ?? "{}"); return p?.language; } catch { return undefined; } })())}
       />
       <SubmissionProperties submission={submission} />
       <SubmissionAnswers

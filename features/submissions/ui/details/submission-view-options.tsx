@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
 
-export function SubmissionViewOptions() {
+interface SubmissionViewOptionsProps {
+  submissionLanguageName?: string;
+}
+
+export function SubmissionViewOptions({ submissionLanguageName }: SubmissionViewOptionsProps) {
   const { options, toggleOption, resetOptions } =
     useSubmissionDetailsViewOptions();
 
@@ -39,6 +43,14 @@ export function SubmissionViewOptions() {
         >
           Show Dynamic Variables
         </DropdownMenuCheckboxItem>
+        {submissionLanguageName && (
+          <DropdownMenuCheckboxItem
+            checked={options.useSubmissionLanguage}
+            onCheckedChange={() => toggleOption("useSubmissionLanguage")}
+          >
+            {`Display in ${submissionLanguageName}`}
+          </DropdownMenuCheckboxItem>
+        )}
         <DropdownMenuSeparator />
         <Button
           variant="ghost"

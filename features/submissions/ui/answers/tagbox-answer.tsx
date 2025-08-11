@@ -32,7 +32,7 @@ const TagItem = ({ choice }: { choice: Question }) => {
       className="flex flex-row items-center gap-2 text-sm font-medium"
       key={choice.value}
     >
-      {choice.title}
+      {choice?.title ?? choice?.text}
       <ValueTooltip value={choice} />
     </Badge>
   );

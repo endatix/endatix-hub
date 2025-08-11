@@ -18,6 +18,7 @@ export async function POST(request: Request) {
   const requestHeaders = await headers();
   const formId = requestHeaders.get("edx-form-id") as string;
   let submissionId = requestHeaders.get("edx-submission-id") as string;
+  const formLang = requestHeaders.get("edx-form-lang") as string | null;
   const formData = await request.formData();
 
   if (!formId) {
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       jsonData: JSON.stringify({}),
       metadata: JSON.stringify({
         reasonCreated: "Generate submissionId for image upload",
+        ...(formLang ? { language: formLang } : {}),
       }),
     };
     const initialSubmissionResult = await submitFormAction(

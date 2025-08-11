@@ -20,6 +20,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const searchParams = req.nextUrl.searchParams;
   const inline = searchParams.get(INLINE_QUERY_PARAM);
+  const forceDefaultLocale = searchParams.get("defaultLocale") === "true";
 
   let customQuestions: CustomQuestion[] = [];
   const [submissionResult, customQuestionsResult] = await Promise.all([
@@ -47,10 +48,24 @@ export async function GET(req: NextRequest, { params }: Params) {
     customQuestions.map((q: CustomQuestion) => q.jsonData),
   );
 
+  // Determine PDF locale according to view preference
+  let pdfLocale: string | undefined;
+  if (forceDefaultLocale) {
+    pdfLocale = undefined; // use model default
+  } else {
+    try {
+      const parsed = JSON.parse(submission.metadata ?? "{}");
+      if (parsed?.language && typeof parsed.language === "string") {
+        pdfLocale = parsed.language as string;
+      }
+    } catch {}
+  }
+
   const pdfBlob = await pdf(
     <SubmissionDetailsPdf
       submission={submission}
       customQuestions={customQuestions}
+      locale={pdfLocale}
     />,
   ).toBlob();
 
