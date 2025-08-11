@@ -64,7 +64,7 @@ const Panel = ({
     <View style={styles.panelContainer}>
       {showTitle && <Text style={styles.panelTitle}>{panelTitle}</Text>}
       {panel.getQuestions(false).map((q) => (
-        <PdfAnswerViewer key={q.id} forQuestion={q} />
+        <PdfAnswerViewer key={q.id} forQuestion={q} hideTitle />
       ))}
     </View>
   );

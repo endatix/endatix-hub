@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export type DynamicVariable = string | number | boolean | object | undefined;
 
@@ -14,6 +14,10 @@ export const DynamicVariableSchema = z.union([
 
 export const VariablesSchema = z.record(DynamicVariableSchema);
 
-export const MetadataSchema = z.object({
-  variables: VariablesSchema,
-});
+export const MetadataSchema = z
+  .object({
+    variables: VariablesSchema.optional(),
+  })
+  .optional();
+
+export type Metadata = z.infer<typeof MetadataSchema>;

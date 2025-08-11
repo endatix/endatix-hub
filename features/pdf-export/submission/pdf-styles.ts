@@ -30,7 +30,7 @@ export const PDF_STYLES = StyleSheet.create({
   rightAlign: {
     textAlign: "right",
     textWrap: "wrap",
-    hyphenationCallback: (word: string) => [word]
+    hyphenationCallback: (word: string) => [word],
   },
   justifyBetween: {
     justifyContent: "space-between",
@@ -61,6 +61,15 @@ export const PDF_STYLES = StyleSheet.create({
     width: "100%",
     color: "gray",
   },
+  section: {
+    marginBottom: 16,
+    padding: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    marginBottom: 8,
+    fontFamily: "Roboto-Bold",
+  },
 });
 
 export const PDF_TABLE_STYLES = StyleSheet.create({
@@ -83,6 +92,8 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
   },
   tableRow: {
     flexDirection: "row",
+    alignItems: "stretch",
+    minHeight: 20,
   },
   tableHeader: {
     backgroundColor: "#f0f0f0",
@@ -98,12 +109,13 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     borderColor: "#c0c0c0",
     borderLeftWidth: 0,
     borderTopWidth: 0,
-    flexShrink: 1,             // Allow column to shrink
-    flexGrow: 1,               // Allow column to grow
-    wordBreak: "break-word",   // Enable text wrapping
-    minWidth: 50,              // Prevent too small columns
+    flexShrink: 1, // Allow column to shrink
+    flexGrow: 1, // Allow column to grow
+    wordBreak: "break-word", // Enable text wrapping
+    minWidth: 50, // Prevent too small columns
+    flex: 1,
   },
-  
+
   tableCellHeader: {
     fontSize: 10,
     fontFamily: "Roboto-Bold",
@@ -118,6 +130,7 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
     flexGrow: 1,
     wordBreak: "break-word",
     minWidth: 50,
+    flex: 1,
   },
   noAnswer: {
     fontSize: 10,

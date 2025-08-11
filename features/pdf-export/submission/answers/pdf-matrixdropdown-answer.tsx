@@ -26,7 +26,7 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
   }
 
   return (
-    <View style={PDF_TABLE_STYLES.container} break>
+    <View style={PDF_TABLE_STYLES.container}>
       <Text style={VIEWER_STYLES.questionLabel}>{question.title}</Text>
       <View style={PDF_TABLE_STYLES.table}>
         {/* Header Row */}
@@ -34,21 +34,26 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
           style={[PDF_TABLE_STYLES.tableRow, PDF_TABLE_STYLES.tableHeader]}
           fixed
         >
-          {headerCells.map((cell, index) => (
-            <Text
-              key={index}
-              style={{
-                ...PDF_TABLE_STYLES.tableCellHeader,
-                flex: index === 0 ? 1 : 1.5,
-              }}
-            >
-              {cell.hasTitle ? cell.locTitle?.textOrHtml : ""}
-            </Text>
-          ))}
+          {headerCells.map((cell, index) => {
+            if (cell.isEmpty) {
+              return null;
+            }
+            return (
+              <View
+                key={index}
+                style={{
+                  ...PDF_TABLE_STYLES.tableCellHeader,
+                  flex: index === 0 ? 1 : 1.5,
+                }}
+              >
+                <Text>{cell.hasTitle ? cell.locTitle?.textOrHtml : null}</Text>
+              </View>
+            );
+          })}
         </View>
         {/* Data Rows */}
         {renderedRows.map((row, rowIndex) => (
-          <View style={PDF_TABLE_STYLES.tableRow} key={rowIndex} wrap={false}>
+          <View style={PDF_TABLE_STYLES.tableRow} key={rowIndex}>
             {row.cells.map((cell, cellIndex) => {
               const cellStyle = {
                 ...PDF_TABLE_STYLES.tableCell,
@@ -61,10 +66,14 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
                   </View>
                 );
               }
+              if (cell.isActionsCell) {
+                return null;
+              }
+
               return (
-                <Text key={cellIndex} style={cellStyle}>
-                  {cell.hasTitle ? cell.locTitle.textOrHtml : ""}
-                </Text>
+                <View key={cellIndex} style={cellStyle}>
+                  <Text>{cell.hasTitle ? cell.locTitle.textOrHtml : null}</Text>
+                </View>
               );
             })}
           </View>
