@@ -42,6 +42,15 @@ import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
+import { questionLoaderModule } from "@/lib/questions/question-loader-module";
+import { customQuestions } from "@/customizations/questions/custom-questions";
+
+Serializer.addProperty("theme", {
+  name: "id",
+  type: "string",
+  category: "general",
+  visible: false,
+});
 
 Serializer.addProperty("survey", {
   name: "fileNamesPrefix",
@@ -404,6 +413,7 @@ function FormEditor({
       }
 
       try {
+        // Load built-in custom questions (from database)
         const result = await getCustomQuestionsAction();
         if (Result.isError(result)) {
           throw new Error(result.message);
@@ -412,6 +422,19 @@ function FormEditor({
         const newQuestionClasses = initializeCustomQuestions(
           result.value.map((q) => q.jsonData),
         );
+
+        // Load dynamic questions using greedy loading strategy (load all custom questions for now)
+        for (const questionName of customQuestions) {
+          try {
+            await questionLoaderModule.loadQuestion(questionName);
+            console.debug(`✅ Loaded custom question: ${questionName}`);
+          } catch (error) {
+            console.warn(
+              `⚠️ Failed to load custom question: ${questionName}`,
+              error,
+            );
+          }
+        }
 
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
@@ -647,7 +670,7 @@ function FormEditor({
         </div>
         <div className="flex items-center gap-2">
           {(hasUnsavedChanges || isCurrentThemeModified) && (
-              <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
+            <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
               Unsaved changes
             </span>
           )}
@@ -671,7 +694,7 @@ function FormEditor({
             </div>
           </div>
         ) : creator ? (
-          <SurveyCreatorComponent key={`creator-${formId}`} creator={creator} />
+          <SurveyCreatorComponent creator={creator} />
         ) : (
           <div>Error loading form editor</div>
         )}

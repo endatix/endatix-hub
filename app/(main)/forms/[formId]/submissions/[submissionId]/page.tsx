@@ -2,7 +2,7 @@ import { SectionTitle } from "@/components/headings/section-title";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import SubmissionDetails from "@/features/submissions/ui/details/submission-details";
-import { PdfEmbedView } from "@/features/pdf-export/components/pdf-embed-view";
+import { PdfEmbedView } from "@/features/pdf-export/embed-submission/pdf-embed-view";
 
 type Params = {
   params: Promise<{

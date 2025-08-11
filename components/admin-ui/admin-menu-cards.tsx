@@ -48,6 +48,24 @@ export function AdminMenuCards() {
           <div className="text-muted-foreground"></div>
         </CardFooter>
       </Card>
+      <Card
+        className="@container/card cursor-pointer"
+        onClick={() => router.push("/admin/environment")}
+      >
+        <CardHeader>
+          <CardDescription>Review Environment Details</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            Environment
+          </CardTitle>
+        </CardHeader>
+        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <div className="line-clamp-1 flex gap-2 font-medium">
+            Debug environment variables e.g. NODE_ENV,
+            etc.
+          </div>
+          <div className="text-muted-foreground"></div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
