@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Minus } from "lucide-react";
 import React from "react";
 import { Question } from "survey-core";
-import { ValueTooltip } from './value-tooltip';
+import { ValueTooltip } from "./value-tooltip";
 
 interface TagBoxAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   question: Question;
@@ -11,6 +11,11 @@ interface TagBoxAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
 const TagBoxAnswer = ({ question, className }: TagBoxAnswerProps) => {
   if (!question?.value) {
     return <Minus className="h-4 w-4" />;
+  }
+
+  const choices = question.choices;
+  if (question.isOtherSelected) {
+    choices.push(question.otherItemValue);
   }
 
   return (
@@ -26,13 +31,18 @@ const TagBoxAnswer = ({ question, className }: TagBoxAnswerProps) => {
 };
 
 const TagItem = ({ choice }: { choice: Question }) => {
+  if (!choice) {
+    console.error("Choice not found", choice);
+    return null;
+  }
+
   return (
     <Badge
       variant="outline"
       className="flex flex-row items-center gap-2 text-sm font-medium"
-      key={choice.value}
+      key={choice?.value}
     >
-      {choice.title}
+      {choice?.title}
       <ValueTooltip value={choice} />
     </Badge>
   );
