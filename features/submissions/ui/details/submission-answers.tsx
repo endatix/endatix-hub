@@ -67,7 +67,12 @@ export function SubmissionAnswers({
 
     const surveyQuestions = surveyModel.getAllQuestions(false, false, false);
     setQuestions(surveyQuestions);
-  }, [surveyModel, submission?.metadata, options.useSubmissionLanguage]);
+  }, [
+    surveyModel,
+    submission?.metadata,
+    options.useSubmissionLanguage,
+    surveyModel?.locale,
+  ]);
 
   if (!surveyModel) {
     return <div>Loading...</div>;
