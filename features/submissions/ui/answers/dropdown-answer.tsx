@@ -7,20 +7,20 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Minus } from "lucide-react";
-import React from "react";
 import { QuestionDropdownModel } from "survey-core";
 
-interface DropdownAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
+interface DropdownAnswerProps {
   question: QuestionDropdownModel;
+  className?: string;
 }
 const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
-  const text = React.useMemo(() => {
+  const text = (() => {
     const selectedItem = question.selectedItem;
     if (selectedItem?.text) {
       return selectedItem.text;
     }
     return String(question.value ?? "");
-  }, [question.selectedItem, question.value]);
+  })();
 
   if (question && question.value) {
     return (
