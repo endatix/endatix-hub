@@ -15,6 +15,10 @@ import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specia
 import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
 import { useSubmissionDetailsViewOptions } from "../details/submission-details-view-options-context";
 import { surveyLocalization } from "survey-core";
+import {
+  getSubmissionLocale,
+  isLocaleValid,
+} from "../../submission-localization";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -53,19 +57,12 @@ function useSurveyModel(submission: Submission) {
         const model = new Model(json);
 
         model.data = submissionData;
-        // If a language was used when the submission was created, display in that language
-        try {
-          if (submission.metadata) {
-            const parsed = JSON.parse(submission.metadata) as {
-              language?: string;
-            };
-            if (parsed.language && typeof parsed.language === "string") {
-              model.locale = parsed.language;
-            }
-          }
-        } catch {
-          // ignore
+
+        const submissionLocale = getSubmissionLocale(submission);
+        if (submissionLocale && isLocaleValid(submissionLocale, model)) {
+          model.locale = submissionLocale;
         }
+
         model.showCompletedPage = false;
         model.validationEnabled = false;
         model.showPageTitles = true;

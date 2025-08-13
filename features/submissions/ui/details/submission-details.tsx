@@ -9,6 +9,7 @@ import { SubmissionProperties } from "./submission-properties";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { CustomQuestion } from "@/services/api";
 import { SubmissionDetailsViewOptionsProvider } from "./submission-details-view-options-context";
+import { getSubmissionLocale } from "../../submission-localization";
 
 async function SubmissionDetails({
   formId,
@@ -47,23 +48,13 @@ async function SubmissionDetails({
     return <div>Form definition not found</div>;
   }
 
-  const getLanguageDisplayName = (code?: string): string | undefined => {
-    if (!code) return undefined;
-    try {
-      const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
-      return displayNames.of(code) ?? code;
-    } catch {
-      return code;
-    }
-  };
-
   return (
     <SubmissionDetailsViewOptionsProvider>
       <SubmissionHeader
         formId={formId}
         submissionId={submissionId}
         status={submission.status}
-        submissionLanguageName={getLanguageDisplayName((() => { try { const p = JSON.parse(submission.metadata ?? "{}"); return p?.language; } catch { return undefined; } })())}
+        submissionLocale={getSubmissionLocale(submission)}
       />
       <SubmissionProperties submission={submission} />
       <SubmissionAnswers

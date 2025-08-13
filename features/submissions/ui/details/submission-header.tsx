@@ -12,23 +12,25 @@ import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
 import { SubmissionViewOptions } from "./submission-view-options";
 import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import { getLanguageDisplayName } from "../../submission-localization";
 
 interface SubmissionHeaderProps {
   submissionId: string;
   formId: string;
   status: string;
-  submissionLanguageName?: string;
+  submissionLocale: string | undefined;
 }
 
 export function SubmissionHeader({
   submissionId,
   formId,
   status,
-  submissionLanguageName,
+  submissionLocale,
 }: SubmissionHeaderProps) {
   const [loading, setLoading] = useState(false);
   const { trackEvent } = useTrackEvent();
   const { options } = useSubmissionDetailsViewOptions();
+  const submissionLanguageName = getLanguageDisplayName(submissionLocale);
 
   const exportPdf = async () => {
     setLoading(true);
@@ -76,7 +78,9 @@ export function SubmissionHeader({
     <div className="my-2 flex flex-col gap-6 sm:gap-2 sm:flex-row justify-between">
       <PageTitle title="Submission Details" />
       <div className="flex space-x-2 justify-end text-muted-foreground">
-        <SubmissionViewOptions submissionLanguageName={submissionLanguageName} />
+        <SubmissionViewOptions
+          submissionLanguageName={submissionLanguageName}
+        />
         <Button
           variant={"outline"}
           onClick={() => exportPdf()}

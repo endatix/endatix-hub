@@ -6,9 +6,8 @@ import { pdf } from "@react-pdf/renderer";
 import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { parseBoolean, tryParseJson } from "@/lib/utils/type-parsers";
-import { Submission } from "@/lib/endatix-api";
-import { Metadata, MetadataSchema } from "@/features/public-form/types";
+import { parseBoolean } from "@/lib/utils/type-parsers";
+import { getSubmissionLocale } from "@/features/submissions/submission-localization";
 
 type Params = {
   params: Promise<{
@@ -54,7 +53,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     customQuestions.map((q: CustomQuestion) => q.jsonData),
   );
 
-  const pdfLocale = getPdfLocale(submission, useDefaultLocale);
+  const pdfLocale = useDefaultLocale
+    ? undefined
+    : getSubmissionLocale(submission);
 
   const pdfBlob = await pdf(
     <SubmissionDetailsPdf
@@ -73,36 +74,4 @@ export async function GET(req: NextRequest, { params }: Params) {
       "Content-Disposition": `${contentDisposition}; filename="submission-${submissionId}.pdf"`,
     },
   });
-}
-
-/**
- * TODO: Move this to a shared location if used in other places
- * Get the PDF locale according to the view preference
- * @param submission - The submission
- * @param useDefaultLocale - Whether to use the default locale
- * @returns The PDF locale
- */
-function getPdfLocale(
-  submission: Submission,
-  useDefaultLocale: boolean = false,
-): string | undefined {
-  if (useDefaultLocale) {
-    return undefined;
-  }
-
-  if (!submission.metadata) {
-    return undefined;
-  }
-
-  const parsedJsonResult = tryParseJson<Metadata>(submission.metadata);
-  if (Result.isError(parsedJsonResult)) {
-    return undefined;
-  }
-
-  const metadataResult = MetadataSchema.safeParse(parsedJsonResult.value);
-  if (metadataResult.success) {
-    return metadataResult.data?.language ?? undefined;
-  }
-
-  return undefined;
 }

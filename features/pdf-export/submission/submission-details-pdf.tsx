@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
-import { Model, SurveyModel } from "survey-core";
+import { Model } from "survey-core";
 import { setupBrowserPolyfills } from "@/features/pdf-export/submission/browser-polyfills";
 import { Submission } from "@/lib/endatix-api";
 import { CustomQuestion } from "@/services/api";
@@ -16,6 +16,7 @@ import { PdfSubmissionVariables } from "./pdf-submission-variables";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
 import { PDF_STYLES } from "./pdf-styles";
 import { PdfSubmissionAnswer } from "./pdf-submission-answer";
+import { isLocaleValid } from "@/features/submissions/submission-localization";
 
 Font.register({
   family: "Roboto",
@@ -31,31 +32,6 @@ interface SubmissionDetailsPdfProps {
   submission: Submission;
   customQuestions: CustomQuestion[];
   locale?: string;
-}
-
-/**
- * TODO: Move this to a shared location if used in other places
- * Check if the locale is valid for the survey model
- * @param locale - The locale to check
- * @param surveyModel - The survey model
- * @returns True if the locale is valid, false otherwise
- */
-function isLocaleValid(
-  locale: string | undefined,
-  surveyModel: SurveyModel,
-): boolean {
-  if (!locale || !surveyModel) {
-    return false;
-  }
-
-  if (typeof locale !== "string" || locale.length === 0) {
-    return false;
-  }
-
-  const usedLocales = surveyModel.getUsedLocales();
-  console.log(`Used locales: ${usedLocales.join(", ")}`);
-
-  return usedLocales.includes(locale);
 }
 
 export const SubmissionDetailsPdf = ({
