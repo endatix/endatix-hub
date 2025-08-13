@@ -7,6 +7,7 @@ import {
   QuestionCheckboxModel,
   QuestionCompositeModel,
   QuestionCustomModel,
+  QuestionDropdownModel,
   QuestionFileModel,
   QuestionMatrixDropdownModel,
   QuestionMultipleTextModel,
@@ -87,7 +88,10 @@ const AnswerViewer = ({
   );
 
   const renderDropdownAnswer = () => (
-    <DropdownAnswer question={forQuestion} className={className} />
+    <DropdownAnswer
+      question={forQuestion as QuestionDropdownModel}
+      className={className}
+    />
   );
 
   const renderRankingAnswer = () => (
