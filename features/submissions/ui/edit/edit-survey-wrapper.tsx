@@ -13,6 +13,10 @@ import { SharpLightPanelless } from "survey-core/themes";
 import { Model, Survey, SurveyModel } from "survey-react-ui";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
+import {
+  getSubmissionLocale,
+  isLocaleValid,
+} from "../../submission-localization";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -51,6 +55,12 @@ function useSurveyModel(submission: Submission) {
         const model = new Model(json);
 
         model.data = submissionData;
+
+        const submissionLocale = getSubmissionLocale(submission);
+        if (submissionLocale && isLocaleValid(submissionLocale, model)) {
+          model.locale = submissionLocale;
+        }
+
         model.showCompletedPage = false;
         model.validationEnabled = false;
         model.showPageTitles = true;

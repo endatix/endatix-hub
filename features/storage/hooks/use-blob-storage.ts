@@ -33,6 +33,7 @@ export function useBlobStorage({
           headers: {
             "edx-form-id": formId,
             "edx-submission-id": submissionId,
+            "edx-form-lang": surveyModel?.locale ?? "",
           },
         });
 

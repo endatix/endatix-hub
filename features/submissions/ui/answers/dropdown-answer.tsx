@@ -7,26 +7,20 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Minus } from "lucide-react";
-import React from "react";
-import { Question } from "survey-core";
+import { QuestionDropdownModel } from "survey-core";
 
-interface DropdownAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
-  question: Question;
+interface DropdownAnswerProps {
+  question: QuestionDropdownModel;
+  className?: string;
 }
 const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
-  const text = React.useMemo(() => {
-    const value = question.value;
-    let text = value;
-
-    const selectedChoice = question.choices.find(
-      (c: Question) => c.value === 2,
-    );
-    if (selectedChoice) {
-      text = selectedChoice.title;
+  const text = (() => {
+    const selectedItem = question.selectedItem;
+    if (selectedItem?.text) {
+      return selectedItem.text;
     }
-
-    return text;
-  }, [question]);
+    return String(question.value ?? "");
+  })();
 
   if (question && question.value) {
     return (
@@ -35,7 +29,7 @@ const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
           <SelectValue placeholder={text} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={question.value}>{text}</SelectItem>
+          <SelectItem value={String(question.value)}>{text}</SelectItem>
         </SelectContent>
       </Select>
     );

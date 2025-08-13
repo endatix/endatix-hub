@@ -77,7 +77,10 @@ export const useSearchParamsVariables = (
 
     
     const submissionData: SubmissionData = {
-      metadata: JSON.stringify({ variables: surveyVars }),
+      metadata: JSON.stringify({
+        variables: surveyVars,
+        language: model.locale,
+      }),
     };
     enqueueSubmission(submissionData);
 

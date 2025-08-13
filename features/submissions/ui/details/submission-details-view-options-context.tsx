@@ -13,11 +13,13 @@ import z from "zod";
 interface SubmissionDetailsViewOptions {
   showInvisibleItems: boolean;
   showDynamicVariables: boolean;
+  useSubmissionLanguage: boolean;
 }
 
 const SubmissionDetailsViewOptionsSchema = z.object({
   showInvisibleItems: z.boolean(),
   showDynamicVariables: z.boolean(),
+  useSubmissionLanguage: z.boolean().optional(),
 });
 
 interface SubmissionDetailsViewOptionsContextType {
@@ -35,6 +37,7 @@ const LOCAL_STORAGE_KEY = "SubmissionDetailsViewOptions";
 const defaultOptions: SubmissionDetailsViewOptions = {
   showInvisibleItems: true,
   showDynamicVariables: true,
+  useSubmissionLanguage: true,
 };
 
 const SubmissionDetailsViewOptionsContext = createContext<
@@ -63,7 +66,8 @@ function SubmissionDetailsViewOptionsProvider({
       const parsed = JSON.parse(stored);
       const result = SubmissionDetailsViewOptionsSchema.safeParse(parsed);
       if (result.success) {
-        setOptions((prev) => ({ ...prev, ...result.data }));
+        // Merge with defaults to ensure new options (like useSubmissionLanguage) are set
+        setOptions((prev) => ({ ...prev, ...defaultOptions, ...result.data }));
       }
     } catch {
       return;

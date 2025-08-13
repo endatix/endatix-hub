@@ -17,6 +17,7 @@ export const VariablesSchema = z.record(DynamicVariableSchema);
 export const MetadataSchema = z
   .object({
     variables: VariablesSchema.optional(),
+    language: z.string().optional(),
   })
   .optional();
 

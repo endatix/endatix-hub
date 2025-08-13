@@ -28,13 +28,17 @@ const styles = StyleSheet.create({
 
 const PdfRankingAnswer = ({ question }: PdfRankingAnswerProps) => {
   const rankedAnswers: string[] = question.value ?? [];
+  const getDisplayText = (val: string) => {
+    const choice = (question as any).choices?.find((c: any) => c.value === val);
+    return choice?.title ?? choice?.text ?? val;
+  };
   return (
     <View style={styles.container}>
       {rankedAnswers.length > 0 ? (
         rankedAnswers.map((answer) => (
           <View key={answer} style={styles.item}>
             <GripVerticalIcon />
-            <Text>{answer}</Text>
+            <Text>{getDisplayText(answer)}</Text>
           </View>
         ))
       ) : (

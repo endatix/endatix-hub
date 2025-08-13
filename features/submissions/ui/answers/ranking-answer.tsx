@@ -12,13 +12,17 @@ const RankingAnswer = ({
   ...props
 }: RankingAnswerProps) => {
   const rankedAnswers: string[] = question.value;
+  const getDisplayText = (value: string) => {
+    const choice = question.choices?.find((c: any) => c.value === value);
+    return choice?.title ?? choice?.text ?? value;
+  };
   return (
     <div className={cn("flex flex-col", className)} {...props}>
       {rankedAnswers.length > 0 ? (
         rankedAnswers.map((answer) => (
           <div key={answer} className="flex items-center text-sm">
             <GripVertical className="w-4 h-4 cursor-not-allowed text-muted-foreground" />
-            <span className="pl-2">{answer}</span>
+            <span className="pl-2">{getDisplayText(answer)}</span>
           </div>
         ))
       ) : (

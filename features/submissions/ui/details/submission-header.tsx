@@ -11,25 +11,36 @@ import { saveToFileHandler } from "survey-creator-core";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
 import { SubmissionViewOptions } from "./submission-view-options";
+import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import { getLanguageDisplayName } from "../../submission-localization";
 
 interface SubmissionHeaderProps {
   submissionId: string;
   formId: string;
   status: string;
+  submissionLocale: string | undefined;
 }
 
 export function SubmissionHeader({
   submissionId,
   formId,
   status,
+  submissionLocale,
 }: SubmissionHeaderProps) {
   const [loading, setLoading] = useState(false);
   const { trackEvent } = useTrackEvent();
+  const { options } = useSubmissionDetailsViewOptions();
+  const submissionLanguageName = getLanguageDisplayName(submissionLocale);
 
   const exportPdf = async () => {
     setLoading(true);
     try {
-      const url = `/api/public/v0/forms/${formId}/submissions/${submissionId}/export-pdf`;
+      const params = new URLSearchParams();
+      if (!options.useSubmissionLanguage) {
+        params.set("defaultLocale", "true");
+      }
+      const query = params.toString() ? `?${params.toString()}` : "";
+      const url = `/api/public/v0/forms/${formId}/submissions/${submissionId}/export-pdf${query}`;
       const pdfFileName = `submission-${submissionId}.pdf`;
       const fileResponse = await fetch(url);
       if (fileResponse.ok) {
@@ -67,7 +78,9 @@ export function SubmissionHeader({
     <div className="my-2 flex flex-col gap-6 sm:gap-2 sm:flex-row justify-between">
       <PageTitle title="Submission Details" />
       <div className="flex space-x-2 justify-end text-muted-foreground">
-        <SubmissionViewOptions />
+        <SubmissionViewOptions
+          submissionLanguageName={submissionLanguageName}
+        />
         <Button
           variant={"outline"}
           onClick={() => exportPdf()}

@@ -16,6 +16,7 @@ import { PdfSubmissionVariables } from "./pdf-submission-variables";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
 import { PDF_STYLES } from "./pdf-styles";
 import { PdfSubmissionAnswer } from "./pdf-submission-answer";
+import { isLocaleValid } from "@/features/submissions/submission-localization";
 
 Font.register({
   family: "Roboto",
@@ -30,11 +31,13 @@ Font.register({
 interface SubmissionDetailsPdfProps {
   submission: Submission;
   customQuestions: CustomQuestion[];
+  locale?: string;
 }
 
 export const SubmissionDetailsPdf = ({
   submission,
   customQuestions,
+  locale,
 }: SubmissionDetailsPdfProps) => {
   if (!submission.formDefinition) {
     return <Text>Form definition not found</Text>;
@@ -48,6 +51,9 @@ export const SubmissionDetailsPdf = ({
 
   const json = JSON.parse(submission.formDefinition.jsonData);
   const surveyModel = new Model(json);
+  if (isLocaleValid(locale, surveyModel)) {
+    surveyModel.locale = locale!;
+  }
 
   let submissionData = {};
   try {

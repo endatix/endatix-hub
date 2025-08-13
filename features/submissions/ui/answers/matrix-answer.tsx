@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Table,
   TableBody,
@@ -7,10 +7,10 @@ import {
   TableHeader,
   TableRow,
   TableCaption,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
-import { ItemValue, QuestionMatrixModel } from 'survey-core';
-import { ValueTooltip } from './value-tooltip';
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { ItemValue, QuestionMatrixModel } from "survey-core";
+import { ValueTooltip } from "./value-tooltip";
 
 interface MatrixAnswerProps {
   question: Partial<QuestionMatrixModel>;
@@ -23,7 +23,7 @@ interface IMatrixAnswer {
 }
 
 const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
-  const matrixAnswers = React.useMemo(() => {
+  const matrixAnswers = (() => {
     if (!question.rows || !question.columns) {
       return [];
     }
@@ -36,7 +36,7 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
       const rowText = row.text;
       const answer = question.value[row.value]; // Using row.value which is standard
       const answerText =
-        question.columns.find((c: ItemValue) => c.value === answer)?.text ?? '';
+        question.columns.find((c: ItemValue) => c.value === answer)?.text ?? "";
 
       if (answerText && rowText) {
         answers.push({
@@ -47,32 +47,32 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
     });
 
     return answers;
-  }, [question.rows, question.columns, question.value]);
+  })();
 
   if (!matrixAnswers || matrixAnswers.length === 0) {
     return (
-      <p className='text-sm text-muted-foreground'>
+      <p className="text-sm text-muted-foreground">
         <em>No answer</em>
       </p>
     );
   }
 
   return (
-    <Table className={cn('table-auto', className)}>
+    <Table className={cn("table-auto", className)}>
       <TableCaption>
         Answers for the &quot;{question.title}&quot; question
       </TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead className='w-1/3'>Question</TableHead>
+          <TableHead className="w-1/3">Question</TableHead>
           <TableHead>Answer</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {matrixAnswers.map((answer) => (
           <TableRow key={answer.question}>
-            <TableCell className='font-medium'>{answer.question}</TableCell>
-            <TableCell className='flex flex-row items-center gap-2'>
+            <TableCell className="font-medium">{answer.question}</TableCell>
+            <TableCell className="flex flex-row items-center gap-2">
               {answer.answer}
               <ValueTooltip value={answer.answer} />
             </TableCell>
