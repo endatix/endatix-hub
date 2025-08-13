@@ -12,6 +12,10 @@ import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook"
 import DynamicVariablesList from "./dynamic-variables-list";
 import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
 import { surveyLocalization } from "survey-core";
+import {
+  getSubmissionLocale,
+  isLocaleValid,
+} from "../../submission-localization";
 
 interface SubmissionItemRowProps {
   question: Question;
@@ -48,26 +52,25 @@ export function SubmissionAnswers({
       return;
     }
 
-    // Set locale from submission metadata if provided
-    try {
-      if (submission?.metadata) {
-        const parsed = JSON.parse(submission.metadata);
-        const submittedLang = parsed?.language;
-        if (options.useSubmissionLanguage) {
-          if (typeof submittedLang === "string" && submittedLang.length > 0) {
-            surveyModel.locale = submittedLang;
-          }
-        } else {
-          surveyModel.locale = surveyLocalization.defaultLocale;
-        }
-      }
-    } catch {
-      // ignore metadata parse errors here
+    const submissionLocale = getSubmissionLocale(submission);
+    if (
+      options.useSubmissionLanguage &&
+      isLocaleValid(submissionLocale, surveyModel)
+    ) {
+      surveyModel.locale = submissionLocale!;
+    } else {
+      surveyModel.locale = surveyLocalization.defaultLocale;
     }
 
     const surveyQuestions = surveyModel.getAllQuestions(false, false, false);
     setQuestions(surveyQuestions);
-  }, [surveyModel, submission?.metadata, options.useSubmissionLanguage]);
+  }, [
+    surveyModel,
+    submission.metadata,
+    options.useSubmissionLanguage,
+    surveyModel?.locale,
+    submission,
+  ]);
 
   if (!surveyModel) {
     return <div>Loading...</div>;

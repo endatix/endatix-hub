@@ -14,6 +14,8 @@ import {
   QuestionCustomModel,
   QuestionCompositeModel,
   QuestionRankingModel,
+  QuestionRadiogroupModel,
+  QuestionDropdownModel,
 } from "survey-core";
 import PdfFileAnswer from "./answers/pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
@@ -89,7 +91,7 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {((forQuestion as any).selectedItem?.text as string) || forQuestion.value || "No Answer"}
+        {((forQuestion as QuestionRadiogroupModel).selectedItem?.text) || forQuestion.value || "No Answer"}
       </Text>
     </View>
   );
@@ -98,7 +100,7 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {((forQuestion as any).selectedItem?.text as string) || forQuestion.value || "No Answer"}
+        {((forQuestion as QuestionDropdownModel).selectedItem?.text) || forQuestion.value || "No Answer"}
       </Text>
     </View>
   );

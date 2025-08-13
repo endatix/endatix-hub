@@ -6,6 +6,8 @@ import { pdf } from "@react-pdf/renderer";
 import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { parseBoolean } from "@/lib/utils/type-parsers";
+import { getSubmissionLocale } from "@/features/submissions/submission-localization";
 
 type Params = {
   params: Promise<{
@@ -15,12 +17,15 @@ type Params = {
 };
 
 const INLINE_QUERY_PARAM = "inline";
+const DEFAULT_LOCALE_QUERY_PARAM = "defaultLocale";
 export async function GET(req: NextRequest, { params }: Params) {
   const { formId, submissionId } = await params;
 
   const searchParams = req.nextUrl.searchParams;
   const inline = searchParams.get(INLINE_QUERY_PARAM);
-  const forceDefaultLocale = searchParams.get("defaultLocale") === "true";
+  const useDefaultLocale = parseBoolean(
+    searchParams.get(DEFAULT_LOCALE_QUERY_PARAM),
+  );
 
   let customQuestions: CustomQuestion[] = [];
   const [submissionResult, customQuestionsResult] = await Promise.all([
@@ -48,18 +53,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     customQuestions.map((q: CustomQuestion) => q.jsonData),
   );
 
-  // Determine PDF locale according to view preference
-  let pdfLocale: string | undefined;
-  if (forceDefaultLocale) {
-    pdfLocale = undefined; // use model default
-  } else {
-    try {
-      const parsed = JSON.parse(submission.metadata ?? "{}");
-      if (parsed?.language && typeof parsed.language === "string") {
-        pdfLocale = parsed.language as string;
-      }
-    } catch {}
-  }
+  const pdfLocale = useDefaultLocale
+    ? undefined
+    : getSubmissionLocale(submission);
 
   const pdfBlob = await pdf(
     <SubmissionDetailsPdf
