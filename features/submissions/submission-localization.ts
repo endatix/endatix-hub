@@ -45,9 +45,7 @@ function isLocaleValid(
     return false;
   }
 
-  const usedLocales = surveyModel.getUsedLocales();
-  console.log(`Used locales: ${usedLocales.join(", ")}`);
-
+  const usedLocales = surveyModel.getUsedLocales() || [];
   return usedLocales.includes(locale);
 }
 
