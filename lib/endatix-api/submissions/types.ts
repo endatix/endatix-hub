@@ -36,6 +36,7 @@ export interface Submission extends ApiEntity {
   jsonData: JsonData;
   currentPage: number;
   metadata: JsonData;
+  submittedBy?: string;
   token: string;
   completedAt?: Date;
   status: SubmissionStatus;

@@ -31,11 +31,33 @@ const getFormattedDate = (date?: Date): string => {
 export function SubmissionProperties({
   submission,
 }: SubmissionPropertiesProps) {
+  let submissionMetadata: Record<string, unknown> | null = null;
+  try {
+    submissionMetadata = submission?.metadata
+      ? (JSON.parse(submission.metadata) as Record<string, unknown>)
+      : null;
+  } catch {
+    submissionMetadata = null;
+  }
+
+  const submittedByName =
+    (submissionMetadata?.["submittedByName"] as string | undefined) ||
+    undefined;
   return (
     <div className="px-4">
       <PropertyDisplay label="Created at">
         {getFormattedDate(submission.createdAt)}
       </PropertyDisplay>
+      {submission.submittedBy && (
+        <PropertyDisplay label="Submitted by (ID)">
+          {submission.submittedBy}
+        </PropertyDisplay>
+      )}
+      {submittedByName && (
+        <PropertyDisplay label="Submitted by (name)">
+          {submittedByName}
+        </PropertyDisplay>
+      )}
       <PropertyDisplay label="Is Complete?" valueClassName="uppercase">
         <CellCompleteStatus isComplete={submission.isComplete} />
       </PropertyDisplay>
