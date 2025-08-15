@@ -7,6 +7,7 @@ import {
   Paperclip,
   StopCircle,
   Globe,
+  Repeat2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -46,10 +47,22 @@ const ChatErrorAlert = ({
 const SubmitButton = ({
   pending,
   disabled,
+  retryMode = false,
 }: {
   pending: boolean;
   disabled: boolean;
+  retryMode?: boolean;
 }) => {
+
+  const chatIcon = retryMode ? (
+    <Repeat2 className="size-3" />
+  ) : pending ? (
+    <StopCircle className="size-6" />
+  ) : (
+    <CornerDownLeft className="size-3" />
+  );
+
+
   return (
     <Button
       type="submit"
@@ -58,12 +71,8 @@ const SubmitButton = ({
       aria-disabled={pending}
       disabled={disabled || pending}
     >
-      Chat
-      {pending ? (
-        <StopCircle className="size-6" />
-      ) : (
-        <CornerDownLeft className="size-3" />
-      )}
+      {retryMode ? "Retry" : "Chat"}
+      {chatIcon}
     </Button>
   );
 };
@@ -94,9 +103,11 @@ const ChatBox = ({
   ...props
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
+  const [retryMode, setRetryMode] = useState(false);
   const [state, action, pending] = useActionState(
     async (prevState: PromptResult, formData: FormData) => {
       const contextStore = new AssistantStore();
+      setRetryMode(false);
 
       if (requiresNewContext) {
         contextStore.clear();
@@ -117,6 +128,7 @@ const ChatBox = ({
       const promptResult = await defineFormAction(prevState, formData);
 
       if (ApiResult.isError(promptResult)) {
+        setRetryMode(true);
         return promptResult;
       }
 
@@ -179,6 +191,8 @@ const ChatBox = ({
 
   // Handle translation submission
   const handleTranslateSubmit = () => {
+    setRetryMode(false);
+
     if (!targetLanguage.trim()) {
       return;
     }
@@ -291,7 +305,7 @@ const ChatBox = ({
               <TooltipContent side="top">Use Microphone</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <SubmitButton pending={pending} disabled={input.length === 0} />
+          <SubmitButton pending={pending} disabled={input.length === 0} retryMode={retryMode} />
         </div>
       </form>
       <p className="text-center text-xs text-gray-500">

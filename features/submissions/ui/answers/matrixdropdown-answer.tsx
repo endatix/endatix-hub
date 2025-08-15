@@ -11,7 +11,6 @@ import {
 import { cn } from "@/lib/utils";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import AnswerViewer from "./answer-viewer";
-import { useMemo } from "react";
 
 const FIRST_COLUMN_WIDTH_CSS_CLASSES = "min-w-[100px] max-w-[160px]";
 
@@ -24,15 +23,15 @@ const MatrixDropdownAnswer = ({
   question,
   className,
 }: MatrixDropdownAnswerProps) => {
-  const headerCells = useMemo(() => {
+  const headerCells = (() => {
     return question.renderedTable.headerRow?.cells ?? [];
-  }, [question]);
+  })();
 
-  const renderedRows = useMemo(() => {
+  const renderedRows = (() => {
     return question.renderedTable.renderedRows.filter(
       (row) => !row.isErrorsRow,
     );
-  }, [question]);
+  })();
 
   return (
     <div className={cn(className, "flex flex-col gap-2")}>

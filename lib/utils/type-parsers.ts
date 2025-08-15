@@ -22,7 +22,11 @@ function tryParseJson<T>(value: string | undefined): Result<T> {
  * @param value - The string value to parse, can be undefined
  * @returns true if value is 'true' or '1' (case-insensitive), false otherwise
  */
-function parseBoolean(value: string | undefined): boolean {
+function parseBoolean(value: string | undefined | null): boolean {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
   const trimmedValue = value?.trim();
   if (!trimmedValue) {
     return false;

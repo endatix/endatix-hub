@@ -1,8 +1,19 @@
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import { CellCompleteStatus } from "../table/cell-complete-status";
 import { PropertyDisplay } from "./property-display";
 import { Submission } from "@/lib/endatix-api";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
+import {
+  getLanguageDisplayName,
+  getSubmissionLocale,
+} from "../../submission-localization";
 
 interface SubmissionPropertiesProps {
   submission: Submission;
@@ -31,6 +42,8 @@ const getFormattedDate = (date?: Date): string => {
 export function SubmissionProperties({
   submission,
 }: SubmissionPropertiesProps) {
+  const submissionLocale = getSubmissionLocale(submission);
+
   return (
     <div className="px-4">
       <PropertyDisplay label="Created at">
@@ -61,6 +74,25 @@ export function SubmissionProperties({
       <PropertyDisplay label="Last modified on">
         {getFormattedDate(submission.modifiedAt)}
       </PropertyDisplay>
+      {submissionLocale && (
+        <PropertyDisplay label="Submission language">
+          <span className="inline-flex items-center gap-2">
+            {getLanguageDisplayName(submissionLocale)}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs text-sm">
+                    You can switch the display language in the View menu.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
+        </PropertyDisplay>
+      )}
     </div>
   );
 }
