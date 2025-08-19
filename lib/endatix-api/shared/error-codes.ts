@@ -16,6 +16,7 @@ const ERROR_CODES = Object.freeze({
   server_error: "Server error occurred. Please try again later.",
   validation_error: "The provided data is invalid.",
   json_parse_error: "Failed to parse server response.",
+  invalid_token: "Token is invalid or has expired.",
   unknown_error: "An unknown error occurred.",
 } as const);
 
@@ -35,6 +36,7 @@ const ERROR_CODE = Object.freeze({
   SERVER_ERROR: "server_error",
   VALIDATION_ERROR: "validation_error",
   JSON_PARSE_ERROR: "json_parse_error",
+  INVALID_TOKEN: "invalid_token",
   UNKNOWN_ERROR: "unknown_error",
 } as const);
 

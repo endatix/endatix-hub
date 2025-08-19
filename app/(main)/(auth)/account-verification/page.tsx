@@ -26,21 +26,27 @@ export default function AccountVerificationPage() {
 
   const handleResendVerification = async () => {
     if (!email || cooldownSeconds > 0) return;
-    
+
     setIsResending(true);
     setResendMessage("");
-    
+
     try {
       const result = await sendVerificationAction(email);
-      
+
       if (result.success) {
-        setResendMessage("Verification email sent successfully! Please check your inbox.");
+        setResendMessage(
+          "Verification email sent successfully! Please check your inbox.",
+        );
         setCooldownSeconds(30); // Start 30-second cooldown
       } else {
-        setResendMessage(result.errorMessage || "Failed to send verification email.");
+        setResendMessage(
+          result.errorMessage || "Failed to send verification email.",
+        );
       }
     } catch {
-      setResendMessage("An error occurred while sending the verification email.");
+      setResendMessage(
+        "An error occurred while sending the verification email.",
+      );
     } finally {
       setIsResending(false);
     }
@@ -48,114 +54,93 @@ export default function AccountVerificationPage() {
 
   if (!email) {
     return (
-      <div className="w-full h-screen lg:grid lg:grid-cols-2 -m-4 sm:-mx-6 sm:-my-4 sm:-ml-14">
-        <div className="flex items-center justify-center py-12">
-          <div className="mx-auto grid w-[400px] gap-6">
-            <div className="flex justify-center mb-2">
-              <Image 
-                src="/assets/icons/endatix.svg" 
-                alt="Endatix logo" 
-                width={180} 
-                height={60} 
-                priority
-              />
-            </div>
-            <div className="grid gap-2 text-center">
-              <h1 className="text-2xl font-semibold tracking-tight">Invalid Request</h1>
-              <p className="text-muted-foreground">
-                This page requires a valid email address.
-              </p>
-            </div>
-            <div className="grid gap-4">
-              <Button className="w-full" onClick={() => window.history.back()}>
-                Go Back
-              </Button>
-            </div>
-          </div>
+      <>
+        <div className="flex justify-center mb-2">
+          <Image
+            src="/assets/icons/endatix.svg"
+            alt="Endatix logo"
+            width={180}
+            height={60}
+            priority
+          />
         </div>
-        <div className="hidden lg:flex lg:flex-col lg:justify-center lg:items-center lg:h-full">
-          <div className="h-[60%] w-full flex items-center justify-center">
-            <Image
-              src="/assets/lines-and-stuff.svg"
-              alt="Lines and dots pattern"
-              width="600"
-              height="600"
-              className="w-auto h-full max-w-full max-h-full object-contain dark:brightness-[0.6] dark:grayscale"
-            />
-          </div>
+        <div className="grid gap-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Invalid Request
+          </h1>
+          <p className="text-muted-foreground">
+            This page requires a valid email address.
+          </p>
         </div>
-      </div>
+        <div className="grid gap-4">
+          <Button className="w-full" onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="w-full h-screen lg:grid lg:grid-cols-2 -m-4 sm:-mx-6 sm:-my-4 sm:-ml-14">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[400px] gap-6">
-          <div className="flex justify-center mb-2">
-            <Image 
-              src="/assets/icons/endatix.svg" 
-              alt="Endatix logo" 
-              width={180} 
-              height={60} 
-              priority
-            />
-          </div>
-          <div className="grid gap-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">🎉 Account created successfully!</h1>
-            <p className="text-muted-foreground">
-              We&#39;ve sent a verification email to <span className="font-bold">{email}</span>.
-            </p>
-          </div>
-          <div className="grid gap-8">
-            <p className="text-sm text-muted-foreground">
-              Please check your inbox and click the link to verify the address and activate your account.
-            </p>
-            {resendMessage && (
-              <p className={`text-sm ${
-                resendMessage.includes("successfully") 
-                  ? "text-green-600 dark:text-green-400" 
-                  : "text-red-600 dark:text-red-400"
-              }`}>
-                {resendMessage}
-              </p>
+    <>
+      <div className="flex justify-center mb-2">
+        <Image
+          src="/assets/icons/endatix.svg"
+          alt="Endatix logo"
+          width={180}
+          height={60}
+          priority
+        />
+      </div>
+      <div className="grid gap-2 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          🎉 Account created successfully!
+        </h1>
+        <p className="text-muted-foreground">
+          We&#39;ve sent a verification email to{" "}
+          <span className="font-bold">{email}</span>.
+        </p>
+      </div>
+      <div className="grid gap-8">
+        <p className="text-sm text-muted-foreground">
+          Please check your inbox and click the link to verify the address and
+          activate your account.
+        </p>
+        {resendMessage && (
+          <p
+            className={`text-sm ${
+              resendMessage.includes("successfully")
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {resendMessage}
+          </p>
+        )}
+        <div className="grid gap-4">
+          <p className="text-xs text-muted-foreground">
+            Didn&#39;t receive the email? Check your spam folder or request a
+            new one.
+          </p>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleResendVerification}
+            disabled={isResending || cooldownSeconds > 0}
+          >
+            {isResending ? (
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Sending...
+              </>
+            ) : cooldownSeconds > 0 ? (
+              `Resend verification email in ${cooldownSeconds}s`
+            ) : (
+              "Resend verification email"
             )}
-            <div className="grid gap-4">
-              <p className="text-xs text-muted-foreground">
-                Didn&#39;t receive the email? Check your spam folder or request a new one.
-              </p>
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={handleResendVerification}
-                disabled={isResending || cooldownSeconds > 0}
-              >
-                {isResending ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Sending...
-                  </>
-                ) : cooldownSeconds > 0 ? (
-                  `Resend verification email in ${cooldownSeconds}s`
-                ) : (
-                  "Resend verification email"
-                )}
-              </Button>
-            </div>
-          </div>
+          </Button>
         </div>
       </div>
-      <div className="hidden lg:flex lg:flex-col lg:justify-center lg:items-center lg:h-full">
-        <div className="h-[60%] w-full flex items-center justify-center">
-          <Image
-            src="/assets/lines-and-stuff.svg"
-            alt="Lines and dots pattern"
-            width="600"
-            height="600"
-            className="w-auto h-full max-w-full max-h-full object-contain dark:brightness-[0.6] dark:grayscale"
-          />
-        </div>
-      </div>
-    </div>
+    </>
   );
 }
