@@ -43,18 +43,21 @@ export default function ResetPasswordForm({
   }
 
   return (
-    <form action={formAction}>
+    <form action={formAction} autoComplete="on">
       <input
         type="hidden"
         name="email"
         value={email}
+        autoComplete="email"
         defaultValue={state?.values?.email}
+        readOnly
       />
       <input
         type="hidden"
         name="resetCode"
         value={resetCode}
         defaultValue={state?.values?.resetCode}
+        readOnly
       />
 
       <div className="grid gap-2 text-center">
