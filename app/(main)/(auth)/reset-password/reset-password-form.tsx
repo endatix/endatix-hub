@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
-import { CircleCheckBig } from "lucide-react";
-import { ERROR_CODE } from '@/lib/endatix-api';
+import { CalendarX2, CircleCheckBig } from "lucide-react";
+import { ERROR_CODE } from "@/lib/endatix-api";
 
 interface ResetPasswordFormProps {
   email: string;
@@ -84,6 +84,7 @@ export default function ResetPasswordForm({
             tabIndex={3}
             autoFocus
             defaultValue={state?.values?.newPassword}
+            autoComplete="new-password"
           />
           {state?.errors?.newPassword && (
             <ErrorMessage message={state.errors.newPassword} />
@@ -99,6 +100,7 @@ export default function ResetPasswordForm({
             placeholder="Confirm your new password"
             tabIndex={4}
             defaultValue={state?.values?.confirmPassword}
+            autoComplete="new-password"
           />
           {state?.errors?.confirmPassword && (
             <ErrorMessage message={state.errors.confirmPassword} />
@@ -135,7 +137,10 @@ export const InvalidResetLinkMessage = () => {
         />
       </div>
       <div className="space-y-4">
-        <h2 className="text-2xl font-semibold">Invalid reset link</h2>
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <CalendarX2 className="w-8 h-8 text-red-500" />
+          <h2 className="text-2xl font-semibold">Invalid reset link</h2>
+        </div>
         <p className="text-muted-foreground text-center">
           This password reset link is invalid or has expired. Please request a
           new password reset link.
@@ -151,19 +156,16 @@ export const InvalidResetLinkMessage = () => {
 export const ResetPasswordSuccessMessage = () => {
   return (
     <div className="space-y-4">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <CircleCheckBig className="w-8 h-8 text-green-500" />
-          <h2 className="text-2xl font-semibold">
-            Password reset successfully!
-          </h2>
-        </div>
-        <p className="text-muted-foreground text-center">
-          Your password has been reset. You can now log in with your new
-          password.
-        </p>
-        <Button asChild className="w-full">
-          <Link href="/login">Go to login</Link>
-        </Button>
+      <div className="flex items-center justify-center gap-3 mb-2">
+        <CircleCheckBig className="w-8 h-8 text-green-500" />
+        <h2 className="text-2xl font-semibold">Password reset successfully!</h2>
+      </div>
+      <p className="text-muted-foreground text-center">
+        Your password has been reset. You can now log in with your new password.
+      </p>
+      <Button asChild className="w-full">
+        <Link href="/login">Go to login</Link>
+      </Button>
     </div>
   );
 };
