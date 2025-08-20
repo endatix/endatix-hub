@@ -10,7 +10,7 @@ export default class Account {
    * @returns The response from the forgot password endpoint
    */
   async forgotPassword(request: ForgotPasswordRequest) {
-    return this.endatix.post<void>("/auth/forgot-password", request, {
+    return this.endatix.post<void>("/account/forgot-password", request, {
       requireAuth: false,
     });
   }
@@ -23,7 +23,7 @@ export default class Account {
    * @returns The response from the reset password endpoint
    */
   async resetPassword(request: ResetPasswordRequest) {
-    return this.endatix.post<void>("/auth/reset-password", request, {
+    return this.endatix.post<void>("/account/reset-password", request, {
       requireAuth: false,
     });
   }
