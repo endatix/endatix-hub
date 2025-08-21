@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { File } from "@/lib/questions/file/file-type";
 
 interface AudioPlayerProps {
-  file: File;
+  file: File | File[] | undefined;
   isDisplayMode?: boolean;
 }
 
@@ -14,6 +14,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [hasError, setHasError] = useState(false);
 
   const getAudioSource = (file: File): string => {
+    if (!file.content) {
+      return "";
+    }
+
     // If content starts with 'data:' or 'http', it's already a valid source
     if (file.content.startsWith("data:") || file.content.startsWith("http")) {
       return file.content;
@@ -37,6 +41,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setIsLoading(false);
     setHasError(true);
   };
+
+  if (!file) {
+    return null;
+  }
+
+  const isArray = Array.isArray(file);
+
+  if (isArray) {
+    return (
+      <div>
+        {file.map((f) => (
+          <AudioPlayer key={f.name} file={f} isDisplayMode={isDisplayMode} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div

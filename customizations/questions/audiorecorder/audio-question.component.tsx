@@ -10,7 +10,6 @@ import {
 } from "./audio-question.model";
 import React from "react";
 import "./audio-question.styles.scss";
-import { File } from "@/lib/questions/file/file-type";
 import { AudioPlayer } from "./audio-player";
 
 interface AudioQuestionComponentProps {
@@ -24,29 +23,34 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
     super(props);
     this.state = { value: this.question.value };
   }
+
   protected get question(): AudioQuestionModel {
-    return this.questionBase as AudioQuestionModel;
+    return this.questionBase as unknown as AudioQuestionModel;
   }
+
   protected renderElement(): React.JSX.Element {
+    const hasValue = this.question.value && this.question.value.length > 0;
+
     return (
-      <div className="endatix_audio_container">
-        {this.renderValue()}
+      <div
+        className="endatix_audio_container"
+        ref={(root) => this.setControl(root)}
+      >
+        {this.question.showPlayer && this.renderValue()}
+        {this.question.isUploading && this.renderLoadingIndicator()}
         {!this.props.isDisplayMode && (
           <div className="endatix_audio_controls">
             {this.renderStartButton()}
             {this.renderStopButton()}
-            {this.renderClearButton()}
+            {hasValue && this.renderClearButton()}
           </div>
         )}
+        {this.question.showRecordingBar && this.renderRecordingBar()}
       </div>
     );
   }
 
   protected renderValue(): React.JSX.Element {
-    if (!this.question.value) {
-      return <></>;
-    }
-
     return (
       <div className="endatix_audio_value">
         <AudioPlayer
@@ -66,16 +70,12 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
   }
 
   protected renderStartButton(): React.JSX.Element | null {
-    if (this.question.value) {
-      return null;
-    }
-
     return (
       <button
         type="button"
         className="endatix_audio_button"
         title="Start recording"
-        disabled={this.question.isRecording}
+        disabled={this.question.isRecording || this.question.value?.length > 0}
         onClick={() => this.question.startRecording()}
       >
         <span>Start</span>
@@ -84,10 +84,6 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
   }
 
   protected renderStopButton(): React.JSX.Element | null {
-    if (this.question.value) {
-      return null;
-    }
-
     return (
       <button
         type="button"
@@ -102,19 +98,24 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
   }
 
   protected renderClearButton(): React.JSX.Element | null {
-    if (!this.question.value) {
-      return null;
-    }
-
     return (
       <button
         type="button"
         className="endatix_audio_button"
         title="Clear recording"
+        disabled={!this.question.value?.length}
         onClick={() => this.question.clearRecording()}
       >
         <span>Clear</span>
       </button>
+    );
+  }
+
+  protected renderRecordingBar(): React.JSX.Element {
+    return (
+      <div className="endatix_audio_canvas_container">
+        <canvas id={this.question.canvasId}></canvas>
+      </div>
     );
   }
 }
@@ -122,3 +123,12 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
 ReactQuestionFactory.Instance.registerQuestion(AUDIO_RECORDER_TYPE, (props) => {
   return React.createElement(AudioQuestionComponent, props);
 });
+
+export function registerAudioQuestionReact() {
+  ReactQuestionFactory.Instance.registerQuestion(
+    AUDIO_RECORDER_TYPE,
+    (props) => {
+      return React.createElement(AudioQuestionComponent, props);
+    },
+  );
+}

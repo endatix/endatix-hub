@@ -29,7 +29,7 @@ ComponentCollection.Instance.add({
     element: Question,
     htmlElement: HTMLElement,
   ) => {
-    if (element.getType() === "html") {
+    if (element.getType() == "html") {
       let stream,
         audioContext,
         analyser,
@@ -37,6 +37,8 @@ ComponentCollection.Instance.add({
         source,
         audioData = [];
       let animationId;
+
+      const survey = question.survey;
 
       const startBtn = document.createElement("button");
       startBtn.style.padding = "8px 16px";
@@ -87,7 +89,7 @@ ComponentCollection.Instance.add({
       canvas.height = 6;
       canvas.style.border = "1px solid #ccc";
 
-      const checkIfButtonExists = htmlElement.querySelector("#startBtn");
+      var checkIfButtonExists = htmlElement.querySelector("#startBtn");
 
       if (!checkIfButtonExists) {
         htmlElement.appendChild(startBtn);
@@ -204,6 +206,7 @@ ComponentCollection.Instance.add({
 
         const fileQuestion =
           question.contentPanel.getQuestionByName("audioUpload");
+        const htmlPanel = question.contentPanel.getQuestionByName("htmlPanel");
 
         fileQuestion.loadFiles([file]);
 
@@ -214,20 +217,12 @@ ComponentCollection.Instance.add({
 
         fileQuestion.onPropertyChanged.add(function (sender, options) {
           if (options.name == "currentState" && options.newValue == "empty") {
-            debugger;
             resetBtn.style.visibility = "hidden";
             startBtn.disabled = false;
             stopBtn.disabled = true;
           }
         });
       };
-    }
-  },
-  onPropertyChanged: (question: Question, propertyName: string, newValue: any) => {
-    if (propertyName === "currentState" && newValue === "empty") {
-      debugger;
-      const resetBtn = question.contentPanel.getQuestionByName("resetBtn");
-      resetBtn.style.visibility = "hidden";
     }
   },
 });
