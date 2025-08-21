@@ -1,0 +1,67 @@
+.endatix_audio_controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.endatix_audio_button {
+  padding: 8px 16px;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #888;
+  background-color: #f0f0f0;
+  margin: 4px;
+  display: inline;
+}
+
+.endatix_audio_player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.endatix_audio_element {
+  width: 100%;
+  max-width: 400px;
+  height: 40px;
+  border-radius: 4px;
+}
+
+.endatix_audio_filename {
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
+}
+
+.endatix_audio_loading {
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
+  padding: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.endatix_audio_error {
+  font-size: 14px;
+  color: #d32f2f;
+  font-style: italic;
+  padding: 8px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  border: 1px solid #ffcdd2;
+}
+
+.endatix_audio_player_display {
+  background-color: #ffffff;
+  border: 2px solid #e3f2fd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
