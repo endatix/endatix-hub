@@ -164,7 +164,7 @@ export const ResetPasswordSuccessMessage = () => {
         <h2 className="text-2xl font-semibold">Password reset successfully!</h2>
       </div>
       <p className="text-muted-foreground text-center">
-        Your password has been reset. You can now log in with your new password.
+        Your password has been reset. You can now sign in with your new password.
       </p>
       <Button asChild className="w-full">
         <Link href="/login">Go to sign in</Link>
