@@ -17,6 +17,7 @@ import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
+import { registerAudioQuestion } from '@/lib/questions/audio-recorder';
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -28,6 +29,8 @@ interface EditSurveyWrapperProps {
       | MatrixCellValueChangedEvent,
   ) => void;
 }
+
+registerAudioQuestion();
 
 function useSurveyModel(submission: Submission) {
   const modelRef = useRef<Model | null>(null);

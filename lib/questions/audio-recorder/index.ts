@@ -1,1 +1,6 @@
-export { registerAudioQuestion, addAudioQuestionUI } from "./audio-question.component";
+export {
+  registerAudioQuestion,
+  registerAudioQuestionUI,
+} from "./audio-question.component";
+
+

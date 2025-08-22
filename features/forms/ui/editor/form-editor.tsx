@@ -45,8 +45,7 @@ import { useThemeManagement } from "@/features/public-form/application/use-theme
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions } from "@/customizations/questions/custom-questions";
 import {
-  addAudioQuestionUI,
-  registerAudioQuestion,
+  registerAudioQuestionUI,
 } from "@/lib/questions/audio-recorder";
 
 Serializer.addProperty("theme", {
@@ -66,8 +65,7 @@ Serializer.addProperty("survey", {
   isLocalizable: true,
 });
 
-registerAudioQuestion();
-addAudioQuestionUI();
+registerAudioQuestionUI();
 
 const translations = getLocaleStrings("en");
 

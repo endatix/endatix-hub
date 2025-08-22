@@ -17,6 +17,7 @@ import { PdfSubmissionProperties } from "./pdf-submission-properties";
 import { PDF_STYLES } from "./pdf-styles";
 import { PdfSubmissionAnswer } from "./pdf-submission-answer";
 import { isLocaleValid } from "@/features/submissions/submission-localization";
+import { registerAudioQuestionModel } from '@/lib/questions/audio-recorder/audio-question-pdf';
 
 Font.register({
   family: "Roboto",
@@ -43,6 +44,7 @@ export const SubmissionDetailsPdf = ({
     return <Text>Form definition not found</Text>;
   }
 
+  registerAudioQuestionModel();
   setupBrowserPolyfills();
 
   initializeCustomQuestions(

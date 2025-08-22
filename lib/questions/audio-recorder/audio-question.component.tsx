@@ -10,6 +10,9 @@ import React from "react";
 import "./audio-question.styles.scss";
 import { AudioPlayer } from "./audio-player";
 import { getLocaleStrings } from "survey-creator-core";
+import AudioQuestionIcon from "./audio-question.icon";
+import { SvgRegistry } from "survey-core";
+import ReactDOMServer from "react-dom/server";
 
 export class AudioQuestionComponent extends SurveyQuestionElementBase {
   constructor(props: unknown) {
@@ -122,6 +125,9 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
   }
 }
 
+/**
+ * Register the audio question in the Survey JS
+ */
 export function registerAudioQuestion() {
   ReactQuestionFactory.Instance.registerQuestion(
     AUDIO_RECORDER_TYPE,
@@ -131,7 +137,14 @@ export function registerAudioQuestion() {
   );
 }
 
-export function addAudioQuestionUI() {
+/**
+ * Register the audio question in the Survey Creator UI
+ */
+export function registerAudioQuestionUI() {
+  registerAudioQuestion();
+  const view = ReactDOMServer.renderToStaticMarkup(AudioQuestionIcon);
+  SvgRegistry.registerIcon(AUDIO_RECORDER_TYPE, view);
+
   const translations = getLocaleStrings("en");
   if (translations.pehelp) {
     translations.pehelp.audiorecorder = {

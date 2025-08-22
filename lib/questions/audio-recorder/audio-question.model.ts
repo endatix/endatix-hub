@@ -1,13 +1,10 @@
-import ReactDOMServer from "react-dom/server";
 import {
   ExceedSizeError,
   QuestionFactory,
   Serializer,
-  SurveyError,
-  SvgRegistry,
+  SurveyError
 } from "survey-core";
 import { QuestionFileModelBase } from "./question-file-base-model";
-import AudioQuestionIcon from "./audio-question.icon";
 
 interface FileResult {
   file: File;
@@ -283,9 +280,6 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     return result;
   }
 }
-
-const view = ReactDOMServer.renderToStaticMarkup(AudioQuestionIcon);
-SvgRegistry.registerIcon(AUDIO_RECORDER_TYPE, view);
 
 Serializer.addClass(
   AUDIO_RECORDER_TYPE,
