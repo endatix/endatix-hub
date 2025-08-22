@@ -3,8 +3,9 @@ import { ApiResult, ApiErrorDetails, ApiErrorType } from "./shared/api-result";
 import { ERROR_CODE, getErrorMessageWithFallback } from "./shared/error-codes";
 import { Submissions } from "./submissions/submissions";
 import type { SessionData } from "@/features/auth";
-import { parseErrorResponse } from './shared/problem-details';
-import Agents from './agents/agents';
+import { parseErrorResponse } from "./shared/problem-details";
+import Agents from "./agents/agents";
+import Account from "./account/account";
 
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 const DEFAULT_HEADERS = {};
@@ -27,6 +28,7 @@ export class EndatixApi {
   private readonly session?: SessionData;
   private _submissions?: Submissions;
   private _agents?: Agents;
+  private _account?: Account;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -68,6 +70,16 @@ export class EndatixApi {
       this._agents = new Agents(this);
     }
     return this._agents;
+  }
+
+  /**
+   * Lazy-loaded account API - only creates instance when first accessed
+   */
+  get account(): Account {
+    if (!this._account) {
+      this._account = new Account(this);
+    }
+    return this._account;
   }
 
   /**
