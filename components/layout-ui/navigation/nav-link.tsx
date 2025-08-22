@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ReactNode, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { showComingSoonMessage } from "../teasers/coming-soon-link";
 
 type NavLinkProps = {
   path: string;
@@ -42,20 +41,12 @@ const NavLink = ({
   const handleClick = (e: React.MouseEvent) => {
     if (!ALLOWED_PAGES.some((allowedPath) => allowedPath === path)) {
       e.preventDefault();
-      if (onComingSoon) {
-        onComingSoon(text);
-      } else {
-        showComingSoonMessage();
-      }
+      onComingSoon?.(text);
     }
   };
 
   return (
-    <Link
-      onClick={handleClick}
-      href={path}
-      className={_className}
-    >
+    <Link onClick={handleClick} href={path} className={_className}>
       {children}
       <span className="sr-only">{text}</span>
     </Link>
