@@ -7,7 +7,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useActionState } from "react";
 import { loginAction } from "../login.action";
-import { showComingSoonMessage } from "@/components/layout-ui/teasers/coming-soon-link";
 import { Spinner } from "@/components/loaders/spinner";
 import { ErrorMessage } from "@/components/forms/error-message";
 
@@ -18,11 +17,11 @@ const LoginForm = () => {
     <form action={formAction}>
       <div className="grid gap-2 text-center">
         <div className="flex justify-center mb-2">
-          <Image 
-            src="/assets/icons/endatix.svg" 
-            alt="Endatix logo" 
-            width={180} 
-            height={60} 
+          <Image
+            src="/assets/icons/endatix.svg"
+            alt="Endatix logo"
+            width={180}
+            height={60}
             priority
           />
         </div>
@@ -50,19 +49,18 @@ const LoginForm = () => {
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
             <Link
-              href="#"
-              onClick={() => showComingSoonMessage()}
+              href="/forgot-password"
               className="ml-auto inline-block text-sm underline"
               tabIndex={4}
             >
               Forgot your password?
             </Link>
           </div>
-          <Input 
-            id="password" 
-            type="password" 
-            name="password" 
-            required 
+          <Input
+            id="password"
+            type="password"
+            name="password"
+            required
             tabIndex={2}
             defaultValue={state?.formData?.get("password")?.toString()}
           />
@@ -71,7 +69,12 @@ const LoginForm = () => {
           )}
         </div>
         {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
-        <Button type="submit" className="w-full" disabled={isPending} tabIndex={3}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isPending}
+          tabIndex={3}
+        >
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           Sign in with email
         </Button>
