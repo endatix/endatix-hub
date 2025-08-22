@@ -2,7 +2,6 @@ import "@/app/globals.css";
 import Image from "next/image";
 import localFont from "next/font/local";
 import { getSession } from "@/features/auth";
-import { Toaster } from "sonner";
 import { AppProvider } from "@/components/providers";
 
 const geistSans = localFont({
@@ -45,7 +44,6 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
               </div>
             </main>
           </div>
-          <Toaster expand={false} duration={Infinity} visibleToasts={5} />
         </AppProvider>
       </body>
     </html>

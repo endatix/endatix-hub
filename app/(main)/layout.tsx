@@ -1,7 +1,6 @@
 import "@/app/globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Toaster } from "sonner";
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
 
@@ -46,7 +45,6 @@ export default async function RootLayout({ children, header, nav }: RootLayoutPr
               </main>
             </div>
           </div>
-          <Toaster expand={false} duration={Infinity} visibleToasts={5} />
         </AppProvider>
       </body>
     </html>
