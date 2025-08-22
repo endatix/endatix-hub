@@ -117,7 +117,7 @@ export class QuestionFileModelBase extends Question {
         this,
         this.name,
         files,
-        (arg1: any, arg2: any) => {
+        (arg1: unknown, arg2: unknown) => {
           if (Array.isArray(arg1)) {
             this.setValueFromResult(arg1);
             if (Array.isArray(arg2)) {
@@ -146,8 +146,9 @@ export class QuestionFileModelBase extends Question {
       );
     }
   }
-  protected loadPreview(newValue: any): void {}
-  protected onChangeQuestionValue(newValue: any): void {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected loadPreview(newValue: unknown): void {}
+  protected onChangeQuestionValue(newValue: unknown): void {
     super.onChangeQuestionValue(newValue);
     this.stateChanged(this.isEmpty() ? "empty" : "loaded");
   }

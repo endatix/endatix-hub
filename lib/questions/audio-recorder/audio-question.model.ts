@@ -9,9 +9,17 @@ import {
 import { QuestionFileModelBase } from "./question-file-base-model";
 import AudioQuestionIcon from "./audio-question.icon";
 
+interface FileResult {
+  file: File;
+  content: string;
+}
+
 export const AUDIO_RECORDER_TYPE = "audiorecorder";
 
 export class AudioQuestionModel extends QuestionFileModelBase {
+  private static readonly recordingError: SurveyError = new SurveyError(
+    "Something went wrong during recording. Please record again.",
+  );
   private stream: MediaStream | undefined;
   private audioContext: AudioContext | undefined;
   private source: MediaStreamAudioSourceNode | undefined;
@@ -26,6 +34,10 @@ export class AudioQuestionModel extends QuestionFileModelBase {
 
   constructor(name: string) {
     super(name);
+
+    // Enforce uploading to BLOB storage
+    this.waitForUpload = true;
+    this.storeDataAsText = false;
   }
 
   public get canvasId(): string {
@@ -44,6 +56,13 @@ export class AudioQuestionModel extends QuestionFileModelBase {
   }
   set showPlayer(val: boolean) {
     this.setPropertyValue("showPlayer", val as boolean);
+  }
+
+  get maxSize(): number {
+    return this.getPropertyValue("maxSize") as number;
+  }
+  set maxSize(val: number) {
+    this.setPropertyValue("maxSize", val as number);
   }
 
   public async startRecording(): Promise<void> {
@@ -75,32 +94,41 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     }
 
     cancelAnimationFrame(this.animationId);
-    this.processor!.disconnect();
-    this.analyser!.disconnect();
-    this.source!.disconnect();
-    this.stream!.getTracks().forEach((track) => track.stop());
-    this.audioContext!.close();
-
-    const merged = this.flattenArray(this.audioData);
-    const wavBlob = this.encodeWAV(merged, 48000);
-
-    const file = new File([wavBlob], "recording.wav", {
-      type: "audio/wav",
-    });
-
-    this.isRecording = false;
-
-    this.loadFiles([file]);
-    this.ctx.clearRect(
+    this.ctx?.clearRect(
       0,
       0,
       this.canvasHtmlElement.width,
       this.canvasHtmlElement.height,
     );
+
+    let recordingFile: File | undefined;
+    try {
+      this.processor!.disconnect();
+      this.analyser!.disconnect();
+      this.source!.disconnect();
+      this.stream!.getTracks().forEach((track) => track.stop());
+      this.audioContext!.close();
+
+      const merged = this.flattenArray(this.audioData);
+      const wavBlob = this.encodeWAV(merged, 48000);
+      recordingFile = new File([wavBlob], "recording.wav", {
+        type: "audio/wav",
+      });
+    } catch (error) {
+      console.debug("Recording error", error);
+    }
+
+    this.isRecording = false;
+    if (!recordingFile) {
+      this.errors = [this.recordingError];
+      return;
+    }
+
+    this.uploadAudioRecording([recordingFile]);
   }
 
   public clearRecording(): void {
-    super.clearValue(true);
+    this.clearValue(true);
   }
 
   public afterRenderQuestionElement(el: HTMLElement): void {
@@ -114,63 +142,49 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     this.rootElement = undefined;
   }
 
-  public loadFiles(files: File[]) {
+  public uploadAudioRecording(files: File[]) {
     if (!this.survey) {
       return;
     }
 
     this.errors = [];
-    if (!this.allFilesOk(files)) {
+
+    if (files.length === 0) {
+      this.errors = [
+        new SurveyError("Something went wrong. Please record again."),
+      ];
       return;
     }
 
-    const loadFilesProc = () => {
-      this.stateChanged("loading");
-      let content: any[] = [];
-      if (this.storeDataAsText) {
-        files.forEach((file) => {
-          const fileReader = new FileReader();
-          fileReader.onload = (e) => {
-            content = content.concat([
-              { name: file.name, type: file.type, content: fileReader.result },
-            ]);
-            if (content.length === files.length) {
-              this.value = (this.value || []).concat(content);
-            }
-          };
-          fileReader.readAsDataURL(file);
-        });
-      } else {
-        this.uploadFiles(files);
-      }
-    };
-    if (this.allowMultiple) {
-      loadFilesProc();
-    } else {
-      this.clear(loadFilesProc);
+    if (files.length > 1) {
+      this.errors = [
+        new SurveyError(
+          "There is more than one recording. Please upload one at a time.",
+        ),
+      ];
+      return;
     }
+
+    if (!this.isFileSizeWithinLimit(files)) {
+      return;
+    }
+
+    this.uploadFiles(files);
   }
 
-  public clear(doneCallback?: () => void) {
-    if (!this.survey) return;
-    this.containsMultiplyFiles = false;
-    this.survey.clearFiles(
-      this,
-      this.name,
-      this.value,
-      null,
-      (status, data) => {
-        if (status === "success") {
-          this.value = undefined;
-          this.errors = [];
-          !!doneCallback && doneCallback();
-          this.indexToShow = 0;
-        }
-      },
+  protected setValueFromResult(arg: FileResult[]) {
+    this.value = (this.value || []).concat(
+      arg.map((r: FileResult) => {
+        return {
+          name: r.file.name,
+          type: r.file.type,
+          content: r.content,
+        };
+      }),
     );
   }
 
-  override validate(fireCallback?: boolean, rec?: any): boolean {
+  override validate(fireCallback?: boolean, rec?: unknown): boolean {
     if (this.isRecording) {
       this.errors = [
         new SurveyError("Please click Stop button to finish recording"),
@@ -186,25 +200,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     return super.validate(fireCallback, rec);
   }
 
-  protected setValueFromResult(arg: any) {
-    this.value = (this.value || []).concat(
-      arg.map((r: any) => {
-        return {
-          name: r.file.name,
-          type: r.file.type,
-          content: r.content,
-        };
-      }),
-    );
-  }
-
-  private getLocalizationFormatString(strName: string, ...args: any[]): string {
-    const str: any = this.getLocalizationString(strName);
-    if (!str || !str.format) return "";
-    return str.format(...args);
-  }
-
-  private allFilesOk(files: File[]): boolean {
+  private isFileSizeWithinLimit(files: File[]): boolean {
     const errorLength = this.errors ? this.errors.length : 0;
     (files || []).forEach((file) => {
       if (this.maxSize > 0 && file.size > this.maxSize) {
@@ -296,20 +292,14 @@ Serializer.addClass(
   [
     {
       name: "showPlayer:boolean",
+      default: false,
       category: "general",
-      default: false,
     },
     {
-      name: "storeDataAsText:boolean",
-      default: false,
-      visible: false,
+      name: "maxSize:number",
+      default: 0,
+      category: "general",
     },
-    {
-      name: "waitForUpload:boolean",
-      default: true,
-      visible: false,
-    },
-    { name: "isUploading:boolean", default: false, visible: false },
   ],
   function () {
     return new AudioQuestionModel("");

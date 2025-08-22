@@ -1,7 +1,5 @@
 import {
-  LoadingIndicatorComponent,
   ReactQuestionFactory,
-  Survey,
   SurveyQuestionElementBase,
 } from "survey-react-ui";
 import {
@@ -12,14 +10,8 @@ import React from "react";
 import "./audio-question.styles.scss";
 import { AudioPlayer } from "./audio-player";
 
-interface AudioQuestionComponentProps {
-  question: AudioQuestionModel;
-  isDisplayMode: boolean;
-  creator: Survey;
-}
-
 export class AudioQuestionComponent extends SurveyQuestionElementBase {
-  constructor(props: AudioQuestionComponentProps) {
+  constructor(props: unknown ) {
     super(props);
     this.state = { value: this.question.value };
   }
@@ -36,7 +28,7 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
         className="endatix_audio_container"
         ref={(root) => this.setControl(root)}
       >
-        {this.question.showPlayer && this.renderValue()}
+        {this.question.showPlayer && this.renderPlayer()}
         {this.question.isUploading && this.renderLoadingIndicator()}
         {!this.props.isDisplayMode && (
           <div className="endatix_audio_controls">
@@ -50,7 +42,7 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
     );
   }
 
-  protected renderValue(): React.JSX.Element {
+  protected renderPlayer(): React.JSX.Element {
     return (
       <div className="endatix_audio_value">
         <AudioPlayer
@@ -64,7 +56,12 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
   protected renderLoadingIndicator(): React.JSX.Element {
     return (
       <div className={this.question.cssClasses.loadingIndicator}>
-        <LoadingIndicatorComponent></LoadingIndicatorComponent>
+        <span>Uploading</span>
+        <div className="loading-dots">
+          <span className="dot"></span>
+          <span className="dot"></span>
+          <span className="dot"></span>
+        </div>
       </div>
     );
   }
@@ -75,7 +72,11 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
         type="button"
         className="endatix_audio_button"
         title="Start recording"
-        disabled={this.question.isRecording || this.question.value?.length > 0}
+        disabled={
+          this.question.isRecording ||
+          this.question.isUploading ||
+          this.question.value?.length > 0
+        }
         onClick={() => this.question.startRecording()}
       >
         <span>Start</span>
@@ -120,15 +121,9 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
   }
 }
 
-ReactQuestionFactory.Instance.registerQuestion(AUDIO_RECORDER_TYPE, (props) => {
-  return React.createElement(AudioQuestionComponent, props);
-});
-
-export function registerAudioQuestionReact() {
-  ReactQuestionFactory.Instance.registerQuestion(
-    AUDIO_RECORDER_TYPE,
-    (props) => {
-      return React.createElement(AudioQuestionComponent, props);
-    },
-  );
-}
+ReactQuestionFactory.Instance.registerQuestion(
+  AUDIO_RECORDER_TYPE,
+  (props) => {
+    return React.createElement(AudioQuestionComponent, props);
+  },
+);
