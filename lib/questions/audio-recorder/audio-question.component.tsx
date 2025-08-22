@@ -9,9 +9,10 @@ import {
 import React from "react";
 import "./audio-question.styles.scss";
 import { AudioPlayer } from "./audio-player";
+import { getLocaleStrings } from "survey-creator-core";
 
 export class AudioQuestionComponent extends SurveyQuestionElementBase {
-  constructor(props: unknown ) {
+  constructor(props: unknown) {
     super(props);
     this.state = { value: this.question.value };
   }
@@ -121,9 +122,23 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
   }
 }
 
-ReactQuestionFactory.Instance.registerQuestion(
-  AUDIO_RECORDER_TYPE,
-  (props) => {
-    return React.createElement(AudioQuestionComponent, props);
-  },
-);
+export function registerAudioQuestion() {
+  ReactQuestionFactory.Instance.registerQuestion(
+    AUDIO_RECORDER_TYPE,
+    (props) => {
+      return React.createElement(AudioQuestionComponent, props);
+    },
+  );
+}
+
+export function addAudioQuestionUI() {
+  const translations = getLocaleStrings("en");
+  if (translations.pehelp) {
+    translations.pehelp.audiorecorder = {
+      showPlayer:
+        "Controls if a player is shown for playback of the audio recording.",
+      maxSize:
+        "Controls the maximum size of the audio recording in bytes. The default value is 0, which means no limit.",
+    };
+  }
+}

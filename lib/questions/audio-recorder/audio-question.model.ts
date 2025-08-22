@@ -111,7 +111,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
 
       const merged = this.flattenArray(this.audioData);
       const wavBlob = this.encodeWAV(merged, 48000);
-      recordingFile = new File([wavBlob], "recording.wav", {
+      recordingFile = new File([wavBlob], `${this.name}-recording.wav`, {
         type: "audio/wav",
       });
     } catch (error) {

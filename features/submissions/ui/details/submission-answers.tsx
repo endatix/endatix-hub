@@ -16,6 +16,9 @@ import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
+import { registerAudioQuestion } from '@/lib/questions/audio-recorder';
+
+registerAudioQuestion();
 
 interface SubmissionItemRowProps {
   question: Question;
