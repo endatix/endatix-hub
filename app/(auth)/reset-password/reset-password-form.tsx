@@ -117,10 +117,10 @@ export default function ResetPasswordForm({
           tabIndex={5}
         >
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
-          Reset Password
+          Reset password
         </Button>
         <Button variant="secondary" className="w-full" tabIndex={6} asChild>
-          <Link href="/login">Back to login</Link>
+          <Link href="/login">Back to sign in</Link>
         </Button>
       </div>
     </form>
@@ -167,7 +167,7 @@ export const ResetPasswordSuccessMessage = () => {
         Your password has been reset. You can now log in with your new password.
       </p>
       <Button asChild className="w-full">
-        <Link href="/login">Go to login</Link>
+        <Link href="/login">Go to sign in</Link>
       </Button>
     </div>
   );

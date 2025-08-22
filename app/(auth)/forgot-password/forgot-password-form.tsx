@@ -65,7 +65,7 @@ export default function ForgotPasswordForm() {
           Reset password
         </Button>
         <Button variant="secondary" className="w-full" tabIndex={3} asChild>
-          <Link href="/login">Back to login</Link>
+          <Link href="/login">Back to sign in</Link>
         </Button>
       </div>
     </form>
