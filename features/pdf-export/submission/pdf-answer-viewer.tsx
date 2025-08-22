@@ -248,6 +248,7 @@ const PdfAnswerViewer = ({
     case QuestionType.Comment:
       return renderCommentAnswer();
     case QuestionType.File:
+    case QuestionType.AudioRecorder:
       return renderFileAnswer();
     case QuestionType.SignaturePad:
       return renderSignaturePadAnswer();

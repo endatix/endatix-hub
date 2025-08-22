@@ -1,0 +1,309 @@
+import {
+  ExceedSizeError,
+  QuestionFactory,
+  Serializer,
+  SurveyError
+} from "survey-core";
+import { QuestionFileModelBase } from "./question-file-base-model";
+
+interface FileResult {
+  file: File;
+  content: string;
+}
+
+export const AUDIO_RECORDER_TYPE = "audiorecorder";
+
+export class AudioQuestionModel extends QuestionFileModelBase {
+  private static readonly recordingError: SurveyError = new SurveyError(
+    "Something went wrong during recording. Please record again.",
+  );
+  private stream: MediaStream | undefined;
+  private audioContext: AudioContext | undefined;
+  private source: MediaStreamAudioSourceNode | undefined;
+  private analyser: AnalyserNode | undefined;
+  private processor: ScriptProcessorNode | undefined;
+  private audioData: Float32Array[] = [];
+  private rootElement: HTMLElement | undefined;
+
+  public getType(): string {
+    return AUDIO_RECORDER_TYPE;
+  }
+
+  constructor(name: string) {
+    super(name);
+
+    // Enforce uploading to BLOB storage
+    this.waitForUpload = true;
+    this.storeDataAsText = false;
+  }
+
+  public get canvasId(): string {
+    return this.id + "_canvas";
+  }
+
+  get isRecording(): boolean {
+    return this.getPropertyValue("isRecording") as boolean;
+  }
+  set isRecording(val: boolean) {
+    this.setPropertyValue("isRecording", val as boolean);
+  }
+
+  get showPlayer(): boolean {
+    return this.getPropertyValue("showPlayer") as boolean;
+  }
+  set showPlayer(val: boolean) {
+    this.setPropertyValue("showPlayer", val as boolean);
+  }
+
+  get maxSize(): number {
+    return this.getPropertyValue("maxSize") as number;
+  }
+  set maxSize(val: number) {
+    this.setPropertyValue("maxSize", val as number);
+  }
+
+  public async startRecording(): Promise<void> {
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.audioContext = new window.AudioContext({
+      sampleRate: 48000,
+    });
+
+    this.source = this.audioContext.createMediaStreamSource(this.stream);
+    this.analyser = this.audioContext.createAnalyser();
+    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    this.audioData = [];
+
+    this.source.connect(this.analyser);
+    this.analyser.connect(this.processor);
+    this.processor.connect(this.audioContext.destination);
+
+    this.processor.onaudioprocess = (e) => {
+      this.audioData.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+    };
+
+    this.drawLevel();
+    this.isRecording = true;
+  }
+
+  public async stopRecording(): Promise<void> {
+    if (!this.isRecording) {
+      return;
+    }
+
+    cancelAnimationFrame(this.animationId);
+    this.ctx?.clearRect(
+      0,
+      0,
+      this.canvasHtmlElement.width,
+      this.canvasHtmlElement.height,
+    );
+
+    let recordingFile: File | undefined;
+    try {
+      this.processor!.disconnect();
+      this.analyser!.disconnect();
+      this.source!.disconnect();
+      this.stream!.getTracks().forEach((track) => track.stop());
+      this.audioContext!.close();
+
+      const merged = this.flattenArray(this.audioData);
+      const wavBlob = this.encodeWAV(merged, 48000);
+      recordingFile = new File([wavBlob], `${this.name}-recording.wav`, {
+        type: "audio/wav",
+      });
+    } catch (error) {
+      console.debug("Recording error", error);
+    }
+
+    this.isRecording = false;
+    if (!recordingFile) {
+      this.errors = [this.recordingError];
+      return;
+    }
+
+    this.uploadAudioRecording([recordingFile]);
+  }
+
+  public clearRecording(): void {
+    this.clearValue(true);
+  }
+
+  public afterRenderQuestionElement(el: HTMLElement): void {
+    super.afterRenderQuestionElement(el);
+    this.rootElement = el;
+  }
+
+  public beforeDestroyQuestionElement(el: HTMLElement): void {
+    super.beforeDestroyQuestionElement(el);
+    this.stopRecording();
+    this.rootElement = undefined;
+  }
+
+  public uploadAudioRecording(files: File[]) {
+    if (!this.survey) {
+      return;
+    }
+
+    this.errors = [];
+
+    if (files.length === 0) {
+      this.errors = [
+        new SurveyError("Something went wrong. Please record again."),
+      ];
+      return;
+    }
+
+    if (files.length > 1) {
+      this.errors = [
+        new SurveyError(
+          "There is more than one recording. Please upload one at a time.",
+        ),
+      ];
+      return;
+    }
+
+    if (!this.isFileSizeWithinLimit(files)) {
+      return;
+    }
+
+    this.uploadFiles(files);
+  }
+
+  protected setValueFromResult(arg: FileResult[]) {
+    this.value = (this.value || []).concat(
+      arg.map((r: FileResult) => {
+        return {
+          name: r.file.name,
+          type: r.file.type,
+          content: r.content,
+        };
+      }),
+    );
+  }
+
+  override validate(fireCallback?: boolean, rec?: unknown): boolean {
+    if (this.isRecording) {
+      this.errors = [
+        new SurveyError("Please click Stop button to finish recording"),
+      ];
+      return false;
+    }
+
+    if (this.isUploading) {
+      this.errors = [new SurveyError("Saving your recording. Please wait.")];
+      return false;
+    }
+
+    return super.validate(fireCallback, rec);
+  }
+
+  private isFileSizeWithinLimit(files: File[]): boolean {
+    const errorLength = this.errors ? this.errors.length : 0;
+    (files || []).forEach((file) => {
+      if (this.maxSize > 0 && file.size > this.maxSize) {
+        this.errors.push(new ExceedSizeError(this.maxSize, this));
+      }
+    });
+    return errorLength === this.errors.length;
+  }
+
+  private get ctx(): CanvasRenderingContext2D {
+    return this.canvasHtmlElement.getContext("2d") as CanvasRenderingContext2D;
+  }
+
+  private get canvasHtmlElement() {
+    return this.rootElement?.querySelector(
+      `#${this.canvasId}`,
+    ) as HTMLCanvasElement;
+  }
+
+  private drawLevel(): void {
+    const dataArray = new Uint8Array(this.analyser!.frequencyBinCount);
+    this.analyser!.getByteFrequencyData(dataArray);
+    const level = Math.max(...dataArray);
+    this.ctx.clearRect(
+      0,
+      0,
+      this.canvasHtmlElement.width,
+      this.canvasHtmlElement.height,
+    );
+    this.ctx.fillStyle = "green";
+    this.ctx.fillRect(
+      0,
+      0,
+      (level / 255) * this.canvasHtmlElement.width,
+      this.canvasHtmlElement.height,
+    );
+    this.animationId = requestAnimationFrame(() => this.drawLevel());
+  }
+
+  private encodeWAV(samples: Float32Array, sampleRate: number) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    function writeString(view: DataView, offset: number, str: string) {
+      for (let i = 0; i < str.length; i++)
+        view.setUint8(offset + i, str.charCodeAt(i));
+    }
+
+    writeString(view, 0, "RIFF");
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(view, 8, "WAVE");
+    writeString(view, 12, "fmt ");
+    view.setUint32(16, 16, true); // PCM
+    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // byte rate
+    view.setUint16(32, 2, true); // block align
+    view.setUint16(34, 16, true); // bits per sample
+    writeString(view, 36, "data");
+    view.setUint32(40, samples.length * 2, true);
+
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+
+    return new Blob([view], { type: "audio/wav" });
+  }
+
+  private flattenArray(channelBuffers: Float32Array[]) {
+    let length = 0;
+    channelBuffers.forEach((buf) => (length += buf.length));
+    const result = new Float32Array(length);
+    let offset = 0;
+    channelBuffers.forEach((buf) => {
+      result.set(buf, offset);
+      offset += buf.length;
+    });
+    return result;
+  }
+}
+
+Serializer.addClass(
+  AUDIO_RECORDER_TYPE,
+  [
+    {
+      name: "showPlayer:boolean",
+      default: false,
+      category: "general",
+    },
+    {
+      name: "maxSize:number",
+      default: 0,
+      category: "general",
+    },
+  ],
+  function () {
+    return new AudioQuestionModel("");
+  },
+  "question",
+);
+
+QuestionFactory.Instance.registerQuestion(
+  AUDIO_RECORDER_TYPE,
+  (name: string) => {
+    return new AudioQuestionModel(name);
+  },
+);
