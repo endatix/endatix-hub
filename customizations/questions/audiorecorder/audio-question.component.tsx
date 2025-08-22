@@ -45,7 +45,7 @@ export class AudioQuestionComponent extends SurveyQuestionElementBase {
             {hasValue && this.renderClearButton()}
           </div>
         )}
-        {this.question.showRecordingBar && this.renderRecordingBar()}
+        {this.renderRecordingBar()}
       </div>
     );
   }

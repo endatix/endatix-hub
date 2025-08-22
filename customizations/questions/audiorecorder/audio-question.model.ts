@@ -39,13 +39,6 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     this.setPropertyValue("isRecording", val as boolean);
   }
 
-  get showRecordingBar(): boolean {
-    return this.getPropertyValue("showRecordingBar") as boolean;
-  }
-  set showRecordingBar(val: boolean) {
-    this.setPropertyValue("showRecordingBar", val as boolean);
-  }
-
   get showPlayer(): boolean {
     return this.getPropertyValue("showPlayer") as boolean;
   }
@@ -125,6 +118,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     if (!this.survey) {
       return;
     }
+
     this.errors = [];
     if (!this.allFilesOk(files)) {
       return;
@@ -176,7 +170,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     );
   }
 
-  public override validate(fireCallback?: boolean, rec?: any): boolean {
+  override validate(fireCallback?: boolean, rec?: any): boolean {
     if (this.isRecording) {
       this.errors = [
         new SurveyError("Please click Stop button to finish recording"),
@@ -185,9 +179,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     }
 
     if (this.isUploading) {
-      this.errors = [
-        new SurveyError("File is still uploading. Please wait."),
-      ];
+      this.errors = [new SurveyError("Saving your recording. Please wait.")];
       return false;
     }
 
@@ -308,13 +300,16 @@ Serializer.addClass(
       default: false,
     },
     {
-      name: "showRecordingBar:boolean",
-      category: "general",
-      default: true,
+      name: "storeDataAsText:boolean",
+      default: false,
+      visible: false,
     },
-    { name: "storeDataAsText:boolean", default: false },
-    { name: "waitForUpload:boolean", default: true },
-    { name: "isUploading:boolean", default: false },
+    {
+      name: "waitForUpload:boolean",
+      default: true,
+      visible: false,
+    },
+    { name: "isUploading:boolean", default: false, visible: false },
   ],
   function () {
     return new AudioQuestionModel("");
