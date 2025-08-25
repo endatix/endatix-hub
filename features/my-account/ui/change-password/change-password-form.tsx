@@ -7,8 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useActionState } from "react";
 import { changePasswordAction } from "@/features/my-account/application/actions";
 import { ErrorMessage } from "@/components/forms/error-message";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckIcon } from "lucide-react";
+import FormSuccessMessage from "@/components/forms/form-success-message";
 
 const initialState = {
   isSuccess: false,
@@ -22,15 +21,12 @@ function ChangePasswordForm() {
 
   if (state?.isSuccess) {
     return (
-      <Alert variant="default">
-        <AlertTitle className="flex items-center gap-2">
-          <CheckIcon className="h-4 w-4" />
-          Success
-        </AlertTitle>
-        <AlertDescription>
-          Your password has been changed successfully.
-        </AlertDescription>
-      </Alert>
+      <FormSuccessMessage
+        title="Password changed successfully!"
+        message="Your password has been changed successfully."
+        variant="compact"
+        className="mt-4"
+      />
     );
   }
 
