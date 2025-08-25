@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
-import { CalendarX2, CircleCheckBig } from "lucide-react";
+import { CalendarX2 } from "lucide-react";
 import { ERROR_CODE } from "@/lib/endatix-api";
+import FormSuccessMessage from "@/components/forms/form-success-message";
 
 interface ResetPasswordFormProps {
   email: string;
@@ -158,17 +159,13 @@ export const InvalidResetLinkMessage = () => {
 
 export const ResetPasswordSuccessMessage = () => {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-center gap-3 mb-2">
-        <CircleCheckBig className="w-8 h-8 text-green-500" />
-        <h2 className="text-2xl font-semibold">Password reset successfully!</h2>
-      </div>
-      <p className="text-muted-foreground text-center">
-        Your password has been reset. You can now sign in with your new password.
-      </p>
+    <FormSuccessMessage
+      title="Password reset successfully!"
+      message="Your password has been reset. You can now sign in with your new password."
+    >
       <Button asChild className="w-full">
         <Link href="/login">Go to sign in</Link>
       </Button>
-    </div>
+    </FormSuccessMessage>
   );
 };

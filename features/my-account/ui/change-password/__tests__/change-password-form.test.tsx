@@ -25,13 +25,13 @@ describe("ChangePasswordForm", () => {
 
   it("displays validation errors for empty fields", async () => {
     vi.mocked(changePasswordAction).mockResolvedValueOnce({
-      success: false,
+      isSuccess: false,
       errors: {
         currentPassword: ["Current password is required"],
         newPassword: ["New password is required"],
         confirmPassword: ["Confirm password is required"],
       },
-      errorMessage: "Could not change password",
+      formErrors: ["Could not change password"],
     });
 
     render(<ChangePasswordForm />);
@@ -52,9 +52,9 @@ describe("ChangePasswordForm", () => {
 
   it("displays success message on successful password change", async () => {
     vi.mocked(changePasswordAction).mockResolvedValueOnce({
-      success: true,
+      isSuccess: true,
       errors: {},
-      errorMessage: "",
+      formErrors: [],
     });
 
     render(<ChangePasswordForm />);
@@ -80,9 +80,9 @@ describe("ChangePasswordForm", () => {
 
   it("displays error message on API failure", async () => {
     vi.mocked(changePasswordAction).mockResolvedValueOnce({
-      success: false,
+      isSuccess: false,
       errors: {},
-      errorMessage: "Failed to change password",
+      formErrors: ["Failed to change password"],
     });
 
     render(<ChangePasswordForm />);
