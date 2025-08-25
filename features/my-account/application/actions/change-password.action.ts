@@ -1,68 +1,63 @@
 "use server";
 
-import { changePassword } from "@/services/api";
-import { z } from "zod";
+import { getSession } from "@/features/auth";
+import {
+  EndatixApi,
+  ChangePasswordRequestSchema,
+  ApiResult,
+} from "@/lib/endatix-api";
 
 export interface ChangePasswordState {
-  success: boolean;
-  errors?: FieldErrors;
-  errorMessage?: string;
+  isSuccess?: boolean;
+  formErrors?: string[];
+  errors?: {
+    currentPassword?: string[];
+    newPassword?: string[];
+    confirmPassword?: string[];
+  };
+  values?: {
+    currentPassword?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  };
 }
 
-interface FieldErrors {
-  currentPassword?: string[];
-  newPassword?: string[];
-  confirmPassword?: string[];
-}
-
-const PasswordFormSchema = z
-  .object({
-    currentPassword: z
-      .string()
-      .min(8, { message: "Password must be at least 8 characters" }),
-    newPassword: z
-      .string()
-      .min(8, { message: "Password must be at least 8 characters" }),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
-
-export const changePasswordAction = async (
-  prevState: ChangePasswordState,
+export async function changePasswordAction(
+  _prevState: ChangePasswordState,
   formData: FormData,
-): Promise<ChangePasswordState> => {
-  const validatedFields = PasswordFormSchema.safeParse({
-    currentPassword: formData.get("currentPassword"),
-    newPassword: formData.get("newPassword"),
-    confirmPassword: formData.get("confirmPassword"),
-  });
+): Promise<ChangePasswordState> {
+  const rawData = {
+    currentPassword: formData.get("currentPassword") as string,
+    newPassword: formData.get("newPassword") as string,
+    confirmPassword: formData.get("confirmPassword") as string,
+  };
 
-  if (!validatedFields.success) {
+  const validatedData = ChangePasswordRequestSchema.safeParse(rawData);
+  const errors = validatedData.error?.flatten();
+
+  if (!validatedData.success) {
     return {
-      success: false,
-      errors: validatedFields.error.flatten().fieldErrors,
-      errorMessage:
-        "Could not change password. Please check your input and try again.",
+      isSuccess: false,
+      formErrors: errors?.formErrors,
+      errors: errors?.fieldErrors,
+      values: rawData,
     };
   }
 
-  const { currentPassword, newPassword, confirmPassword } =
-    validatedFields.data;
+  const session = await getSession();
+  const endatix = new EndatixApi(session);
+  const result = await endatix.myAccount.changePassword(validatedData.data);
 
-  try {
-    await changePassword(currentPassword, newPassword, confirmPassword);
+  if (ApiResult.isSuccess(result)) {
     return {
-      success: true,
-      errors: {},
-      errorMessage: "",
-    };
-  } catch (error) {
-    return {
-      success: false,
-      errorMessage: "Failed to change password. Error: " + error,
+      isSuccess: true,
     };
   }
-};
+
+  return {
+    isSuccess: false,
+    formErrors: [result.error.message],
+    errors: errors?.fieldErrors,
+    values: rawData,
+  };
+}
