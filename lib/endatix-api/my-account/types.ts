@@ -3,9 +3,9 @@ import { PasswordSchema } from "../types";
 
 export const ChangePasswordRequestSchema = z
   .object({
-    currentPassword: z.string(),
+    currentPassword: z.string().nonempty(),
     newPassword: PasswordSchema,
-    confirmPassword: z.string().trim(),
+    confirmPassword: z.string().nonempty(),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
