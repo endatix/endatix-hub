@@ -80,7 +80,7 @@ const FormCard = ({ form, isSelected, onSaveAsTemplate, className, ...props }: F
       )}
       {...props}
     >
-      <div className="cursor-pointer">
+      <div className="flex flex-col justify-between h-full cursor-pointer">
         <CardHeader className="flex flex-row justify-between p-4 pt-6">
           <CardTitle className="text-2xl font-normal font-sans tracking-tigher">
             {form.name}
