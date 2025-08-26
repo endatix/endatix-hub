@@ -3,6 +3,7 @@ import Image from "next/image";
 import localFont from "next/font/local";
 import { getSession } from "@/features/auth";
 import { AppProvider } from "@/components/providers";
+import { Metadata } from "next";
 
 const geistSans = localFont({
   src: "../fonts/GeistVF.woff",
@@ -18,6 +19,26 @@ const geistMono = localFont({
 interface AuthLayoutProps {
   children: React.ReactNode;
 }
+
+export const metadata: Metadata = {
+  title: "Endatix Hub - Login",
+  description: "Login to your Endatix Hub account",
+  generator: "Endatix",
+  keywords: [
+    "endatix",
+    "endatix hub",
+    "endatix hub app",
+    "forms-management",
+    "ai-form-builder",
+    "login",
+  ],
+  applicationName: "Endatix Hub",
+  publisher: "Endatix Ltd.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AuthLayout({ children }: AuthLayoutProps) {
   const session = await getSession();

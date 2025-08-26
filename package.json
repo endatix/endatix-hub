@@ -9,7 +9,8 @@
     "build": "pnpm discover-questions && next build",
     "build:standalone": "pnpm build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
@@ -70,12 +71,12 @@
     "flags": "^4.0.1",
     "jose": "^5.9.6",
     "lucide-react": "^0.525.0",
-    "next": "15.3.3",
+    "next": "15.5.0",
     "next-themes": "^0.4.6",
     "posthog-js": "^1.232.4",
     "posthog-node": "^4.10.1",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
     "react-hook-form": "^7.54.2",
     "react-resizable-panels": "^2.1.7",
     "semver": "^7.6.3",
@@ -92,18 +93,19 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@playwright/test": "^1.52.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^20.17.12",
-    "@types/react": "19.1.8",
-    "@types/react-dom": "19.1.6",
+    "@types/react": "19.1.11",
+    "@types/react-dom": "19.1.8",
     "@types/semver": "^7.5.8",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "3.2.4",
     "@vitest/ui": "^3.2.4",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
-    "eslint-config-next": "15.3.3",
+    "eslint-config-next": "15.5.0",
     "eslint-plugin-testing-library": "^6.5.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
@@ -114,13 +116,13 @@
     "vitest": "^3.2.4"
   },
   "engines": {
-    "pnpm": ">=9.0.0 <=10.13.1",
+    "pnpm": ">=9.0.0 <=10.15.0",
     "node": ">=20.0.0 <21.0.0"
   },
   "pnpm": {
     "overrides": {
-      "@types/react": "19.1.8",
-      "@types/react-dom": "19.1.6"
+      "@types/react": "19.1.11",
+      "@types/react-dom": "19.1.8"
     },
     "ignoredBuiltDependencies": [
       "sharp"

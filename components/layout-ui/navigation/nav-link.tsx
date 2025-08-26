@@ -46,7 +46,11 @@ const NavLink = ({
   };
 
   return (
-    <Link onClick={handleClick} href={path} className={_className}>
+    <Link
+      onClick={handleClick}
+      href={{ pathname: path }}
+      className={_className}
+    >
       {children}
       <span className="sr-only">{text}</span>
     </Link>
