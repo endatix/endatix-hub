@@ -29,7 +29,11 @@ export default function SignOutButton({ name }: SignOutProps) {
 
   return (
     <Link
-      href={generateKeycloakLogoutUrl(process.env.NEXT_PUBLIC_AUTH_URL ?? "")}
+      href={{
+        pathname: generateKeycloakLogoutUrl(
+          process.env.NEXT_PUBLIC_AUTH_URL ?? "",
+        ),
+      }}
     >
       Sign out
     </Link>
