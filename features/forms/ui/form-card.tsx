@@ -62,7 +62,13 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
   );
 };
 
-const FormCard = ({ form, isSelected, onSaveAsTemplate, className, ...props }: FormCardProps) => {
+const FormCard = ({
+  form,
+  isSelected,
+  onSaveAsTemplate,
+  className,
+  ...props
+}: FormCardProps) => {
   const getFormLabel = () => (form.isEnabled ? "Enabled" : "Disabled");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -108,7 +114,7 @@ const FormCard = ({ form, isSelected, onSaveAsTemplate, className, ...props }: F
         <div className="flex justify-between w-full">
           <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
-              href={`forms/${form.id}`}
+              href={{ pathname: `forms/${form.id}` }}
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
             >
               <FilePen className="w-4 h-4 mr-1" />
@@ -123,9 +129,11 @@ const FormCard = ({ form, isSelected, onSaveAsTemplate, className, ...props }: F
               Share
             </Link>
             <Link
-              href={
-                form?.submissionsCount ? `forms/${form.id}/submissions` : "#"
-              }
+              href={{
+                pathname: form?.submissionsCount
+                  ? `/forms/${form.id}/submissions`
+                  : "/",
+              }}
               className={cn(
                 "text-sm text-muted-foreground inline-flex items-center",
                 form?.submissionsCount

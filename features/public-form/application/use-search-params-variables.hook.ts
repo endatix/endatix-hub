@@ -94,7 +94,8 @@ export const useSearchParamsVariables = (
         ? `${window.location.pathname}?${newSearchParams.toString()}`
         : window.location.pathname;
 
-      router.replace(newUrl, { scroll: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.replace(newUrl as any, { scroll: false });
     }
 
     // Debug logging
