@@ -18,6 +18,10 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Endatix Hub",
   description: "Your data on your terms",
+  generator: "Endatix",
+  keywords: ["endatix", "endatix hub", "endatix hub app", "forms-management", "ai-form-builder"],
+  applicationName: "Endatix Hub",
+  publisher: "Endatix Ltd.",
 };
 
 interface RootLayoutProps {
