@@ -10,7 +10,7 @@ const QUESTIONS_DIR = "customizations/questions";
 const questionsDir = path.join(__dirname, `../${QUESTIONS_DIR}`);
 const outputFile = path.join(
   __dirname,
-  `../${QUESTIONS_DIR}/custom-questions.ts`,
+  `../${QUESTIONS_DIR}/question-registry.ts`,
 );
 
 // Ensure the output directory exists
@@ -40,19 +40,23 @@ try {
   console.log(`⚠️ Error reading questions directory: ${error.message}`);
 }
 
-// Generate import statements
-const imports =
-  questions.map((dir) => `import "@/${QUESTIONS_DIR}/${dir}";`).join("\n") ||
-  "";
+// Generate the registry content
+const registryEntries = questions
+  .map((dir) => `  ${dir}: () => import('./${dir}/index')`)
+  .join(",\n");
 
-// Generate the content
 const content = `// Auto-generated file - do not edit manually
 // This file ensures all custom questions are included in the build
 // Generated on: ${new Date().toISOString()}
 
-${imports}
+export const questionModuleMap = {
+${registryEntries}
+};
 
-export const customQuestions = ${JSON.stringify(questions, null, 2)};
+// Derived from questionModuleMap keys for type safety and convenience
+export const customQuestions = [${questions.map(q => `"${q}"`).join(', ')}] as const;
+
+export type QuestionName = keyof typeof questionModuleMap;
 `;
 
 // Write the file
@@ -65,7 +69,7 @@ if (questions.length > 0) {
     }`,
   );
   questions.forEach((q) => console.log(`\t- ${q}`));
-  console.log(" \x1b[32m✓\x1b[0m custom-questions.ts generated");
+  console.log(" \x1b[32m✓\x1b[0m question-registry.ts generated");
 } else {
   console.log(" 🔎 No custom questions found");
 }
