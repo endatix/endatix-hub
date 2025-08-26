@@ -30,6 +30,7 @@ import MatrixDropdownAnswer from "./matrixdropdown-answer";
 import TagBoxAnswer from "./tagbox-answer";
 import BooleanAnswer from "./boolean-answer";
 import CustomAnswer from "./custom-answer";
+import { AudioPlayer } from "@/lib/questions/audio-recorder/audio-player";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -145,6 +146,12 @@ const AnswerViewer = ({
     <TagBoxAnswer question={forQuestion} className={className} />
   );
 
+  const renderAudioRecorderAnswer = () => (
+    <div className="col-span-3 w-full flex flex-col gap-2">
+      <AudioPlayer file={forQuestion.value} />
+    </div>
+  );
+
   const renderUnknownAnswer = () => (
     <UnknownAnswerViewer forQuestion={forQuestion} className={className} />
   );
@@ -181,6 +188,8 @@ const AnswerViewer = ({
       return renderMultipleTextAnswer();
     case QuestionType.TagBox:
       return renderTagBoxAnswer();
+    case QuestionType.AudioRecorder:
+      return renderAudioRecorderAnswer();
     default:
       return renderUnknownAnswer();
   }

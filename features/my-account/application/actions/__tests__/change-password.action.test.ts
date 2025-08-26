@@ -1,28 +1,71 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { changePasswordAction } from "../change-password.action";
-import { changePassword } from "@/services/api";
+import { EndatixApi, ApiResult, ChangePasswordRequestSchema } from "@/lib/endatix-api";
+import { getSession } from "@/features/auth";
 
-// Mock the API service
-vi.mock("@/services/api", () => ({
-  changePassword: vi.fn(),
+// Mock the auth module
+vi.mock("@/features/auth", () => ({
+  getSession: vi.fn(),
+}));
+
+// Mock the EndatixApi class
+vi.mock("@/lib/endatix-api", () => ({
+  EndatixApi: vi.fn(),
+  ApiResult: {
+    isSuccess: vi.fn(),
+  },
+  ChangePasswordRequestSchema: {
+    safeParse: vi.fn(),
+  },
 }));
 
 describe("changePasswordAction", () => {
   const mockFormData = new FormData();
+  const mockEndatixApiInstance = {
+    myAccount: {
+      changePassword: vi.fn(),
+    },
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockFormData.delete("currentPassword");
     mockFormData.delete("newPassword");
     mockFormData.delete("confirmPassword");
+    
+    // Reset mock implementations
+    vi.mocked(EndatixApi).mockImplementation(() => mockEndatixApiInstance as unknown as EndatixApi);
+    vi.mocked(getSession).mockResolvedValue({
+      username: "testuser",
+      accessToken: "test-token",
+      refreshToken: "refresh-token",
+      isLoggedIn: true,
+    });
   });
 
   it("should validate required fields", async () => {
-    const result = await changePasswordAction({ success: false }, mockFormData);
+    // Mock validation failure for missing fields
+    vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
+      success: false,
+      error: {
+        flatten: () => ({
+          formErrors: ["All fields are required"],
+          fieldErrors: {
+            currentPassword: ["Current password is required"],
+            newPassword: ["New password is required"],
+            confirmPassword: ["Confirm password is required"],
+          },
+        }),
+      },
+    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toBeDefined();
-    expect(result.errorMessage).toContain("Could not change password");
+    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.formErrors).toContain("All fields are required");
+    expect(result.errors?.currentPassword).toContain("Current password is required");
+    expect(result.errors?.newPassword).toContain("New password is required");
+    expect(result.errors?.confirmPassword).toContain("Confirm password is required");
   });
 
   it("should validate password length", async () => {
@@ -30,11 +73,26 @@ describe("changePasswordAction", () => {
     mockFormData.set("newPassword", "123");
     mockFormData.set("confirmPassword", "123");
 
-    const result = await changePasswordAction({ success: false }, mockFormData);
+    // Mock validation failure for short passwords
+    vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
+      success: false,
+      error: {
+        flatten: () => ({
+          formErrors: ["Password validation failed"],
+          fieldErrors: {
+            currentPassword: ["Password must be at least 8 characters"],
+            newPassword: ["Password must be at least 8 characters"],
+            confirmPassword: ["Password must be at least 8 characters"],
+          },
+        }),
+      },
+    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    expect(result.success).toBe(false);
-    expect(result.errors?.currentPassword).toBeDefined();
-    expect(result.errors?.newPassword).toBeDefined();
+    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.errors?.currentPassword).toContain("Password must be at least 8 characters");
+    expect(result.errors?.newPassword).toContain("Password must be at least 8 characters");
   });
 
   it("should validate password match", async () => {
@@ -42,10 +100,23 @@ describe("changePasswordAction", () => {
     mockFormData.set("newPassword", "newpassword123");
     mockFormData.set("confirmPassword", "different123");
 
-    const result = await changePasswordAction({ success: false }, mockFormData);
+    // Mock validation failure for password mismatch
+    vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
+      success: false,
+      error: {
+        flatten: () => ({
+          formErrors: ["Password validation failed"],
+          fieldErrors: {
+            confirmPassword: ["Passwords do not match"],
+          },
+        }),
+      },
+    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    expect(result.success).toBe(false);
-    expect(result.errors?.confirmPassword).toBeDefined();
+    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.errors?.confirmPassword).toContain("Passwords do not match");
   });
 
   it("should call API and return success when validation passes", async () => {
@@ -54,18 +125,30 @@ describe("changePasswordAction", () => {
     mockFormData.set("newPassword", validPassword);
     mockFormData.set("confirmPassword", validPassword);
 
-    vi.mocked(changePassword).mockResolvedValueOnce(undefined);
+    // Mock successful validation
+    vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
+      success: true,
+      data: {
+        currentPassword: validPassword,
+        newPassword: validPassword,
+        confirmPassword: validPassword,
+      },
+    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    const result = await changePasswordAction({ success: false }, mockFormData);
+    const mockApiResult = { success: true, data: {} };
+    vi.mocked(ApiResult.isSuccess).mockReturnValue(true);
+    vi.mocked(mockEndatixApiInstance.myAccount.changePassword).mockResolvedValue(mockApiResult);
 
-    expect(changePassword).toHaveBeenCalledWith(
-      validPassword,
-      validPassword,
-      validPassword,
-    );
-    expect(result.success).toBe(true);
-    expect(result.errors).toEqual({});
-    expect(result.errorMessage).toBe("");
+    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+
+    expect(mockEndatixApiInstance.myAccount.changePassword).toHaveBeenCalledWith({
+      currentPassword: validPassword,
+      newPassword: validPassword,
+      confirmPassword: validPassword,
+    });
+    expect(result.isSuccess).toBe(true);
+    expect(result.errors).toBeUndefined();
+    expect(result.formErrors).toBeUndefined();
   });
 
   it("should handle API errors", async () => {
@@ -74,12 +157,54 @@ describe("changePasswordAction", () => {
     mockFormData.set("newPassword", validPassword);
     mockFormData.set("confirmPassword", validPassword);
 
-    const error = new Error("API Error");
-    vi.mocked(changePassword).mockRejectedValueOnce(error);
+    // Mock successful validation
+    vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
+      success: true,
+      data: {
+        currentPassword: validPassword,
+        newPassword: validPassword,
+        confirmPassword: validPassword,
+      },
+    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    const result = await changePasswordAction({ success: false }, mockFormData);
+    const mockApiResult = { success: false, error: { message: "API Error" } };
+    vi.mocked(ApiResult.isSuccess).mockReturnValue(false);
+    vi.mocked(mockEndatixApiInstance.myAccount.changePassword).mockResolvedValue(mockApiResult);
 
-    expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("Failed to change password");
+    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.formErrors).toContain("API Error");
+    expect(result.values).toEqual({
+      currentPassword: validPassword,
+      newPassword: validPassword,
+      confirmPassword: validPassword,
+    });
+  });
+
+  it("should preserve form values on validation failure", async () => {
+    mockFormData.set("currentPassword", "short");
+    mockFormData.set("newPassword", "short");
+    mockFormData.set("confirmPassword", "short");
+
+    // Mock validation failure
+    vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
+      success: false,
+      error: {
+        flatten: () => ({
+          formErrors: ["Validation failed"],
+          fieldErrors: {},
+        }),
+      },
+    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
+
+    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.values).toEqual({
+      currentPassword: "short",
+      newPassword: "short",
+      confirmPassword: "short",
+    });
   });
 });

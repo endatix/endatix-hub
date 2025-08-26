@@ -644,42 +644,6 @@ export const getSubmissionFiles = async (
   return response;
 };
 
-export const changePassword = async (
-  currentPassword: string,
-  newPassword: string,
-  confirmPassword: string,
-): Promise<string> => {
-  if (!currentPassword || !newPassword || !confirmPassword) {
-    throw new Error(
-      "Current password, new password or confirm password is required",
-    );
-  }
-
-  const session = await getSession();
-
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const response = await fetch(`${API_BASE_URL}/my-account/change-password`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to change password");
-  }
-
-  return response.json();
-};
-
 /**
  * Exports form submissions in the specified format (CSV, JSON, etc.)
  * Returns a streaming response for direct download
@@ -902,11 +866,11 @@ export const verifyEmail = async (
 
   if (!response.ok) {
     let errorMessage = "Failed to verify email";
-    
+
     try {
       const error = await response.json();
       errorMessage = error.title || errorMessage;
-    } catch (parseError) {
+    } catch {
       // If response body is empty or not JSON, use status-based message
       if (response.status === 404) {
         errorMessage = "Invalid verification token";
@@ -916,7 +880,7 @@ export const verifyEmail = async (
         errorMessage = "Server error occurred while verifying email";
       }
     }
-    
+
     throw new Error(errorMessage);
   }
 

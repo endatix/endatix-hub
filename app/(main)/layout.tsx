@@ -1,7 +1,6 @@
 import "@/app/globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Toaster } from "sonner";
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
 
@@ -18,7 +17,11 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Endatix Hub",
-  description: "Your data on your terms",
+  description: "Customizable form management platform",
+  generator: "Endatix",
+  keywords: ["endatix", "endatix hub", "endatix hub app", "forms-management", "ai-form-builder"],
+  applicationName: "Endatix Hub",
+  publisher: "Endatix Ltd.",
 };
 
 interface RootLayoutProps {
@@ -46,7 +49,6 @@ export default async function RootLayout({ children, header, nav }: RootLayoutPr
               </main>
             </div>
           </div>
-          <Toaster expand={false} duration={Infinity} visibleToasts={5} />
         </AppProvider>
       </body>
     </html>

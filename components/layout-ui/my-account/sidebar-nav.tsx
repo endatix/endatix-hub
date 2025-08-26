@@ -27,7 +27,7 @@ function SidebarNav({ className, items, ...props }: SidebarNavProps) {
       {items.map((item) => (
         <Link
           key={item.href}
-          href={item.href}
+          href={{ pathname: item.href }}
           className={cn(
             buttonVariants({ variant: "ghost" }),
             pathname === item.href

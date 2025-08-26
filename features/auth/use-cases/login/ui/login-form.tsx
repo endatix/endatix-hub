@@ -112,8 +112,7 @@ const LoginForm = () => {
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
             <Link
-              href="#"
-              onClick={() => showComingSoonMessage()}
+              href="/forgot-password"
               className="ml-auto inline-block text-sm underline"
               tabIndex={4}
             >

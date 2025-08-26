@@ -49,13 +49,13 @@ export function FileViewer({
         {fileType === FileType.Document && (
           <div className="flex h-[230px] w-[150px] items-center justify-center bg-muted">
             <FileText className="h-10 w-10" />
-            <Link href={file.content}>Link to file</Link>
+            <Link href={{ pathname: file.content }}>Link to file</Link>
           </div>
         )}
         {fileType === FileType.Unknown && (
           <div className="flex h-[230px] w-[150px] items-center justify-center bg-muted">
             <FileX2 className="h-10 w-10" />
-            <Link href={file.content}>Link to file</Link>
+            <Link href={{ pathname: file.content }}>Link to file</Link>
           </div>
         )}
       </div>

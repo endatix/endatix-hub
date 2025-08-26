@@ -16,5 +16,6 @@ export enum QuestionType {
   MultipleText = "multipletext",
   TagBox = "tagbox",
   Custom = "custom",
+  AudioRecorder = "audiorecorder",
   Unsupported = "unsupported",
 }

@@ -5,38 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useActionState } from "react";
-import {
-  changePasswordAction,
-  ChangePasswordState,
-} from "@/features/my-account/application/actions";
+import { changePasswordAction } from "@/features/my-account/application/actions";
 import { ErrorMessage } from "@/components/forms/error-message";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckIcon } from "lucide-react";
+import FormSuccessMessage from "@/components/forms/form-success-message";
+
+const initialState = {
+  isSuccess: false,
+};
 
 function ChangePasswordForm() {
-  const [state, formAction, isPending] = useActionState<
-    ChangePasswordState,
-    FormData
-  >(changePasswordAction, {
-    success: false,
-  });
+  const [state, formAction, isPending] = useActionState(
+    changePasswordAction,
+    initialState,
+  );
 
-  if (state.success) {
+  if (state?.isSuccess) {
     return (
-      <Alert variant="default">
-        <AlertTitle className="flex items-center gap-2">
-          <CheckIcon className="h-4 w-4" />
-          Success
-        </AlertTitle>
-        <AlertDescription>
-          Your password has been changed successfully.
-        </AlertDescription>
-      </Alert>
+      <FormSuccessMessage
+        title="Password changed successfully!"
+        message="Your password has been changed successfully."
+        variant="compact"
+        className="mt-4"
+      />
     );
   }
 
   return (
-    <form action={formAction} className="space-y-8 mt-8">
+    <form action={formAction} className="space-y-8 mt-8" autoComplete="on">
       <div className="grid gap-6">
         <div className="grid gap-2">
           <Label htmlFor="currentPassword">Current Password</Label>
@@ -46,12 +41,13 @@ function ChangePasswordForm() {
             type="password"
             autoComplete="current-password"
             placeholder="Enter your current password"
+            defaultValue={state?.values?.currentPassword}
           />
           <p className="text-sm text-muted-foreground">
             Enter your current password to verify it&apos;s you
           </p>
           {state?.errors?.currentPassword && (
-            <ErrorMessage message={state.errors.currentPassword.toString()} />
+            <ErrorMessage message={state.errors.currentPassword} />
           )}
         </div>
 
@@ -63,12 +59,13 @@ function ChangePasswordForm() {
             type="password"
             autoComplete="new-password"
             placeholder="Enter your new password"
+            defaultValue={state?.values?.newPassword}
           />
           <p className="text-sm text-muted-foreground">
             Password must be at least 8 characters long
           </p>
           {state?.errors?.newPassword && (
-            <ErrorMessage message={state.errors.newPassword.toString()} />
+            <ErrorMessage message={state.errors.newPassword} />
           )}
         </div>
 
@@ -80,16 +77,18 @@ function ChangePasswordForm() {
             type="password"
             autoComplete="new-password"
             placeholder="Confirm your new password"
+            defaultValue={state?.values?.confirmPassword}
           />
           <p className="text-sm text-muted-foreground">
             Re-enter your new password to confirm
           </p>
           {state?.errors?.confirmPassword && (
-            <ErrorMessage message={state.errors.confirmPassword.toString()} />
+            <ErrorMessage message={state.errors.confirmPassword} />
           )}
         </div>
       </div>
 
+      {state?.formErrors && <ErrorMessage message={state.formErrors} />}
       <Button type="submit" disabled={isPending}>
         {isPending ? (
           <>
@@ -100,8 +99,6 @@ function ChangePasswordForm() {
           "Change password"
         )}
       </Button>
-
-      {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
     </form>
   );
 }

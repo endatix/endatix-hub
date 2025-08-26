@@ -1,11 +1,14 @@
 "use client";
 
 import { Submission } from "@/lib/endatix-api";
+import { registerAudioQuestion } from '@/lib/questions/audio-recorder';
 import dynamic from "next/dynamic";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
 });
+
+registerAudioQuestion();
 
 interface SurveyJsWrapperProps {
   definition: string;

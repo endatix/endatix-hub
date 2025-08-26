@@ -44,6 +44,9 @@ import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions } from "@/customizations/questions/custom-questions";
+import {
+  registerAudioQuestionUI,
+} from "@/lib/questions/audio-recorder";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -62,7 +65,10 @@ Serializer.addProperty("survey", {
   isLocalizable: true,
 });
 
+registerAudioQuestionUI();
+
 const translations = getLocaleStrings("en");
+
 translations.pehelp.fileNamesPrefix =
   "Set a prefix for the downloaded submission files using an expression. <br/>" +
   "You can reference question values with curly braces, e.g. <em>{gender}</em> or <em>{age}</em>. Example: <br/>" +

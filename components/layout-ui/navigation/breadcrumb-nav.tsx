@@ -56,7 +56,7 @@ const BreadcrumbNav = ({
             <React.Fragment key={index}>
               <BreadcrumbItem>
                 <BreadcrumbLink className={itemClasses} asChild>
-                  <Link href={href}>{itemLink}</Link>
+                  <Link href={{ pathname: href }}>{itemLink}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               {pathNames.length !== index + 1 && <BreadcrumbSeparator />}

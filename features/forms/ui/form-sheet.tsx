@@ -241,19 +241,23 @@ const FormSheet = ({
           </SheetHeader>
           <div className="my-8 flex space-x-2 justify-end">
             <Button variant={"outline"} asChild>
-              <Link href={`forms/${selectedForm.id}`}>
+              <Link href={{ pathname: `/forms/${selectedForm.id}` }}>
                 <FilePen className="mr-2 h-4 w-4" />
                 Design
               </Link>
             </Button>
             <Button variant={"outline"} asChild>
-              <Link href={`share/${selectedForm.id}`}>
+              <Link href={{ pathname: `/share/${selectedForm.id}` }}>
                 <Link2 className="mr-2 h-4 w-4" />
                 Share
               </Link>
             </Button>
             <Button variant={"outline"} asChild>
-              <Link href={`forms/${selectedForm.id}/submissions`}>
+              <Link
+                href={{
+                  pathname: `/forms/${selectedForm.id}/submissions`,
+                }}
+              >
                 <List className="w-4 h-4 mr-1" />
                 Submissions
               </Link>
