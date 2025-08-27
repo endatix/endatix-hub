@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { UrlObject } from "url";
 
 interface SignOutProps {
   readonly name: string;
@@ -8,7 +9,7 @@ interface SignOutProps {
 export const generateKeycloakLogoutUrl = (
   redirectUrl: string,
   idToken?: string,
-): string => {
+): UrlObject => {
   const CLIENT_ID = process.env.NEXT_PUBLIC_AUTH_KEYCLOAK_ID ?? "";
   const AUTH_KEYCLOAK_ISSUER =
     process.env.NEXT_PUBLIC_AUTH_KEYCLOAK_ISSUER ?? "";
@@ -21,7 +22,11 @@ export const generateKeycloakLogoutUrl = (
   if (idToken) {
     urlParams.append("id_token_hint", idToken);
   }
-  return `${AUTH_KEYCLOAK_ISSUER}/protocol/openid-connect/logout?${urlParams.toString()}`;
+
+  return {
+    pathname: `${AUTH_KEYCLOAK_ISSUER}/protocol/openid-connect/logout`,
+    query: Object.fromEntries(urlParams.entries()),
+  };
 };
 
 export default function SignOutButton({ name }: SignOutProps) {
@@ -29,11 +34,7 @@ export default function SignOutButton({ name }: SignOutProps) {
 
   return (
     <Link
-      href={{
-        pathname: generateKeycloakLogoutUrl(
-          process.env.NEXT_PUBLIC_AUTH_URL ?? "",
-        ),
-      }}
+      href={generateKeycloakLogoutUrl(process.env.NEXT_PUBLIC_AUTH_URL ?? "")}
     >
       Sign out
     </Link>
