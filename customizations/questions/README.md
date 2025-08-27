@@ -32,7 +32,7 @@ In your `./customizations/questions/[your-question-name]` folder, rename the fil
 5. Start endatix-hub:
 
    ```bash
-   # This will also run the discovery script and update the custom-questions.ts file
+   # This will also run the discovery script and update the question-registry.ts file
    pnpm dev
    ```
 
@@ -64,7 +64,7 @@ hub/
 │           └── README.md
 ├── customizations/                      # 📦 Actual customizations
 │   └── questions/
-│       ├── custom-questions.ts          # 🔒 Auto-generated. DO NOT EDIT MANUALLY.
+│       ├── question-registry.ts          # 🔒 Auto-generated. DO NOT EDIT MANUALLY.
 │       └── [your-question-name]         # Your custom question
 └── [rest of hub structure]
 

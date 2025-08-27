@@ -3,6 +3,11 @@
  * This acts as a bridge between Turbopack's static alias resolution
  * and our dynamic question loading system
  */
+import {
+  questionModuleMap,
+  QuestionName,
+} from "@/customizations/questions/question-registry";
+
 interface QuestionModule {
   name: string;
   title: string;
@@ -24,7 +29,6 @@ class QuestionLoaderModule {
    * @param questionName - The name of the question to load
    */
   async loadQuestion(questionName: string): Promise<QuestionModule> {
-    // Check if already loaded
     if (this.loadedQuestions.has(questionName)) {
       return this.loadedQuestions.get(questionName)!;
     }
@@ -59,17 +63,33 @@ class QuestionLoaderModule {
     questionName: string,
   ): Promise<QuestionModule> {
     try {
-      // Use relative path to customizations/questions directory, specifically index.ts
-      const questionModule = await import(
-        `@/customizations/questions/${questionName}/index.ts`
-      );
+      if (Object.keys(questionModuleMap).length === 0) {
+        throw new Error(`No custom questions are registered.`);
+      }
+
+      const loader = questionModuleMap[questionName as QuestionName];
+
+      if (!loader) {
+        throw new Error(`Question module "${questionName}" is not registered.`);
+      }
+
+      const questionModule = await (
+        loader as () => Promise<{ default?: unknown; [key: string]: unknown }>
+      )();
       const question = questionModule.default || questionModule;
 
       if (!question || typeof question !== "object") {
         throw new Error(`Invalid question module for ${questionName}`);
       }
 
-      return question;
+      // Validate that the question has the required properties
+      if (!("name" in question) || !("title" in question)) {
+        throw new Error(
+          `Question module for ${questionName} is missing required properties (name, title)`,
+        );
+      }
+
+      return question as QuestionModule;
     } catch (error) {
       console.error(`Failed to load question ${questionName}:`, error);
       throw new Error(`Question '${questionName}' not found or failed to load`);

@@ -43,10 +43,8 @@ import "survey-creator-core/i18n";
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
-import { customQuestions } from "@/customizations/questions/custom-questions";
-import {
-  registerAudioQuestionUI,
-} from "@/lib/questions/audio-recorder";
+import { customQuestions } from "@/customizations/questions/question-registry";
+import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 
 Serializer.addProperty("theme", {
   name: "id",
