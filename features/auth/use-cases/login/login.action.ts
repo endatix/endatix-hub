@@ -1,11 +1,9 @@
 "use server";
 
 import { AuthService } from "@/features/auth";
-import { authenticate } from "@/services/api";
 import { AuthenticationRequestSchema } from "../../shared/auth.schemas";
 import { AuthenticationRequest } from "../../shared/auth.types";
-
-const CONNECTION_REFUSED_CODE = "ECONNREFUSED";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 
 interface LoginActionState {
   success: boolean;
@@ -35,7 +33,7 @@ export async function loginAction(
     return {
       success: false,
       errors: validatedFields.error.flatten().fieldErrors,
-      formData
+      formData,
     } as LoginActionState;
   }
 
@@ -45,30 +43,35 @@ export async function loginAction(
     password: data.password,
   };
 
+  const endatix = new EndatixApi();
+  const authenticationResponse = await endatix.auth.signIn(authRequest);
+  if (!ApiResult.isSuccess(authenticationResponse)) {
+    return {
+      success: false,
+      errorMessage: authenticationResponse.error?.message,
+      formData,
+    } as LoginActionState;
+  }
+  const {
+    email: userEmail,
+    accessToken,
+    refreshToken,
+  } = authenticationResponse.data;
+  const authService = new AuthService();
   try {
-    const authenticationResponse = await authenticate(authRequest);
-    const { email, accessToken, refreshToken } = authenticationResponse;
-
-    const authService = new AuthService();
-    await authService.login(accessToken, refreshToken, email);
+    await authService.login(accessToken, refreshToken, userEmail);
   } catch (error: unknown) {
-    let errorMessage = "We cannot log you in at this time. Please check your credentials and try again";
-    
+    let errorMessage =
+      "There was an error signing you in. Please try again and submit a support request if the problem persists.";
+
     if (error instanceof Error) {
-      if (error?.cause &&
-          typeof error.cause === "object" &&
-          "code" in error.cause &&
-          error.cause.code == CONNECTION_REFUSED_CODE) {
-        errorMessage = "Failed to connect to the Endatix API. Ensure your network connection and app settings are correct";
-      } else {
-        errorMessage = error.message;
-      }
+      errorMessage = error.message;
     }
 
     return {
       success: false,
       errorMessage: errorMessage,
-      formData
+      formData,
     } as LoginActionState;
   }
 
