@@ -36,6 +36,8 @@ const LoginForm = () => {
             id="email"
             type="email"
             name="email"
+            autoComplete="email"
+            placeholder="Email address"
             required
             autoFocus
             tabIndex={1}
@@ -60,6 +62,8 @@ const LoginForm = () => {
             id="password"
             type="password"
             name="password"
+            placeholder="Password"
+            autoComplete="current-password"
             required
             tabIndex={2}
             defaultValue={state?.formData?.get("password")?.toString()}
