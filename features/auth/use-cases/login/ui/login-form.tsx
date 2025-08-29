@@ -15,6 +15,10 @@ import { toast } from "@/components/ui/toast";
 import { KeycloakSignInButton } from "./keycloak-signin-button";
 import { getEnabledProviders } from "@/features/config/auth-config";
 
+const initialState = {
+  isSuccess: false,
+};
+
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -100,6 +104,8 @@ const LoginForm = () => {
             id="email"
             type="email"
             name="email"
+            autoComplete="email"
+            placeholder="Email address"
             required
             autoFocus
             tabIndex={1}
@@ -123,6 +129,8 @@ const LoginForm = () => {
             id="password"
             type="password"
             name="password"
+            placeholder="Password"
+            autoComplete="current-password"
             required
             tabIndex={2}
             value={password}

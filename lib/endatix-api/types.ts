@@ -1,5 +1,6 @@
 export * from "./shared/api-result";
 export * from "./shared/error-codes";
+export * from "./auth/types";
 export * from "./account/types";
 export * from "./my-account/types";
 export * from "./agents/types";

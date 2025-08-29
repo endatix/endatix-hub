@@ -4,7 +4,7 @@ import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
-import { customQuestions as customQuestionsList } from "@/customizations/questions/custom-questions";
+import { customQuestions as customQuestionsList } from "@/customizations/questions/question-registry";
 
 export function useSurveyModel(
   definition: string,

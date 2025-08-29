@@ -33,6 +33,14 @@ export type ApiSuccess<T> = {
   data: T;
 };
 
+/**
+ * This is the shape of the error object returned from the API.
+ * @param type The type of error
+ * @param message The user friendly error message
+ * @param errorCode The error code
+ * @param details Details about the error - may contain context
+ * @param fields Key-value pairs of form fields with individual error messages
+ */
 export type ApiError = {
   success: false;
   error: {
@@ -40,6 +48,7 @@ export type ApiError = {
     message: string;
     errorCode?: string;
     details?: ApiErrorDetails;
+    fields?: Record<string, string[]>;
   };
 };
 
@@ -84,6 +93,7 @@ export const ApiResult = {
     message?: string,
     errorCode?: ErrorCode,
     details?: ApiErrorDetails,
+    fields?: Record<string, string[]>,
   ): ApiResult<T> => ({
     success: false,
     error: {
@@ -92,6 +102,7 @@ export const ApiResult = {
         message || getErrorMessageWithFallback(ERROR_CODE.VALIDATION_ERROR),
       errorCode: errorCode || ERROR_CODE.VALIDATION_ERROR,
       details,
+      fields,
     },
   }),
 

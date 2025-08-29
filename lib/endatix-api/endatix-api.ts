@@ -7,6 +7,7 @@ import { parseErrorResponse } from "./shared/problem-details";
 import Agents from "./agents/agents";
 import Account from "./account/account";
 import MyAccount from "./my-account/my-account";
+import Auth from "./auth/auth";
 
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 const DEFAULT_HEADERS = {};
@@ -29,6 +30,7 @@ export class EndatixApi {
   private readonly session?: SessionData;
   private _submissions?: Submissions;
   private _agents?: Agents;
+  private _auth?: Auth;
   private _account?: Account;
   private _myAccount?: MyAccount;
 
@@ -52,6 +54,16 @@ export class EndatixApi {
       // Full SessionData provided
       this.session = sessionOrToken;
     }
+  }
+
+  /**
+   * Lazy-loaded auth API - only creates instance when first accessed
+   */
+  get auth(): Auth {
+    if (!this._auth) {
+      this._auth = new Auth(this);
+    }
+    return this._auth;
   }
 
   /**
@@ -225,6 +237,7 @@ export class EndatixApi {
                 message,
                 errorCode,
                 details,
+                fields: errorResponse.fields,
               },
             };
           case 401:
@@ -295,6 +308,7 @@ export class EndatixApi {
             message,
             ERROR_CODE.VALIDATION_ERROR,
             details,
+            errorResponse?.fields,
           );
         case 401:
           return ApiResult.authError(
@@ -348,7 +362,10 @@ export class EndatixApi {
     };
 
     if (error instanceof TypeError && error.message.includes("fetch")) {
-      return ApiResult.networkError("Network connection failed", details);
+      return ApiResult.networkError(
+        "Network error. Failed to connect to the Endatix API.",
+        details,
+      );
     }
 
     return ApiResult.unknownError(

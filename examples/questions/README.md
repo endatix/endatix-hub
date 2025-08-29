@@ -14,7 +14,7 @@ Test the scandit example question:
 
 3. Start development:
    ```bash
-   # This will also run the discovery script and update the custom-questions.ts file
+   # This will also run the discovery script and update the question-registry.ts file
    pnpm dev
    ```
 For more info on how to create custom questions, see the [customizations/questions/README.md](../../customizations/questions/README.md#development-workflow) section.
