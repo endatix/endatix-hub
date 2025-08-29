@@ -1,8 +1,4 @@
-import {
-  AuthenticationRequest,
-  AuthenticationResponse,
-  getSession,
-} from "@/features/auth";
+import { getSession } from "@/features/auth";
 import { SubmissionData } from "@/features/submissions/types";
 import {
   CreateFormRequest,
@@ -16,24 +12,6 @@ import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
 import { Submission } from "@/lib/endatix-api";
 
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
-
-export const authenticate = async (
-  request: AuthenticationRequest,
-): Promise<AuthenticationResponse> => {
-  const headers = new HeaderBuilder().acceptJson().provideJson().build();
-
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch data");
-  }
-
-  return response.json();
-};
 
 export const createForm = async (
   formRequest: CreateFormRequest,

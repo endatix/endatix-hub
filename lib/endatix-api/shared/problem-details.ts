@@ -10,6 +10,17 @@ export const ProblemDetailsSchema = z.object({
   detail: z.string(),
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
+  fields: z.record(z.string(), z.array(z.string())).optional(),
+});
+
+/**
+ * The schema for a ValidationProblemDetails object returned from the API.
+ * TODO: Merge this with ProblemDetailsSchema once Endatix API fully moves to problem details
+ */
+export const ValidationProblemDetailsSchema = z.object({
+  statusCode: z.number().int().min(400).max(499),
+  message: z.string(),
+  errors: z.record(z.string(), z.array(z.string())),
 });
 
 export type ProblemDetails = z.infer<typeof ProblemDetailsSchema>;
@@ -21,7 +32,24 @@ export type ProblemDetails = z.infer<typeof ProblemDetailsSchema>;
  */
 export function parseProblemDetails(data: unknown): ProblemDetails | null {
   const result = ProblemDetailsSchema.safeParse(data);
-  return result.success ? result.data : null;
+
+  if (result.success) {
+    return result.data;
+  }
+
+  const validationResult = ValidationProblemDetailsSchema.safeParse(data);
+
+  if (validationResult.success) {
+    return {
+      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
+      title: "One or more validation errors occurred.",
+      status: validationResult.data.statusCode,
+      detail: validationResult.data.message,
+      fields: validationResult.data.errors,
+    };
+  }
+
+  return null;
 }
 
 /**
