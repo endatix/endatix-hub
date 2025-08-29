@@ -10,8 +10,15 @@ import { loginAction } from "../login.action";
 import { Spinner } from "@/components/loaders/spinner";
 import { ErrorMessage } from "@/components/forms/error-message";
 
+const initialState = {
+  isSuccess: false,
+};
+
 const LoginForm = () => {
-  const [state, formAction, isPending] = useActionState(loginAction, null);
+  const [state, formAction, isPending] = useActionState(
+    loginAction,
+    initialState,
+  );
 
   return (
     <form action={formAction}>
@@ -41,10 +48,10 @@ const LoginForm = () => {
             required
             autoFocus
             tabIndex={1}
-            defaultValue={state?.formData?.get("email")?.toString()}
+            defaultValue={state?.values?.email}
           />
           {state?.errors?.email && (
-            <ErrorMessage message={state.errors.email.toString()} />
+            <ErrorMessage message={state.errors.email} />
           )}
         </div>
         <div className="grid gap-2">
@@ -66,13 +73,13 @@ const LoginForm = () => {
             autoComplete="current-password"
             required
             tabIndex={2}
-            defaultValue={state?.formData?.get("password")?.toString()}
+            defaultValue={state?.values?.password}
           />
           {state?.errors?.password && (
-            <ErrorMessage message={state.errors.password.toString()} />
+            <ErrorMessage message={state.errors.password} />
           )}
         </div>
-        {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
+        {state?.formErrors && <ErrorMessage message={state.formErrors} />}
         <Button
           type="submit"
           className="w-full"

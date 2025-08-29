@@ -237,6 +237,7 @@ export class EndatixApi {
                 message,
                 errorCode,
                 details,
+                fields: errorResponse.fields,
               },
             };
           case 401:
@@ -307,6 +308,7 @@ export class EndatixApi {
             message,
             ERROR_CODE.VALIDATION_ERROR,
             details,
+            errorResponse?.fields,
           );
         case 401:
           return ApiResult.authError(

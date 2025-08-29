@@ -1,65 +1,58 @@
 "use server";
 
 import { AuthService } from "@/features/auth";
-import { AuthenticationRequestSchema } from "../../shared/auth.schemas";
-import { AuthenticationRequest } from "../../shared/auth.types";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { ApiResult, SignInRequestSchema, EndatixApi } from "@/lib/endatix-api";
 
-interface LoginActionState {
-  success: boolean;
-  errors?: FieldErrors;
-  errorMessage?: string;
-  formData?: FormData;
-}
-
-interface FieldErrors {
-  email?: string[];
-  password?: string[];
+interface LoginFormState {
+  isSuccess?: boolean;
+  formErrors?: string[];
+  errors?: {
+    email?: string[];
+    password?: string[];
+  };
+  values?: {
+    email?: string;
+    password?: string;
+  };
 }
 
 export async function loginAction(
-  _: unknown,
+  _prevState: LoginFormState,
   formData: FormData,
-): Promise<LoginActionState> {
-  const email = formData.get("email");
-  const password = formData.get("password");
-
-  const validatedFields = AuthenticationRequestSchema.safeParse({
-    email: email,
-    password: password,
-  });
-
-  if (!validatedFields.success) {
-    return {
-      success: false,
-      errors: validatedFields.error.flatten().fieldErrors,
-      formData,
-    } as LoginActionState;
-  }
-
-  const data = validatedFields.data;
-  const authRequest: AuthenticationRequest = {
-    email: data.email,
-    password: data.password,
+): Promise<LoginFormState> {
+  const rawData = {
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
   };
 
-  const endatix = new EndatixApi();
-  const authenticationResponse = await endatix.auth.signIn(authRequest);
-  if (!ApiResult.isSuccess(authenticationResponse)) {
+  const validatedData = SignInRequestSchema.safeParse(rawData);
+  const errors = validatedData.error?.flatten();
+
+  if (!validatedData.success) {
     return {
-      success: false,
-      errorMessage: authenticationResponse.error?.message,
-      formData,
-    } as LoginActionState;
+      isSuccess: false,
+      formErrors: errors?.formErrors,
+      errors: errors?.fieldErrors,
+      values: rawData,
+    };
   }
-  const {
-    email: userEmail,
-    accessToken,
-    refreshToken,
-  } = authenticationResponse.data;
+
+  const endatix = new EndatixApi();
+  const signInResult = await endatix.auth.signIn(validatedData.data);
+
+  if (!ApiResult.isSuccess(signInResult)) {
+    return {
+      isSuccess: false,
+      formErrors: [signInResult.error.message],
+      errors: signInResult.error.fields,
+      values: rawData,
+    };
+  }
+
+  const { accessToken, refreshToken, email } = signInResult.data;
   const authService = new AuthService();
   try {
-    await authService.login(accessToken, refreshToken, userEmail);
+    await authService.login(accessToken, refreshToken, email);
   } catch (error: unknown) {
     let errorMessage =
       "There was an error signing you in. Please try again and submit a support request if the problem persists.";
@@ -69,11 +62,13 @@ export async function loginAction(
     }
 
     return {
-      success: false,
-      errorMessage: errorMessage,
-      formData,
-    } as LoginActionState;
+      isSuccess: false,
+      formErrors: [errorMessage],
+      values: rawData,
+    };
   }
 
-  return { success: true };
+  return {
+    isSuccess: true,
+  };
 }

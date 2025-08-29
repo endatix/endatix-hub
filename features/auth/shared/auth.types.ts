@@ -11,14 +11,3 @@ export interface CookieOptions {
   secure: boolean;
   httpOnly: boolean;
 }
-
-export interface AuthenticationResponse {
-  email: string;
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface AuthenticationRequest {
-  email: string;
-  password: string;
-}
