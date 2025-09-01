@@ -1,11 +1,10 @@
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
 import { IAuthProvider, JWTParams, SessionParams } from "./types";
-import { AuthenticationRequest } from "../shared/auth.types";
-import { authenticate } from "@/services/api";
-import { AuthenticationRequestSchema } from "../shared/auth.schemas";
 import Credentials from "next-auth/providers/credentials";
 import { Provider } from "next-auth/providers";
+import { ApiResult, SignInRequestSchema } from "@/lib/endatix-api/types";
+import { EndatixApi } from "@/lib/endatix-api";
 
 export const ENDATIX_ID = "endatix";
 
@@ -29,37 +28,32 @@ export class EndatixAuthProvider implements IAuthProvider {
       },
       authorize: async (credentials) => {
         try {
-          const validatedFields = AuthenticationRequestSchema.safeParse({
+          const validatedData = SignInRequestSchema.safeParse({
             email: credentials?.email,
             password: credentials?.password,
           });
 
-          if (!validatedFields.success) {
+          if (!validatedData.success) {
             console.error(
               "Invalid credentials:",
-              validatedFields.error.flatten().fieldErrors,
+              validatedData.error.flatten().fieldErrors,
             );
             return null;
           }
 
-          const authRequest: AuthenticationRequest = {
-            email: validatedFields.data.email,
-            password: validatedFields.data.password,
-          };
+          const endatix = new EndatixApi();
+          const signInResult = await endatix.auth.signIn(validatedData.data);
 
-          const authenticationResponse = await authenticate(authRequest);
-
-          if (!authenticationResponse) {
-            console.error("Authentication failed: No response from API");
+          if (ApiResult.isError(signInResult)) {
             return null;
           }
 
           return {
-            id: authenticationResponse.email,
-            email: authenticationResponse.email,
-            name: authenticationResponse.email,
-            accessToken: authenticationResponse.accessToken,
-            refreshToken: authenticationResponse.refreshToken,
+            id: signInResult.data.email,
+            email: signInResult.data.email,
+            name: signInResult.data.email,
+            accessToken: signInResult.data.accessToken,
+            refreshToken: signInResult.data.refreshToken,
           };
         } catch (error) {
           console.error("Authentication error:", error);
