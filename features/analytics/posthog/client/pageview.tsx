@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useTrackEvent } from "@/features/analytics/posthog";
 
+const POSTHOG_PAGEVIEW = "$pageview";
+
 interface PostHogPageViewProps {
   /**
    * Optional callback to customize properties sent with page view event
@@ -53,7 +55,7 @@ export function PostHogPageView({
       : {};
 
     // Track the page view event with combined properties
-    trackEvent("$pageview", {
+    trackEvent(POSTHOG_PAGEVIEW, {
       ...baseProperties,
       ...customProperties,
       timestamp: new Date().toISOString(),
