@@ -108,7 +108,7 @@ const CreateForm: NextPage = () => {
       };
       const formResult = await createFormDraft(request);
       if (formResult.isSuccess && formResult.formId) {
-        redirect(`/forms/${formResult.formId}`);
+        redirect(`/forms/${formResult.formId}/designer`);
       } else {
         alert(formResult.error);
       }

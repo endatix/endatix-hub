@@ -107,7 +107,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
       const formResult = await createFormAction(request);
       if (Result.isSuccess(formResult) && formResult.value) {
         const formId = formResult.value;
-        router.push(`/forms/${formId}`);
+        router.push(`/forms/${formId}/designer`);
       } else {
         alert("Failed to create form");
       }
@@ -135,7 +135,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
 
         if (Result.isSuccess(result)) {
           toast.success("Form created from template successfully");
-          router.push(`/forms/${result.value}`);
+          router.push(`/forms/${result.value}/designer`);
         } else {
           toast.error(result.message || "Failed to create form from template");
         }

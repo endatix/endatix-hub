@@ -114,7 +114,7 @@ const FormCard = ({
         <div className="flex justify-between w-full">
           <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <Link
-              href={{ pathname: `forms/${form.id}` }}
+              href={{ pathname: `/forms/${form.id}/designer` }}
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
             >
               <FilePen className="w-4 h-4 mr-1" />

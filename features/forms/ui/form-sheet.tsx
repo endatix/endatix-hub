@@ -241,7 +241,7 @@ const FormSheet = ({
           </SheetHeader>
           <div className="my-8 flex space-x-2 justify-end">
             <Button variant={"outline"} asChild>
-              <Link href={{ pathname: `/forms/${selectedForm.id}` }}>
+              <Link href={{ pathname: `/forms/${selectedForm.id}/designer` }}>
                 <FilePen className="mr-2 h-4 w-4" />
                 Design
               </Link>

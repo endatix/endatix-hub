@@ -9,7 +9,7 @@ export async function updateFormThemeAction(formId: string, themeId: string) {
 
   try {
     await updateForm(formId, { themeId: themeId });
-    revalidatePath(`/forms/${formId}`);
+    revalidatePath(`/forms/${formId}/designer`);
 
     return { success: true };
   } catch (error) {

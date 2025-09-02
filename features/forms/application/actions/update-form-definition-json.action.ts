@@ -13,7 +13,7 @@ export async function updateFormDefinitionJsonAction(
 
   try {
     await updateFormDefinition(formId, isDraft, JSON.stringify(formJson));
-    revalidatePath(`/forms/${formId}`);
+    revalidatePath(`/forms/${formId}/designer`);
 
     return { success: true };
   } catch (error) {
