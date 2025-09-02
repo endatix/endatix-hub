@@ -53,7 +53,7 @@ export function PostHogPageView({
       : {};
 
     // Track the page view event with combined properties
-    trackEvent("page_view", {
+    trackEvent("$pageview", {
       ...baseProperties,
       ...customProperties,
       timestamp: new Date().toISOString(),
