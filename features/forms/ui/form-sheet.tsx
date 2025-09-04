@@ -34,16 +34,14 @@ const FormSheet = ({
       <Sheet {...props}>
         <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none">
           <SheetHeader>
-            <SheetTitle className="text-2xl font-bold">
+            <SheetTitle className="sr-only">
               {selectedForm?.name}
             </SheetTitle>
-            <SheetDescription>{selectedForm?.description}</SheetDescription>
           </SheetHeader>
-          
           <FormDetails 
             form={selectedForm}
             enableEditing={enableEditing}
-            showHeader={false}
+            showHeader={true}
             onFormDeleted={handleFormDeleted}
           />
           <SheetFooter></SheetFooter>

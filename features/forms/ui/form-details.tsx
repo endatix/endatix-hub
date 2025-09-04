@@ -222,18 +222,19 @@ const FormDetails = ({
 
   return (
     <div>
-      {/* Header - conditionally rendered for flexibility */}
-      {showHeader && (
-        <div>
-          <h2 className="text-2xl font-bold">{form?.name}</h2>
-          {form?.description && (
-            <p className="text-muted-foreground">{form.description}</p>
-          )}
-        </div>
-      )}
+      <div className="flex flex-wrap justify-between items-start gap-4 my-8">
+        {/* Header - conditionally rendered for flexibility */}
+        {showHeader && (
+          <div>
+            <h2 className="text-2xl font-bold">{form?.name}</h2>
+            {form?.description && (
+              <p className="text-muted-foreground">{form.description}</p>
+            )}
+          </div>
+        )}
 
-      {/* Action Buttons */}
-      <div className="my-8 flex space-x-2 justify-end">
+        {/* Action Buttons */}
+        <div className="flex space-x-2 justify-end">
         <Button variant={"outline"} asChild>
           <Link href={{ pathname: `/forms/${form.id}/designer` }}>
             <FilePen className="mr-2 h-4 w-4" />
@@ -283,10 +284,11 @@ const FormDetails = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       {/* Form Details */}
-      <div className="grid gap-2 py-4">
+      <div className="grid gap-2 py-4 max-w-2xl mx-auto">
         <div className="grid grid-cols-4 py-2 items-center gap-4">
           <span className="text-right self-start">Created at</span>
           <span className="text-sm text-muted-foreground col-span-3">
@@ -335,7 +337,7 @@ const FormDetails = ({
       </div>
 
       {/* Sharing Section */}
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-2xl mx-auto">
         <SectionTitle title="Sharing" headingClassName="text-xl mt-4" />
         <div className="grid grid-cols-4 py-2 gap-4">
           <div className="col-span-1 flex items-center justify-end">
