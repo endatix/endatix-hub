@@ -41,6 +41,7 @@ import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 import { AlertTriangle } from "lucide-react";
+import PageTitle from "@/components/headings/page-title";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -124,13 +125,15 @@ interface FormDetailsProps {
   enableEditing?: boolean;
   showHeader?: boolean;
   onFormDeleted?: () => void; // Callback for when form is successfully deleted
+  titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
 }
 
 const FormDetails = ({ 
   form, 
   enableEditing = false, 
   showHeader = true,
-  onFormDeleted
+  onFormDeleted,
+  titleSize = "text-4xl"
 }: FormDetailsProps) => {
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
@@ -222,11 +225,11 @@ const FormDetails = ({
 
   return (
     <div>
-      <div className="flex flex-wrap justify-between items-start gap-4 my-8">
+      <div className="flex flex-wrap justify-between items-start gap-4 mb-8">
         {/* Header - conditionally rendered for flexibility */}
         {showHeader && (
           <div>
-            <h2 className="text-2xl font-bold">{form?.name}</h2>
+            <PageTitle title={form?.name} className={titleSize} />
             {form?.description && (
               <p className="text-muted-foreground">{form.description}</p>
             )}
@@ -234,7 +237,7 @@ const FormDetails = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex space-x-2 justify-end">
+        <div className="flex space-x-2 justify-end ml-auto">
         <Button variant={"outline"} asChild>
           <Link href={{ pathname: `/forms/${form.id}/designer` }}>
             <FilePen className="mr-2 h-4 w-4" />

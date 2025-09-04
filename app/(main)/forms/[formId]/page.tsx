@@ -1,12 +1,37 @@
-import { redirect } from "next/navigation";
+import { Form } from "@/types";
+import { getForm } from "@/services/api";
+import FormDetails from "@/features/forms/ui/form-details";
 
 type Params = {
   params: Promise<{ formId: string }>;
 };
 
-export default async function FormPage({ params }: Params) {
+export default async function FormOverviewPage({ params }: Params) {
   const { formId } = await params;
-  
-  // Redirect to the designer for now - this can be changed later to show an overview page
-  redirect(`/forms/${formId}/designer`);
+
+  let form: Form | null = null;
+
+  try {
+    form = await getForm(formId);
+  } catch (error) {
+    console.error("Failed to load form:", error);
+  }
+
+  if (!form) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900">Form not found</h2>
+          <p className="text-gray-600 mt-2">The form you're looking for doesn't exist.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <FormDetails 
+      form={form}
+      showHeader={true}
+    />
+  );
 }

@@ -32,18 +32,21 @@ const FormSheet = ({
   return (
     selectedForm && (
       <Sheet {...props}>
-        <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none">
+        <SheetContent className="w-[600px] sm:w-[640px] sm:max-w-none">
           <SheetHeader>
             <SheetTitle className="sr-only">
               {selectedForm?.name}
             </SheetTitle>
           </SheetHeader>
-          <FormDetails 
-            form={selectedForm}
-            enableEditing={enableEditing}
-            showHeader={true}
-            onFormDeleted={handleFormDeleted}
-          />
+          <div className="mt-8">
+            <FormDetails 
+              form={selectedForm}
+              enableEditing={enableEditing}
+              showHeader={true}
+              onFormDeleted={handleFormDeleted}
+              titleSize="text-2xl"
+            />
+          </div>
           <SheetFooter></SheetFooter>
         </SheetContent>
       </Sheet>
