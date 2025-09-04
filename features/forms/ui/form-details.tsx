@@ -186,6 +186,13 @@ const FormDetails = ({
     toast.success("Copied to clipboard");
   };
 
+  const getFullShareUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/share/${form.id}`;
+    }
+    return `/share/${form.id}`;
+  };
+
   const handleDialogOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
   };
@@ -245,7 +252,7 @@ const FormDetails = ({
           </Link>
         </Button>
         <Button variant={"outline"} asChild>
-          <Link href={{ pathname: `/share/${form.id}` }}>
+          <Link href={{ pathname: `/share/${form.id}` }} target="_blank">
             <Link2 className="mr-2 h-4 w-4" />
             Share
           </Link>
@@ -291,6 +298,9 @@ const FormDetails = ({
       </div>
 
       {/* Form Details */}
+      <div className="max-w-2xl mx-auto">
+        <SectionTitle title="Form details" headingClassName="text-xl mt-4" />
+      </div>
       <div className="grid gap-2 py-4 max-w-2xl mx-auto">
         <div className="grid grid-cols-4 py-2 items-center gap-4">
           <span className="text-right self-start">Created at</span>
@@ -344,13 +354,13 @@ const FormDetails = ({
         <SectionTitle title="Sharing" headingClassName="text-xl mt-4" />
         <div className="grid grid-cols-4 py-2 gap-4">
           <div className="col-span-1 flex items-center justify-end">
-            <Label htmlFor="form-share-url">Default Url:</Label>
+            <Label htmlFor="form-share-url">Share URL:</Label>
           </div>
           <div className="col-span-3">
             <div className="relative cursor-pointer">
               <div className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer z-10">
                 <Copy
-                  onClick={() => copyToClipboard(`/share/${form.id}`)}
+                  onClick={() => copyToClipboard(getFullShareUrl())}
                   aria-label="Copy form url"
                   className="h-4 w-4"
                 />
@@ -359,7 +369,7 @@ const FormDetails = ({
                 readOnly
                 disabled
                 id="form-share-url"
-                value={`/share/${form.id}`}
+                value={getFullShareUrl()}
                 className="bg-accent w-full rounded-lg"
               />
             </div>
