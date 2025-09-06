@@ -9,7 +9,7 @@ export async function updateFormNameAction(formId: string, formName: string) {
 
   try {
     await updateForm(formId, { name: formName });
-    revalidatePath(`/forms/${formId}/designer`);
+    revalidatePath(`/forms/${formId}/design`);
     
     return { success: true };
   } catch (error) {

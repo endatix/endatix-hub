@@ -246,7 +246,7 @@ const FormDetails = ({
         {/* Action Buttons */}
         <div className="flex space-x-2 justify-end ml-auto">
         <Button variant={"outline"} asChild>
-          <Link href={{ pathname: `/forms/${form.id}/designer` }}>
+          <Link href={{ pathname: `/forms/${form.id}/design` }}>
             <FilePen className="mr-2 h-4 w-4" />
             Design
           </Link>
