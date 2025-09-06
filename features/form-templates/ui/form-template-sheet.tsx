@@ -92,7 +92,7 @@ const FormTemplateSheet = ({
 
       if (Result.isSuccess(result)) {
         toast.success("Form created from template successfully");
-        router.push(`/forms/${result.value}`);
+        router.push(`/forms/${result.value}/design`);
       } else {
         toast.error(result.message || "Failed to create form from template");
       }
