@@ -1,6 +1,5 @@
-import { IAuthProvider } from './types';
-import { EndatixAuthProvider } from './endatix-auth-provider';
-import { KeycloakAuthProvider } from './keycloak-auth-provider';
+import { IAuthProvider } from "./types";
+import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
 
 /**
  * Registry for managing auth providers. Replaces the AuthProviderRouter
@@ -8,6 +7,15 @@ import { KeycloakAuthProvider } from './keycloak-auth-provider';
  */
 export class AuthProviderRegistry {
   private readonly providers = new Map<string, IAuthProvider>();
+  private readonly status : string;
+
+  constructor() {
+    this.status = `Initialised at ${new Date().toISOString()}`;
+  }
+
+  getStatus(): string {
+    return this.status;
+  }
 
   /**
    * Register an auth provider.
@@ -35,12 +43,7 @@ export class AuthProviderRegistry {
    * Filters out providers where validateConfig() returns false.
    */
   getEnabledProviders(): IAuthProvider[] {
-    return this.getAllProviders().filter(provider => {
-      // If validateConfig is not implemented, assume provider is enabled
-      if (!provider.validateConfig) {
-        return true;
-      }
-      
+    return this.getAllProviders().filter((provider) => {
       try {
         return provider.validateConfig();
       } catch (error) {
@@ -61,7 +64,7 @@ export class AuthProviderRegistry {
    * Get provider IDs for enabled providers.
    */
   getEnabledProviderIds(): string[] {
-    return this.getEnabledProviders().map(p => p.id);
+    return this.getEnabledProviders().map((p) => p.id);
   }
 }
 
@@ -73,4 +76,3 @@ export const authRegistry = new AuthProviderRegistry();
 
 // Register built-in providers
 authRegistry.register(new EndatixAuthProvider());
-authRegistry.register(new KeycloakAuthProvider());

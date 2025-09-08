@@ -1,5 +1,6 @@
 import { NextAuthConfig } from "next-auth";
-import { AuthProviderRegistry } from "./registry";
+import { AuthProviderRegistry } from "./auth-provider-registry";
+import { AuthOption } from '@/auth';
 
 /**
  * Creates NextAuth configuration from a provider registry.
@@ -7,11 +8,19 @@ import { AuthProviderRegistry } from "./registry";
  */
 export function createAuthConfig(
   registry: AuthProviderRegistry,
-): Pick<NextAuthConfig, "providers" | "callbacks"> {
+): Pick<NextAuthConfig, "providers" | "callbacks" | "pages"> & {
+  authPresentation: AuthOption[];
+} {
   const enabledProviders = registry.getEnabledProviders();
 
   return {
     providers: enabledProviders.map((provider) => provider.getProviderConfig()),
+    authPresentation: enabledProviders.map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      type: provider.type,
+      presentationOptions: provider.getPresentationOptions(),
+    })),
     callbacks: {
       async jwt(params) {
         const { token, user, account, trigger } = params;
@@ -54,6 +63,9 @@ export function createAuthConfig(
 
         return await provider.handleSession({ session, token });
       },
+    },
+    pages: {
+      signIn: "/login",
     },
   };
 }

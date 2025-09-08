@@ -5,21 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useTransition } from "react";
-import { signIn } from "next-auth/react";
-import { showComingSoonMessage } from "@/components/layout-ui/teasers/coming-soon-link";
+import { FC, useState, useTransition } from "react";
 import { Spinner } from "@/components/loaders/spinner";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
-import { KeycloakSignInButton } from "./keycloak-signin-button";
-import { getEnabledProviders } from "@/features/config/auth-config";
+import { signIn } from "next-auth/react";
+import { AuthOption } from "@/auth";
 
 const initialState = {
   isSuccess: false,
 };
 
-const LoginForm = () => {
+interface LoginFormProps {
+  providers: AuthOption[];
+}
+
+const LoginForm: FC<LoginFormProps> = ({ providers }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -150,7 +152,7 @@ const LoginForm = () => {
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           Sign in with email
         </Button>
-        {getEnabledProviders().includes("keycloak") && (
+        {true && (
           <>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -162,7 +164,19 @@ const LoginForm = () => {
                 </span>
               </div>
             </div>
-            <KeycloakSignInButton />
+            {providers.map((provider) => (
+              <Button
+                key={provider.id}
+                type="button"
+                onClick={() =>
+                  startTransition(async () => {
+                    await signIn(provider.id);
+                  })
+                }
+              >
+                {provider.name}
+              </Button>
+            ))}
           </>
         )}
       </div>

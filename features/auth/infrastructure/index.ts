@@ -2,12 +2,12 @@
 export * from "./types";
 
 // Registry and config factory
-export * from "./registry";
+export * from "./auth-provider-registry";
 export * from "./config-factory";
 
 // Provider implementations
-export * from "./endatix-auth-provider";
-export * from "./keycloak-auth-provider";
+export * from "./providers/endatix-auth-provider";
+export * from "./providers/keycloak-auth-provider";
 
 // JWT utilities
 export * from "./jwt.service";

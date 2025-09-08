@@ -1,6 +1,11 @@
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
-import { IAuthProvider, JWTParams, SessionParams } from "./types";
+import {
+  IAuthProvider,
+  JWTParams,
+  PresentationOptions,
+  SessionParams,
+} from "../types";
 import Credentials from "next-auth/providers/credentials";
 import { Provider } from "next-auth/providers";
 import { ApiResult, SignInRequestSchema } from "@/lib/endatix-api/types";
@@ -12,6 +17,7 @@ export class EndatixAuthProvider implements IAuthProvider {
   readonly id = ENDATIX_ID;
   readonly name = "Endatix";
   readonly type = "credentials" as const;
+  readonly isSystemDefined = true;
 
   getProviderConfig(): Provider {
     return Credentials({
@@ -64,7 +70,6 @@ export class EndatixAuthProvider implements IAuthProvider {
   }
 
   validateConfig(): boolean {
-    // Endatix provider is always available since it's built-in
     return true;
   }
 
@@ -93,5 +98,12 @@ export class EndatixAuthProvider implements IAuthProvider {
     };
 
     return session;
+  }
+
+  getPresentationOptions(): PresentationOptions {
+    return {
+      displayName: this.name,
+      signInLabel: "Sign in with Email",
+    };
   }
 }
