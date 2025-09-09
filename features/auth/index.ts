@@ -4,5 +4,4 @@ export * from "./shared/auth.service";
 export * from "./shared/auth.types";
 export * from "./shared/auth.schemas";
 export * from "./ui/auth-error";
-export * from "./ui/session-card";
 export * from "./ui/keycloak-sign-out-button";
