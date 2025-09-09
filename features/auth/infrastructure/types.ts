@@ -41,7 +41,7 @@ export interface IAuthProvider {
   /**
    * Returns the presentation options for the provider.
    */
-  getPresentationOptions(): PresentationOptions;
+  getPresentationOptions(): IAuthPresentation;
 
   /**
    * Handles JWT token processing during authentication callbacks.
@@ -60,7 +60,7 @@ export interface IAuthProvider {
   validateConfig(): boolean;
 }
 
-export interface PresentationOptions {
+export interface IAuthPresentation {
   /**
    * Display name for the provider. Used in the sign in button and other UI elements.
    */
@@ -88,3 +88,6 @@ export interface PresentationOptions {
     error?: string;
   }>;
 }
+
+export type AuthPresentation = Pick<IAuthProvider, "id" | "name" | "type"> &
+  IAuthPresentation;

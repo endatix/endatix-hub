@@ -3,7 +3,7 @@ import { Session } from "next-auth";
 import {
   IAuthProvider,
   JWTParams,
-  PresentationOptions,
+  IAuthPresentation,
   SessionParams,
 } from "../types";
 import Google from "next-auth/providers/google";
@@ -50,7 +50,7 @@ export class GoogleAuthProvider implements IAuthProvider {
     return true;
   }
 
-  getPresentationOptions(): PresentationOptions {
+  getPresentationOptions(): IAuthPresentation {
     return {
       displayName: this.name,
       signInLabel: "Sign in with Google",

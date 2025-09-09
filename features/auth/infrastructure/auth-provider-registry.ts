@@ -1,4 +1,4 @@
-import { IAuthProvider } from "./types";
+import { AuthPresentation, IAuthPresentation, IAuthProvider } from "./types";
 import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
 
 /**
@@ -6,65 +6,66 @@ import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
  * and provides a cleaner API for registering and retrieving providers.
  */
 export class AuthProviderRegistry {
-  private readonly providers = new Map<string, IAuthProvider>();
-  private readonly status : string;
-
-  constructor() {
-    this.status = `Initialised at ${new Date().toISOString()}`;
-  }
-
-  getStatus(): string {
-    return this.status;
-  }
+  private readonly _allProviders = new Map<string, IAuthProvider>();
+  private readonly _activeProviders = new Map<string, IAuthProvider>();
 
   /**
-   * Register an auth provider.
+   * Register a provider. If validation passes, it becomes active immediately.
    */
   register(provider: IAuthProvider): void {
-    this.providers.set(provider.id, provider);
+    if (this._allProviders.has(provider.id)) {
+      throw new Error(`Provider ${provider.id} already registered`);
+    }
+
+    this._allProviders.set(provider.id, provider);
+
+    try {
+      const shouldActivate = provider.validateConfig();
+      if (shouldActivate) {
+        this._activeProviders.set(provider.id, provider);
+        console.info(`🔐 Provider ${provider.id} validated and activated`);
+      } else {
+        console.warn(
+          `🔐 Provider ${provider.id} validation failed: not activated`,
+        );
+      }
+    } catch (error) {
+      console.warn(`⚠️ Provider ${provider.id} registration failed:`, error);
+    }
   }
 
   /**
-   * Get a specific provider by ID.
+   * Get an active auth provider by its ID.
    */
   getProvider(id: string): IAuthProvider | undefined {
-    return this.providers.get(id);
+    return this._activeProviders.get(id);
   }
 
   /**
-   * Get all registered providers.
+   * Check if an auth provider is active (enabled and properly configured).
    */
-  getAllProviders(): IAuthProvider[] {
-    return Array.from(this.providers.values());
+  isProviderActive(id: string): boolean {
+    return this._activeProviders.has(id);
   }
 
   /**
    * Get only the providers that are properly configured and enabled.
    * Filters out providers where validateConfig() returns false.
    */
-  getEnabledProviders(): IAuthProvider[] {
-    return this.getAllProviders().filter((provider) => {
-      try {
-        return provider.validateConfig();
-      } catch (error) {
-        console.warn(`Provider ${provider.id} validation failed:`, error);
-        return false;
-      }
-    });
+  getActiveProviders(): IAuthProvider[] {
+    return Array.from(this._activeProviders.values());
   }
 
   /**
-   * Check if a provider is registered.
+   * Get the auth presentation options for the active providers.
    */
-  hasProvider(id: string): boolean {
-    return this.providers.has(id);
-  }
-
-  /**
-   * Get provider IDs for enabled providers.
-   */
-  getEnabledProviderIds(): string[] {
-    return this.getEnabledProviders().map((p) => p.id);
+  getAuthPresentationOptions(): AuthPresentation[] {
+    return Array.from(this._activeProviders.values()).map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      type: provider.type,
+      ...provider.getPresentationOptions()
+    }));
   }
 }
 

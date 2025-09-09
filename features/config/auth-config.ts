@@ -44,6 +44,7 @@ export function getAuthConfig(): EndatixAuthConfig {
   };
 }
 
+//TODO: Remove or fetch from auth.ts
 export function getEnabledProviders(): string[] {
   const config = getAuthConfig();
   const enabledProviders: string[] = [];

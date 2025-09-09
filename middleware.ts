@@ -1,21 +1,36 @@
+import { auth } from "@/auth";
+import { NextAuthRequest } from "next-auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getSession } from "@/features/auth";
+import {
+  AUTH_ROUTES,
+  DEFAULT_RETURN_URL,
+  LOGIN_PATH,
+  RETURN_URL_PARAM,
+} from "@/features/auth/infrastructure/auth-constants";
 
-const LOGIN_PATH = "/login";
+export default auth((req: NextAuthRequest) => {
+  const isLoggedIn = !!req.auth;
 
-export async function middleware(request: NextRequest) {
-  const currentSession = await getSession();
+  if (!isLoggedIn && !AUTH_ROUTES.includes(req.nextUrl.pathname)) {
+    let returnUrl = req.nextUrl.pathname || DEFAULT_RETURN_URL;
+    if (returnUrl === "/") {
+      returnUrl = DEFAULT_RETURN_URL;
+    }
 
-  if (!currentSession.isLoggedIn) {
-    const requestedPath = request.nextUrl.pathname;
-    console.debug(
-      `Redirecting to login from originally requested path: ${requestedPath}`,
+    if (req.nextUrl.search) {
+      returnUrl += req.nextUrl.search;
+    }
+
+    const encodedReturnUrl = encodeURIComponent(returnUrl);
+
+    const loginUrl = new URL(
+      `${LOGIN_PATH}?${RETURN_URL_PARAM}=${encodedReturnUrl}`,
+      req.nextUrl.origin,
     );
 
-    return NextResponse.redirect(new URL(LOGIN_PATH, request.url));
+    return NextResponse.redirect(loginUrl);
   }
-}
+});
 
 /*
  * Match all request paths except for the ones starting with:
@@ -28,17 +43,13 @@ export async function middleware(request: NextRequest) {
  * - login - the login page
  * - create-account - the create account page
  * - ingest - the ingest proxy route for PostHog
- * - account-verification - the account verification page
- * - verify-email - the email verification page
- * - forgot-password - the forgot password page
- * - reset-password - the reset password page
  * - Note the the `missing: [{ type: 'header', key: 'next-action' }]` is to exclude server-actions
  */
 export const config = {
   matcher: [
     {
       source:
-        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|login|create-account|account-verification|verify-email|forgot-password|reset-password).*)",
+        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
       missing: [{ type: "header", key: "next-action" }],
     },
   ],

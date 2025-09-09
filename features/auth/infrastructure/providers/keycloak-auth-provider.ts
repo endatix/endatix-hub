@@ -3,7 +3,7 @@ import { Session } from "next-auth";
 import {
   IAuthProvider,
   JWTParams,
-  PresentationOptions,
+  IAuthPresentation,
   SessionParams,
 } from "../types";
 import Keycloak from "next-auth/providers/keycloak";
@@ -55,9 +55,10 @@ export class KeycloakAuthProvider implements IAuthProvider {
     return isEnabled;
   }
 
-  getPresentationOptions(): PresentationOptions {
+  getPresentationOptions(): IAuthPresentation {
     return {
-      signInLabel: "Sign in with the Keycloak",
+      displayName: this.name,
+      signInLabel: "Sign in with Keycloak",
     };
   }
 

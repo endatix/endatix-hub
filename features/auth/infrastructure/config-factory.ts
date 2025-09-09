@@ -1,6 +1,6 @@
 import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
-import { AuthOption } from '@/auth';
+import { AuthPresentation } from "./types";
 
 /**
  * Creates NextAuth configuration from a provider registry.
@@ -8,21 +8,21 @@ import { AuthOption } from '@/auth';
  */
 export function createAuthConfig(
   registry: AuthProviderRegistry,
-): Pick<NextAuthConfig, "providers" | "callbacks" | "pages"> & {
-  authPresentation: AuthOption[];
+): NextAuthConfig & {
+  authPresentation: AuthPresentation[];
 } {
-  const enabledProviders = registry.getEnabledProviders();
+  const authProviders = registry.getActiveProviders();
 
   return {
-    providers: enabledProviders.map((provider) => provider.getProviderConfig()),
-    authPresentation: enabledProviders.map((provider) => ({
-      id: provider.id,
-      name: provider.name,
-      type: provider.type,
-      presentationOptions: provider.getPresentationOptions(),
-    })),
+    authPresentation: registry.getAuthPresentationOptions(),
+    providers: authProviders.map((provider) => provider.getProviderConfig()),
     callbacks: {
-      async jwt(params) {
+      authorized: async ({ auth }) => {
+        // Logged in users are authenticated, otherwise redirect to login page
+        return !!auth;
+      },
+
+      jwt: async (params) => {
         const { token, user, account, trigger } = params;
         const providerId = account?.provider || token.provider;
 
@@ -44,7 +44,7 @@ export function createAuthConfig(
         });
       },
 
-      async session(params) {
+      session: async (params) => {
         const { session, token } = params;
         const providerId = token.provider as string;
 
@@ -65,7 +65,13 @@ export function createAuthConfig(
       },
     },
     pages: {
-      signIn: "/login",
+      // signIn: "/login",
     },
+    session: {
+      strategy: "jwt",
+      maxAge: 900 * 60 - 10, // ~900 minutes (15 hours)
+      updateAge: 900 * 60 - 10, // ~900 minutes (15 hours)
+    },
+    trustHost: true,
   };
 }
