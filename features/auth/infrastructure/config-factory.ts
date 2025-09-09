@@ -17,11 +17,6 @@ export function createAuthConfig(
     authPresentation: registry.getAuthPresentationOptions(),
     providers: authProviders.map((provider) => provider.getProviderConfig()),
     callbacks: {
-      authorized: async ({ auth }) => {
-        // Logged in users are authenticated, otherwise redirect to login page
-        return !!auth;
-      },
-
       jwt: async (params) => {
         const { token, user, account, trigger } = params;
         const providerId = account?.provider || token.provider;
@@ -65,7 +60,9 @@ export function createAuthConfig(
       },
     },
     pages: {
-      // signIn: "/login",
+      signIn: "/signin",
+      signOut: "/signout",
+      error: "/auth-error",
     },
     session: {
       strategy: "jwt",

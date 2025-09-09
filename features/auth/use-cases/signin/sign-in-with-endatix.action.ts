@@ -11,6 +11,8 @@ import {
   UnknownError,
 } from "@/features/auth/infrastructure/providers";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { redirect } from "next/navigation";
+import { SIGNIN_ERROR_PATH } from "../../infrastructure/auth-constants";
 
 interface SignInFormState {
   isSuccess?: boolean;
@@ -67,16 +69,15 @@ export async function signInWithEndatixAction(
 
     switch (true) {
       case error instanceof InvalidCredentialsError:
-      case error instanceof NetworkError:
-      case error instanceof ServerError:
         errorMessage = error.cause?.message as string;
         break;
       case error instanceof InvalidInputError:
         errors = error.issues;
         break;
+      case error instanceof NetworkError:
+      case error instanceof ServerError:
       case error instanceof UnknownError:
-        errorMessage = error.cause?.message as string;
-        break;
+        return redirect(`${SIGNIN_ERROR_PATH}?error=${error.type}`);
       case error instanceof Error:
         errorMessage = error.message;
         break;

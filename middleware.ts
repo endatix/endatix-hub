@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import {
   AUTH_ROUTES,
   DEFAULT_RETURN_URL,
-  LOGIN_PATH,
+  SIGNIN_PATH,
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure/auth-constants";
 
@@ -24,7 +24,7 @@ export default auth((req: NextAuthRequest) => {
     const encodedReturnUrl = encodeURIComponent(returnUrl);
 
     const loginUrl = new URL(
-      `${LOGIN_PATH}?${RETURN_URL_PARAM}=${encodedReturnUrl}`,
+      `${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodedReturnUrl}`,
       req.nextUrl.origin,
     );
 

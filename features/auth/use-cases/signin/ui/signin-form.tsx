@@ -5,7 +5,7 @@ import { AuthPresentation } from "@/features/auth/infrastructure/types";
 import EndatixSignInForm from "./endatix-sign-in-form";
 import ExternalSignInOptions from "./external-sign-in-button";
 
-interface LoginFormProps {
+interface SigninFormProps {
   endatixAuthProvider: AuthPresentation;
   externalAuthProviders?: AuthPresentation[];
   returnUrl?: string;
@@ -13,7 +13,7 @@ interface LoginFormProps {
 
 const DEFAULT_RETURN_URL = "/forms";
 
-const LoginForm: FC<LoginFormProps> = ({
+const SigninForm: FC<SigninFormProps> = ({
   endatixAuthProvider,
   externalAuthProviders,
   returnUrl: returnUrl = DEFAULT_RETURN_URL,
@@ -32,4 +32,4 @@ const LoginForm: FC<LoginFormProps> = ({
   );
 };
 
-export default LoginForm;
+export default SigninForm;

@@ -1,10 +1,11 @@
 "use client";
 
-import { logoutAction } from "@/features/auth/use-cases/logout/logout.action";
+import { logoutAction } from "@/features/auth/use-cases/signout/signout.action";
 import { useTransition } from "react";
-import { useTrackEvent } from '@/features/analytics/posthog';
+import { useTrackEvent } from "@/features/analytics/posthog";
+import { Button } from "@/components/ui/button";
 
-const LogoutButton = () => {
+const SignoutButton = () => {
   const [isPending, startTransition] = useTransition();
   const { trackEvent, trackException } = useTrackEvent();
 
@@ -13,14 +14,14 @@ const LogoutButton = () => {
       try {
         await logoutAction();
         // Track successful logout
-        trackEvent('auth_logout', {
+        trackEvent("auth_logout", {
           success: true,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        console.error('Failed to logout:', error);
+        console.error("Failed to logout:", error);
         trackException(error, {
-          operation: 'auth_logout',
+          operation: "auth_logout",
           timestamp: new Date().toISOString(),
         });
       }
@@ -32,10 +33,10 @@ const LogoutButton = () => {
   }
 
   return (
-    <div className="cursor-pointer" onClick={handleLogout}>
-      Logout
-    </div>
+    <Button className="cursor-pointer" onClick={handleLogout}>
+      Sign out
+    </Button>
   );
 };
 
-export default LogoutButton;
+export default SignoutButton;

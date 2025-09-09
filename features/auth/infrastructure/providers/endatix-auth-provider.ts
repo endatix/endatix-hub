@@ -21,7 +21,7 @@ import { ZodError } from "zod";
 export const ENDATIX_AUTH_PROVIDER_ID = "endatix";
 
 export class InvalidCredentialsError extends CredentialsSignin {
-  static type = "InvalidCredentialsError";
+  static type = "InvalidCredentials";
   code = "Invalid identifier or password";
   cause = {
     message: "The supplied credentials are invalid",
@@ -29,12 +29,12 @@ export class InvalidCredentialsError extends CredentialsSignin {
 }
 
 export class InvalidInputError extends ZodError {
-  static type = "InvalidInputError";
+  static type = "InvalidInput";
   code = "Invalid input data";
 }
 
 export class NetworkError extends AuthError {
-  static type = "NetworkError";
+  static type = "Network";
   code = "Network error";
   cause = {
     message: "Network error. Failed to connect to the Endatix API.",
@@ -42,7 +42,7 @@ export class NetworkError extends AuthError {
 }
 
 export class ServerError extends AuthError {
-  static type = "ServerError";
+  static type = "Server";
   code = "Server error";
   cause = {
     message: "An error occurred while processing the request",
@@ -50,7 +50,7 @@ export class ServerError extends AuthError {
 }
 
 export class UnknownError extends AuthError {
-  static type = "UnknownError";
+  static type = "Unknown";
   code = "Unknown error";
   cause = {
     message: "An unknown error occurred",

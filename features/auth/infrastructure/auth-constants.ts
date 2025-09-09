@@ -1,14 +1,23 @@
+const DEFAULT_RETURN_URL = "/forms";
+const SIGNIN_PATH = "/signin";
+const RETURN_URL_PARAM = "returnUrl";
+const SIGNIN_ERROR_PATH = "/auth-error";
+const SIGNOUT_PATH = "/signout";
+
 const AUTH_ROUTES = [
-  "/login",
+  SIGNIN_PATH,
   "/create-account",
   "/account-verification",
   "/verify-email",
   "/forgot-password",
   "/reset-password",
+  SIGNIN_ERROR_PATH,
 ];
-
-const DEFAULT_RETURN_URL = "/forms";
-const LOGIN_PATH = "/login";
-const RETURN_URL_PARAM = "returnUrl";
-
-export { AUTH_ROUTES, DEFAULT_RETURN_URL, LOGIN_PATH, RETURN_URL_PARAM };
+export {
+  AUTH_ROUTES,
+  DEFAULT_RETURN_URL,
+  SIGNIN_PATH,
+  RETURN_URL_PARAM,
+  SIGNIN_ERROR_PATH,
+  SIGNOUT_PATH,
+};

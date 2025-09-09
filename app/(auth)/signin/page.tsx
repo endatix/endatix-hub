@@ -1,4 +1,3 @@
-import LoginForm from "@/features/auth/use-cases/login/ui/login-form";
 import type { Metadata } from "next";
 import { getSession } from "@/features/auth";
 import {
@@ -18,6 +17,7 @@ import {
   ENDATIX_AUTH_PROVIDER_ID,
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure";
+import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
 
 export const metadata: Metadata = {
   title: "Sign in | Endatix Hub",
@@ -42,13 +42,13 @@ export const metadata: Metadata = {
   },
 };
 
-interface LoginPageProps {
+interface SignInPageProps {
   searchParams: Promise<{
     [RETURN_URL_PARAM]: string | undefined;
   }>;
 }
 
-const LoginPage = async ({ searchParams }: LoginPageProps) => {
+const SignInPage = async ({ searchParams }: SignInPageProps) => {
   const { returnUrl } = await searchParams;
   const user = await getSession();
 
@@ -77,7 +77,7 @@ const LoginPage = async ({ searchParams }: LoginPageProps) => {
 
   return (
     <>
-      <LoginForm
+      <SigninForm
         endatixAuthProvider={endatixAuthProvider}
         externalAuthProviders={externalAuthProviders}
         returnUrl={returnUrl}
@@ -120,4 +120,4 @@ const LoggedInSuccessMessage = ({
     );
 };
 
-export default LoginPage;
+export default SignInPage;

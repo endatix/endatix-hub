@@ -12,6 +12,15 @@ import { AuthPresentation } from "./features/auth/infrastructure";
 // authRegistry.register(new KeycloakAuthProvider());
 // authRegistry.register(new GoogleAuthProvider());
 
+// Create NextAuth configuration from registry
+const authConfig = createAuthConfig(authRegistry);
+
+export const authPresentation: AuthPresentation[] = authConfig.authPresentation;
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
+});
+
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
@@ -31,12 +40,3 @@ declare module "next-auth/jwt" {
     provider?: string;
   }
 }
-
-// Create NextAuth configuration from registry
-const authConfig = createAuthConfig(authRegistry);
-
-export const authPresentation: AuthPresentation[] = authConfig.authPresentation;
-
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  ...authConfig,
-});

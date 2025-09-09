@@ -11,3 +11,15 @@ export interface CookieOptions {
   secure: boolean;
   httpOnly: boolean;
 }
+
+export enum AuthErrorType {
+  Configuration = "Configuration",
+  Network = "Network",
+  Server = "Server",
+  Unknown = "Unknown",
+}
+
+export interface ErrorDetails {
+  message: string;
+  code: string;
+}
