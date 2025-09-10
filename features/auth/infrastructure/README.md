@@ -20,7 +20,7 @@ The system provides a pre-configured registry with built-in providers already re
 ```typescript
 // hub/auth.ts (Template)
 import NextAuth from "next-auth";
-import { authRegistry } from "./features/auth/infrastructure/registry";
+import { authRegistry } from "./features/auth/infrastructure/auth-provider-registry";
 import { createAuthConfig } from "./features/auth/infrastructure/config-factory";
 
 // TODO: Add your custom providers here
@@ -43,9 +43,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
 ## Built-in Providers
 
-### Endatix (Credentials)
+### Endatix JWT (Credentials)
 
-Always enabled as the fallback authentication method.
+Always enabled as the fallback authentication method. Uses JWT tokens for authentication and stores user information in the database.
 
 **Environment Variables:**
 
@@ -53,7 +53,7 @@ Always enabled as the fallback authentication method.
 
 ### Keycloak (OIDC)
 
-Enterprise SSO provider for organizational deployments.
+Enterprise SSO provider for organizational deployments using OpenID Connect.
 
 **Environment Variables:**
 
@@ -62,6 +62,17 @@ AUTH_KEYCLOAK_ENABLED=true
 AUTH_KEYCLOAK_CLIENT_ID=your-client-id
 AUTH_KEYCLOAK_CLIENT_SECRET=your-client-secret
 AUTH_KEYCLOAK_ISSUER=https://your-keycloak.com/realms/your-realm
+```
+
+### Google OAuth
+
+Popular OAuth provider for easy user authentication.
+
+**Environment Variables:**
+
+```bash
+AUTH_GOOGLE_CLIENT_ID=your-google-client-id
+AUTH_GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
 ## Adding Custom Providers
@@ -165,13 +176,17 @@ authRegistry.register(new CustomKeycloakProvider());
 services:
   endatix-hub:
     environment:
-      # Endatix (always enabled)
+      # Endatix JWT (always enabled)
 
       # Keycloak
       - AUTH_KEYCLOAK_ENABLED=true
       - AUTH_KEYCLOAK_CLIENT_ID=${AUTH_KEYCLOAK_CLIENT_ID}
       - AUTH_KEYCLOAK_CLIENT_SECRET=${AUTH_KEYCLOAK_CLIENT_SECRET}
       - AUTH_KEYCLOAK_ISSUER=${AUTH_KEYCLOAK_ISSUER}
+
+      # Google OAuth
+      - AUTH_GOOGLE_CLIENT_ID=${AUTH_GOOGLE_CLIENT_ID}
+      - AUTH_GOOGLE_CLIENT_SECRET=${AUTH_GOOGLE_CLIENT_SECRET}
 
       # Custom provider
       - GITHUB_ENABLED=true
@@ -203,10 +218,12 @@ interface IAuthProvider {
 Pre-configured registry with built-in providers:
 
 ```typescript
-import { authRegistry } from "./features/auth/infrastructure/registry";
+import { authRegistry } from "./features/auth/infrastructure/auth-provider-registry";
 
 // Add custom providers
 authRegistry.register(new MyProvider());
+// or
+authRegistry.register(new MyProvider(options)); //TODO: Add options support
 
 // Check enabled providers
 const enabledProviders = authRegistry.getEnabledProviderIds();
@@ -217,14 +234,6 @@ const enabledProviders = authRegistry.getEnabledProviderIds();
 See `examples/` folder for complete provider implementations:
 
 - `github-auth-provider.example.ts` - OAuth provider example
-
-## Migration Guide
-
-If upgrading from the old system:
-
-1. **Provider constants** - Replace `AUTH_PROVIDER_NAMES.ENDATIX` with `'endatix'`
-2. **Provider registration** - Use `authRegistry.register()` instead of static register methods
-3. **Callback handling** - Handled automatically by the registry system
 
 ## Benefits
 

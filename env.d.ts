@@ -17,6 +17,10 @@ declare namespace NodeJS {
     AUTH_KEYCLOAK_CLIENT_SECRET?: string;
     AUTH_KEYCLOAK_ISSUER?: string;
 
+    AUTH_GOOGLE_ENABLED?: string;
+    AUTH_GOOGLE_CLIENT_ID?: string;
+    AUTH_GOOGLE_CLIENT_SECRET?: string;
+
     // Data Collection
     NEXT_FORMS_COOKIE_NAME?: string;
     NEXT_FORMS_COOKIE_DURATION_DAYS?: string;

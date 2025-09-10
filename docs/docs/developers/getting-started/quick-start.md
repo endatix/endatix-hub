@@ -52,8 +52,8 @@ cp .env.example .env.local
 
 # Edit .env.local with your configuration
 # DATABASE_URL=postgresql://username:password@localhost:5432/endatix_hub
-# NEXTAUTH_SECRET=your-secret-key
-# NEXTAUTH_URL=http://localhost:3000
+# AUTH_SECRET=your-secret-key
+# AUTH_URL=http://localhost:3000
 
 # Run database migrations
 npm run db:migrate
