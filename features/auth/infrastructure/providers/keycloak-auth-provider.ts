@@ -49,14 +49,7 @@ export class KeycloakAuthProvider implements IAuthProvider {
 
     return true;
   }
-
-  getPresentationOptions(): IAuthPresentation {
-    return {
-      displayName: this.name,
-      signInLabel: "Sign in with Keycloak",
-    };
-  }
-
+  
   getPresentationOptions(): IAuthPresentation {
     return {
       displayName: this.name,

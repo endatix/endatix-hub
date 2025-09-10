@@ -11,7 +11,6 @@ import {
 import { getSession } from "@/features/auth";
 import UserAvatar from "@/components/user/user-avatar";
 import Link from "next/link";
-import SignoutButton from "@/features/auth/use-cases/signout/ui/signout-button";
 import { SIGNOUT_PATH } from "@/features/auth/infrastructure/auth-constants";
 
 const MyAccountDropdown: React.FC = async () => {
