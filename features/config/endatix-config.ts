@@ -12,10 +12,6 @@ export interface EndatixConfig {
         clientId?: string;
         clientSecret?: string;
         issuer?: string;
-        authorizationUrl?: string;
-        tokenUrl?: string;
-        userInfoUrl?: string;
-        scope?: string;
       };
     };
     session?: {
@@ -62,15 +58,11 @@ export const withEndatix = (
   const env = {
     ...nextConfig.env,
     // Keycloak configuration
-    KEYCLOAK_ENABLED: mergedAuthConfig.providers.keycloak.enabled.toString(),
-    KEYCLOAK_CLIENT_ID: mergedAuthConfig.providers.keycloak.clientId,
-    KEYCLOAK_CLIENT_SECRET: mergedAuthConfig.providers.keycloak.clientSecret,
-    KEYCLOAK_ISSUER: mergedAuthConfig.providers.keycloak.issuer,
-    KEYCLOAK_AUTHORIZATION_URL:
-      mergedAuthConfig.providers.keycloak.authorizationUrl,
-    KEYCLOAK_TOKEN_URL: mergedAuthConfig.providers.keycloak.tokenUrl,
-    KEYCLOAK_USERINFO_URL: mergedAuthConfig.providers.keycloak.userInfoUrl,
-    KEYCLOAK_SCOPE: mergedAuthConfig.providers.keycloak.scope,
+    AUTH_KEYCLOAK_ENABLED: mergedAuthConfig.providers.keycloak.enabled.toString(),
+    AUTH_KEYCLOAK_CLIENT_ID: mergedAuthConfig.providers.keycloak.clientId,
+    AUTH_KEYCLOAK_CLIENT_SECRET: mergedAuthConfig.providers.keycloak.clientSecret,
+    AUTH_KEYCLOAK_ISSUER: mergedAuthConfig.providers.keycloak.issuer,
+
     // Session configuration
     SESSION_SECRET: mergedAuthConfig.session.secret,
     SESSION_MAX_AGE: mergedAuthConfig.session.maxAge.toString(),

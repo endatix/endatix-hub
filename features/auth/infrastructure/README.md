@@ -58,15 +58,10 @@ Enterprise SSO provider for organizational deployments.
 **Environment Variables:**
 
 ```bash
-KEYCLOAK_ENABLED=true
-KEYCLOAK_CLIENT_ID=your-client-id
-KEYCLOAK_CLIENT_SECRET=your-client-secret
-KEYCLOAK_ISSUER=https://your-keycloak.com/realms/your-realm
-# Optional overrides:
-KEYCLOAK_AUTHORIZATION_URL=https://custom-auth-url
-KEYCLOAK_TOKEN_URL=https://custom-token-url
-KEYCLOAK_USERINFO_URL=https://custom-userinfo-url
-KEYCLOAK_SCOPE="openid email profile custom-scope"
+AUTH_KEYCLOAK_ENABLED=true
+AUTH_KEYCLOAK_CLIENT_ID=your-client-id
+AUTH_KEYCLOAK_CLIENT_SECRET=your-client-secret
+AUTH_KEYCLOAK_ISSUER=https://your-keycloak.com/realms/your-realm
 ```
 
 ## Adding Custom Providers
@@ -173,10 +168,10 @@ services:
       # Endatix (always enabled)
 
       # Keycloak
-      - KEYCLOAK_ENABLED=true
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}
+      - AUTH_KEYCLOAK_ENABLED=true
+      - AUTH_KEYCLOAK_CLIENT_ID=${AUTH_KEYCLOAK_CLIENT_ID}
+      - AUTH_KEYCLOAK_CLIENT_SECRET=${AUTH_KEYCLOAK_CLIENT_SECRET}
+      - AUTH_KEYCLOAK_ISSUER=${AUTH_KEYCLOAK_ISSUER}
 
       # Custom provider
       - GITHUB_ENABLED=true
