@@ -1,6 +1,8 @@
 import { JWT } from "next-auth/jwt";
 import { Session, Account, User } from "next-auth";
 import { Provider } from "next-auth/providers";
+import React from "react";
+import { ButtonProps } from "@/components/ui/button";
 
 export interface JWTParams {
   token: JWT;
@@ -14,6 +16,8 @@ export interface SessionParams {
   token: JWT;
 }
 
+export type AuthProviderType = "credentials" | "oauth" | "oidc" | "email";
+
 /**
  * Enhanced auth provider interface that supports any string ID for custom providers
  * and provides a clean separation between NextAuth config and callback handling.
@@ -26,13 +30,18 @@ export interface IAuthProvider {
   readonly name: string;
 
   /** Provider type - matches NextAuth provider types */
-  readonly type: "credentials" | "oauth" | "oidc" | "email";
+  readonly type: AuthProviderType;
 
   /**
    * Returns the NextAuth provider configuration.
    * This replaces the static register() methods.
    */
   getProviderConfig(): Provider;
+
+  /**
+   * Returns the presentation options for the provider.
+   */
+  getPresentationOptions(): IAuthPresentation;
 
   /**
    * Handles JWT token processing during authentication callbacks.
@@ -45,8 +54,40 @@ export interface IAuthProvider {
   handleSession(params: SessionParams): Promise<Session>;
 
   /**
-   * Optional validation to check if provider is properly configured.
+   * Validation to check if provider is properly configured.
    * Used to determine if provider should be enabled.
    */
-  validateConfig?(): boolean;
+  validateConfig(): boolean;
 }
+
+export interface IAuthPresentation {
+  /**
+   * Display name for the provider. Used in the sign in button and other UI elements.
+   */
+  displayName?: string;
+
+  /**
+   * Label for the sign in button. Used in the sign in button and other UI elements.
+   */
+  signInLabel?: string;
+
+  icon?: string | React.ComponentType<{ className?: string }>;
+
+  /**
+   * Optional props to override the default sign in button props.
+   */
+  signInButtonProps?: ButtonProps;
+
+  /**
+   * Optional component to override the default sign in component. Designed for credentials based providers.
+   */
+  signInComponent?: React.ComponentType<{
+    onSubmit: (credentials: Record<string, string>) => Promise<void>;
+    isPending: boolean;
+    className?: string;
+    error?: string;
+  }>;
+}
+
+export type AuthPresentation = Pick<IAuthProvider, "id" | "name" | "type"> &
+  IAuthPresentation;

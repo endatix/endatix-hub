@@ -1,10 +1,9 @@
 // import NotificationsBell from "@/components/controls/notifications/notifications-bell";
-import { auth } from "@/auth";
 import BreadcrumbNav from "@/components/layout-ui/navigation/breadcrumb-nav";
 // import MainSearchBar from "@/components/layout-ui/navigation/main-search-bar";
 import MobileNav from "@/components/layout-ui/navigation/mobile-nav";
-import MyAccountDropdown from "@/features/auth/use-cases/keycloak/ui/my-account-dropdown";
 import { SitemapService } from "@/services/sitemap-service";
+import MyAccountDropdown from "../my-account/my-account-dropdown";
 
 interface MainHeaderProps {
   showHeader?: boolean;
@@ -14,7 +13,6 @@ export default async function MainHeader({
   showHeader = true,
 }: MainHeaderProps) {
   const sitemap = SitemapService.getSitemap();
-  const session = await auth();
 
   if (!showHeader) return null;
 
@@ -25,7 +23,7 @@ export default async function MainHeader({
       {/* <MainSearchBar /> */}
       {/* <NotificationsBell badgeStyle="badge" renderSampleData={false} /> */}
       <div className="ml-auto">
-        <MyAccountDropdown session={session} />
+        <MyAccountDropdown />
       </div>
     </header>
   );

@@ -1,6 +1,11 @@
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
-import { IAuthProvider, JWTParams, SessionParams } from "./types";
+import {
+  IAuthProvider,
+  JWTParams,
+  IAuthPresentation,
+  SessionParams,
+} from "../types";
 import Keycloak from "next-auth/providers/keycloak";
 import { Provider } from "next-auth/providers";
 
@@ -48,6 +53,13 @@ export class KeycloakAuthProvider implements IAuthProvider {
     }
 
     return isEnabled;
+  }
+
+  getPresentationOptions(): IAuthPresentation {
+    return {
+      displayName: this.name,
+      signInLabel: "Sign in with Keycloak",
+    };
   }
 
   async handleJWT(params: JWTParams): Promise<JWT> {

@@ -10,8 +10,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Copy } from "lucide-react";
-import { toast } from '@/components/ui/toast';
-import SignOutButton from './sign-out-button';
+import { toast } from "@/components/ui/toast";
+import KeycloakSignOutButton from "./keycloak-sign-out-button";
+import Link from "next/link";
+import { SIGNOUT_PATH } from "@/features/auth/infrastructure/auth-constants";
 
 interface SessionCardProps {
   session: Session;
@@ -47,7 +49,7 @@ export default function SessionCard({ session }: SessionCardProps) {
         )}
       </CardContent>
       <CardFooter>
-        <SignOutButton name={session?.user?.name ?? ""} />
+        <Link href={SIGNOUT_PATH}>Sign out</Link>
       </CardFooter>
     </Card>
   );

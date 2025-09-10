@@ -1,8 +1,13 @@
-import Google from "next-auth/providers/google";
-import { IAuthProvider, JWTParams, SessionParams } from "../types";
-import { Provider } from "next-auth/providers";
-import { JWT } from "@auth/core/jwt";
+import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
+import {
+  IAuthProvider,
+  JWTParams,
+  IAuthPresentation,
+  SessionParams,
+} from "../types";
+import Google from "next-auth/providers/google";
+import { Provider } from "next-auth/providers";
 
 export const GOOGLE_ID = "google";
 
@@ -27,7 +32,7 @@ export class GoogleAuthProvider implements IAuthProvider {
     });
   }
 
-  validateConfig?(): boolean {
+  validateConfig(): boolean {
     if (!process.env.AUTH_GOOGLE_ID) {
       console.warn(
         "Google auth is enabled but you must set the AUTH_GOOGLE_ID environment variable",
@@ -45,6 +50,13 @@ export class GoogleAuthProvider implements IAuthProvider {
     return true;
   }
 
+  getPresentationOptions(): IAuthPresentation {
+    return {
+      displayName: this.name,
+      signInLabel: "Sign in with Google",
+    };
+  }
+
   async handleJWT(params: JWTParams): Promise<JWT> {
     const { token, user, account } = params;
 
@@ -52,8 +64,6 @@ export class GoogleAuthProvider implements IAuthProvider {
       token.accessToken = account.id_token as string;
       token.refreshToken = account.refresh_token as string;
       token.provider = this.id;
-
-      console.log("accountiiii", account);
     }
 
     if (user) {

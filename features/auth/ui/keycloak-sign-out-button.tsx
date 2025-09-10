@@ -29,7 +29,7 @@ export const generateKeycloakLogoutUrl = (
   };
 };
 
-export default function SignOutButton({ name }: SignOutProps) {
+export default function KeycloakSignOutButton({ name }: SignOutProps) {
   console.debug("name", name);
 
   return (

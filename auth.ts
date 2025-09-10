@@ -1,18 +1,21 @@
 import NextAuth from "next-auth";
-import { authRegistry } from "./features/auth/infrastructure/registry";
+import { authRegistry } from "./features/auth/infrastructure/auth-provider-registry";
 import { createAuthConfig } from "./features/auth/infrastructure/config-factory";
+import { AuthPresentation } from "./features/auth/infrastructure";
 
-// TODO: Add your custom providers here
-// Example for GitHub auth provider
-// import { GitHubAuthProvider } from "./features/auth/infrastructure/github-auth-provider";
-// authRegistry.register(new GitHubAuthProvider());
-// ------------------------------------------------------------------------------------------------
-// Example for Google auth provider
-// import { GoogleAuthProvider } from "./features/auth/infrastructure/examples/google-auth-provider";
+// Example auth provider registration (uncomment to use)
+// import {
+//   KeycloakAuthProvider,
+//   GoogleAuthProvider,
+// } from "./features/auth/infrastructure/providers";
+
+// authRegistry.register(new KeycloakAuthProvider());
 // authRegistry.register(new GoogleAuthProvider());
 
 // Create NextAuth configuration from registry
 const authConfig = createAuthConfig(authRegistry);
+
+export const authPresentation: AuthPresentation[] = authConfig.authPresentation;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,

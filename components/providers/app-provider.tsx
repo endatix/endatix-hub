@@ -12,7 +12,7 @@ import { Toaster } from "sonner";
 interface AppProviderOptions {
   enableTheme?: boolean;
   enableAnalytics?: boolean;
-  enableAuth?: boolean;
+  enableSession?: boolean;
   enableToaster?: boolean;
 }
 
@@ -42,18 +42,18 @@ export function AppProvider({
   options = {
     enableTheme: true,
     enableAnalytics: true,
-    enableAuth: true,
+    enableSession: true,
     enableToaster: true,
   },
   themeOptions = {},
 }: AppProviderProps) {
-  const { enableTheme, enableAnalytics, enableToaster, enableAuth} = options;
+  const { enableTheme, enableAnalytics, enableToaster, enableSession} = options;
 
   // Build the provider stack based on enabled features
   let content = <>{children}</>;
 
   // Add NextAuth session provider if enabled
-  if (enableAuth) {
+  if (enableSession) {
     content = <SessionProvider>{content}</SessionProvider>;
   }
 

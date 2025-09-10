@@ -1,5 +1,6 @@
 import { NextAuthConfig } from "next-auth";
-import { AuthProviderRegistry } from "./registry";
+import { AuthProviderRegistry } from "./auth-provider-registry";
+import { AuthPresentation } from "./types";
 
 /**
  * Creates NextAuth configuration from a provider registry.
@@ -7,13 +8,16 @@ import { AuthProviderRegistry } from "./registry";
  */
 export function createAuthConfig(
   registry: AuthProviderRegistry,
-): Pick<NextAuthConfig, "providers" | "callbacks"> {
-  const enabledProviders = registry.getEnabledProviders();
+): NextAuthConfig & {
+  authPresentation: AuthPresentation[];
+} {
+  const authProviders = registry.getActiveProviders();
 
   return {
-    providers: enabledProviders.map((provider) => provider.getProviderConfig()),
+    authPresentation: registry.getAuthPresentationOptions(),
+    providers: authProviders.map((provider) => provider.getProviderConfig()),
     callbacks: {
-      async jwt(params) {
+      jwt: async (params) => {
         const { token, user, account, trigger } = params;
         const providerId = account?.provider || token.provider;
 
@@ -35,7 +39,7 @@ export function createAuthConfig(
         });
       },
 
-      async session(params) {
+      session: async (params) => {
         const { session, token } = params;
         const providerId = token.provider as string;
 
@@ -55,5 +59,16 @@ export function createAuthConfig(
         return await provider.handleSession({ session, token });
       },
     },
+    pages: {
+      signIn: "/signin",
+      signOut: "/signout",
+      error: "/auth-error",
+    },
+    session: {
+      strategy: "jwt",
+      maxAge: 900 * 60 - 10, // ~900 minutes (15 hours)
+      updateAge: 900 * 60 - 10, // ~900 minutes (15 hours)
+    },
+    trustHost: true,
   };
 }
