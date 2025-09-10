@@ -57,6 +57,13 @@ export class KeycloakAuthProvider implements IAuthProvider {
     };
   }
 
+  getPresentationOptions(): IAuthPresentation {
+    return {
+      displayName: this.name,
+      signInLabel: "Sign in with Keycloak",
+    };
+  }
+
   async handleJWT(params: JWTParams): Promise<JWT> {
     const { token, user, account } = params;
 
