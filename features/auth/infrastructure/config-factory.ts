@@ -66,8 +66,10 @@ export function createAuthConfig(
     },
     session: {
       strategy: "jwt",
-      maxAge: 900 * 60 - 10, // ~900 minutes (15 hours)
-      updateAge: 900 * 60 - 10, // ~900 minutes (15 hours)
+      ...(process.env.SESSION_MAX_AGE_IN_MINUTES && {
+        maxAge: parseInt(process.env.SESSION_MAX_AGE_IN_MINUTES) * 60,
+        updateAge: parseInt(process.env.SESSION_MAX_AGE_IN_MINUTES) * 60,
+      }),
     },
     trustHost: true,
   };
