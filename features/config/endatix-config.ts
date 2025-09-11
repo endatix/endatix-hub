@@ -65,7 +65,7 @@ export const withEndatix = (
 
     // Session configuration
     SESSION_SECRET: mergedAuthConfig.session.secret,
-    SESSION_MAX_AGE: mergedAuthConfig.session.maxAge.toString(),
+    SESSION_MAX_AGE_IN_MINUTES: mergedAuthConfig.session.maxAge.toString(),
   };
 
   return {

@@ -9,7 +9,7 @@ declare namespace NodeJS {
 
     // Session
     SESSION_SECRET?: string;
-    SESSION_MAX_AGE?: string;
+    SESSION_MAX_AGE_IN_MINUTES?: string;
 
     // Auth Providers
     AUTH_KEYCLOAK_ENABLED?: string;
