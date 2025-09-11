@@ -8,6 +8,10 @@ export class ScanditQuestionModel extends Question {
   getType() {
     return SCANDIT_QUESTION_TYPE;
   }
+
+  public get scanditInputId(): string {
+    return this.id + "_scandit";
+  }
 }
 
 // Register model with Serializer (following SurveyJS pattern)

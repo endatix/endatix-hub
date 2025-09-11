@@ -56,9 +56,25 @@ export class ScanditComponent extends SurveyQuestionElementBase {
   protected renderElement(): React.JSX.Element {
     return (
       <div ref={(root) => this.setControl(root)}>
-        <button onClick={this.handleClick}>Scan a Barcode</button>&nbsp;
-        <pre>value: {this.question?.value}</pre>
-        <input type="text" id="scandit-input" ref={this.inputRef} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div>
+            <button style={{ width: "auto" }} onClick={this.handleClick}>
+              Scan a Barcode
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
+            <label htmlFor={this.question.scanditInputId}>
+              Question value:
+            </label>
+            <input
+              type="text"
+              id={this.question.scanditInputId}
+              ref={this.inputRef}
+              value={this.question.value || ""}
+              readOnly
+            />
+          </div>
+        </div>
       </div>
     );
   }
