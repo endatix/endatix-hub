@@ -27,6 +27,8 @@ import { UseTemplateButton } from "./use-template-button";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import { customQuestions } from '@/customizations/questions/question-registry';
+import { questionLoaderModule } from '@/lib/questions/question-loader-module';
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -35,6 +37,16 @@ const SurveyPreviewComponent = dynamic(
     loading: () => <Spinner className="w-8 h-8 mx-auto my-12" />,
   },
 );
+
+// Load all custom questions registered in the question registry
+for (const questionName of customQuestions) {
+  try {
+    await questionLoaderModule.loadQuestion(questionName);
+    console.debug(`✅ Loaded custom question: ${questionName}`);
+  } catch (error) {
+    console.warn(`⚠️ Failed to load custom question: ${questionName}`, error);
+  }
+}
 
 interface FormTemplatePreviewProps {
   open: boolean;
