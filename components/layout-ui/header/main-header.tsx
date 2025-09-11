@@ -1,15 +1,17 @@
 // import NotificationsBell from "@/components/controls/notifications/notifications-bell";
-import MyAccountDropdown from "@/components/layout-ui/my-account/my-account-dropdown";
 import BreadcrumbNav from "@/components/layout-ui/navigation/breadcrumb-nav";
 // import MainSearchBar from "@/components/layout-ui/navigation/main-search-bar";
 import MobileNav from "@/components/layout-ui/navigation/mobile-nav";
 import { SitemapService } from "@/services/sitemap-service";
+import MyAccountDropdown from "../my-account/my-account-dropdown";
 
 interface MainHeaderProps {
   showHeader?: boolean;
 }
 
-export default function MainHeader({ showHeader = true }: MainHeaderProps) {
+export default async function MainHeader({
+  showHeader = true,
+}: MainHeaderProps) {
   const sitemap = SitemapService.getSitemap();
 
   if (!showHeader) return null;

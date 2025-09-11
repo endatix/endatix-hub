@@ -11,7 +11,7 @@ import {
 import { getSession } from "@/features/auth";
 import UserAvatar from "@/components/user/user-avatar";
 import Link from "next/link";
-import LogoutButton from "@/features/auth/use-cases/logout/ui/logout-button";
+import { SIGNOUT_PATH } from "@/features/auth/infrastructure/auth-constants";
 
 const MyAccountDropdown: React.FC = async () => {
   const sessionData = await getSession();
@@ -51,7 +51,7 @@ const LoggedInUserOptions = () => (
     </DropdownMenuItem>
     <DropdownMenuSeparator />
     <DropdownMenuItem>
-      <LogoutButton />
+      <Link href={SIGNOUT_PATH}>Sign out</Link>
     </DropdownMenuItem>
   </>
 );

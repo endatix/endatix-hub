@@ -2,6 +2,23 @@
 
 Quick reference for organizing features using vertical slice architecture.
 
+## lib/ vs features/ vs packages/
+
+### Use `lib/` for:
+- **Internal utilities** used across multiple features
+- **Framework-specific adapters** (Next.js, React)
+- **Cross-cutting concerns** that aren't ready for packages
+
+### Use `features/` for:
+- **Endatix-specific business logic** 
+- **App configuration** (features/config/)
+- **Complete vertical slices** with use-cases, UI, and infrastructure
+
+### Use `packages/` for:
+- **Future npm packages** with their own package.json
+- **Reusable libraries** that can be published independently
+- **Workspace packages** that other projects can consume
+
 ## Feature Structure
 
 ```
@@ -10,37 +27,27 @@ features/
 │   ├── index.ts                              # Public API exports
 │   ├── types.ts                              # Feature-specific types
 │   ├── __tests__/                            # Feature-level tests
-│   │   ├── {use-case-name}.test.ts
-│   │   └── ...
 │   ├── use-cases/                            # Business logic by use case
 │   │   ├── {verb-noun}/                      # e.g., create-form, update-user
 │   │   │   ├── {verb-noun}.use-case.ts       # Pure business logic
 │   │   │   ├── {verb-noun}.action.ts         # Next.js server action
 │   │   │   ├── {verb-noun}.hook.ts           # Client hook (optional)
 │   │   │   └── ui/                           # Use-case specific components
-│   │   │       ├── {verb-noun}-form.tsx
-│   │   │       ├── {verb-noun}-dialog.tsx
-│   │   │       └── ...
 │   │   └── ...
+│   ├── infrastructure/                       # External adapters, providers
 │   ├── shared/                               # Cross use-case items
-│   │   ├── types.ts, schemas.ts, services.ts
-│   │   ├── hooks.ts, utils.ts
-│   │   └── ...
 │   └── ui/                                   # Feature-wide components
-│       ├── {feature-name}-card.tsx
-│       ├── {feature-name}-list.tsx
-│       └── ...
 ```
 
 ## Why Vertical Slice Architecture?
 
-**Cohesion**: All related code for a use case lives together - business logic, actions, UI, and tests are co-located, making changes easier and faster.
+**Cohesion**: Related code lives together - business logic, actions, UI, and tests are co-located.
 
-**Discoverability**: Developers can quickly find everything related to a feature without navigating multiple folders. The structure "screams" what the application does.
+**Discoverability**: Find everything related to a feature without navigating multiple folders.
 
-**Collaboration**: Teams can work on different features simultaneously with minimal conflicts. Each slice is self-contained and has clear boundaries.
+**Collaboration**: Teams work on different features simultaneously with minimal conflicts.
 
-**Flexibility**: Features can vary in complexity - simple features have fewer files, complex features can grow without affecting the structure. No artificial constraints.
+**Flexibility**: Features vary in complexity without artificial constraints.
 
 ## Testing Convention
 
@@ -78,32 +85,22 @@ export async function createFormAction(
 }
 ```
 
-### UI Layer
-- Use-case specific: `use-cases/{name}/ui/`
-- Feature-wide: `ui/`
+### Infrastructure Layer
+- External adapters (auth providers, storage, APIs)
+- Framework-specific integrations
+- Configuration and setup
 
 ## Naming Conventions
 
-### Case Conventions
-- **Files & Folders**: `kebab-case` → `create-form.use-case.ts`, `use-cases/`
-- **Functions**: `camelCase` → `createFormUseCase`, `handleSubmit`
-- **Classes, Interfaces, Types**: `PascalCase` → `CreateFormRequest`, `FormService`
+### Files & Folders
+- **kebab-case**: `create-form.use-case.ts`, `use-cases/`
+- **Functions**: `camelCase` → `createFormUseCase`
+- **Classes/Types**: `PascalCase` → `CreateFormRequest`
 
 ### Files
-- **Use-cases**: `{verb-noun}.use-case.ts` → `create-form.use-case.ts`
-- **Actions**: `{verb-noun}.action.ts` → `create-form.action.ts`
-- **Hooks**: `use-{feature-name}.hook.ts` → `use-form-data.hook.ts`
-- **Components**: `{feature-name}-{purpose}.tsx` → `form-card.tsx`
-
-### Functions
-- **Use-cases**: `{verbNoun}UseCase` → `createFormUseCase`
-- **Actions**: `{verbNoun}Action` → `createFormAction`
-- **Hooks**: `use{FeatureName}` → `useFormData`
-
-### Types
-- **Requests**: `{VerbNoun}Request` → `CreateFormRequest`
-- **Results**: `{VerbNoun}Result` → `CreateFormResult`
-- **Queries**: `{VerbNoun}Query` → `GetFormQuery`
+- **Use-cases**: `{verb-noun}.use-case.ts`
+- **Actions**: `{verb-noun}.action.ts`
+- **Components**: `{feature-name}-{purpose}.tsx`
 
 ## App Folder Structure
 
@@ -124,31 +121,80 @@ app/
 
 **Keep `/app` focused on Next.js routing only - no business logic.**
 
+## Package Structure Guidelines
+
+### When to Create a Package
+- **Multiple consumers** - Used by multiple apps/projects
+- **Independent versioning** - Can be versioned separately
+- **Clear API boundaries** - Well-defined public interface
+- **No framework coupling** - Not tied to Next.js/React
+
+### Package.json Structure
+```json
+{
+  "name": "@endatix/api-client",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./types": "./dist/types.js"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}
+```
+
+### Workspace Configuration
+```json
+// package.json (root)
+{
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
+```
+
 ## Guidelines
 
 1. **Start with use-case** - Write business logic first
 2. **Keep actions thin** - Simple wrappers around use-cases
 3. **Co-locate related code** - Keep use-case items together
 4. **Use feature exports** - Import from `features/{name}/index.ts`
-5. **Test business logic** - Focus unit tests on use-cases
+5. **Move to lib/ when reusable** - Extract to lib/ when used across projects
+6. **Move to packages/ when publishable** - Extract to packages/ when ready for npm
 
-## Examples
+## Package Evolution Path
 
-### Small Feature
+### Current Structure
 ```
-features/notifications/
-├── use-cases/send-notification/
-└── use-cases/list-notifications/
-```
-
-### Large Feature
-```
-features/forms/
-├── use-cases/create-form/
-├── use-cases/update-form/
-├── use-cases/delete-form/
-├── use-cases/publish-form/
-└── ...
+hub/
+├── lib/                    # Internal utilities
+│   ├── endatix-api/       # API client (internal)
+│   └── utils/             # Shared utilities
+├── features/              # App-specific features
+│   ├── config/            # App configuration
+│   ├── auth/              # Auth business logic
+│   └── forms/             # Form management
+└── packages/              # Future workspace packages
 ```
 
-For detailed architecture explanation, see [vertical-slice-architecture.md](./docs/vertical-slice-architecture.md).
+### Target Monorepo Structure
+```
+endatix-saas/
+├── apps/
+│   └── hub/               # Next.js application
+└──packages/
+    ├── @endatix/api-client/    # API client package
+    ├── @endatix/ui/            # UI components package
+    ├── @endatix/config/        # Configuration package
+    └── @endatix/utils/         # Utilities package
+```
+
+### Migration Steps
+1. **lib/endatix-api/** → **packages/@endatix/api-client/**
+2. **lib/utils/** → **packages/@endatix/utils/**
+3. **features/config/** → **packages/@endatix/config/**
+4. **features/auth/** → Keep in apps/hub/features/auth/ (app-specific)

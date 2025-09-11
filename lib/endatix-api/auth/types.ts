@@ -7,6 +7,7 @@ export const SignInRequestSchema = z.object({
     .email({ message: "Please enter a valid email." })
     .trim(),
   password: z.string().min(1, { message: "Please enter a password." }),
+  returnUrl: z.string().optional(),
 });
 
 export type SignInRequest = z.infer<typeof SignInRequestSchema>;

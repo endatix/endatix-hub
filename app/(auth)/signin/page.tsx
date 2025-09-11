@@ -1,7 +1,5 @@
-import LoginForm from "@/features/auth/use-cases/login/ui/login-form";
 import type { Metadata } from "next";
-// import NewAccountLink from "@/features/auth/use-cases/login/ui/new-account-link";
-import { getSession, SessionData } from "@/features/auth";
+import { getSession } from "@/features/auth";
 import {
   Card,
   CardContent,
@@ -13,8 +11,13 @@ import {
 import { Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { authPresentation } from "@/auth";
+import {
+  AuthPresentation,
+  ENDATIX_AUTH_PROVIDER_ID,
+  RETURN_URL_PARAM,
+} from "@/features/auth/infrastructure";
+import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
 
 export const metadata: Metadata = {
   title: "Sign in | Endatix Hub",
@@ -39,32 +42,15 @@ export const metadata: Metadata = {
   },
 };
 
-const LoginPage = async () => {
+interface SignInPageProps {
+  searchParams: Promise<{
+    [RETURN_URL_PARAM]: string | undefined;
+  }>;
+}
+
+const SignInPage = async ({ searchParams }: SignInPageProps) => {
+  const { returnUrl } = await searchParams;
   const user = await getSession();
-
-  const shouldRedirectUser = async (user: SessionData): Promise<boolean> => {
-    if (!user || !user.isLoggedIn) {
-      return false;
-    }
-
-    const headersList = await headers();
-    const referer = headersList.get("referer");
-    if (!referer) {
-      return false;
-    }
-
-    const refererUrl = new URL(referer);
-    const isOriginatingFromLoginPage = refererUrl.pathname === "/login";
-    if (!isOriginatingFromLoginPage) {
-      return false;
-    }
-
-    return true;
-  };
-
-  if (await shouldRedirectUser(user)) {
-    redirect("/forms");
-  }
 
   if (user.isLoggedIn) {
     return (
@@ -75,7 +61,30 @@ const LoginPage = async () => {
     );
   }
 
-  return <LoginFormWrapper />;
+  let endatixAuthProvider: AuthPresentation | undefined;
+  const externalAuthProviders: AuthPresentation[] = [];
+  for (const provider of authPresentation) {
+    if (provider.id === ENDATIX_AUTH_PROVIDER_ID) {
+      endatixAuthProvider = provider;
+    } else {
+      externalAuthProviders.push(provider);
+    }
+  }
+
+  if (!endatixAuthProvider) {
+    return <div>No Endatix auth provider found</div>;
+  }
+
+  return (
+    <>
+      <SigninForm
+        endatixAuthProvider={endatixAuthProvider}
+        externalAuthProviders={externalAuthProviders}
+        returnUrl={returnUrl}
+      />
+      {/* <NewAccountLink /> */}
+    </>
+  );
 };
 
 interface LoggedInMessageProps {
@@ -111,11 +120,4 @@ const LoggedInSuccessMessage = ({
     );
 };
 
-const LoginFormWrapper = () => (
-  <>
-    <LoginForm />
-    {/* <NewAccountLink /> */}
-  </>
-);
-
-export default LoginPage;
+export default SignInPage;

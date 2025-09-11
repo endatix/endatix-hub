@@ -1,27 +1,40 @@
 "use client";
 
+import { ErrorMessage } from "@/components/forms/error-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
+import { FC, useActionState } from "react";
 import Image from "next/image";
-import { useActionState } from "react";
-import { loginAction } from "../login.action";
+import { AuthPresentation } from "@/features/auth/infrastructure";
+import { signInWithEndatixAction } from "../sign-in-with-endatix.action";
 import { Spinner } from "@/components/loaders/spinner";
-import { ErrorMessage } from "@/components/forms/error-message";
+import Link from "next/link";
 
-const initialState = {
-  isSuccess: false,
-};
+interface EndatixSignInFormProps {
+  endatixAuthProvider: AuthPresentation;
+  returnUrl: string;
+}
 
-const LoginForm = () => {
+const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
+  endatixAuthProvider,
+  returnUrl,
+}) => {
+  const initialState = {
+    isSuccess: false,
+    values: {
+      returnUrl: returnUrl,
+    },
+  };
+
   const [state, formAction, isPending] = useActionState(
-    loginAction,
+    signInWithEndatixAction,
     initialState,
   );
 
   return (
     <form action={formAction}>
+      <input type="hidden" name="returnUrl" value={returnUrl} readOnly />
       <div className="grid gap-2 text-center">
         <div className="flex justify-center mb-2">
           <Image
@@ -51,7 +64,7 @@ const LoginForm = () => {
             defaultValue={state?.values?.email}
           />
           {state?.errors?.email && (
-            <ErrorMessage message={state.errors.email} />
+            <ErrorMessage message={state?.errors?.email} />
           )}
         </div>
         <div className="grid gap-2">
@@ -76,10 +89,10 @@ const LoginForm = () => {
             defaultValue={state?.values?.password}
           />
           {state?.errors?.password && (
-            <ErrorMessage message={state.errors.password} />
+            <ErrorMessage message={state?.errors?.password} />
           )}
         </div>
-        {state?.formErrors && <ErrorMessage message={state.formErrors} />}
+        {state?.formErrors && <ErrorMessage message={state?.formErrors} />}
         <Button
           type="submit"
           className="w-full"
@@ -87,11 +100,11 @@ const LoginForm = () => {
           tabIndex={3}
         >
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
-          Sign in with email
+          {endatixAuthProvider.signInLabel}
         </Button>
       </div>
     </form>
   );
 };
 
-export default LoginForm;
+export default EndatixSignInForm;

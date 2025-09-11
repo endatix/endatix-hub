@@ -5,6 +5,7 @@ import { redirect, RedirectType } from "next/navigation";
 import { CookieOptions, SessionData } from "./auth.types";
 import { HubJwtPayload } from "../infrastructure/jwt.types";
 import { JwtService } from "../infrastructure/jwt.service";
+import { auth } from "@/auth";
 
 const HUB_COOKIE_OPTIONS: CookieOptions = {
   name: "session",
@@ -86,6 +87,20 @@ export class AuthService {
   }
 
   async getSession(): Promise<SessionData> {
+    const session = await auth();
+    if (!session?.user) {
+      return ANONYMOUS_SESSION;
+    }
+
+    return {
+      isLoggedIn: true,
+      username: session.user.name ?? session.user.email ?? "",
+      accessToken: session.accessToken ?? "",
+      refreshToken: session.user.refreshToken ?? "", // this is no longer needed as we can handle it on jwt callback
+    };
+  }
+
+  async getSessionOld(): Promise<SessionData> {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(this.cookieOptions.name);
 

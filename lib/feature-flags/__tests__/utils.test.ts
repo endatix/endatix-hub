@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// Mock the auth module to prevent Next.js server module import issues
+vi.mock("@/features/auth", () => ({
+  getSession: vi.fn().mockResolvedValue({
+    username: "test-user",
+    accessToken: "test-token",
+    refreshToken: "test-refresh-token",
+    isLoggedIn: true,
+  }),
+}));
+
 // Create mock factory with createFlag method
 const mockCreateFlag = vi.fn();
 const mockFactory = {

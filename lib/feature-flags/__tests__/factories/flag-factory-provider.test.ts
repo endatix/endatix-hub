@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { FlagFactoryProvider } from "@/lib/feature-flags/factories/flag-factory-provider";
 import { isPostHogEnabled } from "@/features/analytics/posthog/shared/config";
 
+// Mock the auth module to prevent Next.js server module import issues
+vi.mock("@/features/auth", () => ({
+  getSession: vi.fn().mockResolvedValue({
+    username: "test-user",
+    accessToken: "test-token",
+    refreshToken: "test-refresh-token",
+    isLoggedIn: true,
+  }),
+}));
+
 process.env.NEXT_PUBLIC_POSTHOG_KEY = "test-key";
 
 vi.mock("@flags-sdk/posthog", () => ({

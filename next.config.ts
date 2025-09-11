@@ -5,6 +5,7 @@ import {
 } from "./lib/hosting/next-config-helper";
 import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
+import { withEndatix } from "@/features/config";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -61,4 +62,4 @@ if (STORAGE_SERVICE_CONFIG.isEnabled) {
   });
 }
 
-export default nextConfig;
+export default withEndatix(nextConfig);
