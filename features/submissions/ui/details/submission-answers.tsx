@@ -124,7 +124,7 @@ const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
   }
 
   return (
-    <div key={question.id} className="grid grid-cols-5 items-start gap-4 mb-6">
+    <div key={question.id} className="grid grid-cols-5 items-center align-middle gap-4 mb-6">
       <QuestionLabel forQuestion={question} title={question.title} />
       <AnswerViewer
         key={question.id}
