@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as FeatureFlagsModule from "@/lib/feature-flags";
 import {
   flag,
@@ -11,6 +11,15 @@ import {
   PostHogFlagFactory,
   EnvironmentFlagFactory,
 } from "@/lib/feature-flags";
+
+vi.mock("@/features/auth", () => ({
+  getSession: vi.fn().mockResolvedValue({
+    username: "test-user",
+    accessToken: "test-token",
+    refreshToken: "test-refresh-token",
+    isLoggedIn: true,
+  }),
+}));
 
 describe("Feature Flags Module Exports", () => {
   beforeEach(() => {
