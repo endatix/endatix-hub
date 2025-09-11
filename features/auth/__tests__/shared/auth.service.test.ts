@@ -16,6 +16,11 @@ vi.mock("../../infrastructure/jwt.service", () => ({
   JwtService: vi.fn(),
 }));
 
+// Mock the auth function from NextAuth
+vi.mock("@/auth", () => ({
+  auth: vi.fn(),
+}));
+
 describe("AuthService", () => {
   let authService: AuthService;
   let mockCookieStore: Partial<ReadonlyRequestCookies>;
@@ -145,14 +150,16 @@ describe("AuthService", () => {
   });
 
   describe("getSession", () => {
-    it("should return anonymous session when SESSION_SECRET is not provided", async () => {
+    it("should return anonymous session when no user session exists", async () => {
       // Arrange
-      delete process.env.SESSION_SECRET;
+      const { auth } = await import("@/auth");
+      vi.mocked(auth).mockResolvedValue(null!);
 
       // Act
       const session = await authService.getSession();
 
       // Assert
+      expect(auth).toHaveBeenCalled();
       expect(session).toEqual({
         username: "",
         accessToken: "",
@@ -161,98 +168,100 @@ describe("AuthService", () => {
       });
     });
 
-    it("should return anonymous session when no cookie exists", async () => {
+    it("should return anonymous session when user is null", async () => {
       // Arrange
-      vi.mocked(mockCookieStore.get!).mockReturnValue(undefined);
+      const { auth } = await import("@/auth");
+      vi.mocked(auth).mockResolvedValue({ user: null });
 
       // Act
       const session = await authService.getSession();
 
       // Assert
+      expect(auth).toHaveBeenCalled();
       expect(session).toEqual({
         username: "",
         accessToken: "",
         refreshToken: "",
         isLoggedIn: false,
       });
-      expect(mockJwtService.decryptToken).not.toHaveBeenCalled();
     });
 
-    it("should return valid session for valid JWT token", async () => {
+    it("should return valid session for authenticated user", async () => {
       // Arrange
-      const mockToken = "valid-token";
-      const mockPayload = {
-        sub: "test@example.com",
-        accessToken: "access-token",
-        refreshToken: "refresh-token",
+      const { auth } = await import("@/auth");
+      const mockSession = {
+        user: {
+          id: "user-123",
+          name: "Test User",
+          email: "test@example.com",
+          refreshToken: "refresh-token-123",
+        },
+        accessToken: "access-token-123",
       };
-
-      vi.mocked(mockCookieStore.get!).mockReturnValue({
-        name: "token",
-        value: mockToken,
-      });
-      vi.mocked(mockJwtService.decryptToken!).mockResolvedValue(
-        Result.success(mockPayload),
-      );
+      vi.mocked(auth).mockResolvedValue(mockSession as any);
 
       // Act
       const session = await authService.getSession();
 
       // Assert
-      expect(mockJwtService.decryptToken).toHaveBeenCalledWith(mockToken);
+      expect(auth).toHaveBeenCalled();
       expect(session).toEqual({
-        username: mockPayload.sub,
-        accessToken: mockPayload.accessToken,
-        refreshToken: mockPayload.refreshToken,
         isLoggedIn: true,
+        username: "Test User",
+        accessToken: "access-token-123",
+        refreshToken: "refresh-token-123",
       });
     });
 
-    it("should return anonymous session for invalid JWT token", async () => {
+    it("should use email as username when name is not available", async () => {
       // Arrange
-      const mockToken = "invalid-token";
-      vi.mocked(mockCookieStore.get!).mockReturnValue({
-        name: "token",
-        value: mockToken,
-      });
-      vi.mocked(mockJwtService.decryptToken!).mockResolvedValue(
-        Result.error("Invalid token"),
-      );
+      const { auth } = await import("@/auth");
+      const mockSession = {
+        user: {
+          id: "user-123",
+          name: null,
+          email: "test@example.com",
+          refreshToken: "refresh-token-123",
+        },
+        accessToken: "access-token-123",
+      };
+      vi.mocked(auth).mockResolvedValue(mockSession as any);
 
       // Act
       const session = await authService.getSession();
 
       // Assert
-      expect(mockJwtService.decryptToken).toHaveBeenCalledWith(mockToken);
       expect(session).toEqual({
-        username: "",
-        accessToken: "",
-        refreshToken: "",
-        isLoggedIn: false,
+        isLoggedIn: true,
+        username: "test@example.com",
+        accessToken: "access-token-123",
+        refreshToken: "refresh-token-123",
       });
     });
 
-    it("should return anonymous session for validation error", async () => {
+    it("should handle missing accessToken gracefully", async () => {
       // Arrange
-      const mockToken = "expired-token";
-      vi.mocked(mockCookieStore.get!).mockReturnValue({
-        name: "token",
-        value: mockToken,
-      });
-      vi.mocked(mockJwtService.decryptToken!).mockResolvedValue(
-        Result.validationError("ERR_JWT_EXPIRED", "Token expired"),
-      );
+      const { auth } = await import("@/auth");
+      const mockSession = {
+        user: {
+          id: "user-123",
+          name: "Test User",
+          email: "test@example.com",
+          refreshToken: "refresh-token-123",
+        },
+        accessToken: null,
+      };
+      vi.mocked(auth).mockResolvedValue(mockSession as any);
 
       // Act
       const session = await authService.getSession();
 
       // Assert
-      expect(mockJwtService.decryptToken).toHaveBeenCalledWith(mockToken);
       expect(session).toEqual({
-        username: "",
+        isLoggedIn: true,
+        username: "Test User",
         accessToken: "",
-        refreshToken: "",
-        isLoggedIn: false,
+        refreshToken: "refresh-token-123",
       });
     });
   });
