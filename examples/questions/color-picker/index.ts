@@ -6,9 +6,11 @@ import {
 
 import "./color-picker.component";
 
-createCustomQuestion({
+const questionModule = createCustomQuestion({
   name: COLOR_PICKER_TYPE,
   title: "Color Picker",
   iconName: COLOR_PICKER_TYPE,
   model: QuestionColorPickerModel,
 });
+
+export default questionModule;

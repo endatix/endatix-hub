@@ -42,7 +42,7 @@ try {
 
 // Generate the registry content
 const registryEntries = questions
-  .map((dir) => `  ${dir}: () => import('./${dir}/index')`)
+  .map((dir) => `  "${dir}": () => import('./${dir}/index')`)
   .join(",\n");
 
 const content = `// Auto-generated file - do not edit manually
