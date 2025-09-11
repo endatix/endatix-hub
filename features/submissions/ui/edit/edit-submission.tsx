@@ -16,10 +16,22 @@ import {
 } from "survey-core";
 import EditSubmissionAlertDialog from "./edit-submission-alert-dialog";
 import EditSubmissionHeader from "./edit-submission-header";
+import { customQuestions } from "@/customizations/questions/question-registry";
+import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 
 const EditSurveyWrapper = dynamic(() => import("./edit-survey-wrapper"), {
   ssr: false,
 });
+
+// Load all custom questions registered in the question registry
+for (const questionName of customQuestions) {
+  try {
+    await questionLoaderModule.loadQuestion(questionName);
+    console.debug(`✅ Loaded custom question: ${questionName}`);
+  } catch (error) {
+    console.warn(`⚠️ Failed to load custom question: ${questionName}`, error);
+  }
+}
 
 interface EditSubmissionProps {
   submission: Submission;
