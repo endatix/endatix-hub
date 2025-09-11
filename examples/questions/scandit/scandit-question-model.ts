@@ -1,6 +1,4 @@
 import { Question, Serializer, QuestionFactory } from "survey-core";
-import { useEffect, useRef } from "react";
-import { ReactElementFactory } from "survey-react-ui";
 
 export const SCANDIT_QUESTION_TYPE = "scandit";
 
@@ -26,4 +24,3 @@ Serializer.addClass(
 QuestionFactory.Instance.registerQuestion(SCANDIT_QUESTION_TYPE, (name) => {
   return new ScanditQuestionModel(name);
 });
-
