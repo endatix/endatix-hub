@@ -3,10 +3,6 @@ export interface AuthProviderConfig {
   clientId?: string;
   clientSecret?: string;
   issuer?: string;
-  authorizationUrl?: string;
-  tokenUrl?: string;
-  userInfoUrl?: string;
-  scope?: string;
 }
 
 export interface EndatixAuthConfig {
@@ -27,14 +23,10 @@ export function getAuthConfig(): EndatixAuthConfig {
         enabled: true, // Always enabled as fallback
       },
       keycloak: {
-        enabled: process.env.KEYCLOAK_ENABLED === "true",
-        clientId: process.env.KEYCLOAK_CLIENT_ID,
-        clientSecret: process.env.KEYCLOAK_CLIENT_SECRET,
-        issuer: process.env.KEYCLOAK_ISSUER,
-        authorizationUrl: process.env.KEYCLOAK_AUTHORIZATION_URL,
-        tokenUrl: process.env.KEYCLOAK_TOKEN_URL,
-        userInfoUrl: process.env.KEYCLOAK_USERINFO_URL,
-        scope: process.env.KEYCLOAK_SCOPE || "openid email profile",
+        enabled: process.env.AUTH_KEYCLOAK_ENABLED === "true",
+        clientId: process.env.AUTH_KEYCLOAK_CLIENT_ID,
+        clientSecret: process.env.AUTH_KEYCLOAK_CLIENT_SECRET,
+        issuer: process.env.AUTH_KEYCLOAK_ISSUER
       },
     },
     session: {
@@ -42,20 +34,4 @@ export function getAuthConfig(): EndatixAuthConfig {
       maxAge: parseInt(process.env.SESSION_MAX_AGE || "86400"), // 24 hours default
     },
   };
-}
-
-//TODO: Remove or fetch from auth.ts
-export function getEnabledProviders(): string[] {
-  const config = getAuthConfig();
-  const enabledProviders: string[] = [];
-
-  if (config.providers.endatix.enabled) {
-    enabledProviders.push("endatix");
-  }
-
-  if (config.providers.keycloak.enabled) {
-    enabledProviders.push("keycloak");
-  }
-
-  return enabledProviders;
 }

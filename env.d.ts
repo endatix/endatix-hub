@@ -12,14 +12,14 @@ declare namespace NodeJS {
     SESSION_MAX_AGE?: string;
 
     // Auth Providers
-    KEYCLOAK_ENABLED?: string;
-    KEYCLOAK_CLIENT_ID?: string;
-    KEYCLOAK_CLIENT_SECRET?: string;
-    KEYCLOAK_ISSUER?: string;
-    KEYCLOAK_AUTHORIZATION_URL?: string;
-    KEYCLOAK_TOKEN_URL?: string;
-    KEYCLOAK_USERINFO_URL?: string;
-    KEYCLOAK_SCOPE?: string;
+    AUTH_KEYCLOAK_ENABLED?: string;
+    AUTH_KEYCLOAK_CLIENT_ID?: string;
+    AUTH_KEYCLOAK_CLIENT_SECRET?: string;
+    AUTH_KEYCLOAK_ISSUER?: string;
+
+    AUTH_GOOGLE_ENABLED?: string;
+    AUTH_GOOGLE_CLIENT_ID?: string;
+    AUTH_GOOGLE_CLIENT_SECRET?: string;
 
     // Data Collection
     NEXT_FORMS_COOKIE_NAME?: string;

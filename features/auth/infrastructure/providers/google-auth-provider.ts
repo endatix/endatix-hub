@@ -20,8 +20,8 @@ export class GoogleAuthProvider implements IAuthProvider {
     return Google({
       id: this.id,
       name: this.name,
-      clientId: process.env.AUTH_GOOGLE_ID || "",
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
+      clientId: process.env.AUTH_GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.AUTH_GOOGLE_CLIENT_SECRET || "",
       authorization: {
         params: {
           prompt: "consent",
@@ -33,16 +33,22 @@ export class GoogleAuthProvider implements IAuthProvider {
   }
 
   validateConfig(): boolean {
-    if (!process.env.AUTH_GOOGLE_ID) {
+    const isEnabled = process.env.AUTH_GOOGLE_ENABLED === "true";
+
+    if (!isEnabled) {
+      return false;
+    }
+
+    if (!process.env.AUTH_GOOGLE_CLIENT_ID) {
       console.warn(
-        "Google auth is enabled but you must set the AUTH_GOOGLE_ID environment variable",
+        "Google auth is enabled but you must set the AUTH_GOOGLE_CLIENT_ID environment variable",
       );
       return false;
     }
 
-    if (!process.env.AUTH_GOOGLE_SECRET) {
+    if (!process.env.AUTH_GOOGLE_CLIENT_SECRET) {
       console.warn(
-        "Google auth is enabled but you must set the AUTH_GOOGLE_SECRET environment variable",
+        "Google auth is enabled but you must set the AUTH_GOOGLE_CLIENT_SECRET environment variable",
       );
       return false;
     }

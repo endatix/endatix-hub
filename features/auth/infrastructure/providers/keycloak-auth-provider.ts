@@ -20,41 +20,36 @@ export class KeycloakAuthProvider implements IAuthProvider {
     return Keycloak({
       id: this.id,
       name: this.name,
-      clientId: process.env.KEYCLOAK_CLIENT_ID || "",
-      clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || "",
-      issuer: process.env.KEYCLOAK_ISSUER,
-      authorization: {
-        url: process.env.KEYCLOAK_AUTHORIZATION_URL,
-        params: {
-          scope: process.env.KEYCLOAK_SCOPE || "openid email profile",
-        },
-      },
-      token: {
-        url: process.env.KEYCLOAK_TOKEN_URL,
-      },
-      userinfo: {
-        url: process.env.KEYCLOAK_USERINFO_URL,
-      },
+      clientId: process.env.AUTH_KEYCLOAK_CLIENT_ID || "",
+      clientSecret: process.env.AUTH_KEYCLOAK_CLIENT_SECRET || "",
+      issuer: process.env.AUTH_KEYCLOAK_ISSUER,
     });
   }
 
   validateConfig(): boolean {
     // Check if Keycloak is enabled and has required configuration
-    const isEnabled = process.env.KEYCLOAK_ENABLED === "true";
+    const isEnabled = process.env.AUTH_KEYCLOAK_ENABLED === "true";
+
+    if (!isEnabled) {
+      return false;
+    }
+
     const hasRequiredConfig = !!(
-      process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET
+      process.env.AUTH_KEYCLOAK_CLIENT_ID &&
+      process.env.AUTH_KEYCLOAK_CLIENT_SECRET &&
+      process.env.AUTH_KEYCLOAK_ISSUER
     );
 
-    if (isEnabled && !hasRequiredConfig) {
+    if (!hasRequiredConfig) {
       console.warn(
-        "Keycloak is enabled but missing required configuration (clientId, clientSecret)",
+        "Keycloak is enabled but missing required configuration (clientId, clientSecret, issuer)",
       );
       return false;
     }
 
-    return isEnabled;
+    return true;
   }
-
+  
   getPresentationOptions(): IAuthPresentation {
     return {
       displayName: this.name,

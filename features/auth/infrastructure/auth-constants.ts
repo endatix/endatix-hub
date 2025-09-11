@@ -6,6 +6,7 @@ const SIGNOUT_PATH = "/signout";
 
 const AUTH_ROUTES = [
   SIGNIN_PATH,
+  SIGNOUT_PATH,
   "/create-account",
   "/account-verification",
   "/verify-email",
