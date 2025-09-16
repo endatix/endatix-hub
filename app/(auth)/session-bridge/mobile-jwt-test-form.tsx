@@ -92,9 +92,9 @@ export default function MobileJwtTestForm() {
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle>Mobile JWT Token Test</CardTitle>
+        <CardTitle>Session Bridge Test</CardTitle>
         <CardDescription>
-          Test the session bridge by providing a mobile JWT token. This will
+          Test the session bridge by providing valid Keycloak JWT token. This will
           exchange it for Keycloak tokens and create a session.
         </CardDescription>
       </CardHeader>
@@ -102,7 +102,7 @@ export default function MobileJwtTestForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="mobileJwt" className="text-sm font-medium">
-              Mobile JWT Token
+              JWT Token
             </label>
             <Textarea
               id="mobileJwt"
