@@ -1,106 +1,160 @@
-// app/api/auth/token-exchange/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { encode } from "@auth/core/jwt";
 import { authConfig } from "@/auth";
-import { Auth } from '@auth/core';
+import { KEYCLOAK_ID } from "@/features/auth/infrastructure/providers/keycloak-auth-provider";
+import { authRegistry } from "@/features/auth/infrastructure/auth-provider-registry";
+import { decodeJwt } from "jose";
+import zod from "zod";
+import { revalidatePath } from "next/cache";
 
-const KEYCLOAK_JWT_TOKEN = {
-  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJESWZFbkRObVoxUk8zeXQwVS1yOTdvVS16dFBvaDJsdVA0S1N4a080dHRrIn0.eyJleHAiOjE3NTgwMTY2NjEsImlhdCI6MTc1ODAxNjM2MSwianRpIjoib25ydHRlOjA3NDBjOTU0LTIxZWItMTNiMi1jZWIyLTNlMTM4ZDI0OGRmNiIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9yZWFsbXMvZW5kYXRpeCIsImF1ZCI6ImVuZGF0aXgtaHViIiwic3ViIjoiMGY2ZDhiMjgtZTc2MS00MDMzLThlODQtMmRkZWJjZWM0OWNlIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiZW5kYXRpeC1odWIiLCJzaWQiOiI1YWQ5Y2IxYy02NTQ3LTRlNWYtOWRlZi1kNTg2NGViNTYzY2MiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbImh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZW5kYXRpeC1odWIiOnsicm9sZXMiOlsicGFuZWxpc3QiXX19LCJzY29wZSI6Im9wZW5pZCBlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJFeHRlcm5hbCBVc2VyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiZXh0ZXJuYWxAZW5kYXRpeC5jb20iLCJnaXZlbl9uYW1lIjoiRXh0ZXJuYWwiLCJmYW1pbHlfbmFtZSI6IlVzZXIiLCJlbWFpbCI6ImV4dGVybmFsQGVuZGF0aXguY29tIn0.D5p3V9pZX2gBtUdE7CRTiQjYt82XDizDaE4Yk7rWBpqOVYvCi5rb_ZEaP-tVv5Vo8kHIhA7Il4aJ7nACj7JNT3_G42-XbxZxoiHYlbtCLD0Mn4kqXZB2_coYerBf63CBM7vK464oZp8OP5SAW-8FoNpkqacjjU74kWw_0SmTSqtkjZUeNh8ed65yCw_cluMe1nB06zlcCm11zdlzJo_EcN-vLI5ZLNL7dqT03FixQA1d5ObfTyqFRHgdlwkDTdhbyGeYL5O3_TeDKAn1efOBAXk491EHympJO9WAJuZD5rOL6f-1eddXTQfyLkus7VSAKORaSlWkqqkDkM0arn4GaA",
-  "expires_in": 300,
-  "refresh_expires_in": 1800,
-  "refresh_token": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwM2RhZDFkMC1kMTA3LTRkZGEtYTVhOC01NzU1NzZiNWQ2MDUifQ.eyJleHAiOjE3NTgwMTgxNjEsImlhdCI6MTc1ODAxNjM2MSwianRpIjoiODQ3MmE3NjktMTQyNS1hZTZiLTM0ZGMtM2U3ZTIyYmNlODQwIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9lbmRhdGl4IiwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9lbmRhdGl4Iiwic3ViIjoiMGY2ZDhiMjgtZTc2MS00MDMzLThlODQtMmRkZWJjZWM0OWNlIiwidHlwIjoiUmVmcmVzaCIsImF6cCI6ImVuZGF0aXgtaHViIiwic2lkIjoiNWFkOWNiMWMtNjU0Ny00ZTVmLTlkZWYtZDU4NjRlYjU2M2NjIiwic2NvcGUiOiJvcGVuaWQgYWNyIGVtYWlsIGJhc2ljIHdlYi1vcmlnaW5zIHJvbGVzIHByb2ZpbGUifQ.rSuYMOl6ea7zspRWNtmud1rUUQb6UgG9akJHXMp46gGKDztAsA-q0OVfjL1M89TitJMdjORAPx3bGVbRYdiDGg",
-  "token_type": "Bearer",
-  "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJESWZFbkRObVoxUk8zeXQwVS1yOTdvVS16dFBvaDJsdVA0S1N4a080dHRrIn0.eyJleHAiOjE3NTgwMTY2NjEsImlhdCI6MTc1ODAxNjM2MSwianRpIjoiYTNjYWExYjUtNDIyYy04OTRkLWIyOTktNjQwYmZhYmU4MDQ3IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9lbmRhdGl4IiwiYXVkIjoiZW5kYXRpeC1odWIiLCJzdWIiOiIwZjZkOGIyOC1lNzYxLTQwMzMtOGU4NC0yZGRlYmNlYzQ5Y2UiLCJ0eXAiOiJJRCIsImF6cCI6ImVuZGF0aXgtaHViIiwic2lkIjoiNWFkOWNiMWMtNjU0Ny00ZTVmLTlkZWYtZDU4NjRlYjU2M2NjIiwiYXRfaGFzaCI6ImdOYWtYUGkzRF9BUkhFajM1aWxOZEEiLCJhY3IiOiIxIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJFeHRlcm5hbCBVc2VyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiZXh0ZXJuYWxAZW5kYXRpeC5jb20iLCJnaXZlbl9uYW1lIjoiRXh0ZXJuYWwiLCJmYW1pbHlfbmFtZSI6IlVzZXIiLCJlbWFpbCI6ImV4dGVybmFsQGVuZGF0aXguY29tIn0.hVabIN_CXwafHzWSPGr1iWKIfiZyNtu66YuM8cgmJjC1hpqStvIfne0wiw-W2ZOYWHjZTktbIyGe1ResOeznrzT7miR_kXIWnbO8-UcCMQmMgFoAyrankRzMTAGiQx-mJnG4F4K6f_4kz0IDNx38xw4xe3SyP6wcTWkj2ZYUegAhKaYIKld89sCqrOKcm-yN8sc_5H5CXdEgDkbXdPsTnouFpEV42exVoqJ_azsfd_XV7ao0C41aVggi_9c6qXdJkMUg8i6PukaHvWHWNFEOJwvNHBuSh9Fv1R8AhPWzUp5qM7rSfZ4DFUPHaXmKEgWCX4WbZ1sYs5Ucr7FuVVxFUg",
-  "not-before-policy": 0,
-  "session_state": "5ad9cb1c-6547-4e5f-9def-d5864eb563cc",
-  "scope": "openid email profile",
-  "issued_token_type": "urn:ietf:params:oauth:token-type:refresh_token"
-};
+const MobileJwtTokenSchema = zod.object({
+  access_token: zod.string(),
+});
 
-interface KeycloakTokenResponse {
-  access_token: string;
-  expires_in: number;
-  refresh_token: string;
-  token_type: string;
-  id_token: string;
-  session_state: string;
-  scope: string;
-}
+export type MobileJwtToken = zod.infer<typeof MobileJwtTokenSchema>;
 
-interface KeycloakUserInfo {
-  sub: string;
-  name: string;
-  email: string;
-  preferred_username: string;
-  given_name: string;
-  family_name: string;
-  email_verified: boolean;
-  picture?: string;
-}
+const KeycloakTokenResponseSchema = zod.object({
+  access_token: zod.string(),
+  refresh_token: zod.string(),
+  expires_in: zod.number(),
+  refresh_expires_in: zod.number(),
+  id_token: zod.string(),
+  token_type: zod.string(),
+  scope: zod.string(),
+  session_state: zod.string(),
+  issued_token_type: zod.string(),
+});
 
-export async function GET(request: NextRequest) {
+export type KeycloakTokenResponse = zod.infer<
+  typeof KeycloakTokenResponseSchema
+>;
+
+export async function POST(request: NextRequest) {
   try {
-    // const { mobileJWT } = await request.json();
+    const body = await request.json();
+    const mobileJwtResult = MobileJwtTokenSchema.safeParse(body);
 
-    // if (!mobileJWT) {
-    //   return NextResponse.json(
-    //     { error: "Mobile JWT required" },
-    //     { status: 400 },
-    //   );
-    // }
-
-    // // 1. Exchange mobile JWT for Keycloak tokens
-    // const keycloakResponse = await exchangeMobileJWTForKeycloakTokens(
-    //   mobileJWT,
-    // );
-
-    const keycloakResponse = KEYCLOAK_JWT_TOKEN;
-    // 2. Get user info from Keycloak
-    const userInfo = await getUserInfoFromKeycloak(
-      keycloakResponse.access_token,
-    );
-
-    // 3. Create a mock callback request to trigger Auth.js session creation
-    const mockCallbackRequest = createMockCallbackRequest(
-      keycloakResponse,
-      userInfo,
-    );
-
-    // 4. Use Auth.js to process the callback and create session
-    const authResponse = await Auth(mockCallbackRequest, authConfig);
-
-    // 5. Extract cookies from Auth.js response
-    const response = NextResponse.json({
-      success: true,
-      user: {
-        name: userInfo.name,
-        email: userInfo.email,
-        image: userInfo.picture,
-      },
-    });
-
-    // Copy cookies from Auth.js response to our response
-    if (authResponse instanceof Response) {
-      const setCookieHeaders = authResponse.headers.getSetCookie();
-      setCookieHeaders.forEach((cookie) => {
-        response.headers.append("Set-Cookie", cookie);
-      });
+    if (!mobileJwtResult.success) {
+      return NextResponse.json(
+        { error: "Invalid mobile JWT token format" },
+        { status: 400 },
+      );
     }
 
-    return response;
+    const mobileJwt = mobileJwtResult.data.access_token;
+
+    // 1. Get the Keycloak provider from the registry
+    const keycloakProvider = authRegistry.getProvider(KEYCLOAK_ID);
+
+    if (!keycloakProvider) {
+      return NextResponse.json(
+        { error: "Keycloak provider not found" },
+        { status: 500 },
+      );
+    }
+
+    const keycloakTokenData = await exchangeToken(mobileJwt);
+    const keycloakTokenDataResult =
+      KeycloakTokenResponseSchema.safeParse(keycloakTokenData);
+    if (!keycloakTokenDataResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid Keycloak token format",
+          details: JSON.stringify(
+            keycloakTokenDataResult?.error?.flatten() || [],
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
+    return await createSessionFromTokenData(keycloakTokenDataResult.data);
   } catch (error) {
-    console.error("Token exchange error:", error);
+    console.error("Session bridge error:", error);
     return NextResponse.json(
-      { error: "Token exchange failed" },
+      {
+        error: "Session creation failed",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 },
     );
   }
 }
 
-async function exchangeMobileJWTForKeycloakTokens(
+async function createSessionFromTokenData(tokenData: KeycloakTokenResponse) {
+  // 1. Decode the JWT to extract user information
+  const userInfo = decodeJwt(tokenData.access_token);
+
+  if (!userInfo) {
+    return NextResponse.json(
+      { error: "Invalid token format" },
+      { status: 400 },
+    );
+  }
+
+  // 2. Get the Keycloak provider from the registry
+  const keycloakProvider = authRegistry.getProvider(KEYCLOAK_ID);
+
+  if (!keycloakProvider) {
+    return NextResponse.json(
+      { error: "Keycloak provider not found" },
+      { status: 500 },
+    );
+  }
+
+  // 3. Create a JWT token that mimics what NextAuth would create
+  const jwtPayload = {
+    sub: userInfo.sub,
+    email: userInfo.email,
+    name: userInfo.name,
+    picture: userInfo.picture,
+    accessToken: tokenData.access_token,
+    refreshToken: tokenData.refresh_token,
+    provider: KEYCLOAK_ID,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + tokenData.expires_in,
+  };
+
+  // 4. Encode the JWT using NextAuth's JWT encoding
+  const jwt = await encode({
+    token: jwtPayload,
+    secret: authConfig.secret!,
+    salt: "authjs.session-token",
+  });
+
+  // 5. Create session cookies
+  const response = NextResponse.json({
+    success: true,
+    user: {
+      id: userInfo.sub,
+      name: userInfo.name,
+      email: userInfo.email,
+      image: userInfo.picture,
+    },
+    token: jwtPayload,
+  });
+
+  // 6. Set the session cookie
+  const cookieName =
+    authConfig.cookies?.sessionToken?.name || "authjs.session-token";
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: tokenData.expires_in,
+  };
+
+  response.cookies.set(cookieName, jwt, cookieOptions);
+  revalidatePath("", "page");
+
+  return response;
+}
+
+async function exchangeToken(
   mobileJWT: string,
 ): Promise<KeycloakTokenResponse> {
-  const keycloakTokenUrl = `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
+  const keycloakTokenUrl = `${process.env.AUTH_KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
 
   const response = await fetch(keycloakTokenUrl, {
     method: "POST",
@@ -113,7 +167,9 @@ async function exchangeMobileJWTForKeycloakTokens(
       client_secret: process.env.AUTH_KEYCLOAK_CLIENT_SECRET!,
       subject_token: mobileJWT,
       subject_token_type: "urn:ietf:params:oauth:token-type:access_token",
-      audience: process.env.KEYCLOAK_CLIENT_ID!,
+      requested_token_type: "urn:ietf:params:oauth:token-type:refresh_token",
+      audience: process.env.AUTH_KEYCLOAK_CLIENT_ID!,
+      scope: "openid email profile",
     }),
   });
 
@@ -122,48 +178,4 @@ async function exchangeMobileJWTForKeycloakTokens(
   }
 
   return response.json();
-}
-
-async function getUserInfoFromKeycloak(
-  accessToken: string,
-): Promise<KeycloakUserInfo> {
-  const userInfoUrl = `${process.env.AUTH_KEYCLOAK_ISSUER}/protocol/openid-connect/userinfo`;
-
-  const response = await fetch(userInfoUrl, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to get user info: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-function createMockCallbackRequest(
-  keycloakTokens: KeycloakTokenResponse,
-  userInfo: KeycloakUserInfo,
-): Request {
-  // Create a mock callback URL with the necessary parameters
-  const callbackUrl = new URL(
-    "/api/auth/callback/keycloak",
-    process.env.NEXTAUTH_URL || "http://localhost:3000",
-  );
-
-  // Add the authorization code and state parameters that Auth.js expects
-  callbackUrl.searchParams.set("code", "mock_code"); // Auth.js will validate this
-  callbackUrl.searchParams.set("state", "mock_state"); // Auth.js will validate this
-
-  // Create a mock request that simulates the OAuth callback
-  const mockRequest = new Request(callbackUrl.toString(), {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: "", // Empty cookies for now
-    },
-  });
-
-  return mockRequest;
 }
