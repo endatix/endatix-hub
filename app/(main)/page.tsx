@@ -1,12 +1,17 @@
 import { auth } from "@/auth";
 import SessionCard from "@/features/auth/ui/session-card";
+import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { Session } from "next-auth";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-  if (process.env.NODE_ENV === "production") {
+  const enableExperimental = await experimentalFeaturesFlag();
+  const allowHomePage =
+    enableExperimental || process.env.NODE_ENV !== "production";
+  if (!allowHomePage) {
     redirect("/forms");
   }
+
   const session = await auth();
   const userInfo = await getCurrentUserInfo(session);
 
