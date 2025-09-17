@@ -9,6 +9,7 @@ import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import Script from "next/script";
 
 type ShareSurveyPage = {
@@ -30,7 +31,7 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
     : undefined;
 
   if (Result.isError(activeDefinitionResult)) {
-    return <div>Form not found</div>;
+    return notFound();
   }
 
   const activeDefinition = activeDefinitionResult.value;
