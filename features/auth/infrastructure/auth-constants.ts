@@ -3,6 +3,7 @@ const SIGNIN_PATH = "/signin";
 const RETURN_URL_PARAM = "returnUrl";
 const SIGNIN_ERROR_PATH = "/auth-error";
 const SIGNOUT_PATH = "/signout";
+const SESSION_BRIDGE_PATH = "/session-bridge";
 
 const AUTH_ROUTES = [
   SIGNIN_PATH,
@@ -13,6 +14,7 @@ const AUTH_ROUTES = [
   "/forgot-password",
   "/reset-password",
   SIGNIN_ERROR_PATH,
+  SESSION_BRIDGE_PATH,
 ];
 export {
   AUTH_ROUTES,

@@ -5,7 +5,7 @@ import { KEYCLOAK_ID } from "@/features/auth/infrastructure/providers/keycloak-a
 import { authRegistry } from "@/features/auth/infrastructure/auth-provider-registry";
 import { decodeJwt } from "jose";
 import zod from "zod";
-import { revalidatePath } from "next/cache";
+import { getSessionCookieOptions } from "@/features/auth/infrastructure/session-utils";
 
 const MobileJwtTokenSchema = zod.object({
   access_token: zod.string(),
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const mobileJwtResult = MobileJwtTokenSchema.safeParse(body);
+    const providerId = KEYCLOAK_ID;
 
     if (!mobileJwtResult.success) {
       return NextResponse.json(
@@ -43,12 +44,10 @@ export async function POST(request: NextRequest) {
 
     const mobileJwt = mobileJwtResult.data.access_token;
 
-    // 1. Get the Keycloak provider from the registry
-    const keycloakProvider = authRegistry.getProvider(KEYCLOAK_ID);
-
-    if (!keycloakProvider) {
+    const authProvider = authRegistry.getProvider(providerId);
+    if (!authProvider) {
       return NextResponse.json(
-        { error: "Keycloak provider not found" },
+        { error: "Requested auth provider not found" },
         { status: 500 },
       );
     }
@@ -68,7 +67,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return await createSessionFromTokenData(keycloakTokenDataResult.data);
+    const sessionResponse = await createSessionFromTokenData(
+      keycloakTokenDataResult.data,
+      request.nextUrl.protocol,
+    );
+    return sessionResponse;
   } catch (error) {
     console.error("Session bridge error:", error);
     return NextResponse.json(
@@ -81,8 +84,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function createSessionFromTokenData(tokenData: KeycloakTokenResponse) {
-  // 1. Decode the JWT to extract user information
+async function createSessionFromTokenData(
+  tokenData: KeycloakTokenResponse,
+  protocol: string,
+) {
+  const useSecureCookies = protocol === "https";
+  const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
   const userInfo = decodeJwt(tokenData.access_token);
 
   if (!userInfo) {
@@ -92,17 +99,6 @@ async function createSessionFromTokenData(tokenData: KeycloakTokenResponse) {
     );
   }
 
-  // 2. Get the Keycloak provider from the registry
-  const keycloakProvider = authRegistry.getProvider(KEYCLOAK_ID);
-
-  if (!keycloakProvider) {
-    return NextResponse.json(
-      { error: "Keycloak provider not found" },
-      { status: 500 },
-    );
-  }
-
-  // 3. Create a JWT token that mimics what NextAuth would create
   const jwtPayload = {
     sub: userInfo.sub,
     email: userInfo.email,
@@ -114,12 +110,12 @@ async function createSessionFromTokenData(tokenData: KeycloakTokenResponse) {
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + tokenData.expires_in,
   };
-
-  // 4. Encode the JWT using NextAuth's JWT encoding
+  const sessionCookieName =
+    sessionCookieOptions.sessionToken.name || "authjs.session-token";
   const jwt = await encode({
     token: jwtPayload,
     secret: authConfig.secret!,
-    salt: "authjs.session-token",
+    salt: sessionCookieName,
   });
 
   // 5. Create session cookies
@@ -131,22 +127,13 @@ async function createSessionFromTokenData(tokenData: KeycloakTokenResponse) {
       email: userInfo.email,
       image: userInfo.picture,
     },
-    token: jwtPayload,
   });
 
-  // 6. Set the session cookie
-  const cookieName =
-    authConfig.cookies?.sessionToken?.name || "authjs.session-token";
-  const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: tokenData.expires_in,
-  };
-
-  response.cookies.set(cookieName, jwt, cookieOptions);
-  revalidatePath("", "page");
+  response.cookies.set(
+    sessionCookieName,
+    jwt,
+    sessionCookieOptions.sessionToken.options,
+  );
 
   return response;
 }
