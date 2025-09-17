@@ -50,6 +50,13 @@ const nextConfig: NextConfig = {
     rules.beforeFiles.push(...postHogRewrites);
     return rules;
   },
+  redirects: async () => [
+    {
+      source: "/login",
+      destination: "/signin",
+      permanent: true,
+    },
+  ],
   skipTrailingSlashRedirect: true,
 };
 

@@ -121,7 +121,7 @@ export default function ResetPasswordForm({
           Reset password
         </Button>
         <Button variant="secondary" className="w-full" tabIndex={6} asChild>
-          <Link href="/login">Back to sign in</Link>
+          <Link href="/signin">Back to sign in</Link>
         </Button>
       </div>
     </form>
@@ -164,7 +164,7 @@ export const ResetPasswordSuccessMessage = () => {
       message="Your password has been reset. You can now sign in with your new password."
     >
       <Button asChild className="w-full">
-        <Link href="/login">Go to sign in</Link>
+        <Link href="/signin">Go to sign in</Link>
       </Button>
     </FormSuccessMessage>
   );
