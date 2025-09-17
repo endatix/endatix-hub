@@ -6,6 +6,7 @@ import { authRegistry } from "@/features/auth/infrastructure/auth-provider-regis
 import { decodeJwt } from "jose";
 import zod from "zod";
 import { getSessionCookieOptions } from "@/features/auth/infrastructure/session-utils";
+import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 
 const MobileJwtTokenSchema = zod.object({
   access_token: zod.string(),
@@ -30,10 +31,22 @@ export type KeycloakTokenResponse = zod.infer<
 >;
 
 export async function POST(request: NextRequest) {
+  const enableExperimental = await experimentalFeaturesFlag();
+  const allowSessionBridge =
+    enableExperimental || process.env.NODE_ENV !== "production";
+
+  if (!allowSessionBridge) {
+    return NextResponse.json(
+      { error: "Session bridge is not allowed" },
+      { status: 403 },
+    );
+  }
+
+  const providerId = KEYCLOAK_ID;
+
   try {
     const body = await request.json();
     const mobileJwtResult = MobileJwtTokenSchema.safeParse(body);
-    const providerId = KEYCLOAK_ID;
 
     if (!mobileJwtResult.success) {
       return NextResponse.json(

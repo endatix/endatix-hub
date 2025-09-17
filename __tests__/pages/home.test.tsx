@@ -66,8 +66,17 @@ describe("Home Page", () => {
     // Mock API error
     vi.mocked(fetch).mockRejectedValue(new Error("API Error"));
 
-    // The component should handle the error and still render
-    // We expect it to throw since the component doesn't have error handling
-    await expect(HomePage()).rejects.toThrow("API Error");
+    // The component should handle the error gracefully and still render
+    // The getCurrentUserInfo function catches errors and returns null
+    const result = await HomePage();
+    expect(result).toBeDefined();
+    expect(result.type).toBe("div");
+    
+    // Verify that the user info section is not rendered when there's an error
+    // Since userInfo will be null, the user info debug section should not appear
+    const userInfoSection = result.props.children.find(
+      (child: any) => child?.props?.children?.[0]?.props?.children === "User Info Claims (Debug)"
+    );
+    expect(userInfoSection).toBeUndefined();
   });
 });
