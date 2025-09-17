@@ -31,7 +31,7 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
     : undefined;
 
   if (Result.isError(activeDefinitionResult)) {
-    return notFound();
+    notFound();
   }
 
   const activeDefinition = activeDefinitionResult.value;

@@ -1,5 +1,4 @@
-import { notFound } from "next/navigation";
-import FormTemplateEditorContainer from "../../../../../features/form-templates/ui/form-template-editor-container";
+import FormTemplateEditorContainer from "@/features/form-templates/ui/form-template-editor-container";
 import { getFormTemplate } from "@/services/api";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";

@@ -1,4 +1,4 @@
-import "./not-found.css";
+import "./not-found-sheep.css";
 
 interface NotFoundPageProps {
   notFoundTitle?: string;
@@ -29,7 +29,7 @@ export const NotFoundComponent: React.FC<NotFoundPageProps> = ({
 
   return (
     <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center py-16 text-center">
-      <h1 className={`endatix-error-h1 ${titleSizeClass} text-primary`}>
+      <h1 className={`endatix-error-h1 ${titleSizeClass} text-primary mb-4`}>
         {notFoundTitle}
       </h1>
       <div className="inline-block mb-4">

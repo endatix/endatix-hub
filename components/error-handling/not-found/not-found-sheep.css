@@ -1,13 +1,4 @@
-.error-content {
-  padding: 19px 0 70px;
-}
-.error-text {
-  text-align: center;
-}
-.error {
-  font-size: 180px;
-  font-weight: 100;
-}
+/* Sheep Animation Styles - General use */
 @keyframes bob {
   0% {
     top: 0;
@@ -16,34 +7,42 @@
     top: 0.2em;
   }
 }
+
 .sheep {
   display: inline-block;
   position: relative;
   font-size: 1em;
   margin-bottom: 70px;
 }
+
 .sheep * {
   transition: transform 0.3s;
 }
+
 .sheep .top {
   position: relative;
   top: 0;
   animation: bob 1s infinite;
   z-index: 1;
 }
+
 .sheep:hover .head {
   transform: rotate(0deg);
 }
+
 .sheep:hover .head .eye {
   width: 1.25em;
   height: 1.25em;
 }
+
 .sheep:hover .head .eye:before {
   right: 30%;
 }
+
 .sheep:hover .top {
   animation-play-state: paused;
 }
+
 .sheep .head {
   display: inline-block;
   width: 5em;
@@ -55,6 +54,7 @@
   top: 1em;
   transform: rotate(30deg);
 }
+
 .sheep .head:before {
   content: "";
   display: inline-block;
@@ -66,10 +66,12 @@
   right: -10%;
   border-radius: 50% 40%;
 }
+
 .sheep .head:hover .ear.one,
 .sheep .head:hover .ear.two {
   transform: rotate(0deg);
 }
+
 .sheep .head .eye {
   display: inline-block;
   width: 1em;
@@ -79,6 +81,7 @@
   position: absolute;
   overflow: hidden;
 }
+
 .sheep .head .eye:before {
   content: "";
   display: inline-block;
@@ -91,14 +94,17 @@
   bottom: 10%;
   transition: all 0.3s;
 }
+
 .sheep .head .eye.one {
   right: -2%;
   top: 1.7em;
 }
+
 .sheep .head .eye.two {
   right: 2.5em;
   top: 1.7em;
 }
+
 .sheep .head .ear {
   background: #253858;
   width: 50%;
@@ -106,16 +112,19 @@
   border-radius: 100%;
   position: absolute;
 }
+
 .sheep .head .ear.one {
   left: -10%;
   top: 5%;
   transform: rotate(-30deg);
 }
+
 .sheep .head .ear.two {
   top: 2%;
   right: -5%;
   transform: rotate(20deg);
 }
+
 .sheep .body {
   display: inline-block;
   width: 7em;
@@ -126,6 +135,7 @@
   vertical-align: middle;
   margin-right: -3em;
 }
+
 .sheep .legs {
   display: inline-block;
   position: absolute;
@@ -133,6 +143,7 @@
   left: 10%;
   z-index: 0;
 }
+
 .sheep .legs .leg {
   display: inline-block;
   background: #141214;
@@ -140,6 +151,7 @@
   height: 2.5em;
   margin: 0.2em;
 }
+
 .sheep::before {
   left: 0;
   content: "";
@@ -151,6 +163,7 @@
   border-radius: 100%;
   background: rgba(0, 0, 0, 0.2);
 }
+
 @media (max-width: 767px) {
   .error {
     font-size: 150px;
