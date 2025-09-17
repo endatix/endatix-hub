@@ -3,6 +3,7 @@ import "./not-found.css";
 interface NotFoundPageProps {
   notFoundTitle?: string;
   notFoundSubtitle?: string;
+  titleSize?: "small" | "medium" | "large";
   notFoundMessage?: string;
   children?: React.ReactNode;
 }
@@ -15,12 +16,20 @@ const DEFAULT_NOT_FOUND_MESSAGE =
 export const NotFoundComponent: React.FC<NotFoundPageProps> = ({
   notFoundTitle = DEFAULT_NOT_FOUND_TITLE,
   notFoundSubtitle = DEFAULT_NOT_FOUND_SUBTITLE,
+  titleSize = "large",
   notFoundMessage = DEFAULT_NOT_FOUND_MESSAGE,
   children,
 }) => {
+  const titleSizeClass =
+    titleSize === "small"
+      ? "text-4xl"
+      : titleSize === "medium"
+      ? "text-6xl"
+      : "text-9xl";
+
   return (
     <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center py-16 text-center">
-      <h1 className="endatix-error-h1 text-9xl text-primary">
+      <h1 className={`endatix-error-h1 ${titleSizeClass} text-primary`}>
         {notFoundTitle}
       </h1>
       <div className="inline-block mb-4">
@@ -28,7 +37,7 @@ export const NotFoundComponent: React.FC<NotFoundPageProps> = ({
       </div>
       <Sheep />
       <p className="mt-2 text-muted-foreground">{notFoundMessage}</p>
-      {children && children}
+      {children && <div className="mt-4">{children}</div>}
     </div>
   );
 };
