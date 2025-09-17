@@ -32,8 +32,8 @@ body {
 }
 
 .text-2xl {
-  font-size: 1.5rem;
-  line-height: 2rem;
+  font-size: 2rem;
+  line-height: 2.5rem;
 }
 
 .text-6xl {
@@ -42,8 +42,8 @@ body {
 }
 
 .text-9xl {
-  font-size: 4rem;
-  line-height: 4.5rem;
+  font-size: 6rem;
+  line-height: 7rem;
 }
 
 .text-muted-foreground {
@@ -124,4 +124,70 @@ body {
 .error {
   font-size: 180px;
   font-weight: 100;
+}
+
+@media (max-width: 767px) {
+  /* Scaled down text sizes for mobile */
+  .text-2xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+
+  .text-6xl {
+    font-size: 2rem;
+    line-height: 2.25rem;
+  }
+
+  .text-9xl {
+    font-size: 3.5rem;
+    line-height: 4rem;
+  }
+
+  /* Scaled down margins for mobile */
+  .mb-8 {
+    margin-bottom: 1.25rem;
+  }
+
+  .mt-2 {
+    margin-top: 0.375rem;
+  }
+
+  .mt-4 {
+    margin-top: 0.75rem;
+  }
+
+  .mb-4 {
+    margin-bottom: 0.75rem;
+  }
+
+  .endatix-error-h1 {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Scaled down padding for mobile */
+  .py-16 {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+
+  /* Scaled down container width for mobile */
+  .max-w-xl {
+    max-width: 20rem;
+    padding: 0 1rem;
+  }
+
+  /* Scaled down sheep for mobile */
+  .sheep {
+    font-size: 0.8em;
+    margin-bottom: 2rem;
+  }
+
+  /* Scaled down legacy error styles */
+  .error {
+    font-size: 120px;
+  }
+
+  .error-content {
+    padding: 12px 0 40px;
+  }
 }

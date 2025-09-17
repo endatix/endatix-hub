@@ -40,7 +40,17 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
 
   return (
-    <>
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        minHeight: "100%",
+        height: "100%",
+      }}
+    >
       {shouldLoadReCaptcha && (
         <>
           <Script src={recaptchaConfig.JS_URL} strategy="beforeInteractive" />
@@ -55,7 +65,7 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
         customQuestions={activeDefinition.customQuestions}
         requiresReCaptcha={activeDefinition.requiresReCaptcha}
       />
-    </>
+    </div>
   );
 }
 
