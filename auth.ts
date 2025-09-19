@@ -30,13 +30,15 @@ declare module "next-auth" {
   interface User {
     accessToken?: string;
     refreshToken?: string;
+    expiresAt?: number;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    accessToken?: string;
-    refreshToken?: string;
+    access_token?: string;
+    refresh_token?: string;
     provider?: string;
+    expires_at?: number;
   }
 }

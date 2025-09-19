@@ -61,8 +61,8 @@ export class KeycloakAuthProvider implements IAuthProvider {
     const { token, user, account } = params;
 
     if (account?.provider === this.id) {
-      token.accessToken = account.access_token;
-      token.refreshToken = account.refresh_token;
+      token.access_token = account.access_token;
+      token.refresh_token = account.refresh_token;
       token.provider = this.id;
     }
 
@@ -78,7 +78,7 @@ export class KeycloakAuthProvider implements IAuthProvider {
   async handleSession(params: SessionParams): Promise<Session> {
     const { session, token } = params;
 
-    session.accessToken = token.accessToken as string;
+    session.accessToken = token.access_token as string;
     session.user = {
       ...session.user,
       id: token.id as string,

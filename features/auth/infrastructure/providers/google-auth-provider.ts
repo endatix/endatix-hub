@@ -67,8 +67,8 @@ export class GoogleAuthProvider implements IAuthProvider {
     const { token, user, account } = params;
 
     if (account?.provider === this.id) {
-      token.accessToken = account.id_token as string;
-      token.refreshToken = account.refresh_token as string;
+      token.access_token = account.id_token as string;
+      token.refresh_token = account.refresh_token as string;
       token.provider = this.id;
     }
 
@@ -84,7 +84,7 @@ export class GoogleAuthProvider implements IAuthProvider {
   async handleSession(params: SessionParams): Promise<Session> {
     const { session, token } = params;
 
-    session.accessToken = token.accessToken as string;
+    session.accessToken = token.access_token as string;
     session.user = {
       ...session.user,
       id: token.id as string,

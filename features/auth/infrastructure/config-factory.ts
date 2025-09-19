@@ -53,7 +53,7 @@ export function createAuthConfig(
         if (!provider) {
           console.warn(`No auth provider found for: ${providerId}`);
           // Fallback for unknown providers
-          session.accessToken = token.accessToken as string;
+          session.accessToken = token.access_token as string;
           return session;
         }
 
