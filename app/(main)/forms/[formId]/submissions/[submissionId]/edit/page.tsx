@@ -5,6 +5,7 @@ import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/ge
 import { BackToSubmissionsButton } from "@/features/submissions/ui/details/back-to-submissions-button";
 import { Result } from "@/lib/result";
 import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
+import { NotFoundComponent } from "@/components/error-handling/not-found";
 
 type Params = {
   params: Promise<{
@@ -26,14 +27,18 @@ export default async function EditSubmissionPage({ params }: Params) {
     !submissionResult.value?.formDefinition
   ) {
     return (
-      <div>
-        <h1>Submission not found</h1>
+      <NotFoundComponent
+        notFoundTitle="Not found"
+        notFoundSubtitle="The submission you are looking for does not exist."
+        notFoundMessage="Please check the submission ID and try again."
+        titleSize="medium"
+      >
         <BackToSubmissionsButton
           formId={formId}
           text="All form submissions"
           variant="default"
         />
-      </div>
+      </NotFoundComponent>
     );
   }
   const submission = submissionResult.value;

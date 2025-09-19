@@ -10,6 +10,8 @@ import { getCustomQuestionsAction } from "@/features/forms/application/actions/g
 import { CustomQuestion } from "@/services/api";
 import { SubmissionDetailsViewOptionsProvider } from "./submission-details-view-options-context";
 import { getSubmissionLocale } from "../../submission-localization";
+import { NotFoundComponent } from "@/components/error-handling/not-found";
+
 
 async function SubmissionDetails({
   formId,
@@ -33,14 +35,18 @@ async function SubmissionDetails({
 
   if (Result.isError(submissionResult)) {
     return (
-      <div>
-        <h1>Submission not found</h1>
+      <NotFoundComponent
+        notFoundTitle="Not found"
+        notFoundSubtitle="The submission you are looking for does not exist."
+        notFoundMessage="Please check the submission ID and try again."
+        titleSize="medium"
+      >
         <BackToSubmissionsButton
           formId={formId}
           text="All form submissions"
           variant="default"
         />
-      </div>
+      </NotFoundComponent>
     );
   }
   const submission = submissionResult.value;

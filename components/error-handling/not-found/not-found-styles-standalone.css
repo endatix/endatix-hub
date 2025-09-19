@@ -1,0 +1,193 @@
+/* Layout-specific styles for public routes without Tailwind context */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  margin: 0;
+  padding: 0;
+  /* background: linear-gradient(135deg, #f8f8f8 0%, #c7c1f4 100%);  */
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.not-found-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.endatix-error-h1 {
+  color: rgb(37, 56, 88);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.text-2xl {
+  font-size: 2rem;
+  line-height: 2.5rem;
+}
+
+.text-6xl {
+  font-size: 3rem;
+  line-height: 3.5rem;
+}
+
+.text-9xl {
+  font-size: 6rem;
+  line-height: 7rem;
+}
+
+.text-muted-foreground {
+  color: #71717a;
+}
+
+.font-bold {
+  font-weight: 500;
+}
+
+.mb-8 {
+  margin-bottom: 2rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.max-w-xl {
+  max-width: 36rem;
+}
+
+.py-16 {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+/* Legacy error styles for backward compatibility */
+.error-content {
+  padding: 19px 0 70px;
+}
+
+.error-text {
+  text-align: center;
+}
+
+.error {
+  font-size: 180px;
+  font-weight: 100;
+}
+
+@media (max-width: 767px) {
+  /* Scaled down text sizes for mobile */
+  .text-2xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+
+  .text-6xl {
+    font-size: 2rem;
+    line-height: 2.25rem;
+  }
+
+  .text-9xl {
+    font-size: 3.5rem;
+    line-height: 4rem;
+  }
+
+  /* Scaled down margins for mobile */
+  .mb-8 {
+    margin-bottom: 1.25rem;
+  }
+
+  .mt-2 {
+    margin-top: 0.375rem;
+  }
+
+  .mt-4 {
+    margin-top: 0.75rem;
+  }
+
+  .mb-4 {
+    margin-bottom: 0.75rem;
+  }
+
+  .endatix-error-h1 {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Scaled down padding for mobile */
+  .py-16 {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+
+  /* Scaled down container width for mobile */
+  .max-w-xl {
+    max-width: 20rem;
+    padding: 0 1rem;
+  }
+
+  /* Scaled down sheep for mobile */
+  .sheep {
+    font-size: 0.8em;
+    margin-bottom: 2rem;
+  }
+
+  /* Scaled down legacy error styles */
+  .error {
+    font-size: 120px;
+  }
+
+  .error-content {
+    padding: 12px 0 40px;
+  }
+}

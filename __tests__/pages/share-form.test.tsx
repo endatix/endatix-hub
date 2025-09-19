@@ -3,7 +3,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
-import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
+import {
+  getPartialSubmissionUseCase,
+  PartialSubmissionResult,
+} from "@/features/public-form/use-cases/get-partial-submission.use-case";
+import { notFound } from "next/navigation";
+import { ActiveDefinition } from "@/types";
+import { ApiResult } from "@/lib/endatix-api";
 
 vi.mock(
   "@/features/public-form/use-cases/get-active-definition.use-case",
@@ -23,6 +29,9 @@ vi.mock("next/headers", () => ({
 vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
   FormTokenCookieStore: vi.fn().mockResolvedValue({}),
 }));
+vi.mock("next/navigation", () => ({
+  notFound: vi.fn(),
+}));
 
 describe("ShareForm Page", async () => {
   beforeEach(() => {
@@ -30,21 +39,50 @@ describe("ShareForm Page", async () => {
     vi.clearAllMocks();
   });
 
-  it("displays form not found message when definition is not found", async () => {
+  it("calls notFound() when definition is not found", async () => {
     vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
       Result.error("Form not found"),
     );
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      Result.error("Submission not found"),
+      ApiResult.notFoundError(
+        "Submission not found",
+      ) as PartialSubmissionResult,
     );
 
     const props = {
       params: Promise.resolve({ formId: "invalid-id" }),
     };
+
+    // The component should call notFound() and not return JSX
+    await expect(ShareFormPage(props)).rejects.toThrow();
+
+    // Verify notFound was called
+    expect(notFound).toHaveBeenCalled();
+  });
+
+  it("renders form when definition is found", async () => {
+    const mockDefinition = {
+      jsonData: { title: "Test Form" },
+      themeModel: {},
+      customQuestions: [],
+      requiresReCaptcha: false,
+    };
+
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(mockDefinition as unknown as ActiveDefinition),
+    );
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
+    );
+
+    const props = {
+      params: Promise.resolve({ formId: "valid-id" }),
+    };
+
     const component = await ShareFormPage(props);
     render(component);
 
-    const errorMessage = await screen.findByText("Form not found");
-    expect(errorMessage).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
+    expect(component).toMatchSnapshot();
   });
 });

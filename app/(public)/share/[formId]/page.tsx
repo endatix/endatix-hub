@@ -9,6 +9,7 @@ import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import Script from "next/script";
 
 type ShareSurveyPage = {
@@ -30,7 +31,7 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
     : undefined;
 
   if (Result.isError(activeDefinitionResult)) {
-    return <div>Form not found</div>;
+    notFound();
   }
 
   const activeDefinition = activeDefinitionResult.value;
@@ -39,7 +40,17 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
 
   return (
-    <>
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        minHeight: "100%",
+        height: "100%",
+      }}
+    >
       {shouldLoadReCaptcha && (
         <>
           <Script src={recaptchaConfig.JS_URL} strategy="beforeInteractive" />
@@ -54,7 +65,7 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
         customQuestions={activeDefinition.customQuestions}
         requiresReCaptcha={activeDefinition.requiresReCaptcha}
       />
-    </>
+    </div>
   );
 }
 

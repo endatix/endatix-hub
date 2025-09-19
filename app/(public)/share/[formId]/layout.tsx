@@ -31,19 +31,7 @@ export default async function ShareLayout({
       </head>
       <body>
         <AppProvider options={AppOptions.NoTheme} session={session}>
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              minHeight: "100%",
-              height: "100%",
-            }}
-          >
-            {children}
-          </div>
+          {children}
         </AppProvider>
       </body>
     </html>
