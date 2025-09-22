@@ -19,7 +19,7 @@ import { EndatixApi } from "@/lib/endatix-api";
 import { ZodError } from "zod";
 import { decodeJwt } from "jose";
 import { EndatixJwtPayload } from "../jwt.types";
-import { JWTInvalid } from 'jose/errors';
+import { JWTInvalid } from "jose/errors";
 
 export const ENDATIX_AUTH_PROVIDER_ID = "endatix";
 
@@ -111,7 +111,7 @@ export class EndatixAuthProvider implements IAuthProvider {
               name: signInResult.data.email,
               accessToken: signInResult.data.accessToken,
               refreshToken: signInResult.data.refreshToken,
-              expiresAt: jwtPayload.exp || Date.now() / 1000
+              expiresAt: jwtPayload.exp || Date.now() / 1000,
             };
           } catch (error: unknown) {
             if (error instanceof JWTInvalid) {
@@ -159,8 +159,38 @@ export class EndatixAuthProvider implements IAuthProvider {
     }
 
     const isExpired = token?.expires_at && token.expires_at < Date.now() / 1000;
-    if (isExpired && token.refresh_token) {
-      console.log("token expired and has refresh token", token.refresh_token);
+    if (isExpired) {
+      if (!token.refresh_token) {
+        throw new TokenExpiredError();
+      }
+
+      const endatix = new EndatixApi();
+      const refreshTokenResult = await endatix.auth.refreshToken({
+        refreshToken: token.refresh_token,
+        accessToken: token.access_token!,
+      });
+
+      if (ApiResult.isSuccess(refreshTokenResult)) {
+        try {
+          const jwtPayload = decodeJwt<EndatixJwtPayload>(
+            refreshTokenResult.data.accessToken,
+          );
+
+          return {
+            ...token,
+            access_token: refreshTokenResult.data.accessToken,
+            refresh_token: refreshTokenResult.data.refreshToken,
+            expires_at: jwtPayload.exp || Date.now() / 1000,
+          };
+        } catch (error: unknown) {
+          if (error instanceof JWTInvalid) {
+            throw new ServerError("Invalid access token");
+          }
+
+          throw new ServerError("Failed to decode access token");
+        }
+      }
+
       throw new TokenExpiredError();
     }
 
