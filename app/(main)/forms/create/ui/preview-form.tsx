@@ -27,7 +27,9 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
 
   useEffect(() => {
     if (creator) {
-      creator.JSON = model;
+      if (model && Object.keys(model).length > 0) {
+        creator.JSON = model;
+      }
       return;
     }
 

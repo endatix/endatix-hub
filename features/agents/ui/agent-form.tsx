@@ -28,7 +28,7 @@ interface AgentFormProps {
   isPending?: boolean;
 }
 
-const ENABLED_MODELS = ["o4-mini"];
+const ENABLED_MODELS = ["gpt-5-mini", "o4-mini"];
 const AGENTS_NAMES = ["DefineForm"];
 
 export function AgentFormContainer({

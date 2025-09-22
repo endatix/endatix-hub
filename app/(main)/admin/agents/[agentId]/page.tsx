@@ -49,21 +49,36 @@ export default async function AgentDetailsPage({ params }: Params) {
         </div>
       </div>
       <div className="bg-card border rounded-lg p-6 mb-8">
-        <div className="mb-2 text-lg font-semibold">
-          Model: <span className="font-normal">{agent.data.model}</span>
+        <div className="mb-4">
+          <div className="font-semibold mb-2">Model:</div>
+          <div className="bg-muted/50 border rounded p-3 font-mono text-sm">
+            {agent.data.model}
+          </div>
         </div>
-        <div className="mb-2">
-          Temperature:{" "}
-          <span className="font-mono">{agent.data.temperature}</span>
+        <div className="mb-4">
+          <div className="font-semibold mb-2">Temperature:</div>
+          <div className="bg-muted/50 border rounded p-3 font-mono text-sm">
+            {agent.data.temperature}
+          </div>
         </div>
-        <div className="mb-2">
-          System Prompt:{" "}
-          <span className="font-mono">{agent.data.systemPrompt}</span>
+        <div className="mb-4">
+          <div className="font-semibold mb-2">System Prompt:</div>
+          <div className="bg-muted/50 border rounded p-3 font-mono text-sm whitespace-pre-wrap break-words">
+            {agent.data.systemPrompt}
+          </div>
         </div>
-        <div className="mb-2">
-          Created: {getFormattedDate(new Date(agent.data.createdAt))}
+        <div className="mb-4">
+          <div className="font-semibold mb-2">Created:</div>
+          <div className="bg-muted/50 border rounded p-3 text-sm">
+            {getFormattedDate(new Date(agent.data.createdAt))}
+          </div>
         </div>
-        <div className="mb-2">Conversations: {conversations.data.length}</div>
+        <div className="mb-4">
+          <div className="font-semibold mb-2">Conversations:</div>
+          <div className="bg-muted/50 border rounded p-3 text-sm">
+            {conversations.data.length}
+          </div>
+        </div>
       </div>
       <div>
         <h2 className="text-xl font-semibold mb-4">Conversations</h2>
