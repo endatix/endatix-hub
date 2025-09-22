@@ -38,7 +38,7 @@ export default function VerifyEmailPage() {
             setCountdown(timeLeft);
             if (timeLeft <= 0) {
               clearInterval(countdownInterval);
-              router.push("/login");
+              router.push("/signin");
             }
           }, 1000);
         } else {
@@ -91,7 +91,7 @@ export default function VerifyEmailPage() {
               </p>
             </div>
             <div className="grid gap-6">
-              <Link href="/login">
+              <Link href="/signin">
                 <Button className="w-full">Sign in</Button>
               </Link>
             </div>
@@ -140,7 +140,7 @@ export default function VerifyEmailPage() {
               <p className="text-sm text-muted-foreground">
                 Please check your email for the complete verification link.
               </p>
-              <Link href="/login">
+              <Link href="/signin">
                 <Button className="w-full">Sign in</Button>
               </Link>
             </div>

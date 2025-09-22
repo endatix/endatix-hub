@@ -1,0 +1,29 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ShareForm Page > renders form when definition is found 1`] = `
+<div
+  style={
+    {
+      "bottom": 0,
+      "height": "100%",
+      "left": 0,
+      "minHeight": "100%",
+      "position": "absolute",
+      "right": 0,
+      "top": 0,
+    }
+  }
+>
+  <SurveyJsWrapper
+    customQuestions={[]}
+    definition={
+      {
+        "title": "Test Form",
+      }
+    }
+    formId="valid-id"
+    requiresReCaptcha={false}
+    theme={{}}
+  />
+</div>
+`;

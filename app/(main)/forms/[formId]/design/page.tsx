@@ -4,6 +4,9 @@ import { FormEditorProps } from "@/features/forms/ui/editor/form-editor";
 import FormEditorContainer from "@/features/forms/ui/editor/form-editor-container";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
+import { NotFoundComponent } from "@/components/error-handling/not-found";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -26,7 +29,18 @@ export default async function FormDesignerPage({ params }: Params) {
   }
 
   if (!form || !formJson) {
-    return <div>Form not found</div>;
+    return (
+      <NotFoundComponent
+        notFoundTitle="Form not found"
+        notFoundSubtitle="The form you are looking for does not exist."
+        notFoundMessage="Please check the form ID and try again."
+        titleSize="medium"
+      >
+        <Link href="/forms">
+          <Button>Back to forms</Button>
+        </Link>
+      </NotFoundComponent>
+    );
   }
 
   const props: FormEditorProps = {

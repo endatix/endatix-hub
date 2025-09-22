@@ -1,6 +1,9 @@
 import { Form } from "@/types";
 import { getForm } from "@/services/api";
 import FormDetails from "@/features/forms/ui/form-details";
+import { NotFoundComponent } from "@/components/error-handling/not-found";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -19,19 +22,18 @@ export default async function FormOverviewPage({ params }: Params) {
 
   if (!form) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Form not found</h2>
-          <p className="text-gray-600 mt-2">The form you are looking for does not exist.</p>
-        </div>
-      </div>
+      <NotFoundComponent
+        notFoundTitle="Form not found"
+        notFoundSubtitle="The form you are looking for does not exist."
+        notFoundMessage="Please check the form ID and try again."
+        titleSize="medium"
+      >
+        <Link href="/forms">
+          <Button>Back to forms</Button>
+        </Link>
+      </NotFoundComponent>
     );
   }
 
-  return (
-    <FormDetails 
-      form={form}
-      showHeader={true}
-    />
-  );
+  return <FormDetails form={form} showHeader={true} />;
 }
