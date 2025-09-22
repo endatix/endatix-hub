@@ -3,6 +3,8 @@ import { Session, Account, User } from "next-auth";
 import { Provider } from "next-auth/providers";
 import React from "react";
 import { ButtonProps } from "@/components/ui/button";
+import { Result } from "@/lib/result";
+import { NextResponse } from "next/server";
 
 export interface JWTParams {
   token: JWT;
@@ -58,6 +60,24 @@ export interface IAuthProvider {
    * Used to determine if provider should be enabled.
    */
   validateConfig(): boolean;
+}
+
+/**
+ * Interface for session bridges that can be used to exchange tokens between providers.
+ */
+export interface ISessionBridge {
+  /**
+   * Exchanges a token for a new session.
+   * @param token - The token to exchange.
+   * @param config - The config for the session bridge.
+   * @returns The NextResponse with the new session.
+   */
+  exchangeTokenForSession(
+    token: string,
+    config?: {
+      protocol?: string; // http or https
+    },
+  ): Promise<Result<NextResponse>>;
 }
 
 export interface IAuthPresentation {

@@ -14,6 +14,7 @@ export function createAuthConfig(
   const authProviders = registry.getActiveProviders();
 
   return {
+    secret: process.env.AUTH_SECRET,
     authPresentation: registry.getAuthPresentationOptions(),
     providers: authProviders.map((provider) => provider.getProviderConfig()),
     callbacks: {

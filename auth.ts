@@ -13,7 +13,7 @@ import { AuthPresentation } from "./features/auth/infrastructure";
 // authRegistry.register(new GoogleAuthProvider());
 
 // Create NextAuth configuration from registry
-const authConfig = createAuthConfig(authRegistry);
+export const authConfig = createAuthConfig(authRegistry);
 
 export const authPresentation: AuthPresentation[] = authConfig.authPresentation;
 
