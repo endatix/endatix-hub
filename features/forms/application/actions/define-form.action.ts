@@ -6,7 +6,7 @@ import {
   DefineFormRequestSchema,
   DefineFormRequest,
 } from "@/lib/endatix-api/agents/types";
-import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
+import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 import { Model } from "survey-core";
 
 function buildDefineFormRequest(formData: FormData): DefineFormRequest {

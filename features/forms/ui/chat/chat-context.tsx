@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
-import { ChatMessage } from "../use-cases/assistant";
+import { ChatMessage } from "./use-cases/assistant";
 
 interface ChatContextType {
   messages: ChatMessage[];

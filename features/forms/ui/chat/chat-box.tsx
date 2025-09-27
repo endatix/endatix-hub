@@ -20,14 +20,14 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useActionState, useEffect, useState, startTransition } from "react";
-import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
+import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AssistantStore,
   DefineFormCommand,
-} from "@/app/(main)/forms/create/use-cases/assistant";
+} from "@/features/forms/ui/chat/use-cases/assistant";
 import { redirect } from "next/navigation";
-import { defineFormAction } from "../define-form.action";
+import { defineFormAction } from "../../application/actions/define-form.action";
 import { ApiResult } from "@/lib/endatix-api";
 
 const ChatErrorAlert = ({

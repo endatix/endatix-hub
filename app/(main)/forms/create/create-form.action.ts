@@ -1,6 +1,6 @@
 "use server";
 
-import { CreateFormRequest } from "./use-cases/assistant";
+import { CreateFormRequest } from "../../../../features/forms/ui/chat/use-cases/assistant";
 import { createForm } from "@/services/api";
 
 export interface CreateFormDraftResult {

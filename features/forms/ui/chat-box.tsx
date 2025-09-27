@@ -24,9 +24,9 @@ import { redirect } from "next/navigation";
 import {
   AssistantStore,
   DefineFormCommand,
-} from "@/app/(main)/forms/create/use-cases/assistant";
-import { defineFormAction } from "@/app/(main)/forms/create/define-form.action";
-import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
+} from "@/features/forms/ui/chat/use-cases/assistant";
+import { defineFormAction } from "@/features/forms/application/actions/define-form.action";
+import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 
 const ChatErrorAlert = ({
   errorMessage,
