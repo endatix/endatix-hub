@@ -1,15 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
 import {
   initializeCustomQuestions,
   SpecializedSurveyQuestionType,
 } from "@/lib/questions/infrastructure/specialized-survey-question";
 import type { Question } from "survey-core";
 import { Result } from "@/lib/result";
-import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
@@ -45,6 +42,8 @@ import { useThemeManagement } from "@/features/public-form/application/use-theme
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
+import { useFormEditorHeader } from "./use-form-editor-header.hook";
+import FormEditorHeader from "./form-editor-header";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -121,13 +120,7 @@ function FormEditor({
   themeId,
 }: FormEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
-  const [isSaving] = useState(false);
   const router = useRouter();
-  const [isEditingName, setIsEditingName] = useState(formName === "New Form");
-  const [name, setName] = useState(formName);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [originalName, setOriginalName] = useState(formName);
-  const [isPending, startTransition] = useTransition();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<
@@ -136,19 +129,6 @@ function FormEditor({
   const handleThemeIdChanged = useCallback(() => {
     setHasUnsavedChanges(true);
   }, []);
-
-  const handleNameSave = useCallback(async () => {
-    if (name !== originalName) {
-      startTransition(async () => {
-        await updateFormNameAction(formId, name);
-
-        setOriginalName(name);
-        setName(name);
-        toast.success("Form name updated");
-      });
-    }
-    setIsEditingName(false);
-  }, [formId, name, originalName, startTransition]);
 
   const handleUploadFile = useCallback(
     async (_: SurveyCreatorModel, options: UploadFileEvent) => {
@@ -325,25 +305,28 @@ function FormEditor({
     onPostThemeSave: saveForm,
   });
 
-  const saveFormHandler = async () => {
-    startTransition(async () => {
-      try {
-        if (!hasUnsavedChanges && !isCurrentThemeModified) {
-          toast.info("Nothing to save");
-          return;
-        }
+  const saveFormHandler = useCallback(async () => {
+    if (!hasUnsavedChanges && !isCurrentThemeModified) {
+      toast.info("Nothing to save");
+      return;
+    }
 
-        const isThemeSavedFlow = await saveThemeHandler();
+    const isThemeSavedFlow = await saveThemeHandler();
 
-        if (!isThemeSavedFlow) {
-          await saveForm();
-        }
-      } catch (error) {
-        console.error("Error in save flow:", error);
-        toast.error("Failed to save changes");
-      }
-    });
-  };
+    if (!isThemeSavedFlow) {
+      await saveForm();
+    }
+  }, [hasUnsavedChanges, isCurrentThemeModified, saveThemeHandler, saveForm]);
+
+  const headerState = useFormEditorHeader({
+    formId,
+    initialFormName: formName,
+    hasUnsavedChanges,
+    isCurrentThemeModified,
+    onSave: saveFormHandler,
+    onNavigateBack: () => router.push("/forms"),
+  });
+
 
   const createCustomQuestionDialog = useCallback(
     async (element: Question) => {
@@ -476,24 +459,6 @@ function FormEditor({
     }
   }, [creator, formJson]);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
-        setTimeout(() => {
-          handleNameSave();
-        }, 0);
-      }
-    };
-
-    if (isEditingName) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside); // Clean up event listener
-    };
-  }, [isEditingName, handleNameSave]);
 
   useEffect(() => {
     if (!creator) return;
@@ -618,77 +583,14 @@ function FormEditor({
     };
   }, []);
 
-  const handleSaveAndGoBack = () => {
-    if (hasUnsavedChanges || isCurrentThemeModified) {
-      const confirm = window.confirm(
-        "There are unsaved changes. Are you sure you want to leave?",
-      );
-      if (confirm) {
-        router.push("/forms");
-      }
-    } else {
-      router.push("/forms");
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleNameSave();
-    } else if (e.key === "Escape") {
-      setName(originalName);
-      setIsEditingName(false);
-    }
-  };
 
   return (
     <>
-      <div className="flex justify-between items-center mt-0 pt-4 pb-4 px-6 sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex w-full items-center gap-8">
-          <button
-            onClick={handleSaveAndGoBack}
-            className="mr-0 text-2xl flex items-center"
-            disabled={isSaving}
-            style={{ border: "none", background: "transparent" }}
-          >
-            ←
-          </button>
-
-          {isEditingName ? (
-            <input
-              ref={inputRef}
-              value={name}
-              onChange={(e) => setName(e.target.value)} // Update the name when typing
-              onKeyDown={handleKeyDown} // Handle Enter and Esc key presses
-              className="font-bold text-lg border border-gray-300 rounded"
-              autoFocus
-            />
-          ) : (
-            <span
-              className="font-bold text-lg hover:border hover:border-gray-300 hover:rounded px-1"
-              onClick={() => setIsEditingName(true)}
-              style={{ cursor: "text" }}
-            >
-              {name}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {(hasUnsavedChanges || isCurrentThemeModified) && (
-            <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
-              Unsaved changes
-            </span>
-          )}
-          <Button
-            disabled={isPending}
-            onClick={saveFormHandler}
-            variant="default"
-            size="sm"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Save
-          </Button>
-        </div>
-      </div>
+      <FormEditorHeader
+        {...headerState}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isCurrentThemeModified={isCurrentThemeModified}
+      />
       <div id="creator">
         {isLoading ? (
           <div className="flex items-center justify-center h-[calc(100vh-80px)]">
