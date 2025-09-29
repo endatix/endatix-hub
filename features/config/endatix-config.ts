@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { getAuthConfig, EndatixAuthConfig } from "./auth-config";
+import { getApiConfig } from "./api-config";
 
 export interface EndatixConfig {
   auth?: {
@@ -19,11 +20,17 @@ export interface EndatixConfig {
       maxAge?: number;
     };
   };
+  api?: {
+    baseUrl?: string;
+    prefix?: string;
+  };
 }
 
 export interface WithEndatixOptions {
   auth?: EndatixConfig["auth"];
+  api?: EndatixConfig["api"];
 }
+
 
 /**
  * @param {import('next').NextConfig} nextConfig
@@ -54,18 +61,24 @@ export const withEndatix = (
     },
   };
 
+  const apiConfig = getApiConfig();
+
   // Set environment variables for auth configuration
   const env = {
     ...nextConfig.env,
     // Keycloak configuration
-    AUTH_KEYCLOAK_ENABLED: mergedAuthConfig.providers.keycloak.enabled.toString(),
+    AUTH_KEYCLOAK_ENABLED:
+      mergedAuthConfig.providers.keycloak.enabled.toString(),
     AUTH_KEYCLOAK_CLIENT_ID: mergedAuthConfig.providers.keycloak.clientId,
-    AUTH_KEYCLOAK_CLIENT_SECRET: mergedAuthConfig.providers.keycloak.clientSecret,
+    AUTH_KEYCLOAK_CLIENT_SECRET:
+      mergedAuthConfig.providers.keycloak.clientSecret,
     AUTH_KEYCLOAK_ISSUER: mergedAuthConfig.providers.keycloak.issuer,
 
     // Session configuration
     SESSION_SECRET: mergedAuthConfig.session.secret,
     SESSION_MAX_AGE_IN_MINUTES: mergedAuthConfig.session.maxAge.toString(),
+
+    ENDATIX_API_URL: apiConfig.apiUrl,
   };
 
   return {
