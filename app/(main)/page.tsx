@@ -50,7 +50,7 @@ async function getCurrentUserInfo(session: Session | null) {
 
   try {
     const userInfoResponse = await fetch(
-      `${process.env.ENDATIX_BASE_URL}/api/my-account/user-info`,
+      `${process.env.ENDATIX_API_URL}/my-account/user-info`,
       { headers },
     );
     if (!userInfoResponse.ok) {

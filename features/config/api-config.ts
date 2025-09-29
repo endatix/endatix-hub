@@ -51,7 +51,7 @@ export function constructApiUrl(baseUrl: string, prefix: string): string {
 /**
  * Validates and constructs the Endatix API configuration
  */
-export function getApiConfig(): ApiConfig {
+export function getApiConfig(): ApiConfig | null {
   if (cachedConfig !== null) {
     return cachedConfig;
   }
@@ -63,7 +63,7 @@ export function getApiConfig(): ApiConfig {
   }
 
   if (!baseUrl) {
-    throw new Error("ENDATIX_BASE_URL environment variable is required");
+    return null;
   }
 
   try {

@@ -31,7 +31,6 @@ export interface WithEndatixOptions {
   api?: EndatixConfig["api"];
 }
 
-
 /**
  * @param {import('next').NextConfig} nextConfig
  * @param {WithEndatixOptions} [options] - Optional Endatix configuration
@@ -66,6 +65,7 @@ export const withEndatix = (
   // Set environment variables for auth configuration
   const env = {
     ...nextConfig.env,
+    ...(apiConfig && { ENDATIX_API_URL: apiConfig.apiUrl }),
     // Keycloak configuration
     AUTH_KEYCLOAK_ENABLED:
       mergedAuthConfig.providers.keycloak.enabled.toString(),
@@ -77,8 +77,6 @@ export const withEndatix = (
     // Session configuration
     SESSION_SECRET: mergedAuthConfig.session.secret,
     SESSION_MAX_AGE_IN_MINUTES: mergedAuthConfig.session.maxAge.toString(),
-
-    ENDATIX_API_URL: apiConfig.apiUrl,
   };
 
   return {
