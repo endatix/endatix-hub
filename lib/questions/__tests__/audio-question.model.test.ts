@@ -1,19 +1,19 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { SurveyModel } from "survey-core";
+import { SurveyError, SurveyModel } from "survey-core";
 import {
   AudioQuestionModel,
   AUDIO_RECORDER_TYPE,
 } from "@/lib/questions/audio-recorder/audio-question.model";
 
+
 interface IRootElement {
   rootElement: HTMLElement | undefined;
 }
-interface IStream {
-  stream: MediaStream | undefined;
-}
 
-interface IAudioContext {
-  audioContext: AudioContext;
+class TestAudioQuestionModel extends AudioQuestionModel {
+  public onCheckForErrors(errors: SurveyError[], isOnValueChanged: boolean, fireCallback: boolean): void {
+    super.onCheckForErrors(errors, isOnValueChanged, fireCallback);
+  }
 }
 
 // Mock MediaStream and related APIs
@@ -74,7 +74,7 @@ const mockRequestAnimationFrame = vi.fn();
 const mockCancelAnimationFrame = vi.fn();
 
 describe("AudioQuestionModel", () => {
-  let audioQuestion: AudioQuestionModel;
+  let audioQuestion: TestAudioQuestionModel;
   let survey: SurveyModel;
 
   beforeEach(() => {
@@ -116,7 +116,7 @@ describe("AudioQuestionModel", () => {
 
     audioQuestion = survey.getQuestionByName(
       "audioQuestion",
-    ) as AudioQuestionModel;
+    ) as TestAudioQuestionModel;
   });
 
   afterEach(() => {
@@ -315,23 +315,96 @@ describe("AudioQuestionModel", () => {
     });
   });
 
-  describe("Validation", () => {
-    it("should validate when not recording and not uploading", () => {
-      // Mock the parent class validate method
+  describe("Validation - onCheckForErrors", () => {
+    it("should not add errors when not recording and not uploading", () => {
+      const errors: SurveyError[] = [];
+      
+      audioQuestion.onCheckForErrors(errors, false, false);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("should add error when recording", () => {
+      const errors: SurveyError[] = [];
+      audioQuestion.isRecording = true;
+
+      audioQuestion.onCheckForErrors(errors, false, false);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].text).toBe(
+        "Please click Stop button to finish recording",
+      );
+    });
+
+    it("should add error when uploading", () => {
+      const errors: SurveyError[] = [];
+      audioQuestion.isUploading = true;
+
+      audioQuestion.onCheckForErrors(errors, false, false);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].text).toBe(
+        "Saving your recording. Please wait.",
+      );
+    });
+
+    it("should call parent onCheckForErrors when not recording and not uploading", () => {
+      const errors: SurveyError[] = [];
       const parentPrototype = Object.getPrototypeOf(
         Object.getPrototypeOf(audioQuestion),
       );
-      const superValidateSpy = vi
-        .spyOn(parentPrototype, "validate")
-        .mockReturnValue(true);
+      const parentOnCheckForErrorsSpy = vi
+        .spyOn(parentPrototype, "onCheckForErrors")
+        .mockImplementation(() => {});
 
-      const result = audioQuestion.validate();
+      audioQuestion.onCheckForErrors(errors, false, false);
 
-      expect(result).toBe(true);
-      expect(superValidateSpy).toHaveBeenCalled();
+      expect(parentOnCheckForErrorsSpy).toHaveBeenCalledWith(
+        errors,
+        false,
+        false,
+      );
+      parentOnCheckForErrorsSpy.mockRestore();
+    });
+  });
+
+  describe("Validation - Survey Integration", () => {
+    it("should prevent survey validation when recording", () => {
+      audioQuestion.isRecording = true;
+
+      const result = survey.validate();
+
+      expect(result).toBe(false);
+      expect(audioQuestion.errors).toHaveLength(1);
+      expect(audioQuestion.errors[0].text).toBe(
+        "Please click Stop button to finish recording",
+      );
     });
 
-    it("should fail validation when recording", () => {
+    it("should prevent survey validation when uploading", () => {
+      audioQuestion.isUploading = true;
+
+      const result = survey.validate();
+
+      expect(result).toBe(false);
+      expect(audioQuestion.errors).toHaveLength(1);
+      expect(audioQuestion.errors[0].text).toBe(
+        "Saving your recording. Please wait.",
+      );
+    });
+
+    it("should allow survey validation when not recording and not uploading", () => {
+      // Ensure question is in valid state
+      audioQuestion.isRecording = false;
+      audioQuestion.isUploading = false;
+
+      const result = survey.validate();
+
+      expect(result).toBe(true);
+      expect(audioQuestion.errors).toHaveLength(0);
+    });
+
+    it("should validate question directly when recording", () => {
       audioQuestion.isRecording = true;
 
       const result = audioQuestion.validate();
@@ -343,7 +416,7 @@ describe("AudioQuestionModel", () => {
       );
     });
 
-    it("should fail validation when uploading", () => {
+    it("should validate question directly when uploading", () => {
       audioQuestion.isUploading = true;
 
       const result = audioQuestion.validate();
@@ -353,6 +426,164 @@ describe("AudioQuestionModel", () => {
       expect(audioQuestion.errors[0].text).toBe(
         "Saving your recording. Please wait.",
       );
+    });
+
+    it("should validate question directly when not recording and not uploading", () => {
+      // Ensure question is in valid state
+      audioQuestion.isRecording = false;
+      audioQuestion.isUploading = false;
+
+      const result = audioQuestion.validate();
+
+      expect(result).toBe(true);
+      expect(audioQuestion.errors).toHaveLength(0);
+    });
+  });
+
+  describe("Validation - Question Per Page Mode", () => {
+    let questionPerPageSurvey: SurveyModel;
+    let question1: AudioQuestionModel;
+    let question2: AudioQuestionModel;
+
+    beforeEach(() => {
+      questionPerPageSurvey = new SurveyModel({
+        title: "Audio Check",
+        pages: [
+          {
+            name: "page1",
+            elements: [
+              {
+                type: AUDIO_RECORDER_TYPE,
+                name: "question1",
+                title: "Say hello",
+              },
+              {
+                type: AUDIO_RECORDER_TYPE,
+                name: "question2",
+                title: "Say buy",
+              },
+            ],
+          },
+        ],
+        questionsOnPageMode: "questionPerPage",
+      });
+
+      question1 = questionPerPageSurvey.getQuestionByName("question1") as AudioQuestionModel;
+      question2 = questionPerPageSurvey.getQuestionByName("question2") as AudioQuestionModel;
+    });
+
+    it("should prevent next page when first question is recording", () => {
+      question1.isRecording = true;
+
+      const result = questionPerPageSurvey.nextPage();
+
+      expect(result).toBe(false);
+      expect(question1.errors).toHaveLength(1);
+      expect(question1.errors[0].text).toBe(
+        "Please click Stop button to finish recording",
+      );
+    });
+
+    it("should prevent next page when first question is uploading", () => {
+      question1.isUploading = true;
+
+      const result = questionPerPageSurvey.nextPage();
+
+      expect(result).toBe(false);
+      expect(question1.errors).toHaveLength(1);
+      expect(question1.errors[0].text).toBe(
+        "Saving your recording. Please wait.",
+      );
+    });
+
+    it("should allow next page when first question is not recording or uploading", () => {
+      question1.isRecording = false;
+      question1.isUploading = false;
+
+      const result = questionPerPageSurvey.nextPage();
+
+      expect(result).toBe(true);
+      expect(question1.errors).toHaveLength(0);
+    });
+
+    it("should prevent next page when second question is recording", () => {
+      // First navigate to second question
+      questionPerPageSurvey.nextPage();
+      question2.isRecording = true;
+
+      const result = questionPerPageSurvey.nextPage();
+
+      expect(result).toBe(false);
+      expect(question2.errors).toHaveLength(1);
+      expect(question2.errors[0].text).toBe(
+        "Please click Stop button to finish recording",
+      );
+    });
+
+    it("should prevent next page when second question is uploading", () => {
+      // First navigate to second question
+      questionPerPageSurvey.nextPage();
+      question2.isUploading = true;
+
+      const result = questionPerPageSurvey.nextPage();
+
+      expect(result).toBe(false);
+      expect(question2.errors).toHaveLength(1);
+      expect(question2.errors[0].text).toBe(
+        "Saving your recording. Please wait.",
+      );
+    });
+
+    it("should allow next page when second question is not recording or uploading", () => {
+      // First navigate to second question
+      questionPerPageSurvey.nextPage();
+      question2.isRecording = false;
+      question2.isUploading = false;
+
+      const result = questionPerPageSurvey.nextPage();
+
+      expect(result).toBe(true);
+      expect(question2.errors).toHaveLength(0);
+    });
+
+    it("should validate first question when calling survey validate", () => {
+      question1.isRecording = true;
+
+      const result = questionPerPageSurvey.validate();
+
+      expect(result).toBe(false);
+      expect(question1.errors).toHaveLength(1);
+      expect(question1.errors[0].text).toBe(
+        "Please click Stop button to finish recording",
+      );
+    });
+
+    it("should validate second question when calling survey validate", () => {
+      question2.isUploading = true;
+
+      // Navigate to the second question first
+      questionPerPageSurvey.nextPage();
+      
+      const result = questionPerPageSurvey.validate();
+
+      expect(result).toBe(false);
+      expect(question2.errors).toHaveLength(1);
+      expect(question2.errors[0].text).toBe(
+        "Saving your recording. Please wait.",
+      );
+    });
+
+    it("should allow survey validation when all questions are valid", () => {
+      question1.isRecording = false;
+      question1.isUploading = false;
+      question2.isRecording = false;
+      question2.isUploading = false;
+
+      const result = questionPerPageSurvey.validate();
+
+      expect(result).toBe(true);
+      expect(question1.errors).toHaveLength(0);
+      expect(question2.errors).toHaveLength(0);
     });
   });
 
@@ -381,6 +612,20 @@ describe("AudioQuestionModel", () => {
   });
 
   describe("Audio Processing", () => {
+    it("should encode WAV correctly", () => {
+      const samples = new Float32Array([0.1, -0.2, 0.3, -0.4]);
+      const sampleRate = 48000;
+
+      const result = (
+        audioQuestion as unknown as {
+          encodeWAV: (samples: Float32Array, sampleRate: number) => Blob;
+        }
+      ).encodeWAV(samples, sampleRate);
+
+      expect(result).toBeInstanceOf(Blob);
+      expect(result.type).toBe("audio/wav");
+    });
+
     it("should flatten array correctly", () => {
       const channelBuffers = [
         new Float32Array([1, 2, 3]),

@@ -3,7 +3,7 @@ import {
   QuestionFactory,
   QuestionFileModelBase,
   Serializer,
-  SurveyError
+  SurveyError,
 } from "survey-core";
 
 interface FileResult {
@@ -182,20 +182,24 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     );
   }
 
-  override validate(fireCallback?: boolean, rec?: unknown): boolean {
+  protected onCheckForErrors(
+    errors: Array<SurveyError>,
+    isOnValueChanged: boolean,
+    fireCallback: boolean,
+  ): void {
     if (this.isRecording) {
-      this.errors = [
+      errors.push(
         new SurveyError("Please click Stop button to finish recording"),
-      ];
-      return false;
+      );
+      return;
     }
 
     if (this.isUploading) {
-      this.errors = [new SurveyError("Saving your recording. Please wait.")];
-      return false;
+      errors.push(new SurveyError("Saving your recording. Please wait."));
+      return;
     }
 
-    return super.validate(fireCallback, rec as boolean);
+    super.onCheckForErrors(errors, isOnValueChanged, fireCallback);
   }
 
   private isFileSizeWithinLimit(files: File[]): boolean {
