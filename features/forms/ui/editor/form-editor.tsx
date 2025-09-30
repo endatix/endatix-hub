@@ -42,8 +42,6 @@ import { useThemeManagement } from "@/features/public-form/application/use-theme
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
-import { useFormEditorHeader } from "./use-form-editor-header.hook";
-import FormEditorHeader from "./form-editor-header";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -90,6 +88,9 @@ interface FormEditorProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
+  onUnsavedChanges?: (hasChanges: boolean) => void;
+  onThemeModificationChange?: (isModified: boolean) => void;
+  onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -118,6 +119,9 @@ function FormEditor({
   options,
   slkVal,
   themeId,
+  onUnsavedChanges,
+  onThemeModificationChange,
+  onSaveHandlerReady,
 }: FormEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const router = useRouter();
@@ -318,14 +322,19 @@ function FormEditor({
     }
   }, [hasUnsavedChanges, isCurrentThemeModified, saveThemeHandler, saveForm]);
 
-  const headerState = useFormEditorHeader({
-    formId,
-    initialFormName: formName,
-    hasUnsavedChanges,
-    isCurrentThemeModified,
-    onSave: saveFormHandler,
-    onNavigateBack: () => router.push("/forms"),
-  });
+  // Notify parent of state changes
+  useEffect(() => {
+    onUnsavedChanges?.(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onUnsavedChanges]);
+
+  useEffect(() => {
+    onThemeModificationChange?.(isCurrentThemeModified);
+  }, [isCurrentThemeModified, onThemeModificationChange]);
+
+  // Provide save handler to parent
+  useEffect(() => {
+    onSaveHandlerReady?.(saveFormHandler);
+  }, [saveFormHandler, onSaveHandlerReady]);
 
 
   const createCustomQuestionDialog = useCallback(
@@ -586,11 +595,6 @@ function FormEditor({
 
   return (
     <>
-      <FormEditorHeader
-        {...headerState}
-        hasUnsavedChanges={hasUnsavedChanges}
-        isCurrentThemeModified={isCurrentThemeModified}
-      />
       <div id="creator">
         {isLoading ? (
           <div className="flex items-center justify-center h-[calc(100vh-80px)]">

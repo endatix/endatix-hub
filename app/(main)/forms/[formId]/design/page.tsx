@@ -1,7 +1,6 @@
 import { Form, FormDefinition } from "@/types";
 import { getForm, getActiveFormDefinition } from "@/services/api";
-import { FormEditorProps } from "@/features/forms/ui/editor/form-editor";
-import FormEditorContainer from "@/features/forms/ui/editor/form-editor-container";
+import FormDesignerLayout, { FormDesignerLayoutProps } from "@/features/forms/ui/designer/form-designer-layout";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
@@ -43,7 +42,7 @@ export default async function FormDesignerPage({ params }: Params) {
     );
   }
 
-  const props: FormEditorProps = {
+  const props: FormDesignerLayoutProps = {
     formId: formId,
     formJson: formJson,
     formName: form.name,
@@ -54,7 +53,7 @@ export default async function FormDesignerPage({ params }: Params) {
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <FormEditorContainer {...props} />
+        <FormDesignerLayout {...props} />
       </div>
     </Suspense>
   );

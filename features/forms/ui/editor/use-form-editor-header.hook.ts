@@ -83,18 +83,13 @@ export const useFormEditorHeader = ({
   const saveFormHandler = useCallback(() => {
     startTransition(async () => {
       try {
-        if (!hasUnsavedChanges && !isCurrentThemeModified) {
-          toast.info("Nothing to save");
-          return;
-        }
-
         await onSave();
       } catch (error) {
         console.error("Error in save flow:", error);
         toast.error("Failed to save changes");
       }
     });
-  }, [hasUnsavedChanges, isCurrentThemeModified, onSave, startTransition]);
+  }, [onSave, startTransition]);
 
   // Handle click outside to save name
   useEffect(() => {
