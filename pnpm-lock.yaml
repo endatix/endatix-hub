@@ -202,16 +202,16 @@ importers:
         specifier: ^1.7.1
         version: 1.7.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       survey-core:
-        specifier: ^2.3.8
+        specifier: ^2.3.9
         version: 2.3.9
       survey-creator-core:
-        specifier: ^2.3.8
+        specifier: ^2.3.9
         version: 2.3.9(survey-core@2.3.9)
       survey-creator-react:
-        specifier: ^2.3.8
+        specifier: ^2.3.9
         version: 2.3.9(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(survey-core@2.3.9)(survey-creator-core@2.3.9(survey-core@2.3.9))(survey-react-ui@2.3.9(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(survey-core@2.3.9))
       survey-react-ui:
-        specifier: ^2.3.8
+        specifier: ^2.3.9
         version: 2.3.9(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(survey-core@2.3.9)
       tailwind-merge:
         specifier: ^2.6.0
