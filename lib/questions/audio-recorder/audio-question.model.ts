@@ -1,10 +1,10 @@
 import {
   ExceedSizeError,
   QuestionFactory,
+  QuestionFileModelBase,
   Serializer,
   SurveyError
 } from "survey-core";
-import { QuestionFileModelBase } from "./question-file-base-model";
 
 interface FileResult {
   file: File;
@@ -35,6 +35,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
     // Enforce uploading to BLOB storage
     this.waitForUpload = true;
     this.storeDataAsText = false;
+    this.isRecording = false;
   }
 
   public get canvasId(): string {
@@ -194,7 +195,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
       return false;
     }
 
-    return super.validate(fireCallback, rec);
+    return super.validate(fireCallback, rec as boolean);
   }
 
   private isFileSizeWithinLimit(files: File[]): boolean {
