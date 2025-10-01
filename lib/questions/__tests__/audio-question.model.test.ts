@@ -255,7 +255,7 @@ describe("AudioQuestionModel", () => {
 
       expect(audioQuestion.errors).toHaveLength(1);
       expect(audioQuestion.errors[0].text).toBe(
-        "Something went wrong. Please record again.",
+        AudioQuestionModel.ERROR_RECORDING_FAILED,
       );
     });
 
@@ -332,7 +332,7 @@ describe("AudioQuestionModel", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].text).toBe(
-        "Please click Stop button to finish recording",
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
       );
     });
 
@@ -377,7 +377,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(audioQuestion.errors).toHaveLength(1);
       expect(audioQuestion.errors[0].text).toBe(
-        "Please click Stop button to finish recording",
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
       );
     });
 
@@ -412,7 +412,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(audioQuestion.errors).toHaveLength(1);
       expect(audioQuestion.errors[0].text).toBe(
-        "Please click Stop button to finish recording",
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
       );
     });
 
@@ -480,7 +480,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(question1.errors).toHaveLength(1);
       expect(question1.errors[0].text).toBe(
-        "Please click Stop button to finish recording",
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
       );
     });
 
@@ -516,7 +516,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(question2.errors).toHaveLength(1);
       expect(question2.errors[0].text).toBe(
-        "Please click Stop button to finish recording",
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
       );
     });
 
@@ -554,7 +554,7 @@ describe("AudioQuestionModel", () => {
       expect(result).toBe(false);
       expect(question1.errors).toHaveLength(1);
       expect(question1.errors[0].text).toBe(
-        "Please click Stop button to finish recording",
+        AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS
       );
     });
 

@@ -12,11 +12,17 @@ interface FileResult {
 }
 
 export const AUDIO_RECORDER_TYPE = "audiorecorder";
+export const ERROR_RECORDING_IN_PROGRESS =
+  "Please press the Stop button to finish recording";
 
 export class AudioQuestionModel extends QuestionFileModelBase {
-  private static readonly recordingError: SurveyError = new SurveyError(
-    "Something went wrong during recording. Please record again.",
-  );
+  public static readonly ERROR_RECORDING_IN_PROGRESS =
+    "Please press the Stop button to finish recording";
+  public static readonly ERROR_RECORDING_FAILED =
+    "Something went wrong. Please record again.";
+  public static readonly ERROR_STILL_UPLOADING =
+    "Saving your recording. Please wait.";
+
   private stream: MediaStream | undefined;
   private audioContext: AudioContext | undefined;
   private source: MediaStreamAudioSourceNode | undefined;
@@ -149,7 +155,7 @@ export class AudioQuestionModel extends QuestionFileModelBase {
 
     if (files.length === 0) {
       this.errors = [
-        new SurveyError("Something went wrong. Please record again."),
+        new SurveyError(AudioQuestionModel.ERROR_RECORDING_FAILED),
       ];
       return;
     }
@@ -189,13 +195,13 @@ export class AudioQuestionModel extends QuestionFileModelBase {
   ): void {
     if (this.isRecording) {
       errors.push(
-        new SurveyError("Please click Stop button to finish recording"),
+        new SurveyError(AudioQuestionModel.ERROR_RECORDING_IN_PROGRESS),
       );
       return;
     }
 
     if (this.isUploading) {
-      errors.push(new SurveyError("Saving your recording. Please wait."));
+      errors.push(new SurveyError(AudioQuestionModel.ERROR_STILL_UPLOADING));
       return;
     }
 
