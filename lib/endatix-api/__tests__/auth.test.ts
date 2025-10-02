@@ -13,6 +13,7 @@ describe("Auth", () => {
   let auth: Auth;
 
   beforeEach(() => {
+    process.env.ENDATIX_API_URL = "https://ci.api.endatix.com/api";
     endatixApi = new EndatixApi();
     auth = endatixApi.auth;
     mockFetch.mockClear();
