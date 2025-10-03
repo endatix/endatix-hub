@@ -11,7 +11,7 @@ import {
 } from "./ui/tooltip";
 
 interface CopyToClipboardProps extends React.HTMLAttributes<HTMLDivElement> {
-  copyValue?: () => string;
+  copyValue: string | (() => string);
   label?: string;
 }
 
@@ -26,13 +26,13 @@ const CopyToClipboard = ({
   const copyToClipboard = (value: string) => {
     navigator.clipboard.writeText(value);
     toast.success({
-      title: "Copied to clipboardcheto",
+      title: "Copied to clipboard",
       duration: ANIMATION_DURATION,
     });
   };
 
   const handleCopyClick = () => {
-    copyToClipboard(copyValue?.() ?? "");
+    copyToClipboard(typeof copyValue === "function" ? copyValue() : copyValue);
     setIsCopied(true);
 
     setTimeout(() => {
@@ -60,7 +60,7 @@ const CopyToClipboard = ({
               {isCopied ? (
                 <Check className="animate-in fade-in-0 zoom-in-95 duration-500 transition-all" />
               ) : (
-                <Clipboard className="transition-all duration-200 hover:scale-110" />
+                <Clipboard className="hover:scale-110 opacity-50 hover:opacity-100 transition-all duration-200" />
               )}
             </Button>
           </TooltipTrigger>
