@@ -31,6 +31,7 @@ import TagBoxAnswer from "./tagbox-answer";
 import BooleanAnswer from "./boolean-answer";
 import CustomAnswer from "./custom-answer";
 import { AudioPlayer } from "@/lib/questions/audio-recorder/audio-player";
+import TextAnswer from "./text-answer";
 
 export interface ViewAnswerProps
   extends React.HtmlHTMLAttributes<HTMLInputElement> {
@@ -58,10 +59,12 @@ const AnswerViewer = ({
   }
 
   const renderTextAnswer = () => (
-    <Input
-      disabled
-      id={forQuestion.name}
-      value={forQuestion.value ?? "N/A"}
+    <TextAnswer question={forQuestion} className={className} />
+  );
+
+  const renderMultipleTextAnswer = () => (
+    <MultipleTextAnswer
+      question={forQuestion as QuestionMultipleTextModel}
       className={className}
     />
   );
@@ -135,13 +138,6 @@ const AnswerViewer = ({
     />
   );
 
-  const renderMultipleTextAnswer = () => (
-    <MultipleTextAnswer
-      question={forQuestion as QuestionMultipleTextModel}
-      className={className}
-    />
-  );
-
   const renderTagBoxAnswer = () => (
     <TagBoxAnswer question={forQuestion} className={className} />
   );
@@ -159,6 +155,8 @@ const AnswerViewer = ({
   switch (questionType) {
     case QuestionType.Text:
       return renderTextAnswer();
+    case QuestionType.MultipleText:
+      return renderMultipleTextAnswer();
     case QuestionType.Boolean:
       return renderBooleanAnswer();
     case QuestionType.Checkbox:
@@ -184,8 +182,6 @@ const AnswerViewer = ({
       return renderPanelDynamicAnswer();
     case QuestionType.SignaturePad:
       return renderSignaturePadAnswer();
-    case QuestionType.MultipleText:
-      return renderMultipleTextAnswer();
     case QuestionType.TagBox:
       return renderTagBoxAnswer();
     case QuestionType.AudioRecorder:

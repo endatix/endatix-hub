@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
+import CopyToClipboard from "@/components/copy-to-clipboard";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -179,11 +180,6 @@ const FormDetails = ({
         toast.error("Failed to update form status. Error: " + error);
       }
     });
-  };
-
-  const copyToClipboard = (value: string) => {
-    navigator.clipboard.writeText(value);
-    toast.success("Copied to clipboard");
   };
 
   const getFullShareUrl = () => {
@@ -355,13 +351,10 @@ const FormDetails = ({
           </div>
           <div className="col-span-3">
             <div className="relative cursor-pointer">
-              <div className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer z-10">
-                <Copy
-                  onClick={() => copyToClipboard(getFullShareUrl())}
-                  aria-label="Copy form url"
-                  className="h-4 w-4"
-                />
-              </div>
+              <CopyToClipboard
+                copyValue={getFullShareUrl}
+                label="Copy form url"
+              />
               <Input
                 readOnly
                 disabled
