@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check, Clipboard } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { toast } from "./ui/toast";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -60,7 +60,7 @@ const CopyToClipboard = ({
               {isCopied ? (
                 <Check className="animate-in fade-in-0 zoom-in-95 duration-500 transition-all" />
               ) : (
-                <Clipboard className="hover:scale-110 opacity-50 hover:opacity-100 transition-all duration-200" />
+                <Copy className="hover:scale-110 opacity-50 hover:opacity-100 transition-all duration-200" />
               )}
             </Button>
           </TooltipTrigger>
