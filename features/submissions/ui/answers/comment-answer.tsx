@@ -1,3 +1,4 @@
+import CopyToClipboard from "@/components/copy-to-clipboard";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -8,8 +9,9 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { MessageSquareOff, MessageSquareText } from "lucide-react";
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { Question } from "survey-core";
+import { useDebouncedResize } from "@/lib/utils/hooks/use-debounced-resize";
 
 interface CommentAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   question: Question;
@@ -52,7 +54,18 @@ const NoCommentContent = () => (
 const CommentAnswer = ({ question, className }: CommentAnswerProps) => {
   const hasComment = question.value?.length > 0;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isOversized = useMemo(() => question.value?.length > 1000, [question.value]);
+  const [hasScrollbar, setHasScrollbar] = useState(false);
+  const isOversized = useMemo(
+    () => question.value?.length > 1000,
+    [question.value],
+  );
+
+  const checkScrollbar = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    setHasScrollbar(el.scrollHeight > el.clientHeight);
+  };
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -64,12 +77,18 @@ const CommentAnswer = ({ question, className }: CommentAnswerProps) => {
       el.style.height = "auto";
       el.style.height = el.scrollHeight + 4 + "px";
     }
+
+    checkScrollbar();
   }, [question.value, isOversized]);
+
+  useDebouncedResize({
+    onResize: checkScrollbar,
+  });
 
   return (
     <div
       className={cn(
-        "flex items-start justify-start flex-col gap-1 w-full",
+        "flex items-start justify-start flex-col gap-1 w-auto",
         className,
       )}
     >
@@ -82,17 +101,28 @@ const CommentAnswer = ({ question, className }: CommentAnswerProps) => {
         )}
       </div>
       {hasComment && (
-        <Textarea
-          ref={textareaRef}
-          id={question.name}
-          disabled
-          rows={1}
-          className={cn(
-            "text-sm min-h-6 resize-none",
-            isOversized && "h-auto",
-          )}
-          value={question.value}
-        />
+        <div className="relative w-full">
+          <CopyToClipboard
+            copyValue={() => question.value ?? "N/A"}
+            label="Copy comment"
+            className={cn(
+              "absolute right-2.5 top-4 h-4 w-4 text-muted-foreground cursor-pointer z-10",
+              hasScrollbar && "right-5",
+            )}
+          />
+          <Textarea
+            ref={textareaRef}
+            id={question.name}
+            disabled
+            rows={1}
+            className={cn(
+              "text-sm min-h-6 resize-none pl-2 pr-8",
+              isOversized && "h-auto",
+              hasScrollbar && "pr-8",
+            )}
+            value={question.value}
+          />
+        </div>
       )}
     </div>
   );

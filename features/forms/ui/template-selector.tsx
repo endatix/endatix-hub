@@ -27,7 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/loaders/spinner';
 import { getTemplatesAction } from '@/features/form-templates/application/get-templates.action';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useMediaQuery } from '@/lib/utils/hooks/use-media-query';
 
 interface TemplateSelectorProps {
   onTemplateSelect: (template: FormTemplate) => void;
