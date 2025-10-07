@@ -1,6 +1,5 @@
-import { auth, signOut } from "@/auth";
-import { NextAuthRequest } from "next-auth";
-import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { NextRequest, NextResponse } from "next/server";
 import {
   AUTH_ROUTES,
   DEFAULT_RETURN_URL,
@@ -8,20 +7,22 @@ import {
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure/auth-constants";
 
-export default auth(async (req: NextAuthRequest) => {
+export default async function middleware(req: NextRequest) {
+  const session = await auth();
+
   if (AUTH_ROUTES.includes(req.nextUrl.pathname)) {
     console.log("AUTH_ROUTES redirect");
     return NextResponse.next();
   }
 
-  const isLoggedIn = !!req.auth;
-  const hasSessionError = req.auth?.error !== undefined;
+  const isLoggedIn = !!session;
+  const hasSessionError = session?.error !== undefined;
   if (!isLoggedIn || hasSessionError) {
     return redirectToLogin(req);
   }
 
   return NextResponse.next();
-});
+}
 
 /*
  * Match all request paths except for the ones starting with:
@@ -46,7 +47,7 @@ export const config = {
   ],
 };
 
-function redirectToLogin(req: NextAuthRequest): NextResponse<unknown> {
+function redirectToLogin(req: NextRequest): NextResponse<unknown> {
   let returnUrl = req.nextUrl.pathname || DEFAULT_RETURN_URL;
   if (returnUrl === "/") {
     returnUrl = DEFAULT_RETURN_URL;
