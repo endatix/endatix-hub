@@ -49,11 +49,10 @@ function addRandomizeGroupFeature() {
       locationInTable: "table",
       dependsOn: ["randomize"],
       visibleIf: (obj) => {
-        const isRandomizedChoicesMode =
+        return (
           obj?.locOwner instanceof QuestionSelectBase &&
-          obj.locOwner.choicesOrder === "random";
-        const isOptionRandomized = !!obj.randomize && obj.randomize === true;
-        return isRandomizedChoicesMode && isOptionRandomized;
+          obj.locOwner.choicesOrder === "random"
+        );
       },
     },
   ]);
