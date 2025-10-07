@@ -24,13 +24,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
-    error?: "RefreshTokenError";
-  }
-
-  interface User {
-    accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
+    error?: "RefreshTokenError" | "SessionExpiredError" | "UnknownSessionError";
   }
 }
 

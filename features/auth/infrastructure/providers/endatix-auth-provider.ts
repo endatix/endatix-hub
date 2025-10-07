@@ -1,5 +1,5 @@
 import { JWT } from "next-auth/jwt";
-import { AuthError, CredentialsSignin, Session } from "next-auth";
+import { AuthError, CredentialsSignin, Session, User } from "next-auth";
 import {
   IAuthProvider,
   JWTParams,
@@ -144,54 +144,44 @@ export class EndatixAuthProvider implements IAuthProvider {
   }
 
   async handleJWT(params: JWTParams): Promise<JWT> {
-    const { token, user, account } = params;
+    const { token, user, account, session, trigger } = params;
 
-    if (user && account?.provider === this.id) {
-      token.access_token = user.accessToken;
-      token.refresh_token = user.refreshToken;
+    const userData = user as User & {
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: number;
+    };
+
+    if (user && account?.provider === ENDATIX_AUTH_PROVIDER_ID) {
+      token.access_token = userData.accessToken;
+      token.refresh_token = userData.refreshToken;
       token.email = user.email;
       token.name = user.name || user.email;
-      token.provider = this.id;
-      token.exp = 1000; // TODO: remove this as Auth.js overrides it
-      token.expires_at = user.expiresAt;
+      token.provider = ENDATIX_AUTH_PROVIDER_ID;
+      token.exp = userData.expiresAt;
+      token.expires_at = userData.expiresAt;
 
       return token;
     }
 
+    if (trigger === "update") {
+      return {
+        ...token,
+        loggedIn: "yes",
+        access_token: session?.accessToken,
+        refresh_token: session?.refreshToken,
+        expires_at: session?.expiresAt,
+        exp: session?.expiresAt,
+      };
+    }
+
     const isExpired = token?.expires_at && token.expires_at < Date.now() / 1000;
     if (isExpired) {
-      if (!token.refresh_token) {
-        throw new TokenExpiredError();
-      }
-
-      const endatix = new EndatixApi();
-      const refreshTokenResult = await endatix.auth.refreshToken({
-        refreshToken: token.refresh_token,
-        accessToken: token.access_token!,
-      });
-
-      if (ApiResult.isSuccess(refreshTokenResult)) {
-        try {
-          const jwtPayload = decodeJwt<EndatixJwtPayload>(
-            refreshTokenResult.data.accessToken,
-          );
-
-          return {
-            ...token,
-            access_token: refreshTokenResult.data.accessToken,
-            refresh_token: refreshTokenResult.data.refreshToken,
-            expires_at: jwtPayload.exp || Date.now() / 1000,
-          };
-        } catch (error: unknown) {
-          if (error instanceof JWTInvalid) {
-            throw new ServerError("Invalid access token");
-          }
-
-          throw new ServerError("Failed to decode access token");
-        }
-      }
-
-      throw new TokenExpiredError();
+      console.log("🔎 isExpired");
+      return {
+        ...token,
+        error: "TokenExpired",
+      };
     }
 
     return token;
@@ -200,13 +190,13 @@ export class EndatixAuthProvider implements IAuthProvider {
   async handleSession(params: SessionParams): Promise<Session> {
     const { session, token } = params;
 
+    console.log("🔎 handleSession params");
     session.accessToken = token.access_token as string;
-    session.user = {
-      ...session.user,
-      name: token.name as string,
-      email: token.email as string,
-      expiresAt: token.expires_at as number,
-    };
+    session.refreshToken = token.refresh_token as string;
+    session.expiresAt = token.expires_at as number;
+    session.expires = new Date((token.expires_at as number) * 1000) as Date &
+      string;
+    session.error = token.error as "RefreshTokenError";
 
     return session;
   }

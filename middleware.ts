@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { NextAuthRequest } from "next-auth";
 import { NextResponse } from "next/server";
 import {
@@ -8,28 +8,19 @@ import {
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure/auth-constants";
 
-export default auth((req: NextAuthRequest) => {
-  const isLoggedIn = !!req.auth;
-
-  if (!isLoggedIn && !AUTH_ROUTES.includes(req.nextUrl.pathname)) {
-    let returnUrl = req.nextUrl.pathname || DEFAULT_RETURN_URL;
-    if (returnUrl === "/") {
-      returnUrl = DEFAULT_RETURN_URL;
-    }
-
-    if (req.nextUrl.search) {
-      returnUrl += req.nextUrl.search;
-    }
-
-    const encodedReturnUrl = encodeURIComponent(returnUrl);
-
-    const loginUrl = new URL(
-      `${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodedReturnUrl}`,
-      req.nextUrl.origin,
-    );
-
-    return NextResponse.redirect(loginUrl);
+export default auth(async (req: NextAuthRequest) => {
+  if (AUTH_ROUTES.includes(req.nextUrl.pathname)) {
+    console.log("AUTH_ROUTES redirect");
+    return NextResponse.next();
   }
+
+  const isLoggedIn = !!req.auth;
+  const hasSessionError = req.auth?.error !== undefined;
+  if (!isLoggedIn || hasSessionError) {
+    return redirectToLogin(req);
+  }
+
+  return NextResponse.next();
 });
 
 /*
@@ -49,8 +40,28 @@ export const config = {
   matcher: [
     {
       source:
-        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.well-known).*)",
       missing: [{ type: "header", key: "next-action" }],
     },
   ],
 };
+
+function redirectToLogin(req: NextAuthRequest): NextResponse<unknown> {
+  let returnUrl = req.nextUrl.pathname || DEFAULT_RETURN_URL;
+  if (returnUrl === "/") {
+    returnUrl = DEFAULT_RETURN_URL;
+  }
+
+  if (req.nextUrl.search) {
+    returnUrl += req.nextUrl.search;
+  }
+
+  const encodedReturnUrl = encodeURIComponent(returnUrl);
+
+  const loginUrl = new URL(
+    `${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodedReturnUrl}`,
+    req.nextUrl.origin,
+  );
+
+  return NextResponse.redirect(loginUrl);
+}
