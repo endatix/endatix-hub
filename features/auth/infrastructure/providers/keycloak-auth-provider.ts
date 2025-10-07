@@ -49,7 +49,7 @@ export class KeycloakAuthProvider implements IAuthProvider {
 
     return true;
   }
-  
+
   getPresentationOptions(): IAuthPresentation {
     return {
       displayName: this.name,
@@ -58,18 +58,35 @@ export class KeycloakAuthProvider implements IAuthProvider {
   }
 
   async handleJWT(params: JWTParams): Promise<JWT> {
-    const { token, user, account } = params;
+    const { token, user, account, session, trigger } = params;
 
-    if (account?.provider === this.id) {
-      token.access_token = account.access_token;
-      token.refresh_token = account.refresh_token;
-      token.provider = this.id;
-    }
-
-    if (user) {
+    if (user && account?.provider === this.id) {
       token.id = user.id;
       token.email = user.email;
       token.name = user.name;
+      token.provider = this.id;
+      token.access_token = account.access_token;
+      token.refresh_token = account.refresh_token;
+      token.expires_at = account.expires_at;
+
+      return token;
+    }
+
+    if (trigger === "update") {
+      return {
+        ...token,
+        access_token: session?.accessToken,
+        refresh_token: session?.refreshToken,
+        expires_at: session?.expiresAt,
+      };
+    }
+
+    const isExpired = token?.expires_at && token.expires_at < Date.now() / 1000;
+    if (isExpired) {
+      return {
+        ...token,
+        error: "SessionExpiredError",
+      };
     }
 
     return token;
@@ -78,13 +95,21 @@ export class KeycloakAuthProvider implements IAuthProvider {
   async handleSession(params: SessionParams): Promise<Session> {
     const { session, token } = params;
 
-    session.accessToken = token.access_token as string;
     session.user = {
       ...session.user,
       id: token.id as string,
       email: token.email as string,
       name: token.name as string,
     };
+
+    session.provider = token.provider as string;
+    session.accessToken = token.access_token as string;
+    session.refreshToken = token.refresh_token as string;
+    session.expiresAt = token.expires_at as number;
+
+    if (token.error) {
+      session.error = token.error;
+    }
 
     return session;
   }

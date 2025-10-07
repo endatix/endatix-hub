@@ -152,11 +152,11 @@ export class EndatixAuthProvider implements IAuthProvider {
       expiresAt: number;
     };
 
-    if (user && account?.provider === ENDATIX_AUTH_PROVIDER_ID) {
-      token.id = userData.id;
+    if (user && account?.provider === this.id) {
+      token.id = user.id;
       token.email = user.email;
       token.name = user.name || user.email;
-      token.provider = ENDATIX_AUTH_PROVIDER_ID;
+      token.provider = this.id;
       token.access_token = userData.accessToken;
       token.refresh_token = userData.refreshToken;
       token.expires_at = userData.expiresAt;
