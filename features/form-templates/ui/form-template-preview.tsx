@@ -27,8 +27,10 @@ import { UseTemplateButton } from "./use-template-button";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
-import { customQuestions } from '@/customizations/questions/question-registry';
-import { questionLoaderModule } from '@/lib/questions/question-loader-module';
+import { customQuestions } from "@/customizations/questions/question-registry";
+import { questionLoaderModule } from "@/lib/questions/question-loader-module";
+import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
+import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -37,6 +39,9 @@ const SurveyPreviewComponent = dynamic(
     loading: () => <Spinner className="w-8 h-8 mx-auto my-12" />,
   },
 );
+
+registerAudioQuestion();
+addRandomizeGroupFeature();
 
 // Load all custom questions registered in the question registry
 for (const questionName of customQuestions) {
@@ -73,7 +78,9 @@ export function FormTemplatePreview({
 
           const questionsResult = await getCustomQuestionsAction();
           if (Result.isSuccess(questionsResult)) {
-            initializeCustomQuestions(questionsResult.value.map(q => q.jsonData));
+            initializeCustomQuestions(
+              questionsResult.value.map((q) => q.jsonData),
+            );
           }
 
           const data = await getTemplateAction(templateId);
