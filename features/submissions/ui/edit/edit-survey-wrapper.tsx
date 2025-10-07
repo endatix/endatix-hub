@@ -18,6 +18,7 @@ import {
   isLocaleValid,
 } from "../../submission-localization";
 import { registerAudioQuestion } from '@/lib/questions/audio-recorder';
+import addRandomizeGroupFeature from '@/lib/questions/features/group-randomization';
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -31,6 +32,7 @@ interface EditSurveyWrapperProps {
 }
 
 registerAudioQuestion();
+addRandomizeGroupFeature();
 
 function useSurveyModel(submission: Submission) {
   const modelRef = useRef<Model | null>(null);
