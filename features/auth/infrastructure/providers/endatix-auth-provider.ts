@@ -106,7 +106,7 @@ export class EndatixAuthProvider implements IAuthProvider {
             );
 
             return {
-              id: signInResult.data.email,
+              id: jwtPayload.sub,
               email: signInResult.data.email,
               name: signInResult.data.email,
               accessToken: signInResult.data.accessToken,
@@ -153,12 +153,12 @@ export class EndatixAuthProvider implements IAuthProvider {
     };
 
     if (user && account?.provider === ENDATIX_AUTH_PROVIDER_ID) {
-      token.access_token = userData.accessToken;
-      token.refresh_token = userData.refreshToken;
+      token.id = userData.id;
       token.email = user.email;
       token.name = user.name || user.email;
       token.provider = ENDATIX_AUTH_PROVIDER_ID;
-      token.exp = userData.expiresAt;
+      token.access_token = userData.accessToken;
+      token.refresh_token = userData.refreshToken;
       token.expires_at = userData.expiresAt;
 
       return token;
@@ -167,20 +167,17 @@ export class EndatixAuthProvider implements IAuthProvider {
     if (trigger === "update") {
       return {
         ...token,
-        loggedIn: "yes",
         access_token: session?.accessToken,
         refresh_token: session?.refreshToken,
         expires_at: session?.expiresAt,
-        exp: session?.expiresAt,
       };
     }
 
     const isExpired = token?.expires_at && token.expires_at < Date.now() / 1000;
     if (isExpired) {
-      console.log("🔎 isExpired");
       return {
         ...token,
-        error: "TokenExpired",
+        error: "SessionExpiredError",
       };
     }
 
@@ -190,13 +187,19 @@ export class EndatixAuthProvider implements IAuthProvider {
   async handleSession(params: SessionParams): Promise<Session> {
     const { session, token } = params;
 
-    console.log("🔎 handleSession params");
+    session.user = {
+      ...session.user,
+      id: token.id as string,
+    }
+
+    session.provider = token.provider as string;
     session.accessToken = token.access_token as string;
     session.refreshToken = token.refresh_token as string;
     session.expiresAt = token.expires_at as number;
-    session.expires = new Date((token.expires_at as number) * 1000) as Date &
-      string;
-    session.error = token.error as "RefreshTokenError";
+
+    if (token.error) {
+      session.error = token.error;
+    }
 
     return session;
   }

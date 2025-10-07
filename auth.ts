@@ -21,12 +21,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
 });
 
+type SessionError =
+  | "RefreshTokenError"
+  | "SessionExpiredError"
+  | "UnknownSessionError";
+
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
-    error?: "RefreshTokenError" | "SessionExpiredError" | "UnknownSessionError";
+    error?: SessionError;
+    provider?: string;
+    user?: {
+      name?: string;
+      email?: string;
+      id?: string;
+    };
   }
 }
 
@@ -36,5 +47,6 @@ declare module "next-auth/jwt" {
     refresh_token?: string;
     provider?: string;
     expires_at?: number;
+    error?: SessionError;
   }
 }
