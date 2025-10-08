@@ -10,6 +10,7 @@ export interface JWTParams {
   token: JWT;
   user?: User;
   account?: Account;
+  session?: Session;
   trigger?: "signIn" | "signUp" | "update";
 }
 

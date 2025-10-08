@@ -17,26 +17,36 @@ export const authConfig = createAuthConfig(authRegistry);
 
 export const authPresentation: AuthPresentation[] = authConfig.authPresentation;
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ...authConfig,
 });
+
+type SessionError =
+  | "RefreshTokenError"
+  | "SessionExpiredError"
+  | "UnknownSessionError";
 
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
-    error?: "RefreshTokenError";
-  }
-
-  interface User {
-    accessToken?: string;
     refreshToken?: string;
+    expiresAt?: number;
+    error?: SessionError;
+    provider?: string;
+    user?: {
+      name?: string;
+      email?: string;
+      id?: string;
+    };
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    accessToken?: string;
-    refreshToken?: string;
+    access_token?: string;
+    refresh_token?: string;
     provider?: string;
+    expires_at?: number;
+    error?: SessionError;
   }
 }
