@@ -98,8 +98,6 @@ export class KeycloakAuthProvider implements IAuthProvider {
     session.user = {
       ...session.user,
       id: token.id as string,
-      email: token.email as string,
-      name: token.name as string,
     };
 
     session.provider = token.provider as string;
