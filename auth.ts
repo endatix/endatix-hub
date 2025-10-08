@@ -17,7 +17,7 @@ export const authConfig = createAuthConfig(authRegistry);
 
 export const authPresentation: AuthPresentation[] = authConfig.authPresentation;
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ...authConfig,
 });
 

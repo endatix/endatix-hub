@@ -29,11 +29,8 @@ export async function POST(request: NextRequest) {
 
       const updatedSession = await unstable_update({
         accessToken: refreshTokenResult.data.accessToken,
-        user: {
-          accessToken: refreshTokenResult.data.accessToken,
-          refreshToken: refreshTokenResult.data.refreshToken,
-          expiresAt: jwtPayload.exp || Date.now() / 1000,
-        },
+        refreshToken: refreshTokenResult.data.refreshToken,
+        expiresAt: jwtPayload.exp || Date.now() / 1000,
       });
 
       return NextResponse.json(updatedSession);
