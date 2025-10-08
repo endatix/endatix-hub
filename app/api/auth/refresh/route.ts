@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json(updatedSession);
-      console.log("🥸 session updated");
     } catch (error: unknown) {
       if (error instanceof JWTInvalid) {
         return NextResponse.json(
