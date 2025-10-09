@@ -11,7 +11,6 @@ export default async function middleware(req: NextRequest) {
   const session = await auth();
 
   if (AUTH_ROUTES.includes(req.nextUrl.pathname)) {
-    console.log("AUTH_ROUTES redirect");
     return NextResponse.next();
   }
 
