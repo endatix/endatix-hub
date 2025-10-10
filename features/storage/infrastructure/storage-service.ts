@@ -29,6 +29,22 @@ const STORAGE_SERVICE_CONFIG: AzureStorageConfig = Object.freeze({
   })(),
 });
 
+// Singleton BlobServiceClient to prevent memory leaks
+let _blobServiceClient: BlobServiceClient | null = null;
+
+function getBlobServiceClient(): BlobServiceClient {
+  if (!_blobServiceClient) {
+    _blobServiceClient = new BlobServiceClient(
+      `https://${STORAGE_SERVICE_CONFIG.hostName}`,
+      new StorageSharedKeyCredential(
+        STORAGE_SERVICE_CONFIG.accountName,
+        STORAGE_SERVICE_CONFIG.accountKey,
+      ),
+    );
+  }
+  return _blobServiceClient;
+}
+
 /**
  * Uploads a file to Azure Blob Storage
  * @param fileBuffer - The buffer containing the file data
@@ -47,14 +63,6 @@ async function uploadToStorage(
     throw new Error("Azure storage is not enabled");
   }
 
-  const blobServiceClient = new BlobServiceClient(
-    `https://${STORAGE_SERVICE_CONFIG.hostName}`,
-    new StorageSharedKeyCredential(
-      STORAGE_SERVICE_CONFIG.accountName,
-      STORAGE_SERVICE_CONFIG.accountKey,
-    ),
-  );
-
   if (!fileBuffer) {
     throw new Error("a file is not provided");
   }
@@ -69,21 +77,37 @@ async function uploadToStorage(
 
   const STEP_UPLOAD_START = performance.now();
 
+  const blobServiceClient = getBlobServiceClient();
   const containerClient = blobServiceClient.getContainerClient(containerName);
-  await containerClient.createIfNotExists({
-    access: "container",
-  });
 
-  const blobName = folderPath ? `${folderPath}/${fileName}` : fileName;
-  const blobClient = containerClient.getBlockBlobClient(blobName);
-  await blobClient.uploadData(fileBuffer);
+  try {
+    await containerClient.createIfNotExists({
+      access: "container",
+    });
 
-  const STEP_UPLOAD_END = performance.now();
-  console.log(
-    `⏱️ Upload to blob took ${STEP_UPLOAD_END - STEP_UPLOAD_START}ms`,
-  );
+    const blobName = folderPath ? `${folderPath}/${fileName}` : fileName;
+    const blobClient = containerClient.getBlockBlobClient(blobName);
+    await blobClient.uploadData(fileBuffer);
 
-  return blobClient.url;
+    const STEP_UPLOAD_END = performance.now();
+    console.log(
+      `⏱️ Upload to blob took ${STEP_UPLOAD_END - STEP_UPLOAD_START}ms`,
+    );
+
+    return blobClient.url;
+  } catch (error) {
+    console.error("Error uploading to blob storage:", error);
+    throw error;
+  }
 }
 
-export { STORAGE_SERVICE_CONFIG, uploadToStorage };
+// Reset function for testing or when you need to recreate the client
+function resetBlobServiceClient(): void {
+  if (_blobServiceClient) {
+    // The Azure SDK doesn't have a close method, but we can nullify the reference
+    // to allow garbage collection
+    _blobServiceClient = null;
+  }
+}
+
+export { STORAGE_SERVICE_CONFIG, uploadToStorage, resetBlobServiceClient };
