@@ -1,6 +1,7 @@
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
 import { ApiResult, ApiErrorDetails, ApiErrorType } from "./shared/api-result";
 import { ERROR_CODE, getErrorMessageWithFallback } from "./shared/error-codes";
+import { Forms } from "./forms/forms";
 import { Submissions } from "./submissions/submissions";
 import type { SessionData } from "@/features/auth";
 import { parseErrorResponse } from "./shared/problem-details";
@@ -41,6 +42,7 @@ export class EndatixApi {
   private readonly baseUrl: string;
   private readonly defaultHeaders: Record<string, string>;
   private readonly session?: SessionData;
+  private _forms?: Forms;
   private _submissions?: Submissions;
   private _agents?: Agents;
   private _auth?: Auth;
@@ -77,6 +79,16 @@ export class EndatixApi {
       this._auth = new Auth(this);
     }
     return this._auth;
+  }
+
+  /**
+   * Lazy-loaded forms API - only creates instance when first accessed
+   */
+  get forms(): Forms {
+    if (!this._forms) {
+      this._forms = new Forms(this);
+    }
+    return this._forms;
   }
 
   /**

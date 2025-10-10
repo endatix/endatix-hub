@@ -6,3 +6,4 @@ export * from "./my-account/types";
 export * from "./agents/types";
 export * from "./shared/types";
 export * from "./submissions/types";
+export * from "./forms/types";
