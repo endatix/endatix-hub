@@ -88,9 +88,12 @@ interface FormEditorProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
+  initialPropertyGridVisible?: boolean;
+  hasUnsavedChanges?: boolean;
   onUnsavedChanges?: (hasChanges: boolean) => void;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
+  onPropertyGridControllerReady?: (controller: (visible: boolean) => void) => void;
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -119,20 +122,23 @@ function FormEditor({
   options,
   slkVal,
   themeId,
+  initialPropertyGridVisible = true,
+  hasUnsavedChanges = false,
   onUnsavedChanges,
   onThemeModificationChange,
   onSaveHandlerReady,
+  onPropertyGridControllerReady,
 }: FormEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const router = useRouter();
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
+  const lastFormJsonRef = useRef(formJson);
   const handleThemeIdChanged = useCallback(() => {
-    setHasUnsavedChanges(true);
-  }, []);
+    onUnsavedChanges?.(true);
+  }, [onUnsavedChanges]);
 
   const handleUploadFile = useCallback(
     async (_: SurveyCreatorModel, options: UploadFileEvent) => {
@@ -288,7 +294,7 @@ function FormEditor({
       }
     }
 
-    setHasUnsavedChanges(false);
+    onUnsavedChanges?.(false);
     toast.success(
       <p>
         {isFormUpdated && "Form changes saved. "}
@@ -299,7 +305,7 @@ function FormEditor({
         )}
       </p>,
     );
-  }, [getJsonForSaving, creator?.theme, formId, themeId]);
+  }, [getJsonForSaving, creator?.theme, formId, themeId, onUnsavedChanges]);
 
   const { saveThemeHandler, isCurrentThemeModified } = useThemeManagement({
     formId,
@@ -322,11 +328,6 @@ function FormEditor({
     }
   }, [hasUnsavedChanges, isCurrentThemeModified, saveThemeHandler, saveForm]);
 
-  // Notify parent of state changes
-  useEffect(() => {
-    onUnsavedChanges?.(hasUnsavedChanges);
-  }, [hasUnsavedChanges, onUnsavedChanges]);
-
   useEffect(() => {
     onThemeModificationChange?.(isCurrentThemeModified);
   }, [isCurrentThemeModified, onThemeModificationChange]);
@@ -335,6 +336,19 @@ function FormEditor({
   useEffect(() => {
     onSaveHandlerReady?.(saveFormHandler);
   }, [saveFormHandler, onSaveHandlerReady]);
+
+  // Provide property grid controller to parent
+  useEffect(() => {
+    if (!creator) return;
+
+    const propertyGridController = (visible: boolean) => {
+      if (creator.showPropertyGrid !== undefined) {
+        creator.showPropertyGrid = visible;
+      }
+    };
+
+    onPropertyGridControllerReady?.(propertyGridController);
+  }, [creator, onPropertyGridControllerReady]);
 
 
   const createCustomQuestionDialog = useCallback(
@@ -432,7 +446,11 @@ function FormEditor({
           }
         }
 
-        const newCreator = new SurveyCreator(options || defaultCreatorOptions);
+        const creatorOptions = {
+          ...(options || defaultCreatorOptions),
+          showPropertyGrid: initialPropertyGridVisible,
+        };
+        const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
         newCreator.onSurveyInstanceCreated.add((_, options) => {
@@ -448,6 +466,11 @@ function FormEditor({
           }
         });
 
+        // Set initial JSON during creator initialization
+        if (formJson) {
+          newCreator.JSON = formJson;
+        }
+
         setCreator(newCreator);
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
@@ -460,12 +483,17 @@ function FormEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile, creator]);
+  }, [options, slkVal, handleUploadFile, creator, initialPropertyGridVisible]);
 
   useEffect(() => {
-    if (creator && formJson) {
-      creator.JSON = formJson;
+    if (!creator || !formJson) return;
+
+    if (lastFormJsonRef.current === formJson) {
+      return;
     }
+
+    lastFormJsonRef.current = formJson;
+    creator.JSON = formJson;
   }, [creator, formJson]);
 
 
@@ -504,13 +532,13 @@ function FormEditor({
         return;
       }
 
-      setHasUnsavedChanges(true);
+      onUnsavedChanges?.(true);
     };
 
     const attachJsonTextareaListener = (jsonTextarea: HTMLTextAreaElement) => {
       if (!(jsonTextarea as any).__handlerAttached) {
         const handleInput = () => {
-          setHasUnsavedChanges(true);
+          onUnsavedChanges?.(true);
         };
 
         jsonTextarea.addEventListener("input", handleInput);
@@ -571,7 +599,7 @@ function FormEditor({
         }
       };
     }
-  }, [creator, themeId]);
+  }, [creator, themeId, onUnsavedChanges]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {

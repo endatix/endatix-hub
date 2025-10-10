@@ -4,10 +4,12 @@ export type ChatMessage = {
 }
 
 export type ChatContext = {
+    conversationId?: number,
     agentId: string,
     threadId: string,
     messages: ChatMessage[],
     isInitialPrompt?: boolean,
+    error?: string,
 };
 
 export interface DefineFormContext {

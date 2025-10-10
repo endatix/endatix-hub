@@ -80,10 +80,12 @@ const SubmitButton = ({
 const initialState = PromptResult.InitialState();
 
 interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
+  formId?: string;
+  currentDefinition?: string;
   requiresNewContext?: boolean;
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
-  onStateChange?: (stateCommand: DefineFormCommand) => void;
+  onStateChange?: (stateCommand: DefineFormCommand, newDefinition?: object) => void;
   isTranslationMode?: boolean;
   targetLanguage?: string;
   onTargetLanguageChange?: (language: string) => void;
@@ -93,6 +95,8 @@ interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
 const ChatBox = ({
   className,
   placeholder,
+  formId,
+  currentDefinition,
   requiresNewContext,
   onPendingChange,
   onStateChange,
@@ -110,19 +114,33 @@ const ChatBox = ({
       setRetryMode(false);
 
       if (requiresNewContext) {
-        contextStore.clear();
+        contextStore.clear(formId);
         contextStore.setChatContext({
           messages: [],
           threadId: "",
           agentId: "",
           isInitialPrompt: true,
-        });
+        }, formId);
       }
 
-      const formContext = contextStore.getChatContext();
+      const formContext = contextStore.getChatContext(formId);
       if (formContext) {
-        formData.set("threadId", formContext.threadId ?? "");
-        formData.set("agentId", formContext.agentId ?? "");
+        if (formContext.threadId) {
+          formData.set("threadId", formContext.threadId);
+        }
+        if (formContext.agentId) {
+          formData.set("agentId", formContext.agentId);
+        }
+      }
+
+      // Send current definition to AI for context
+      if (currentDefinition) {
+        formData.set("definition", currentDefinition);
+      }
+
+      // Pass formId to backend for conversation tracking
+      if (formId) {
+        formData.set("formId", formId);
       }
 
       const promptResult = await defineFormAction(prevState, formData);
@@ -134,8 +152,8 @@ const ChatBox = ({
 
       if (promptResult.data?.definition) {
         const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(promptResult.data?.definition);
-        const currentContext = contextStore.getChatContext();
+        contextStore.setFormModel(JSON.stringify(promptResult.data.definition), formId);
+        const currentContext = contextStore.getChatContext(formId);
         currentContext.threadId = promptResult.data?.threadId ?? "";
         currentContext.agentId = promptResult.data?.agentId ?? "";
 
@@ -159,10 +177,10 @@ const ChatBox = ({
           });
         }
 
-        contextStore.setChatContext(currentContext);
+        contextStore.setChatContext(currentContext, formId);
 
         if (onStateChange) {
-          onStateChange(DefineFormCommand.fullStateUpdate);
+          onStateChange(DefineFormCommand.fullStateUpdate, promptResult.data.definition);
         }
 
         if (window.location.pathname === "/forms") {

@@ -24,6 +24,11 @@ function buildDefineFormRequest(formData: FormData): DefineFormRequest {
     request.threadId = threadId;
   }
 
+  const formId = formData.get("formId") as string;
+  if (formId?.trim()) {
+    request.formId = formId;
+  }
+
   return request;
 }
 

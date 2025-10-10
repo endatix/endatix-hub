@@ -8,6 +8,7 @@ import Agents from "./agents/agents";
 import Account from "./account/account";
 import MyAccount from "./my-account/my-account";
 import Auth from "./auth/auth";
+import { ConversationsApi } from "./conversations/conversations";
 
 const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
 const DEFAULT_HEADERS = {};
@@ -33,6 +34,7 @@ export class EndatixApi {
   private _auth?: Auth;
   private _account?: Account;
   private _myAccount?: MyAccount;
+  private _conversations?: ConversationsApi;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -84,6 +86,16 @@ export class EndatixApi {
       this._agents = new Agents(this);
     }
     return this._agents;
+  }
+
+  /**
+   * Lazy-loaded conversations API - only creates instance when first accessed
+   */
+  get conversations(): ConversationsApi {
+    if (!this._conversations) {
+      this._conversations = new ConversationsApi(this);
+    }
+    return this._conversations;
   }
 
   /**

@@ -109,7 +109,7 @@ const ChatBox = ({
 
       if (promptResult.success && promptResult.data?.definition) {
         const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(promptResult.data.definition);
+        contextStore.setFormModel(JSON.stringify(promptResult.data.definition));
         const currentContext = contextStore.getChatContext();
         currentContext.threadId = promptResult.data.threadId ?? "";
         currentContext.agentId = promptResult.data.agentId ?? "";
