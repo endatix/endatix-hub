@@ -2,7 +2,7 @@
 
 import {
   AlertCircle,
-  CornerDownLeft,
+  ArrowUp,
   Mic,
   Paperclip,
   StopCircle,
@@ -55,25 +55,32 @@ const SubmitButton = ({
 }) => {
 
   const chatIcon = retryMode ? (
-    <Repeat2 className="size-3" />
+    <Repeat2 className="size-4" />
   ) : pending ? (
-    <StopCircle className="size-6" />
+    <StopCircle className="size-4" />
   ) : (
-    <CornerDownLeft className="size-3" />
+    <ArrowUp className="size-4" />
   );
 
+  const tooltipText = retryMode ? "Retry" : "Send";
 
   return (
-    <Button
-      type="submit"
-      size="sm"
-      className={cn("ml-auto gap-1.5 w-24", pending ? "cursor-progress" : "")}
-      aria-disabled={pending}
-      disabled={disabled || pending}
-    >
-      {retryMode ? "Retry" : "Chat"}
-      {chatIcon}
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="submit"
+            size="icon"
+            className={cn("ml-auto", pending ? "cursor-progress" : "")}
+            aria-disabled={pending}
+            disabled={disabled || pending}
+          >
+            {chatIcon}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tooltipText}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
@@ -308,38 +315,42 @@ const ChatBox = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  disabled
-                  variant="ghost"
-                  size="icon"
-                  className="disabled:opacity-50"
-                >
-                  <Paperclip className="size-4" />
-                  <span className="sr-only">Attach file</span>
-                </Button>
+                <span className="inline-flex">
+                  <Button
+                    disabled
+                    variant="ghost"
+                    size="icon"
+                    className="disabled:opacity-50 pointer-events-none"
+                  >
+                    <Paperclip className="size-4" />
+                    <span className="sr-only">Attach file</span>
+                  </Button>
+                </span>
               </TooltipTrigger>
-              <TooltipContent side="top">Attach File</TooltipContent>
+              <TooltipContent side="top" className="z-[9999]">File attachments coming soon</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  disabled
-                  variant="ghost"
-                  size="icon"
-                  className="disabled:opacity-50"
-                >
-                  <Mic className="size-4" />
-                  <span className="sr-only">Use Microphone</span>
-                </Button>
+                <span className="inline-flex">
+                  <Button
+                    disabled
+                    variant="ghost"
+                    size="icon"
+                    className="disabled:opacity-50 pointer-events-none"
+                  >
+                    <Mic className="size-4" />
+                    <span className="sr-only">Use Microphone</span>
+                  </Button>
+                </span>
               </TooltipTrigger>
-              <TooltipContent side="top">Use Microphone</TooltipContent>
+              <TooltipContent side="top" className="z-[9999]">Voice input coming soon</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <SubmitButton pending={pending} disabled={input.length === 0} retryMode={retryMode} />
         </div>
       </form>
       <p className="text-center text-xs text-gray-500">
-        Endatix may make mistakes. Please use with discretion.
+        Endatix AI Assistant may make mistakes. Please use with discretion.
       </p>
     </div>
   );

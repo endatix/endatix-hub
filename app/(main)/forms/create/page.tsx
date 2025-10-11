@@ -182,7 +182,7 @@ const CreateForm: NextPage = () => {
                     onClick={handleCancelTranslation}
                     disabled={isWaiting || isPending}
                   >
-                    Cancel Translation
+                    Cancel translation
                   </Button>
                 )}
 

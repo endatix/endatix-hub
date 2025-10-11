@@ -312,7 +312,7 @@ export default function FormEditorWithChat({
                           onClick={handleCancelTranslation}
                           disabled={isWaiting}
                         >
-                          Cancel Translation
+                          Cancel translation
                         </Button>
                       )}
                       {!isTranslationMode && (

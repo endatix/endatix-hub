@@ -19,7 +19,7 @@ import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
-import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
+import { BicepsFlexed, Code, Copy, Folder, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FC, useState, useTransition, useEffect } from "react";
 import ChatBox from "./chat-box";
@@ -232,40 +232,59 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
       </div>
       {(pending || isCreatingAiForm) && <DotLoader className="flex-1 text-center m-auto" />}
       <SheetFooter className="flex-end">
-        {aiFeatureFlag && aiFormId && (
-          <ChatBox
-            formId={aiFormId}
-            requiresNewContext={true}
-            onPendingChange={(pending) => {
-              setPending(pending);
-            }}
-            onFormGenerated={handleAiFormGenerated}
-          />
-        )}
-        {selectedOption === "from_template" && (
-          <div className="w-full space-y-4">
-            <TemplateSelector
-              onTemplateSelect={handleTemplateSelect}
-              onPreviewTemplate={handlePreviewTemplate}
-            />
-            {selectedTemplate && (
-              <Button
-                className="w-full"
-                onClick={handleCreateFromTemplate}
-                disabled={isPending}
-              >
-                {isPending ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Form from Template"
-                )}
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="w-full space-y-4">
+          {selectedOption === "from_template" && (
+            <div className="w-full space-y-4">
+              <TemplateSelector
+                onTemplateSelect={handleTemplateSelect}
+                onPreviewTemplate={handlePreviewTemplate}
+              />
+              {selectedTemplate && (
+                <Button
+                  className="w-full"
+                  onClick={handleCreateFromTemplate}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <>
+                      <Spinner className="mr-2 h-4 w-4" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Form from Template"
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {aiFeatureFlag && aiFormId && (
+            <div className="w-full space-y-3">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    or
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Let <span className="font-bold">Endatix AI Assistant</span> build the form
+              </p>
+              <ChatBox
+                formId={aiFormId}
+                requiresNewContext={true}
+                onPendingChange={(pending) => {
+                  setPending(pending);
+                }}
+                onFormGenerated={handleAiFormGenerated}
+              />
+            </div>
+          )}
+        </div>
       </SheetFooter>
 
       {previewTemplateId && (
