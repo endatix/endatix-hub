@@ -65,6 +65,7 @@ export async function getConversationAction(
       threadId: conversationResult.data.conversationId.toString(),
       messages: messages,
       isInitialPrompt: messages.length === 0,
+      resultJson: conversationResult.data.resultJson,
     };
   } catch (error) {
     console.error("Failed to fetch conversation:", error);

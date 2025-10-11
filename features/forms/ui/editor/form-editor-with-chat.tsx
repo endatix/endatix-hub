@@ -63,6 +63,7 @@ export default function FormEditorWithChat({
   const [messages, setMessages] = useState(new Array<ChatMessage>());
   const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(null);
   const [conversationError, setConversationError] = useState<string | null>(null);
+  const [conversationLoaded, setConversationLoaded] = useState(false);
   const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(null);
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function FormEditorWithChat({
 
       if (currentContext?.error) {
         setConversationError(currentContext.error);
+        setConversationLoaded(true);
         return;
       }
 
@@ -85,6 +87,19 @@ export default function FormEditorWithChat({
       if (currentContext?.messages) {
         setMessages(currentContext.messages);
       }
+
+      // If form definition is empty but conversation has resultJson, load it
+      if ((!formJson || Object.keys(formJson).length === 0) && currentContext?.resultJson) {
+        try {
+          const parsedJson = JSON.parse(currentContext.resultJson);
+          setUpdatedFormJson(parsedJson);
+          onUnsavedChanges?.(true);
+        } catch (error) {
+          console.error("Failed to parse conversation resultJson:", error);
+        }
+      }
+
+      setConversationLoaded(true);
     };
 
     initializeConversation();
@@ -99,7 +114,7 @@ export default function FormEditorWithChat({
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
-  }, [formId]);
+  }, [formId, onUnsavedChanges]);
 
   const defineFormHandler = (stateCommand: DefineFormCommand, newDefinition?: object) => {
     const contextStore = new AssistantStore();
@@ -140,6 +155,10 @@ export default function FormEditorWithChat({
     }
   };
 
+  // Render FormEditor if we have non empty form JSON OR after conversation is loaded
+  const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
+  const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
+
   return (
     <div className="flex-1 flex overflow-hidden">
       <ResizablePanelGroup
@@ -147,22 +166,24 @@ export default function FormEditorWithChat({
         className="flex-1"
       >
         <ResizablePanel defaultSize={70}>
-          <FormEditorContainer
-            formId={formId}
-            formJson={updatedFormJson || formJson}
-            formName={formName}
-            options={options}
-            slkVal={slkVal}
-            themeId={themeId}
-            initialPropertyGridVisible={isCollapsed}
-            hasUnsavedChanges={hasUnsavedChanges}
-            onUnsavedChanges={onUnsavedChanges}
-            onThemeModificationChange={onThemeModificationChange}
-            onSaveHandlerReady={onSaveHandlerReady}
-            onPropertyGridControllerReady={(controller) => {
-              propertyGridControllerRef.current = controller;
-            }}
-          />
+          {shouldRenderEditor ? (
+            <FormEditorContainer
+              formId={formId}
+              formJson={updatedFormJson || formJson}
+              formName={formName}
+              options={options}
+              slkVal={slkVal}
+              themeId={themeId}
+              initialPropertyGridVisible={isCollapsed}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onUnsavedChanges={onUnsavedChanges}
+              onThemeModificationChange={onThemeModificationChange}
+              onSaveHandlerReady={onSaveHandlerReady}
+              onPropertyGridControllerReady={(controller) => {
+                propertyGridControllerRef.current = controller;
+              }}
+            />
+          ) : null}
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel
@@ -246,6 +267,13 @@ export default function FormEditorWithChat({
                       </Button>
                     </AlertDescription>
                   </Alert>
+                ) : !conversationLoaded ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-muted-foreground">Loading conversation...</p>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <ChatThread isTyping={shouldType} messages={messages} />

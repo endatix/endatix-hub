@@ -3,6 +3,7 @@ export interface LatestConversationResponse {
   agentId: number;
   createdAt: string;
   lastModified: string;
+  resultJson?: string;
 }
 
 export interface ConversationMessage {

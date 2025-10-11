@@ -86,6 +86,7 @@ interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
   onStateChange?: (stateCommand: DefineFormCommand, newDefinition?: object) => void;
+  onFormGenerated?: () => void;
   isTranslationMode?: boolean;
   targetLanguage?: string;
   onTargetLanguageChange?: (language: string) => void;
@@ -100,6 +101,7 @@ const ChatBox = ({
   requiresNewContext,
   onPendingChange,
   onStateChange,
+  onFormGenerated,
   isTranslationMode = false,
   targetLanguage = "",
   onTargetLanguageChange,
@@ -183,7 +185,11 @@ const ChatBox = ({
           onStateChange(DefineFormCommand.fullStateUpdate, promptResult.data.definition);
         }
 
-        if (window.location.pathname === "/forms") {
+        // If onFormGenerated callback is provided (Create Form sheet scenario),
+        // call it to navigate to designer. Otherwise, redirect to preview page.
+        if (onFormGenerated) {
+          onFormGenerated();
+        } else if (window.location.pathname === "/forms") {
           redirect("/forms/create");
         }
 

@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FC, useState, useTransition } from "react";
+import { FC, useState, useTransition, useEffect } from "react";
 import ChatBox from "./chat-box";
 import TemplateSelector from "./template-selector";
 
@@ -91,6 +91,8 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
   );
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [aiFormId, setAiFormId] = useState<string | null>(null);
+  const [isCreatingAiForm, setIsCreatingAiForm] = useState(false);
   const router = useRouter();
 
   const openNewFormInEditor = async () => {
@@ -146,6 +148,41 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
     });
   };
 
+  // Create empty form for AI assistant when feature flag is enabled
+  useEffect(() => {
+    if (aiFeatureFlag && !aiFormId && !isCreatingAiForm) {
+      setIsCreatingAiForm(true);
+      startTransition(async () => {
+        try {
+          const request: CreateFormRequest = {
+            name: "AI Generated Form",
+            isEnabled: false,
+            formDefinitionJsonData: JSON.stringify({}),
+          };
+          const result = await createFormAction(request);
+          if (Result.isSuccess(result) && result.value) {
+            setAiFormId(result.value);
+          } else {
+            const errorMessage = Result.isError(result) ? result.message : "Unknown error";
+            console.error("Failed to create AI form:", errorMessage);
+            toast.error("Failed to initialize AI assistant");
+          }
+        } catch (error) {
+          console.error("Error creating AI form:", error);
+          toast.error("Failed to initialize AI assistant");
+        } finally {
+          setIsCreatingAiForm(false);
+        }
+      });
+    }
+  }, [aiFeatureFlag, aiFormId, isCreatingAiForm]);
+
+  const handleAiFormGenerated = () => {
+    if (aiFormId) {
+      router.push(`/forms/${aiFormId}/design`);
+    }
+  };
+
   return (
     <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none flex flex-col h-screen justify-between">
       <SheetHeader className="mb-12">
@@ -193,14 +230,16 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
           />
         </div>
       </div>
-      {pending && <DotLoader className="flex-1 text-center m-auto" />}
+      {(pending || isCreatingAiForm) && <DotLoader className="flex-1 text-center m-auto" />}
       <SheetFooter className="flex-end">
-        {aiFeatureFlag && (
+        {aiFeatureFlag && aiFormId && (
           <ChatBox
+            formId={aiFormId}
             requiresNewContext={true}
             onPendingChange={(pending) => {
               setPending(pending);
             }}
+            onFormGenerated={handleAiFormGenerated}
           />
         )}
         {selectedOption === "from_template" && (

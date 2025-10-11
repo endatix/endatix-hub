@@ -10,6 +10,7 @@ export type ChatContext = {
     messages: ChatMessage[],
     isInitialPrompt?: boolean,
     error?: string,
+    resultJson?: string,
 };
 
 export interface DefineFormContext {

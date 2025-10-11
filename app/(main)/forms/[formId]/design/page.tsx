@@ -29,7 +29,7 @@ export default async function FormDesignerPage({ params }: Params) {
     formJson = null;
   }
 
-  if (!form || !formJson) {
+  if (!form) {
     return (
       <NotFoundComponent
         notFoundTitle="Form not found"

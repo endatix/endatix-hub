@@ -70,18 +70,22 @@ const SubmitButton = ({
 const initialState = PromptResult.InitialState();
 
 interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
+  formId?: string;
   requiresNewContext?: boolean;
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
   onStateChange?: (stateCommand: DefineFormCommand) => void;
+  onFormGenerated?: () => void;
 }
 
 const ChatBox = ({
   className,
   placeholder,
+  formId,
   requiresNewContext,
   onPendingChange,
   onStateChange,
+  onFormGenerated,
   ...props
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
@@ -90,27 +94,36 @@ const ChatBox = ({
       const contextStore = new AssistantStore();
 
       if (requiresNewContext) {
-        contextStore.clear();
+        contextStore.clear(formId);
         contextStore.setChatContext({
           messages: [],
           threadId: "",
           agentId: "",
           isInitialPrompt: true,
-        });
+        }, formId);
       }
 
-      const formContext = contextStore.getChatContext();
+      const formContext = contextStore.getChatContext(formId);
       if (formContext) {
-        formData.set("threadId", formContext.threadId ?? "");
-        formData.set("agentId", formContext.agentId ?? "");
+        if (formContext.threadId) {
+          formData.set("threadId", formContext.threadId);
+        }
+        if (formContext.agentId) {
+          formData.set("agentId", formContext.agentId);
+        }
+      }
+
+      // Pass formId to backend for conversation tracking
+      if (formId) {
+        formData.set("formId", formId);
       }
 
       const promptResult = await defineFormAction(prevState, formData);
 
       if (promptResult.success && promptResult.data?.definition) {
         const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(JSON.stringify(promptResult.data.definition));
-        const currentContext = contextStore.getChatContext();
+        contextStore.setFormModel(JSON.stringify(promptResult.data.definition), formId);
+        const currentContext = contextStore.getChatContext(formId);
         currentContext.threadId = promptResult.data.threadId ?? "";
         currentContext.agentId = promptResult.data.agentId ?? "";
 
@@ -134,13 +147,17 @@ const ChatBox = ({
           });
         }
 
-        contextStore.setChatContext(currentContext);
+        contextStore.setChatContext(currentContext, formId);
 
         if (onStateChange) {
           onStateChange(DefineFormCommand.fullStateUpdate);
         }
 
-        if (window.location.pathname === "/forms") {
+        // If onFormGenerated callback is provided (Create Form sheet scenario),
+        // call it to navigate to designer. Otherwise, redirect to preview page.
+        if (onFormGenerated) {
+          onFormGenerated();
+        } else if (window.location.pathname === "/forms") {
           redirect("/forms/create");
         }
 
