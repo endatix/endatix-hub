@@ -13,7 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertCircle, Globe } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import ChatBox from "../chat/chat-box";
@@ -64,6 +64,10 @@ export default function FormEditorWithChat({
   const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(null);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const [conversationLoaded, setConversationLoaded] = useState(false);
+  const [isTranslationMode, setIsTranslationMode] = useState(false);
+  const [targetLanguage, setTargetLanguage] = useState("");
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const languageInputRef = useRef<HTMLInputElement>(null);
   const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(null);
 
   useEffect(() => {
@@ -154,6 +158,25 @@ export default function FormEditorWithChat({
       return;
     }
   };
+
+  const handleAddLanguages = () => {
+    setIsTranslationMode(true);
+    setTargetLanguage("");
+  };
+
+  const handleCancelTranslation = () => {
+    setIsTranslationMode(false);
+    setTargetLanguage("");
+  };
+
+  // Focus language input when translation mode becomes active
+  useEffect(() => {
+    if (isTranslationMode) {
+      languageInputRef.current?.focus();
+    } else {
+      chatInputRef.current?.focus();
+    }
+  }, [isTranslationMode]);
 
   // Render FormEditor if we have non empty form JSON OR after conversation is loaded
   const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
@@ -280,6 +303,31 @@ export default function FormEditorWithChat({
                     {isWaiting && (
                       <DotLoader className="flex flex-none items-center m-auto" />
                     )}
+                    <div className="items-center gap-2 flex justify-end">
+                      {isTranslationMode && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 border-dashed"
+                          onClick={handleCancelTranslation}
+                          disabled={isWaiting}
+                        >
+                          Cancel Translation
+                        </Button>
+                      )}
+                      {!isTranslationMode && (
+                        <Button
+                          disabled={isWaiting}
+                          variant="outline"
+                          size="sm"
+                          className="h-8 border-dashed"
+                          onClick={handleAddLanguages}
+                        >
+                          <Globe className="mr-2 h-4 w-4" />
+                          Add languages
+                        </Button>
+                      )}
+                    </div>
                     <ChatBox
                       formId={formId}
                       currentDefinition={JSON.stringify(updatedFormJson || formJson)}
@@ -291,6 +339,12 @@ export default function FormEditorWithChat({
                       onStateChange={(stateCommand, newDefinition) => {
                         defineFormHandler(stateCommand, newDefinition);
                       }}
+                      isTranslationMode={isTranslationMode}
+                      targetLanguage={targetLanguage}
+                      onTargetLanguageChange={setTargetLanguage}
+                      onTranslationModeChange={setIsTranslationMode}
+                      chatInputRef={chatInputRef}
+                      languageInputRef={languageInputRef}
                     />
                   </>
                 )}

@@ -91,6 +91,8 @@ interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   targetLanguage?: string;
   onTargetLanguageChange?: (language: string) => void;
   onTranslationModeChange?: (isTranslationMode: boolean) => void;
+  chatInputRef?: React.RefObject<HTMLTextAreaElement | null>;
+  languageInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 const ChatBox = ({
@@ -106,6 +108,8 @@ const ChatBox = ({
   targetLanguage = "",
   onTargetLanguageChange,
   onTranslationModeChange,
+  chatInputRef,
+  languageInputRef,
   ...props
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
@@ -249,6 +253,7 @@ const ChatBox = ({
         <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
           <span className="text-sm font-medium">Add new languages:</span>
           <input
+            ref={languageInputRef}
             type="text"
             value={targetLanguage}
             onChange={(e) => onTargetLanguageChange?.(e.target.value)}
@@ -276,6 +281,7 @@ const ChatBox = ({
           Your prompt here
         </Label>
         <Textarea
+          ref={chatInputRef}
           id="prompt"
           name="prompt"
           value={input}
