@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
+import CopyToClipboard from "@/components/copy-to-clipboard";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -128,12 +129,12 @@ interface FormDetailsProps {
   titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
 }
 
-const FormDetails = ({ 
-  form, 
-  enableEditing = false, 
+const FormDetails = ({
+  form,
+  enableEditing = false,
   showHeader = true,
   onFormDeleted,
-  titleSize = "text-4xl"
+  titleSize = "text-4xl",
 }: FormDetailsProps) => {
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
@@ -181,13 +182,8 @@ const FormDetails = ({
     });
   };
 
-  const copyToClipboard = (value: string) => {
-    navigator.clipboard.writeText(value);
-    toast.success("Copied to clipboard");
-  };
-
   const getFullShareUrl = () => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       return `${window.location.origin}/share/${form.id}`;
     }
     return `/share/${form.id}`;
@@ -202,9 +198,13 @@ const FormDetails = ({
       try {
         const result = await deleteFormAction(form.id);
         if (Result.isSuccess(result)) {
-          toast.success(
-            `Form <strong>${form.name}</strong> deleted successfully`,
-          );
+          toast.success({
+            title: (
+              <>
+                <strong>{form.name}</strong> deleted successfully
+              </>
+            ),
+          });
           setIsDialogOpen(false);
           onFormDeleted?.();
           setTimeout(() => {
@@ -245,55 +245,52 @@ const FormDetails = ({
 
         {/* Action Buttons */}
         <div className="flex space-x-2 justify-end ml-auto">
-        <Button variant={"outline"} asChild>
-          <Link href={{ pathname: `/forms/${form.id}/design` }}>
-            <FilePen className="mr-2 h-4 w-4" />
-            Design
-          </Link>
-        </Button>
-        <Button variant={"outline"} asChild>
-          <Link href={{ pathname: `/share/${form.id}` }} target="_blank">
-            <Link2 className="mr-2 h-4 w-4" />
-            Share
-          </Link>
-        </Button>
-        <Button variant={"outline"} asChild>
-          <Link
-            href={{
-              pathname: `/forms/${form.id}/submissions`,
-            }}
-          >
-            <List className="w-4 h-4 mr-1" />
-            Submissions
-          </Link>
-        </Button>
-        <DropdownMenu
-          open={isDropdownOpen}
-          onOpenChange={setIsDropdownOpen}
-        >
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">More options</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={handleOpenSaveAsTemplate}
+          <Button variant={"outline"} asChild>
+            <Link href={{ pathname: `/forms/${form.id}/design` }}>
+              <FilePen className="mr-2 h-4 w-4" />
+              Design
+            </Link>
+          </Button>
+          <Button variant={"outline"} asChild>
+            <Link href={{ pathname: `/share/${form.id}` }} target="_blank">
+              <Link2 className="mr-2 h-4 w-4" />
+              Share
+            </Link>
+          </Button>
+          <Button variant={"outline"} asChild>
+            <Link
+              href={{
+                pathname: `/forms/${form.id}/submissions`,
+              }}
             >
-              <Save className="mr-2 h-4 w-4" />
-              Save as Template
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive cursor-pointer"
-              onClick={handleOpenDeleteDialog}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <List className="w-4 h-4 mr-1" />
+              Submissions
+            </Link>
+          </Button>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">More options</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={handleOpenSaveAsTemplate}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save as Template
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive cursor-pointer"
+                onClick={handleOpenDeleteDialog}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -330,9 +327,7 @@ const FormDetails = ({
                 <Label htmlFor="form-status">{enabledLabel}</Label>
               </>
             ) : (
-              <Badge
-                variant={form.isEnabled ? "default" : "secondary"}
-              >
+              <Badge variant={form.isEnabled ? "default" : "secondary"}>
                 {enabledLabel}
               </Badge>
             )}
@@ -340,9 +335,7 @@ const FormDetails = ({
         </div>
 
         <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="col-span-1 text-right self-start">
-            Submissions
-          </span>
+          <span className="col-span-1 text-right self-start">Submissions</span>
           <div className="text-sm text-muted-foreground col-span-3">
             {getSubmissionsLabel()}
           </div>
@@ -358,13 +351,10 @@ const FormDetails = ({
           </div>
           <div className="col-span-3">
             <div className="relative cursor-pointer">
-              <div className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer z-10">
-                <Copy
-                  onClick={() => copyToClipboard(getFullShareUrl())}
-                  aria-label="Copy form url"
-                  className="h-4 w-4"
-                />
-              </div>
+              <CopyToClipboard
+                copyValue={getFullShareUrl}
+                label="Copy form url"
+              />
               <Input
                 readOnly
                 disabled

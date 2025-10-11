@@ -19,7 +19,7 @@ export function createAuthConfig(
     providers: authProviders.map((provider) => provider.getProviderConfig()),
     callbacks: {
       jwt: async (params) => {
-        const { token, user, account, trigger } = params;
+        const { token, user, account, session, trigger } = params;
         const providerId = account?.provider || token.provider;
 
         if (!providerId) {
@@ -36,6 +36,7 @@ export function createAuthConfig(
           token,
           user,
           account: account || undefined,
+          session: session || undefined,
           trigger,
         });
       },
@@ -53,7 +54,7 @@ export function createAuthConfig(
         if (!provider) {
           console.warn(`No auth provider found for: ${providerId}`);
           // Fallback for unknown providers
-          session.accessToken = token.accessToken as string;
+          session.accessToken = token.access_token as string;
           return session;
         }
 

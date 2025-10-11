@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, useLayoutEffect } from "react";
 import { slk } from "survey-core";
 import "survey-core/survey-core.css";
-import SurveyCreatorTheme from "survey-creator-core/themes";
 import {
   ICreatorOptions,
   SurveyCreatorModel,

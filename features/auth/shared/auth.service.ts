@@ -96,7 +96,7 @@ export class AuthService {
       isLoggedIn: true,
       username: session.user.name ?? session.user.email ?? "",
       accessToken: session.accessToken ?? "",
-      refreshToken: session.user.refreshToken ?? "", // this is no longer needed as we can handle it on jwt callback
+      refreshToken: session.refreshToken ?? "", // this is no longer needed as we can handle it on jwt callback
     };
   }
 

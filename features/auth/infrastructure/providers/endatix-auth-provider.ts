@@ -1,5 +1,5 @@
 import { JWT } from "next-auth/jwt";
-import { AuthError, CredentialsSignin, Session } from "next-auth";
+import { AuthError, CredentialsSignin, Session, User } from "next-auth";
 import {
   IAuthProvider,
   JWTParams,
@@ -17,6 +17,9 @@ import {
 } from "@/lib/endatix-api/types";
 import { EndatixApi } from "@/lib/endatix-api";
 import { ZodError } from "zod";
+import { decodeJwt } from "jose";
+import { EndatixJwtPayload } from "../jwt.types";
+import { JWTInvalid } from "jose/errors";
 
 export const ENDATIX_AUTH_PROVIDER_ID = "endatix";
 
@@ -31,6 +34,14 @@ export class InvalidCredentialsError extends CredentialsSignin {
 export class InvalidInputError extends ZodError {
   static type = "InvalidInput";
   code = "Invalid input data";
+}
+
+export class TokenExpiredError extends AuthError {
+  static type = "TokenExpired";
+  code = "Token expired";
+  cause = {
+    message: "The token has expired",
+  };
 }
 
 export class NetworkError extends AuthError {
@@ -89,13 +100,26 @@ export class EndatixAuthProvider implements IAuthProvider {
         const signInResult = await endatix.auth.signIn(validatedData.data);
 
         if (ApiResult.isSuccess(signInResult)) {
-          return {
-            id: signInResult.data.email,
-            email: signInResult.data.email,
-            name: signInResult.data.email,
-            accessToken: signInResult.data.accessToken,
-            refreshToken: signInResult.data.refreshToken,
-          };
+          try {
+            const jwtPayload = decodeJwt<EndatixJwtPayload>(
+              signInResult.data.accessToken,
+            );
+
+            return {
+              id: jwtPayload.sub,
+              email: signInResult.data.email,
+              name: signInResult.data.email,
+              accessToken: signInResult.data.accessToken,
+              refreshToken: signInResult.data.refreshToken,
+              expiresAt: jwtPayload.exp || Date.now() / 1000,
+            };
+          } catch (error: unknown) {
+            if (error instanceof JWTInvalid) {
+              throw new ServerError("Invalid access token");
+            }
+
+            throw new ServerError("Failed to decode access token");
+          }
         }
 
         if (isValidationError(signInResult)) {
@@ -120,14 +144,41 @@ export class EndatixAuthProvider implements IAuthProvider {
   }
 
   async handleJWT(params: JWTParams): Promise<JWT> {
-    const { token, user, account } = params;
+    const { token, user, account, session, trigger } = params;
+
+    const userData = user as User & {
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: number;
+    };
 
     if (user && account?.provider === this.id) {
-      token.accessToken = user.accessToken;
-      token.refreshToken = user.refreshToken;
+      token.id = user.id;
       token.email = user.email;
       token.name = user.name || user.email;
       token.provider = this.id;
+      token.access_token = userData.accessToken;
+      token.refresh_token = userData.refreshToken;
+      token.expires_at = userData.expiresAt;
+
+      return token;
+    }
+
+    if (trigger === "update") {
+      return {
+        ...token,
+        access_token: session?.accessToken,
+        refresh_token: session?.refreshToken,
+        expires_at: session?.expiresAt,
+      };
+    }
+
+    const isExpired = token?.expires_at && token.expires_at < Date.now() / 1000;
+    if (isExpired) {
+      return {
+        ...token,
+        error: "SessionExpiredError",
+      };
     }
 
     return token;
@@ -136,12 +187,19 @@ export class EndatixAuthProvider implements IAuthProvider {
   async handleSession(params: SessionParams): Promise<Session> {
     const { session, token } = params;
 
-    session.accessToken = token.accessToken as string;
     session.user = {
       ...session.user,
-      name: token.name as string,
-      email: token.email as string,
-    };
+      id: token.id as string,
+    }
+
+    session.provider = token.provider as string;
+    session.accessToken = token.access_token as string;
+    session.refreshToken = token.refresh_token as string;
+    session.expiresAt = token.expires_at as number;
+
+    if (token.error) {
+      session.error = token.error;
+    }
 
     return session;
   }

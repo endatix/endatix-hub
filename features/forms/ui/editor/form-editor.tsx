@@ -42,6 +42,7 @@ import { useThemeManagement } from "@/features/public-form/application/use-theme
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
+import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -61,6 +62,7 @@ Serializer.addProperty("survey", {
 });
 
 registerAudioQuestionUI();
+addRandomizeGroupFeature();
 
 const translations = getLocaleStrings("en");
 

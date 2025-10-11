@@ -194,9 +194,10 @@ describe("AuthService", () => {
           id: "user-123",
           name: "Test User",
           email: "test@example.com",
-          refreshToken: "refresh-token-123",
         },
         accessToken: "access-token-123",
+        refreshToken: "refresh-token-123",
+        expiresAt: 1717908000,
       };
       vi.mocked(auth).mockResolvedValue(mockSession as any);
 
@@ -221,9 +222,9 @@ describe("AuthService", () => {
           id: "user-123",
           name: null,
           email: "test@example.com",
-          refreshToken: "refresh-token-123",
         },
         accessToken: "access-token-123",
+        refreshToken: "refresh-token-123",
       };
       vi.mocked(auth).mockResolvedValue(mockSession as any);
 
@@ -247,9 +248,9 @@ describe("AuthService", () => {
           id: "user-123",
           name: "Test User",
           email: "test@example.com",
-          refreshToken: "refresh-token-123",
         },
         accessToken: null,
+        refreshToken: "refresh-token-123",
       };
       vi.mocked(auth).mockResolvedValue(mockSession as any);
 

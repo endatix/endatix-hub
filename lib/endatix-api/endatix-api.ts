@@ -10,7 +10,20 @@ import MyAccount from "./my-account/my-account";
 import Auth from "./auth/auth";
 import { ConversationsApi } from "./conversations/conversations";
 
-const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
+/**
+ * Gets the validated and cached API URL
+ * This URL is validated at startup and cached for performance
+ */
+export const getEdatixApiUrl = (): string => {
+  const apiUrl = process.env.ENDATIX_API_URL;
+  if (!apiUrl) {
+    throw new Error(
+      "ENDATIX_API_URL not set. This should be configured via the withEndatix function. Please check your environment variables.",
+    );
+  }
+  return apiUrl;
+};
+
 const DEFAULT_HEADERS = {};
 
 export interface EndatixApiOptions {
@@ -40,7 +53,7 @@ export class EndatixApi {
     sessionOrToken?: SessionData | string,
     options: EndatixApiOptions = {},
   ) {
-    this.baseUrl = options.baseUrl || API_BASE_URL;
+    this.baseUrl = options.baseUrl || getEdatixApiUrl();
     this.defaultHeaders = options.defaultHeaders || DEFAULT_HEADERS;
 
     // Handle session data or JWT token

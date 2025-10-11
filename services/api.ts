@@ -11,7 +11,7 @@ import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
 import { Submission } from "@/lib/endatix-api";
 
-const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
+const API_BASE_URL = process.env.ENDATIX_API_URL;
 
 export const createForm = async (
   formRequest: CreateFormRequest,

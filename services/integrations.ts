@@ -3,7 +3,7 @@
 import { SlackAuthResponse } from "@/types";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
 
-const API_BASE_URL = `${process.env.ENDATIX_BASE_URL}/api`;
+const API_BASE_URL = `${process.env.ENDATIX_API_URL}`;
 const SLACK_CLIENT_ID = `${process.env.SLACK_CLIENT_ID}`;
 const SLACK_CLIENT_SECRET = `${process.env.SLACK_CLIENT_SECRET}`;
 const SLACK_REDIRECT_URI = `${process.env.SLACK_REDIRECT_URI}`;

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { getSession } from "@/features/auth";
 import {
   Card,
   CardContent,
@@ -11,7 +10,7 @@ import {
 import { Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { authPresentation } from "@/auth";
+import { auth, authPresentation } from "@/auth";
 import {
   AuthPresentation,
   ENDATIX_AUTH_PROVIDER_ID,
@@ -50,13 +49,13 @@ interface SignInPageProps {
 
 const SignInPage = async ({ searchParams }: SignInPageProps) => {
   const { returnUrl } = await searchParams;
-  const user = await getSession();
+  const authSession = await auth();
 
-  if (user.isLoggedIn) {
+  if (authSession?.user && !authSession.error) {
     return (
       <LoggedInSuccessMessage
-        username={user.username}
-        isLoggedIn={user.isLoggedIn}
+        username={authSession.user.name ?? authSession.user.email ?? ""}
+        isLoggedIn={!!authSession.user}
       />
     );
   }

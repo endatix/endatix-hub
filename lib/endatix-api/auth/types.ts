@@ -17,3 +17,13 @@ export interface SignInResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+  accessToken: string;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
