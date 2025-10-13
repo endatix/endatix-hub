@@ -64,16 +64,16 @@ const uploadToBlob = async (
     surveyModel,
     onSubmissionIdChange,
   } = props;
+
   if (files.length === 0) {
     return UploadResult.empty();
   }
-  const fileNames = files.map((file) => file.name);
 
   try {
     const sasResponse = await fetch("/api/public/v0/storage/sas-token", {
       method: "POST",
       body: JSON.stringify({
-        fileNames,
+        fileNames: files.map((f) => f.name),
         submissionId,
         formId,
         formLocale: surveyModel?.locale ?? "",
@@ -89,29 +89,19 @@ const uploadToBlob = async (
       onSubmissionIdChange?.(sasData.submissionId);
     }
 
-    const uploadFilesResult: UploadResult = {
-      data: [],
-      errors: [],
-    };
+    const uploadPromises = files.map(async (file) => {
+      const sasResult = sasData.sasTokens[file.name];
 
-    const uploadFilePromises = files.map(async (file) => {
-      const sasToken = sasData.sasTokens[file.name];
-
-      if (!sasToken) {
-        uploadFilesResult.errors.push(`Not expected file name: ${file.name}.`);
-        return;
+      if (!sasResult || !sasResult.success) {
+        return {
+          success: false,
+          error: sasResult?.message || `No upload URL for file: ${file.name}`,
+        };
       }
 
-      if (!sasToken.success) {
-        uploadFilesResult.errors.push(sasToken.message);
-        return;
-      }
-
-      const blockBlobClient = new BlockBlobClient(sasToken.url);
       try {
-        const fileBuffer = await file.arrayBuffer();
-
-        await blockBlobClient.uploadData(fileBuffer, {
+        const blockBlobClient = new BlockBlobClient(sasResult.url);
+        await blockBlobClient.uploadData(await file.arrayBuffer(), {
           onProgress: (progress) => {
             if (!progress?.loadedBytes || !file.size) {
               return;
@@ -122,24 +112,33 @@ const uploadToBlob = async (
             console.debug(`progress ${file.name}: ${uploadProgress}%`);
           },
         });
+
+        return {
+          success: true,
+          data: {
+            file: file,
+            content: sasResult.url.split("?")[0],
+          },
+        };
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        uploadFilesResult.errors.push(
-          `Could not upload file: ${file.name}. ${errorMessage}`,
-        );
-        return;
+          error instanceof Error ? error.message : "Upload failed";
+        return {
+          success: false,
+          error: `Could not upload file: ${file.name}. ${errorMessage}`,
+        };
       }
-
-      uploadFilesResult.data.push({
-        file: file,
-        content: sasToken.url.split("?")[0],
-      });
     });
 
-    await Promise.all(uploadFilePromises);
-
-    return uploadFilesResult;
+    const uploadResults = await Promise.all(uploadPromises);
+    return uploadResults.reduce((groupResults, curr) => {
+      if (curr.success) {
+        groupResults.data.push(curr.data);
+      } else {
+        groupResults.errors.push(curr.error);
+      }
+      return groupResults;
+    }, UploadResult.empty());
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Upload failed";
