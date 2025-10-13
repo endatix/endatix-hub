@@ -1,6 +1,9 @@
 import {
   BlobServiceClient,
   StorageSharedKeyCredential,
+  BlobSASPermissions,
+  SASProtocol,
+  ContainerSASPermissions,
 } from "@azure/storage-blob";
 
 type AzureStorageConfig = {
@@ -9,6 +12,12 @@ type AzureStorageConfig = {
   accountKey: string;
   hostName: string;
 };
+
+interface fileOptions {
+  fileName: string;
+  containerName: string;
+  folderPath: string;
+}
 
 const STORAGE_SERVICE_CONFIG: AzureStorageConfig = Object.freeze({
   isEnabled: (() => {
@@ -49,7 +58,6 @@ function getBlobServiceClient(): BlobServiceClient {
  * Uploads a file to Azure Blob Storage
  * @param fileBuffer - The buffer containing the file data
  * @param fileName - The name to use for the file in storage
- * @param containerName - The Azure storage container name
  * @param folderPath - Optional folder path within the container
  * @returns A Promise resolving to the URL of the uploaded file
  */
@@ -101,6 +109,64 @@ async function uploadToStorage(
   }
 }
 
+async function generateSASUrl(
+  fileOptions: fileOptions,
+  permissions: "w" | "r" = "w",
+): Promise<string> {
+  if (!STORAGE_SERVICE_CONFIG.isEnabled) {
+    throw new Error("Azure storage is not enabled");
+  }
+
+  if (!fileOptions.fileName) {
+    throw new Error("a file is not provided");
+  }
+
+  if (!fileOptions.folderPath) {
+    throw new Error("a folder path is not provided");
+  }
+
+  if (!fileOptions.containerName) {
+    throw new Error("container name is not provided");
+  }
+
+  const STEP_UPLOAD_START = performance.now();
+
+  const blobServiceClient = getBlobServiceClient();
+  const containerClient = blobServiceClient.getContainerClient(
+    fileOptions.containerName,
+  );
+
+  try {
+    await containerClient.createIfNotExists({
+      access: "container",
+    });
+
+    const blobName = fileOptions.folderPath
+      ? `${fileOptions.folderPath}/${fileOptions.fileName}`
+      : fileOptions.fileName;
+    const blobClient = containerClient.getBlockBlobClient(blobName);
+
+    const NOW = new Date(Date.now());
+    const EXPIRY_IN_MS = 1000 * 60 * 3; // 3 minutes
+    const sasToken = blobClient.generateSasUrl({
+      startsOn: NOW,
+      permissions: ContainerSASPermissions.parse(permissions),
+      expiresOn: new Date(NOW.valueOf() + EXPIRY_IN_MS),
+      protocol: SASProtocol.HttpsAndHttp,
+    });
+
+    const STEP_UPLOAD_END = performance.now();
+    console.log(
+      `⏱️ Generate SAS token took ${STEP_UPLOAD_END - STEP_UPLOAD_START}ms`,
+    );
+
+    return sasToken;
+  } catch (error) {
+    console.error("Error generating SAS token:", error);
+    throw error;
+  }
+}
+
 // Reset function for testing or when you need to recreate the client
 function resetBlobServiceClient(): void {
   if (_blobServiceClient) {
@@ -110,4 +176,9 @@ function resetBlobServiceClient(): void {
   }
 }
 
-export { STORAGE_SERVICE_CONFIG, uploadToStorage, resetBlobServiceClient };
+export {
+  STORAGE_SERVICE_CONFIG,
+  uploadToStorage,
+  generateSASUrl,
+  resetBlobServiceClient,
+};
