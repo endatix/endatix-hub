@@ -14,105 +14,134 @@ interface UploadedFile {
   url: string;
 }
 
+const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
+
 export function useBlobStorage({
   formId,
   submissionId = "",
   onSubmissionIdChange,
   surveyModel,
 }: UseBlobStorageProps) {
-  const uploadFiles = useCallback(
-    async (sender: SurveyModel, options: UploadFilesEvent) => {
-      try {
-        const formData = new FormData();
-        options.files.forEach((file) => {
-          formData.append(file.name, file);
-        });
+  const uploadToBlob = useCallback(
+    async (files: File[], options: UploadFilesEvent) => {
+      if (files.length === 0) {
+        return;
+      }
 
-        const sasTokenResponse = await fetch(
-          "/api/public/v0/storage/sas-token",
+      const sasTokenResponse = await fetch("/api/public/v0/storage/sas-token", {
+        method: "POST",
+        body: JSON.stringify({
+          fileNames: options.files.map((file) => file.name),
+          submissionId: submissionId,
+          formId: formId,
+          formLocale: surveyModel?.locale ?? "",
+        }),
+      });
+
+      const data = await sasTokenResponse.json();
+      if (!sasTokenResponse.ok) {
+        throw new Error(data?.error ?? "Failed to generate SAS token");
+      }
+
+      if (data.submissionId && data.submissionId !== submissionId) {
+        onSubmissionIdChange?.(data.submissionId);
+      }
+
+      const fileUploadJobs: Record<string, string> = data.sasTokens;
+      options.files.forEach(async (file) => {
+        const sasToken = fileUploadJobs[file.name];
+        const blockBlobClient = new BlockBlobClient(sasToken);
+        const uploadResult = await blockBlobClient.uploadData(
+          await file.arrayBuffer(),
           {
-            method: "POST",
-            body: JSON.stringify({
-              fileNames: options.files.map((file) => file.name),
-              submissionId: submissionId,
-              formId: formId,
-              formLocale: surveyModel?.locale ?? "",
-            }),
+            onProgress: (progress) => {
+              const uploadProgress = Math.round(
+                (progress.loadedBytes / file.size) * 100,
+              );
+              console.log(`progress ${file.name}: ${uploadProgress}%`);
+            },
           },
         );
 
-        const data = await sasTokenResponse.json();
-        if (!sasTokenResponse.ok) {
-          throw new Error(data?.error ?? "Failed to generate SAS token");
+        options.callback([{ file: file, content: sasToken.split("?")[0] }]);
+      });
+    },
+    [formId, submissionId, surveyModel?.locale, onSubmissionIdChange],
+  );
+
+  const uploadToServer = useCallback(
+    async (files: File[], options: UploadFilesEvent) => {
+      if (files.length === 0) {
+        return;
+      }
+
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append(file.name, file);
+      });
+
+      const response = await fetch("/api/public/v0/storage/upload", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "edx-form-id": formId,
+          "edx-submission-id": submissionId,
+          "edx-form-lang": surveyModel?.locale ?? "",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ??
+            "Failed to upload files. Please refresh your page and try again.",
+        );
+      }
+
+      if (data.submissionId && data.submissionId !== submissionId) {
+        onSubmissionIdChange?.(data.submissionId);
+      }
+
+      const uploadedFiles = options.files.map((file) => {
+        const remoteFile = data.files?.find(
+          (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
+        );
+        return {
+          file: file,
+          content: remoteFile?.url,
+        };
+      });
+
+      options.callback(uploadedFiles);
+    },
+    [formId, submissionId, surveyModel?.locale, onSubmissionIdChange],
+  );
+
+  const uploadFiles = useCallback(
+    async (sender: SurveyModel, options: UploadFilesEvent) => {
+      const filesForUpload: File[] = [];
+      const filesForResize: File[] = [];
+      options.files.forEach((file) => {
+        if (
+          file.type.startsWith("image/") ||
+          file.size < LARGE_FILE_THRESHOLD
+        ) {
+          filesForResize.push(file);
+        } else {
+          filesForUpload.push(file);
         }
+      });
 
-        if (data.submissionId && data.submissionId !== submissionId) {
-          onSubmissionIdChange?.(data.submissionId);
-        }
-
-        const fileUploadJobs : Record<string, string> = data.sasTokens;
-        debugger;
-        options.files.forEach(async (file) => {
-          const sasToken = fileUploadJobs[file.name];
-          const blockBlobClient = new BlockBlobClient(sasToken);
-          const uploadResult = await blockBlobClient.uploadData(
-            await file.arrayBuffer(),
-            {
-              blockSize: 4 * 1024 * 1024,
-              concurrency: 2,
-              onProgress: (progress) => {
-                console.log("progress", progress);
-              },
-            },
-          );
-
-          options.callback([
-            { file: file, content: sasToken.split("?")[0] },
-          ]);
-        });
-
-        if (false) {
-          const response = await fetch("/api/public/v0/storage/upload", {
-            method: "POST",
-            body: formData,
-            headers: {
-              "edx-form-id": formId,
-              "edx-submission-id": submissionId,
-              "edx-form-lang": surveyModel?.locale ?? "",
-            },
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(
-              data?.error ??
-                "Failed to upload files. Please refresh your page and try again.",
-            );
-          }
-
-          if (data.submissionId && data.submissionId !== submissionId) {
-            onSubmissionIdChange?.(data.submissionId);
-          }
-
-          const uploadedFiles = options.files.map((file) => {
-            const remoteFile = data.files?.find(
-              (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
-            );
-            return {
-              file: file,
-              content: remoteFile?.url,
-            };
-          });
-
-          options.callback(uploadedFiles);
-        }
+      try {
+        await uploadToBlob(filesForUpload, options);
+        await uploadToServer(filesForResize, options);
       } catch (error) {
         console.error("Error: ", error);
         options.callback([], [error instanceof Error ? error.message : ""]);
       }
     },
-    [formId, submissionId, surveyModel?.locale, onSubmissionIdChange],
+    [uploadToBlob, uploadToServer],
   );
 
   useEffect(() => {
@@ -126,43 +155,3 @@ export function useBlobStorage({
 
   return { uploadFiles };
 }
-
-const convertStringToArrayBuffer = (str: string) => {
-  const textEncoder = new TextEncoder();
-  return textEncoder.encode(str).buffer;
-};
-
-const convertFileToArrayBuffer = async (file: File): Promise<ArrayBuffer> => {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.name) {
-      reject(new Error("Invalid or missing file."));
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const arrayBuffer: ArrayBuffer | null | string = reader.result;
-
-      if (arrayBuffer === null) {
-        resolve(null);
-        return;
-      }
-      if (typeof arrayBuffer === "string") {
-        resolve(convertStringToArrayBuffer(arrayBuffer));
-        return;
-      }
-      if (!arrayBuffer) {
-        reject(new Error("Failed to read file into ArrayBuffer."));
-        return;
-      }
-
-      resolve(arrayBuffer);
-    };
-
-    reader.onerror = () => {
-      reject(new Error("Error reading file."));
-    };
-
-    reader.readAsArrayBuffer(file);
-  });
-};
