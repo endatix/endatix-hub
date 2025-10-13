@@ -88,10 +88,6 @@ async function uploadToStorage(
   const containerClient = blobServiceClient.getContainerClient(containerName);
 
   try {
-    await containerClient.createIfNotExists({
-      access: "container",
-    });
-
     const blobName = folderPath ? `${folderPath}/${fileName}` : fileName;
     const blobClient = containerClient.getBlockBlobClient(blobName);
     await blobClient.uploadData(fileBuffer);
@@ -134,10 +130,6 @@ async function generateSASUrl(
   );
 
   try {
-    await containerClient.createIfNotExists({
-      access: "container",
-    });
-
     const blobName = fileOptions.folderPath
       ? `${fileOptions.folderPath}/${fileOptions.fileName}`
       : fileOptions.fileName;
