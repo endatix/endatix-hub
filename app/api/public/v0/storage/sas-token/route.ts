@@ -1,4 +1,5 @@
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import { generateSASUrl } from "@/features/storage/infrastructure/storage-service";
 import { generateUniqueFileName } from "@/features/storage/utils";
 import { ApiResult, SubmissionData } from "@/lib/endatix-api";
@@ -37,19 +38,11 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "File names are required" }, { status: 400 });
   }
 
-  // TODO: Extract this to an use case
   if (!submissionId) {
-    const submissionData: SubmissionData = {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: "Generate submissionId for sas token generation",
-        ...(formLocale ? { language: formLocale } : {}),
-      }),
-    };
-    const initialSubmissionResult = await submitFormAction(
+    const initialSubmissionResult = await createInitialSubmissionUseCase(
       formId,
-      submissionData,
+      formLocale,
+      "Generate submissionId for sas token generation",
     );
 
     if (ApiResult.isError(initialSubmissionResult)) {
