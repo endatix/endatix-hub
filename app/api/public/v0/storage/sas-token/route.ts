@@ -4,17 +4,29 @@ import { ApiResult, SubmissionData } from "@/lib/endatix-api";
 
 const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
 
-export async function POST(request: Request) {
-  const data = await request.json();
-  const { formId, fileName, formLocale } = data;
+interface SASTokenRequest {
+  formId: string;
+  fileNames: string[];
+  formLocale: string;
+  submissionId: string;
+}
+
+interface SASTokenResponse {
+  sasTokens: Record<string, string>;
+  submissionId: string;
+}
+
+export async function POST(request: Request): Promise<Response> {
+  const data: SASTokenRequest = await request.json();
+  const { formId, fileNames, formLocale } = data;
   let submissionId = data.submissionId;
 
   if (!formId) {
     return Response.json({ error: "Form ID is required" }, { status: 400 });
   }
 
-  if (!fileName) {
-    return Response.json({ error: "File name is required" }, { status: 400 });
+  if (!Array.isArray(fileNames) || fileNames.length === 0) {
+    return Response.json({ error: "File names are required" }, { status: 400 });
   }
 
   // TODO: Extract this to a use case
@@ -43,19 +55,26 @@ export async function POST(request: Request) {
   }
 
   try {
+    const sasTokens: Record<string, string> = {};
+
     const containerName =
       process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
       DEFAULT_USER_FILES_CONTAINER_NAME;
-    const sasToken = await generateSASUrl({
-      fileName,
-      containerName,
-      folderPath: `s/${formId}/${submissionId}`,
-    });
 
-    return Response.json({
-      sasToken,
+    for (const fileName of fileNames) {
+      const sasToken = await generateSASUrl({
+        containerName,
+        folderPath: `s/${formId}/${submissionId}`,
+        fileName,
+      });
+      sasTokens[fileName] = sasToken;
+    }
+
+    const sasTokenResponse: SASTokenResponse = {
+      sasTokens,
       submissionId,
-    });
+    };
+    return Response.json(sasTokenResponse);
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "Unknown error" },

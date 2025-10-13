@@ -28,30 +28,33 @@ export function useBlobStorage({
           formData.append(file.name, file);
         });
 
+        const sasTokenResponse = await fetch(
+          "/api/public/v0/storage/sas-token",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              fileNames: options.files.map((file) => file.name),
+              submissionId: submissionId,
+              formId: formId,
+              formLocale: surveyModel?.locale ?? "",
+            }),
+          },
+        );
+
+        const data = await sasTokenResponse.json();
+        if (!sasTokenResponse.ok) {
+          throw new Error(data?.error ?? "Failed to generate SAS token");
+        }
+
+        if (data.submissionId && data.submissionId !== submissionId) {
+          onSubmissionIdChange?.(data.submissionId);
+        }
+
+        const fileUploadJobs : Record<string, string> = data.sasTokens;
+        debugger;
         options.files.forEach(async (file) => {
-          const sasTokenResponse = await fetch(
-            "/api/public/v0/storage/sas-token",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                fileName: file.name,
-                submissionId: submissionId,
-                formId: formId,
-                formLocale: surveyModel?.locale ?? "",
-              }),
-            },
-          );
-
-          const data = await sasTokenResponse.json();
-          if (!sasTokenResponse.ok) {
-            throw new Error(data?.error ?? "Failed to generate SAS token");
-          }
-
-          if (data.submissionId && data.submissionId !== submissionId) {
-            onSubmissionIdChange?.(data.submissionId);
-          }
-
-          const blockBlobClient = new BlockBlobClient(data.sasToken);
+          const sasToken = fileUploadJobs[file.name];
+          const blockBlobClient = new BlockBlobClient(sasToken);
           const uploadResult = await blockBlobClient.uploadData(
             await file.arrayBuffer(),
             {
@@ -64,7 +67,7 @@ export function useBlobStorage({
           );
 
           options.callback([
-            { file: file, content: data.sasToken.split("?")[0] },
+            { file: file, content: sasToken.split("?")[0] },
           ]);
         });
 

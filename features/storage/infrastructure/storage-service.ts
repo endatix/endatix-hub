@@ -129,8 +129,6 @@ async function generateSASUrl(
     throw new Error("container name is not provided");
   }
 
-  const STEP_UPLOAD_START = performance.now();
-
   const blobServiceClient = getBlobServiceClient();
   const containerClient = blobServiceClient.getContainerClient(
     fileOptions.containerName,
@@ -154,11 +152,6 @@ async function generateSASUrl(
       expiresOn: new Date(NOW.valueOf() + EXPIRY_IN_MS),
       protocol: SASProtocol.HttpsAndHttp,
     });
-
-    const STEP_UPLOAD_END = performance.now();
-    console.log(
-      `⏱️ Generate SAS token took ${STEP_UPLOAD_END - STEP_UPLOAD_START}ms`,
-    );
 
     return sasToken;
   } catch (error) {
