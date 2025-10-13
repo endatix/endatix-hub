@@ -25,7 +25,7 @@ interface UploadedFile {
 
 interface UploadResult {
   data: any | Array<any>;
-  errors?: any | Array<any>;
+  errors: any | Array<any>;
 }
 
 const UploadResult = {
@@ -89,38 +89,57 @@ const uploadToBlob = async (
       onSubmissionIdChange?.(sasData.submissionId);
     }
 
+    const uploadFilesResult: UploadResult = {
+      data: [],
+      errors: [],
+    };
+
     const uploadFilePromises = files.map(async (file) => {
       const sasToken = sasData.sasTokens[file.name];
+
       if (!sasToken) {
-        throw new Error(
-          `Couldn't generate upload URL for file: ${file.name}. Please refresh your page and try again.`,
-        );
+        uploadFilesResult.errors.push(`Not expected file name: ${file.name}.`);
+        return;
       }
 
-      const blockBlobClient = new BlockBlobClient(sasToken);
-      const uploadResult = await blockBlobClient.uploadData(
-        await file.arrayBuffer(),
-        {
+      if (!sasToken.success) {
+        uploadFilesResult.errors.push(sasToken.message);
+        return;
+      }
+
+      const blockBlobClient = new BlockBlobClient(sasToken.url);
+      try {
+        const fileBuffer = await file.arrayBuffer();
+
+        await blockBlobClient.uploadData(fileBuffer, {
           onProgress: (progress) => {
+            if (!progress?.loadedBytes || !file.size) {
+              return;
+            }
             const uploadProgress = Math.round(
               (progress.loadedBytes / file.size) * 100,
             );
             console.debug(`progress ${file.name}: ${uploadProgress}%`);
           },
-        },
-      );
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        uploadFilesResult.errors.push(
+          `Could not upload file: ${file.name}. ${errorMessage}`,
+        );
+        return;
+      }
 
-      console.log("Upload result: ", uploadResult);
-
-      return {
+      uploadFilesResult.data.push({
         file: file,
-        content: sasToken.split("?")[0],
-      };
+        content: sasToken.url.split("?")[0],
+      });
     });
 
-    const uploadedFilesResult = await Promise.all(uploadFilePromises);
+    await Promise.all(uploadFilePromises);
 
-    return UploadResult.success(uploadedFilesResult);
+    return uploadFilesResult;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Upload failed";

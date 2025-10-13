@@ -1,6 +1,8 @@
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { generateSASUrl } from "@/features/storage/infrastructure/storage-service";
+import { generateUniqueFileName } from "@/features/storage/utils";
 import { ApiResult, SubmissionData } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 
 const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
 
@@ -11,8 +13,14 @@ interface SASTokenRequest {
   submissionId: string;
 }
 
+interface SASOperationResult {
+  success: boolean;
+  message?: string;
+  url?: string;
+}
+
 interface SASTokenResponse {
-  sasTokens: Record<string, string>;
+  sasTokens: Record<string, SASOperationResult>;
   submissionId: string;
 }
 
@@ -29,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "File names are required" }, { status: 400 });
   }
 
-  // TODO: Extract this to a use case
+  // TODO: Extract this to an use case
   if (!submissionId) {
     const submissionData: SubmissionData = {
       isComplete: false,
@@ -53,32 +61,43 @@ export async function POST(request: Request): Promise<Response> {
 
     submissionId = initialSubmissionResult.data.submissionId;
   }
+  const sasTokens: Record<string, SASOperationResult> = {};
 
-  try {
-    const sasTokens: Record<string, string> = {};
+  const containerName =
+    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
+    DEFAULT_USER_FILES_CONTAINER_NAME;
 
-    const containerName =
-      process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
-      DEFAULT_USER_FILES_CONTAINER_NAME;
+  for (const fileName of fileNames) {
+    const uniqueFileNameResult = generateUniqueFileName(fileName);
+    if (Result.isError(uniqueFileNameResult)) {
+      sasTokens[fileName] = {
+        success: false,
+        message: uniqueFileNameResult.message,
+      };
+      continue;
+    }
 
-    for (const fileName of fileNames) {
+    try {
       const sasToken = await generateSASUrl({
         containerName,
         folderPath: `s/${formId}/${submissionId}`,
-        fileName,
+        fileName: uniqueFileNameResult.value,
       });
-      sasTokens[fileName] = sasToken;
+      sasTokens[fileName] = {
+        success: true,
+        url: sasToken,
+      };
+    } catch (error) {
+      sasTokens[fileName] = {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
     }
-
-    const sasTokenResponse: SASTokenResponse = {
-      sasTokens,
-      submissionId,
-    };
-    return Response.json(sasTokenResponse);
-  } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
   }
+
+  const sasTokenResponse: SASTokenResponse = {
+    sasTokens,
+    submissionId,
+  };
+  return Response.json(sasTokenResponse);
 }
