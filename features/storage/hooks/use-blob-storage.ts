@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { SurveyModel, UploadFilesEvent } from "survey-core";
 import { BlockBlobClient } from "@azure/storage-blob";
 
@@ -7,6 +7,15 @@ interface UseBlobStorageProps {
   submissionId?: string;
   surveyModel: SurveyModel | null;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
+}
+
+interface UploadFilesToBlobProps extends UseBlobStorageProps {
+  files: File[];
+  options: UploadFilesEvent;
+}
+
+interface UploadFilesToServerProps extends UseBlobStorageProps {
+  files: File[];
 }
 
 interface UploadedFile {
@@ -44,28 +53,136 @@ const UploadResult = {
 
 const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
-/**
- * Groups files by upload strategy.
- * Images below LARGE_FILE_THRESHOLD are flagged for resize;
- * all others are for direct upload.
- *
- * @param files Array of files to categorize
- * @returns Object with filesForUpload and filesForResize arrays
- */
-const groupFilesByUploadStrategy = (
-  files: File[],
-): { filesForUpload: File[]; filesForResize: File[] } => {
-  return files.reduce(
-    (acc, file) => {
-      if (file.type.startsWith("image/") && file.size < LARGE_FILE_THRESHOLD) {
-        acc.filesForResize.push(file);
-      } else {
-        acc.filesForUpload.push(file);
+const uploadToBlob = async (
+  props: UploadFilesToBlobProps,
+): Promise<UploadResult> => {
+  const {
+    files,
+    options,
+    formId,
+    submissionId,
+    surveyModel,
+    onSubmissionIdChange,
+  } = props;
+  if (files.length === 0) {
+    return UploadResult.empty();
+  }
+  const fileNames = files.map((file) => file.name);
+
+  try {
+    const sasResponse = await fetch("/api/public/v0/storage/sas-token", {
+      method: "POST",
+      body: JSON.stringify({
+        fileNames,
+        submissionId,
+        formId,
+        formLocale: surveyModel?.locale ?? "",
+      }),
+    });
+
+    const sasData = await sasResponse.json();
+    if (!sasResponse.ok) {
+      throw new Error(sasData.error || "Failed to generate upload URLs");
+    }
+
+    if (sasData.submissionId && sasData.submissionId !== submissionId) {
+      onSubmissionIdChange?.(sasData.submissionId);
+    }
+
+    const uploadFilePromises = files.map(async (file) => {
+      const sasToken = sasData.sasTokens[file.name];
+      if (!sasToken) {
+        throw new Error(
+          `Couldn't generate upload URL for file: ${file.name}. Please refresh your page and try again.`,
+        );
       }
-      return acc;
-    },
-    { filesForUpload: [] as File[], filesForResize: [] as File[] },
-  );
+
+      const blockBlobClient = new BlockBlobClient(sasToken);
+      const uploadResult = await blockBlobClient.uploadData(
+        await file.arrayBuffer(),
+        {
+          onProgress: (progress) => {
+            const uploadProgress = Math.round(
+              (progress.loadedBytes / file.size) * 100,
+            );
+            console.debug(`progress ${file.name}: ${uploadProgress}%`);
+          },
+        },
+      );
+
+      console.log("Upload result: ", uploadResult);
+
+      return {
+        file: file,
+        content: sasToken.split("?")[0],
+      };
+    });
+
+    const uploadedFilesResult = await Promise.all(uploadFilePromises);
+
+    return UploadResult.success(uploadedFilesResult);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Upload failed";
+    return UploadResult.error(errorMessage);
+  }
+};
+
+const uploadToServer = async (
+  props: UploadFilesToServerProps,
+): Promise<UploadResult> => {
+  const { files, formId, submissionId, surveyModel, onSubmissionIdChange } =
+    props;
+
+  if (files.length === 0) {
+    return UploadResult.empty();
+  }
+
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append(file.name, file);
+  });
+
+  try {
+    const response = await fetch("/api/public/v0/storage/upload", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "edx-form-id": formId,
+        "edx-submission-id": submissionId,
+        "edx-form-lang": surveyModel?.locale ?? "",
+      } as HeadersInit,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ??
+          "Failed to upload files. Please refresh your page and try again.",
+      );
+    }
+
+    if (data.submissionId && data.submissionId !== submissionId) {
+      onSubmissionIdChange?.(data.submissionId);
+    }
+
+    const uploadedFiles = files.map((file) => {
+      const remoteFile = data.files?.find(
+        (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
+      );
+      return {
+        file: file,
+        content: remoteFile?.url,
+      };
+    });
+
+    return UploadResult.success(uploadedFiles);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Upload failed";
+    return UploadResult.error(errorMessage);
+  }
 };
 
 export function useBlobStorage({
@@ -74,126 +191,34 @@ export function useBlobStorage({
   onSubmissionIdChange,
   surveyModel,
 }: UseBlobStorageProps) {
-  const uploadToBlob = async (
-    files: File[],
-    options: UploadFilesEvent,
-  ): Promise<UploadResult> => {
-    if (files.length === 0) {
-      return UploadResult.empty();
-    }
-    const fileNames = files.map((file) => file.name);
-
-    try {
-      const sasResponse = await fetch("/api/public/v0/storage/sas-token", {
-        method: "POST",
-        body: JSON.stringify({
-          fileNames,
-          submissionId,
-          formId,
-          formLocale: surveyModel?.locale ?? "",
-        }),
-      });
-
-      const sasData = await sasResponse.json();
-      if (!sasResponse.ok) {
-        throw new Error(sasData.error || "Failed to generate upload URLs");
-      }
-
-      if (sasData.submissionId && sasData.submissionId !== submissionId) {
-        onSubmissionIdChange?.(sasData.submissionId);
-      }
-
-      const uploadFilePromises = options.files.map(async (file) => {
-        const sasToken = sasData.sasTokens[file.name];
-        if (!sasToken) {
-          throw new Error(`No upload URL for file: ${file.name}`);
-        }
-
-        const blockBlobClient = new BlockBlobClient(sasToken);
-        const uploadResult = await blockBlobClient.uploadData(
-          await file.arrayBuffer(),
-          {
-            onProgress: (progress) => {
-              const uploadProgress = Math.round(
-                (progress.loadedBytes / file.size) * 100,
-              );
-              console.debug(`progress ${file.name}: ${uploadProgress}%`);
-            },
+  /**
+   * Groups files by upload strategy.
+   * Images below LARGE_FILE_THRESHOLD are flagged for resize;
+   * all others are for direct upload.
+   *
+   * @param files Array of files to categorize
+   * @returns Object with filesForUpload and filesForResize arrays
+   */
+  const groupFilesByUploadStrategy = useMemo(
+    () =>
+      (files: File[]): { filesForUpload: File[]; filesForResize: File[] } => {
+        return files.reduce(
+          (acc, file) => {
+            if (
+              file.type.startsWith("image/") &&
+              file.size < LARGE_FILE_THRESHOLD
+            ) {
+              acc.filesForResize.push(file);
+            } else {
+              acc.filesForUpload.push(file);
+            }
+            return acc;
           },
+          { filesForUpload: [] as File[], filesForResize: [] as File[] },
         );
-
-        console.log("Upload result: ", uploadResult);
-
-        return {
-          file: file,
-          content: sasToken.split("?")[0],
-        };
-      });
-
-      const uploadedFilesResult = await Promise.all(uploadFilePromises);
-
-      return UploadResult.success(uploadedFilesResult);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Upload failed";
-      return UploadResult.error(errorMessage);
-    }
-  };
-
-  const uploadToServer = async (
-    files: File[],
-    options: UploadFilesEvent,
-  ): Promise<UploadResult> => {
-    if (files.length === 0) {
-      return UploadResult.empty();
-    }
-
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append(file.name, file);
-    });
-
-    try {
-      const response = await fetch("/api/public/v0/storage/upload", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "edx-form-id": formId,
-          "edx-submission-id": submissionId,
-          "edx-form-lang": surveyModel?.locale ?? "",
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.error ??
-            "Failed to upload files. Please refresh your page and try again.",
-        );
-      }
-
-      if (data.submissionId && data.submissionId !== submissionId) {
-        onSubmissionIdChange?.(data.submissionId);
-      }
-
-      const uploadedFiles = files.map((file) => {
-        const remoteFile = data.files?.find(
-          (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
-        );
-        return {
-          file: file,
-          content: remoteFile?.url,
-        };
-      });
-
-      return UploadResult.success(uploadedFiles);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Upload failed";
-      return UploadResult.error(errorMessage);
-    }
-  };
+      },
+    [],
+  );
 
   const uploadFiles = useCallback(
     async (sender: SurveyModel, options: UploadFilesEvent) => {
@@ -205,11 +230,24 @@ export function useBlobStorage({
         const allResults = [];
         const allErrors = [];
 
-        const blobResults = await uploadToBlob(filesForUpload, options);
+        const blobResults = await uploadToBlob({
+          files: filesForUpload,
+          options,
+          formId,
+          submissionId,
+          surveyModel,
+          onSubmissionIdChange,
+        });
         allResults.push(...blobResults.data);
         allErrors.push(...blobResults.errors);
 
-        const serverResults = await uploadToServer(filesForResize, options);
+        const serverResults = await uploadToServer({
+          files: filesForResize,
+          formId,
+          submissionId,
+          surveyModel,
+          onSubmissionIdChange,
+        });
         allResults.push(...serverResults.data);
         allErrors.push(...serverResults.errors);
 
