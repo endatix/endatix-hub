@@ -3,7 +3,6 @@ import {
   StorageSharedKeyCredential,
   BlobSASPermissions,
   SASProtocol,
-  ContainerSASPermissions,
 } from "@azure/storage-blob";
 
 type AzureStorageConfig = {
@@ -148,7 +147,7 @@ async function generateSASUrl(
     const EXPIRY_IN_MS = 1000 * 60 * 3; // 3 minutes
     const sasToken = blobClient.generateSasUrl({
       startsOn: NOW,
-      permissions: ContainerSASPermissions.parse(permissions),
+      permissions: BlobSASPermissions.parse(permissions),
       expiresOn: new Date(NOW.valueOf() + EXPIRY_IN_MS),
       protocol: SASProtocol.HttpsAndHttp,
     });
