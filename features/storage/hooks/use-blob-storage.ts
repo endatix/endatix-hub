@@ -284,6 +284,10 @@ export function useBlobStorage({
   const deleteFiles = useCallback(
     async (sender: SurveyModel, options: ClearFilesEvent) => {
       try {
+        if (options.question?.storeDataAsText) {
+          return options.callback("success");
+        }
+
         if (!options.value || options.value.length === 0) {
           return options.callback("success");
         }

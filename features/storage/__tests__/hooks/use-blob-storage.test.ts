@@ -234,7 +234,9 @@ describe("useBlobStorage", () => {
     });
 
     it("should handle upload errors gracefully", async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("Network error"),
+      );
 
       const { result } = renderHook(() =>
         useBlobStorage({
@@ -311,6 +313,7 @@ describe("useBlobStorage", () => {
         },
       ],
       callback: vi.fn(),
+      question: { storeDataAsText: false },
     } as unknown as ClearFilesEvent;
 
     beforeEach(() => {
@@ -384,6 +387,28 @@ describe("useBlobStorage", () => {
       });
 
       expect(global.fetch).not.toHaveBeenCalled();
+      expect(emptyOptions.callback).toHaveBeenCalledWith("success");
+    });
+
+    it("should return success if storeDataAsText is true", async () => {
+      const emptyOptions: ClearFilesEvent = {
+        value: [],
+        callback: vi.fn(),
+        question: { storeDataAsText: true },
+      } as unknown as ClearFilesEvent;
+
+      const { result } = renderHook(() =>
+        useBlobStorage({
+          formId: mockFormId,
+          submissionId: mockSubmissionId,
+          surveyModel: mockSurveyModel,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.deleteFiles(mockSurveyModel, emptyOptions);
+      });
+
       expect(emptyOptions.callback).toHaveBeenCalledWith("success");
     });
 
@@ -485,7 +510,9 @@ describe("useBlobStorage", () => {
     });
 
     it("should handle network errors", async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("Network error"),
+      );
 
       const { result } = renderHook(() =>
         useBlobStorage({
