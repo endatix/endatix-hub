@@ -1,0 +1,96 @@
+import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
+import { generateSASUrl } from "@/features/storage/infrastructure/storage-service";
+import { generateUniqueFileName } from "@/features/storage/utils";
+import { ApiResult, SubmissionData } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
+
+const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
+
+interface SASTokenRequest {
+  formId: string;
+  fileNames: string[];
+  formLocale: string;
+  submissionId: string;
+}
+
+interface SASOperationResult {
+  success: boolean;
+  message?: string;
+  url?: string;
+}
+
+interface SASTokenResponse {
+  sasTokens: Record<string, SASOperationResult>;
+  submissionId: string;
+}
+
+export async function POST(request: Request): Promise<Response> {
+  const data: SASTokenRequest = await request.json();
+  const { formId, fileNames, formLocale } = data;
+  let submissionId = data.submissionId;
+
+  if (!formId) {
+    return Response.json({ error: "Form ID is required" }, { status: 400 });
+  }
+
+  if (!Array.isArray(fileNames) || fileNames.length === 0) {
+    return Response.json({ error: "File names are required" }, { status: 400 });
+  }
+
+  if (!submissionId) {
+    const initialSubmissionResult = await createInitialSubmissionUseCase(
+      formId,
+      formLocale,
+      "Generate submissionId for sas token generation",
+    );
+
+    if (ApiResult.isError(initialSubmissionResult)) {
+      return Response.json(
+        { error: initialSubmissionResult.error.message },
+        { status: 400 },
+      );
+    }
+
+    submissionId = initialSubmissionResult.data.submissionId;
+  }
+  const sasTokens: Record<string, SASOperationResult> = {};
+
+  const containerName =
+    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
+    DEFAULT_USER_FILES_CONTAINER_NAME;
+
+  for (const fileName of fileNames) {
+    const uniqueFileNameResult = generateUniqueFileName(fileName);
+    if (Result.isError(uniqueFileNameResult)) {
+      sasTokens[fileName] = {
+        success: false,
+        message: uniqueFileNameResult.message,
+      };
+      continue;
+    }
+
+    try {
+      const sasToken = await generateSASUrl({
+        containerName,
+        folderPath: `s/${formId}/${submissionId}`,
+        fileName: uniqueFileNameResult.value,
+      });
+      sasTokens[fileName] = {
+        success: true,
+        url: sasToken,
+      };
+    } catch (error) {
+      sasTokens[fileName] = {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  const sasTokenResponse: SASTokenResponse = {
+    sasTokens,
+    submissionId,
+  };
+  return Response.json(sasTokenResponse);
+}

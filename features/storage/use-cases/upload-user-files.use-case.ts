@@ -1,10 +1,10 @@
 import { Result } from "@/lib/result";
-import { v4 as uuidv4 } from "uuid";
 import { optimizeImageSize } from "../infrastructure/image-service";
 import {
   STORAGE_SERVICE_CONFIG,
   uploadToStorage,
 } from "../infrastructure/storage-service";
+import { generateUniqueFileName } from "../utils";
 
 export type UploadUserFilesCommand = {
   formId: string;
@@ -53,17 +53,13 @@ export const uploadUserFilesUseCase = async ({
         fileBuffer = Buffer.from(optimizedBuffer);
       }
 
-      const uuid = uuidv4();
-      const fileNameParts = file.name.split('.');
-      const fileExtension = fileNameParts.length > 1 ? fileNameParts.pop() : undefined;
+      const initialFileNameResult = generateUniqueFileName(file.name);
 
-      if (!fileExtension) {
-        return Result.validationError(
-          "File extension is required. Please provide a valid file.",
-        );
+      if (Result.isError(initialFileNameResult)) {
+        return Result.error(initialFileNameResult.message);
       }
 
-      const fileName = `${uuid}.${fileExtension}`;
+      const fileName = initialFileNameResult.value;
 
       if (STORAGE_SERVICE_CONFIG.isEnabled) {
         const fileUrl = await uploadToStorage(
