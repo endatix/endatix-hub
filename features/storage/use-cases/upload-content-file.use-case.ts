@@ -1,6 +1,7 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
 import {
+  CONTAINER_NAMES,
   STORAGE_SERVICE_CONFIG,
   uploadToStorage,
 } from "../infrastructure/storage-service";
@@ -18,8 +19,6 @@ export type UploadFileResult = {
 
 export type UploadContentFileResult = Result<UploadFileResult>;
 
-const DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME = "content";
-
 export const uploadContentFileUseCase = async ({
   formId,
   file,
@@ -33,10 +32,7 @@ export const uploadContentFileUseCase = async ({
   }
 
   const folderPath = `f/${formId}`;
-  const containerName =
-    process.env.CONTENT_STORAGE_CONTAINER_NAME ??
-    DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME;
-
+  const containerName = CONTAINER_NAMES.CONTENT;
   try {
     let fileBuffer = Buffer.from(await file.arrayBuffer());
 

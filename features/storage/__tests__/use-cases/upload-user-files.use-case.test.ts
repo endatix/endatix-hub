@@ -15,6 +15,10 @@ vi.mock("@/features/storage/infrastructure/storage-service", () => ({
     accountKey: "mock-account-key",
     hostName: "mock-host-name",
   },
+  CONTAINER_NAMES: {
+    USER_FILES: "user-files",
+    CONTENT: "content",
+  },
 }));
 
 vi.mock("@/features/storage/infrastructure/image-service", () => ({

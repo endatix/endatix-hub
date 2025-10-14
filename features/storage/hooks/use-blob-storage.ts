@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { SurveyModel, UploadFilesEvent } from "survey-core";
+import { ClearFilesEvent, SurveyModel, UploadFilesEvent } from "survey-core";
 import { BlockBlobClient } from "@azure/storage-blob";
 
 interface UseBlobStorageProps {
@@ -24,8 +24,8 @@ interface UploadedFile {
 }
 
 interface UploadResult {
-  data: any | Array<any>;
-  errors: any | Array<any>;
+  data: Array<unknown>;
+  errors: Array<string>;
 }
 
 const UploadResult = {
@@ -43,7 +43,7 @@ const UploadResult = {
     };
   },
 
-  success(data: any | Array<any>): UploadResult {
+  success(data: Array<unknown>): UploadResult {
     return {
       data: data,
       errors: [],
@@ -56,14 +56,8 @@ const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 const uploadToBlob = async (
   props: UploadFilesToBlobProps,
 ): Promise<UploadResult> => {
-  const {
-    files,
-    options,
-    formId,
-    submissionId,
-    surveyModel,
-    onSubmissionIdChange,
-  } = props;
+  const { files, formId, submissionId, surveyModel, onSubmissionIdChange } =
+    props;
 
   if (files.length === 0) {
     return UploadResult.empty();
@@ -131,7 +125,7 @@ const uploadToBlob = async (
     });
 
     const uploadResults = await Promise.all(uploadPromises);
-    return uploadResults.reduce((groupResults, curr) => {
+    const results = uploadResults.reduce((groupResults, curr) => {
       if (curr.success) {
         groupResults.data.push(curr.data);
       } else {
@@ -139,6 +133,8 @@ const uploadToBlob = async (
       }
       return groupResults;
     }, UploadResult.empty());
+
+    return results;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Upload failed";
@@ -256,7 +252,7 @@ export function useBlobStorage({
           surveyModel,
           onSubmissionIdChange,
         });
-        allResults.push(...blobResults.data);
+        allResults.push(...(blobResults.data as Array<unknown>));
         allErrors.push(...blobResults.errors);
 
         const serverResults = await uploadToServer({
@@ -266,7 +262,7 @@ export function useBlobStorage({
           surveyModel,
           onSubmissionIdChange,
         });
-        allResults.push(...serverResults.data);
+        allResults.push(...(serverResults.data as Array<unknown>));
         allErrors.push(...serverResults.errors);
 
         options.callback(allResults, allErrors);
@@ -276,17 +272,96 @@ export function useBlobStorage({
         options.callback(UploadResult.error(errors));
       }
     },
-    [uploadToBlob, uploadToServer],
+    [
+      formId,
+      groupFilesByUploadStrategy,
+      onSubmissionIdChange,
+      submissionId,
+      surveyModel,
+    ],
+  );
+
+  const deleteFiles = useCallback(
+    async (sender: SurveyModel, options: ClearFilesEvent) => {
+      try {
+        if (!options.value || options.value.length === 0) {
+          return options.callback("success");
+        }
+
+        const filesToDelete = options.fileName
+          ? options.value.filter((file: File) => file.name === options.fileName)
+          : options.value;
+
+        if (filesToDelete.length === 0) {
+          console.error(`File with name ${options.fileName} is not found`);
+          return options.callback("error");
+        }
+
+        const fileUrls = filesToDelete.map(
+          (file: { content: string }) => file.content,
+        );
+
+        console.log(`Deleting ${fileUrls.length} files:`, fileUrls);
+
+        const deleteResponse = await fetch("/api/public/v0/storage/delete", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            formId,
+            submissionId,
+            fileUrls,
+          }),
+        });
+
+        const responseData = await deleteResponse.json();
+
+        if (!deleteResponse.ok) {
+          console.error("Delete API error:", responseData.error);
+          return options.callback("error");
+        }
+
+        const successfulDeletions: Array<{ content: string }> = [];
+        const failedDeletions: string[] = [];
+
+        responseData.results.forEach(
+          (result: { fileUrl: string; result: string; error?: string }) => {
+            if (result.result === "success") {
+              successfulDeletions.push({ content: result.fileUrl });
+            } else {
+              console.error(
+                `Failed to delete file ${result.fileUrl}:`,
+                result.error,
+              );
+              failedDeletions.push(result.error || "Unknown error");
+            }
+          },
+        );
+
+        if (successfulDeletions.length > 0) {
+          options.callback("success", successfulDeletions);
+        }
+
+        if (failedDeletions.length > 0) {
+          options.callback("error", failedDeletions.join("; "));
+        }
+      } catch (error) {
+        console.error("Error in deleteFiles:", error);
+        return options.callback("error");
+      }
+    },
+    [formId, submissionId],
   );
 
   useEffect(() => {
-    if (surveyModel) {
-      surveyModel.onUploadFiles.add(uploadFiles);
-      return () => {
-        surveyModel.onUploadFiles.remove(uploadFiles);
-      };
-    }
-  }, [surveyModel, uploadFiles]);
+    surveyModel?.onUploadFiles.add(uploadFiles);
+    surveyModel?.onClearFiles.add(deleteFiles);
+    return () => {
+      surveyModel?.onUploadFiles.remove(uploadFiles);
+      surveyModel?.onClearFiles.remove(deleteFiles);
+    };
+  }, [surveyModel, uploadFiles, deleteFiles]);
 
-  return { uploadFiles };
+  return { uploadFiles, deleteFiles };
 }

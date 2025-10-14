@@ -12,10 +12,10 @@ type AzureStorageConfig = {
   hostName: string;
 };
 
-interface fileOptions {
+interface FileOptions {
   fileName: string;
   containerName: string;
-  folderPath: string;
+  folderPath?: string;
 }
 
 const STORAGE_SERVICE_CONFIG: AzureStorageConfig = Object.freeze({
@@ -36,6 +36,18 @@ const STORAGE_SERVICE_CONFIG: AzureStorageConfig = Object.freeze({
       : "";
   })(),
 });
+
+const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
+const DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME = "content";
+
+const CONTAINER_NAMES = {
+  USER_FILES:
+    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
+    DEFAULT_USER_FILES_CONTAINER_NAME,
+  CONTENT:
+    process.env.CONTENT_STORAGE_CONTAINER_NAME ??
+    DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME,
+};
 
 // Singleton BlobServiceClient to prevent memory leaks
 let _blobServiceClient: BlobServiceClient | null = null;
@@ -105,7 +117,7 @@ async function uploadToStorage(
 }
 
 async function generateSASUrl(
-  fileOptions: fileOptions,
+  fileOptions: FileOptions,
   permissions: "w" | "r" = "w",
 ): Promise<string> {
   if (!STORAGE_SERVICE_CONFIG.isEnabled) {
@@ -151,6 +163,37 @@ async function generateSASUrl(
   }
 }
 
+async function deleteBlob(fileOptions: FileOptions): Promise<void> {
+  if (!STORAGE_SERVICE_CONFIG.isEnabled) {
+    throw new Error("Azure storage is not enabled");
+  }
+
+  if (!fileOptions.fileName) {
+    throw new Error("a file is not provided");
+  }
+
+  if (!fileOptions.containerName) {
+    throw new Error("container name is not provided");
+  }
+
+  const blobServiceClient = getBlobServiceClient();
+  const containerClient = blobServiceClient.getContainerClient(
+    fileOptions.containerName,
+  );
+
+  const blobName = fileOptions.folderPath
+    ? `${fileOptions.folderPath}/${fileOptions.fileName}`
+    : fileOptions.fileName;
+  const blobClient = containerClient.getBlockBlobClient(blobName);
+
+  try {
+    await blobClient.delete();
+  } catch (error) {
+    console.error("Error deleting blob:", error);
+    throw error;
+  }
+}
+
 // Reset function for testing or when you need to recreate the client
 function resetBlobServiceClient(): void {
   if (_blobServiceClient) {
@@ -162,7 +205,10 @@ function resetBlobServiceClient(): void {
 
 export {
   STORAGE_SERVICE_CONFIG,
+  CONTAINER_NAMES,
+  type FileOptions,
   uploadToStorage,
   generateSASUrl,
+  deleteBlob,
   resetBlobServiceClient,
 };

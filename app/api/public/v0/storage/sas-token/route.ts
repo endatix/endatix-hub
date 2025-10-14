@@ -1,11 +1,11 @@
-import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
-import { generateSASUrl } from "@/features/storage/infrastructure/storage-service";
+import {
+  CONTAINER_NAMES,
+  generateSASUrl,
+} from "@/features/storage/infrastructure/storage-service";
 import { generateUniqueFileName } from "@/features/storage/utils";
-import { ApiResult, SubmissionData } from "@/lib/endatix-api";
+import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
-
-const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
 
 interface SASTokenRequest {
   formId: string;
@@ -56,9 +56,7 @@ export async function POST(request: Request): Promise<Response> {
   }
   const sasTokens: Record<string, SASOperationResult> = {};
 
-  const containerName =
-    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
-    DEFAULT_USER_FILES_CONTAINER_NAME;
+  const containerName = CONTAINER_NAMES.USER_FILES;
 
   for (const fileName of fileNames) {
     const uniqueFileNameResult = generateUniqueFileName(fileName);

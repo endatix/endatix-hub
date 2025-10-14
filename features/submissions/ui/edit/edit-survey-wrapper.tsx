@@ -17,8 +17,8 @@ import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
-import { registerAudioQuestion } from '@/lib/questions/audio-recorder';
-import addRandomizeGroupFeature from '@/lib/questions/features/group-randomization';
+import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
