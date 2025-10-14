@@ -6,7 +6,7 @@ import {
   DefineFormRequestSchema,
   DefineFormRequest,
 } from "@/lib/endatix-api/agents/types";
-import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
+import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 import { Model } from "survey-core";
 
 function buildDefineFormRequest(formData: FormData): DefineFormRequest {
@@ -22,6 +22,11 @@ function buildDefineFormRequest(formData: FormData): DefineFormRequest {
   const threadId = formData.get("threadId") as string;
   if (threadId?.trim()) {
     request.threadId = threadId;
+  }
+
+  const formId = formData.get("formId") as string;
+  if (formId?.trim()) {
+    request.formId = formId;
   }
 
   return request;

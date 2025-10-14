@@ -1,12 +1,12 @@
 import { Form, FormDefinition } from "@/types";
 import { getForm, getActiveFormDefinition } from "@/services/api";
-import { FormEditorProps } from "@/features/forms/ui/editor/form-editor";
-import FormEditorContainer from "@/features/forms/ui/editor/form-editor-container";
+import FormDesignerLayout, { FormDesignerLayoutProps } from "@/features/forms/ui/designer/form-designer-wrapper";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -14,6 +14,7 @@ type Params = {
 
 export default async function FormDesignerPage({ params }: Params) {
   const { formId } = await params;
+  const ai = await aiFeaturesFlag();
 
   let form: Form | null = null;
   let formJson: object | null = null;
@@ -28,7 +29,7 @@ export default async function FormDesignerPage({ params }: Params) {
     formJson = null;
   }
 
-  if (!form || !formJson) {
+  if (!form) {
     return (
       <NotFoundComponent
         notFoundTitle="Form not found"
@@ -43,18 +44,19 @@ export default async function FormDesignerPage({ params }: Params) {
     );
   }
 
-  const props: FormEditorProps = {
+  const props: FormDesignerLayoutProps = {
     formId: formId,
     formJson: formJson,
     formName: form.name,
     slkVal: process.env.NEXT_PUBLIC_SLK,
     themeId: form.themeId ?? undefined,
+    aiFeatureFlag: ai,
   };
 
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <FormEditorContainer {...props} />
+        <FormDesignerLayout {...props} />
       </div>
     </Suspense>
   );

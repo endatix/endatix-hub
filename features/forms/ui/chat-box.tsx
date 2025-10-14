@@ -2,7 +2,7 @@
 
 import {
   AlertCircle,
-  CornerDownLeft,
+  ArrowUp,
   Mic,
   Paperclip,
   StopCircle,
@@ -24,9 +24,9 @@ import { redirect } from "next/navigation";
 import {
   AssistantStore,
   DefineFormCommand,
-} from "@/app/(main)/forms/create/use-cases/assistant";
-import { defineFormAction } from "@/app/(main)/forms/create/define-form.action";
-import { PromptResult } from "@/app/(main)/forms/create/prompt-result";
+} from "@/features/forms/ui/chat/use-cases/assistant";
+import { defineFormAction } from "@/features/forms/application/actions/define-form.action";
+import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 
 const ChatErrorAlert = ({
   errorMessage,
@@ -50,38 +50,48 @@ const SubmitButton = ({
   disabled: boolean;
 }) => {
   return (
-    <Button
-      type="submit"
-      size="sm"
-      className={cn("ml-auto gap-1.5 w-24", pending ? "cursor-progress" : "")}
-      aria-disabled={pending}
-      disabled={disabled || pending}
-    >
-      Chat
-      {pending ? (
-        <StopCircle className="size-6" />
-      ) : (
-        <CornerDownLeft className="size-3" />
-      )}
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="submit"
+            size="icon"
+            className={cn("ml-auto", pending ? "cursor-progress" : "")}
+            aria-disabled={pending}
+            disabled={disabled || pending}
+          >
+            {pending ? (
+              <StopCircle className="size-4" />
+            ) : (
+              <ArrowUp className="size-4" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Send</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
 const initialState = PromptResult.InitialState();
 
 interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
+  formId?: string;
   requiresNewContext?: boolean;
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
   onStateChange?: (stateCommand: DefineFormCommand) => void;
+  onFormGenerated?: () => void;
 }
 
 const ChatBox = ({
   className,
   placeholder,
+  formId,
   requiresNewContext,
   onPendingChange,
   onStateChange,
+  onFormGenerated,
   ...props
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
@@ -90,27 +100,36 @@ const ChatBox = ({
       const contextStore = new AssistantStore();
 
       if (requiresNewContext) {
-        contextStore.clear();
+        contextStore.clear(formId);
         contextStore.setChatContext({
           messages: [],
           threadId: "",
           agentId: "",
           isInitialPrompt: true,
-        });
+        }, formId);
       }
 
-      const formContext = contextStore.getChatContext();
+      const formContext = contextStore.getChatContext(formId);
       if (formContext) {
-        formData.set("threadId", formContext.threadId ?? "");
-        formData.set("agentId", formContext.agentId ?? "");
+        if (formContext.threadId) {
+          formData.set("threadId", formContext.threadId);
+        }
+        if (formContext.agentId) {
+          formData.set("agentId", formContext.agentId);
+        }
+      }
+
+      // Pass formId to backend for conversation tracking
+      if (formId) {
+        formData.set("formId", formId);
       }
 
       const promptResult = await defineFormAction(prevState, formData);
 
       if (promptResult.success && promptResult.data?.definition) {
         const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(promptResult.data.definition);
-        const currentContext = contextStore.getChatContext();
+        contextStore.setFormModel(JSON.stringify(promptResult.data.definition), formId);
+        const currentContext = contextStore.getChatContext(formId);
         currentContext.threadId = promptResult.data.threadId ?? "";
         currentContext.agentId = promptResult.data.agentId ?? "";
 
@@ -134,13 +153,17 @@ const ChatBox = ({
           });
         }
 
-        contextStore.setChatContext(currentContext);
+        contextStore.setChatContext(currentContext, formId);
 
         if (onStateChange) {
           onStateChange(DefineFormCommand.fullStateUpdate);
         }
 
-        if (window.location.pathname === "/forms") {
+        // If onFormGenerated callback is provided (Create Form sheet scenario),
+        // call it to navigate to designer. Otherwise, redirect to preview page.
+        if (onFormGenerated) {
+          onFormGenerated();
+        } else if (window.location.pathname === "/forms") {
           redirect("/forms/create");
         }
 
@@ -194,38 +217,42 @@ const ChatBox = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  disabled
-                  variant="ghost"
-                  size="icon"
-                  className="disabled:opacity-50"
-                >
-                  <Paperclip className="size-4" />
-                  <span className="sr-only">Attach file</span>
-                </Button>
+                <span className="inline-flex">
+                  <Button
+                    disabled
+                    variant="ghost"
+                    size="icon"
+                    className="disabled:opacity-50 pointer-events-none"
+                  >
+                    <Paperclip className="size-4" />
+                    <span className="sr-only">Attach file</span>
+                  </Button>
+                </span>
               </TooltipTrigger>
-              <TooltipContent side="top">Attach File</TooltipContent>
+              <TooltipContent side="top">File attachments coming soon</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  disabled
-                  variant="ghost"
-                  size="icon"
-                  className="disabled:opacity-50"
-                >
-                  <Mic className="size-4" />
-                  <span className="sr-only">Use Microphone</span>
-                </Button>
+                <span className="inline-flex">
+                  <Button
+                    disabled
+                    variant="ghost"
+                    size="icon"
+                    className="disabled:opacity-50 pointer-events-none"
+                  >
+                    <Mic className="size-4" />
+                    <span className="sr-only">Use Microphone</span>
+                  </Button>
+                </span>
               </TooltipTrigger>
-              <TooltipContent side="top">Use Microphone</TooltipContent>
+              <TooltipContent side="top">Voice input coming soon</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <SubmitButton pending={pending} disabled={input.length === 0} />
         </div>
       </form>
       <p className="text-center text-xs text-gray-500">
-        Endatix may make mistakes. Please use with discretion.
+        Endatix AI Assistant may make mistakes. Please use with discretion.
       </p>
     </div>
   );

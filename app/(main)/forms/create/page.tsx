@@ -6,16 +6,16 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { NextPage } from "next";
-import ChatBox from "./ui/chat-box";
+import ChatBox from "../../../../features/forms/ui/chat/chat-box";
 import PreviewFormContainer from "./ui/preview-form-container";
-import ChatThread from "./ui/chat-thread";
+import ChatThread from "../../../../features/forms/ui/chat/chat-thread";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   AssistantStore,
   CreateFormRequest,
   DefineFormCommand,
   ChatMessage,
-} from "./use-cases/assistant";
+} from "../../../../features/forms/ui/chat/use-cases/assistant";
 import DotLoader from "@/components/loaders/dot-loader";
 import { ChevronLeft, ChevronRight, FilePenLine, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -182,7 +182,7 @@ const CreateForm: NextPage = () => {
                     onClick={handleCancelTranslation}
                     disabled={isWaiting || isPending}
                   >
-                    Cancel Translation
+                    Cancel translation
                   </Button>
                 )}
 

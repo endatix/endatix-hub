@@ -75,6 +75,10 @@ export const DefineFormRequestSchema = z.object({
     .string()
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  formId: z
+    .string()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
 });
 
 export type DefineFormRequest = z.infer<typeof DefineFormRequestSchema>;
@@ -83,5 +87,5 @@ export interface DefineFormResponse {
   agentResponse: string;
   agentId: string;
   threadId: string;
-  definition?: string;
+  definition?: object;
 }

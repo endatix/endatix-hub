@@ -1,6 +1,6 @@
 "use client";
 
-import ChatThread from "@/app/(main)/forms/create/ui/chat-thread";
+import ChatThread from "@/features/forms/ui/chat/chat-thread";
 import PreviewFormContainer from "@/app/(main)/forms/create/ui/preview-form-container";
 import { Button } from "@/components/ui/button";
 import {

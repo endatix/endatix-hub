@@ -19,9 +19,9 @@ import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
-import { BicepsFlexed, Code, Copy, Folder } from "lucide-react";
+import { BicepsFlexed, Code, Copy, Folder, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FC, useState, useTransition } from "react";
+import { FC, useState, useTransition, useEffect } from "react";
 import ChatBox from "./chat-box";
 import TemplateSelector from "./template-selector";
 
@@ -91,6 +91,8 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
   );
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [aiFormId, setAiFormId] = useState<string | null>(null);
+  const [isCreatingAiForm, setIsCreatingAiForm] = useState(false);
   const router = useRouter();
 
   const openNewFormInEditor = async () => {
@@ -146,6 +148,41 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
     });
   };
 
+  // Create empty form for AI assistant when feature flag is enabled
+  useEffect(() => {
+    if (aiFeatureFlag && !aiFormId && !isCreatingAiForm) {
+      setIsCreatingAiForm(true);
+      startTransition(async () => {
+        try {
+          const request: CreateFormRequest = {
+            name: "AI Generated Form",
+            isEnabled: false,
+            formDefinitionJsonData: JSON.stringify({}),
+          };
+          const result = await createFormAction(request);
+          if (Result.isSuccess(result) && result.value) {
+            setAiFormId(result.value);
+          } else {
+            const errorMessage = Result.isError(result) ? result.message : "Unknown error";
+            console.error("Failed to create AI form:", errorMessage);
+            toast.error("Failed to initialize AI assistant");
+          }
+        } catch (error) {
+          console.error("Error creating AI form:", error);
+          toast.error("Failed to initialize AI assistant");
+        } finally {
+          setIsCreatingAiForm(false);
+        }
+      });
+    }
+  }, [aiFeatureFlag, aiFormId, isCreatingAiForm]);
+
+  const handleAiFormGenerated = () => {
+    if (aiFormId) {
+      router.push(`/forms/${aiFormId}/design`);
+    }
+  };
+
   return (
     <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none flex flex-col h-screen justify-between">
       <SheetHeader className="mb-12">
@@ -193,40 +230,61 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
           />
         </div>
       </div>
-      {pending && <DotLoader className="flex-1 text-center m-auto" />}
+      {(pending || isCreatingAiForm) && <DotLoader className="flex-1 text-center m-auto" />}
       <SheetFooter className="flex-end">
-        {aiFeatureFlag && (
-          <ChatBox
-            requiresNewContext={true}
-            onPendingChange={(pending) => {
-              setPending(pending);
-            }}
-          />
-        )}
-        {selectedOption === "from_template" && (
-          <div className="w-full space-y-4">
-            <TemplateSelector
-              onTemplateSelect={handleTemplateSelect}
-              onPreviewTemplate={handlePreviewTemplate}
-            />
-            {selectedTemplate && (
-              <Button
-                className="w-full"
-                onClick={handleCreateFromTemplate}
-                disabled={isPending}
-              >
-                {isPending ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Form from Template"
-                )}
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="w-full space-y-4">
+          {selectedOption === "from_template" && (
+            <div className="w-full space-y-4">
+              <TemplateSelector
+                onTemplateSelect={handleTemplateSelect}
+                onPreviewTemplate={handlePreviewTemplate}
+              />
+              {selectedTemplate && (
+                <Button
+                  className="w-full"
+                  onClick={handleCreateFromTemplate}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <>
+                      <Spinner className="mr-2 h-4 w-4" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Form from Template"
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {aiFeatureFlag && aiFormId && (
+            <div className="w-full space-y-3">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    or
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Let <span className="font-bold">Endatix AI Assistant</span> build the form
+              </p>
+              <ChatBox
+                formId={aiFormId}
+                requiresNewContext={true}
+                onPendingChange={(pending) => {
+                  setPending(pending);
+                }}
+                onFormGenerated={handleAiFormGenerated}
+              />
+            </div>
+          )}
+        </div>
       </SheetFooter>
 
       {previewTemplateId && (

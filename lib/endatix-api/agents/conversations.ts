@@ -1,7 +1,7 @@
 import { EndatixApi } from "../endatix-api";
 import { ApiResult, Conversation } from "../types";
 
-export class Conversations {
+export class AgentConversations {
   constructor(private readonly endatix: EndatixApi) {}
 
   async list(agentId: string): Promise<ApiResult<Conversation[]>> {
