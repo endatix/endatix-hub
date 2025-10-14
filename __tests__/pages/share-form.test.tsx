@@ -51,6 +51,7 @@ describe("ShareForm Page", async () => {
 
     const props = {
       params: Promise.resolve({ formId: "invalid-id" }),
+      searchParams: Promise.resolve({}),
     };
 
     // The component should call notFound() and not return JSX
@@ -77,6 +78,7 @@ describe("ShareForm Page", async () => {
 
     const props = {
       params: Promise.resolve({ formId: "valid-id" }),
+      searchParams: Promise.resolve({}),
     };
 
     const component = await ShareFormPage(props);
