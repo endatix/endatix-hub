@@ -1,6 +1,7 @@
 import { Result } from "@/lib/result";
 import { optimizeImageSize } from "../infrastructure/image-service";
 import {
+  CONTAINER_NAMES,
   STORAGE_SERVICE_CONFIG,
   uploadToStorage,
 } from "../infrastructure/storage-service";
@@ -18,8 +19,6 @@ export type UploadFileResult = {
 };
 
 export type UploadUserFilesResult = Result<UploadFileResult[]>;
-
-const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
 
 export const uploadUserFilesUseCase = async ({
   formId,
@@ -40,9 +39,7 @@ export const uploadUserFilesUseCase = async ({
 
   const folderPath = `s/${formId}/${submissionId}`;
 
-  const containerName =
-    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
-    DEFAULT_USER_FILES_CONTAINER_NAME;
+  const containerName = CONTAINER_NAMES.USER_FILES;
   const uploadedFiles: UploadFileResult[] = [];
 
   try {
