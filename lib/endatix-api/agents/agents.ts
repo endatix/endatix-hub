@@ -1,6 +1,6 @@
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../types";
-import { Conversations } from "./conversations";
+import { AgentConversations } from "./conversations";
 import {
   Agent,
   CreateAgentRequest,
@@ -10,16 +10,16 @@ import {
 } from "./types";
 
 export default class Agents {
-  private _conversations?: Conversations;
+  private _conversations?: AgentConversations;
 
   constructor(private readonly endatix: EndatixApi) {}
 
   /**
    * Conversations API methods
    */
-  get conversations(): Conversations {
+  get conversations(): AgentConversations {
     if (!this._conversations) {
-      this._conversations = new Conversations(this.endatix);
+      this._conversations = new AgentConversations(this.endatix);
     }
     return this._conversations;
   }

@@ -8,7 +8,7 @@ import Agents from "./agents/agents";
 import Account from "./account/account";
 import MyAccount from "./my-account/my-account";
 import Auth from "./auth/auth";
-import { ConversationsApi } from "./conversations/conversations";
+import { Conversations } from "./conversations/conversations";
 
 /**
  * Gets the validated and cached API URL
@@ -47,7 +47,7 @@ export class EndatixApi {
   private _auth?: Auth;
   private _account?: Account;
   private _myAccount?: MyAccount;
-  private _conversations?: ConversationsApi;
+  private _conversations?: Conversations;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -104,9 +104,9 @@ export class EndatixApi {
   /**
    * Lazy-loaded conversations API - only creates instance when first accessed
    */
-  get conversations(): ConversationsApi {
+  get conversations(): Conversations {
     if (!this._conversations) {
-      this._conversations = new ConversationsApi(this);
+      this._conversations = new Conversations(this);
     }
     return this._conversations;
   }

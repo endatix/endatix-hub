@@ -5,7 +5,7 @@ import {
   ChatMessage,
 } from "./types";
 
-export class ConversationsApi {
+export class Conversations {
   constructor(private baseApi: EndatixApi) {}
 
   async getLatestConversation(
