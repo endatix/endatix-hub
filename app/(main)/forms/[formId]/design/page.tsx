@@ -1,6 +1,6 @@
 import { Form, FormDefinition } from "@/types";
 import { getForm, getActiveFormDefinition } from "@/services/api";
-import FormDesignerLayout, { FormDesignerLayoutProps } from "@/features/forms/ui/designer/form-designer-layout";
+import FormDesignerLayout, { FormDesignerLayoutProps } from "@/features/forms/ui/designer/form-designer-wrapper";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
