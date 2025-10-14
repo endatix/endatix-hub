@@ -7,7 +7,18 @@ import {
 } from "@azure/storage-blob";
 
 // Mock entire module
-vi.mock("@azure/storage-blob");
+vi.mock("@azure/storage-blob", () => ({
+  BlobServiceClient: vi.fn(),
+  ContainerClient: vi.fn(),
+  BlockBlobClient: vi.fn(),
+  StorageSharedKeyCredential: vi.fn(),
+  BlobSASPermissions: {
+    parse: vi.fn().mockReturnValue({ write: true }),
+  },
+  SASProtocol: {
+    HttpsAndHttp: "https,http",
+  },
+}));
 vi.mock("next/dist/server/image-optimizer");
 
 describe("StorageService", () => {
@@ -37,7 +48,6 @@ describe("StorageService", () => {
       } as unknown as BlockBlobClient;
 
       mockContainerClient = {
-        createIfNotExists: vi.fn().mockResolvedValue(undefined),
         getBlockBlobClient: vi.fn().mockReturnValue(mockBlobClient),
       } as unknown as ContainerClient;
 
@@ -65,7 +75,7 @@ describe("StorageService", () => {
         ),
       ).rejects.toThrow("Azure storage is not enabled");
     });
-    
+
     it("should throw error when storage is not enabled (no account key)", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_KEY = "";
       const uploadToStorage = await resolveUploadToStorage();
@@ -97,9 +107,6 @@ describe("StorageService", () => {
         `https://${mockAccountName}.blob.core.windows.net`,
         expect.anything(),
       );
-      expect(mockContainerClient.createIfNotExists).toHaveBeenCalledWith({
-        access: "container",
-      });
       expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
         `${mockFolderPath}/${mockFileName}`,
       );
@@ -118,13 +125,10 @@ describe("StorageService", () => {
       );
 
       // Assert
-       expect(BlobServiceClient).toHaveBeenCalledWith(
+      expect(BlobServiceClient).toHaveBeenCalledWith(
         `https://${mockAccountName}.blob.core.windows.net`,
         expect.anything(),
       );
-      expect(mockContainerClient.createIfNotExists).toHaveBeenCalledWith({
-        access: "container",
-      });
       expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
         mockFileName,
       );
@@ -146,7 +150,7 @@ describe("StorageService", () => {
       ).rejects.toThrow("a file is not provided");
     });
 
-      it("should throw error when fileName is not provided", async () => {
+    it("should throw error when fileName is not provided", async () => {
       const { uploadToStorage } = await import(
         "../../infrastructure/storage-service"
       );
@@ -166,6 +170,134 @@ describe("StorageService", () => {
       await expect(
         uploadToStorage(mockBuffer, mockFileName, "", mockFolderPath),
       ).rejects.toThrow("container name is not provided");
+    });
+  });
+
+  describe("generateSASUrl", () => {
+    let mockBlobClient: BlockBlobClient;
+    let mockContainerClient: ContainerClient;
+    let mockBlobServiceClient: BlobServiceClient;
+
+    beforeEach(() => {
+      mockBlobClient = {
+        generateSasUrl: vi
+          .fn()
+          .mockReturnValue("https://test.blob.core.windows.net/test?sas-token"),
+      } as unknown as BlockBlobClient;
+
+      mockContainerClient = {
+        getBlockBlobClient: vi.fn().mockReturnValue(mockBlobClient),
+      } as unknown as ContainerClient;
+
+      mockBlobServiceClient = {
+        getContainerClient: vi.fn().mockReturnValue(mockContainerClient),
+      } as unknown as BlobServiceClient;
+      vi.mocked(BlobServiceClient).mockImplementation(
+        () => mockBlobServiceClient,
+      );
+      vi.mocked(StorageSharedKeyCredential).mockImplementation(
+        () => ({} as StorageSharedKeyCredential),
+      );
+    });
+
+    it("should throw error when storage is not enabled", async () => {
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
+      const { generateSASUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+        "Azure storage is not enabled",
+      );
+    });
+
+    it("should successfully generate SAS URL", async () => {
+      const { generateSASUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act
+      const result = await generateSASUrl(fileOptions);
+
+      // Assert
+      expect(BlobServiceClient).toHaveBeenCalledWith(
+        `https://${mockAccountName}.blob.core.windows.net`,
+        expect.anything(),
+      );
+      expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
+        `${mockFolderPath}/${mockFileName}`,
+      );
+      expect(mockBlobClient.generateSasUrl).toHaveBeenCalledWith({
+        startsOn: expect.any(Date),
+        permissions: { write: true }, // Mocked BlobSASPermissions.parse() return value
+        expiresOn: expect.any(Date),
+        protocol: "https,http",
+      });
+      expect(result).toBe("https://test.blob.core.windows.net/test?sas-token");
+    });
+
+    it("should throw error when fileName is not provided", async () => {
+      const { generateSASUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: "",
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+        "a file is not provided",
+      );
+    });
+
+    it("should throw error when folderPath is not provided", async () => {
+      const { generateSASUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: "",
+      };
+
+      // Act & Assert
+      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+        "a folder path is not provided",
+      );
+    });
+
+    it("should throw error when containerName is not provided", async () => {
+      const { generateSASUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: "",
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+        "container name is not provided",
+      );
     });
   });
 
@@ -227,6 +359,250 @@ describe("StorageService", () => {
     });
   });
 
+  describe("deleteBlob", () => {
+    let mockBlobClient: BlockBlobClient;
+    let mockContainerClient: ContainerClient;
+    let mockBlobServiceClient: BlobServiceClient;
+
+    beforeEach(() => {
+      mockBlobClient = {
+        delete: vi.fn().mockResolvedValue(undefined),
+      } as unknown as BlockBlobClient;
+
+      mockContainerClient = {
+        getBlockBlobClient: vi.fn().mockReturnValue(mockBlobClient),
+      } as unknown as ContainerClient;
+
+      mockBlobServiceClient = {
+        getContainerClient: vi.fn().mockReturnValue(mockContainerClient),
+      } as unknown as BlobServiceClient;
+      vi.mocked(BlobServiceClient).mockImplementation(
+        () => mockBlobServiceClient,
+      );
+      vi.mocked(StorageSharedKeyCredential).mockImplementation(
+        () => ({} as StorageSharedKeyCredential),
+      );
+    });
+
+    it("should throw error when storage is not enabled", async () => {
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => deleteBlob(fileOptions)).rejects.toThrow(
+        "Azure storage is not enabled",
+      );
+    });
+
+    it("should successfully delete blob with folder path", async () => {
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act
+      await deleteBlob(fileOptions);
+
+      // Assert
+      expect(BlobServiceClient).toHaveBeenCalledWith(
+        `https://${mockAccountName}.blob.core.windows.net`,
+        expect.anything(),
+      );
+      expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
+        `${mockFolderPath}/${mockFileName}`,
+      );
+      expect(mockBlobClient.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it("should successfully delete blob without folder path", async () => {
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+      };
+
+      // Act
+      await deleteBlob(fileOptions);
+
+      // Assert
+      expect(BlobServiceClient).toHaveBeenCalledWith(
+        `https://${mockAccountName}.blob.core.windows.net`,
+        expect.anything(),
+      );
+      expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
+        mockFileName,
+      );
+      expect(mockBlobClient.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw error when fileName is not provided", async () => {
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: "",
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => deleteBlob(fileOptions)).rejects.toThrow(
+        "a file is not provided",
+      );
+    });
+
+    it("should throw error when containerName is not provided", async () => {
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: "",
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => deleteBlob(fileOptions)).rejects.toThrow(
+        "container name is not provided",
+      );
+    });
+
+    it("should handle delete errors gracefully", async () => {
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const deleteError = new Error("Blob not found");
+      mockBlobClient.delete = vi.fn().mockRejectedValue(deleteError);
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => deleteBlob(fileOptions)).rejects.toThrow(
+        "Blob not found",
+      );
+      expect(mockBlobClient.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it("should use singleton BlobServiceClient", async () => {
+      const { deleteBlob, uploadToStorage } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      // Setup mock for uploadToStorage as well
+      Object.assign(mockBlobClient, {
+        uploadData: vi.fn().mockResolvedValue(undefined),
+        url: "https://test.blob.core.windows.net/test",
+      });
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act - Call both functions
+      await uploadToStorage(
+        mockBuffer,
+        mockFileName,
+        mockContainerName,
+        mockFolderPath,
+      );
+      await deleteBlob(fileOptions);
+
+      // Assert - BlobServiceClient should only be instantiated once
+      expect(BlobServiceClient).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("resetBlobServiceClient", () => {
+    it("should reset the singleton client", async () => {
+      const { resetBlobServiceClient } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      // Act
+      resetBlobServiceClient();
+
+      // Assert - This is hard to test directly, but we can verify it doesn't throw
+      expect(() => resetBlobServiceClient()).not.toThrow();
+    });
+  });
+
+  describe("Singleton Pattern", () => {
+    it("should reuse the same BlobServiceClient instance", async () => {
+      // Setup mocks for all functions
+      const mockBlobClient = {
+        uploadData: vi.fn().mockResolvedValue(undefined),
+        url: "https://test.blob.core.windows.net/test",
+        generateSasUrl: vi
+          .fn()
+          .mockReturnValue("https://test.blob.core.windows.net/test?sas-token"),
+        delete: vi.fn().mockResolvedValue(undefined),
+      } as unknown as BlockBlobClient;
+
+      const mockContainerClient = {
+        getBlockBlobClient: vi.fn().mockReturnValue(mockBlobClient),
+      } as unknown as ContainerClient;
+
+      const mockBlobServiceClient = {
+        getContainerClient: vi.fn().mockReturnValue(mockContainerClient),
+      } as unknown as BlobServiceClient;
+
+      vi.mocked(BlobServiceClient).mockImplementation(
+        () => mockBlobServiceClient,
+      );
+      vi.mocked(StorageSharedKeyCredential).mockImplementation(
+        () => ({} as StorageSharedKeyCredential),
+      );
+
+      const { uploadToStorage, generateSASUrl, deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act - Call all three functions
+      await uploadToStorage(
+        mockBuffer,
+        mockFileName,
+        mockContainerName,
+        mockFolderPath,
+      );
+      await generateSASUrl(fileOptions);
+      await deleteBlob(fileOptions);
+
+      // Assert - BlobServiceClient should only be instantiated once
+      expect(BlobServiceClient).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("isEnabled", () => {
     // Create a fresh import for each test
     let storageServiceModule: typeof import("../../infrastructure/storage-service");
@@ -243,7 +619,9 @@ describe("StorageService", () => {
       // Arrange
       process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
       process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      storageServiceModule = await import("../../infrastructure/storage-service");
+      storageServiceModule = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act & Assert
       expect(storageServiceModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(true);
@@ -254,7 +632,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
       process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
-      storageServiceModule = await import("../../infrastructure/storage-service");
+      storageServiceModule = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act & Assert
       expect(storageServiceModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(false);
@@ -263,6 +643,8 @@ describe("StorageService", () => {
 });
 
 const resolveUploadToStorage = async () => {
-  const { uploadToStorage } = await import("../../infrastructure/storage-service");
+  const { uploadToStorage } = await import(
+    "../../infrastructure/storage-service"
+  );
   return uploadToStorage;
 };

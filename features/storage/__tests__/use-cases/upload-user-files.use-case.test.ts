@@ -3,6 +3,7 @@ import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user
 import * as storageService from "@/features/storage/infrastructure/storage-service";
 import { ErrorType, Result } from "@/lib/result";
 import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
+import { generateUniqueFileName } from "@/features/storage/utils";
 
 // Mock the entire modules
 vi.mock("@/features/storage/infrastructure/storage-service", () => ({
@@ -14,6 +15,10 @@ vi.mock("@/features/storage/infrastructure/storage-service", () => ({
     accountKey: "mock-account-key",
     hostName: "mock-host-name",
   },
+  CONTAINER_NAMES: {
+    USER_FILES: "user-files",
+    CONTENT: "content",
+  },
 }));
 
 vi.mock("@/features/storage/infrastructure/image-service", () => ({
@@ -22,6 +27,10 @@ vi.mock("@/features/storage/infrastructure/image-service", () => ({
 
 vi.mock("uuid", () => ({
   v4: vi.fn().mockReturnValue("mock-uuid"),
+}));
+
+vi.mock("@/features/storage/utils", () => ({
+  generateUniqueFileName: vi.fn(),
 }));
 
 describe("uploadUserFilesUseCase", () => {
@@ -40,6 +49,9 @@ describe("uploadUserFilesUseCase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(generateUniqueFileName).mockReturnValue(
+      Result.success("mock-unique-file-name"),
+    );
   });
 
   it("should successfully upload files to Azure when storage is enabled", async () => {
@@ -47,7 +59,7 @@ describe("uploadUserFilesUseCase", () => {
     const mockUrl = "https://storage.test/test.jpg";
     vi.mocked(storageService.uploadToStorage).mockResolvedValue(mockUrl);
     vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
-    vi.spyOn(storageService, 'STORAGE_SERVICE_CONFIG', 'get').mockReturnValue({
+    vi.spyOn(storageService, "STORAGE_SERVICE_CONFIG", "get").mockReturnValue({
       isEnabled: true,
       accountName: "mock-account-name",
       accountKey: "mock-account-key",
@@ -64,18 +76,18 @@ describe("uploadUserFilesUseCase", () => {
     }
     expect(storageService.uploadToStorage).toHaveBeenCalledWith(
       expect.any(Buffer),
-      "mock-uuid.jpg",
+      "mock-unique-file-name",
       expect.any(String),
-      `s/${mockCommand.formId}/${mockCommand.submissionId}`
+      `s/${mockCommand.formId}/${mockCommand.submissionId}`,
     );
   });
 
   it("should generate base64 URLs when storage is disabled", async () => {
     // Arrange
     vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
-    
+
     // Set STORAGE_SERVICE_CONFIG.isEnabled to false
-    vi.spyOn(storageService, 'STORAGE_SERVICE_CONFIG', 'get').mockReturnValue({
+    vi.spyOn(storageService, "STORAGE_SERVICE_CONFIG", "get").mockReturnValue({
       isEnabled: false,
       accountName: "",
       accountKey: "",
@@ -130,34 +142,43 @@ describe("uploadUserFilesUseCase", () => {
     }
   });
 
-  it("should return error when file has no extension", async () => {
+  it("should return error when generateUniqueFileName returns an error", async () => {
     // Arrange
-    const fileWithoutExtension = new Blob([mockFileContent], { type: "image/jpeg" }) as File;
+    const fileWithoutExtension = new Blob([mockFileContent], {
+      type: "image/jpeg",
+    }) as File;
     Object.defineProperty(fileWithoutExtension, "name", { value: "testfile" });
     Object.defineProperty(fileWithoutExtension, "arrayBuffer", {
       value: async () => new TextEncoder().encode(mockFileContent).buffer,
     });
+    const EXPECTED_ERROR_MESSAGE =
+      "File name 'testfile' is not allowed. Please provide a valid file name.";
     const uploadUserFilesCommand = {
       ...mockCommand,
       files: [{ name: "test", file: fileWithoutExtension }],
     };
 
+    vi.mocked(generateUniqueFileName).mockReturnValue(
+      Result.validationError(EXPECTED_ERROR_MESSAGE),
+    );
+
     // Act
     const result = await uploadUserFilesUseCase(uploadUserFilesCommand);
 
     // Assert
-    console.log(result);
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
-      expect(result.errorType).toBe(ErrorType.ValidationError);
-      expect(result.message).toBe("File extension is required. Please provide a valid file.");
+      expect(result.errorType).toBe(ErrorType.Error);
+      expect(result.message).toBe(EXPECTED_ERROR_MESSAGE);
     }
   });
 
   it("should handle upload errors gracefully", async () => {
     // Arrange
-    vi.mocked(storageService.uploadToStorage).mockRejectedValue(new Error("Upload failed"));
-    vi.spyOn(storageService, 'STORAGE_SERVICE_CONFIG', 'get').mockReturnValue({
+    vi.mocked(storageService.uploadToStorage).mockRejectedValue(
+      new Error("Upload failed"),
+    );
+    vi.spyOn(storageService, "STORAGE_SERVICE_CONFIG", "get").mockReturnValue({
       isEnabled: true,
       accountName: "mock-account-name",
       accountKey: "mock-account-key",
@@ -170,7 +191,9 @@ describe("uploadUserFilesUseCase", () => {
     // Assert
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
-      expect(result.message).toBe("Failed to upload file. Please refresh your page and try again.");
+      expect(result.message).toBe(
+        "Failed to upload file. Please refresh your page and try again.",
+      );
       expect(result.details).toBe("Upload failed");
     }
   });

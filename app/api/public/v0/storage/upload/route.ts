@@ -1,6 +1,6 @@
-import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+
+import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files.use-case";
-import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { headers } from "next/headers";
@@ -26,17 +26,10 @@ export async function POST(request: Request) {
   }
 
   if (!submissionId) {
-    const submissionData: SubmissionData = {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: "Generate submissionId for image upload",
-        ...(formLang ? { language: formLang } : {}),
-      }),
-    };
-    const initialSubmissionResult = await submitFormAction(
+    const initialSubmissionResult = await createInitialSubmissionUseCase(
       formId,
-      submissionData,
+      formLang,
+      "Generate submissionId for image upload",
     );
 
     if (ApiResult.isError(initialSubmissionResult)) {
