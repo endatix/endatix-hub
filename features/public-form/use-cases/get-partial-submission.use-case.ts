@@ -7,11 +7,13 @@ export type PartialSubmissionResult = ApiResult<Submission>;
 export type GetPartialSubmissionQuery = {
   formId: string;
   tokenStore: FormTokenCookieStore;
+  urlToken?: string;
 };
 
 export const getPartialSubmissionUseCase = async ({
   formId,
   tokenStore,
+  urlToken,
 }: GetPartialSubmissionQuery): Promise<PartialSubmissionResult> => {
   if (!formId) {
     return ApiResult.validationError("Form ID is required");
@@ -21,12 +23,17 @@ export const getPartialSubmissionUseCase = async ({
     return ApiResult.validationError("Token store is required");
   }
 
-  const tokenResult = tokenStore.getToken(formId);
-  if (Result.isError(tokenResult)) {
-    return ApiResult.validationError(tokenResult.message);
+  // Use URL token if provided, otherwise get from cookie store
+  let token: string;
+  if (urlToken) {
+    token = urlToken;
+  } else {
+    const tokenResult = tokenStore.getToken(formId);
+    if (Result.isError(tokenResult)) {
+      return ApiResult.validationError(tokenResult.message);
+    }
+    token = tokenResult.value;
   }
-
-  const token = tokenResult.value;
 
   const endatixApi = new EndatixApi();
   // eslint-disable-next-line testing-library/no-await-sync-queries

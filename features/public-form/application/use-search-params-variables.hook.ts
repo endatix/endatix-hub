@@ -47,7 +47,10 @@ export const useSearchParamsVariables = (
     const searchParamsVars: Record<string, DynamicVariable> = {};
 
     searchParams.forEach((value, key) => {
-      searchParamsVars[key] = value;
+      // Skip 'token' parameter as it's used for submission prefill, not as a variable
+      if (key !== "token") {
+        searchParamsVars[key] = value;
+      }
     });
 
     if (Object.keys(searchParamsVars).length === 0) {

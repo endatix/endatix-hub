@@ -2,6 +2,7 @@
 
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
+import { TokenHandler } from "@/features/public-form/ui/token-handler";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
@@ -14,15 +15,17 @@ import Script from "next/script";
 
 type ShareSurveyPage = {
   params: Promise<{ formId: string }>;
+  searchParams: Promise<{ token?: string }>;
 };
 
-async function ShareSurveyPage({ params }: ShareSurveyPage) {
+async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   const { formId } = await params;
+  const { token: urlToken } = await searchParams;
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
 
   const [submissionResult, activeDefinitionResult] = await Promise.all([
-    getPartialSubmissionUseCase({ formId, tokenStore }),
+    getPartialSubmissionUseCase({ formId, tokenStore, urlToken }),
     getActiveDefinitionUseCase({ formId }),
   ]);
 
@@ -51,6 +54,7 @@ async function ShareSurveyPage({ params }: ShareSurveyPage) {
         height: "100%",
       }}
     >
+      {urlToken && <TokenHandler formId={formId} />}
       {shouldLoadReCaptcha && (
         <>
           <Script src={recaptchaConfig.JS_URL} strategy="beforeInteractive" />
