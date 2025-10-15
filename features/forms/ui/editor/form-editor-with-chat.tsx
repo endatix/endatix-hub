@@ -244,17 +244,27 @@ export default function FormEditorWithChat({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <span className="text-lg font-semibold text-foreground/70 tracking-wide" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-                  AI Assistant
-                </span>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-lg font-semibold text-foreground/70 tracking-wide" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                    AI Assistant
+                  </span>
+                  <span className="px-1 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-full tracking-wide" style={{ writingMode: 'vertical-rl' }}>
+                    Beta
+                  </span>
+                </div>
               </div>
             ) : null}
             {!isCollapsed && (
               <div className="flex flex-col gap-4 p-2 w-full -mt-2">
                 <div className="flex items-center justify-between w-full px-2">
-                  <span className="text-lg font-semibold text-foreground/70">
-                    AI Assistant
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-semibold text-foreground/70">
+                      AI Assistant
+                    </span>
+                    <span className="px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded-full">
+                      Beta
+                    </span>
+                  </div>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
