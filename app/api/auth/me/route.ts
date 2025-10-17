@@ -3,6 +3,10 @@ import {
   getCacheStats,
   getUserPermissions,
 } from "@/features/auth/application/get-user-permissions";
+import {
+  DEFAULT_PERMISSION_ERROR_MESSAGE,
+  isAuthenticationRequired,
+} from "@/features/auth";
 
 const PERMISSIONS_CACHE_TTL = 300;
 
@@ -14,20 +18,16 @@ export async function GET() {
     const permissionsResult = await getUserPermissions();
 
     if (!permissionsResult.success) {
-      if (permissionsResult.error?.type === "AUTHENTICATION_REQUIRED") {
-        return NextResponse.json(
-          { error: "Authentication required" },
-          { status: 401 },
-        );
-      }
-
+      const statusCode = isAuthenticationRequired(permissionsResult)
+        ? 401
+        : 500;
       return NextResponse.json(
         {
           error:
             permissionsResult.error?.message ||
-            "Failed to get user permissions",
+            DEFAULT_PERMISSION_ERROR_MESSAGE,
         },
-        { status: 500 },
+        { status: statusCode },
       );
     }
 
