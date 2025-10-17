@@ -266,11 +266,20 @@ export class EndatixApi {
               },
             };
           case 401:
-          case 403:
             return {
               success: false,
               error: {
                 type: ApiErrorType.AuthError,
+                message,
+                errorCode,
+                details,
+              },
+            };
+          case 403:
+            return {
+              success: false,
+              error: {
+                type: ApiErrorType.ForbiddenError,
                 message,
                 errorCode,
                 details,
@@ -342,7 +351,7 @@ export class EndatixApi {
             details,
           );
         case 403:
-          return ApiResult.authError(
+          return ApiResult.forbiddenError(
             message,
             ERROR_CODE.ACCESS_FORBIDDEN,
             details,
