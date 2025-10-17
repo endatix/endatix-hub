@@ -1,24 +1,24 @@
-import { forbidden } from "next/navigation";
-import {
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
-} from "./check-permission";
+import { redirect } from "next/navigation";
+import { checkPermission, checkForPermissions } from "./check-permission";
 import { Permissions as AppPermissions } from "../domain/permissions";
+import {
+  DEFAULT_PERMISSION_ERROR_MESSAGE,
+  isAuthenticationRequired,
+  isPermissionDenied,
+  PermissionError,
+} from "../domain/permission-result";
+import { FORBIDDEN_PATH, SIGNIN_PATH } from "../infrastructure";
 
 /**
  * Require a specific permission - throws forbidden() if user doesn't have it
  * @param permission - The permission to require
  * @throws Calls forbidden() if permission is missing
  */
-export async function requirePermission(permission: string): Promise<void> {
-  const hasAccess = await hasPermission(permission);
+async function requirePermission(permission: string): Promise<void> {
+  const result = await checkPermission(permission);
 
-  if (!hasAccess) {
-    console.warn(
-      `Access denied: User missing required permission: ${permission}`,
-    );
-    forbidden();
+  if (!result.success) {
+    handlePermissionError(result);
   }
 }
 
@@ -27,18 +27,11 @@ export async function requirePermission(permission: string): Promise<void> {
  * @param permissions - Array of permissions to check
  * @throws Calls forbidden() if user has none of the permissions
  */
-export async function requireAnyPermission(
-  permissions: string[],
-): Promise<void> {
-  const hasAccess = await hasAnyPermission(permissions);
+async function requireAnyPermission(permissions: string[]): Promise<void> {
+  const result = await checkForPermissions(permissions, "any");
 
-  if (!hasAccess) {
-    console.warn(
-      `Access denied: User missing any of required permissions: ${permissions.join(
-        ", ",
-      )}`,
-    );
-    forbidden();
+  if (!result.success) {
+    handlePermissionError(result);
   }
 }
 
@@ -47,25 +40,44 @@ export async function requireAnyPermission(
  * @param permissions - Array of permissions to check
  * @throws Calls forbidden() if user is missing any of the permissions
  */
-export async function requireAllPermissions(
-  permissions: string[],
-): Promise<void> {
-  const hasAccess = await hasAllPermissions(permissions);
+async function requireAllPermissions(permissions: string[]): Promise<void> {
+  const result = await checkForPermissions(permissions, "all");
 
-  if (!hasAccess) {
-    console.warn(
-      `Access denied: User missing required permissions: ${permissions.join(
-        ", ",
-      )}`,
-    );
-    forbidden();
+  if (!result.success) {
+    handlePermissionError(result);
   }
 }
 
-export async function requireHubAccess() {
+async function requireHubAccess() {
   await requirePermission(AppPermissions.Apps.HubAccess);
 }
 
-export async function requireAdminAccess() {
+async function requireAdminAccess() {
   await requirePermission(AppPermissions.Admin.All);
 }
+
+function handlePermissionError(permissionError: PermissionError): never {
+  if (!permissionError) {
+    throw new Error(DEFAULT_PERMISSION_ERROR_MESSAGE);
+  }
+
+  if (isPermissionDenied(permissionError)) {
+    return redirect(FORBIDDEN_PATH);
+  }
+
+  if (isAuthenticationRequired(permissionError)) {
+    return redirect(SIGNIN_PATH);
+  }
+
+  throw new Error(
+    permissionError.error?.message || DEFAULT_PERMISSION_ERROR_MESSAGE,
+  );
+}
+
+export {
+  requirePermission,
+  requireAnyPermission,
+  requireAllPermissions,
+  requireHubAccess,
+  requireAdminAccess,
+};

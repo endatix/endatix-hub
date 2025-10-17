@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { auth } from "@/auth";
-import type { RbacUserInfo, PermissionResult } from "../domain/rbac.types";
+import { RbacUserInfo } from "../domain/rbac.types";
+import { PermissionResult } from "../domain/permission-result";
 
 let _cacheHits = 0;
 let _cacheMisses = 0;
@@ -10,39 +11,21 @@ async function getUserRbacInfoTemp(
 ): Promise<PermissionResult<RbacUserInfo>> {
   try {
     if (!userId) {
-      return {
-        success: false,
-        error: {
-          type: "AUTHENTICATION_REQUIRED",
-          message: "Authentication required",
-          details: { status: 401 },
-        },
-      };
+      return PermissionResult.unauthenticated();
     }
-    return {
-      success: true,
-      data: {
-        userId,
-        roles: ["admin"],
-        permissions: ["apps.hub.access", "forms.view"],
-        permissionsVersion: 1,
-        tenantId: "1",
-        lastUpdated: new Date().toISOString(),
-      },
+    const user = {
+      userId,
+      roles: ["admin"],
+      permissions: ["apps.hub.access", "forms.view"],
+      permissionsVersion: 1,
+      tenantId: "1",
+      lastUpdated: new Date().toISOString(),
     };
+    return PermissionResult.success(user);
   } catch (error) {
     console.error("Error getting user permissions from session:", error);
 
-    return {
-      success: false,
-      error: {
-        type: "NETWORK_ERROR",
-        message: "Failed to get user permissions",
-        details: {
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
-      },
-    };
+    return PermissionResult.error();
   }
 }
 
@@ -76,14 +59,7 @@ export async function getUserPermissions(): Promise<
     const session = await auth();
 
     if (!session?.user?.id || session.error) {
-      return {
-        success: false,
-        error: {
-          type: "AUTHENTICATION_REQUIRED",
-          message: "Authentication required",
-          details: { status: 401 },
-        },
-      };
+      return PermissionResult.unauthenticated();
     }
 
     _cacheHits++;
@@ -91,16 +67,7 @@ export async function getUserPermissions(): Promise<
     return _userPermissions(session.user.id);
   } catch (error) {
     console.error("Error getting session for permissions:", error);
-    return {
-      success: false,
-      error: {
-        type: "NETWORK_ERROR",
-        message: "Failed to get user session",
-        details: {
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
-      },
-    };
+    return PermissionResult.error();
   }
 }
 
