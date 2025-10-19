@@ -1,4 +1,4 @@
-import { PermissionResult } from "../domain/permission-result";
+import { PermissionResult } from "../rbac/permission-result";
 import { getUserPermissions } from "./get-user-permissions";
 
 /**

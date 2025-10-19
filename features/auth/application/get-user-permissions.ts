@@ -1,24 +1,29 @@
 import { unstable_cache } from "next/cache";
 import { auth } from "@/auth";
-import { RbacUserInfo } from "../domain/rbac.types";
-import { PermissionResult } from "../domain/permission-result";
+import { UserRbacInfo, PermissionResult, Permissions } from "../rbac";
 
 let _cacheHits = 0;
 let _cacheMisses = 0;
 
-async function getUserRbacInfoTemp(
+async function getUserRbacInfo(
   userId: string,
-): Promise<PermissionResult<RbacUserInfo>> {
+): Promise<PermissionResult<UserRbacInfo>> {
   try {
     if (!userId) {
       return PermissionResult.unauthenticated();
     }
+
+    /**
+     * **** DON'T PANIC ****
+     * This is the only permission that is used in the hub for now, so this is not compromising security at this point
+     * We will replace this in next commits with permissions from the server, to control access to the hub and forms
+     * Users will still be redirected to the unauthorised page if the Endatix API returns a 403 error
+     */
     const user = {
       userId,
-      roles: ["admin"],
-      permissions: ["apps.hub.access", "forms.view"],
+      roles: [],
+      permissions: [Permissions.Apps.HubAccess],
       permissionsVersion: 1,
-      tenantId: "1",
       lastUpdated: new Date().toISOString(),
     };
     return PermissionResult.success(user);
@@ -34,12 +39,12 @@ async function getUserRbacInfoTemp(
  * Uses Next.js unstable_cache with tags for per-user invalidation. To be replaced with useCache when it's prod readt
  */
 const _userPermissions = unstable_cache(
-  async (userId: string): Promise<PermissionResult<RbacUserInfo>> => {
+  async (userId: string): Promise<PermissionResult<UserRbacInfo>> => {
     _cacheMisses++;
     _cacheHits--;
 
     // TODO: Replace with actual API call once UserInfo or "Auth/Me" endpoint (name is TBD) is implemented
-    return getUserRbacInfoTemp(userId);
+    return getUserRbacInfo(userId);
   },
   ["user-permissions"], // Cache key
   {
@@ -53,7 +58,7 @@ const _userPermissions = unstable_cache(
  * Gets session data outside of cache and passes to cached function
  */
 export async function getUserPermissions(): Promise<
-  PermissionResult<RbacUserInfo>
+  PermissionResult<UserRbacInfo>
 > {
   try {
     const session = await auth();

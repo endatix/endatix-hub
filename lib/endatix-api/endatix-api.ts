@@ -238,21 +238,19 @@ export class EndatixApi {
     details: ApiErrorDetails,
   ): Promise<ApiResult<T>> {
     try {
-      const errorResponse = await parseErrorResponse(response);
+      const problemDetails = await parseErrorResponse(response);
 
-      if (errorResponse?.errorCode) {
-        details.details = errorResponse.detail;
+      if (problemDetails?.errorCode) {
+        details.details = problemDetails.detail;
       }
 
       const message = getErrorMessageWithFallback(
-        errorResponse?.errorCode,
-        errorResponse?.detail,
+        problemDetails?.errorCode,
+        problemDetails?.detail,
       );
 
-      // Simple HTTP status code to result type mapping
-      // If server provides specific errorCode, create result manually to preserve it
-      if (errorResponse?.errorCode) {
-        const errorCode = errorResponse.errorCode;
+      if (problemDetails?.errorCode) {
+        const errorCode = problemDetails.errorCode;
         switch (response.status) {
           case 400:
             return {
@@ -262,7 +260,7 @@ export class EndatixApi {
                 message,
                 errorCode,
                 details,
-                fields: errorResponse.fields,
+                fields: problemDetails.fields,
               },
             };
           case 401:
@@ -342,7 +340,7 @@ export class EndatixApi {
             message,
             ERROR_CODE.VALIDATION_ERROR,
             details,
-            errorResponse?.fields,
+            problemDetails?.fields,
           );
         case 401:
           return ApiResult.authError(

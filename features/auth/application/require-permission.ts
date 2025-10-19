@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { checkPermission, checkForPermissions } from "./check-permission";
-import { Permissions as AppPermissions } from "../domain/permissions";
+import { Permissions } from "../rbac/permissions";
 import {
   DEFAULT_PERMISSION_ERROR_MESSAGE,
   isAuthenticationRequired,
   isPermissionDenied,
   PermissionError,
-} from "../domain/permission-result";
+} from "../rbac/permission-result";
 import { FORBIDDEN_PATH, SIGNIN_PATH } from "../infrastructure";
 
 /**
@@ -49,11 +49,11 @@ async function requireAllPermissions(permissions: string[]): Promise<void> {
 }
 
 async function requireHubAccess() {
-  await requirePermission(AppPermissions.Apps.HubAccess);
+  await requirePermission(Permissions.Apps.HubAccess);
 }
 
 async function requireAdminAccess() {
-  await requirePermission(AppPermissions.Admin.All);
+  await requirePermission(Permissions.Admin.All);
 }
 
 function handlePermissionError(permissionError: PermissionError): never {

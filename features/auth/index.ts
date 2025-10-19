@@ -7,11 +7,7 @@ export * from "./ui/auth-error";
 export * from "./ui/keycloak-sign-out-button";
 
 // RBAC exports
-export { Permissions } from "./domain/permissions";
-export * from "./domain/permissions";
-export * from "./domain/rbac.types";
-export * from "./domain/permission-result";
+export * from "./rbac";
 export * from "./application/get-user-permissions";
 export * from "./application/check-permission";
 export * from "./application/require-permission";
-export * from "./infrastructure/cache-invalidation";
