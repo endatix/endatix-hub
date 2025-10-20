@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { PermissionError } from "../../rbac/permission-result";
 import {
   isAuthenticationRequired,
   isPermissionDenied,
-} from "../../rbac/permission-result";
-import { UNAUTHORIZED_PATH, SIGNIN_PATH } from "../../infrastructure";
+  PermissionError,
+} from "../result/permission-result";
+import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "../../infrastructure";
 
 export function handlePermissionError(permissionError: PermissionError): never {
   if (!permissionError) {

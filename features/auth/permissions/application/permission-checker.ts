@@ -1,12 +1,12 @@
-import { PermissionResult } from "../../rbac/permission-result";
+import { PermissionResult } from "../result/permission-result";
 
 export function checkPermissionFactory(
-  getUserPermissions: () => Promise<PermissionResult<any>>
+  getUserPermissions: () => Promise<PermissionResult<any>>,
 ) {
   return async (permission: string): Promise<PermissionResult> => {
     try {
       const result = await getUserPermissions();
-      
+
       if (!result.success) {
         return result;
       }
@@ -23,12 +23,12 @@ export function checkPermissionFactory(
 }
 
 export function checkAnyPermissionFactory(
-  getUserPermissions: () => Promise<PermissionResult<any>>
+  getUserPermissions: () => Promise<PermissionResult<any>>,
 ) {
   return async (permissions: string[]): Promise<PermissionResult> => {
     try {
       const result = await getUserPermissions();
-      
+
       if (!result.success) {
         return result;
       }
@@ -36,10 +36,8 @@ export function checkAnyPermissionFactory(
       const hasAny = permissions.some((permission) =>
         result.data.permissions.includes(permission),
       );
-      
-      return hasAny
-        ? PermissionResult.success()
-        : PermissionResult.forbidden();
+
+      return hasAny ? PermissionResult.success() : PermissionResult.forbidden();
     } catch (error) {
       console.error("Unexpected error during checking permissions:", error);
       return PermissionResult.error();
@@ -48,12 +46,12 @@ export function checkAnyPermissionFactory(
 }
 
 export function checkAllPermissionsFactory(
-  getUserPermissions: () => Promise<PermissionResult<any>>
+  getUserPermissions: () => Promise<PermissionResult<any>>,
 ) {
   return async (permissions: string[]): Promise<PermissionResult> => {
     try {
       const result = await getUserPermissions();
-      
+
       if (!result.success) {
         return result;
       }
@@ -61,10 +59,8 @@ export function checkAllPermissionsFactory(
       const hasAll = permissions.every((permission) =>
         result.data.permissions.includes(permission),
       );
-      
-      return hasAll
-        ? PermissionResult.success()
-        : PermissionResult.forbidden();
+
+      return hasAll ? PermissionResult.success() : PermissionResult.forbidden();
     } catch (error) {
       console.error("Unexpected error during checking permissions:", error);
       return PermissionResult.error();

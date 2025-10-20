@@ -1,5 +1,5 @@
 import { Session } from "next-auth";
-import { PermissionService } from "./types";
+
 import {
   getUserPermissionsFactory,
   getCacheStatsFactory,
@@ -15,14 +15,14 @@ import {
   requireAllPermissionsFactory,
   requireHubAccessFactory,
   requireAdminAccessFactory,
-} from "./permission-requirer";
-import { NextApiRequest, NextApiResponse } from "next";
+} from "./permission-guard";
+import { PermissionService } from '../domain/rbac.types';
 
 /**
  * Factory function to create the Permission Service
  * Note that it is not Edge Runtime compatible due to unstable_cache usage, so don't use with Middleware
  * @param session The session return from `await auth()`
- * @returns 
+ * @returns
  */
 export function createPermissionService(
   session: Session | null,
@@ -66,6 +66,3 @@ export function createPermissionService(
     getCacheStats,
   };
 }
-
-// Re-export types for convenience
-export type { PermissionService } from "./types";

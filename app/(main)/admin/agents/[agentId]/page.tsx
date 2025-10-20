@@ -2,10 +2,10 @@ import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { getSession } from "@/features/auth";
+import { getSession } from "@/features/auth/shared/auth.service";
 import { getFormattedDate } from "@/lib/utils";
 import { List } from "lucide-react";
-import { requireAdmin } from '@/components/admin-ui/admin-protection';
+import { requireAdmin } from "@/components/admin-ui/admin-protection";
 
 interface Params {
   params: Promise<{ agentId: string }>;
@@ -13,7 +13,7 @@ interface Params {
 
 export default async function AgentDetailsPage({ params }: Params) {
   await requireAdmin();
-  
+
   const { agentId } = await params;
 
   const session = await getSession();
@@ -115,7 +115,11 @@ export default async function AgentDetailsPage({ params }: Params) {
                     {getFormattedDate(new Date(conv.modifiedAt))}
                   </td>
                   <td className="p-2">
-                    <Button variant="outline" className="flex items-center" asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center"
+                      asChild
+                    >
                       <Link
                         href={`/admin/agents/${agentId}/conversations/${conv.id}`}
                       >

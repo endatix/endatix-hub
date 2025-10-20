@@ -1,7 +1,19 @@
-import { PermissionResult } from "../../rbac/permission-result";
-import { UserRbacInfo } from "../../rbac";
+import { PermissionResult } from "../result/permission-result";
 
-export interface PermissionService {
+/**
+ * Expanded user information with roles and permissions
+ * This matches the backend response structure
+ */
+interface UserRbacInfo {
+  userId: string;
+  roles: string[];
+  permissions: string[]; // Will be typed as Permission[] when imported
+  permissionsVersion: number;
+  tenantId?: string;
+  lastUpdated: string; // ISO timestamp
+}
+
+interface PermissionService {
   /**
    * Returns current user's RBAC permissions result.
    */
@@ -59,3 +71,6 @@ export interface PermissionService {
    */
   getCacheStats(format?: "json" | "text"): string | object;
 }
+
+// Re-export PermissionService types and utilities
+export type { UserRbacInfo, PermissionService };

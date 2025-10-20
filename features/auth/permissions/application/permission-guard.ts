@@ -1,9 +1,9 @@
-import { PermissionResult } from "../../rbac/permission-result";
-import { Permissions } from "../../rbac";
+import { PermissionResult } from "../result/permission-result";
+import { Permissions } from "..";
 import { handlePermissionError } from "./error-handler";
 
 export function requirePermissionFactory(
-  checkPermission: (permission: string) => Promise<PermissionResult>
+  checkPermission: (permission: string) => Promise<PermissionResult>,
 ) {
   return async (permission: string): Promise<void> => {
     const result = await checkPermission(permission);

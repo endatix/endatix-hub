@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { Session } from "next-auth";
-import { PermissionResult } from "../../rbac/permission-result";
-import { UserRbacInfo, Permissions } from "../../rbac";
+import { PermissionResult } from "../result/permission-result";
+import { UserRbacInfo, Permissions } from "..";
 
 // Cache statistics
 let _cacheHits = 0;
@@ -24,7 +24,7 @@ async function getUserRbacInfo(
     const user = {
       userId,
       roles: [],
-      permissions: [Permissions.Admin.All],
+      permissions: [Permissions.Apps.HubAccess],
       permissionsVersion: 1,
       lastUpdated: new Date().toISOString(),
     };
