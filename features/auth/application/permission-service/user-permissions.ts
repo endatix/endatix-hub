@@ -1,7 +1,9 @@
 import { unstable_cache } from "next/cache";
-import { auth } from "@/auth";
-import { UserRbacInfo, PermissionResult, Permissions } from "../rbac";
+import { Session } from "next-auth";
+import { PermissionResult } from "../../rbac/permission-result";
+import { UserRbacInfo, Permissions } from "../../rbac";
 
+// Cache statistics
 let _cacheHits = 0;
 let _cacheMisses = 0;
 
@@ -22,22 +24,18 @@ async function getUserRbacInfo(
     const user = {
       userId,
       roles: [],
-      permissions: [Permissions.Apps.HubAccess],
+      permissions: [Permissions.Admin.All],
       permissionsVersion: 1,
       lastUpdated: new Date().toISOString(),
     };
     return PermissionResult.success(user);
   } catch (error) {
     console.error("Error getting user permissions from session:", error);
-
     return PermissionResult.error();
   }
 }
 
-/**
- * Cached user permissions data
- * Uses Next.js unstable_cache with tags for per-user invalidation. To be replaced with useCache when it's prod readt
- */
+// Cached user permissions data
 const _userPermissions = unstable_cache(
   async (userId: string): Promise<PermissionResult<UserRbacInfo>> => {
     _cacheMisses++;
@@ -53,43 +51,38 @@ const _userPermissions = unstable_cache(
   },
 );
 
-/**
- * Main function to get user permissions
- * Gets session data outside of cache and passes to cached function
- */
-export async function getUserPermissions(): Promise<
-  PermissionResult<UserRbacInfo>
-> {
-  try {
-    const session = await auth();
+export function getUserPermissionsFactory(session: Session | null) {
+  return async (): Promise<PermissionResult<UserRbacInfo>> => {
+    try {
+      if (!session?.user?.id || session.error) {
+        return PermissionResult.unauthenticated();
+      }
 
-    if (!session?.user?.id || session.error) {
-      return PermissionResult.unauthenticated();
+      _cacheHits++;
+
+      return _userPermissions(session.user.id);
+    } catch (error) {
+      console.error("Error getting session for permissions:", error);
+      return PermissionResult.error();
     }
-
-    _cacheHits++;
-
-    return _userPermissions(session.user.id);
-  } catch (error) {
-    console.error("Error getting session for permissions:", error);
-    return PermissionResult.error();
-  }
+  };
 }
 
-// Helper function to log cache statistics
-export function getCacheStats(format: "json" | "text" = "text") {
-  const totalRequests = _cacheHits + _cacheMisses;
-  const hitRate =
-    totalRequests > 0 ? ((_cacheHits / totalRequests) * 100).toFixed(1) : 0;
+export function getCacheStatsFactory() {
+  return (format: "json" | "text" = "text") => {
+    const totalRequests = _cacheHits + _cacheMisses;
+    const hitRate =
+      totalRequests > 0 ? ((_cacheHits / totalRequests) * 100).toFixed(1) : 0;
 
-  if (format === "text") {
-    return `📊 [RBAC Cache Stats] Total Requests: ${totalRequests}, Hits: ${_cacheHits}, Misses: ${_cacheMisses}, Hit Rate: ${hitRate}%`;
-  }
+    if (format === "text") {
+      return `📊 [RBAC Cache Stats] Total Requests: ${totalRequests}, Hits: ${_cacheHits}, Misses: ${_cacheMisses}, Hit Rate: ${hitRate}%`;
+    }
 
-  return {
-    totalRequests,
-    cacheHits: _cacheHits,
-    cacheMisses: _cacheMisses,
-    hitRate,
+    return {
+      totalRequests,
+      cacheHits: _cacheHits,
+      cacheMisses: _cacheMisses,
+      hitRate,
+    };
   };
 }

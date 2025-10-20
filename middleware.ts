@@ -5,19 +5,24 @@ import {
   DEFAULT_RETURN_URL,
   SIGNIN_PATH,
   RETURN_URL_PARAM,
+  HUB_PATHS,
 } from "@/features/auth/infrastructure/auth-constants";
 
 export default async function middleware(req: NextRequest) {
   const session = await auth();
+  const path = req.nextUrl.pathname;
 
-  if (AUTH_ROUTES.includes(req.nextUrl.pathname)) {
+  if (AUTH_ROUTES.includes(path)) {
     return NextResponse.next();
   }
 
-  const isLoggedIn = !!session;
-  const hasSessionError = session?.error !== undefined;
-  if (!isLoggedIn || hasSessionError) {
-    return redirectToLogin(req);
+  const isHubPath = HUB_PATHS.some((p) => path.startsWith(p));
+  if (isHubPath) {
+    const isLoggedIn = !!session;
+    const hasSessionError = session?.error !== undefined;
+    if (!isLoggedIn || hasSessionError) {
+      return redirectToLogin(req);
+    }
   }
 
   return NextResponse.next();

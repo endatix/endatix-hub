@@ -4,7 +4,7 @@ const RETURN_URL_PARAM = "returnUrl";
 const SIGNIN_ERROR_PATH = "/auth-error";
 const SIGNOUT_PATH = "/signout";
 const SESSION_BRIDGE_PATH = "/session-bridge";
-const FORBIDDEN_PATH = "/forbidden";
+const UNAUTHORIZED_PATH = "/unauthorized";
 
 const AUTH_ROUTES = [
   SIGNIN_PATH,
@@ -17,6 +17,9 @@ const AUTH_ROUTES = [
   SIGNIN_ERROR_PATH,
   SESSION_BRIDGE_PATH,
 ];
+
+const HUB_PATHS = ["/forms", "/settings", "/my-account"];
+
 export {
   AUTH_ROUTES,
   DEFAULT_RETURN_URL,
@@ -24,5 +27,6 @@ export {
   RETURN_URL_PARAM,
   SIGNIN_ERROR_PATH,
   SIGNOUT_PATH,
-  FORBIDDEN_PATH,
+  UNAUTHORIZED_PATH,
+  HUB_PATHS,
 };
