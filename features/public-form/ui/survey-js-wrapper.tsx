@@ -1,8 +1,8 @@
 "use client";
 
 import { Submission } from "@/lib/endatix-api";
-import { registerAudioQuestion } from '@/lib/questions/audio-recorder';
-import addRandomizeGroupFeature from '@/lib/questions/features/group-randomization';
+import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import dynamic from "next/dynamic";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
@@ -12,7 +12,7 @@ const SurveyComponent = dynamic(() => import("./survey-component"), {
 registerAudioQuestion();
 addRandomizeGroupFeature();
 
-interface SurveyJsWrapperProps {
+export interface SurveyJsWrapperProps {
   definition: string;
   formId: string;
   submission?: Submission | undefined;
