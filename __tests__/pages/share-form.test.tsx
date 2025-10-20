@@ -22,6 +22,10 @@ vi.mock("next/headers", () => ({
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(),
   forbidden: vi.fn(),
+  useSearchParams: vi.fn(() => ({
+    get: vi.fn((key: string) => (key === "token" ? "test-token" : null)),
+  })),
+  useRouter: vi.fn(),
 }));
 
 vi.mock("next/script", () => ({
@@ -34,6 +38,13 @@ vi.mock("next/script", () => ({
 vi.mock("@/features/auth", () => ({
   requireAdminAccess: vi.fn().mockResolvedValue(undefined),
 }));
+
+vi.mock(
+  "@/features/public-form/application/actions/set-token-from-url.action",
+  () => ({
+    setTokenFromUrlAction: vi.fn().mockResolvedValue({ success: true }),
+  }),
+);
 
 // Mock use cases
 vi.mock(
@@ -169,6 +180,7 @@ describe("ShareForm Page", () => {
 
     const props = {
       params: Promise.resolve({ formId: "valid-id" }),
+      searchParams: Promise.resolve({ token: "test-token" }),
     };
 
     const component = await ShareFormPage(props);
