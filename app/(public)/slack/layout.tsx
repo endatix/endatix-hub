@@ -1,7 +1,7 @@
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
 import "@/app/globals.css";
-import { AppOptions } from '@/components/providers/app-provider';
+import { AppOptions } from "@/components/providers/app-provider";
 
 export const metadata = {
   title: "Next.js",

@@ -1,6 +1,7 @@
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
 import { ApiResult, ApiErrorDetails, ApiErrorType } from "./shared/api-result";
 import { ERROR_CODE, getErrorMessageWithFallback } from "./shared/error-codes";
+import { Forms } from "./forms/forms";
 import { Submissions } from "./submissions/submissions";
 import type { SessionData } from "@/features/auth";
 import { parseErrorResponse } from "./shared/problem-details";
@@ -42,6 +43,7 @@ export class EndatixApi {
   private readonly baseUrl: string;
   private readonly defaultHeaders: Record<string, string>;
   private readonly session?: SessionData;
+  private _forms?: Forms;
   private _submissions?: Submissions;
   private _agents?: Agents;
   private _auth?: Auth;
@@ -79,6 +81,16 @@ export class EndatixApi {
       this._auth = new Auth(this);
     }
     return this._auth;
+  }
+
+  /**
+   * Lazy-loaded forms API - only creates instance when first accessed
+   */
+  get forms(): Forms {
+    if (!this._forms) {
+      this._forms = new Forms(this);
+    }
+    return this._forms;
   }
 
   /**
@@ -238,21 +250,19 @@ export class EndatixApi {
     details: ApiErrorDetails,
   ): Promise<ApiResult<T>> {
     try {
-      const errorResponse = await parseErrorResponse(response);
+      const problemDetails = await parseErrorResponse(response);
 
-      if (errorResponse?.errorCode) {
-        details.details = errorResponse.detail;
+      if (problemDetails?.errorCode) {
+        details.details = problemDetails.detail;
       }
 
       const message = getErrorMessageWithFallback(
-        errorResponse?.errorCode,
-        errorResponse?.detail,
+        problemDetails?.errorCode,
+        problemDetails?.detail,
       );
 
-      // Simple HTTP status code to result type mapping
-      // If server provides specific errorCode, create result manually to preserve it
-      if (errorResponse?.errorCode) {
-        const errorCode = errorResponse.errorCode;
+      if (problemDetails?.errorCode) {
+        const errorCode = problemDetails.errorCode;
         switch (response.status) {
           case 400:
             return {
@@ -262,15 +272,24 @@ export class EndatixApi {
                 message,
                 errorCode,
                 details,
-                fields: errorResponse.fields,
+                fields: problemDetails.fields,
               },
             };
           case 401:
-          case 403:
             return {
               success: false,
               error: {
                 type: ApiErrorType.AuthError,
+                message,
+                errorCode,
+                details,
+              },
+            };
+          case 403:
+            return {
+              success: false,
+              error: {
+                type: ApiErrorType.ForbiddenError,
                 message,
                 errorCode,
                 details,
@@ -333,7 +352,7 @@ export class EndatixApi {
             message,
             ERROR_CODE.VALIDATION_ERROR,
             details,
-            errorResponse?.fields,
+            problemDetails?.fields,
           );
         case 401:
           return ApiResult.authError(
@@ -342,7 +361,7 @@ export class EndatixApi {
             details,
           );
         case 403:
-          return ApiResult.authError(
+          return ApiResult.forbiddenError(
             message,
             ERROR_CODE.ACCESS_FORBIDDEN,
             details,

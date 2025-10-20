@@ -10,7 +10,8 @@ import {
 // API-specific error types
 export enum ApiErrorType {
   NetworkError = "NetworkError", // Network issues e.g. connection error, gateway timeout, etc.
-  AuthError = "AuthError", // Authentication/authorization issues
+  AuthError = "AuthError", // Authentication issues e.g. invalid credentials, etc.
+  ForbiddenError = "ForbiddenError", // Forbidden error e.g. user does not have permission to access the resource
   ValidationError = "ValidationError", // Client data issues e.g. validation issues or bad request
   ServerError = "ServerError", // Server issues e.g. internal server error
   NotFoundError = "NotFoundError", // Resource not found e.g. form not found
@@ -85,6 +86,21 @@ export const ApiResult = {
         message ||
         getErrorMessageWithFallback(ERROR_CODE.AUTHENTICATION_REQUIRED),
       errorCode: errorCode || ERROR_CODE.AUTHENTICATION_REQUIRED,
+      details,
+    },
+  }),
+
+  forbiddenError: <T>(
+    message?: string,
+    errorCode?: ErrorCode,
+    details?: ApiErrorDetails,
+  ): ApiResult<T> => ({
+    success: false,
+    error: {
+      type: ApiErrorType.ForbiddenError,
+      message:
+        message || getErrorMessageWithFallback(ERROR_CODE.ACCESS_FORBIDDEN),
+      errorCode: errorCode || ERROR_CODE.ACCESS_FORBIDDEN,
       details,
     },
   }),
@@ -217,6 +233,9 @@ export const isNetworkError = <T>(result: ApiResult<T>): boolean =>
 
 export const isAuthError = <T>(result: ApiResult<T>): boolean =>
   !result.success && result.error.type === ApiErrorType.AuthError;
+
+export const isForbiddenError = <T>(result: ApiResult<T>): boolean =>
+  !result.success && result.error.type === ApiErrorType.ForbiddenError;
 
 export const isValidationError = <T>(result: ApiResult<T>): boolean =>
   !result.success && result.error.type === ApiErrorType.ValidationError;

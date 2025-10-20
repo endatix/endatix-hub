@@ -10,32 +10,91 @@ import {
 import { notFound } from "next/navigation";
 import { ActiveDefinition } from "@/types";
 import { ApiResult } from "@/lib/endatix-api";
+import { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
+import { ScriptProps } from "next/script";
 
+// Mock Next.js modules
+vi.mock("next/server", () => ({}));
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("next/navigation", () => ({
+  notFound: vi.fn(),
+  forbidden: vi.fn(),
+}));
+
+vi.mock("next/script", () => ({
+  default: ({ children, ...props }: ScriptProps) => (
+    <script {...props}>{children}</script>
+  ),
+}));
+
+// Mock auth functions
+vi.mock("@/features/auth", () => ({
+  requireAdminAccess: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock use cases
 vi.mock(
   "@/features/public-form/use-cases/get-active-definition.use-case",
   () => ({
     getActiveDefinitionUseCase: vi.fn(),
   }),
 );
+
 vi.mock(
   "@/features/public-form/use-cases/get-partial-submission.use-case",
   () => ({
     getPartialSubmissionUseCase: vi.fn(),
   }),
 );
-vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockResolvedValue({}),
-}));
+
+// Mock cookie store
 vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
-  FormTokenCookieStore: vi.fn().mockResolvedValue({}),
-}));
-vi.mock("next/navigation", () => ({
-  notFound: vi.fn(),
+  FormTokenCookieStore: vi.fn().mockImplementation(() => ({})),
 }));
 
-describe("ShareForm Page", async () => {
+// Mock recaptcha config
+vi.mock("@/features/recaptcha/recaptcha-config", () => ({
+  recaptchaConfig: {
+    isReCaptchaEnabled: vi.fn().mockReturnValue(false),
+    JS_URL: "https://www.google.com/recaptcha/api.js",
+  },
+}));
+
+// Mock recaptcha components
+vi.mock("@/features/recaptcha/ui/recaptcha-style-fix", () => ({
+  ReCaptchaStyleFix: () => <div data-testid="recaptcha-style-fix" />,
+}));
+
+// Mock SurveyJsWrapper
+vi.mock("@/features/public-form/ui/survey-js-wrapper", () => ({
+  default: ({
+    formId,
+    definition,
+    submission,
+    theme,
+    customQuestions,
+    requiresReCaptcha,
+  }: SurveyJsWrapperProps) => (
+    <div data-testid="survey-js-wrapper">
+      <div data-testid="form-id">{formId}</div>
+      <div data-testid="definition">{JSON.stringify(definition)}</div>
+      <div data-testid="submission">{JSON.stringify(submission)}</div>
+      <div data-testid="theme">{JSON.stringify(theme)}</div>
+      <div data-testid="custom-questions">
+        {JSON.stringify(customQuestions)}
+      </div>
+      <div data-testid="requires-recaptcha">
+        {requiresReCaptcha?.toString()}
+      </div>
+    </div>
+  ),
+}));
+
+describe("ShareForm Page", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
   });
 
@@ -86,5 +145,48 @@ describe("ShareForm Page", async () => {
 
     expect(notFound).not.toHaveBeenCalled();
     expect(component).toMatchSnapshot();
+  });
+
+  it("renders form with submission data when available", async () => {
+    const mockDefinition = {
+      jsonData: { title: "Test Form" },
+      themeModel: { primaryColor: "#007bff" },
+      customQuestions: [{ id: "q1", type: "text" }],
+      requiresReCaptcha: false,
+    };
+
+    const mockSubmission = {
+      data: { q1: "test answer" },
+      timestamp: "2024-01-01T00:00:00Z",
+    };
+
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(mockDefinition as unknown as ActiveDefinition),
+    );
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.success(mockSubmission) as unknown as PartialSubmissionResult,
+    );
+
+    const props = {
+      params: Promise.resolve({ formId: "valid-id" }),
+    };
+
+    const component = await ShareFormPage(props);
+    render(component);
+
+    expect(notFound).not.toHaveBeenCalled();
+    expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
+    expect(screen.getByTestId("form-id").textContent || "").toContain(
+      "valid-id",
+    );
+    expect(screen.getByTestId("submission").textContent || "").toContain(
+      JSON.stringify(mockSubmission),
+    );
+    expect(screen.getByTestId("theme").textContent || "").toContain(
+      JSON.stringify(mockDefinition.themeModel),
+    );
+    expect(screen.getByTestId("custom-questions").textContent || "").toContain(
+      JSON.stringify(mockDefinition.customQuestions),
+    );
   });
 });

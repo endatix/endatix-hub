@@ -60,6 +60,11 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
 export async function parseErrorResponse(
   response: Response,
 ): Promise<ProblemDetails | null> {
-  const data = await response.json();
-  return parseProblemDetails(data);
+  try {
+    const data = await response.json();
+    return parseProblemDetails(data);
+  } catch (error) {
+    console.error("Error parsing error response:", error);
+    return null;
+  }
 }
