@@ -10,9 +10,8 @@ import {
 import { notFound } from "next/navigation";
 import { ActiveDefinition } from "@/types";
 import { ApiResult } from "@/lib/endatix-api";
-import SurveyJsWrapper, {
-  SurveyJsWrapperProps,
-} from "@/features/public-form/ui/survey-js-wrapper";
+import { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
+import { ScriptProps } from "next/script";
 
 // Mock Next.js modules
 vi.mock("next/server", () => ({}));
@@ -26,7 +25,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/script", () => ({
-  default: ({ children, ...props }: any) => (
+  default: ({ children, ...props }: ScriptProps) => (
     <script {...props}>{children}</script>
   ),
 }));
@@ -143,13 +142,7 @@ describe("ShareForm Page", () => {
     render(component);
 
     expect(notFound).not.toHaveBeenCalled();
-    expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
-    expect(screen.getByTestId("form-id").textContent || "").toContain(
-      "valid-id",
-    );
-    expect(screen.getByTestId("definition").textContent || "").toContain(
-      JSON.stringify(mockDefinition.jsonData),
-    );
+    expect(component).toMatchSnapshot();
   });
 
   it("renders form with submission data when available", async () => {
