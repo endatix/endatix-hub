@@ -6,7 +6,7 @@ import NavLink from "./nav-link";
 import { NavItemsWithDialog } from "./nav-items-with-dialog";
 import { sitemap } from "@/lib/constants";
 import { SitemapService } from "@/services/sitemap-service";
-import EndatixLogoSvg from "@/public/assets/icons/icon.svg";
+import EndatixLogoSvg from "@/public/assets/icons/endatix-logo-beta.svg";
 
 const MainNav = () => {
   const logo = SitemapService.getLogo();

@@ -19,7 +19,13 @@ export const metadata: Metadata = {
   title: "Endatix Hub",
   description: "Customizable form management platform",
   generator: "Endatix",
-  keywords: ["endatix", "endatix hub", "endatix hub app", "forms-management", "ai-form-builder"],
+  keywords: [
+    "endatix",
+    "endatix hub",
+    "endatix hub app",
+    "forms-management",
+    "ai-form-builder",
+  ],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
 };
@@ -30,13 +36,21 @@ interface RootLayoutProps {
   nav: React.ReactNode;
 }
 
-export default async function RootLayout({ children, header, nav }: RootLayoutProps) {
+export default async function RootLayout({
+  children,
+  header,
+  nav,
+}: RootLayoutProps) {
   const session = await getSession();
-  
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href="/assets/icons/endatix-logo-beta.svg"
+          type="image/svg+xml"
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider session={session}>
@@ -44,9 +58,7 @@ export default async function RootLayout({ children, header, nav }: RootLayoutPr
             {nav}
             <div className="flex flex-1 flex-col">
               {header}
-              <main className="flex-1 flex flex-col p-6">
-                {children}
-              </main>
+              <main className="flex-1 flex flex-col p-6">{children}</main>
             </div>
           </div>
         </AppProvider>
