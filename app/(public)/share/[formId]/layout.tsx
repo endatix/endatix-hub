@@ -28,6 +28,7 @@ export default async function ShareLayout({
       <head>
         <link rel="preconnect" href="https://www.google.com" />
         <link rel="preconnect" href="https://www.gstatic.com" crossOrigin="" />
+        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>
       <body>
         <AppProvider options={AppOptions.NoTheme} session={session}>

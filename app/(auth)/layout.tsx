@@ -45,7 +45,11 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href="/assets/icons/endatix-logo-beta.svg"
+          type="image/svg+xml"
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider session={session}>
