@@ -53,9 +53,9 @@ const SignInPage = async ({ searchParams }: SignInPageProps) => {
 
   if (authSession?.user && !authSession.error) {
     return (
-      <LoggedInSuccessMessage
+      <SignedInSuccessMessage
         username={authSession.user.name ?? authSession.user.email ?? ""}
-        isLoggedIn={!!authSession.user}
+        isSignedIn={!!authSession.user}
       />
     );
   }
@@ -86,32 +86,32 @@ const SignInPage = async ({ searchParams }: SignInPageProps) => {
   );
 };
 
-interface LoggedInMessageProps {
+interface SignedInMessageProps {
   username: string;
-  isLoggedIn: boolean;
+  isSignedIn: boolean;
 }
 
-const LoggedInSuccessMessage = ({
+const SignedInSuccessMessage = ({
   username,
-  isLoggedIn,
-}: LoggedInMessageProps) => {
-  if (isLoggedIn)
+  isSignedIn,
+}: SignedInMessageProps) => {
+  if (isSignedIn)
     return (
       <Card className="bg-background">
         <CardHeader className="pb-3">
           <CardTitle>Welcome!</CardTitle>
           <CardDescription className="max-w-lg text-balance leading-relaxed">
-            You are now logged in as {username}
+            You are now signed in as {username}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p>Click on the button below to continue</p>
+          <p>Let’s start creating forms!</p>
         </CardContent>
         <CardFooter>
-          <Link href="/">
+          <Link href="/forms">
             <Button className="mr-8">
-              <Rocket className="mr-2 h-4 w-4" />
-              Continue
+              <Rocket className="h-4 w-4" />
+              Go to Forms
             </Button>
           </Link>
         </CardFooter>
