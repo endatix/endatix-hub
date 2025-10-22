@@ -64,7 +64,7 @@ async function SubmissionDetails({
       />
       <SubmissionAlertMessage
         title="Export to PDF is not available"
-        description="Export to PDF functionality is ongoing maintenance. We are working to restore it as soon as possible."
+        description="Export to PDF functionality is currently undergoing maintenance. We are working to restore it as soon as possible."
         className="mb-4"
       />
       <SubmissionProperties submission={submission} />

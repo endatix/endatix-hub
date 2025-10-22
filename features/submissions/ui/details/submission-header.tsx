@@ -36,7 +36,7 @@ export function SubmissionHeader({
     toast.warning({
       title: "Cannot export PDF at this time",
       description:
-        "Export to PDF functionality is ongoing maintenance. We are working to restore it as soon as possible.",
+        "Export to PDF functionality is currently undergoing maintenance. We are working to restore it as soon as possible.",
       SvgIcon: AlertCircleIcon,
     });
   };
