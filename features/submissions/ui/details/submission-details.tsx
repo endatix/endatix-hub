@@ -11,7 +11,7 @@ import { CustomQuestion } from "@/services/api";
 import { SubmissionDetailsViewOptionsProvider } from "./submission-details-view-options-context";
 import { getSubmissionLocale } from "../../submission-localization";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
-
+import SubmissionAlertMessage from "./submission-alert-message";
 
 async function SubmissionDetails({
   formId,
@@ -61,6 +61,11 @@ async function SubmissionDetails({
         submissionId={submissionId}
         status={submission.status}
         submissionLocale={getSubmissionLocale(submission)}
+      />
+      <SubmissionAlertMessage
+        title="Export to PDF is not available"
+        description="Export to PDF functionality is currently undergoing maintenance. We are working to restore it as soon as possible."
+        className="mb-4"
       />
       <SubmissionProperties submission={submission} />
       <SubmissionAnswers
