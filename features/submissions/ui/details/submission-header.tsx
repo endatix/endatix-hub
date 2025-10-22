@@ -2,7 +2,7 @@
 
 import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Download, FilePenLine } from "lucide-react";
+import { Download, FilePenLine } from "lucide-react";
 import Link from "next/link";
 import { SubmissionActionsDropdown } from "./submission-actions-dropdown";
 import { useState } from "react";
@@ -32,16 +32,10 @@ export function SubmissionHeader({
   const { options } = useSubmissionDetailsViewOptions();
   const submissionLanguageName = getLanguageDisplayName(submissionLocale);
 
-  const handleExportPdfClick = () => {
-    toast.warning({
-      title: "Cannot export PDF at this time",
-      description:
-        "Export to PDF functionality is currently undergoing maintenance. We are working to restore it as soon as possible.",
-      SvgIcon: AlertCircleIcon,
-    });
+  const handleExportPdfClick = async () => {
+    await exportPdf();
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const exportPdf = async () => {
     setLoading(true);
     try {
