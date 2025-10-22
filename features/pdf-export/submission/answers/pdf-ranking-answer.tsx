@@ -21,8 +21,7 @@ const styles = StyleSheet.create({
   },
   noAnswer: {
     fontSize: 10,
-    color: "#888",
-    fontStyle: "italic",
+    color: "#888"
   },
 });
 

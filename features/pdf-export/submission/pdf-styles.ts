@@ -135,7 +135,6 @@ export const PDF_TABLE_STYLES = StyleSheet.create({
   noAnswer: {
     fontSize: 10,
     color: "#888",
-    fontStyle: "italic",
     marginTop: 4,
   },
 });
