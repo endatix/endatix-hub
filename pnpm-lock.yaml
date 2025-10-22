@@ -133,8 +133,8 @@ importers:
         specifier: ^1.1.6
         version: 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@react-pdf/renderer':
-        specifier: ^4.1.6
-        version: 4.3.0(react@19.2.0)
+        specifier: ^4.3.1
+        version: 4.3.1(react@19.2.0)
       '@swc/helpers':
         specifier: ^0.5.15
         version: 0.5.17
@@ -1966,17 +1966,17 @@ packages:
   '@react-pdf/fns@3.1.2':
     resolution: {integrity: sha512-qTKGUf0iAMGg2+OsUcp9ffKnKi41RukM/zYIWMDJ4hRVYSr89Q7e3wSDW/Koqx3ea3Uy/z3h2y3wPX6Bdfxk6g==}
 
-  '@react-pdf/font@4.0.2':
-    resolution: {integrity: sha512-/dAWu7Y2RD1RxarDZ9SkYPHgBYOhmcDnet4W/qN/m8k+A2Hr3ja54GymSR7GGxWBtxjKtNauVKrTa9LS1n8WUw==}
+  '@react-pdf/font@4.0.3':
+    resolution: {integrity: sha512-N1qQDZr6phXYQOp033Hvm2nkUkx2LkszjGPbmRavs9VOYzi4sp31MaccMKptL24ii6UhBh/z9yPUhnuNe/qHwA==}
 
   '@react-pdf/image@3.0.3':
     resolution: {integrity: sha512-lvP5ryzYM3wpbO9bvqLZYwEr5XBDX9jcaRICvtnoRqdJOo7PRrMnmB4MMScyb+Xw10mGeIubZAAomNAG5ONQZQ==}
 
-  '@react-pdf/layout@4.4.0':
-    resolution: {integrity: sha512-Aq+Cc6JYausWLoks2FvHe3PwK9cTuvksB2uJ0AnkKJEUtQbvCq8eCRb1bjbbwIji9OzFRTTzZij7LzkpKHjIeA==}
+  '@react-pdf/layout@4.4.1':
+    resolution: {integrity: sha512-GVzdlWoZWldRDzlWj3SttRXmVDxg7YfraAohwy+o9gb9hrbDJaaAV6jV3pc630Evd3K46OAzk8EFu8EgPDuVuA==}
 
-  '@react-pdf/pdfkit@4.0.3':
-    resolution: {integrity: sha512-k+Lsuq8vTwWsCqTp+CCB4+2N+sOTFrzwGA7aw3H9ix/PDWR9QksbmNg0YkzGbLAPI6CeawmiLHcf4trZ5ecLPQ==}
+  '@react-pdf/pdfkit@4.0.4':
+    resolution: {integrity: sha512-/nITLggsPlB66bVLnm0X7MNdKQxXelLGZG6zB5acF5cCgkFwmXHnLNyxYOUD4GMOMg1HOPShXDKWrwk2ZeHsvw==}
 
   '@react-pdf/png-js@3.0.0':
     resolution: {integrity: sha512-eSJnEItZ37WPt6Qv5pncQDxLJRK15eaRwPT+gZoujP548CodenOVp49GST8XJvKMFt9YqIBzGBV/j9AgrOQzVA==}
@@ -1989,22 +1989,22 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@react-pdf/render@4.3.0':
-    resolution: {integrity: sha512-MdWfWaqO6d7SZD75TZ2z5L35V+cHpyA43YNRlJNG0RJ7/MeVGDQv12y/BXOJgonZKkeEGdzM3EpAt9/g4E22WA==}
+  '@react-pdf/render@4.3.1':
+    resolution: {integrity: sha512-v1WAaAhQShQZGcBxfjkEThGCHVH9CSuitrZ1bIOLvB5iBKM14abYK5D6djKhWCwF6FTzYeT2WRjRMVgze/ND2A==}
 
-  '@react-pdf/renderer@4.3.0':
-    resolution: {integrity: sha512-28gpA69fU9ZQrDzmd5xMJa1bDf8t0PT3ApUKBl2PUpoE/x4JlvCB5X66nMXrfFrgF2EZrA72zWQAkvbg7TE8zw==}
+  '@react-pdf/renderer@4.3.1':
+    resolution: {integrity: sha512-dPKHiwGTaOsKqNWCHPYYrx8CDfAGsUnV4tvRsEu0VPGxuot1AOq/M+YgfN/Pb+MeXCTe2/lv6NvA8haUtj3tsA==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@react-pdf/stylesheet@6.1.0':
-    resolution: {integrity: sha512-BGZ2sYNUp38VJUegjva/jsri3iiRGnVNjWI+G9dTwAvLNOmwFvSJzqaCsEnqQ/DW5mrTBk/577FhDY7pv6AidA==}
+  '@react-pdf/stylesheet@6.1.1':
+    resolution: {integrity: sha512-Iyw0A3wRIeQLN4EkaKf8yF9MvdMxiZ8JjoyzLzDHSxnKYoOA4UGu84veCb8dT9N8MxY5x7a0BUv/avTe586Plg==}
 
   '@react-pdf/textkit@6.0.0':
     resolution: {integrity: sha512-fDt19KWaJRK/n2AaFoVm31hgGmpygmTV7LsHGJNGZkgzXcFyLsx+XUl63DTDPH3iqxj3xUX128t104GtOz8tTw==}
 
-  '@react-pdf/types@2.9.0':
-    resolution: {integrity: sha512-ckj80vZLlvl9oYrQ4tovEaqKWP3O06Eb1D48/jQWbdwz1Yh7Y9v1cEmwlP8ET+a1Whp8xfdM0xduMexkuPANCQ==}
+  '@react-pdf/types@2.9.1':
+    resolution: {integrity: sha512-5GoCgG0G5NMgpPuHbKG2xcVRQt7+E5pg3IyzVIIozKG3nLcnsXW4zy25vG1ZBQA0jmo39q34au/sOnL/0d1A4w==}
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -2900,8 +2900,8 @@ packages:
   electron-to-chromium@1.5.209:
     resolution: {integrity: sha512-Xoz0uMrim9ZETCQt8UgM5FxQF9+imA7PBpokoGcZloA1uw2LeHzTlip5cb5KOAsXZLjh/moN2vReN3ZjJmjI9A==}
 
-  emoji-regex@10.4.0:
-    resolution: {integrity: sha512-EC+0oUMY1Rqm4O6LLrgjtYDvcVYTy7chDnM4Q7030tP4Kwj3u/pR6gP9ygnp2CJMK5Gq+9Q2oqmrFJAz01DXjw==}
+  emoji-regex-xs@1.0.0:
+    resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -5884,7 +5884,7 @@ snapshots:
 
   '@radix-ui/primitive@1.0.1':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
 
   '@radix-ui/primitive@1.1.3': {}
 
@@ -5987,7 +5987,7 @@ snapshots:
 
   '@radix-ui/react-compose-refs@1.0.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       react: 19.2.0
     optionalDependencies:
       '@types/react': 19.2.2
@@ -6000,7 +6000,7 @@ snapshots:
 
   '@radix-ui/react-context@1.0.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       react: 19.2.0
     optionalDependencies:
       '@types/react': 19.2.2
@@ -6013,7 +6013,7 @@ snapshots:
 
   '@radix-ui/react-dialog@1.0.5(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/primitive': 1.0.1
       '@radix-ui/react-compose-refs': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       '@radix-ui/react-context': 1.0.1(@types/react@19.2.2)(react@19.2.0)
@@ -6064,7 +6064,7 @@ snapshots:
 
   '@radix-ui/react-dismissable-layer@1.0.5(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/primitive': 1.0.1
       '@radix-ui/react-compose-refs': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       '@radix-ui/react-primitive': 1.0.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -6106,7 +6106,7 @@ snapshots:
 
   '@radix-ui/react-focus-guards@1.0.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       react: 19.2.0
     optionalDependencies:
       '@types/react': 19.2.2
@@ -6119,7 +6119,7 @@ snapshots:
 
   '@radix-ui/react-focus-scope@1.0.4(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-compose-refs': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       '@radix-ui/react-primitive': 1.0.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@radix-ui/react-use-callback-ref': 1.0.1(@types/react@19.2.2)(react@19.2.0)
@@ -6142,7 +6142,7 @@ snapshots:
 
   '@radix-ui/react-id@1.0.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-use-layout-effect': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       react: 19.2.0
     optionalDependencies:
@@ -6233,7 +6233,7 @@ snapshots:
 
   '@radix-ui/react-portal@1.0.4(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-primitive': 1.0.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -6253,7 +6253,7 @@ snapshots:
 
   '@radix-ui/react-presence@1.0.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-compose-refs': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       '@radix-ui/react-use-layout-effect': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       react: 19.2.0
@@ -6274,7 +6274,7 @@ snapshots:
 
   '@radix-ui/react-primitive@1.0.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-slot': 1.0.2(@types/react@19.2.2)(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -6393,7 +6393,7 @@ snapshots:
 
   '@radix-ui/react-slot@1.0.2(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-compose-refs': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       react: 19.2.0
     optionalDependencies:
@@ -6459,7 +6459,7 @@ snapshots:
 
   '@radix-ui/react-use-callback-ref@1.0.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       react: 19.2.0
     optionalDependencies:
       '@types/react': 19.2.2
@@ -6472,7 +6472,7 @@ snapshots:
 
   '@radix-ui/react-use-controllable-state@1.0.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-use-callback-ref': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       react: 19.2.0
     optionalDependencies:
@@ -6495,7 +6495,7 @@ snapshots:
 
   '@radix-ui/react-use-escape-keydown@1.0.3(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@radix-ui/react-use-callback-ref': 1.0.1(@types/react@19.2.2)(react@19.2.0)
       react: 19.2.0
     optionalDependencies:
@@ -6517,7 +6517,7 @@ snapshots:
 
   '@radix-ui/react-use-layout-effect@1.0.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       react: 19.2.0
     optionalDependencies:
       '@types/react': 19.2.2
@@ -6561,10 +6561,10 @@ snapshots:
 
   '@react-pdf/fns@3.1.2': {}
 
-  '@react-pdf/font@4.0.2':
+  '@react-pdf/font@4.0.3':
     dependencies:
-      '@react-pdf/pdfkit': 4.0.3
-      '@react-pdf/types': 2.9.0
+      '@react-pdf/pdfkit': 4.0.4
+      '@react-pdf/types': 2.9.1
       fontkit: 2.0.4
       is-url: 1.2.4
 
@@ -6573,21 +6573,21 @@ snapshots:
       '@react-pdf/png-js': 3.0.0
       jay-peg: 1.1.1
 
-  '@react-pdf/layout@4.4.0':
+  '@react-pdf/layout@4.4.1':
     dependencies:
       '@react-pdf/fns': 3.1.2
       '@react-pdf/image': 3.0.3
       '@react-pdf/primitives': 4.1.1
-      '@react-pdf/stylesheet': 6.1.0
+      '@react-pdf/stylesheet': 6.1.1
       '@react-pdf/textkit': 6.0.0
-      '@react-pdf/types': 2.9.0
-      emoji-regex: 10.4.0
+      '@react-pdf/types': 2.9.1
+      emoji-regex-xs: 1.0.0
       queue: 6.0.2
       yoga-layout: 3.2.1
 
-  '@react-pdf/pdfkit@4.0.3':
+  '@react-pdf/pdfkit@4.0.4':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@react-pdf/png-js': 3.0.0
       browserify-zlib: 0.2.0
       crypto-js: 4.2.0
@@ -6608,40 +6608,40 @@ snapshots:
       react: 19.2.0
       scheduler: 0.25.0-rc-603e6108-20241029
 
-  '@react-pdf/render@4.3.0':
+  '@react-pdf/render@4.3.1':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@react-pdf/fns': 3.1.2
       '@react-pdf/primitives': 4.1.1
       '@react-pdf/textkit': 6.0.0
-      '@react-pdf/types': 2.9.0
+      '@react-pdf/types': 2.9.1
       abs-svg-path: 0.1.1
       color-string: 1.9.1
       normalize-svg-path: 1.1.0
       parse-svg-path: 0.1.2
       svg-arc-to-cubic-bezier: 3.2.0
 
-  '@react-pdf/renderer@4.3.0(react@19.2.0)':
+  '@react-pdf/renderer@4.3.1(react@19.2.0)':
     dependencies:
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@react-pdf/fns': 3.1.2
-      '@react-pdf/font': 4.0.2
-      '@react-pdf/layout': 4.4.0
-      '@react-pdf/pdfkit': 4.0.3
+      '@react-pdf/font': 4.0.3
+      '@react-pdf/layout': 4.4.1
+      '@react-pdf/pdfkit': 4.0.4
       '@react-pdf/primitives': 4.1.1
       '@react-pdf/reconciler': 1.1.4(react@19.2.0)
-      '@react-pdf/render': 4.3.0
-      '@react-pdf/types': 2.9.0
+      '@react-pdf/render': 4.3.1
+      '@react-pdf/types': 2.9.1
       events: 3.3.0
       object-assign: 4.1.1
       prop-types: 15.8.1
       queue: 6.0.2
       react: 19.2.0
 
-  '@react-pdf/stylesheet@6.1.0':
+  '@react-pdf/stylesheet@6.1.1':
     dependencies:
       '@react-pdf/fns': 3.1.2
-      '@react-pdf/types': 2.9.0
+      '@react-pdf/types': 2.9.1
       color-string: 1.9.1
       hsl-to-hex: 1.0.0
       media-engine: 1.0.3
@@ -6654,11 +6654,11 @@ snapshots:
       hyphen: 1.10.6
       unicode-properties: 1.4.1
 
-  '@react-pdf/types@2.9.0':
+  '@react-pdf/types@2.9.1':
     dependencies:
-      '@react-pdf/font': 4.0.2
+      '@react-pdf/font': 4.0.3
       '@react-pdf/primitives': 4.1.1
-      '@react-pdf/stylesheet': 6.1.0
+      '@react-pdf/stylesheet': 6.1.1
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
@@ -7571,7 +7571,7 @@ snapshots:
 
   electron-to-chromium@1.5.209: {}
 
-  emoji-regex@10.4.0: {}
+  emoji-regex-xs@1.0.0: {}
 
   emoji-regex@8.0.0: {}
 
