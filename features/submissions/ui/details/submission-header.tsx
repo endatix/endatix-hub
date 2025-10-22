@@ -32,15 +32,17 @@ export function SubmissionHeader({
   const { options } = useSubmissionDetailsViewOptions();
   const submissionLanguageName = getLanguageDisplayName(submissionLocale);
 
-  const exportPdf = async () => {
+  const handleExportPdfClick = () => {
     toast.warning({
       title: "Cannot export PDF at this time",
       description:
         "Export to PDF functionality is ongoing maintenance. We are working to restore it as soon as possible.",
       SvgIcon: AlertCircleIcon,
     });
-    return;
+  };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const exportPdf = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -91,7 +93,7 @@ export function SubmissionHeader({
         />
         <Button
           variant={"outline"}
-          onClick={() => exportPdf()}
+          onClick={handleExportPdfClick}
           disabled={loading}
         >
           {loading ? (
