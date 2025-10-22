@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Read environment variables from file.
@@ -12,27 +12,41 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    baseURL: process.env.BASE_URL || 'http://127.0.0.1:3000',
+    baseURL: process.env.BASE_URL || "http://127.0.0.1:3000",
     viewport: { width: 1920, height: 1080 },
     ignoreHTTPSErrors: true,
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
   },
 
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      // Exclude smoke tests from main test suite
+      testIgnore: /.*smoke.*\.spec\.ts/,
+    },
+    {
+      name: "smoke",
+      testMatch: /.*smoke.*\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL:
+          process.env.SMOKE_TEST_BASE_URL ||
+          process.env.BASE_URL ||
+          "http://localhost:3000",
+      },
+      timeout: 30000,
     },
     // {
     //   name: 'firefox',
