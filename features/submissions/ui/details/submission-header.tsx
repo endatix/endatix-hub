@@ -2,7 +2,7 @@
 
 import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
-import { Download, FilePenLine } from "lucide-react";
+import { AlertCircleIcon, Download, FilePenLine } from "lucide-react";
 import Link from "next/link";
 import { SubmissionActionsDropdown } from "./submission-actions-dropdown";
 import { useState } from "react";
@@ -33,6 +33,14 @@ export function SubmissionHeader({
   const submissionLanguageName = getLanguageDisplayName(submissionLocale);
 
   const exportPdf = async () => {
+    toast.warning({
+      title: "Cannot export PDF at this time",
+      description:
+        "Export to PDF functionality is ongoing maintenance. We are working to restore it as soon as possible.",
+      SvgIcon: AlertCircleIcon,
+    });
+    return;
+
     setLoading(true);
     try {
       const params = new URLSearchParams();
