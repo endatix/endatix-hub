@@ -37,7 +37,7 @@ export default defineConfig({
       testIgnore: /.*smoke.*\.spec\.ts/,
     },
     {
-      name: "smoke",
+      name: "smoke-tests",
       testMatch: /.*smoke.*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
