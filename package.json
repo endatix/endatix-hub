@@ -61,7 +61,7 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.6",
-    "@react-pdf/renderer": "^4.1.6",
+    "@react-pdf/renderer": "^4.3.1",
     "@swc/helpers": "^0.5.15",
     "@tanstack/react-table": "^8.20.6",
     "@vercel/functions": "^1.5.2",

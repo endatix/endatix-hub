@@ -8,7 +8,6 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import { Model } from "survey-core";
-import { setupBrowserPolyfills } from "@/features/pdf-export/submission/browser-polyfills";
 import { Submission } from "@/lib/endatix-api";
 import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions";
@@ -17,16 +16,28 @@ import { PdfSubmissionProperties } from "./pdf-submission-properties";
 import { PDF_STYLES } from "./pdf-styles";
 import { PdfSubmissionAnswer } from "./pdf-submission-answer";
 import { isLocaleValid } from "@/features/submissions/submission-localization";
-import { registerAudioQuestionModel } from '@/lib/questions/audio-recorder/audio-question-pdf';
+import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
 
 Font.register({
   family: "Roboto",
-  fonts: [{ src: "./public/assets/fonts/Roboto-Regular.ttf" }],
+  fonts: [
+    {
+      src: `${process.cwd()}/public/fonts/Roboto-Regular.ttf`,
+      fontWeight: "normal",
+      fontStyle: "normal",
+    },
+  ],
 });
 
 Font.register({
   family: "Roboto-Bold",
-  fonts: [{ src: "./public/assets/fonts/Roboto-Bold.ttf" }],
+  fonts: [
+    {
+      src: `${process.cwd()}/public/fonts/Roboto-Bold.ttf`,
+      fontWeight: "bold",
+      fontStyle: "normal",
+    },
+  ],
 });
 
 interface SubmissionDetailsPdfProps {
@@ -45,7 +56,6 @@ export const SubmissionDetailsPdf = ({
   }
 
   registerAudioQuestionModel();
-  setupBrowserPolyfills();
 
   initializeCustomQuestions(
     customQuestions.map((q: CustomQuestion) => q.jsonData),

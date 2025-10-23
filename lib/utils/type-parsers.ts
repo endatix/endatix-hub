@@ -5,12 +5,12 @@ import { Result } from "../result";
  * @param value - The string value to parse, can be undefined
  * @returns Result.success(value) if parsing is successful, Result.error(error) otherwise
  */
-function tryParseJson<T>(value: string | undefined): Result<T> {
+function tryParseJson<T>(value: string | undefined | null): Result<T> {
   if (!value) {
     return Result.error("Value is required");
   }
   try {
-    return Result.success(JSON.parse(value));
+    return Result.success(JSON.parse(value) as T);
   } catch (ex) {
     return Result.error(`Error parsing JSON: ${ex}`);
   }
