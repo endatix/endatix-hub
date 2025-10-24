@@ -115,7 +115,7 @@ async function createSessionFromTokenData(
   tokenData: KeycloakTokenResponse,
   protocol: string,
 ) {
-  const useSecureCookies = protocol === "https";
+  const useSecureCookies = protocol === "https:";
   const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
   const userInfo = decodeJwt(tokenData.access_token);
 
@@ -151,6 +151,7 @@ async function createSessionFromTokenData(
   const token = validatedAuthTokenResult.data;
   const sessionCookieName =
     sessionCookieOptions.sessionToken.name || "authjs.session-token";
+  console.log("sessionCookieName", sessionCookieName);
   const jwt = await encode({
     token: token,
     secret: authConfig.secret!,
