@@ -30,6 +30,20 @@ export type KeycloakTokenResponse = zod.infer<
   typeof KeycloakTokenResponseSchema
 >;
 
+const AuthTokenSchema = zod.object({
+  sub: zod.string(),
+  email: zod.string().optional(),
+  name: zod.string().optional(),
+  picture: zod.string().optional(),
+  access_token: zod.string(),
+  refresh_token: zod.string(),
+  provider: zod.string(),
+  iat: zod.number(),
+  expires_at: zod.date(),
+});
+
+export type AuthToken = zod.infer<typeof AuthTokenSchema>;
+
 export async function POST(request: NextRequest) {
   const enableExperimental = await experimentalFeaturesFlag();
   const allowSessionBridge =
@@ -112,21 +126,33 @@ async function createSessionFromTokenData(
     );
   }
 
-  const jwtPayload = {
+  const expires = new Date(Date.now() + tokenData.expires_in * 1000);
+  const authTokenPayload = {
     sub: userInfo.sub,
     email: userInfo.email,
     name: userInfo.name,
     picture: userInfo.picture,
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
+    access_token: tokenData.access_token,
+    refresh_token: tokenData.refresh_token,
     provider: KEYCLOAK_ID,
     iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + tokenData.expires_in,
+    expires_at: expires,
   };
+
+  const validatedAuthTokenResult = AuthTokenSchema.safeParse(authTokenPayload);
+
+  if (!validatedAuthTokenResult.success) {
+    return NextResponse.json(
+      { error: "Insufficient information to establish a session" },
+      { status: 400 },
+    );
+  }
+
+  const token = validatedAuthTokenResult.data;
   const sessionCookieName =
     sessionCookieOptions.sessionToken.name || "authjs.session-token";
   const jwt = await encode({
-    token: jwtPayload,
+    token: token,
     secret: authConfig.secret!,
     salt: sessionCookieName,
   });

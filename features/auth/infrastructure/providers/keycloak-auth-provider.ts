@@ -61,7 +61,7 @@ export class KeycloakAuthProvider implements IAuthProvider {
     const { token, user, account, session, trigger } = params;
 
     if (user && account?.provider === this.id) {
-      token.id = user.id;
+      token.id = account.providerAccountId;
       token.email = user.email;
       token.name = user.name;
       token.provider = this.id;
