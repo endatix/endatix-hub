@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page } from "@playwright/test";
 
 /**
  * Helper function to generate random test data
@@ -17,7 +17,7 @@ export function generateTestData(traceToken?: string) {
  * Useful when waiting for form submissions to complete
  */
 export async function waitForNetworkIdle(page: Page, timeout = 5000) {
-  await page.waitForLoadState('networkidle', { timeout });
+  await page.waitForLoadState("networkidle", { timeout });
 }
 
 /**
@@ -25,16 +25,29 @@ export async function waitForNetworkIdle(page: Page, timeout = 5000) {
  */
 export async function takeDebugScreenshot(page: Page, testName: string) {
   const timestamp = new Date().getTime();
-  await page.screenshot({ 
+  await page.screenshot({
     path: `./test-results/debug-${testName}-${timestamp}.png`,
-    fullPage: true
+    fullPage: true,
   });
-} 
+}
 
 /**
  * Helper function to get the FPSK cookie
  */
 export async function getFpskCookie(page: Page) {
   const cookies = await page.context().cookies();
-  return cookies.find(cookie => cookie.name === 'FPSK');
+  return cookies.find((cookie) => cookie.name === "FPSK");
+}
+
+/**
+ * Helper function to get authentication cookies
+ */
+export async function getAuthCookies(page: Page) {
+  const cookies = await page.context().cookies();
+  return cookies.filter(
+    (cookie) =>
+      cookie.name.includes("session") ||
+      cookie.name.includes("auth") ||
+      cookie.name.includes("next-auth"),
+  );
 }
