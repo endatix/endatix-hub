@@ -1,9 +1,6 @@
 import { Session } from "next-auth";
 
-import {
-  getUserPermissionsFactory,
-  getCacheStatsFactory,
-} from "./user-permissions";
+import { getUserPermissionsFactory } from "./user-permissions";
 import {
   checkPermissionFactory,
   checkAnyPermissionFactory,
@@ -45,9 +42,6 @@ export async function createPermissionService(
   const requireHubAccess = requireHubAccessFactory(checkPermission);
   const requireAdminAccess = requireAdminAccessFactory(checkPermission);
 
-  // Create cache stats function
-  const getCacheStats = getCacheStatsFactory();
-
   return {
     // Permission checking methods
     checkPermission,
@@ -63,8 +57,7 @@ export async function createPermissionService(
 
     // Direct access to user data
     getUserPermissions,
-
-    // Cache statistics
-    getCacheStats,
   };
 }
+
+export * from "./user-permissions";

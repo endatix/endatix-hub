@@ -1,6 +1,7 @@
 import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
 import { AuthPresentation } from "./types";
+import { invalidateUserPermissionsCache } from "../permissions/application";
 
 /**
  * Creates NextAuth configuration from a provider registry.
@@ -30,6 +31,10 @@ export function createAuthConfig(
         if (!provider) {
           console.warn(`No auth provider found for: ${providerId}`);
           return token;
+        }
+
+        if (user) {
+          invalidateUserPermissionsCache(user.id as string);
         }
 
         return await provider.handleJWT({

@@ -14,9 +14,7 @@ const PERMISSIONS_CACHE_TTL = 300;
 export async function GET() {
   try {
     const session = await auth();
-    const { getUserPermissions, getCacheStats } = await createPermissionService(
-      session,
-    );
+    const { getUserPermissions } = await createPermissionService(session);
     const permissionsResult = await getUserPermissions();
 
     if (!permissionsResult.success) {
@@ -43,10 +41,6 @@ export async function GET() {
       }`,
     );
     response.headers.set("ETag", `"${user.permissionsVersion}-${user.userId}"`);
-
-    // TODO: Remove this. It's temporary for debugging the cache stats
-    const cacheStats = getCacheStats();
-    console.log(cacheStats);
 
     return response;
   } catch {

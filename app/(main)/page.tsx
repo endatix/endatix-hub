@@ -1,18 +1,23 @@
 import { auth } from "@/auth";
+import { SIGNIN_PATH } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 import SessionCard from "@/features/auth/ui/session-card";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { Session } from "next-auth";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
+
   const enableExperimental = await experimentalFeaturesFlag();
   const allowHomePage =
     enableExperimental || process.env.NODE_ENV !== "production";
   if (!allowHomePage) {
-    redirect("/forms");
+    redirect(SIGNIN_PATH);
   }
 
-  const session = await auth();
   const userInfo = await getCurrentUserInfo(session);
 
   return (

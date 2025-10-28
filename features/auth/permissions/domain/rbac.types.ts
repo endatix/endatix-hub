@@ -64,12 +64,6 @@ interface PermissionService {
    * Throws if user is not an admin.
    */
   requireAdminAccess(): Promise<void>;
-
-  /**
-   * Returns in-memory permission cache stats.
-   * @param format - "json" for object, "text" for string output
-   */
-  getCacheStats(format?: "json" | "text"): string | object;
 }
 
 // Re-export PermissionService types and utilities
