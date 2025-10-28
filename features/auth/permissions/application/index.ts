@@ -16,7 +16,8 @@ import {
   requireHubAccessFactory,
   requireAdminAccessFactory,
 } from "./permission-guard";
-import { PermissionService } from '../domain/rbac.types';
+import { PermissionService } from "../domain/rbac.types";
+import { auth } from "@/auth";
 
 /**
  * Factory function to create the Permission Service
@@ -24,9 +25,10 @@ import { PermissionService } from '../domain/rbac.types';
  * @param session The session return from `await auth()`
  * @returns
  */
-export function createPermissionService(
-  session: Session | null,
-): PermissionService {
+export async function createPermissionService(
+  session: Session | null = null,
+): Promise<PermissionService> {
+  session = session ?? (await auth());
   // Create the core user permissions function
   const getUserPermissions = getUserPermissionsFactory(session);
 

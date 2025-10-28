@@ -34,13 +34,13 @@ export const metadata: Metadata = {
   },
 };
 
-interface RootLayoutProps {
+interface UnauthorizedLayoutProps {
   children: React.ReactNode;
-  header: React.ReactNode;
-  nav: React.ReactNode;
 }
 
-export default async function RootLayout({ children }: RootLayoutProps) {
+export default async function UnauthorizedLayout({
+  children,
+}: UnauthorizedLayoutProps) {
   const session = await getSession();
 
   return (

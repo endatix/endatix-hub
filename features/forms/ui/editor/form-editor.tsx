@@ -7,8 +7,7 @@ import {
 } from "@/lib/questions/infrastructure/specialized-survey-question";
 import type { Question } from "survey-core";
 import { Result } from "@/lib/result";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Serializer,
   settings,
@@ -95,7 +94,9 @@ interface FormEditorProps {
   onUnsavedChanges?: (hasChanges: boolean) => void;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
-  onPropertyGridControllerReady?: (controller: (visible: boolean) => void) => void;
+  onPropertyGridControllerReady?: (
+    controller: (visible: boolean) => void,
+  ) => void;
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -120,7 +121,6 @@ function nameToTitle(name: string): string {
 function FormEditor({
   formJson,
   formId,
-  formName,
   options,
   slkVal,
   themeId,
@@ -132,7 +132,6 @@ function FormEditor({
   onPropertyGridControllerReady,
 }: FormEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
@@ -170,63 +169,59 @@ function FormEditor({
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
-      try {
-        const json = new JsonObject().toJsonObject(element);
+      const json = new JsonObject().toJsonObject(element);
 
-        const baseJsonData = {
-          name: questionName,
-          title: questionTitle,
-          iconName: "icon-" + element.getType(),
-          category: "custom",
-          defaultQuestionTitle: questionTitle,
-          inheritBaseProps: true,
-        };
+      const baseJsonData = {
+        name: questionName,
+        title: questionTitle,
+        iconName: "icon-" + element.getType(),
+        category: "custom",
+        defaultQuestionTitle: questionTitle,
+        inheritBaseProps: true,
+      };
 
-        const request: CreateCustomQuestionRequest = {
-          name: questionName,
-          description: questionTitle,
-          jsonData: JSON.stringify({
-            ...baseJsonData,
-            ...(element.getType() === "panel"
-              ? { elementsJSON: json.elements }
-              : {
-                  questionJSON: {
-                    ...json,
-                    type: element.getType(),
-                  },
-                }),
-          }),
-        };
+      const request: CreateCustomQuestionRequest = {
+        name: questionName,
+        description: questionTitle,
+        jsonData: JSON.stringify({
+          ...baseJsonData,
+          ...(element.getType() === "panel"
+            ? { elementsJSON: json.elements }
+            : {
+                questionJSON: {
+                  ...json,
+                  type: element.getType(),
+                },
+              }),
+        }),
+      };
 
-        const result = await createCustomQuestionAction(request);
-        if (Result.isError(result)) {
-          throw new Error(result.message);
-        }
-
-        const savedQuestion = result.value;
-        const parsedJson = JSON.parse(savedQuestion.jsonData);
-
-        const questionClasses = initializeCustomQuestions([
-          savedQuestion.jsonData,
-        ]);
-        if (questionClasses.length > 0) {
-          creator?.toolbox.addItem({
-            name: savedQuestion.name,
-            title: parsedJson.title,
-            iconName: parsedJson.iconName,
-            json: {
-              type: savedQuestion.name,
-              name: savedQuestion.name,
-            },
-            category: parsedJson.category,
-          });
-        }
-
-        toast.success("Custom question saved and added to toolbox");
-      } catch (error) {
-        console.error("Error saving custom question:", error);
-        toast.error("Failed to save custom question");
+      const result = await createCustomQuestionAction(request);
+      if (result === undefined || Result.isError(result)) {
+        toast.error(result?.message || "Failed to save custom question");
+        return;
       }
+
+      const savedQuestion = result.value;
+      const parsedJson = JSON.parse(savedQuestion.jsonData);
+
+      const questionClasses = initializeCustomQuestions([
+        savedQuestion.jsonData,
+      ]);
+      if (questionClasses.length > 0) {
+        creator?.toolbox.addItem({
+          name: savedQuestion.name,
+          title: parsedJson.title,
+          iconName: parsedJson.iconName,
+          json: {
+            type: savedQuestion.name,
+            name: savedQuestion.name,
+          },
+          category: parsedJson.category,
+        });
+      }
+
+      toast.success("Custom question saved and added to toolbox");
     },
     [creator],
   );
@@ -351,7 +346,6 @@ function FormEditor({
 
     onPropertyGridControllerReady?.(propertyGridController);
   }, [creator, onPropertyGridControllerReady]);
-
 
   const createCustomQuestionDialog = useCallback(
     async (element: Question) => {
@@ -498,7 +492,6 @@ function FormEditor({
     creator.JSON = formJson;
   }, [creator, formJson]);
 
-
   useEffect(() => {
     if (!creator) return;
 
@@ -621,7 +614,6 @@ function FormEditor({
       document.body.classList.remove("overflow-hidden");
     };
   }, []);
-
 
   return (
     <>

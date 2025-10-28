@@ -14,8 +14,9 @@ const PERMISSIONS_CACHE_TTL = 300;
 export async function GET() {
   try {
     const session = await auth();
-    const { getUserPermissions, getCacheStats } =
-      createPermissionService(session);
+    const { getUserPermissions, getCacheStats } = await createPermissionService(
+      session,
+    );
     const permissionsResult = await getUserPermissions();
 
     if (!permissionsResult.success) {
