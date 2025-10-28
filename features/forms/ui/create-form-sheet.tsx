@@ -159,6 +159,10 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
           formDefinitionJsonData: JSON.stringify({}),
         };
         const result = await createFormAction(request);
+        if (result === undefined) {
+          toast.error("Could not proceed with creating AI form");
+          return;
+        }
 
         if (Result.isSuccess(result) && result.value) {
           setAiFormId(result.value);

@@ -1,6 +1,6 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 import { Result } from "@/lib/result";
 import { deleteForm } from "@/services/api";
 
@@ -8,9 +8,10 @@ export type DeleteFormResult = Result<string>;
 
 export async function deleteFormAction(
   formId: string,
-): Promise<DeleteFormResult> {
-  await ensureAuthenticated();
-
+): Promise<DeleteFormResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
+  
   try {
     const deletedFormId = await deleteForm(formId);
     return Result.success(deletedFormId);

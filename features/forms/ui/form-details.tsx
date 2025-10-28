@@ -195,27 +195,29 @@ const FormDetails = ({
 
   const handleDelete = async () => {
     startTransition(async () => {
-      try {
-        const result = await deleteFormAction(form.id);
-        if (Result.isSuccess(result)) {
-          toast.success({
-            title: (
-              <>
-                <strong>{form.name}</strong> deleted successfully
-              </>
-            ),
-          });
-          setIsDialogOpen(false);
-          onFormDeleted?.();
-          setTimeout(() => {
-            router.push("/forms");
-            router.refresh();
-          }, 1000);
-        } else {
-          toast.error("Failed to delete form");
-        }
-      } catch {
-        toast.error("Failed to delete form");
+      const result = await deleteFormAction(form.id);
+      if (result === undefined || Result.isError(result)) {
+        toast.error({
+          title: "Failed to delete form",
+          description: result?.message || "",
+        });
+        return;
+      }
+
+      if (Result.isSuccess(result)) {
+        toast.success({
+          title: (
+            <>
+              <strong>{form.name}</strong> deleted successfully
+            </>
+          ),
+        });
+        setIsDialogOpen(false);
+        onFormDeleted?.();
+        setTimeout(() => {
+          router.push("/forms");
+          router.refresh();
+        }, 1000);
       }
     });
   };
