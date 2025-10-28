@@ -1,18 +1,26 @@
 import { Form, FormDefinition } from "@/types";
 import { getForm, getActiveFormDefinition } from "@/services/api";
-import FormDesignerLayout, { FormDesignerLayoutProps } from "@/features/forms/ui/designer/form-designer-wrapper";
+import FormDesignerLayout, {
+  FormDesignerLayoutProps,
+} from "@/features/forms/ui/designer/form-designer-wrapper";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { auth } from "@/auth";
 
 type Params = {
   params: Promise<{ formId: string }>;
 };
 
 export default async function FormDesignerPage({ params }: Params) {
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
+
   const { formId } = await params;
   const ai = await aiFeaturesFlag();
 

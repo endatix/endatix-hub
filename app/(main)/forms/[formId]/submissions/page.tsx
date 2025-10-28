@@ -4,6 +4,8 @@ import SubmissionsTable from "./ui/submissions-table";
 import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { auth } from "@/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -17,6 +19,10 @@ export async function generateMetadata(
   { params, searchParams }: Params,
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
+
   const { formId } = await params;
   const form = await getForm(formId);
 
@@ -40,9 +46,7 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
         <PageTitleData formId={formId} />
       </Suspense>
       <Suspense fallback={<TableLoader pageSize={pageSize} />}>
-        <SubmissionsTableData
-          formId={formId}
-        />
+        <SubmissionsTableData formId={formId} />
       </Suspense>
     </>
   );
@@ -53,18 +57,9 @@ async function PageTitleData({ formId }: { formId: string }) {
   return <PageTitle title={`Submissions for ${form.name}`} />;
 }
 
-async function SubmissionsTableData({
-  formId,
-}: {
-  formId: string;
-}) {
+async function SubmissionsTableData({ formId }: { formId: string }) {
   const submissions = await getSubmissions(formId);
-  return (
-    <SubmissionsTable
-      data={submissions}
-      formId={formId}
-    />
-  );
+  return <SubmissionsTable data={submissions} formId={formId} />;
 }
 
 function TableLoader({ pageSize }: { pageSize: string }) {

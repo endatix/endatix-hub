@@ -4,14 +4,19 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FormTemplate } from "@/types";
+import { auth } from "@/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 
 type Params = {
   params: Promise<{ templateId: string }>;
 };
 
 export default async function FormTemplateEditPage({ params }: Params) {
-  const { templateId } = await params;
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
 
+  const { templateId } = await params;
   let template: FormTemplate | null = null;
   try {
     template = await getFormTemplate(templateId);
