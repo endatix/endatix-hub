@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { Check, ChevronsUpDown, Eye } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { FormTemplate } from '@/types';
-import { Button } from '@/components/ui/button';
+import { Check, ChevronsUpDown, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FormTemplate } from "@/types";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -11,23 +11,24 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from '@/components/ui/drawer';
-import { cn } from '@/lib/utils';
-import { Spinner } from '@/components/loaders/spinner';
-import { getTemplatesAction } from '@/features/form-templates/application/get-templates.action';
-import { useMediaQuery } from '@/lib/utils/hooks/use-media-query';
+} from "@/components/ui/drawer";
+import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/loaders/spinner";
+import { getTemplatesAction } from "@/features/form-templates/application/get-templates.action";
+import { useMediaQuery } from "@/lib/utils/hooks/use-media-query";
+import { Result } from "@/lib/result";
 
 interface TemplateSelectorProps {
   onTemplateSelect: (template: FormTemplate) => void;
@@ -40,27 +41,33 @@ export default function TemplateSelector({
 }: TemplateSelectorProps) {
   const [open, setOpen] = useState(false);
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
-  const [filteredTemplates, setFilteredTemplates] = useState<FormTemplate[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<FormTemplate[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
+    null,
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   useEffect(() => {
     const fetchTemplates = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getTemplatesAction();
-        setTemplates(data);
-        setFilteredTemplates(data);
-      } catch (err) {
-        setError('Failed to load templates');
-        console.error(err);
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      setError(null);
+      const getTemplatesResult = await getTemplatesAction();
+      if (getTemplatesResult === undefined) {
+        return;
       }
+      if (Result.isError(getTemplatesResult)) {
+        setError(getTemplatesResult.message || "Failed to load templates");
+        return;
+      }
+
+      setTemplates(getTemplatesResult.value);
+      setFilteredTemplates(getTemplatesResult.value);
+      setLoading(false);
     };
 
     fetchTemplates();
@@ -75,9 +82,10 @@ export default function TemplateSelector({
 
     const query = searchQuery.toLowerCase();
     const filtered = templates.filter(
-      template => 
-        template.name.toLowerCase().includes(query) || 
-        (template.description && template.description.toLowerCase().includes(query))
+      (template) =>
+        template.name.toLowerCase().includes(query) ||
+        (template.description &&
+          template.description.toLowerCase().includes(query)),
     );
     setFilteredTemplates(filtered);
   }, [searchQuery, templates]);
@@ -105,12 +113,15 @@ export default function TemplateSelector({
             >
               {selectedTemplate
                 ? selectedTemplate.name
-                : 'Select a template...'}
+                : "Select a template..."}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-            <TemplateList 
+          <PopoverContent
+            className="w-[var(--radix-popover-trigger-width)] p-0"
+            align="start"
+          >
+            <TemplateList
               templates={filteredTemplates}
               loading={loading}
               error={error}
@@ -124,7 +135,7 @@ export default function TemplateSelector({
         </Popover>
         {selectedTemplate && (
           <div className="text-sm text-muted-foreground">
-            {selectedTemplate.description || 'No description available.'}
+            {selectedTemplate.description || "No description available."}
           </div>
         )}
       </div>
@@ -140,20 +151,16 @@ export default function TemplateSelector({
             role="combobox"
             className="w-full justify-between"
           >
-            {selectedTemplate
-              ? selectedTemplate.name
-              : 'Select a template...'}
+            {selectedTemplate ? selectedTemplate.name : "Select a template..."}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>
-              Choose a template for your form
-            </DrawerTitle>
+            <DrawerTitle>Choose a template for your form</DrawerTitle>
           </DrawerHeader>
           <div className="mt-4 border-t">
-            <TemplateList 
+            <TemplateList
               templates={filteredTemplates}
               loading={loading}
               error={error}
@@ -168,7 +175,7 @@ export default function TemplateSelector({
       </Drawer>
       {selectedTemplate && (
         <div className="text-sm text-muted-foreground">
-          {selectedTemplate.description || 'No description available.'}
+          {selectedTemplate.description || "No description available."}
         </div>
       )}
     </div>
@@ -196,12 +203,14 @@ function TemplateList({
   onSearch,
   searchQuery,
 }: TemplateListProps) {
-  const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(null);
+  const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(
+    null,
+  );
 
   return (
     <Command shouldFilter={false}>
-      <CommandInput 
-        placeholder="Search templates..." 
+      <CommandInput
+        placeholder="Search templates..."
         value={searchQuery}
         onValueChange={onSearch}
       />
@@ -228,10 +237,10 @@ function TemplateList({
                 <div className="flex items-center min-w-0 flex-1">
                   <Check
                     className={cn(
-                      'mr-2 h-4 w-4 flex-shrink-0',
+                      "mr-2 h-4 w-4 flex-shrink-0",
                       selectedTemplate?.id === template.id
-                        ? 'opacity-100'
-                        : 'opacity-0'
+                        ? "opacity-100"
+                        : "opacity-0",
                     )}
                   />
                   <div className="flex flex-col truncate">
@@ -249,7 +258,7 @@ function TemplateList({
                       variant="ghost"
                       size="icon"
                       onClick={(e) => {
-                        onSelectTemplate(template)
+                        onSelectTemplate(template);
                         e.stopPropagation();
                         onPreviewTemplate(template.id);
                       }}
@@ -265,4 +274,4 @@ function TemplateList({
       </CommandList>
     </Command>
   );
-} 
+}

@@ -31,6 +31,7 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import { toast } from "@/components/ui/toast";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -87,15 +88,23 @@ export function FormTemplatePreview({
               questionsResult.value.map((q) => q.jsonData),
             );
           }
-
-          const data = await getTemplateAction(templateId);
-          setTemplate(data);
         } catch (err) {
           setError("Failed to load form template");
           console.error(err);
-        } finally {
-          setLoading(false);
+          return;
         }
+
+        const getTemplateResult = await getTemplateAction(templateId);
+        if (getTemplateResult === undefined) {
+          return;
+        }
+
+        if (Result.isError(getTemplateResult)) {
+          toast.error(getTemplateResult.message || "Failed to fetch template");
+          return;
+        }
+
+        setTemplate(getTemplateResult.value);
       };
 
       fetchTemplate();

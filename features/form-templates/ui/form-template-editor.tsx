@@ -74,16 +74,28 @@ function FormTemplateEditor({
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
       startTransition(async () => {
-        const result = await updateTemplateNameAction(templateId, name);
+        const updateTemplateNameResult = await updateTemplateNameAction(
+          templateId,
+          name,
+        );
 
-        if (result.success) {
-          setOriginalName(name);
-          setName(name);
-          toast.success("Template name updated");
-        } else {
-          toast.error(result.error || "Failed to update template name");
-          setName(originalName);
+        if (updateTemplateNameResult === undefined) {
+          toast.error("Could not proceed with updating template name");
+          return;
         }
+
+        if (Result.isError(updateTemplateNameResult)) {
+          toast.error(
+            updateTemplateNameResult.message ||
+              "Failed to update template name",
+          );
+          setName(originalName);
+          return;
+        }
+
+        setOriginalName(name);
+        setName(name);
+        toast.success("Template name updated");
       });
     }
     setIsEditingName(false);
@@ -340,16 +352,26 @@ function FormTemplateEditor({
         return;
       }
 
-      const result = await updateTemplateJsonAction(
+      const updateTemplateJsonResult = await updateTemplateJsonAction(
         templateId,
         updatedFormJson,
       );
 
-      if (result.success) {
-        setHasUnsavedChanges(false);
+      if (updateTemplateJsonResult === undefined) {
+        toast.error("Could not proceed with updating template JSON");
+        return;
+      }
+
+      if (Result.isError(updateTemplateJsonResult)) {
+        toast.error(
+          updateTemplateJsonResult.message || "Failed to update template JSON",
+        );
+        return;
+      }
+
+      if (Result.isSuccess(updateTemplateJsonResult)) {
         toast.success("Template saved");
-      } else {
-        toast.error(result.error || "Failed to save template");
+        setHasUnsavedChanges(false);
       }
     });
   };

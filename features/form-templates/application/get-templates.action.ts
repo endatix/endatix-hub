@@ -2,12 +2,22 @@
 
 import { FormTemplate } from "@/types";
 import { getFormTemplates } from "@/services/api";
+import { Result } from "@/lib/result";
+import { createPermissionService } from "@/features/auth/permissions/application";
 
-export async function getTemplatesAction(): Promise<FormTemplate[]> {
+export type GetTemplatesResult = Result<FormTemplate[]>;
+
+export async function getTemplatesAction(): Promise<
+  GetTemplatesResult | never
+> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
+
   try {
-    return await getFormTemplates();
+    const templates = await getFormTemplates();
+    return Result.success(templates);
   } catch (error) {
     console.error("Error fetching form templates:", error);
-    throw new Error("Failed to fetch form templates");
+    return Result.error("Failed to fetch form templates");
   }
-} 
+}

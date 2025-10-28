@@ -1,5 +1,6 @@
 "use server";
 
+import { createPermissionService } from "@/features/auth/permissions/application";
 import { CreateFormTemplateRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { createFormTemplate } from "@/services/api";
@@ -7,7 +8,10 @@ import { revalidatePath } from "next/cache";
 
 export async function createTemplateAction(
   formData: FormData,
-): Promise<Result<string>> {
+): Promise<Result<string> | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
+
   try {
     const name = formData.get("name")?.toString() || "";
     const description = formData.get("description")?.toString() || "";

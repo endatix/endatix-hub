@@ -1,24 +1,26 @@
-'use server';
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { updateFormTemplate } from "@/services/api";
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { Result } from "@/lib/result";
 
-interface UpdateTemplateJsonResult {
-  success: boolean;
-  error?: string;
-}
+export type UpdateTemplateJsonResult = Result<string>;
 
 export async function updateTemplateJsonAction(
-  templateId: string, 
-  templateJson: object | null
-): Promise<UpdateTemplateJsonResult> {
+  templateId: string,
+  templateJson: object | null,
+): Promise<UpdateTemplateJsonResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
+
   try {
     if (!templateId) {
-      return { success: false, error: "Template ID is required" };
+      return Result.error("Template ID is required");
     }
 
     if (!templateJson) {
-      return { success: false, error: "Template JSON data is required" };
+      return Result.error("Template JSON data is required");
     }
 
     const jsonData = JSON.stringify(templateJson);
@@ -29,12 +31,11 @@ export async function updateTemplateJsonAction(
 
     revalidatePath(`/forms/templates/${templateId}`);
 
-    return { success: true };
+    return Result.success(templateId);
   } catch (error) {
     console.error("Error updating template JSON:", error);
-    return { 
-      success: false, 
-      error: `Failed to update template: ${(error as Error).message}`
-    };
+    return Result.error(
+      `Failed to update template: ${(error as Error).message}`,
+    );
   }
-} 
+}

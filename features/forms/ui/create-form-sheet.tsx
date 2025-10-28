@@ -129,21 +129,16 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
     if (!selectedTemplate || isPending) return;
 
     startTransition(async () => {
-      try {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const result = await useTemplateAction({
-          templateId: selectedTemplate.id,
-        });
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const result = await useTemplateAction({
+        templateId: selectedTemplate.id,
+      });
 
-        if (Result.isSuccess(result)) {
-          toast.success("Form created from template successfully");
-          router.push(`/forms/${result.value}/design`);
-        } else {
-          toast.error(result.message || "Failed to create form from template");
-        }
-      } catch (error) {
-        console.error("Error creating form from template:", error);
-        toast.error((error as string) || "Failed to create form from template");
+      if (Result.isSuccess(result)) {
+        toast.success("Form created from template successfully");
+        router.push(`/forms/${result.value}/design`);
+      } else {
+        toast.error(result.message || "Failed to create form from template");
       }
     });
   };

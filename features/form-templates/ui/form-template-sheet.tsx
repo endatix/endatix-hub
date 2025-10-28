@@ -126,15 +126,25 @@ const FormTemplateSheet = ({
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
     startTransition(async () => {
-      try {
-        await updateTemplateStatusAction(selectedTemplate.id, enabled);
-        toast.success(
-          `Form template is now ${enabled ? "enabled" : "disabled"}`,
-        );
-      } catch (error) {
-        setIsEnabled(!enabled);
-        toast.error("Failed to update form template status. Error: " + error);
+      const updateTemplateStatusResult = await updateTemplateStatusAction(
+        selectedTemplate.id,
+        enabled,
+      );
+      if (updateTemplateStatusResult === undefined) {
+        toast.error("Could not proceed with updating template status");
+        return;
       }
+
+      if (Result.isError(updateTemplateStatusResult)) {
+        toast.error(
+          updateTemplateStatusResult.message ||
+            "Failed to update template status",
+        );
+        setIsEnabled(!enabled);
+        return;
+      }
+
+      toast.success(`Form template is now ${enabled ? "enabled" : "disabled"}`);
     });
   };
 
@@ -156,27 +166,28 @@ const FormTemplateSheet = ({
 
   const handleDelete = async () => {
     startTransition(async () => {
-      try {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const result = await deleteTemplateAction(selectedTemplate.id);
-        if (Result.isSuccess(result)) {
-          toast.success({
-            title: "Form template deleted successfully",
-            description: (
-              <>
-                <strong>{selectedTemplate.name}</strong> was deleted
-                successfully
-              </>
-            ),
-          });
-          setIsDialogOpen(false);
-          props.onOpenChange?.(false);
-        } else {
-          toast.error("Failed to delete form template");
-        }
-      } catch {
-        toast.error("Failed to delete form template");
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const result = await deleteTemplateAction(selectedTemplate.id);
+      if (result === undefined) {
+        toast.error("Could not proceed with deleting template");
+        return;
       }
+
+      if (Result.isError(result)) {
+        toast.error(result.message || "Failed to delete form template");
+        return;
+      }
+
+      toast.success({
+        title: "Form template deleted successfully",
+        description: (
+          <>
+            <strong>{selectedTemplate.name}</strong> was deleted successfully
+          </>
+        ),
+      });
+      setIsDialogOpen(false);
+      props.onOpenChange?.(false);
     });
   };
 
@@ -240,7 +251,10 @@ const FormTemplateSheet = ({
             </DropdownMenu>
           </div>
 
-          <AlertDialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+          <AlertDialog
+            open={isDialogOpen}
+            onOpenChange={handleDialogOpenChange}
+          >
             <AlertDialogContent
               onOpenAutoFocus={(e) => {
                 e.preventDefault();

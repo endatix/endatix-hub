@@ -46,39 +46,40 @@ export function SaveAsTemplateDialog({
     }
 
     startTransition(async () => {
-      try {
-        const result = await saveAsTemplateAction({
-          formId,
-          name: name.trim(),
-          description: description.trim(),
-        });
+      const saveAsTemplateResult = await saveAsTemplateAction({
+        formId,
+        name: name.trim(),
+        description: description.trim(),
+      });
 
-        if (Result.isSuccess(result) && result.value) {
-          const templateId = result.value;
-          toast.success({
-            title: "Form saved as template successfully",
-            description: "Click Edit to open the template in a new tab.",
-            action: {
-              label: "Edit",
-              onClick: () => {
-                window.open(`/forms/templates/${templateId}`, "_blank");
-              },
+      if (saveAsTemplateResult === undefined) {
+        toast.error("Could not proceed with saving form as template");
+        return;
+      }
+
+      if (Result.isError(saveAsTemplateResult)) {
+        toast.error(
+          saveAsTemplateResult.message || "Failed to save form as template",
+        );
+        return;
+      }
+
+      if (Result.isSuccess(saveAsTemplateResult)) {
+        const templateId = saveAsTemplateResult.value;
+        toast.success({
+          title: "Form saved as template successfully",
+          description: "Click Edit to open the template in a new tab.",
+          action: {
+            label: "Edit",
+            onClick: () => {
+              window.open(`/forms/templates/${templateId}`, "_blank");
             },
-          });
-          onOpenChange(false);
-          if (onSuccess) {
-            onSuccess(templateId);
-          }
-        } else {
-          toast.error(
-            Result.isError(result) && result.message
-              ? result.message
-              : "Failed to save form as template. Please try again.",
-          );
+          },
+        });
+        onOpenChange(false);
+        if (onSuccess) {
+          onSuccess(templateId);
         }
-      } catch (error) {
-        console.error("Error saving form as template:", error);
-        toast.error("An unexpected error occurred");
       }
     });
   };
