@@ -283,12 +283,22 @@ function FormEditor({
     }
 
     if (theme.id !== themeId) {
-      const updateThemeResult = await updateFormThemeAction(formId, theme.id);
-      if (updateThemeResult.success) {
-        isThemeUpdated = true;
-      } else {
-        throw new Error(updateThemeResult.error);
+      const updateThemeResult = await updateFormThemeAction({
+        formId,
+        themeId: theme.id,
+      });
+
+      if (updateThemeResult === undefined) {
+        toast.error("Could not proceed with updating form theme");
+        return;
       }
+
+      if (!updateThemeResult.success) {
+        toast.error(updateThemeResult.error || "Failed to update form theme");
+        return;
+      }
+
+      isThemeUpdated = true;
     }
 
     onUnsavedChanges?.(false);
@@ -339,8 +349,8 @@ function FormEditor({
     if (!creator) return;
 
     const propertyGridController = (visible: boolean) => {
-      if (creator.showPropertyGrid !== undefined) {
-        creator.showPropertyGrid = visible;
+      if (creator.showSidebar !== undefined) {
+        creator.showSidebar = visible;
       }
     };
 
@@ -444,7 +454,7 @@ function FormEditor({
 
         const creatorOptions = {
           ...(options || defaultCreatorOptions),
-          showPropertyGrid: initialPropertyGridVisible,
+          showSidebar: initialPropertyGridVisible,
         };
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
@@ -479,7 +489,7 @@ function FormEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile, creator, initialPropertyGridVisible]);
+  }, [options, slkVal, handleUploadFile, creator, initialPropertyGridVisible, formJson]);
 
   useEffect(() => {
     if (!creator || !formJson) return;

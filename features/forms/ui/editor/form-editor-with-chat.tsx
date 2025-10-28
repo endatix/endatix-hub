@@ -118,7 +118,7 @@ export default function FormEditorWithChat({
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
-  }, [formId, onUnsavedChanges]);
+  }, [formId, formJson, onUnsavedChanges]);
 
   const defineFormHandler = (stateCommand: DefineFormCommand, newDefinition?: object) => {
     const contextStore = new AssistantStore();

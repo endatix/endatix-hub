@@ -143,32 +143,32 @@ export const useThemeManagement = ({
     async (theme: StoredTheme): Promise<StoredTheme> => {
       return new Promise((resolve, reject) => {
         startTransition(async () => {
-          try {
-            const result = await updateThemeAction({
-              themeId: theme.id!,
-              theme: theme,
-            });
+          const result = await updateThemeAction({
+            themeId: theme.id!,
+            theme: theme,
+          });
 
-            if (Result.isError(result)) {
-              toast.error(`Failed to update theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            const updatedTheme = result.value;
-            const parsedTheme = {
-              name: updatedTheme.name,
-              ...JSON.parse(updatedTheme.jsonData),
-            };
-
-            toast.success(`Theme "${updatedTheme.name}" updated successfully`);
-            resolve(parsedTheme);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to update theme: ${message}`);
-            reject(error);
+          if (result === undefined) {
+            toast.error("Could not proceed with updating theme");
+            setIsCurrentThemeModified(false);
+            reject(new Error("Could not proceed with updating theme"));
+            return;
           }
+
+          if (Result.isError(result)) {
+            toast.error(`Failed to update theme: ${result.message}`);
+            reject(new Error(result.message));
+            return;
+          }
+
+          const updatedTheme = result.value;
+          const parsedTheme = {
+            name: updatedTheme.name,
+            ...JSON.parse(updatedTheme.jsonData),
+          };
+
+          toast.success(`Theme "${updatedTheme.name}" updated successfully`);
+          resolve(parsedTheme);
         });
       });
     },
@@ -179,23 +179,22 @@ export const useThemeManagement = ({
     async (themeId: string) => {
       return new Promise((resolve, reject) => {
         startTransition(async () => {
-          try {
-            const result = await deleteThemeAction(themeId);
+          const result = await deleteThemeAction(themeId);
 
-            if (Result.isError(result)) {
-              toast.error(`Failed to delete theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            toast.success("Theme deleted successfully");
-            resolve(result.value);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to delete theme: ${message}`);
-            reject(error);
+          if (result === undefined) {
+            toast.error("Could not proceed with deleting theme");
+            reject(new Error("Could not proceed with deleting theme"));
+            return;
           }
+
+          if (Result.isError(result)) {
+            toast.error(`Failed to delete theme: ${result.message}`);
+            reject(new Error(result.message));
+            return;
+          }
+
+          toast.success("Theme deleted successfully");
+          resolve(result.value);
         });
       });
     },
