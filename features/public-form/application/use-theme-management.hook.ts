@@ -80,9 +80,14 @@ export const useThemeManagement = ({
   );
 
   const getThemes = useCallback(async () => {
-    try {
-      const result = await getThemesAction();
+    const result = await getThemesAction();
 
+    if (result === undefined) {
+      toast.error("Could not proceed with fetching themes");
+      return [];
+    }
+
+    try {
       if (Result.isError(result)) {
         throw new Error(result.message);
       }
@@ -378,8 +383,15 @@ export const useThemeManagement = ({
 
     startTransition(async () => {
       const formsWithSameThemeResult = await getFormsForThemeAction(themeId);
-      if (Result.isError(formsWithSameThemeResult)) {
-        toast.error(formsWithSameThemeResult.message);
+
+      if (
+        formsWithSameThemeResult === undefined ||
+        Result.isError(formsWithSameThemeResult)
+      ) {
+        toast.error(
+          formsWithSameThemeResult?.message ||
+            "Failed to fetch forms for theme",
+        );
         return;
       }
 

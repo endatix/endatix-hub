@@ -172,13 +172,21 @@ const FormDetails = ({
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
     startTransition(async () => {
-      try {
-        await updateFormStatusAction(form.id, enabled);
-        toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
-      } catch (error) {
-        setIsEnabled(!enabled);
-        toast.error("Failed to update form status. Error: " + error);
+      const updateStatusResult = await updateFormStatusAction(form.id, enabled);
+      if (updateStatusResult === undefined) {
+        toast.error("Could not proceed with updating form status");
+        return;
       }
+
+      if (Result.isError(updateStatusResult)) {
+        setIsEnabled(!enabled);
+        toast.error(
+          "Failed to update form status. Error: " + updateStatusResult.message,
+        );
+        return;
+      }
+
+      toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
     });
   };
 

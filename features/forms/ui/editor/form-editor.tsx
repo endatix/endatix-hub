@@ -276,11 +276,19 @@ function FormEditor({
       updatedFormJson,
     );
 
-    if (updateDefinitionResult.success) {
-      isFormUpdated = true;
-    } else {
-      throw new Error(updateDefinitionResult.error);
+    if (updateDefinitionResult === undefined) {
+      toast.error("Could not proceed with updating form definition");
+      return;
     }
+
+    if (Result.isError(updateDefinitionResult)) {
+      toast.error(
+        updateDefinitionResult.message || "Failed to update form definition",
+      );
+      return;
+    }
+
+    isFormUpdated = true;
 
     if (theme.id !== themeId) {
       const updateThemeResult = await updateFormThemeAction({
@@ -428,9 +436,15 @@ function FormEditor({
         slk(slkVal);
       }
 
+      // Load built-in custom questions (from database)
+      const result = await getCustomQuestionsAction();
+
+      if (result === undefined) {
+        toast.error("Could not proceed with fetching custom questions");
+        return;
+      }
+
       try {
-        // Load built-in custom questions (from database)
-        const result = await getCustomQuestionsAction();
         if (Result.isError(result)) {
           throw new Error(result.message);
         }
@@ -489,7 +503,14 @@ function FormEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile, creator, initialPropertyGridVisible, formJson]);
+  }, [
+    options,
+    slkVal,
+    handleUploadFile,
+    creator,
+    initialPropertyGridVisible,
+    formJson,
+  ]);
 
   useEffect(() => {
     if (!creator || !formJson) return;

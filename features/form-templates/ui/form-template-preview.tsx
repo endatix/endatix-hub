@@ -72,11 +72,16 @@ export function FormTemplatePreview({
   useEffect(() => {
     if (open && templateId) {
       const fetchTemplate = async () => {
-        try {
-          setLoading(true);
-          setError(null);
+        setLoading(true);
+        setError(null);
 
-          const questionsResult = await getCustomQuestionsAction();
+        const questionsResult = await getCustomQuestionsAction();
+
+        if (questionsResult === undefined) {
+          return;
+        }
+
+        try {
           if (Result.isSuccess(questionsResult)) {
             initializeCustomQuestions(
               questionsResult.value.map((q) => q.jsonData),
