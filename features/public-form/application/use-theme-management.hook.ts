@@ -106,30 +106,33 @@ export const useThemeManagement = ({
     async (theme: ITheme): Promise<StoredTheme> => {
       return new Promise((resolve, reject) => {
         startTransition(async () => {
-          try {
-            const result = await createThemeAction(theme);
+          const result = await createThemeAction(theme);
 
-            if (Result.isError(result)) {
-              toast.error(`Failed to create theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            const createdTheme = result.value;
-            const parsedTheme = {
-              ...JSON.parse(createdTheme.jsonData),
-              name: createdTheme.name,
-              id: createdTheme.id,
-            };
-
-            toast.success(`Theme "${createdTheme.name}" created successfully`);
-            resolve(parsedTheme);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to create theme: ${message}`);
-            reject(error);
+          if (result === undefined) {
+            setIsCurrentThemeModified(false);
+            reject(new Error("Could not proceed with creating theme"));
+            return;
           }
+
+          if (Result.isError(result)) {
+            toast.error(`Failed to create theme: ${result.message}`);
+            reject(new Error(result.message));
+            return;
+          }
+
+          const createdTheme = result.value as {
+            id: string;
+            name: string;
+            jsonData: string;
+          };
+          const parsedTheme = {
+            ...JSON.parse(createdTheme.jsonData),
+            name: createdTheme.name,
+            id: createdTheme.id,
+          };
+
+          toast.success(`Theme "${createdTheme.name}" created successfully`);
+          resolve(parsedTheme);
         });
       });
     },

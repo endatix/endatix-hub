@@ -1,6 +1,6 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 import { Result } from "@/lib/result";
 import { createForm, getFormTemplate } from "@/services/api";
 
@@ -11,9 +11,10 @@ export type CreateFormFromTemplateRequest = {
 export type CreateFormFromTemplateResult = Result<string>;
 
 export async function createFormFromTemplateAction(
-  request: CreateFormFromTemplateRequest
-): Promise<CreateFormFromTemplateResult> {
-  await ensureAuthenticated();
+  request: CreateFormFromTemplateRequest,
+): Promise<CreateFormFromTemplateResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
     const template = await getFormTemplate(request.templateId);
@@ -34,6 +35,6 @@ export async function createFormFromTemplateAction(
   } catch (error) {
     console.error("Failed to create form from template", error);
   }
-  
+
   return Result.error("Failed to create form from template");
-} 
+}

@@ -1,9 +1,9 @@
-'use server';
+"use server";
 
-import { ensureAuthenticated } from '@/features/auth';
-import { Result } from '@/lib/result';
-import { createTheme } from '@/services/api';
-import { ITheme } from 'survey-core';
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { Result } from "@/lib/result";
+import { createTheme } from "@/services/api";
+import { ITheme } from "survey-core";
 
 export type CreateThemeRequest = ITheme;
 export type CreateThemeResult = Result<{
@@ -13,24 +13,25 @@ export type CreateThemeResult = Result<{
 }>;
 
 export async function createThemeAction(
-  request: CreateThemeRequest
-): Promise<CreateThemeResult> {
-  await ensureAuthenticated();
+  request: CreateThemeRequest,
+): Promise<CreateThemeResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
     const theme = await createTheme(request);
-    
+
     if (theme.id) {
       return Result.success({
         id: theme.id,
         name: theme.name,
-        jsonData: theme.jsonData
+        jsonData: theme.jsonData,
       });
     }
-    
-    return Result.error('Failed to create theme');
+
+    return Result.error("Failed to create theme");
   } catch (error) {
-    console.error('Failed to create theme', error);
-    return Result.error('Failed to create theme');
+    console.error("Failed to create theme", error);
+    return Result.error("Failed to create theme");
   }
-} 
+}
