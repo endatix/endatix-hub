@@ -33,11 +33,6 @@ async function getUserRbacInfo(
       lastUpdated: new Date().toISOString(),
     };
 
-    if (userId === "1329810258255675392") {
-      user.roles = ["Admin", "SuperAdmin"] as never;
-      user.permissions = ["Permissions.Level.SaaSAdmin"] as never;
-    }
-
     return PermissionResult.success(user);
   } catch (error) {
     console.error("Error getting user permissions from session:", error);
