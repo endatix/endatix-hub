@@ -31,7 +31,7 @@ describe("changeStatusAction", () => {
 
     expect(changeStatusUseCase).toHaveBeenCalledWith(mockCommand);
     expect(revalidatePath).toHaveBeenCalledWith(
-      `/forms/${mockCommand.formId}/submissions/${mockCommand.submissionId}`,
+      `/(main)/forms/${mockCommand.formId}/submissions/${mockCommand.submissionId}`,
     );
     expect(result.success).toBe(true);
     expect(result.error).toBeUndefined();
