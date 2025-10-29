@@ -3,7 +3,6 @@ import {
   DEFAULT_PERMISSION_ERROR_MESSAGE,
   isAuthenticationRequired,
 } from "@/features/auth";
-import { auth } from "@/auth";
 import { createPermissionService } from "@/features/auth/permissions/application";
 
 const PERMISSIONS_CACHE_TTL = 300;
@@ -13,9 +12,7 @@ const PERMISSIONS_CACHE_TTL = 300;
  */
 export async function GET() {
   try {
-    const session = await auth();
-    const { getUserPermissions, getCacheStats } =
-      createPermissionService(session);
+    const { getUserPermissions } = await createPermissionService();
     const permissionsResult = await getUserPermissions();
 
     if (!permissionsResult.success) {
@@ -42,10 +39,6 @@ export async function GET() {
       }`,
     );
     response.headers.set("ETag", `"${user.permissionsVersion}-${user.userId}"`);
-
-    // TODO: Remove this. It's temporary for debugging the cache stats
-    const cacheStats = getCacheStats();
-    console.log(cacheStats);
 
     return response;
   } catch {

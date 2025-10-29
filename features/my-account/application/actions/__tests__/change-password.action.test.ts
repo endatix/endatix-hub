@@ -1,11 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { changePasswordAction } from "../change-password.action";
-import { EndatixApi, ApiResult, ChangePasswordRequestSchema } from "@/lib/endatix-api";
-import { getSession } from "@/features/auth";
+import {
+  EndatixApi,
+  ApiResult,
+  ChangePasswordRequestSchema,
+} from "@/lib/endatix-api";
+import { auth } from "@/auth";
+import type { Session } from "next-auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { PermissionService } from "@/features/auth";
+
+type RedirectError = Error & { digest: string };
 
 // Mock the auth module
-vi.mock("@/features/auth", () => ({
-  getSession: vi.fn(),
+vi.mock("@/auth", () => ({
+  auth: vi.fn(),
+}));
+
+// Mock the permission service
+vi.mock("@/features/auth/permissions/application", () => ({
+  createPermissionService: vi.fn(),
 }));
 
 // Mock the EndatixApi class
@@ -27,20 +41,52 @@ describe("changePasswordAction", () => {
     },
   };
 
+  const mockSession: Session = {
+    expires: "2025-02-02T00:00:00.000Z",
+    accessToken: "test-token",
+    refreshToken: "refresh-token",
+    expiresAt: 1717908000,
+    error: undefined,
+    provider: undefined,
+    user: {
+      name: "testuser",
+      email: "testuser@example.com",
+      id: "testuser",
+    },
+  };
+
+  const mockRequireHubAccess = vi.fn().mockResolvedValue(undefined);
+  const mockPermissionService = {
+    requireHubAccess: mockRequireHubAccess
+  } as unknown as PermissionService;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockFormData.delete("currentPassword");
     mockFormData.delete("newPassword");
     mockFormData.delete("confirmPassword");
-    
+
     // Reset mock implementations
-    vi.mocked(EndatixApi).mockImplementation(() => mockEndatixApiInstance as unknown as EndatixApi);
-    vi.mocked(getSession).mockResolvedValue({
-      username: "testuser",
-      accessToken: "test-token",
-      refreshToken: "refresh-token",
-      isLoggedIn: true,
-    });
+    vi.mocked(EndatixApi).mockImplementation(
+      () => mockEndatixApiInstance as unknown as EndatixApi,
+    );
+    (vi.mocked(auth) as Mock).mockResolvedValue(mockSession);
+
+    // Reset permission service mock to default (no redirect)
+    mockRequireHubAccess.mockResolvedValue(undefined);
+    vi.mocked(createPermissionService).mockResolvedValue(mockPermissionService);
+  });
+
+  it("should handle redirect when user lacks permissions", async () => {
+    // Mock permission service to throw redirect error
+    const redirectError = new Error("NEXT_REDIRECT");
+    (redirectError as RedirectError).digest = "NEXT_REDIRECT";
+    mockRequireHubAccess.mockRejectedValue(redirectError);
+
+    // When redirect happens, the function should throw the redirect error
+    await expect(
+      changePasswordAction({ isSuccess: false }, mockFormData),
+    ).rejects.toThrow("NEXT_REDIRECT");
   });
 
   it("should validate required fields", async () => {
@@ -59,13 +105,20 @@ describe("changePasswordAction", () => {
       },
     } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+    const result = await changePasswordAction(
+      { isSuccess: false },
+      mockFormData,
+    );
 
     expect(result.isSuccess).toBe(false);
     expect(result.formErrors).toContain("All fields are required");
-    expect(result.errors?.currentPassword).toContain("Current password is required");
+    expect(result.errors?.currentPassword).toContain(
+      "Current password is required",
+    );
     expect(result.errors?.newPassword).toContain("New password is required");
-    expect(result.errors?.confirmPassword).toContain("Confirm password is required");
+    expect(result.errors?.confirmPassword).toContain(
+      "Confirm password is required",
+    );
   });
 
   it("should validate password length", async () => {
@@ -88,11 +141,18 @@ describe("changePasswordAction", () => {
       },
     } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+    const result = await changePasswordAction(
+      { isSuccess: false },
+      mockFormData,
+    );
 
     expect(result.isSuccess).toBe(false);
-    expect(result.errors?.currentPassword).toContain("Password must be at least 8 characters");
-    expect(result.errors?.newPassword).toContain("Password must be at least 8 characters");
+    expect(result.errors?.currentPassword).toContain(
+      "Password must be at least 8 characters",
+    );
+    expect(result.errors?.newPassword).toContain(
+      "Password must be at least 8 characters",
+    );
   });
 
   it("should validate password match", async () => {
@@ -113,7 +173,10 @@ describe("changePasswordAction", () => {
       },
     } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+    const result = await changePasswordAction(
+      { isSuccess: false },
+      mockFormData,
+    );
 
     expect(result.isSuccess).toBe(false);
     expect(result.errors?.confirmPassword).toContain("Passwords do not match");
@@ -137,11 +200,18 @@ describe("changePasswordAction", () => {
 
     const mockApiResult = { success: true, data: {} };
     vi.mocked(ApiResult.isSuccess).mockReturnValue(true);
-    vi.mocked(mockEndatixApiInstance.myAccount.changePassword).mockResolvedValue(mockApiResult);
+    vi.mocked(
+      mockEndatixApiInstance.myAccount.changePassword,
+    ).mockResolvedValue(mockApiResult);
 
-    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+    const result = await changePasswordAction(
+      { isSuccess: false },
+      mockFormData,
+    );
 
-    expect(mockEndatixApiInstance.myAccount.changePassword).toHaveBeenCalledWith({
+    expect(
+      mockEndatixApiInstance.myAccount.changePassword,
+    ).toHaveBeenCalledWith({
       currentPassword: validPassword,
       newPassword: validPassword,
       confirmPassword: validPassword,
@@ -169,9 +239,14 @@ describe("changePasswordAction", () => {
 
     const mockApiResult = { success: false, error: { message: "API Error" } };
     vi.mocked(ApiResult.isSuccess).mockReturnValue(false);
-    vi.mocked(mockEndatixApiInstance.myAccount.changePassword).mockResolvedValue(mockApiResult);
+    vi.mocked(
+      mockEndatixApiInstance.myAccount.changePassword,
+    ).mockResolvedValue(mockApiResult);
 
-    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+    const result = await changePasswordAction(
+      { isSuccess: false },
+      mockFormData,
+    );
 
     expect(result.isSuccess).toBe(false);
     expect(result.formErrors).toContain("API Error");
@@ -198,7 +273,10 @@ describe("changePasswordAction", () => {
       },
     } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
 
-    const result = await changePasswordAction({ isSuccess: false }, mockFormData);
+    const result = await changePasswordAction(
+      { isSuccess: false },
+      mockFormData,
+    );
 
     expect(result.isSuccess).toBe(false);
     expect(result.values).toEqual({

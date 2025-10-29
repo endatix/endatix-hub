@@ -7,8 +7,7 @@ import {
 } from "@/lib/questions/infrastructure/specialized-survey-question";
 import type { Question } from "survey-core";
 import { Result } from "@/lib/result";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Serializer,
   settings,
@@ -95,7 +94,9 @@ interface FormEditorProps {
   onUnsavedChanges?: (hasChanges: boolean) => void;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
-  onPropertyGridControllerReady?: (controller: (visible: boolean) => void) => void;
+  onPropertyGridControllerReady?: (
+    controller: (visible: boolean) => void,
+  ) => void;
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -120,7 +121,6 @@ function nameToTitle(name: string): string {
 function FormEditor({
   formJson,
   formId,
-  formName,
   options,
   slkVal,
   themeId,
@@ -132,7 +132,6 @@ function FormEditor({
   onPropertyGridControllerReady,
 }: FormEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
@@ -170,63 +169,59 @@ function FormEditor({
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
-      try {
-        const json = new JsonObject().toJsonObject(element);
+      const json = new JsonObject().toJsonObject(element);
 
-        const baseJsonData = {
-          name: questionName,
-          title: questionTitle,
-          iconName: "icon-" + element.getType(),
-          category: "custom",
-          defaultQuestionTitle: questionTitle,
-          inheritBaseProps: true,
-        };
+      const baseJsonData = {
+        name: questionName,
+        title: questionTitle,
+        iconName: "icon-" + element.getType(),
+        category: "custom",
+        defaultQuestionTitle: questionTitle,
+        inheritBaseProps: true,
+      };
 
-        const request: CreateCustomQuestionRequest = {
-          name: questionName,
-          description: questionTitle,
-          jsonData: JSON.stringify({
-            ...baseJsonData,
-            ...(element.getType() === "panel"
-              ? { elementsJSON: json.elements }
-              : {
-                  questionJSON: {
-                    ...json,
-                    type: element.getType(),
-                  },
-                }),
-          }),
-        };
+      const request: CreateCustomQuestionRequest = {
+        name: questionName,
+        description: questionTitle,
+        jsonData: JSON.stringify({
+          ...baseJsonData,
+          ...(element.getType() === "panel"
+            ? { elementsJSON: json.elements }
+            : {
+                questionJSON: {
+                  ...json,
+                  type: element.getType(),
+                },
+              }),
+        }),
+      };
 
-        const result = await createCustomQuestionAction(request);
-        if (Result.isError(result)) {
-          throw new Error(result.message);
-        }
-
-        const savedQuestion = result.value;
-        const parsedJson = JSON.parse(savedQuestion.jsonData);
-
-        const questionClasses = initializeCustomQuestions([
-          savedQuestion.jsonData,
-        ]);
-        if (questionClasses.length > 0) {
-          creator?.toolbox.addItem({
-            name: savedQuestion.name,
-            title: parsedJson.title,
-            iconName: parsedJson.iconName,
-            json: {
-              type: savedQuestion.name,
-              name: savedQuestion.name,
-            },
-            category: parsedJson.category,
-          });
-        }
-
-        toast.success("Custom question saved and added to toolbox");
-      } catch (error) {
-        console.error("Error saving custom question:", error);
-        toast.error("Failed to save custom question");
+      const result = await createCustomQuestionAction(request);
+      if (result === undefined || Result.isError(result)) {
+        toast.error(result?.message || "Failed to save custom question");
+        return;
       }
+
+      const savedQuestion = result.value;
+      const parsedJson = JSON.parse(savedQuestion.jsonData);
+
+      const questionClasses = initializeCustomQuestions([
+        savedQuestion.jsonData,
+      ]);
+      if (questionClasses.length > 0) {
+        creator?.toolbox.addItem({
+          name: savedQuestion.name,
+          title: parsedJson.title,
+          iconName: parsedJson.iconName,
+          json: {
+            type: savedQuestion.name,
+            name: savedQuestion.name,
+          },
+          category: parsedJson.category,
+        });
+      }
+
+      toast.success("Custom question saved and added to toolbox");
     },
     [creator],
   );
@@ -281,19 +276,37 @@ function FormEditor({
       updatedFormJson,
     );
 
-    if (updateDefinitionResult.success) {
-      isFormUpdated = true;
-    } else {
-      throw new Error(updateDefinitionResult.error);
+    if (updateDefinitionResult === undefined) {
+      toast.error("Could not proceed with updating form definition");
+      return;
     }
 
+    if (Result.isError(updateDefinitionResult)) {
+      toast.error(
+        updateDefinitionResult.message || "Failed to update form definition",
+      );
+      return;
+    }
+
+    isFormUpdated = true;
+
     if (theme.id !== themeId) {
-      const updateThemeResult = await updateFormThemeAction(formId, theme.id);
-      if (updateThemeResult.success) {
-        isThemeUpdated = true;
-      } else {
-        throw new Error(updateThemeResult.error);
+      const updateThemeResult = await updateFormThemeAction({
+        formId,
+        themeId: theme.id,
+      });
+
+      if (updateThemeResult === undefined) {
+        toast.error("Could not proceed with updating form theme");
+        return;
       }
+
+      if (!updateThemeResult.success) {
+        toast.error(updateThemeResult.error || "Failed to update form theme");
+        return;
+      }
+
+      isThemeUpdated = true;
     }
 
     onUnsavedChanges?.(false);
@@ -344,14 +357,13 @@ function FormEditor({
     if (!creator) return;
 
     const propertyGridController = (visible: boolean) => {
-      if (creator.showPropertyGrid !== undefined) {
-        creator.showPropertyGrid = visible;
+      if (creator.showSidebar !== undefined) {
+        creator.showSidebar = visible;
       }
     };
 
     onPropertyGridControllerReady?.(propertyGridController);
   }, [creator, onPropertyGridControllerReady]);
-
 
   const createCustomQuestionDialog = useCallback(
     async (element: Question) => {
@@ -424,9 +436,15 @@ function FormEditor({
         slk(slkVal);
       }
 
+      // Load built-in custom questions (from database)
+      const result = await getCustomQuestionsAction();
+
+      if (result === undefined) {
+        toast.error("Could not proceed with fetching custom questions");
+        return;
+      }
+
       try {
-        // Load built-in custom questions (from database)
-        const result = await getCustomQuestionsAction();
         if (Result.isError(result)) {
           throw new Error(result.message);
         }
@@ -450,7 +468,7 @@ function FormEditor({
 
         const creatorOptions = {
           ...(options || defaultCreatorOptions),
-          showPropertyGrid: initialPropertyGridVisible,
+          showSidebar: initialPropertyGridVisible,
         };
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
@@ -485,7 +503,14 @@ function FormEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile, creator, initialPropertyGridVisible]);
+  }, [
+    options,
+    slkVal,
+    handleUploadFile,
+    creator,
+    initialPropertyGridVisible,
+    formJson,
+  ]);
 
   useEffect(() => {
     if (!creator || !formJson) return;
@@ -497,7 +522,6 @@ function FormEditor({
     lastFormJsonRef.current = formJson;
     creator.JSON = formJson;
   }, [creator, formJson]);
-
 
   useEffect(() => {
     if (!creator) return;
@@ -621,7 +645,6 @@ function FormEditor({
       document.body.classList.remove("overflow-hidden");
     };
   }, []);
-
 
   return (
     <>

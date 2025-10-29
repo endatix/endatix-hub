@@ -19,6 +19,7 @@ import {
 } from "../../submission-localization";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
+import { toast } from "@/components/ui/toast";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -49,8 +50,14 @@ function useSurveyModel(submission: Submission) {
         return;
       }
 
+      const result = await getCustomQuestionsAction();
+
+      if (result === undefined) {
+        toast.error("Could not proceed with fetching custom questions");
+        return;
+      }
+
       try {
-        const result = await getCustomQuestionsAction();
         if (Result.isSuccess(result)) {
           initializeCustomQuestions(result.value.map((q) => q.jsonData));
         }

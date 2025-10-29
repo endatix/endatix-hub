@@ -12,11 +12,11 @@ export function handlePermissionError(permissionError: PermissionError): never {
   }
 
   if (isPermissionDenied(permissionError)) {
-    return redirect(UNAUTHORIZED_PATH);
+    redirect(UNAUTHORIZED_PATH);
   }
 
   if (isAuthenticationRequired(permissionError)) {
-    return redirect(SIGNIN_PATH);
+    redirect(SIGNIN_PATH);
   }
 
   throw new Error(

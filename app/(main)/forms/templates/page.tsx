@@ -7,8 +7,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
 import { getFormTemplates } from "@/services/api";
 import Link from "next/link";
+import { auth } from "@/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 
 export default async function FormTemplatesPage() {
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
+
   return (
     <>
       <PageTitle title="Form Templates" />

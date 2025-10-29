@@ -31,6 +31,7 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import { toast } from "@/components/ui/toast";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -42,6 +43,8 @@ const SurveyPreviewComponent = dynamic(
 
 registerAudioQuestion();
 addRandomizeGroupFeature();
+
+const FAILED_PREVIEW_ERROR_MESSAGE = "Failed to load form template preview";
 
 // Load all custom questions registered in the question registry
 for (const questionName of customQuestions) {
@@ -72,25 +75,34 @@ export function FormTemplatePreview({
   useEffect(() => {
     if (open && templateId) {
       const fetchTemplate = async () => {
-        try {
-          setLoading(true);
-          setError(null);
+        setLoading(true);
+        setError(null);
 
-          const questionsResult = await getCustomQuestionsAction();
-          if (Result.isSuccess(questionsResult)) {
-            initializeCustomQuestions(
-              questionsResult.value.map((q) => q.jsonData),
-            );
-          }
+        const questionsResult = await getCustomQuestionsAction();
 
-          const data = await getTemplateAction(templateId);
-          setTemplate(data);
-        } catch (err) {
-          setError("Failed to load form template");
-          console.error(err);
-        } finally {
+        if (questionsResult === undefined || Result.isError(questionsResult)) {
           setLoading(false);
+          setError(questionsResult.message || FAILED_PREVIEW_ERROR_MESSAGE);
+          return;
         }
+
+        initializeCustomQuestions(
+          questionsResult.value.map((q) => q?.jsonData),
+        );
+
+        const getTemplateResult = await getTemplateAction(templateId);
+
+        if (
+          getTemplateResult === undefined ||
+          Result.isError(getTemplateResult)
+        ) {
+          setLoading(false);
+          setError(getTemplateResult.message || FAILED_PREVIEW_ERROR_MESSAGE);
+          return;
+        }
+
+        setTemplate(getTemplateResult.value);
+        setLoading(false);
       };
 
       fetchTemplate();

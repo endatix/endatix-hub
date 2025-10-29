@@ -129,21 +129,16 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
     if (!selectedTemplate || isPending) return;
 
     startTransition(async () => {
-      try {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const result = await useTemplateAction({
-          templateId: selectedTemplate.id,
-        });
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const result = await useTemplateAction({
+        templateId: selectedTemplate.id,
+      });
 
-        if (Result.isSuccess(result)) {
-          toast.success("Form created from template successfully");
-          router.push(`/forms/${result.value}/design`);
-        } else {
-          toast.error(result.message || "Failed to create form from template");
-        }
-      } catch (error) {
-        console.error("Error creating form from template:", error);
-        toast.error((error as string) || "Failed to create form from template");
+      if (Result.isSuccess(result)) {
+        toast.success("Form created from template successfully");
+        router.push(`/forms/${result.value}/design`);
+      } else {
+        toast.error(result.message || "Failed to create form from template");
       }
     });
   };
@@ -153,26 +148,28 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
     if (aiFeatureFlag && !aiFormId && !isCreatingAiForm) {
       setIsCreatingAiForm(true);
       startTransition(async () => {
-        try {
-          const request: CreateFormRequest = {
-            name: "AI Generated Form",
-            isEnabled: false,
-            formDefinitionJsonData: JSON.stringify({}),
-          };
-          const result = await createFormAction(request);
-          if (Result.isSuccess(result) && result.value) {
-            setAiFormId(result.value);
-          } else {
-            const errorMessage = Result.isError(result) ? result.message : "Unknown error";
-            console.error("Failed to create AI form:", errorMessage);
-            toast.error("Failed to initialize AI assistant");
-          }
-        } catch (error) {
-          console.error("Error creating AI form:", error);
-          toast.error("Failed to initialize AI assistant");
-        } finally {
-          setIsCreatingAiForm(false);
+        const request: CreateFormRequest = {
+          name: "AI Generated Form",
+          isEnabled: false,
+          formDefinitionJsonData: JSON.stringify({}),
+        };
+        const result = await createFormAction(request);
+        if (result === undefined) {
+          toast.error("Could not proceed with creating AI form");
+          return;
         }
+
+        if (Result.isSuccess(result) && result.value) {
+          setAiFormId(result.value);
+        } else {
+          const errorMessage = Result.isError(result)
+            ? result.message
+            : "Unknown error";
+          console.debug("Failed to create AI form:", errorMessage);
+          toast.error("Failed to initialize AI assistant");
+        }
+
+        setIsCreatingAiForm(false);
       });
     }
   }, [aiFeatureFlag, aiFormId, isCreatingAiForm]);
@@ -230,7 +227,9 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
           />
         </div>
       </div>
-      {(pending || isCreatingAiForm) && <DotLoader className="flex-1 text-center m-auto" />}
+      {(pending || isCreatingAiForm) && (
+        <DotLoader className="flex-1 text-center m-auto" />
+      )}
       <SheetFooter className="flex-end">
         <div className="w-full space-y-4">
           {selectedOption === "from_template" && (
@@ -272,7 +271,8 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
               </div>
               <p className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
-                Let <span className="font-bold">Endatix AI Assistant</span> build the form
+                Let <span className="font-bold">Endatix AI Assistant</span>{" "}
+                build the form
               </p>
               <ChatBox
                 formId={aiFormId}

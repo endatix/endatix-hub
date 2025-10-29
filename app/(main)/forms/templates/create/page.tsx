@@ -20,12 +20,18 @@ export default function CreateFormTemplatePage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (isPending) return;
+    if (isPending) {
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
       const result = await createTemplateAction(formData);
+      if (result === undefined) {
+        toast.error("Could not proceed with creating template");
+        return;
+      }
 
       if (Result.isSuccess(result)) {
         toast.success({

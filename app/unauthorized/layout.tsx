@@ -16,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Endatix Hub",
-  description: "Customizable form management platform",
+  title: "Endatix Hub - Error",
+  description: "An error occurred while loading the page.",
   generator: "Endatix",
   keywords: [
     "endatix",
@@ -28,19 +28,19 @@ export const metadata: Metadata = {
   ],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
-interface RootLayoutProps {
+interface UnauthorizedLayoutProps {
   children: React.ReactNode;
-  header: React.ReactNode;
-  nav: React.ReactNode;
 }
 
-export default async function RootLayout({
+export default async function UnauthorizedLayout({
   children,
-  header,
-  nav,
-}: RootLayoutProps) {
+}: UnauthorizedLayoutProps) {
   const session = await getSession();
 
   return (
@@ -51,11 +51,7 @@ export default async function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider session={session}>
           <div className="flex min-h-screen w-full flex-row bg-muted/40">
-            {nav}
-            <div className="flex flex-1 flex-col">
-              {header}
-              <main className="flex-1 flex flex-col p-6">{children}</main>
-            </div>
+            <main className="flex-1 flex flex-col p-6">{children}</main>
           </div>
         </AppProvider>
       </body>

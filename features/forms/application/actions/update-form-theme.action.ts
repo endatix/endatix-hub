@@ -1,15 +1,29 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 import { updateForm } from "@/services/api";
 import { revalidatePath } from "next/cache";
 
-export async function updateFormThemeAction(formId: string, themeId: string) {
-  await ensureAuthenticated();
+interface UpdateFormThemeRequest {
+  formId: string;
+  themeId: string;
+}
+
+export interface UpdateFormThemeResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function updateFormThemeAction(
+  request: UpdateFormThemeRequest,
+): Promise<UpdateFormThemeResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
+    const { formId, themeId } = request;
     await updateForm(formId, { themeId: themeId });
-    revalidatePath(`/forms/${formId}/design`);
+    revalidatePath(`/(main)/forms/${formId}/design`);
 
     return { success: true };
   } catch (error) {

@@ -1,6 +1,6 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { createForm } from "@/services/api";
@@ -9,8 +9,9 @@ export type CreateFormResult = Result<string>;
 
 export async function createFormAction(
   request: CreateFormRequest,
-): Promise<CreateFormResult> {
-  await ensureAuthenticated();
+): Promise<CreateFormResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
     const form = await createForm(request);

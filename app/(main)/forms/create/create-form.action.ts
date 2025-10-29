@@ -1,5 +1,6 @@
 "use server";
 
+import { createPermissionService } from "@/features/auth/permissions/application";
 import { CreateFormRequest } from "@/features/forms/ui/chat/use-cases/assistant";
 import { createForm } from "@/services/api";
 
@@ -12,6 +13,9 @@ export interface CreateFormDraftResult {
 export async function createFormDraft(
   request: CreateFormRequest,
 ): Promise<CreateFormDraftResult> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
+
   const result: CreateFormDraftResult = {
     isSuccess: false,
   };

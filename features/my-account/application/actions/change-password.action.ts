@@ -1,6 +1,7 @@
 "use server";
 
-import { getSession } from "@/features/auth";
+import { auth } from "@/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 import {
   EndatixApi,
   ChangePasswordRequestSchema,
@@ -25,7 +26,11 @@ export interface ChangePasswordState {
 export async function changePasswordAction(
   _prevState: ChangePasswordState,
   formData: FormData,
-): Promise<ChangePasswordState> {
+): Promise<ChangePasswordState | never> {
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
+
   const rawData = {
     currentPassword: formData.get("currentPassword") as string,
     newPassword: formData.get("newPassword") as string,
@@ -44,8 +49,7 @@ export async function changePasswordAction(
     };
   }
 
-  const session = await getSession();
-  const endatix = new EndatixApi(session);
+  const endatix = new EndatixApi(session?.accessToken);
   const result = await endatix.myAccount.changePassword(validatedData.data);
 
   if (ApiResult.isSuccess(result)) {

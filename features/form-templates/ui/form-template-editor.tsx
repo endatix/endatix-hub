@@ -4,7 +4,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition, useLayoutEffect } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  useLayoutEffect,
+} from "react";
 import { slk } from "survey-core";
 import "survey-core/survey-core.css";
 import {
@@ -24,7 +31,8 @@ import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specia
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
 
-const invalidJsonErrorMessage = "Invalid JSON! Please fix all errors in the JSON editor before saving.";
+const invalidJsonErrorMessage =
+  "Invalid JSON! Please fix all errors in the JSON editor before saving.";
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -66,16 +74,28 @@ function FormTemplateEditor({
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
       startTransition(async () => {
-        const result = await updateTemplateNameAction(templateId, name);
+        const updateTemplateNameResult = await updateTemplateNameAction(
+          templateId,
+          name,
+        );
 
-        if (result.success) {
-          setOriginalName(name);
-          setName(name);
-          toast.success("Template name updated");
-        } else {
-          toast.error(result.error || "Failed to update template name");
-          setName(originalName);
+        if (updateTemplateNameResult === undefined) {
+          toast.error("Could not proceed with updating template name");
+          return;
         }
+
+        if (Result.isError(updateTemplateNameResult)) {
+          toast.error(
+            updateTemplateNameResult.message ||
+              "Failed to update template name",
+          );
+          setName(originalName);
+          return;
+        }
+
+        setOriginalName(name);
+        setName(name);
+        toast.success("Template name updated");
       });
     }
     setIsEditingName(false);
@@ -109,8 +129,8 @@ function FormTemplateEditor({
 
   useLayoutEffect(() => {
     if (!creator) return;
-    
-    questionClasses.forEach(QuestionClass => {
+
+    questionClasses.forEach((QuestionClass) => {
       QuestionClass.customizeEditor(creator);
     });
   }, [creator, questionClasses]);
@@ -123,14 +143,22 @@ function FormTemplateEditor({
         slk(slkVal);
       }
 
+      const result = await getCustomQuestionsAction();
+
+      if (result === undefined) {
+        toast.error("Could not proceed with fetching custom questions");
+        return;
+      }
+
       try {
-        const result = await getCustomQuestionsAction();
         if (Result.isError(result)) {
           throw new Error(result.message);
         }
 
-        const newQuestionClasses = initializeCustomQuestions(result.value.map(q => q.jsonData));
-        
+        const newQuestionClasses = initializeCustomQuestions(
+          result.value.map((q) => q.jsonData),
+        );
+
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.saveSurveyFunc = (
@@ -189,7 +217,7 @@ function FormTemplateEditor({
       if (isLeavingJsonTab) {
         return;
       }
-      
+
       setHasUnsavedChanges(true);
     };
 
@@ -198,16 +226,18 @@ function FormTemplateEditor({
         const handleInput = () => {
           setHasUnsavedChanges(true);
         };
-        
-        jsonTextarea.addEventListener('input', handleInput);
-        
+
+        jsonTextarea.addEventListener("input", handleInput);
+
         (jsonTextarea as any).__handlerAttached = true;
         (jsonTextarea as any).__inputHandler = handleInput;
       }
     };
 
     const waitForTextarea = (attempt = 1, maxAttempts = 4) => {
-      const textarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+      const textarea = document.querySelector(
+        ".svc-json-editor-tab__content-area",
+      ) as HTMLTextAreaElement;
       if (textarea) {
         attachJsonTextareaListener(textarea);
       } else if (attempt < maxAttempts) {
@@ -224,7 +254,7 @@ function FormTemplateEditor({
 
     const handleTabChange = (sender: SurveyCreatorModel, options: any) => {
       isLeavingJsonTab = false;
-      
+
       if (options.tabName === "json") {
         waitForTextarea();
       }
@@ -244,9 +274,14 @@ function FormTemplateEditor({
         creator.onActiveTabChanging.remove(handleTabChanging);
         creator.onActiveTabChanged.remove(handleTabChange);
 
-        const jsonTextarea = document.querySelector('.svc-json-editor-tab__content-area') as HTMLTextAreaElement;
+        const jsonTextarea = document.querySelector(
+          ".svc-json-editor-tab__content-area",
+        ) as HTMLTextAreaElement;
         if (jsonTextarea && (jsonTextarea as any).__handlerAttached) {
-          jsonTextarea.removeEventListener('input', (jsonTextarea as any).__inputHandler);
+          jsonTextarea.removeEventListener(
+            "input",
+            (jsonTextarea as any).__inputHandler,
+          );
         }
       };
     }
@@ -279,18 +314,26 @@ function FormTemplateEditor({
 
   const getJsonForSaving = () => {
     if (creator?.activeTab === "json") {
-      const errorsList = document.querySelector('.svc-json-editor-tab__errros_list') as HTMLElement;
-      const errorsContainer = document.querySelector('.svc-json-errors') as HTMLElement;
-      
-      const isErrorsListVisible = errorsList && getComputedStyle(errorsList).display !== 'none';
-      const hasErrorChildren = errorsContainer && errorsContainer.children.length > 0;
-      
+      const errorsList = document.querySelector(
+        ".svc-json-editor-tab__errros_list",
+      ) as HTMLElement;
+      const errorsContainer = document.querySelector(
+        ".svc-json-errors",
+      ) as HTMLElement;
+
+      const isErrorsListVisible =
+        errorsList && getComputedStyle(errorsList).display !== "none";
+      const hasErrorChildren =
+        errorsContainer && errorsContainer.children.length > 0;
+
       if (isErrorsListVisible && hasErrorChildren) {
         toast.error(invalidJsonErrorMessage);
         return null;
       }
 
-      const jsonAreaPlugin = creator.getPlugin("json") as TabJsonEditorTextareaPlugin
+      const jsonAreaPlugin = creator.getPlugin(
+        "json",
+      ) as TabJsonEditorTextareaPlugin;
       try {
         return JSON.parse(jsonAreaPlugin.model.text);
       } catch (error) {
@@ -309,13 +352,26 @@ function FormTemplateEditor({
         return;
       }
 
-      const result = await updateTemplateJsonAction(templateId, updatedFormJson);
+      const updateTemplateJsonResult = await updateTemplateJsonAction(
+        templateId,
+        updatedFormJson,
+      );
 
-      if (result.success) {
-        setHasUnsavedChanges(false);
+      if (updateTemplateJsonResult === undefined) {
+        toast.error("Could not proceed with updating template JSON");
+        return;
+      }
+
+      if (Result.isError(updateTemplateJsonResult)) {
+        toast.error(
+          updateTemplateJsonResult.message || "Failed to update template JSON",
+        );
+        return;
+      }
+
+      if (Result.isSuccess(updateTemplateJsonResult)) {
         toast.success("Template saved");
-      } else {
-        toast.error(result.error || "Failed to save template");
+        setHasUnsavedChanges(false);
       }
     });
   };

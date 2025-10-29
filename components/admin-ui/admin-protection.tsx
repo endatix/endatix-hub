@@ -1,7 +1,7 @@
 "use server";
 
-import { getSession } from "@/features/auth";
-import { forbidden } from "next/navigation";
+import { getSession, UNAUTHORIZED_PATH } from "@/features/auth";
+import { redirect } from "next/navigation";
 
 const HUB_ADMIN_USERNAME = process.env.HUB_ADMIN_USERNAME;
 
@@ -13,7 +13,7 @@ export async function requireAdmin() {
   const session = await getSession();
 
   if (!HUB_ADMIN_USERNAME || session?.username !== HUB_ADMIN_USERNAME) {
-    forbidden();
+    redirect(UNAUTHORIZED_PATH);
   }
 
   return session;

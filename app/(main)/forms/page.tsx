@@ -1,4 +1,3 @@
-import { getForms } from "@/services/api";
 import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
 import { FilePlus2 } from "lucide-react";
@@ -9,9 +8,21 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
+import { auth } from "@/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { Session } from "next-auth";
+import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { redirect } from "next/navigation";
+import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 
 export default async function FormsPage() {
-  const ai = await aiFeaturesFlag();
+  const [session, aiFeatureFlag] = await Promise.all([
+    auth(),
+    aiFeaturesFlag(),
+  ]);
+
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
 
   return (
     <>
@@ -27,12 +38,12 @@ export default async function FormsPage() {
                     Create a Form
                   </Button>
                 </SheetTrigger>
-                <CreateFormSheet aiFeatureFlag={ai} />
+                <CreateFormSheet aiFeatureFlag={aiFeatureFlag} />
               </Sheet>
             </div>
           </div>
           <Suspense fallback={<FormsSkeleton />}>
-            <FormsTabsContent />
+            <FormsTabsContent session={session} />
           </Suspense>
         </Tabs>
       </div>
@@ -40,11 +51,26 @@ export default async function FormsPage() {
   );
 }
 
-async function FormsTabsContent() {
-  const forms = await getForms();
+async function FormsTabsContent({ session }: { session: Session | null }) {
+  const endatixApi = new EndatixApi(session?.accessToken);
+  const formsResult = await endatixApi.forms.list();
+  if (ApiResult.isError(formsResult)) {
+    if (formsResult.error.type === ApiErrorType.AuthError) {
+      return redirect(SIGNIN_PATH);
+    }
+
+    if (formsResult.error.type === ApiErrorType.ForbiddenError) {
+      return redirect(UNAUTHORIZED_PATH);
+    }
+
+    return (
+      <div className="p-8 text-destructive">{formsResult.error.message}</div>
+    );
+  }
+
   return (
     <TabsContent value="all">
-      <FormsList forms={forms} />
+      <FormsList forms={formsResult.data} />
     </TabsContent>
   );
 }

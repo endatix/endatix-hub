@@ -1,6 +1,7 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { Result } from "@/lib/result";
 import { getFormDefinition } from "@/services/api";
 
 export interface GetDefinitionRequest {
@@ -8,34 +9,27 @@ export interface GetDefinitionRequest {
   definitionId?: string;
 }
 
-export interface SelectedDefinitionResult {
-  isSuccess: boolean;
-  errors?: string[];
-  definitionsData?: string;
-}
+type DefinitionResult = {
+  definitionsData: string;
+};
 
-export async function getDefinition({
+export type SelectedDefinitionResult = Result<DefinitionResult>;
+
+export async function getDefinitionAction({
   formId,
   definitionId,
-}: GetDefinitionRequest): Promise<SelectedDefinitionResult> {
-  await ensureAuthenticated();
-
-  const resultState: SelectedDefinitionResult = {
-    isSuccess: false,
-  };
+}: GetDefinitionRequest): Promise<SelectedDefinitionResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   if (!definitionId) {
-    resultState.errors = ["Definition ID is required"];
-    return resultState;
+    return Result.error("Definition ID is required");
   }
 
   try {
     const formDefinition = await getFormDefinition(formId, definitionId);
-    resultState.definitionsData = formDefinition?.jsonData;
-    resultState.isSuccess = true;
+    return Result.success({ definitionsData: formDefinition?.jsonData });
   } catch {
-    resultState.errors = ["this is not good"];
-  } finally {
-    return resultState;
+    return Result.error("Failed to get definition");
   }
 }

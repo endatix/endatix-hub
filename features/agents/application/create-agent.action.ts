@@ -17,7 +17,7 @@ export async function createAgentAction(
   const createAgentResult = await endatixApi.agents.create(parsed);
 
   if (ApiResult.isSuccess(createAgentResult)) {
-    revalidatePath("/admin/agents");
+    revalidatePath("/(main)/admin/agents");
   }
 
   return createAgentResult;

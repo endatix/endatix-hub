@@ -1,9 +1,19 @@
 "use server";
 
-import { createCustomQuestion, CreateCustomQuestionRequest, CustomQuestion } from "@/services/api";
+import {
+  createCustomQuestion,
+  CreateCustomQuestionRequest,
+  CustomQuestion,
+} from "@/services/api";
 import { Result } from "@/lib/result";
+import { createPermissionService } from "@/features/auth/permissions/application";
 
-export async function createCustomQuestionAction(request: CreateCustomQuestionRequest): Promise<Result<CustomQuestion>> {
+export async function createCustomQuestionAction(
+  request: CreateCustomQuestionRequest,
+): Promise<Result<CustomQuestion> | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
+
   try {
     const question = await createCustomQuestion(request);
     return Result.success(question);
@@ -11,4 +21,4 @@ export async function createCustomQuestionAction(request: CreateCustomQuestionRe
     console.error("Failed to create custom question:", error);
     return Result.error("Failed to create custom question");
   }
-} 
+}

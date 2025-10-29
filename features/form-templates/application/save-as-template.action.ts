@@ -1,6 +1,6 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from '@/features/auth/permissions/application';
 import { Result } from "@/lib/result";
 import { createFormTemplate, getActiveFormDefinition } from "@/services/api";
 
@@ -14,8 +14,9 @@ export type SaveAsTemplateResult = Result<string>;
 
 export async function saveAsTemplateAction(
   request: SaveAsTemplateRequest
-): Promise<SaveAsTemplateResult> {
-  await ensureAuthenticated();
+): Promise<SaveAsTemplateResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
     // Get the form definition to use as template data

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  AlertCircle,
-  ArrowUp,
-  Mic,
-  Paperclip,
-  StopCircle,
-} from "lucide-react";
+import { AlertCircle, ArrowUp, Mic, Paperclip, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -101,12 +95,15 @@ const ChatBox = ({
 
       if (requiresNewContext) {
         contextStore.clear(formId);
-        contextStore.setChatContext({
-          messages: [],
-          threadId: "",
-          agentId: "",
-          isInitialPrompt: true,
-        }, formId);
+        contextStore.setChatContext(
+          {
+            messages: [],
+            threadId: "",
+            agentId: "",
+            isInitialPrompt: true,
+          },
+          formId,
+        );
       }
 
       const formContext = contextStore.getChatContext(formId);
@@ -126,9 +123,16 @@ const ChatBox = ({
 
       const promptResult = await defineFormAction(prevState, formData);
 
+      if (promptResult === undefined) {
+        return PromptResult.Error("Could not proceed with defining form");
+      }
+
       if (promptResult.success && promptResult.data?.definition) {
         const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(JSON.stringify(promptResult.data.definition), formId);
+        contextStore.setFormModel(
+          JSON.stringify(promptResult.data.definition),
+          formId,
+        );
         const currentContext = contextStore.getChatContext(formId);
         currentContext.threadId = promptResult.data.threadId ?? "";
         currentContext.agentId = promptResult.data.agentId ?? "";
@@ -229,7 +233,9 @@ const ChatBox = ({
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="top">File attachments coming soon</TooltipContent>
+              <TooltipContent side="top">
+                File attachments coming soon
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -245,7 +251,9 @@ const ChatBox = ({
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="top">Voice input coming soon</TooltipContent>
+              <TooltipContent side="top">
+                Voice input coming soon
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <SubmitButton pending={pending} disabled={input.length === 0} />

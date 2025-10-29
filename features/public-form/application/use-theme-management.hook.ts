@@ -80,9 +80,14 @@ export const useThemeManagement = ({
   );
 
   const getThemes = useCallback(async () => {
-    try {
-      const result = await getThemesAction();
+    const result = await getThemesAction();
 
+    if (result === undefined) {
+      toast.error("Could not proceed with fetching themes");
+      return [];
+    }
+
+    try {
       if (Result.isError(result)) {
         throw new Error(result.message);
       }
@@ -106,30 +111,33 @@ export const useThemeManagement = ({
     async (theme: ITheme): Promise<StoredTheme> => {
       return new Promise((resolve, reject) => {
         startTransition(async () => {
-          try {
-            const result = await createThemeAction(theme);
+          const result = await createThemeAction(theme);
 
-            if (Result.isError(result)) {
-              toast.error(`Failed to create theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            const createdTheme = result.value;
-            const parsedTheme = {
-              ...JSON.parse(createdTheme.jsonData),
-              name: createdTheme.name,
-              id: createdTheme.id,
-            };
-
-            toast.success(`Theme "${createdTheme.name}" created successfully`);
-            resolve(parsedTheme);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to create theme: ${message}`);
-            reject(error);
+          if (result === undefined) {
+            setIsCurrentThemeModified(false);
+            reject(new Error("Could not proceed with creating theme"));
+            return;
           }
+
+          if (Result.isError(result)) {
+            toast.error(`Failed to create theme: ${result.message}`);
+            reject(new Error(result.message));
+            return;
+          }
+
+          const createdTheme = result.value as {
+            id: string;
+            name: string;
+            jsonData: string;
+          };
+          const parsedTheme = {
+            ...JSON.parse(createdTheme.jsonData),
+            name: createdTheme.name,
+            id: createdTheme.id,
+          };
+
+          toast.success(`Theme "${createdTheme.name}" created successfully`);
+          resolve(parsedTheme);
         });
       });
     },
@@ -140,32 +148,32 @@ export const useThemeManagement = ({
     async (theme: StoredTheme): Promise<StoredTheme> => {
       return new Promise((resolve, reject) => {
         startTransition(async () => {
-          try {
-            const result = await updateThemeAction({
-              themeId: theme.id!,
-              theme: theme,
-            });
+          const result = await updateThemeAction({
+            themeId: theme.id!,
+            theme: theme,
+          });
 
-            if (Result.isError(result)) {
-              toast.error(`Failed to update theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            const updatedTheme = result.value;
-            const parsedTheme = {
-              name: updatedTheme.name,
-              ...JSON.parse(updatedTheme.jsonData),
-            };
-
-            toast.success(`Theme "${updatedTheme.name}" updated successfully`);
-            resolve(parsedTheme);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to update theme: ${message}`);
-            reject(error);
+          if (result === undefined) {
+            toast.error("Could not proceed with updating theme");
+            setIsCurrentThemeModified(false);
+            reject(new Error("Could not proceed with updating theme"));
+            return;
           }
+
+          if (Result.isError(result)) {
+            toast.error(`Failed to update theme: ${result.message}`);
+            reject(new Error(result.message));
+            return;
+          }
+
+          const updatedTheme = result.value;
+          const parsedTheme = {
+            name: updatedTheme.name,
+            ...JSON.parse(updatedTheme.jsonData),
+          };
+
+          toast.success(`Theme "${updatedTheme.name}" updated successfully`);
+          resolve(parsedTheme);
         });
       });
     },
@@ -176,23 +184,22 @@ export const useThemeManagement = ({
     async (themeId: string) => {
       return new Promise((resolve, reject) => {
         startTransition(async () => {
-          try {
-            const result = await deleteThemeAction(themeId);
+          const result = await deleteThemeAction(themeId);
 
-            if (Result.isError(result)) {
-              toast.error(`Failed to delete theme: ${result.message}`);
-              reject(new Error(result.message));
-              return;
-            }
-
-            toast.success("Theme deleted successfully");
-            resolve(result.value);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : "Unknown error";
-            toast.error(`Failed to delete theme: ${message}`);
-            reject(error);
+          if (result === undefined) {
+            toast.error("Could not proceed with deleting theme");
+            reject(new Error("Could not proceed with deleting theme"));
+            return;
           }
+
+          if (Result.isError(result)) {
+            toast.error(`Failed to delete theme: ${result.message}`);
+            reject(new Error(result.message));
+            return;
+          }
+
+          toast.success("Theme deleted successfully");
+          resolve(result.value);
         });
       });
     },
@@ -376,8 +383,15 @@ export const useThemeManagement = ({
 
     startTransition(async () => {
       const formsWithSameThemeResult = await getFormsForThemeAction(themeId);
-      if (Result.isError(formsWithSameThemeResult)) {
-        toast.error(formsWithSameThemeResult.message);
+
+      if (
+        formsWithSameThemeResult === undefined ||
+        Result.isError(formsWithSameThemeResult)
+      ) {
+        toast.error(
+          formsWithSameThemeResult?.message ||
+            "Failed to fetch forms for theme",
+        );
         return;
       }
 

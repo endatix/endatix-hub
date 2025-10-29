@@ -1,9 +1,6 @@
 import { Session } from "next-auth";
 
-import {
-  getUserPermissionsFactory,
-  getCacheStatsFactory,
-} from "./user-permissions";
+import { getUserPermissionsFactory } from "./user-permissions";
 import {
   checkPermissionFactory,
   checkAnyPermissionFactory,
@@ -16,7 +13,8 @@ import {
   requireHubAccessFactory,
   requireAdminAccessFactory,
 } from "./permission-guard";
-import { PermissionService } from '../domain/rbac.types';
+import { PermissionService } from "../domain/rbac.types";
+import { auth } from "@/auth";
 
 /**
  * Factory function to create the Permission Service
@@ -24,9 +22,10 @@ import { PermissionService } from '../domain/rbac.types';
  * @param session The session return from `await auth()`
  * @returns
  */
-export function createPermissionService(
-  session: Session | null,
-): PermissionService {
+export async function createPermissionService(
+  session: Session | null = null,
+): Promise<PermissionService> {
+  session = session ?? (await auth());
   // Create the core user permissions function
   const getUserPermissions = getUserPermissionsFactory(session);
 
@@ -43,9 +42,6 @@ export function createPermissionService(
   const requireHubAccess = requireHubAccessFactory(checkPermission);
   const requireAdminAccess = requireAdminAccessFactory(checkPermission);
 
-  // Create cache stats function
-  const getCacheStats = getCacheStatsFactory();
-
   return {
     // Permission checking methods
     checkPermission,
@@ -61,8 +57,7 @@ export function createPermissionService(
 
     // Direct access to user data
     getUserPermissions,
-
-    // Cache statistics
-    getCacheStats,
   };
 }
+
+export * from "./user-permissions";

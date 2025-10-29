@@ -19,7 +19,6 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "20mb",
     },
-    authInterrupts: true,
     globalNotFound: true,
   },
   images: {

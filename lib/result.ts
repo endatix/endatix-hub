@@ -43,10 +43,10 @@ const Result = {
   }),
 
   isSuccess: <T>(result: Result<T>): result is Success<T> =>
-    result.kind === Kind.Success,
+    result && result?.kind === Kind.Success,
 
   isError: <T>(result: Result<T>): result is Error =>
-    result.kind === Kind.Error,
+    result && result?.kind === Kind.Error,
 };
 
 export type { Result as ResultType, Success, Error };

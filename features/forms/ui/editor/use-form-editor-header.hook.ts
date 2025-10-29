@@ -1,7 +1,15 @@
 import { toast } from "@/components/ui/toast";
 import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
+import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition, RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  RefObject,
+} from "react";
 
 interface UseFormEditorHeaderProps {
   formId: string;
@@ -38,7 +46,9 @@ export const useFormEditorHeader = ({
   onNavigateBack,
 }: UseFormEditorHeaderProps): FormEditorHeaderState => {
   const router = useRouter();
-  const [isEditingName, setIsEditingName] = useState(initialFormName === "New Form");
+  const [isEditingName, setIsEditingName] = useState(
+    initialFormName === "New Form",
+  );
   const [name, setName] = useState(initialFormName);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [originalName, setOriginalName] = useState(initialFormName);
@@ -48,7 +58,18 @@ export const useFormEditorHeader = ({
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
       startTransition(async () => {
-        await updateFormNameAction(formId, name);
+        const updateNameResult = await updateFormNameAction(formId, name);
+        if (updateNameResult === undefined) {
+          toast.error("Could not proceed with updating form name");
+          return;
+        }
+
+        if (Result.isError(updateNameResult)) {
+          toast.error(
+            "Failed to update form name: " + updateNameResult.message,
+          );
+          return;
+        }
 
         setOriginalName(name);
         setName(name);
@@ -71,14 +92,17 @@ export const useFormEditorHeader = ({
     }
   }, [hasUnsavedChanges, isCurrentThemeModified, onNavigateBack]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleNameSave();
-    } else if (e.key === "Escape") {
-      setName(originalName);
-      setIsEditingName(false);
-    }
-  }, [handleNameSave, originalName]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleNameSave();
+      } else if (e.key === "Escape") {
+        setName(originalName);
+        setIsEditingName(false);
+      }
+    },
+    [handleNameSave, originalName],
+  );
 
   const saveFormHandler = useCallback(() => {
     startTransition(async () => {

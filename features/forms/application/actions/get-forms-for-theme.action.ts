@@ -1,14 +1,15 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 import { Result } from "@/lib/result";
 import { getForms } from "@/services/api";
 import { Form } from "@/types";
 
 export async function getFormsForThemeAction(
   themeId: string,
-): Promise<Result<Form[]>> {
-  await ensureAuthenticated();
+): Promise<Result<Form[]> | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
     if (!themeId) {

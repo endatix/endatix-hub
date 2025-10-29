@@ -17,11 +17,11 @@ import Link from "next/link";
 import { cn, getFormattedDate } from "@/lib/utils";
 import AnswerViewer from "@/features/submissions/ui/answers/answer-viewer";
 import {
-  getDefinition,
+  getDefinitionAction,
   GetDefinitionRequest,
-  SelectedDefinitionResult,
 } from "../get-definition.action";
 import { Submission } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 
 type SubmissionSheetProps = {
   submission: Submission | null;
@@ -39,11 +39,24 @@ const SubmissionSheet = ({ submission }: SubmissionSheetProps) => {
           formId: params.formId,
           definitionId: submission?.formDefinitionId,
         };
-        const result: SelectedDefinitionResult = await getDefinition(
+        const getDefinitionResult = await getDefinitionAction(
           getDefinitionRequest,
         );
-        if (result.isSuccess && result.definitionsData && submission) {
-          const json = JSON.parse(result.definitionsData);
+
+        if (getDefinitionResult === undefined) {
+          return;
+        }
+
+        if (Result.isError(getDefinitionResult)) {
+          console.error(
+            "Failed to get definition",
+            getDefinitionResult.message,
+          );
+          return;
+        }
+
+        if (Result.isSuccess(getDefinitionResult) && submission) {
+          const json = JSON.parse(getDefinitionResult.value.definitionsData);
           const survey = new Model(json);
 
           let submissionData = {};

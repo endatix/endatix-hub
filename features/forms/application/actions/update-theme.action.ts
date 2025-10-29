@@ -1,9 +1,9 @@
-'use server';
+"use server";
 
-import { ensureAuthenticated } from '@/features/auth';
-import { Result } from '@/lib/result';
-import { updateTheme } from '@/services/api';
-import { ITheme } from 'survey-core';
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { Result } from "@/lib/result";
+import { updateTheme } from "@/services/api";
+import { ITheme } from "survey-core";
 
 export type UpdateThemeRequest = {
   themeId: string;
@@ -17,25 +17,26 @@ export type UpdateThemeResult = Result<{
 }>;
 
 export async function updateThemeAction(
-  request: UpdateThemeRequest
-): Promise<UpdateThemeResult> {
-  await ensureAuthenticated();
+  request: UpdateThemeRequest,
+): Promise<UpdateThemeResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
     const { themeId, theme } = request;
     const updatedTheme = await updateTheme(themeId, theme);
-    
+
     if (updatedTheme.id) {
       return Result.success({
         id: updatedTheme.id,
         name: updatedTheme.name,
-        jsonData: updatedTheme.jsonData
+        jsonData: updatedTheme.jsonData,
       });
     }
-    
-    return Result.error('Failed to update theme');
+
+    return Result.error("Failed to update theme");
   } catch (error) {
-    console.error('Failed to update theme', error);
-    return Result.error('Failed to update theme');
+    console.error("Failed to update theme", error);
+    return Result.error("Failed to update theme");
   }
-} 
+}

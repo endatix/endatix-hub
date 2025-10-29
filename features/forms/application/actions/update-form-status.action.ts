@@ -1,19 +1,23 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { Result } from "@/lib/result";
 import { updateForm } from "@/services/api";
+
+export type UpdateFormStatusResult = Result<string>;
 
 export async function updateFormStatusAction(
   formId: string,
   isEnabled: boolean,
-) {
-  await ensureAuthenticated();
+): Promise<UpdateFormStatusResult | never> {
+  const { requireHubAccess } = await createPermissionService();
+  await requireHubAccess();
 
   try {
     await updateForm(formId, { isEnabled });
-    return { success: true };
+    return Result.success(formId);
   } catch (error) {
     console.error("Failed to update form status", error);
-    return { success: false, error: "Failed to update form status" };
+    return Result.error("Failed to update form status");
   }
 }

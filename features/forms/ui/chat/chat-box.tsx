@@ -158,6 +158,11 @@ const ChatBox = ({
 
       const promptResult = await defineFormAction(prevState, formData);
 
+      if (promptResult === undefined){
+        setRetryMode(false);
+        return PromptResult.Error("Could not proceed with defining form");
+      }
+
       if (ApiResult.isError(promptResult)) {
         setRetryMode(true);
         return promptResult;

@@ -4,12 +4,18 @@ import FormDetails from "@/features/forms/ui/form-details";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { auth } from "@/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
 
 type Params = {
   params: Promise<{ formId: string }>;
 };
 
 export default async function FormOverviewPage({ params }: Params) {
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
+
   const { formId } = await params;
 
   let form: Form | null = null;

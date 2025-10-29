@@ -1,19 +1,28 @@
 "use server";
 
-import { ensureAuthenticated } from "@/features/auth";
+import { auth } from "@/auth";
+import { createPermissionService } from "@/features/auth/permissions/application";
+import { Result } from "@/lib/result";
 import { updateForm } from "@/services/api";
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 
-export async function updateFormNameAction(formId: string, formName: string) {
-  await ensureAuthenticated();
+export type UpdateFormNameResult = Result<string>;
+
+export async function updateFormNameAction(
+  formId: string,
+  formName: string,
+): Promise<UpdateFormNameResult | never> {
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
+  await requireHubAccess();
 
   try {
     await updateForm(formId, { name: formName });
-    revalidatePath(`/forms/${formId}/design`);
-    
-    return { success: true };
+    revalidatePath(`/(main)/forms/${formId}/design`);
+
+    return Result.success(formId);
   } catch (error) {
     console.error("Failed to update form name", error);
-    return { success: false, error: "Failed to update form name" };
+    return Result.error("Failed to update form name");
   }
 }

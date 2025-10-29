@@ -172,13 +172,21 @@ const FormDetails = ({
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
     startTransition(async () => {
-      try {
-        await updateFormStatusAction(form.id, enabled);
-        toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
-      } catch (error) {
-        setIsEnabled(!enabled);
-        toast.error("Failed to update form status. Error: " + error);
+      const updateStatusResult = await updateFormStatusAction(form.id, enabled);
+      if (updateStatusResult === undefined) {
+        toast.error("Could not proceed with updating form status");
+        return;
       }
+
+      if (Result.isError(updateStatusResult)) {
+        setIsEnabled(!enabled);
+        toast.error(
+          "Failed to update form status. Error: " + updateStatusResult.message,
+        );
+        return;
+      }
+
+      toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
     });
   };
 
@@ -195,27 +203,29 @@ const FormDetails = ({
 
   const handleDelete = async () => {
     startTransition(async () => {
-      try {
-        const result = await deleteFormAction(form.id);
-        if (Result.isSuccess(result)) {
-          toast.success({
-            title: (
-              <>
-                <strong>{form.name}</strong> deleted successfully
-              </>
-            ),
-          });
-          setIsDialogOpen(false);
-          onFormDeleted?.();
-          setTimeout(() => {
-            router.push("/forms");
-            router.refresh();
-          }, 1000);
-        } else {
-          toast.error("Failed to delete form");
-        }
-      } catch {
-        toast.error("Failed to delete form");
+      const result = await deleteFormAction(form.id);
+      if (result === undefined || Result.isError(result)) {
+        toast.error({
+          title: "Failed to delete form",
+          description: result?.message || "",
+        });
+        return;
+      }
+
+      if (Result.isSuccess(result)) {
+        toast.success({
+          title: (
+            <>
+              <strong>{form.name}</strong> deleted successfully
+            </>
+          ),
+        });
+        setIsDialogOpen(false);
+        onFormDeleted?.();
+        setTimeout(() => {
+          router.push("/forms");
+          router.refresh();
+        }, 1000);
       }
     });
   };
