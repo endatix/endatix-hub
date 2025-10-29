@@ -18,15 +18,15 @@ This is the Endatix Hub, a Form Management system, built with Next.js. It uses t
 
 1. Setup correct node version. Open the terminal and run `nvm use v20.9.0`
 2. Install the dependencies. Run `pnpm install`
-3. Run the development server. We recommend using pnpm dev:
+3. Run the development server with `pnpm dev`
+4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. 
 
-```bash
-pnpm dev
-```
+>[!TIP]
+>You can also run the website with self-signed SSL enabled by running `pnpm dev-https`, which will make the website available at [https://localhost:3000](https://localhost:3000).
+>More info at [Next.js documentation](https://vercel.com/guides/access-nextjs-localhost-https-certificate-self-signed).
+>💡 Remember to update your `.env` file with the correct values for the development server such as AUTH_URL, etc.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. 
-
-## Development
+## Project Structure
 
 For information on project structure, feature organization, and vertical slice architecture patterns, see:
 
@@ -37,20 +37,12 @@ For information on project structure, feature organization, and vertical slice a
 
 Check the [.env.example](./.env.example) file for all variables and their description. The required variables are marked with a `[REQUIRED]` tag.
 
-## Running Production Build Locally
+## Running the production build locally
 
-This is useful for testing the production build locally (assumes you have run `pnpm install`)
+This is useful for testing the production build locally e.g. test with enabled caching, telemetry, etc. Note that the root `.env` file will be used to prepare the build and next.js will copy it's contents into the `hub/.next/standalone/.env` file.
 
-1. Run `pnpm build:standalone`;
-1. Run the site
-
-```bash
-# For localhost **without SSL certificate**
-NODE_TLS_REJECT_UNAUTHORIZED=0 node .next/standalone/server.js
-
-# For localhost **with SSL certificate**
-node .next/standalone/server.js
-```
+1. Run `pnpm run:standalone`;
+2. Run the site at [http://localhost:3000](http://localhost:3000)
 
 ## E2E Testing
 
