@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { Helpers, SurveyModel, QuestionSelectBase, ChoiceItem } from "survey-core";
+import { Helpers, SurveyModel, QuestionSelectBase } from "survey-core";
 import addRandomizeGroupFeature from "../features/group-randomization";
 
 // Mock data interfaces
