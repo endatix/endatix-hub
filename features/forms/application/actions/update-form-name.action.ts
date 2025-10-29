@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/auth";
 import { createPermissionService } from "@/features/auth/permissions/application";
 import { Result } from "@/lib/result";
 import { updateForm } from "@/services/api";
@@ -11,12 +12,13 @@ export async function updateFormNameAction(
   formId: string,
   formName: string,
 ): Promise<UpdateFormNameResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const session = await auth();
+  const { requireHubAccess } = await createPermissionService(session);
   await requireHubAccess();
 
   try {
     await updateForm(formId, { name: formName });
-    revalidatePath(`/forms/${formId}/design`);
+    revalidatePath(`/(main)/forms/${formId}/design`);
 
     return Result.success(formId);
   } catch (error) {

@@ -15,7 +15,7 @@ export async function deleteTemplateAction(
 
   try {
     const deletedTemplateId = await deleteFormTemplate(templateId);
-    revalidatePath("/form-templates");
+    revalidatePath("/(main)/form-templates");
     return Result.success(deletedTemplateId);
   } catch (error) {
     console.error("Failed to delete form template", error);

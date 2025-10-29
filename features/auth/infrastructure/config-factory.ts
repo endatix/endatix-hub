@@ -33,8 +33,9 @@ export function createAuthConfig(
           return token;
         }
 
-        if (user) {
-          invalidateUserPermissionsCache(user.id as string);
+        const userId = user?.id as string;
+        if (userId) {
+          invalidateUserPermissionsCache({ userId });
         }
 
         return await provider.handleJWT({

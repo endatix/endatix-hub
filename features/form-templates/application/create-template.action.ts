@@ -35,7 +35,7 @@ export async function createTemplateAction(
       return Result.error("Failed to create template");
     }
 
-    revalidatePath("/forms/templates");
+    revalidatePath("/(main)/forms/templates");
 
     if (!result.formTemplateId) {
       return Result.error("Failed to create template");

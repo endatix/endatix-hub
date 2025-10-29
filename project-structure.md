@@ -5,16 +5,19 @@ Quick reference for organizing features using vertical slice architecture.
 ## lib/ vs features/ vs packages/
 
 ### Use `lib/` for:
+
 - **Internal utilities** used across multiple features
 - **Framework-specific adapters** (Next.js, React)
 - **Cross-cutting concerns** that aren't ready for packages
 
 ### Use `features/` for:
-- **Endatix-specific business logic** 
+
+- **Endatix-specific business logic**
 - **App configuration** (features/config/)
 - **Complete vertical slices** with use-cases, UI, and infrastructure
 
 ### Use `packages/` for:
+
 - **Future npm packages** with their own package.json
 - **Reusable libraries** that can be published independently
 - **Workspace packages** that other projects can consume
@@ -52,6 +55,7 @@ features/
 ## Testing Convention
 
 Use `__tests__/` folders for test organization:
+
 - **Feature level**: `features/{name}/__tests__/` - Test feature integration and shared utilities
 - **Component level**: Place `.test.tsx` files alongside components when testing specific UI behavior
 - **Focus on use-cases**: Write comprehensive unit tests for `.use-case.ts` files as they contain core business logic
@@ -59,33 +63,36 @@ Use `__tests__/` folders for test organization:
 ## Layers
 
 ### Use-Case Layer (.use-case.ts)
+
 ```typescript
 // Pure business logic, no Next.js dependencies
 export const createFormUseCase = async (
-  request: CreateFormRequest
+  request: CreateFormRequest,
 ): Promise<Result<string>> => {
   // Business logic here
 };
 ```
 
 ### Action Layer (.action.ts)
+
 ```typescript
 // Next.js server action - thin wrapper
 "use server";
 
 export async function createFormAction(
-  request: CreateFormRequest
+  request: CreateFormRequest,
 ): Promise<Result<string>> {
-  await ensureAuthenticated();           // Next.js concerns
+  await ensureAuthenticated(); // Next.js concerns
   const result = await createFormUseCase(request);
   if (result.isSuccess()) {
-    revalidatePath("/forms");            // Next.js concerns
+    revalidatePath("/(main)/forms"); // Next.js concerns
   }
   return result;
 }
 ```
 
 ### Infrastructure Layer
+
 - External adapters (auth providers, storage, APIs)
 - Framework-specific integrations
 - Configuration and setup
@@ -93,11 +100,13 @@ export async function createFormAction(
 ## Naming Conventions
 
 ### Files & Folders
+
 - **kebab-case**: `create-form.use-case.ts`, `use-cases/`
 - **Functions**: `camelCase` → `createFormUseCase`
 - **Classes/Types**: `PascalCase` → `CreateFormRequest`
 
 ### Files
+
 - **Use-cases**: `{verb-noun}.use-case.ts`
 - **Actions**: `{verb-noun}.action.ts`
 - **Components**: `{feature-name}-{purpose}.tsx`
@@ -124,12 +133,14 @@ app/
 ## Package Structure Guidelines
 
 ### When to Create a Package
+
 - **Multiple consumers** - Used by multiple apps/projects
 - **Independent versioning** - Can be versioned separately
 - **Clear API boundaries** - Well-defined public interface
 - **No framework coupling** - Not tied to Next.js/React
 
 ### Package.json Structure
+
 ```json
 {
   "name": "@endatix/api-client",
@@ -147,13 +158,11 @@ app/
 ```
 
 ### Workspace Configuration
+
 ```json
 // package.json (root)
 {
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "workspaces": ["apps/*", "packages/*"]
 }
 ```
 
@@ -169,6 +178,7 @@ app/
 ## Package Evolution Path
 
 ### Current Structure
+
 ```
 hub/
 ├── lib/                    # Internal utilities
@@ -182,6 +192,7 @@ hub/
 ```
 
 ### Target Monorepo Structure
+
 ```
 endatix-saas/
 ├── apps/
@@ -194,6 +205,7 @@ endatix-saas/
 ```
 
 ### Migration Steps
+
 1. **lib/endatix-api/** → **packages/@endatix/api-client/**
 2. **lib/utils/** → **packages/@endatix/utils/**
 3. **features/config/** → **packages/@endatix/config/**

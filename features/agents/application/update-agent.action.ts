@@ -19,7 +19,7 @@ export async function updateAgentAction(
   const updateAgentResult = await endatixApi.agents.update(agentId, parsed);
 
   if (ApiResult.isSuccess(updateAgentResult)) {
-    revalidatePath("/admin/agents");
+    revalidatePath("/(main)/admin/agents");
   }
 
   return updateAgentResult;

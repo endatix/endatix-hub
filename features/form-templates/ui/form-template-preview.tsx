@@ -44,6 +44,8 @@ const SurveyPreviewComponent = dynamic(
 registerAudioQuestion();
 addRandomizeGroupFeature();
 
+const FAILED_PREVIEW_ERROR_MESSAGE = "Failed to load form template preview";
+
 // Load all custom questions registered in the question registry
 for (const questionName of customQuestions) {
   try {
@@ -78,33 +80,29 @@ export function FormTemplatePreview({
 
         const questionsResult = await getCustomQuestionsAction();
 
-        if (questionsResult === undefined) {
+        if (questionsResult === undefined || Result.isError(questionsResult)) {
+          setLoading(false);
+          setError(questionsResult.message || FAILED_PREVIEW_ERROR_MESSAGE);
           return;
         }
 
-        try {
-          if (Result.isSuccess(questionsResult)) {
-            initializeCustomQuestions(
-              questionsResult.value.map((q) => q.jsonData),
-            );
-          }
-        } catch (err) {
-          setError("Failed to load form template");
-          console.error(err);
-          return;
-        }
+        initializeCustomQuestions(
+          questionsResult.value.map((q) => q?.jsonData),
+        );
 
         const getTemplateResult = await getTemplateAction(templateId);
-        if (getTemplateResult === undefined) {
-          return;
-        }
 
-        if (Result.isError(getTemplateResult)) {
-          toast.error(getTemplateResult.message || "Failed to fetch template");
+        if (
+          getTemplateResult === undefined ||
+          Result.isError(getTemplateResult)
+        ) {
+          setLoading(false);
+          setError(getTemplateResult.message || FAILED_PREVIEW_ERROR_MESSAGE);
           return;
         }
 
         setTemplate(getTemplateResult.value);
+        setLoading(false);
       };
 
       fetchTemplate();

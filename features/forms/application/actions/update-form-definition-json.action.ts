@@ -17,7 +17,7 @@ export async function updateFormDefinitionJsonAction(
 
   try {
     await updateFormDefinition(formId, isDraft, JSON.stringify(formJson));
-    revalidatePath(`/forms/${formId}/design`);
+    revalidatePath(`/(main)/forms/${formId}/design`);
 
     return Result.success(formId);
   } catch (error) {

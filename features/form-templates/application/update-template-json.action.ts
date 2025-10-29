@@ -29,7 +29,7 @@ export async function updateTemplateJsonAction(
       jsonData,
     });
 
-    revalidatePath(`/forms/templates/${templateId}`);
+    revalidatePath(`/(main)/forms/templates/${templateId}`);
 
     return Result.success(templateId);
   } catch (error) {

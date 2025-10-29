@@ -11,7 +11,7 @@ export async function changeStatusAction(
 
   if (success) {
     revalidatePath(
-      `/forms/${command.formId}/submissions/${command.submissionId}`,
+      `/(main)/forms/${command.formId}/submissions/${command.submissionId}`,
     );
     return { success: true };
   }

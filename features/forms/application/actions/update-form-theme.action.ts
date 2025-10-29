@@ -23,7 +23,7 @@ export async function updateFormThemeAction(
   try {
     const { formId, themeId } = request;
     await updateForm(formId, { themeId: themeId });
-    revalidatePath(`/forms/${formId}/design`);
+    revalidatePath(`/(main)/forms/${formId}/design`);
 
     return { success: true };
   } catch (error) {

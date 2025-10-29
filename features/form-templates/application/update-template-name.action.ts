@@ -28,8 +28,8 @@ export async function updateTemplateNameAction(
     });
 
     // Revalidate the template page and templates list
-    revalidatePath(`/forms/templates/${templateId}`);
-    revalidatePath("/forms/templates");
+    revalidatePath(`/(main)/forms/templates/${templateId}`);
+    revalidatePath("/(main)/forms/templates");
 
     return Result.success(templateId);
   } catch (error) {

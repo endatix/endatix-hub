@@ -64,17 +64,37 @@ export function getUserPermissionsFactory(session: Session | null) {
 export const getCachedUserPermissions = (userId: string) => {
   const cacheKey = getUserPermissionsCacheKey(userId);
 
-  return unstable_cache(getUserRbacInfo, [cacheKey], {
+  return unstable_cache(() => getUserRbacInfo(userId), [userId], {
     tags: [cacheKey, ALL_USER_PERMISSIONS_CACHE_TAG],
     revalidate: USER_PERMISSIONS_CACHE_TTL,
-  })(userId);
+  })();
 };
 
-export function invalidateUserPermissionsCache(userId?: string) {
+/**
+ * Invalidates the user permissions cache for the given user ID, user IDs, or all users
+ * @param options - The options to invalidate the cache for
+ * @param options.userId - The user ID to invalidate the cache for
+ * @param options.userIds - The user IDs to invalidate the cache for
+ * @param options.allUsers - Whether to invalidate the cache for all users
+ */
+export function invalidateUserPermissionsCache(options: {
+  userId?: string;
+  userIds?: string[];
+  allUsers?: boolean;
+}) {
+  const { userId, userIds, allUsers } = options;
+
   if (userId) {
     revalidateTag(getUserPermissionsCacheKey(userId));
-  } else {
-    revalidateTag(USER_PERMISSIONS_CACHE_TAG);
-    console.debug("🔄 Invalidating user permissions cache for all users");
+  }
+
+  if (userIds) {
+    for (const userId of userIds) {
+      revalidateTag(getUserPermissionsCacheKey(userId));
+    }
+  }
+
+  if (allUsers) {
+    revalidateTag(ALL_USER_PERMISSIONS_CACHE_TAG);
   }
 }

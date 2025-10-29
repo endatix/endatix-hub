@@ -517,7 +517,7 @@ export const updateSubmissionStatus = async (
       body: JSON.stringify({ status }),
     },
   );
-  console.log("Status", status);
+
   if (!response.ok) {
     throw new Error("Failed to change submission status");
   }
