@@ -97,25 +97,34 @@ const SignedInSuccessMessage = ({
 }: SignedInMessageProps) => {
   if (isSignedIn)
     return (
-      <Card className="bg-background">
-        <CardHeader className="pb-3">
-          <CardTitle>Welcome!</CardTitle>
-          <CardDescription className="max-w-lg text-balance leading-relaxed">
-            You are now signed in as {username}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>Let’s start creating forms!</p>
-        </CardContent>
-        <CardFooter>
-          <Link href="/forms">
-            <Button className="mr-8">
-              <Rocket className="h-4 w-4" />
-              Go to Forms
-            </Button>
-          </Link>
-        </CardFooter>
-      </Card>
+      <div className="flex flex-col gap-2">
+        <Card className="bg-background">
+          <CardHeader className="pb-3">
+            <CardTitle>Welcome!</CardTitle>
+            <CardDescription className="max-w-lg text-balance leading-relaxed">
+              You are now signed in as {username}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Let’s start creating forms!</p>
+          </CardContent>
+          <CardFooter>
+            <Link href="/forms">
+              <Button className="mr-8">
+                <Rocket className="h-4 w-4" />
+                Go to Forms
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+        <p className="max-w-lg text-balance leading-relaxed text-sm text-muted-foreground px-6">
+          Or{" "}
+          <Link href="/signout" className="text-blue-500">
+            sign out
+          </Link>{" "}
+          if you wish to use a different account.
+        </p>
+      </div>
     );
 };
 
