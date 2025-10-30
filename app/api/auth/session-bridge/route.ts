@@ -7,6 +7,7 @@ import { decodeJwt } from "jose";
 import zod from "zod";
 import { getSessionCookieOptions } from "@/features/auth/infrastructure/session-utils";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
+import { invalidateUserPermissionsCache } from "@/features/auth/permissions/application";
 
 const MobileJwtTokenSchema = zod.object({
   access_token: zod.string(),
@@ -31,7 +32,7 @@ export type KeycloakTokenResponse = zod.infer<
 >;
 
 const AuthTokenSchema = zod.object({
-  sub: zod.string(),
+  id: zod.string(),
   email: zod.string().optional(),
   name: zod.string().optional(),
   picture: zod.string().optional(),
@@ -117,7 +118,7 @@ async function createSessionFromTokenData(
 ) {
   const useSecureCookies = protocol === "https:";
   const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
-  const userInfo = decodeJwt(tokenData.access_token);
+  const userInfo = decodeJwt(tokenData.id_token);
 
   if (!userInfo) {
     return NextResponse.json(
@@ -128,9 +129,9 @@ async function createSessionFromTokenData(
 
   const expires = new Date(Date.now() + tokenData.expires_in * 1000);
   const authTokenPayload = {
-    sub: userInfo.sub,
+    id: userInfo.sub ?? userInfo.id,
     email: userInfo.email,
-    name: userInfo.name,
+    name: userInfo.name ?? userInfo.nickname ?? userInfo.preferred_username,
     picture: userInfo.picture,
     access_token: tokenData.access_token,
     refresh_token: tokenData.refresh_token,
@@ -157,6 +158,8 @@ async function createSessionFromTokenData(
     secret: authConfig.secret!,
     salt: sessionCookieName,
   });
+
+  invalidateUserPermissionsCache({ userId: token.id });
 
   // 5. Create session cookies
   const response = NextResponse.json({
