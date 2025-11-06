@@ -43,6 +43,7 @@ import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
 import CopyToClipboard from "@/components/copy-to-clipboard";
+import { WebhookSettings } from "./webhook-settings";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -376,6 +377,12 @@ const FormDetails = ({
           </div>
         </div>
       </div>
+
+      {/* Webhook Configuration Section */}
+      <WebhookSettings
+        formId={form.id}
+        initialSettings={form.webHookSettingsJson}
+      />
 
       <SaveAsTemplateDialog
         formId={form.id}
