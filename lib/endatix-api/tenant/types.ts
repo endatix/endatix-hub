@@ -5,7 +5,12 @@ export type SlackSettings = {
 };
 
 export type WebHookSettings = {
-  webHookUrls?: string[];
+  events: {
+    [eventName: string]: {
+      isEnabled: boolean;
+      webHookEndpoints: Array<{ url: string }>;
+    };
+  };
 };
 
 export type TenantSettings = {
