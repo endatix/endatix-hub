@@ -12,7 +12,7 @@ export interface CreateFormDraftResult {
 
 export async function createFormDraft(
   request: CreateFormRequest,
-): Promise<CreateFormDraftResult> {
+): Promise<CreateFormDraftResult | never> {
   const { requireHubAccess } = await createPermissionService();
   await requireHubAccess();
 

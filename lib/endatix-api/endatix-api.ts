@@ -10,6 +10,7 @@ import Account from "./account/account";
 import MyAccount from "./my-account/my-account";
 import Auth from "./auth/auth";
 import { Conversations } from "./conversations/conversations";
+import Tenant from "./tenant/tenant";
 
 /**
  * Gets the validated and cached API URL
@@ -50,6 +51,7 @@ export class EndatixApi {
   private _account?: Account;
   private _myAccount?: MyAccount;
   private _conversations?: Conversations;
+  private _tenant?: Tenant;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -141,6 +143,16 @@ export class EndatixApi {
       this._myAccount = new MyAccount(this);
     }
     return this._myAccount;
+  }
+
+  /**
+   * Lazy-loaded tenant API - only creates instance when first accessed
+   */
+  get tenant(): Tenant {
+    if (!this._tenant) {
+      this._tenant = new Tenant(this);
+    }
+    return this._tenant;
   }
 
   /**

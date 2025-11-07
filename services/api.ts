@@ -82,7 +82,12 @@ export const getForm = async (formId: string): Promise<Form> => {
 
 export const updateForm = async (
   formId: string,
-  data: { name?: string; isEnabled?: boolean; themeId?: string },
+  data: {
+    name?: string;
+    isEnabled?: boolean;
+    themeId?: string;
+    webHookSettingsJson?: string | null;
+  },
 ): Promise<void> => {
   const session = await getSession();
   const headers = new HeaderBuilder()
@@ -101,6 +106,7 @@ export const updateForm = async (
     throw new Error("Failed to update form");
   }
 };
+
 
 export const deleteForm = async (formId: string): Promise<string> => {
   const session = await getSession();
