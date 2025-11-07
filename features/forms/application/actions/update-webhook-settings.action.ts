@@ -43,7 +43,7 @@ export async function updateWebhookSettingsAction(
 
   try {
     const { formId, useCustomSettings } = validatedData.data;
-    let webHookSettingsJson: string | null = null;
+    let webHookSettingsJson: string = "";
 
     if (useCustomSettings) {
       const config: WebHookConfiguration = { Events: {} };
