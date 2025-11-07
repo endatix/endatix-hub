@@ -52,9 +52,7 @@ export type WebHookEventConfig = {
 };
 
 export type WebHookConfiguration = {
-  Events: {
-    [eventName: string]: WebHookEventConfig;
-  };
+  Events: Record<string, WebHookEventConfig>;
 };
 
 export type SlackSettings = {

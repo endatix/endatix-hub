@@ -7,7 +7,7 @@ import type { Form } from "@/types";
 
 export type GetFormResult = Result<Form>;
 
-export async function getFormAction(formId: string): Promise<GetFormResult> {
+export async function getFormAction(formId: string): Promise<GetFormResult | never> {
   const { requireHubAccess } = await createPermissionService();
   await requireHubAccess();
 

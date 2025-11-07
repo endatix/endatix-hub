@@ -1,27 +1,25 @@
 "use server";
 
 import { createPermissionService } from "@/features/auth/permissions/application";
+import { getSession } from "@/features/auth";
 import { Result } from "@/lib/result";
-import { getTenantSettings } from "@/services/api";
-import type { TenantSettings } from "@/types";
+import { EndatixApi } from "@/lib/endatix-api";
+import type { TenantSettings } from "@/lib/endatix-api/tenant";
 
 export type GetTenantSettingsResult = Result<TenantSettings>;
 
-export async function getTenantSettingsAction(): Promise<GetTenantSettingsResult> {
+export async function getTenantSettingsAction(): Promise<GetTenantSettingsResult | never> {
   const { requireHubAccess } = await createPermissionService();
   await requireHubAccess();
 
-  try {
-    const settings = await getTenantSettings();
-    return Result.success(settings);
-  } catch (error) {
-    console.error("Failed to fetch tenant settings", error);
+  const session = await getSession();
+  const api = new EndatixApi(session);
+  const result = await api.tenant.getSettings();
 
-    let errorMessage = "Failed to fetch tenant settings";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-
-    return Result.error(errorMessage);
+  if (!result.success) {
+    console.error("Failed to fetch tenant settings", result.error);
+    return Result.error(result.error.message);
   }
+
+  return Result.success(result.data);
 }

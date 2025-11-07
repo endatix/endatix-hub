@@ -7,7 +7,7 @@ import {
 } from "@/lib/form-types";
 import { redirect } from "next/navigation";
 import { ITheme } from "survey-core";
-import { ActiveDefinition, Form, FormDefinition, FormTemplate, TenantSettings } from "../types";
+import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
 import { Submission } from "@/lib/endatix-api";
 
@@ -107,28 +107,6 @@ export const updateForm = async (
   }
 };
 
-export const getTenantSettings = async (): Promise<TenantSettings> => {
-  const session = await getSession();
-
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .build();
-
-  const response = await fetch(`${API_BASE_URL}/tenant-settings`, {
-    headers: headers,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch tenant settings");
-  }
-
-  return response.json();
-};
 
 export const deleteForm = async (formId: string): Promise<string> => {
   const session = await getSession();
