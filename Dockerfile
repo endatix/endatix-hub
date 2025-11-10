@@ -3,7 +3,7 @@ RUN npm install -g pnpm@10.18.0
 WORKDIR /app
 
 FROM base AS build
-COPY package.json pnpm-lock.yaml .
+COPY package.json pnpm-lock.yaml .npmrc .
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm run build
