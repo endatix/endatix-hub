@@ -1,9 +1,9 @@
-import { SurveyModel } from "survey-core";
+import { SurveyModel, TextMarkdownEvent } from "survey-core";
 import MarkdownIt from "markdown-it";
 
 export function registerMarkdownRenderer(surveyModel: SurveyModel) {
   const converter = MarkdownIt({ html: true });
-  const handler = (_sender: unknown, options: any) => {
+  const handler = (_sender: unknown, options: TextMarkdownEvent) => {
     options.html = converter.renderInline(options.text);
   };
 
@@ -13,4 +13,3 @@ export function registerMarkdownRenderer(surveyModel: SurveyModel) {
     surveyModel.onTextMarkdown.remove(handler);
   };
 }
-

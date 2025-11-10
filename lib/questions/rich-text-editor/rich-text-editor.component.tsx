@@ -4,14 +4,10 @@ import {
     SurveyQuestionElementBase,
     ReactQuestionFactory
 } from "survey-react-ui";
-import React, { JSX } from "react";
+import React from "react";
 import {
   RICH_TEXT_EDITOR_TYPE
 } from "./rich-text-editor.model";
-
-interface RichTextEditorState {
-  value: string;
-}
 
 const modules = {
         toolbar: [

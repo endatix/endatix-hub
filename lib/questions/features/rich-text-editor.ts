@@ -1,4 +1,4 @@
-import { PropertyGridEditorCollection, SurveyCreator } from "survey-creator-react";
+import { PropertyGridEditorCollection } from "survey-creator-react";
 import {RICH_TEXT_EDITOR_TYPE} from "../rich-text-editor/rich-text-editor.model";
 import { registerRichTextEditor } from "../rich-text-editor/rich-text-editor.component";
 
