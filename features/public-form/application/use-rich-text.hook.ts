@@ -6,7 +6,7 @@ interface UseRichTextProps {
   surveyModel: SurveyModel | null;
 }
 
-export function UseRichText({ surveyModel }: UseRichTextProps) {
+export function useRichText({ surveyModel }: UseRichTextProps) {
   useEffect(() => {
     if (!surveyModel) return;
 

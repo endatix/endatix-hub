@@ -1,5 +1,6 @@
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.bubble.css";
+import "./rich-text-editor.styles.scss";
 import {
     SurveyQuestionElementBase,
     ReactQuestionFactory
