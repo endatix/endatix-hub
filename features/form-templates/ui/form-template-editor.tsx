@@ -28,6 +28,7 @@ import { endatixTheme } from "@/components/editors/endatix-theme";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import { registerMarkdownRenderer } from "@/lib/questions/rich-text-editor/register-markdown-renderer";
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
 
@@ -169,6 +170,9 @@ function FormTemplateEditor({
           callback(no, true);
         };
         newCreator.onUploadFile.add(handleUploadFile);
+        newCreator.onSurveyInstanceCreated.add((_, options) => {
+          registerMarkdownRenderer(options.survey);
+        });
 
         setCreator(newCreator);
         if (newQuestionClasses.length > 0) {

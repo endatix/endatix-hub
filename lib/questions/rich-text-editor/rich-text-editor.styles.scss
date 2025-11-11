@@ -1,0 +1,7 @@
+/* Quill-Specific Adjustments*/
+.ql-bubble .ql-tooltip,
+.ql-bubble .ql-toolbar {
+  white-space: nowrap !important;
+  z-index: 99999 !important;
+}
+.ql-bubble .ql-tooltip .ql-formats { display: inline-flex; flex-wrap: nowrap; }

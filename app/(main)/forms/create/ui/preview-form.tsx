@@ -8,6 +8,7 @@ import { ICreatorOptions } from "survey-creator-core";
 import { BorderlessLight } from "survey-core/themes";
 import SurveyCreatorTheme from "survey-creator-core/themes";
 import { slk } from "survey-core";
+import { registerMarkdownRenderer } from "@/lib/questions/rich-text-editor/register-markdown-renderer";
 
 interface PreviewFormProps {
   model: string;
@@ -42,6 +43,10 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     newCreator.activeTab = "test";
     newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
     newCreator.theme = BorderlessLight;
+    // Render Markdown to HTML in designer and preview
+    newCreator.onSurveyInstanceCreated.add((_, options) => {
+      registerMarkdownRenderer(options.survey);
+    });
     newCreator.saveSurveyFunc = (
       no: number,
       callback: (num: number, status: boolean) => void,
