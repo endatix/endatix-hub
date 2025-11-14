@@ -15,8 +15,6 @@ async function getAuthorizationData(
   accessToken: string,
 ): Promise<PermissionResult<AuthorizationData>> {
   try {
-    console.log(`📥 Fetching permissions for user:  ${userId}`);
-
     const endatixApi = new EndatixApi(accessToken);
     const authorizationData = await endatixApi.auth.getAuthorizationData();
 

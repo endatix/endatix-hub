@@ -34,7 +34,7 @@ export interface AuthorizationData {
   roles: string[];
   permissions: string[];
   isAdmin: boolean;
-  cachedAt: Date;
-  expiresAt: Date;
+  cachedAt: string;
+  expiresAt: string;
   eTag: string;
 }

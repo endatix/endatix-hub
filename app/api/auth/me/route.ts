@@ -30,7 +30,7 @@ export async function GET() {
     const authData = permissionsResult.data!;
     const response = NextResponse.json(authData);
 
-    const expiresAt = Date.parse(authData.expiresAt?.toString() ?? "");
+    const expiresAt = Date.parse(authData.expiresAt);
     const now = Date.now();
 
     if (!isNaN(expiresAt) && expiresAt > now) {
