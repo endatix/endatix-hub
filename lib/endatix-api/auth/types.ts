@@ -27,3 +27,14 @@ export interface RefreshTokenResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+export interface AuthorizationData {
+  userId: string;
+  tenantId: string;
+  roles: string[];
+  permissions: string[];
+  isAdmin: boolean;
+  cachedAt: Date;
+  expiresAt: Date;
+  eTag: string;
+}

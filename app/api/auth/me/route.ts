@@ -5,8 +5,6 @@ import {
 } from "@/features/auth";
 import { createPermissionService } from "@/features/auth/permissions/application";
 
-const PERMISSIONS_CACHE_TTL = 300;
-
 /**
  * API endpoint that returns user permissions
  */
@@ -29,17 +27,20 @@ export async function GET() {
       );
     }
 
-    const user = permissionsResult.data!;
-    const response = NextResponse.json(user);
+    const authData = permissionsResult.data!;
+    const response = NextResponse.json(authData);
 
-    response.headers.set(
-      "Cache-Control",
-      `private, max-age=${PERMISSIONS_CACHE_TTL}, stale-while-revalidate=${
-        PERMISSIONS_CACHE_TTL / 2
-      }`,
-    );
-    response.headers.set("ETag", `"${user.permissionsVersion}-${user.userId}"`);
+    const expiresAt = Date.parse(authData.expiresAt?.toString() ?? "");
+    const now = Date.now();
 
+    if (!isNaN(expiresAt) && expiresAt > now) {
+      const maxAge = Math.floor((expiresAt - now) / 1000);
+      response.headers.set(
+        "Cache-Control",
+        `private, max-age=${maxAge}, stale-while-revalidate=${maxAge / 2}`,
+      );
+      response.headers.set("ETag", `"${authData.eTag}"`);
+    }
     return response;
   } catch {
     return NextResponse.json(

@@ -5,11 +5,8 @@
 export const Permissions = {
   Apps: {
     HubAccess: "apps.hub.access",
-    SaaSAdminAccess: "apps.saas.access"
+    SaaSAdminAccess: "apps.saas.access",
   },
-  Admin: {
-    All: "admin.all"
-  }
 } as const;
 
 /**

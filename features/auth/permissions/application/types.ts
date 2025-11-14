@@ -1,1 +1,1 @@
-export type { PermissionService } from "../domain/rbac.types";
+export type { PermissionService } from "../domain/authorization.types";

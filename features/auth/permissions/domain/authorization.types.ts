@@ -1,23 +1,11 @@
+import { AuthorizationData } from "@/lib/endatix-api/auth/types";
 import { PermissionResult } from "../result/permission-result";
-
-/**
- * Expanded user information with roles and permissions
- * This matches the backend response structure
- */
-interface UserRbacInfo {
-  userId: string;
-  roles: string[];
-  permissions: string[]; // Will be typed as Permission[] when imported
-  permissionsVersion: number;
-  tenantId?: string;
-  lastUpdated: string; // ISO timestamp
-}
 
 interface PermissionService {
   /**
    * Returns current user's RBAC permissions result.
    */
-  getUserPermissions(): Promise<PermissionResult<UserRbacInfo>>;
+  getUserPermissions(): Promise<PermissionResult<AuthorizationData>>;
 
   /**
    * Checks if user has given permission.
@@ -67,4 +55,4 @@ interface PermissionService {
 }
 
 // Re-export PermissionService types and utilities
-export type { UserRbacInfo, PermissionService };
+export type { AuthorizationData, PermissionService };

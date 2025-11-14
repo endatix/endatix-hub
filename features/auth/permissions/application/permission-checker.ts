@@ -1,7 +1,8 @@
+import { AuthorizationData } from "@/lib/endatix-api/types";
 import { PermissionResult } from "../result/permission-result";
 
 export function checkPermissionFactory(
-  getUserPermissions: () => Promise<PermissionResult<any>>,
+  getUserPermissions: () => Promise<PermissionResult<AuthorizationData>>,
 ) {
   return async (permission: string): Promise<PermissionResult> => {
     try {
@@ -9,6 +10,10 @@ export function checkPermissionFactory(
 
       if (!result.success) {
         return result;
+      }
+
+      if (result.data.isAdmin) {
+        return PermissionResult.success();
       }
 
       const hasPermission = result.data.permissions.includes(permission);
@@ -23,7 +28,7 @@ export function checkPermissionFactory(
 }
 
 export function checkAnyPermissionFactory(
-  getUserPermissions: () => Promise<PermissionResult<any>>,
+  getUserPermissions: () => Promise<PermissionResult<AuthorizationData>>,
 ) {
   return async (permissions: string[]): Promise<PermissionResult> => {
     try {
@@ -31,6 +36,10 @@ export function checkAnyPermissionFactory(
 
       if (!result.success) {
         return result;
+      }
+
+      if (result.data.isAdmin) {
+        return PermissionResult.success();
       }
 
       const hasAny = permissions.some((permission) =>
@@ -46,7 +55,7 @@ export function checkAnyPermissionFactory(
 }
 
 export function checkAllPermissionsFactory(
-  getUserPermissions: () => Promise<PermissionResult<any>>,
+  getUserPermissions: () => Promise<PermissionResult<AuthorizationData>>,
 ) {
   return async (permissions: string[]): Promise<PermissionResult> => {
     try {
@@ -54,6 +63,10 @@ export function checkAllPermissionsFactory(
 
       if (!result.success) {
         return result;
+      }
+
+      if (result.data.isAdmin) {
+        return PermissionResult.success();
       }
 
       const hasAll = permissions.every((permission) =>

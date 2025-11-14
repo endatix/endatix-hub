@@ -1,7 +1,7 @@
 import { Session } from "next-auth";
 import { PermissionResult } from "../result/permission-result";
-import { UserRbacInfo, Permissions } from "..";
 import { revalidateTag, unstable_cache } from "next/cache";
+import { ApiResult, AuthorizationData, EndatixApi } from "@/lib/endatix-api";
 
 const USER_PERMISSIONS_CACHE_TAG = "usr_prms";
 const ALL_USER_PERMISSIONS_CACHE_TAG = "usr_prms_all";
@@ -10,30 +10,21 @@ const USER_PERMISSIONS_CACHE_TTL = 720; // 12 minutes
 const getUserPermissionsCacheKey = (userId: string) =>
   `${USER_PERMISSIONS_CACHE_TAG}:${userId}`;
 
-async function getUserRbacInfo(
+async function getAuthorizationData(
   userId: string,
-): Promise<PermissionResult<UserRbacInfo>> {
+  accessToken: string,
+): Promise<PermissionResult<AuthorizationData>> {
   try {
     console.log(`📥 Fetching permissions for user:  ${userId}`);
-    if (!userId) {
-      return PermissionResult.unauthenticated();
+
+    const endatixApi = new EndatixApi(accessToken);
+    const authorizationData = await endatixApi.auth.getAuthorizationData();
+
+    if (ApiResult.isError(authorizationData)) {
+      return PermissionResult.error();
     }
 
-    /**
-     * **** DON'T PANIC ****
-     * This is the only permission that is used in the hub for now, so this is not compromising security at this point
-     * We will replace this in next commits with permissions from the server, to control access to the hub and forms
-     * Users will still be redirected to the unauthorised page if the Endatix API returns a 403 error
-     */
-    const user = {
-      userId,
-      roles: [],
-      permissions: [Permissions.Apps.HubAccess],
-      permissionsVersion: 1,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    return PermissionResult.success(user);
+    return PermissionResult.success(authorizationData.data);
   } catch (error) {
     console.error("Error getting user permissions from session:", error);
     return PermissionResult.error();
@@ -41,14 +32,19 @@ async function getUserRbacInfo(
 }
 
 export function getUserPermissionsFactory(session: Session | null) {
-  return async (): Promise<PermissionResult<UserRbacInfo>> => {
+  return async (): Promise<PermissionResult<AuthorizationData>> => {
     try {
-      if (!session?.user?.id || session.error) {
+      if (!session) {
+        return PermissionResult.unauthenticated();
+      }
+
+      const { user, accessToken } = session;
+      if (!user?.id || !accessToken || session.error) {
         return PermissionResult.unauthenticated();
       }
 
       // Use the shared cache instance with userId as parameter
-      return await getCachedUserPermissions(session.user.id);
+      return await getCachedUserPermissions(user.id, accessToken);
     } catch (error) {
       console.error("Error getting session for permissions:", error);
       return PermissionResult.error();
@@ -56,13 +52,20 @@ export function getUserPermissionsFactory(session: Session | null) {
   };
 }
 
-export const getCachedUserPermissions = (userId: string) => {
+export const getCachedUserPermissions = (
+  userId: string,
+  accessToken: string,
+) => {
   const cacheKey = getUserPermissionsCacheKey(userId);
 
-  return unstable_cache(() => getUserRbacInfo(userId), [userId], {
-    tags: [cacheKey, ALL_USER_PERMISSIONS_CACHE_TAG],
-    revalidate: USER_PERMISSIONS_CACHE_TTL,
-  })();
+  return unstable_cache(
+    () => getAuthorizationData(userId, accessToken),
+    [userId, accessToken],
+    {
+      tags: [cacheKey, ALL_USER_PERMISSIONS_CACHE_TAG],
+      revalidate: USER_PERMISSIONS_CACHE_TTL,
+    },
+  )();
 };
 
 /**

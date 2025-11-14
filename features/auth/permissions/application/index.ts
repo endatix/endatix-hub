@@ -13,7 +13,7 @@ import {
   requireHubAccessFactory,
   requireAdminAccessFactory,
 } from "./permission-guard";
-import { PermissionService } from "../domain/rbac.types";
+import { PermissionService } from "../domain/authorization.types";
 import { auth } from "@/auth";
 
 /**
