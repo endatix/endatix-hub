@@ -1,9 +1,9 @@
-import { PermissionResult } from "../result/permission-result";
+import { AuthorizationResult } from "../domain/authorization-result";
 import { Permissions } from "..";
 import { handlePermissionError } from "./error-handler";
 
 export function requirePermissionFactory(
-  checkPermission: (permission: string) => Promise<PermissionResult>,
+  checkPermission: (permission: string) => Promise<AuthorizationResult>,
 ) {
   return async (permission: string): Promise<void> => {
     const result = await checkPermission(permission);
@@ -14,7 +14,7 @@ export function requirePermissionFactory(
 }
 
 export function requireAnyPermissionFactory(
-  checkAnyPermission: (permissions: string[]) => Promise<PermissionResult>,
+  checkAnyPermission: (permissions: string[]) => Promise<AuthorizationResult>,
 ) {
   return async (permissions: string[]): Promise<void> => {
     const result = await checkAnyPermission(permissions);
@@ -25,7 +25,7 @@ export function requireAnyPermissionFactory(
 }
 
 export function requireAllPermissionsFactory(
-  checkAllPermissions: (permissions: string[]) => Promise<PermissionResult>,
+  checkAllPermissions: (permissions: string[]) => Promise<AuthorizationResult>,
 ) {
   return async (permissions: string[]): Promise<void> => {
     const result = await checkAllPermissions(permissions);
@@ -36,7 +36,7 @@ export function requireAllPermissionsFactory(
 }
 
 export function requireHubAccessFactory(
-  checkPermission: (permission: string) => Promise<PermissionResult>,
+  checkPermission: (permission: string) => Promise<AuthorizationResult>,
 ) {
   return async (): Promise<void> => {
     const result = await checkPermission(Permissions.Apps.HubAccess);
@@ -47,10 +47,10 @@ export function requireHubAccessFactory(
 }
 
 export function requireAdminAccessFactory(
-  checkPermission: (permission: string) => Promise<PermissionResult>,
+  checkPermission: (permission: string) => Promise<AuthorizationResult>,
 ) {
   return async (): Promise<void> => {
-    const result = await checkPermission(Permissions.Admin.All);
+    const result = await checkPermission(Permissions.Apps.SaaSAdminAccess);
     if (!result.success) {
       handlePermissionError(result);
     }

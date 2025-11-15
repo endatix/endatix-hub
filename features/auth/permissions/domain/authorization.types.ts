@@ -1,29 +1,29 @@
 import { AuthorizationData } from "@/lib/endatix-api/auth/types";
-import { PermissionResult } from "../result/permission-result";
+import { AuthorizationResult } from "./authorization-result";
 
 interface PermissionService {
   /**
    * Returns current user's RBAC permissions result.
    */
-  getUserPermissions(): Promise<PermissionResult<AuthorizationData>>;
+  getUserPermissions(): Promise<AuthorizationResult<AuthorizationData>>;
 
   /**
    * Checks if user has given permission.
    * @param permission - e.g. "org:read"
    */
-  checkPermission(permission: string): Promise<PermissionResult>;
+  checkPermission(permission: string): Promise<AuthorizationResult>;
 
   /**
    * Returns success if user has at least one of the permissions.
    * @param permissions - permission names
    */
-  checkAnyPermission(permissions: string[]): Promise<PermissionResult>;
+  checkAnyPermission(permissions: string[]): Promise<AuthorizationResult>;
 
   /**
    * Returns success only if user has all listed permissions.
    * @param permissions - permission names
    */
-  checkAllPermissions(permissions: string[]): Promise<PermissionResult>;
+  checkAllPermissions(permissions: string[]): Promise<AuthorizationResult>;
 
   /**
    * Throws if user lacks a specific permission.

@@ -1,5 +1,5 @@
 import { Session } from "next-auth";
-import { PermissionResult } from "../result/permission-result";
+import { AuthorizationResult } from "../domain/authorization-result";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { ApiResult, AuthorizationData, EndatixApi } from "@/lib/endatix-api";
 
@@ -13,39 +13,39 @@ const getUserPermissionsCacheKey = (userId: string) =>
 async function getAuthorizationData(
   userId: string,
   accessToken: string,
-): Promise<PermissionResult<AuthorizationData>> {
+): Promise<AuthorizationResult<AuthorizationData>> {
   try {
     const endatixApi = new EndatixApi(accessToken);
     const authorizationData = await endatixApi.auth.getAuthorizationData();
 
     if (ApiResult.isError(authorizationData)) {
-      return PermissionResult.error();
+      return AuthorizationResult.error();
     }
 
-    return PermissionResult.success(authorizationData.data);
+    return AuthorizationResult.success(authorizationData.data);
   } catch (error) {
     console.error("Error getting user permissions from session:", error);
-    return PermissionResult.error();
+    return AuthorizationResult.error();
   }
 }
 
 export function getUserPermissionsFactory(session: Session | null) {
-  return async (): Promise<PermissionResult<AuthorizationData>> => {
+  return async (): Promise<AuthorizationResult<AuthorizationData>> => {
     try {
       if (!session) {
-        return PermissionResult.unauthenticated();
+        return AuthorizationResult.unauthenticated();
       }
 
       const { user, accessToken } = session;
       if (!user?.id || !accessToken || session.error) {
-        return PermissionResult.unauthenticated();
+        return AuthorizationResult.unauthenticated();
       }
 
       // Use the shared cache instance with userId as parameter
       return await getCachedUserPermissions(user.id, accessToken);
     } catch (error) {
       console.error("Error getting session for permissions:", error);
-      return PermissionResult.error();
+      return AuthorizationResult.error();
     }
   };
 }

@@ -1,10 +1,10 @@
 import { AuthorizationData } from "@/lib/endatix-api/types";
-import { PermissionResult } from "../result/permission-result";
+import { AuthorizationResult } from "../domain/authorization-result";
 
 export function checkPermissionFactory(
-  getUserPermissions: () => Promise<PermissionResult<AuthorizationData>>,
+  getUserPermissions: () => Promise<AuthorizationResult<AuthorizationData>>,
 ) {
-  return async (permission: string): Promise<PermissionResult> => {
+  return async (permission: string): Promise<AuthorizationResult> => {
     try {
       const result = await getUserPermissions();
 
@@ -13,24 +13,24 @@ export function checkPermissionFactory(
       }
 
       if (result.data.isAdmin) {
-        return PermissionResult.success();
+        return AuthorizationResult.success();
       }
 
       const hasPermission = result.data.permissions.includes(permission);
       return hasPermission
-        ? PermissionResult.success()
-        : PermissionResult.forbidden();
+        ? AuthorizationResult.success()
+        : AuthorizationResult.forbidden();
     } catch (error) {
       console.error("Unexpected error during checking permission:", error);
-      return PermissionResult.error();
+      return AuthorizationResult.error();
     }
   };
 }
 
 export function checkAnyPermissionFactory(
-  getUserPermissions: () => Promise<PermissionResult<AuthorizationData>>,
+  getUserPermissions: () => Promise<AuthorizationResult<AuthorizationData>>,
 ) {
-  return async (permissions: string[]): Promise<PermissionResult> => {
+  return async (permissions: string[]): Promise<AuthorizationResult> => {
     try {
       const result = await getUserPermissions();
 
@@ -39,25 +39,25 @@ export function checkAnyPermissionFactory(
       }
 
       if (result.data.isAdmin) {
-        return PermissionResult.success();
+        return AuthorizationResult.success();
       }
 
       const hasAny = permissions.some((permission) =>
         result.data.permissions.includes(permission),
       );
 
-      return hasAny ? PermissionResult.success() : PermissionResult.forbidden();
+      return hasAny ? AuthorizationResult.success() : AuthorizationResult.forbidden();
     } catch (error) {
       console.error("Unexpected error during checking permissions:", error);
-      return PermissionResult.error();
+      return AuthorizationResult.error();
     }
   };
 }
 
 export function checkAllPermissionsFactory(
-  getUserPermissions: () => Promise<PermissionResult<AuthorizationData>>,
+  getUserPermissions: () => Promise<AuthorizationResult<AuthorizationData>>,
 ) {
-  return async (permissions: string[]): Promise<PermissionResult> => {
+  return async (permissions: string[]): Promise<AuthorizationResult> => {
     try {
       const result = await getUserPermissions();
 
@@ -66,17 +66,17 @@ export function checkAllPermissionsFactory(
       }
 
       if (result.data.isAdmin) {
-        return PermissionResult.success();
+        return AuthorizationResult.success();
       }
 
       const hasAll = permissions.every((permission) =>
         result.data.permissions.includes(permission),
       );
 
-      return hasAll ? PermissionResult.success() : PermissionResult.forbidden();
+      return hasAll ? AuthorizationResult.success() : AuthorizationResult.forbidden();
     } catch (error) {
       console.error("Unexpected error during checking permissions:", error);
-      return PermissionResult.error();
+      return AuthorizationResult.error();
     }
   };
 }
