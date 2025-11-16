@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import { Result } from "@/lib/result";
 import { createForm, getFormTemplate } from "@/services/api";
 
@@ -15,7 +15,7 @@ export async function createFormFromTemplateAction(
   request: CreateFormFromTemplateRequest,
 ): Promise<CreateFormFromTemplateResult | never> {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   try {

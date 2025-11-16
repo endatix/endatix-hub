@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import { Result } from "@/lib/result";
 import { deleteFormTemplate } from "@/services/api";
 import { revalidatePath } from "next/cache";
@@ -10,7 +10,7 @@ export type DeleteFormResult = Result<string>;
 export async function deleteTemplateAction(
   templateId: string,
 ): Promise<DeleteFormResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

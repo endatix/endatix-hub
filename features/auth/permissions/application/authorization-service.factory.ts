@@ -1,6 +1,6 @@
 import { Session } from "next-auth";
 
-import { getUserPermissionsFactory } from "./user-permissions";
+import { getAuthorizationDataFactory } from "./user-permissions";
 import {
   checkPermissionFactory,
   checkAnyPermissionFactory,
@@ -13,8 +13,8 @@ import {
   requireHubAccessFactory,
   requireAdminAccessFactory,
 } from "./permission-guard";
-import { PermissionService } from "../domain/authorization.types";
 import { auth } from "@/auth";
+import { IAuthorizationService } from "../domain/authorization-service";
 
 /**
  * Factory function to create the Permission Service
@@ -22,17 +22,17 @@ import { auth } from "@/auth";
  * @param session The session return from `await auth()`
  * @returns
  */
-export async function createPermissionService(
+export async function createAuthorizationService(
   session: Session | null = null,
-): Promise<PermissionService> {
+): Promise<IAuthorizationService> {
   session = session ?? (await auth());
   // Create the core user permissions function
-  const getUserPermissions = getUserPermissionsFactory(session);
+  const getAuthorizationData = getAuthorizationDataFactory(session);
 
   // Create permission checking functions
-  const checkPermission = checkPermissionFactory(getUserPermissions);
-  const checkAnyPermission = checkAnyPermissionFactory(getUserPermissions);
-  const checkAllPermissions = checkAllPermissionsFactory(getUserPermissions);
+  const checkPermission = checkPermissionFactory(getAuthorizationData);
+  const checkAnyPermission = checkAnyPermissionFactory(getAuthorizationData);
+  const checkAllPermissions = checkAllPermissionsFactory(getAuthorizationData);
 
   // Create permission requiring functions
   const requirePermission = requirePermissionFactory(checkPermission);
@@ -56,8 +56,6 @@ export async function createPermissionService(
     requireAdminAccess,
 
     // Direct access to user data
-    getUserPermissions,
+    getAuthorizationData,
   };
 }
-
-export * from "./user-permissions";

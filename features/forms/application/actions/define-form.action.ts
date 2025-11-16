@@ -8,7 +8,7 @@ import {
 } from "@/lib/endatix-api/agents/types";
 import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 import { Model } from "survey-core";
-import { createPermissionService } from '@/features/auth/permissions/application';
+import { authorization } from '@/features/auth/permissions';
 
 function buildDefineFormRequest(formData: FormData): DefineFormRequest {
   const request: DefineFormRequest = {
@@ -37,7 +37,7 @@ export async function defineFormAction(
   prevState: PromptResult,
   formData: FormData,
 ): Promise<PromptResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   const request = buildDefineFormRequest(formData);

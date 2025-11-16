@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { updateFormTemplate } from "@/services/api";
 import { Result } from "@/lib/result";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 
 export type UpdateTemplateNameResult = Result<string>;
 
@@ -11,7 +11,7 @@ export async function updateTemplateNameAction(
   templateId: string,
   name: string,
 ): Promise<UpdateTemplateNameResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

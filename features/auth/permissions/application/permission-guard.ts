@@ -1,9 +1,9 @@
-import { AuthorizationResult } from "../domain/authorization-result";
+import { AuthCheckResult } from "../domain/authorization-result";
 import { Permissions } from "..";
 import { handlePermissionError } from "./error-handler";
 
 export function requirePermissionFactory(
-  checkPermission: (permission: string) => Promise<AuthorizationResult>,
+  checkPermission: (permission: string) => Promise<AuthCheckResult>,
 ) {
   return async (permission: string): Promise<void> => {
     const result = await checkPermission(permission);
@@ -14,7 +14,7 @@ export function requirePermissionFactory(
 }
 
 export function requireAnyPermissionFactory(
-  checkAnyPermission: (permissions: string[]) => Promise<AuthorizationResult>,
+  checkAnyPermission: (permissions: string[]) => Promise<AuthCheckResult>,
 ) {
   return async (permissions: string[]): Promise<void> => {
     const result = await checkAnyPermission(permissions);
@@ -25,7 +25,7 @@ export function requireAnyPermissionFactory(
 }
 
 export function requireAllPermissionsFactory(
-  checkAllPermissions: (permissions: string[]) => Promise<AuthorizationResult>,
+  checkAllPermissions: (permissions: string[]) => Promise<AuthCheckResult>,
 ) {
   return async (permissions: string[]): Promise<void> => {
     const result = await checkAllPermissions(permissions);
@@ -36,7 +36,7 @@ export function requireAllPermissionsFactory(
 }
 
 export function requireHubAccessFactory(
-  checkPermission: (permission: string) => Promise<AuthorizationResult>,
+  checkPermission: (permission: string) => Promise<AuthCheckResult>,
 ) {
   return async (): Promise<void> => {
     const result = await checkPermission(Permissions.Apps.HubAccess);
@@ -47,7 +47,7 @@ export function requireHubAccessFactory(
 }
 
 export function requireAdminAccessFactory(
-  checkPermission: (permission: string) => Promise<AuthorizationResult>,
+  checkPermission: (permission: string) => Promise<AuthCheckResult>,
 ) {
   return async (): Promise<void> => {
     const result = await checkPermission(Permissions.Apps.SaaSAdminAccess);

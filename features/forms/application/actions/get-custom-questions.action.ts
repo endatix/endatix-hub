@@ -2,12 +2,12 @@
 
 import { getCustomQuestions, CustomQuestion } from "@/services/api";
 import { Result } from "@/lib/result";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 
 export async function getCustomQuestionsAction(): Promise<
   Result<CustomQuestion[]> | never
 > {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

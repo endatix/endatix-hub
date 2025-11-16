@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import SubmissionDetails from "@/features/submissions/ui/details/submission-details";
 import { PdfEmbedView } from "@/features/pdf-export/embed-submission/pdf-embed-view";
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 
 type Params = {
   params: Promise<{
@@ -18,7 +18,7 @@ type Params = {
 
 export default async function SubmissionPage({ params, searchParams }: Params) {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const { formId, submissionId } = await params;

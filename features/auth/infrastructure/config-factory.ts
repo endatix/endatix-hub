@@ -1,7 +1,7 @@
 import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
 import { AuthPresentation } from "./types";
-import { invalidateUserPermissionsCache } from "../permissions/application";
+import { invalidateUserAuthorizationCache } from '../permissions/application/user-permissions';
 
 /**
  * Creates NextAuth configuration from a provider registry.
@@ -35,7 +35,7 @@ export function createAuthConfig(
 
         const userId = user?.id as string;
         if (userId) {
-          invalidateUserPermissionsCache({ userId });
+          invalidateUserAuthorizationCache({ userId });
         }
 
         return await provider.handleJWT({

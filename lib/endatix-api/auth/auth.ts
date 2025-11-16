@@ -41,7 +41,7 @@ export default class Auth {
   );
 
   /**
-   * Get authorization data
+   * Get authorization data for the current user
    * @returns The authorization data
    */
   async getAuthorizationData(): Promise<ApiResult<AuthorizationData>> {

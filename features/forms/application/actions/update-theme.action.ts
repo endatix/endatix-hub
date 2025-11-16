@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import { Result } from "@/lib/result";
 import { updateTheme } from "@/services/api";
 import { ITheme } from "survey-core";
@@ -19,7 +19,7 @@ export type UpdateThemeResult = Result<{
 export async function updateThemeAction(
   request: UpdateThemeRequest,
 ): Promise<UpdateThemeResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

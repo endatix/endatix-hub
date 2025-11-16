@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import { Result } from "@/lib/result";
 import { updateForm } from "@/services/api";
 import { revalidatePath } from "next/cache";
@@ -13,7 +13,7 @@ export async function updateFormNameAction(
   formName: string,
 ): Promise<UpdateFormNameResult | never> {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   try {

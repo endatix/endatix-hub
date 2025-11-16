@@ -1,3 +1,5 @@
+import { AuthorizationData } from "@/lib/endatix-api/auth/types";
+
 /**
  * Error types for permission operations
  */
@@ -30,6 +32,9 @@ type AuthorizationError = {
   };
 };
 
+/**
+ * Result pattern type for authorization related operations
+ */
 type AuthorizationResult<T = never> =
   | AuthorizationSuccess<T>
   | AuthorizationError;
@@ -101,6 +106,16 @@ const AuthorizationResult = {
   },
 };
 
+/**
+ * Result type for getting authorization data from the API
+ */
+type GetAuthDataResult = AuthorizationResult<AuthorizationData>;
+
+/**
+ * Result type for checking authorization and access to a resource
+ */
+type AuthCheckResult = AuthorizationResult<void>;
+
 // Helper type guards for specific error types
 const isAuthenticationRequired = <T>(result: AuthorizationResult<T>): boolean =>
   !result.success &&
@@ -113,13 +128,15 @@ const isServerError = <T>(result: AuthorizationResult<T>): boolean =>
   !result.success && result.error.type === AuthorizationErrorType.ServerError;
 
 export type {
-  AuthorizationErrorType,
   AuthorizationErrorDetails,
   AuthorizationSuccess,
   AuthorizationError,
+  GetAuthDataResult,
+  AuthCheckResult,
 };
 
 export {
+  AuthorizationErrorType,
   AuthorizationResult,
   isAuthenticationRequired,
   isPermissionDenied,

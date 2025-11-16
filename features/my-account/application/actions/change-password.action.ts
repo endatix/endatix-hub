@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import {
   EndatixApi,
   ChangePasswordRequestSchema,
@@ -28,7 +28,7 @@ export async function changePasswordAction(
   formData: FormData,
 ): Promise<ChangePasswordState | never> {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const rawData = {

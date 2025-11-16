@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import { Result } from "@/lib/result";
 import { deleteTheme } from "@/services/api";
 
@@ -9,7 +9,7 @@ export type DeleteThemeResult = Result<string>;
 export async function deleteThemeAction(
   themeId: string,
 ): Promise<DeleteThemeResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

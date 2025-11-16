@@ -1,12 +1,15 @@
-import { AuthorizationData } from "@/lib/endatix-api/types";
-import { AuthorizationResult } from "../domain/authorization-result";
+import {
+  AuthCheckResult,
+  AuthorizationResult,
+  GetAuthDataResult,
+} from "../domain/authorization-result";
 
 export function checkPermissionFactory(
-  getUserPermissions: () => Promise<AuthorizationResult<AuthorizationData>>,
+  getUserAuthData: () => Promise<GetAuthDataResult>,
 ) {
-  return async (permission: string): Promise<AuthorizationResult> => {
+  return async (permission: string): Promise<AuthCheckResult> => {
     try {
-      const result = await getUserPermissions();
+      const result = await getUserAuthData();
 
       if (!result.success) {
         return result;
@@ -28,11 +31,11 @@ export function checkPermissionFactory(
 }
 
 export function checkAnyPermissionFactory(
-  getUserPermissions: () => Promise<AuthorizationResult<AuthorizationData>>,
+  getUserAuthData: () => Promise<GetAuthDataResult>,
 ) {
-  return async (permissions: string[]): Promise<AuthorizationResult> => {
+  return async (permissions: string[]): Promise<AuthCheckResult> => {
     try {
-      const result = await getUserPermissions();
+      const result = await getUserAuthData();
 
       if (!result.success) {
         return result;
@@ -46,7 +49,9 @@ export function checkAnyPermissionFactory(
         result.data.permissions.includes(permission),
       );
 
-      return hasAny ? AuthorizationResult.success() : AuthorizationResult.forbidden();
+      return hasAny
+        ? AuthorizationResult.success()
+        : AuthorizationResult.forbidden();
     } catch (error) {
       console.error("Unexpected error during checking permissions:", error);
       return AuthorizationResult.error();
@@ -55,11 +60,11 @@ export function checkAnyPermissionFactory(
 }
 
 export function checkAllPermissionsFactory(
-  getUserPermissions: () => Promise<AuthorizationResult<AuthorizationData>>,
+  getUserAuthData: () => Promise<GetAuthDataResult>,
 ) {
-  return async (permissions: string[]): Promise<AuthorizationResult> => {
+  return async (permissions: string[]): Promise<AuthCheckResult> => {
     try {
-      const result = await getUserPermissions();
+      const result = await getUserAuthData();
 
       if (!result.success) {
         return result;
@@ -73,7 +78,9 @@ export function checkAllPermissionsFactory(
         result.data.permissions.includes(permission),
       );
 
-      return hasAll ? AuthorizationResult.success() : AuthorizationResult.forbidden();
+      return hasAll
+        ? AuthorizationResult.success()
+        : AuthorizationResult.forbidden();
     } catch (error) {
       console.error("Unexpected error during checking permissions:", error);
       return AuthorizationResult.error();

@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import { updateForm } from "@/services/api";
 import type { WebHookConfiguration } from "@/types";
 import {
@@ -13,7 +13,7 @@ export async function updateWebhookSettingsAction(
   _prevState: WebhookSettingsState,
   formData: FormData
 ): Promise<WebhookSettingsState | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   const rawData: Record<string, string | boolean> = {

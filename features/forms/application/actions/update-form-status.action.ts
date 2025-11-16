@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import { Result } from "@/lib/result";
 import { updateForm } from "@/services/api";
 
@@ -10,7 +10,7 @@ export async function updateFormStatusAction(
   formId: string,
   isEnabled: boolean,
 ): Promise<UpdateFormStatusResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

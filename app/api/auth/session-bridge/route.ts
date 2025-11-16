@@ -7,7 +7,7 @@ import { decodeJwt } from "jose";
 import zod from "zod";
 import { getSessionCookieOptions } from "@/features/auth/infrastructure/session-utils";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
-import { invalidateUserPermissionsCache } from "@/features/auth/permissions/application";
+import { invalidateUserAuthorizationCache } from "@/features/auth/permissions/application/user-permissions";
 
 const MobileJwtTokenSchema = zod.object({
   access_token: zod.string(),
@@ -159,7 +159,7 @@ async function createSessionFromTokenData(
     salt: sessionCookieName,
   });
 
-  invalidateUserPermissionsCache({ userId: token.id });
+  invalidateUserAuthorizationCache({ userId: token.id });
 
   // 5. Create session cookies
   const response = NextResponse.json({

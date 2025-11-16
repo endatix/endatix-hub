@@ -1,29 +1,28 @@
-import { AuthorizationData } from "@/lib/endatix-api/auth/types";
-import { AuthorizationResult } from "./authorization-result";
+import { AuthCheckResult, GetAuthDataResult } from "./authorization-result";
 
-interface PermissionService {
+export interface IAuthorizationService {
   /**
-   * Returns current user's RBAC permissions result.
+   * Returns current user's Authorization data needed for RBAC.
    */
-  getUserPermissions(): Promise<AuthorizationResult<AuthorizationData>>;
+  getAuthorizationData(): Promise<GetAuthDataResult>;
 
   /**
    * Checks if user has given permission.
    * @param permission - e.g. "org:read"
    */
-  checkPermission(permission: string): Promise<AuthorizationResult>;
+  checkPermission(permission: string): Promise<AuthCheckResult>;
 
   /**
    * Returns success if user has at least one of the permissions.
    * @param permissions - permission names
    */
-  checkAnyPermission(permissions: string[]): Promise<AuthorizationResult>;
+  checkAnyPermission(permissions: string[]): Promise<AuthCheckResult>;
 
   /**
    * Returns success only if user has all listed permissions.
    * @param permissions - permission names
    */
-  checkAllPermissions(permissions: string[]): Promise<AuthorizationResult>;
+  checkAllPermissions(permissions: string[]): Promise<AuthCheckResult>;
 
   /**
    * Throws if user lacks a specific permission.
@@ -53,6 +52,3 @@ interface PermissionService {
    */
   requireAdminAccess(): Promise<void>;
 }
-
-// Re-export PermissionService types and utilities
-export type { AuthorizationData, PermissionService };

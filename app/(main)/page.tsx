@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { SIGNIN_PATH } from "@/features/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 import SessionCard from "@/features/auth/ui/session-card";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { Session } from "next-auth";
@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 export default async function Home() {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const enableExperimental = await experimentalFeaturesFlag();

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FormTemplate } from "@/types";
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/permissions";
 
 type Params = {
   params: Promise<{ templateId: string }>;
@@ -13,7 +13,7 @@ type Params = {
 
 export default async function FormTemplateEditPage({ params }: Params) {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const { templateId } = await params;
