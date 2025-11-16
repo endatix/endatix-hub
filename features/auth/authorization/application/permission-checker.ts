@@ -4,6 +4,11 @@ import {
   GetAuthDataResult,
 } from "../domain/authorization-result";
 
+/**
+ * Checks if user has given permission.
+ * @param permission - permission name
+ * @returns Authorization result
+ */
 export function checkPermissionFactory(
   getUserAuthData: () => Promise<GetAuthDataResult>,
 ) {
@@ -30,6 +35,11 @@ export function checkPermissionFactory(
   };
 }
 
+/**
+ * Checks if user has any of the given permissions.
+ * @param permissions - permission names
+ * @returns Authorization result
+ */
 export function checkAnyPermissionFactory(
   getUserAuthData: () => Promise<GetAuthDataResult>,
 ) {
@@ -59,6 +69,11 @@ export function checkAnyPermissionFactory(
   };
 }
 
+/**
+ * Checks if user has all given permissions.
+ * @param permissions - permission names
+ * @returns Authorization result
+ */
 export function checkAllPermissionsFactory(
   getUserAuthData: () => Promise<GetAuthDataResult>,
 ) {
@@ -85,5 +100,42 @@ export function checkAllPermissionsFactory(
       console.error("Unexpected error during checking permissions:", error);
       return AuthorizationResult.error();
     }
+  };
+}
+
+/**
+ * Checks if user is an admin.
+ * @returns Authorization result
+ */
+export function checkIsAdminFactory(
+  getUserAuthData: () => Promise<GetAuthDataResult>,
+) {
+  return async (): Promise<AuthCheckResult> => {
+    const result = await getUserAuthData();
+    if (!result.success) {
+      return result;
+    }
+    return result.data.isAdmin
+      ? AuthorizationResult.success()
+      : AuthorizationResult.forbidden();
+  };
+}
+
+/**
+ * Checks if user is in given role.
+ * @param role - role name
+ * @returns Authorization result
+ */
+export function checkIsInRoleFactory(
+  getUserAuthData: () => Promise<GetAuthDataResult>,
+) {
+  return async (role: string): Promise<AuthCheckResult> => {
+    const result = await getUserAuthData();
+    if (!result.success) {
+      return result;
+    }
+    return result.data.roles.includes(role)
+      ? AuthorizationResult.success()
+      : AuthorizationResult.forbidden();
   };
 }

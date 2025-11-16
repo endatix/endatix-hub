@@ -1,6 +1,7 @@
 import { AuthCheckResult } from "../domain/authorization-result";
 import { Permissions } from "..";
 import { handlePermissionError } from "./error-handler";
+import { SystemRoles } from "../domain/system-roles";
 
 export function requirePermissionFactory(
   checkPermission: (permission: string) => Promise<AuthCheckResult>,
@@ -47,10 +48,32 @@ export function requireHubAccessFactory(
 }
 
 export function requireAdminAccessFactory(
-  checkPermission: (permission: string) => Promise<AuthCheckResult>,
+  checkIsAdmin: () => Promise<AuthCheckResult>,
 ) {
   return async (): Promise<void> => {
-    const result = await checkPermission(Permissions.Apps.SaaSAdminAccess);
+    const result = await checkIsAdmin();
+    if (!result.success) {
+      handlePermissionError(result);
+    }
+  };
+}
+
+export function requireRoleFactory(
+  checkIsInRole: (role: string) => Promise<AuthCheckResult>,
+) {
+  return async (role: string): Promise<void> => {
+    const result = await checkIsInRole(role);
+    if (!result.success) {
+      handlePermissionError(result);
+    }
+  };
+}
+
+export function requirePlatformAdminFactory(
+  checkIsInRole: (role: string) => Promise<AuthCheckResult>,
+) {
+  return async (): Promise<void> => {
+    const result = await checkIsInRole(SystemRoles.PlatformAdmin);
     if (!result.success) {
       handlePermissionError(result);
     }

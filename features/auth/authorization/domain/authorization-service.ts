@@ -48,7 +48,18 @@ export interface IAuthorizationService {
   requireHubAccess(): Promise<void>;
 
   /**
-   * Throws if user is not an admin.
+   * Throws if user is not in given role.
+   * @param role - role name
    */
-  requireAdminAccess(): Promise<void>;
+  requireRole(role: string): Promise<void>;
+
+  /**
+   * Throws if user is not an admin - uses the isAdmin flag from the authorization data.
+   */
+  requireAdmin(): Promise<void>;
+
+  /**
+   * Throws if user is does not have the PlatformAdmin role.
+   */
+  requirePlatformAdmin(): Promise<void>;
 }

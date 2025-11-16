@@ -33,11 +33,11 @@ async function fetchAuthorizationData(
 }
 
 /**
- * Factory function to create a function that gets authorization data for the current user from the API. To be used fromthe various checks and guards from the AuthorizationService.
+ * Function that gets authorization data for the current user from the API. To be used from the various checks and guards from the AuthorizationService.
  * @param session - The session object
  * @returns A function that gets authorization data for the current user
  */
-export function getAuthorizationDataFactory(session: Session | null) {
+export function getAuthDataForCurrentUser(session: Session | null) {
   return async (): Promise<GetAuthDataResult> => {
     try {
       if (!session) {
