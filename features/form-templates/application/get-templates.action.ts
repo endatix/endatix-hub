@@ -3,7 +3,7 @@
 import { FormTemplate } from "@/types";
 import { getFormTemplates } from "@/services/api";
 import { Result } from "@/lib/result";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 
 export type GetTemplatesResult = Result<FormTemplate[]>;
 

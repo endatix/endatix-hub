@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 import { updateForm } from "@/services/api";
 import { revalidatePath } from "next/cache";

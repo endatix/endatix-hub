@@ -1,7 +1,7 @@
 import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
 import { AuthPresentation } from "./types";
-import { invalidateUserAuthorizationCache } from '../permissions/application/user-permissions';
+import { invalidateUserAuthorizationCache } from '../authorization/application/user-permissions';
 
 /**
  * Creates NextAuth configuration from a provider registry.

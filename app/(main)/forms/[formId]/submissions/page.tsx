@@ -5,7 +5,7 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 
 type Params = {
   params: Promise<{ formId: string }>;

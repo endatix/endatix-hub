@@ -1,6 +1,6 @@
 "use server";
 
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { CreateFormRequest } from "@/features/forms/ui/chat/use-cases/assistant";
 import { createForm } from "@/services/api";
 

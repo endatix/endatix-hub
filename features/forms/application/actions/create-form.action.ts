@@ -1,6 +1,6 @@
 "use server";
 
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { createForm } from "@/services/api";

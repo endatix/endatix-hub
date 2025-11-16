@@ -7,7 +7,7 @@ import { decodeJwt } from "jose";
 import zod from "zod";
 import { getSessionCookieOptions } from "@/features/auth/infrastructure/session-utils";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
-import { invalidateUserAuthorizationCache } from "@/features/auth/permissions/application/user-permissions";
+import { invalidateUserAuthorizationCache } from "@/features/auth/authorization/application/user-permissions";
 
 const MobileJwtTokenSchema = zod.object({
   access_token: zod.string(),

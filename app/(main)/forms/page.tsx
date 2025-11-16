@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { Session } from "next-auth";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { redirect } from "next/navigation";

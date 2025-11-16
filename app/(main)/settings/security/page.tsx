@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { ChangePassword } from "@/features/my-account/ui/change-password/change-password";
 
 export default async function SettingsAccountPage() {

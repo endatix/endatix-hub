@@ -8,7 +8,7 @@ import {
 } from "@/lib/endatix-api/agents/types";
 import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 import { Model } from "survey-core";
-import { authorization } from '@/features/auth/permissions';
+import { authorization } from '@/features/auth/authorization';
 
 function buildDefineFormRequest(formData: FormData): DefineFormRequest {
   const request: DefineFormRequest = {

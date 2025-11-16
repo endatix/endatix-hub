@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import {
   AuthorizationErrorType,
   AuthorizationResult,

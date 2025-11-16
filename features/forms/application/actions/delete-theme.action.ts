@@ -1,6 +1,6 @@
 "use server";
 
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 import { deleteTheme } from "@/services/api";
 

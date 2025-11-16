@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { getSubmission } from "@/services/api";
 
 interface SubmissionPageProps {

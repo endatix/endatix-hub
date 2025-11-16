@@ -7,8 +7,8 @@ import {
 } from "@/lib/endatix-api";
 import { auth } from "@/auth";
 import type { Session } from "next-auth";
-import { authorization } from "@/features/auth/permissions";
-import { IAuthorizationService } from '@/features/auth/permissions/domain/authorization-service';
+import { authorization } from "@/features/auth/authorization";
+import { IAuthorizationService } from "@/features/auth/authorization/domain/authorization-service";
 
 type RedirectError = Error & { digest: string };
 
@@ -17,8 +17,8 @@ vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
 
-// Mock the permission service
-vi.mock("@/features/auth/permissions", () => ({
+// Mock the authorization service
+vi.mock("@/features/auth/authorization", () => ({
   authorization: vi.fn(),
 }));
 

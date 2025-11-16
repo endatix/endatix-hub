@@ -9,7 +9,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { auth } from "@/auth";
 
 type Params = {

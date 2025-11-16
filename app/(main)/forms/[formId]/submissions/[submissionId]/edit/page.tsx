@@ -7,7 +7,7 @@ import { Result } from "@/lib/result";
 import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 
 type Params = {
   params: Promise<{

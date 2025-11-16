@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { updateFormTemplate } from "@/services/api";
 import { Result } from "@/lib/result";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 
 export type UpdateTemplateStatusResult = Result<string>;
 

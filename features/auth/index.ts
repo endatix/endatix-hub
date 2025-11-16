@@ -8,4 +8,4 @@ export * from "./ui/auth-error";
 export * from "./ui/keycloak-sign-out-button";
 
 // Permissions (domain + result only)
-export * from "./permissions";
+export * from "./authorization";

@@ -2,7 +2,7 @@
 
 import { getCustomQuestions, CustomQuestion } from "@/services/api";
 import { Result } from "@/lib/result";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 
 export async function getCustomQuestionsAction(): Promise<
   Result<CustomQuestion[]> | never

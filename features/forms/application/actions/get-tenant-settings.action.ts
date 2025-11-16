@@ -1,6 +1,6 @@
 "use server";
 
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import { getSession } from "@/features/auth";
 import { Result } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";

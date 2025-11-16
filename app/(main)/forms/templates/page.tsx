@@ -8,7 +8,7 @@ import FormTemplatesList from "@/features/form-templates/ui/form-templates-list"
 import { getFormTemplates } from "@/services/api";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 
 export default async function FormTemplatesPage() {
   const session = await auth();

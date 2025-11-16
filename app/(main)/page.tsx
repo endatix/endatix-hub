@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { SIGNIN_PATH } from "@/features/auth";
-import { authorization } from "@/features/auth/permissions";
+import { authorization } from "@/features/auth/authorization";
 import SessionCard from "@/features/auth/ui/session-card";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { Session } from "next-auth";
