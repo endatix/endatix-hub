@@ -141,6 +141,5 @@
       "sharp",
       "unrs-resolver"
     ]
-  },
-  "packageManager": "pnpm@10.22.0+sha256.053a8493e8e328a3c6d7ff5cb079bef28719152ccf831e4666b5c0332b77bb88"
+  }
 }
