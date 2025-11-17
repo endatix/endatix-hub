@@ -5,3 +5,13 @@
   z-index: 99999 !important;
 }
 .ql-bubble .ql-tooltip .ql-formats { display: inline-flex; flex-wrap: nowrap; }
+
+/* Ensure bubble tooltips are not clipped inside the survey settings sidebar */
+/* https://github.com/endatix/endatix-hub/issues/230 */
+.svc-side-bar__container-content:has(.ql-toolbar) {
+  overflow: visible !important;
+ 
+  & .sv-scroll__scroller {
+    overflow: visible !important;
+  }
+}
