@@ -11,6 +11,7 @@ import {
   AuthorizationErrorType,
   AuthorizationResult,
 } from "../../domain/authorization-result";
+import { createTestAuthorizationData } from "./helpers";
 
 const unauthenticatedResult = AuthorizationResult.unauthenticated();
 const serverErrorResult = AuthorizationResult.error();
@@ -20,16 +21,7 @@ describe("authorization-checkers", () => {
     vi.restoreAllMocks();
   });
 
-  const baseAuthData = {
-    userId: "user-123",
-    tenantId: "tenant-456",
-    roles: [],
-    permissions: [],
-    isAdmin: false,
-    cachedAt: "2024-01-01T00:00:00Z",
-    expiresAt: "2024-01-01T12:00:00Z",
-    eTag: "etag-123",
-  };
+  const baseAuthData = createTestAuthorizationData();
 
   describe("checkPermissionFactory", () => {
     it("returns success when user has permission", async () => {

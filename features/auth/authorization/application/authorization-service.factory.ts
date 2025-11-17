@@ -1,5 +1,4 @@
-import { Session } from "next-auth";
-
+import type { Session } from "next-auth";
 import { getAuthDataForCurrentUser } from "./authorization-data.provider";
 import {
   checkPermissionFactory,
