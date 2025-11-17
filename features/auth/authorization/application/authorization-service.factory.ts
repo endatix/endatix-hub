@@ -7,7 +7,7 @@ import {
   checkAllPermissionsFactory,
   checkIsAdminFactory,
   checkIsInRoleFactory,
-} from "./permission-checker";
+} from "./authorization-checkers";
 import {
   requirePermissionFactory,
   requireAnyPermissionFactory,
@@ -16,7 +16,7 @@ import {
   requireAdminAccessFactory,
   requireRoleFactory,
   requirePlatformAdminFactory,
-} from "./permission-guard";
+} from "./authorization-guards";
 import { auth } from "@/auth";
 import { IAuthorizationService } from "../domain/authorization-service";
 
