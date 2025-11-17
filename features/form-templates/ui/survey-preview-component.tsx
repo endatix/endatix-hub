@@ -1,6 +1,6 @@
 "use client";
 
-import { useRichText } from '@/lib/survey-features/rich-text';
+import { useRichText } from "@/lib/survey-features/rich-text";
 import { FormTemplate } from "@/types";
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";

@@ -183,7 +183,7 @@ function FormTemplateEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile]);
+  }, [options, slkVal, handleUploadFile, creator]);
 
   useEffect(() => {
     if (creator && templateJson) {
