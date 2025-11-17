@@ -1,5 +1,5 @@
 import { AuthCheckResult } from "../domain/authorization-result";
-import { Permissions } from "..";
+import { Permissions } from "../domain/permissions";
 import { handlePermissionError } from "./error-handler";
 import { SystemRoles } from "../domain/system-roles";
 
