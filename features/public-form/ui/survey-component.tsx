@@ -23,7 +23,7 @@ import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
 import { LanguageSelector } from "./language-selector";
 import "survey-core/survey.i18n";
-import { useRichText } from "../application/use-rich-text.hook";
+import { useRichText } from "@/lib/survey-features/rich-text";
 
 interface SurveyComponentProps {
   definition: string;
@@ -53,7 +53,7 @@ export default function SurveyComponent({
     submission?.id ?? "",
   );
   useSurveyTheme(theme, surveyModel);
-  useRichText({ surveyModel });
+  useRichText(surveyModel);
   useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
 

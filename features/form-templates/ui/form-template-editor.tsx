@@ -28,9 +28,9 @@ import { endatixTheme } from "@/components/editors/endatix-theme";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
-import { registerMarkdownRenderer } from "@/lib/questions/rich-text-editor/register-markdown-renderer";
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
+import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 
 const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
@@ -71,6 +71,7 @@ function FormTemplateEditor({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
+  useRichTextEditing(creator);
 
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
@@ -170,10 +171,6 @@ function FormTemplateEditor({
           callback(no, true);
         };
         newCreator.onUploadFile.add(handleUploadFile);
-        newCreator.onSurveyInstanceCreated.add((_, options) => {
-          registerMarkdownRenderer(options.survey);
-        });
-
         setCreator(newCreator);
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);

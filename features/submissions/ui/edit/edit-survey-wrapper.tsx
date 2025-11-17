@@ -20,6 +20,7 @@ import {
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
+import { useRichText } from "@/lib/survey-features/rich-text";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -105,6 +106,7 @@ function useSurveyModel(submission: Submission) {
 function EditSurveyWrapper({ submission, onChange }: EditSurveyWrapperProps) {
   const { model, isLoading } = useSurveyModel(submission);
   const { setFromMetadata } = useDynamicVariables(model);
+  useRichText(model);
 
   useBlobStorage({
     formId: submission.formId,

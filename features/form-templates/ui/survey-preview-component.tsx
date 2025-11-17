@@ -1,5 +1,6 @@
 "use client";
 
+import { useRichText } from '@/lib/survey-features/rich-text';
 import { FormTemplate } from "@/types";
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
@@ -16,6 +17,7 @@ export default function SurveyPreviewComponent({
 }: SurveyPreviewComponentProps) {
   const [model, setModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useRichText(model);
 
   useEffect(() => {
     if (template) {
