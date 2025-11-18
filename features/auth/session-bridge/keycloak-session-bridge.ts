@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthTokenSchema, KeycloakTokenResponse } from "./types";
-import { getSessionCookieOptions } from "../session-utils";
+import { getSessionCookieOptions } from "../infrastructure/session-utils";
 import { decodeJwt } from "jose";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { invalidateUserPermissionsCache } from "../../permissions/application";
+import { invalidateUserPermissionsCache } from "../permissions/application";
 import { encode } from "next-auth/jwt";
 import { authConfig } from "@/auth";
-import { KEYCLOAK_ID } from "../providers";
+import { KEYCLOAK_ID } from "../infrastructure/providers";
 
 const SERVER_ERROR_TITLE = "Session bridge server error";
 

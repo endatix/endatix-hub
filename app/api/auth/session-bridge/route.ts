@@ -1,3 +1,3 @@
-import { sessionBridgeHandlers } from "@/features/auth/infrastructure/session-bridge";
+import { sessionBridgeHandlers } from "@/features/auth/session-bridge";
 
 export const { POST } = sessionBridgeHandlers;

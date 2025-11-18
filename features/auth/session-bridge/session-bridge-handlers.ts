@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { KEYCLOAK_ID } from "@/features/auth/infrastructure/providers/keycloak-auth-provider";
 import { authRegistry } from "@/features/auth/infrastructure/auth-provider-registry";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
-import { exchangeKeycloakToken } from "@/features/auth/infrastructure/session-bridge/keycloak-token-exchange";
+import { exchangeKeycloakToken } from "@/features/auth/session-bridge/keycloak-token-exchange";
 import { apiResponses, toNextResponse } from "@/lib/utils/route-handlers";
 import { ApiResult } from "@/lib/endatix-api";
-import { createSessionFromToken } from "@/features/auth/infrastructure/session-bridge/keycloak-session-bridge";
+import { createSessionFromToken } from "@/features/auth/session-bridge/keycloak-session-bridge";
 import { SessionBridgeRequestSchema } from "./types";
 
 const SERVER_ERROR_TITLE = "Session bridge server error";
