@@ -1,7 +1,7 @@
 import zod from "zod";
 
 export const SessionBridgeRequestSchema = zod.object({
-  access_token: zod.string(),
+  access_token: zod.string()
 });
 
 export type SessionBridgeRequest = zod.infer<typeof SessionBridgeRequestSchema>;
