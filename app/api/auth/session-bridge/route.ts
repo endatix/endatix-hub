@@ -8,28 +8,20 @@ import zod from "zod";
 import { getSessionCookieOptions } from "@/features/auth/infrastructure/session-utils";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { invalidateUserPermissionsCache } from "@/features/auth/permissions/application";
+import {
+  exchangeKeycloakToken,
+  KeycloakTokenResponse,
+} from "@/features/auth/infrastructure/session-bridge/keycloak-token-exchange";
+import { apiResponses, toNextResponse } from "@/lib/utils/route-handlers";
+import { ApiResult } from "@/lib/endatix-api";
+
+const SERVER_ERROR_TITLE = "Session bridge server error";
 
 const MobileJwtTokenSchema = zod.object({
   access_token: zod.string(),
 });
 
 export type MobileJwtToken = zod.infer<typeof MobileJwtTokenSchema>;
-
-const KeycloakTokenResponseSchema = zod.object({
-  access_token: zod.string(),
-  refresh_token: zod.string(),
-  expires_in: zod.number(),
-  refresh_expires_in: zod.number(),
-  id_token: zod.string(),
-  token_type: zod.string(),
-  scope: zod.string(),
-  session_state: zod.string(),
-  issued_token_type: zod.string(),
-});
-
-export type KeycloakTokenResponse = zod.infer<
-  typeof KeycloakTokenResponseSchema
->;
 
 const AuthTokenSchema = zod.object({
   id: zod.string(),
@@ -51,10 +43,9 @@ export async function POST(request: NextRequest) {
     enableExperimental || process.env.NODE_ENV !== "production";
 
   if (!allowSessionBridge) {
-    return NextResponse.json(
-      { error: "Session bridge is not allowed" },
-      { status: 403 },
-    );
+    return apiResponses.forbidden({
+      detail: "Session bridge is not allowed",
+    });
   }
 
   const providerId = KEYCLOAK_ID;
@@ -64,51 +55,37 @@ export async function POST(request: NextRequest) {
     const mobileJwtResult = MobileJwtTokenSchema.safeParse(body);
 
     if (!mobileJwtResult.success) {
-      return NextResponse.json(
-        { error: "Invalid mobile JWT token format" },
-        { status: 400 },
-      );
+      return apiResponses.badRequest({
+        detail: "Missing access token. Please provide a valid access token.",
+      });
     }
 
     const mobileJwt = mobileJwtResult.data.access_token;
 
     const authProvider = authRegistry.getProvider(providerId);
     if (!authProvider) {
-      return NextResponse.json(
-        { error: "Requested auth provider not found" },
-        { status: 500 },
-      );
+      return apiResponses.serverError({
+        title: SERVER_ERROR_TITLE,
+        detail: `Missing required auth provider. Please contact support.`,
+      });
     }
 
-    const keycloakTokenData = await exchangeToken(mobileJwt);
-    const keycloakTokenDataResult =
-      KeycloakTokenResponseSchema.safeParse(keycloakTokenData);
-    if (!keycloakTokenDataResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid Keycloak token format",
-          details: JSON.stringify(
-            keycloakTokenDataResult?.error?.flatten() || [],
-          ),
-        },
-        { status: 400 },
-      );
+    const exchangeKeycloakTokenResult = await exchangeKeycloakToken(mobileJwt);
+    if (ApiResult.isError(exchangeKeycloakTokenResult)) {
+      return toNextResponse(exchangeKeycloakTokenResult);
     }
 
     const sessionResponse = await createSessionFromTokenData(
-      keycloakTokenDataResult.data,
+      exchangeKeycloakTokenResult.data,
       request.nextUrl.protocol,
     );
     return sessionResponse;
   } catch (error) {
-    console.error("Session bridge error:", error);
-    return NextResponse.json(
-      {
-        error: "Session creation failed",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
+    console.error(`${SERVER_ERROR_TITLE}:`, error);
+    return apiResponses.serverError({
+      title: SERVER_ERROR_TITLE,
+      detail: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -116,96 +93,78 @@ async function createSessionFromTokenData(
   tokenData: KeycloakTokenResponse,
   protocol: string,
 ) {
-  const useSecureCookies = protocol === "https:";
-  const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
-  const userInfo = decodeJwt(tokenData.id_token);
+  try {
+    const useSecureCookies = protocol === "https:";
+    const sessionCookieOptions = getSessionCookieOptions(useSecureCookies);
+    const userInfo = decodeJwt(tokenData.id_token);
 
-  if (!userInfo) {
-    return NextResponse.json(
-      { error: "Invalid token format" },
-      { status: 400 },
-    );
-  }
+    if (!userInfo) {
+      return apiResponses.badRequest({
+        errorCode: "MISSING_ID_TOKEN",
+        detail:
+          "Session bridge failed. The token exchange response does not contain an ID token.",
+      });
+    }
 
-  const expires = new Date(Date.now() + tokenData.expires_in * 1000);
-  const authTokenPayload = {
-    id: userInfo.sub ?? userInfo.id,
-    email: userInfo.email,
-    name: userInfo.name ?? userInfo.nickname ?? userInfo.preferred_username,
-    picture: userInfo.picture,
-    access_token: tokenData.access_token,
-    refresh_token: tokenData.refresh_token,
-    provider: KEYCLOAK_ID,
-    iat: Math.floor(Date.now() / 1000),
-    expires_at: expires,
-  };
-
-  const validatedAuthTokenResult = AuthTokenSchema.safeParse(authTokenPayload);
-
-  if (!validatedAuthTokenResult.success) {
-    return NextResponse.json(
-      { error: "Insufficient information to establish a session" },
-      { status: 400 },
-    );
-  }
-
-  const token = validatedAuthTokenResult.data;
-  const sessionCookieName =
-    sessionCookieOptions.sessionToken.name || "authjs.session-token";
-  console.log("sessionCookieName", sessionCookieName);
-  const jwt = await encode({
-    token: token,
-    secret: authConfig.secret!,
-    salt: sessionCookieName,
-  });
-
-  invalidateUserPermissionsCache({ userId: token.id });
-
-  // 5. Create session cookies
-  const response = NextResponse.json({
-    success: true,
-    user: {
-      id: userInfo.sub,
-      name: userInfo.name,
+    const expires = new Date(Date.now() + tokenData.expires_in * 1000);
+    const authTokenPayload = {
+      id: userInfo.sub ?? userInfo.id,
       email: userInfo.email,
-      image: userInfo.picture,
-    },
-  });
+      name: userInfo.name ?? userInfo.nickname ?? userInfo.preferred_username,
+      picture: userInfo.picture,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      provider: KEYCLOAK_ID,
+      iat: Math.floor(Date.now() / 1000),
+      expires_at: expires,
+    };
 
-  response.cookies.set(
-    sessionCookieName,
-    jwt,
-    sessionCookieOptions.sessionToken.options,
-  );
+    const validatedAuthTokenResult =
+      AuthTokenSchema.safeParse(authTokenPayload);
 
-  return response;
-}
+    if (!validatedAuthTokenResult.success) {
+      return apiResponses.badRequest({
+        errorCode: "EXCHANGED_TOKEN_INVALID",
+        detail:
+          "Session bridge token exchange failed. Insufficient information to establish a session.",
+        fields: validatedAuthTokenResult.error.flatten().fieldErrors,
+      });
+    }
 
-async function exchangeToken(
-  mobileJWT: string,
-): Promise<KeycloakTokenResponse> {
-  const keycloakTokenUrl = `${process.env.AUTH_KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
+    const token = validatedAuthTokenResult.data;
+    const sessionCookieName =
+      sessionCookieOptions.sessionToken.name || "authjs.session-token";
+    const jwt = await encode({
+      token: token,
+      secret: authConfig.secret!,
+      salt: sessionCookieName,
+    });
 
-  const response = await fetch(keycloakTokenUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
-      client_id: process.env.AUTH_KEYCLOAK_CLIENT_ID!,
-      client_secret: process.env.AUTH_KEYCLOAK_CLIENT_SECRET!,
-      subject_token: mobileJWT,
-      subject_token_type: "urn:ietf:params:oauth:token-type:access_token",
-      requested_token_type: "urn:ietf:params:oauth:token-type:refresh_token",
-      audience: process.env.AUTH_KEYCLOAK_CLIENT_ID!,
-      scope: "openid email profile",
-    }),
-  });
+    invalidateUserPermissionsCache({ userId: token.id });
 
-  if (!response.ok) {
-    throw new Error(`Keycloak token exchange failed: ${response.statusText}`);
+    // 5. Create session cookies
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        id: userInfo.sub,
+        name: userInfo.name,
+        email: userInfo.email,
+        image: userInfo.picture,
+      },
+    });
+
+    response.cookies.set(
+      sessionCookieName,
+      jwt,
+      sessionCookieOptions.sessionToken.options,
+    );
+
+    return response;
+  } catch (error) {
+    console.error(`${SERVER_ERROR_TITLE}:`, error);
+    return apiResponses.serverError({
+      title: SERVER_ERROR_TITLE,
+      detail: error instanceof Error ? error.message : String(error),
+    });
   }
-
-  return response.json();
 }

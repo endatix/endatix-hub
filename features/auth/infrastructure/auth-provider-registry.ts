@@ -1,4 +1,4 @@
-import { AuthPresentation, IAuthPresentation, IAuthProvider } from "./types";
+import { AuthPresentation, IAuthProvider } from "./types";
 import { EndatixAuthProvider } from "./providers/endatix-auth-provider";
 
 /**
