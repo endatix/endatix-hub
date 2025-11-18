@@ -1,21 +1,5 @@
 import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
-import zod from "zod";
-
-const KeycloakTokenResponseSchema = zod.object({
-  access_token: zod.string(),
-  refresh_token: zod.string(),
-  expires_in: zod.number(),
-  refresh_expires_in: zod.number(),
-  id_token: zod.string(),
-  token_type: zod.string(),
-  scope: zod.string(),
-  session_state: zod.string(),
-  issued_token_type: zod.string(),
-});
-
-export type KeycloakTokenResponse = zod.infer<
-  typeof KeycloakTokenResponseSchema
->;
+import { KeycloakTokenResponse, KeycloakTokenResponseSchema } from "./types";
 
 export async function exchangeKeycloakToken(
   mobileJWT: string,
