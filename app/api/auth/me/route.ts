@@ -5,13 +5,19 @@ import {
   AuthorizationResult,
   GetAuthDataResult,
 } from "@/features/auth";
+import { auth } from "@/auth";
 
 /**
  * API endpoint that returns user permissions
  */
 export async function GET() {
   try {
-    const { getAuthorizationData } = await authorization();
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { getAuthorizationData } = await authorization(session);
     const getAuthDataResult = await getAuthorizationData();
 
     if (AuthorizationResult.isError(getAuthDataResult)) {
