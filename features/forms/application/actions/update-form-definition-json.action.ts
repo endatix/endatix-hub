@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 import { updateFormDefinition } from "@/services/api";
 import { revalidatePath } from "next/cache";
@@ -12,7 +12,7 @@ export async function updateFormDefinitionJsonAction(
   isDraft: boolean,
   formJson: object | null,
 ): Promise<UpdateFormDefinitionJsonResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

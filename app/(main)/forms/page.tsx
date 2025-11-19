@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { Session } from "next-auth";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { redirect } from "next/navigation";
@@ -21,7 +21,7 @@ export default async function FormsPage() {
     aiFeaturesFlag(),
   ]);
 
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   return (

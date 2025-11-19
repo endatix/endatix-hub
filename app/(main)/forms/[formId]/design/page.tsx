@@ -9,7 +9,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { auth } from "@/auth";
 
 type Params = {
@@ -18,7 +18,7 @@ type Params = {
 
 export default async function FormDesignerPage({ params }: Params) {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const { formId } = await params;

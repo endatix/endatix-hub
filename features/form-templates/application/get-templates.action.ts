@@ -3,14 +3,14 @@
 import { FormTemplate } from "@/types";
 import { getFormTemplates } from "@/services/api";
 import { Result } from "@/lib/result";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 
 export type GetTemplatesResult = Result<FormTemplate[]>;
 
 export async function getTemplatesAction(): Promise<
   GetTemplatesResult | never
 > {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

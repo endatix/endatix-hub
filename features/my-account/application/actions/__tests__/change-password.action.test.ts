@@ -7,8 +7,8 @@ import {
 } from "@/lib/endatix-api";
 import { auth } from "@/auth";
 import type { Session } from "next-auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
-import { PermissionService } from "@/features/auth";
+import { authorization } from "@/features/auth/authorization";
+import { IAuthorizationService } from "@/features/auth/authorization/domain/authorization-service";
 
 type RedirectError = Error & { digest: string };
 
@@ -17,9 +17,9 @@ vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
 
-// Mock the permission service
-vi.mock("@/features/auth/permissions/application", () => ({
-  createPermissionService: vi.fn(),
+// Mock the authorization service
+vi.mock("@/features/auth/authorization", () => ({
+  authorization: vi.fn(),
 }));
 
 // Mock the EndatixApi class
@@ -56,9 +56,9 @@ describe("changePasswordAction", () => {
   };
 
   const mockRequireHubAccess = vi.fn().mockResolvedValue(undefined);
-  const mockPermissionService = {
-    requireHubAccess: mockRequireHubAccess
-  } as unknown as PermissionService;
+  const mockAuthorizationService = {
+    requireHubAccess: mockRequireHubAccess,
+  } as unknown as IAuthorizationService;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,7 +74,7 @@ describe("changePasswordAction", () => {
 
     // Reset permission service mock to default (no redirect)
     mockRequireHubAccess.mockResolvedValue(undefined);
-    vi.mocked(createPermissionService).mockResolvedValue(mockPermissionService);
+    vi.mocked(authorization).mockResolvedValue(mockAuthorizationService);
   });
 
   it("should handle redirect when user lacks permissions", async () => {

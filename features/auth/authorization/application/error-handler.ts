@@ -2,11 +2,16 @@ import { redirect } from "next/navigation";
 import {
   isAuthenticationRequired,
   isPermissionDenied,
-  PermissionError,
-} from "../result/permission-result";
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "../../infrastructure";
+  AuthorizationError,
+} from "../domain/authorization-result";
+import {
+  SIGNIN_PATH,
+  UNAUTHORIZED_PATH,
+} from "../../infrastructure/auth-constants";
 
-export function handlePermissionError(permissionError: PermissionError): never {
+export function handlePermissionError(
+  permissionError: AuthorizationError,
+): never {
   if (!permissionError) {
     throw new Error("An unexpected error occurred while checking permissions");
   }

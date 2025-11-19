@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { getSession } from "@/features/auth";
 import { Result } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -9,7 +9,7 @@ import type { TenantSettings } from "@/lib/endatix-api/tenant";
 export type GetTenantSettingsResult = Result<TenantSettings>;
 
 export async function getTenantSettingsAction(): Promise<GetTenantSettingsResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   const session = await getSession();

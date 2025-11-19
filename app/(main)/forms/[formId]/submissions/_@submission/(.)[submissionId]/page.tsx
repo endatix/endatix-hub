@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { getSubmission } from "@/services/api";
 
 interface SubmissionPageProps {
@@ -11,7 +11,7 @@ interface SubmissionPageProps {
 
 export default async function SubmissionPage({ params }: SubmissionPageProps) {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const { submissionId, formId } = await params;

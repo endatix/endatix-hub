@@ -1,41 +1,28 @@
-import { PermissionResult } from "../result/permission-result";
+import { AuthCheckResult, GetAuthDataResult } from "./authorization-result";
 
-/**
- * Expanded user information with roles and permissions
- * This matches the backend response structure
- */
-interface UserRbacInfo {
-  userId: string;
-  roles: string[];
-  permissions: string[]; // Will be typed as Permission[] when imported
-  permissionsVersion: number;
-  tenantId?: string;
-  lastUpdated: string; // ISO timestamp
-}
-
-interface PermissionService {
+export interface IAuthorizationService {
   /**
-   * Returns current user's RBAC permissions result.
+   * Returns current user's Authorization data needed for RBAC.
    */
-  getUserPermissions(): Promise<PermissionResult<UserRbacInfo>>;
+  getAuthorizationData(): Promise<GetAuthDataResult>;
 
   /**
    * Checks if user has given permission.
    * @param permission - e.g. "org:read"
    */
-  checkPermission(permission: string): Promise<PermissionResult>;
+  checkPermission(permission: string): Promise<AuthCheckResult>;
 
   /**
    * Returns success if user has at least one of the permissions.
    * @param permissions - permission names
    */
-  checkAnyPermission(permissions: string[]): Promise<PermissionResult>;
+  checkAnyPermission(permissions: string[]): Promise<AuthCheckResult>;
 
   /**
    * Returns success only if user has all listed permissions.
    * @param permissions - permission names
    */
-  checkAllPermissions(permissions: string[]): Promise<PermissionResult>;
+  checkAllPermissions(permissions: string[]): Promise<AuthCheckResult>;
 
   /**
    * Throws if user lacks a specific permission.
@@ -61,10 +48,18 @@ interface PermissionService {
   requireHubAccess(): Promise<void>;
 
   /**
-   * Throws if user is not an admin.
+   * Throws if user is not in given role.
+   * @param role - role name
    */
-  requireAdminAccess(): Promise<void>;
-}
+  requireRole(role: string): Promise<void>;
 
-// Re-export PermissionService types and utilities
-export type { UserRbacInfo, PermissionService };
+  /**
+   * Throws if user is not an admin - uses the isAdmin flag from the authorization data.
+   */
+  requireAdmin(): Promise<void>;
+
+  /**
+   * Throws if user is does not have the PlatformAdmin role.
+   */
+  requirePlatformAdmin(): Promise<void>;
+}

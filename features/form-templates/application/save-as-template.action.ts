@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from '@/features/auth/permissions/application';
+import { authorization } from "@/features/auth";
 import { Result } from "@/lib/result";
 import { createFormTemplate, getActiveFormDefinition } from "@/services/api";
 
@@ -13,9 +13,9 @@ export type SaveAsTemplateRequest = {
 export type SaveAsTemplateResult = Result<string>;
 
 export async function saveAsTemplateAction(
-  request: SaveAsTemplateRequest
+  request: SaveAsTemplateRequest,
 ): Promise<SaveAsTemplateResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {
@@ -29,7 +29,7 @@ export async function saveAsTemplateAction(
     // Create the template
     const templateResult = await createFormTemplate({
       name: request.name,
-      description: request.description || '',
+      description: request.description || "",
       isEnabled: true,
       jsonData: formDefinition.jsonData,
     });
@@ -43,4 +43,4 @@ export async function saveAsTemplateAction(
     console.error("Failed to save form as template", error);
     return Result.error("Failed to save form as template");
   }
-} 
+}

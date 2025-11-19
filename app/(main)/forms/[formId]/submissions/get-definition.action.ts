@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 import { getFormDefinition } from "@/services/api";
 
@@ -19,7 +19,7 @@ export async function getDefinitionAction({
   formId,
   definitionId,
 }: GetDefinitionRequest): Promise<SelectedDefinitionResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   if (!definitionId) {

@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { updateForm } from "@/services/api";
 import { revalidatePath } from "next/cache";
 
@@ -17,7 +17,7 @@ export interface UpdateFormThemeResult {
 export async function updateFormThemeAction(
   request: UpdateFormThemeRequest,
 ): Promise<UpdateFormThemeResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

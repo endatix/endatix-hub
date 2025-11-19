@@ -2,7 +2,7 @@
 
 import { FormTemplate } from "@/types";
 import { getFormTemplate } from "@/services/api";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 
 export type GetTemplateResult = Result<FormTemplate>;
@@ -10,7 +10,7 @@ export type GetTemplateResult = Result<FormTemplate>;
 export async function getTemplateAction(
   templateId: string,
 ): Promise<GetTemplateResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {

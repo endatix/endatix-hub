@@ -5,7 +5,7 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/auth";
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -20,7 +20,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const session = await auth();
-  const { requireHubAccess } = await createPermissionService(session);
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const { formId } = await params;

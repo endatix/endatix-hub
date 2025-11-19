@@ -1,20 +1,23 @@
-import { Session } from "next-auth";
-
-import { getUserPermissionsFactory } from "./user-permissions";
+import type { Session } from "next-auth";
+import { getAuthDataForCurrentUser } from "./authorization-data.provider";
 import {
   checkPermissionFactory,
   checkAnyPermissionFactory,
   checkAllPermissionsFactory,
-} from "./permission-checker";
+  checkIsAdminFactory,
+  checkIsInRoleFactory,
+} from "./authorization-checkers";
 import {
   requirePermissionFactory,
   requireAnyPermissionFactory,
   requireAllPermissionsFactory,
   requireHubAccessFactory,
   requireAdminAccessFactory,
-} from "./permission-guard";
-import { PermissionService } from "../domain/rbac.types";
+  requireRoleFactory,
+  requirePlatformAdminFactory,
+} from "./authorization-guards";
 import { auth } from "@/auth";
+import { IAuthorizationService } from "../domain/authorization-service";
 
 /**
  * Factory function to create the Permission Service
@@ -22,17 +25,19 @@ import { auth } from "@/auth";
  * @param session The session return from `await auth()`
  * @returns
  */
-export async function createPermissionService(
+export async function createAuthorizationService(
   session: Session | null = null,
-): Promise<PermissionService> {
+): Promise<IAuthorizationService> {
   session = session ?? (await auth());
-  // Create the core user permissions function
-  const getUserPermissions = getUserPermissionsFactory(session);
+  // Create the core data fetching function for the current user's authorization data
+  const getAuthorizationData = getAuthDataForCurrentUser(session);
 
   // Create permission checking functions
-  const checkPermission = checkPermissionFactory(getUserPermissions);
-  const checkAnyPermission = checkAnyPermissionFactory(getUserPermissions);
-  const checkAllPermissions = checkAllPermissionsFactory(getUserPermissions);
+  const checkPermission = checkPermissionFactory(getAuthorizationData);
+  const checkAnyPermission = checkAnyPermissionFactory(getAuthorizationData);
+  const checkAllPermissions = checkAllPermissionsFactory(getAuthorizationData);
+  const checkIsAdmin = checkIsAdminFactory(getAuthorizationData);
+  const checkIsInRole = checkIsInRoleFactory(getAuthorizationData);
 
   // Create permission requiring functions
   const requirePermission = requirePermissionFactory(checkPermission);
@@ -40,7 +45,9 @@ export async function createPermissionService(
   const requireAllPermissions =
     requireAllPermissionsFactory(checkAllPermissions);
   const requireHubAccess = requireHubAccessFactory(checkPermission);
-  const requireAdminAccess = requireAdminAccessFactory(checkPermission);
+  const requireAdmin = requireAdminAccessFactory(checkIsAdmin);
+  const requireRole = requireRoleFactory(checkIsInRole);
+  const requirePlatformAdmin = requirePlatformAdminFactory(checkIsInRole);
 
   return {
     // Permission checking methods
@@ -53,11 +60,13 @@ export async function createPermissionService(
     requireAnyPermission,
     requireAllPermissions,
     requireHubAccess,
-    requireAdminAccess,
+
+    // Role requiring methods
+    requireAdmin,
+    requireRole,
+    requirePlatformAdmin,
 
     // Direct access to user data
-    getUserPermissions,
+    getAuthorizationData,
   };
 }
-
-export * from "./user-permissions";

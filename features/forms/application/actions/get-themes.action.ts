@@ -1,6 +1,6 @@
 "use server";
 
-import { createPermissionService } from "@/features/auth/permissions/application";
+import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 import { getThemes } from "@/services/api";
 
@@ -17,7 +17,7 @@ export type ThemeItem = {
 export type GetThemesResult = Result<ThemeItem[]>;
 
 export async function getThemesAction(): Promise<GetThemesResult | never> {
-  const { requireHubAccess } = await createPermissionService();
+  const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
   try {
