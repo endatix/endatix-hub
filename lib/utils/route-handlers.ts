@@ -15,7 +15,6 @@ interface ErrorResponse {
   fields?: Record<string, string[]>;
 }
 
-
 /**
  * Converts an ApiError to an ErrorResponse to easily create a problem details response.
  * @param title - The title of the error.
@@ -191,3 +190,52 @@ export const apiResponses = {
   notFound: notFoundResponse,
   serverError: serverError,
 };
+
+/**
+ * Options for caching the response - CDN, proxy, etc.
+ */
+export interface CachingOptions {
+  /**
+   * The mode to prevent proxy caching in.
+   * @param browserOnly - Prevents proxy caching in the browser only.
+   * @param noStore - Prevents proxy caching in the browser and server.
+   */
+  storeMode?: "browserOnly" | "noStore";
+
+  /**
+   * The ETag for the response.
+   * @param etag - The ETag for the response.
+   */
+  etag?: string;
+}
+
+/**
+ * Sets the caching headers for the response - CDN, proxy, etc.
+ * This is useful for authentication/authorization data that should not be cached.
+ * @param response - The NextResponse to set the caching headers for.
+ * @param options - The options for the caching headers.
+ */
+export function setResponseCachingHeaders(
+  response: NextResponse,
+  options: CachingOptions,
+): void {
+  const { storeMode = "browserOnly" } = options;
+  if (storeMode === "browserOnly") {
+    response.headers.set(
+      "Cache-Control",
+      "private, max-age=0, must-revalidate",
+    );
+  } else if (storeMode === "noStore") {
+    response.headers.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate",
+    );
+  }
+
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Vary", "Cookie");
+
+  if (options.etag) {
+    response.headers.set("ETag", `"${options.etag}"`);
+  }
+}
