@@ -28,7 +28,6 @@ import {
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
-import { registerMarkdownRenderer } from "@/lib/questions/rich-text-editor/register-markdown-renderer";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
@@ -43,7 +42,7 @@ import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
-import addRichTextEditorFeature from "@/lib/questions/features/rich-text-editor";
+import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -64,7 +63,6 @@ Serializer.addProperty("survey", {
 
 registerAudioQuestionUI();
 addRandomizeGroupFeature();
-addRichTextEditorFeature();
 
 const translations = getLocaleStrings("en");
 
@@ -134,6 +132,7 @@ function FormEditor({
   onSaveHandlerReady,
   onPropertyGridControllerReady,
 }: FormEditorProps) {
+  const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<
@@ -143,6 +142,7 @@ function FormEditor({
   const handleThemeIdChanged = useCallback(() => {
     onUnsavedChanges?.(true);
   }, [onUnsavedChanges]);
+  useRichTextEditing(creator);
 
   const handleUploadFile = useCallback(
     async (_: SurveyCreatorModel, options: UploadFileEvent) => {
@@ -433,7 +433,9 @@ function FormEditor({
 
   useEffect(() => {
     const initializeNewCreator = async () => {
-      if (creator) return;
+      if (creator || isCreatorInitializedRef.current) {
+        return;
+      }
 
       if (slkVal) {
         slk(slkVal);
@@ -477,11 +479,6 @@ function FormEditor({
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
         newCreator.onSurveyInstanceCreated.add((_, options) => {
-          if (options.area !== "property-grid") {
-            registerMarkdownRenderer(options.survey);
-          }
-        });
-        newCreator.onSurveyInstanceCreated.add((_, options) => {
           if (options.area === "property-grid") {
             const downloadSettingsCategory =
               options.survey.getPageByName("downloadSettings");
@@ -499,10 +496,12 @@ function FormEditor({
           newCreator.JSON = formJson;
         }
 
-        setCreator(newCreator);
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }
+
+        setCreator(newCreator);
+        isCreatorInitializedRef.current = true;
       } catch (error) {
         console.error("Error loading custom questions:", error);
       } finally {
