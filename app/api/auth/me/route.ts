@@ -35,13 +35,16 @@ export async function GET() {
     const now = Date.now();
 
     if (!isNaN(expiresAt) && expiresAt > now) {
-      const maxAge = Math.floor((expiresAt - now) / 1000);
-      response.headers.set(
-        "Cache-Control",
-        `private, max-age=${maxAge}, stale-while-revalidate=${maxAge / 2}`,
-      );
       response.headers.set("ETag", `"${authorizationData.eTag}"`);
     }
+
+    response.headers.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate",
+    );
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Vary", "Cookie, Authorization");
+
     return response;
   } catch {
     return NextResponse.json(
