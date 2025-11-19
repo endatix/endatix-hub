@@ -8,6 +8,8 @@ import {
 import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 /**
  * API endpoint that returns user permissions
