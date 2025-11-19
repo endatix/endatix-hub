@@ -3,10 +3,29 @@
  */
 
 export const Permissions = {
-  Apps: {
-    HubAccess: "apps.hub.access",
-    SaaSAdminAccess: "apps.saas.access",
-  }
+  Access: {
+    Hub: "access.apps.hub",
+    Authenticated: "access.authenticated",
+  },
+  Platform: {
+    ManageTenants: "platform.tenants.manage",
+    ManageSettings: "platform.settings.manage",
+    ManageIntegrations: "platform.integrations.manage",
+    ImpersonateUsers: "platform.users.impersonate",
+    ViewMetrics: "platform.metrics.view",
+    ViewLogs: "platform.logs.views",
+    ViewUsage: "platform.usage.view",
+  },
+  Tenant: {
+    InviteUsers: "tenant.users.invite",
+    ViewUsers: "tenant.users.view",
+    ManageUsers: "tenant.users.manage",
+    ViewRoles: "tenant.roles.view",
+    ManageRoles: "tenant.roles.manage",
+    ViewSettings: "tenant.settings.view",
+    ManageSettings: "tenant.settings.manage",
+    ViewUsage: "tenant.usage.view",
+  },
 } as const;
 
 /**

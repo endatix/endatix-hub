@@ -41,7 +41,7 @@ describe("authorization integration", () => {
   it("allows admin user to access hub and admin features", async () => {
     const mockAuthData = createAuthSuccess({
       roles: [SystemRoles.PlatformAdmin],
-      permissions: [Permissions.Apps.HubAccess],
+      permissions: [Permissions.Access.Hub],
       isAdmin: true,
     });
 
@@ -85,7 +85,7 @@ describe("authorization integration", () => {
   it("fetches session via auth() when session is not provided", async () => {
     vi.mocked(auth).mockResolvedValue(mockSession as unknown as NextMiddleware);
     const mockAuthData = createAuthSuccess({
-      permissions: [Permissions.Apps.HubAccess],
+      permissions: [Permissions.Access.Hub],
     });
 
     const getAuthData = vi.fn().mockResolvedValue(mockAuthData);

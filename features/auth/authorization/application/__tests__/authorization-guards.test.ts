@@ -80,7 +80,7 @@ describe("authorization-guards", () => {
 
     await requireHubAccess();
 
-    expect(checkPermission).toHaveBeenCalledWith(Permissions.Apps.HubAccess);
+    expect(checkPermission).toHaveBeenCalledWith(Permissions.Access.Hub);
   });
 
   it("requireAdminAccess uses admin checker", async () => {

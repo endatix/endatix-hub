@@ -40,7 +40,7 @@ export function requireHubAccessFactory(
   checkPermission: (permission: string) => Promise<AuthCheckResult>,
 ) {
   return async (): Promise<void> => {
-    const result = await checkPermission(Permissions.Apps.HubAccess);
+    const result = await checkPermission(Permissions.Access.Hub);
     if (!result.success) {
       handlePermissionError(result);
     }
