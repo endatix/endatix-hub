@@ -3,10 +3,10 @@ import { AuthTokenSchema, KeycloakTokenResponse } from "./types";
 import { getSessionCookieOptions } from "../infrastructure/session-utils";
 import { decodeJwt } from "jose";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { invalidateUserPermissionsCache } from "../permissions/application";
 import { encode } from "next-auth/jwt";
 import { authConfig } from "@/auth";
 import { KEYCLOAK_ID } from "../infrastructure/providers";
+import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
 
 const SERVER_ERROR_TITLE = "Session bridge server error";
 
@@ -61,7 +61,7 @@ export async function createSessionFromToken(
       salt: sessionCookieName,
     });
 
-    invalidateUserPermissionsCache({ userId: token.id });
+    invalidateUserAuthorizationCache({ userId: token.id });
 
     // 5. Create session cookies
     const response = NextResponse.json({
