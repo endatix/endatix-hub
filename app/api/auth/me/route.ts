@@ -7,6 +7,8 @@ import {
 } from "@/features/auth";
 import { auth } from "@/auth";
 
+export const dynamic = "force-dynamic";
+
 /**
  * API endpoint that returns user permissions
  */
