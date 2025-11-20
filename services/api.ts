@@ -635,6 +635,7 @@ export const getSubmissionFiles = async (
 export const exportSubmissions = async (
   formId: string,
   format: string = "csv",
+  exportId?: number,
 ): Promise<Response> => {
   if (!formId) {
     throw new Error("FormId is required");
@@ -672,6 +673,7 @@ export const exportSubmissions = async (
         headers: headers,
         body: JSON.stringify({
           exportFormat: format,
+          ...(exportId && { exportId }),
         }),
       });
 

@@ -23,9 +23,10 @@ export async function GET(
 
   const searchParams = request.nextUrl.searchParams;
   const format = searchParams.get("format") || "csv";
+  const exportId = searchParams.get("exportId");
 
   try {
-    return await exportSubmissions(formId, format);
+    return await exportSubmissions(formId, format, exportId ? Number(exportId) : undefined);
   } catch (error) {
     return new Response(
       JSON.stringify({

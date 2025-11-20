@@ -13,11 +13,18 @@ export type WebHookSettings = {
   };
 };
 
+export type CustomExportSettings = {
+  id: number;
+  name: string;
+  sqlFunctionName: string;
+};
+
 export type TenantSettings = {
   tenantId: string;
   submissionTokenExpiryHours: number;
   isSubmissionTokenValidAfterCompletion: boolean;
   slackSettings?: SlackSettings;
   webHookSettings?: WebHookSettings;
+  customExports?: CustomExportSettings[];
   modifiedAt?: string | null;
 };
