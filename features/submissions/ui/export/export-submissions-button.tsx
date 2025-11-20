@@ -136,35 +136,26 @@ export const ExportSubmissionsButton = ({
     );
   }
 
-  // Show split button when custom exports exist
+  // Show dropdown menu button when custom exports exist
   return (
-    <div className={`flex items-center ${className || ""}`}>
-      <Button
-        variant="outline"
-        onClick={() => handleExport()}
-        disabled={isExporting}
-        className="rounded-r-none"
-      >
-        {isExporting && !currentExportName ? (
-          <Spinner className="h-4 w-4 mr-2" />
-        ) : (
-          <Download className="h-4 w-4 mr-2" />
-        )}
-        {isExporting && !currentExportName ? "Exporting..." : "Export Submissions"}
-      </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          disabled={isExporting}
+          className={className}
+        >
+          {isExporting && !currentExportName ? (
+            <Spinner className="h-4 w-4 mr-2" />
+          ) : (
+            <Download className="h-4 w-4 mr-2" />
+          )}
+          {isExporting && !currentExportName ? "Exporting..." : "Export Submissions"}
+          <ChevronDown className="h-4 w-4 ml-2" />
+        </Button>
+      </DropdownMenuTrigger>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            disabled={isExporting}
-            className="rounded-l-none border-l-0 px-2"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end">
           <DropdownMenuItem
             onClick={() => handleExport()}
             disabled={isExporting}
@@ -193,8 +184,7 @@ export const ExportSubmissionsButton = ({
               {exportOption.name}
             </DropdownMenuItem>
           ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
