@@ -14,7 +14,7 @@ export type WebHookSettings = {
 };
 
 export type CustomExportSettings = {
-  id: number;
+  id: string;
   name: string;
   sqlFunctionName: string;
 };

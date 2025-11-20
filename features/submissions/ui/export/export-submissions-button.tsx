@@ -52,7 +52,7 @@ export const ExportSubmissionsButton = ({
     fetchTenantSettings();
   }, []);
 
-  const handleExport = async (exportId?: number, exportName?: string) => {
+  const handleExport = async (exportId?: string, exportName?: string) => {
     try {
       setIsExporting(true);
       setCurrentExportName(exportName || null);

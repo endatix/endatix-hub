@@ -26,7 +26,11 @@ export async function GET(
   const exportId = searchParams.get("exportId");
 
   try {
-    return await exportSubmissions(formId, format, exportId ? Number(exportId) : undefined);
+    return await exportSubmissions({
+      formId,
+      format,
+      exportId: exportId || undefined,
+    });
   } catch (error) {
     return new Response(
       JSON.stringify({
