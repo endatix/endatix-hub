@@ -675,7 +675,7 @@ export const exportSubmissions = async (
         .provideJson()
         .build();
 
-      let exportRequest = {
+      const exportRequest: { exportFormat: string; exportId?: string } = {
         exportFormat: format
       };
 
