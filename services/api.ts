@@ -628,14 +628,21 @@ export const getSubmissionFiles = async (
   return response;
 };
 
+export interface ExportOptions {
+  formId: string;
+  format?: string;
+  exportId?: string;
+}
+
 /**
  * Exports form submissions in the specified format (CSV, JSON, etc.)
  * Returns a streaming response for direct download
  */
 export const exportSubmissions = async (
-  formId: string,
-  format: string = "csv",
+  options: ExportOptions,
 ): Promise<Response> => {
+  const { formId, format = "csv", exportId } = options;
+
   if (!formId) {
     throw new Error("FormId is required");
   }
@@ -667,12 +674,19 @@ export const exportSubmissions = async (
         .withAuth(session)
         .provideJson()
         .build();
+
+      const exportRequest: { exportFormat: string; exportId?: string } = {
+        exportFormat: format
+      };
+
+      if (exportId) {
+        exportRequest.exportId = exportId;
+      }
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: headers,
-        body: JSON.stringify({
-          exportFormat: format,
-        }),
+        body: JSON.stringify(exportRequest),
       });
 
       if (!response.ok) {

@@ -1,11 +1,21 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/loaders/spinner";
 import { toast } from "@/components/ui/toast";
-import { Download } from "lucide-react";
-import { useState } from "react";
+import { Download, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
 import { getFilenameFromContentDisposition, initiateFileDownload } from "@/lib/utils/files-download";
+import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
+import type { CustomExportSettings } from "@/lib/endatix-api/tenant";
+import { Result } from "@/lib/result";
 
 interface ExportSubmissionsButtonProps {
   formId: string;
@@ -17,10 +27,35 @@ export const ExportSubmissionsButton = ({
   className,
 }: ExportSubmissionsButtonProps) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [customExports, setCustomExports] = useState<CustomExportSettings[]>([]);
+  const [currentExportName, setCurrentExportName] = useState<string | null>(null);
 
-  const handleExport = async () => {
+  useEffect(() => {
+    const fetchTenantSettings = async () => {
+      try {
+        const result = await getTenantSettingsAction();
+
+        if (Result.isSuccess(result)) {
+          if (result.value.customExports) {
+            setCustomExports(result.value.customExports);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch tenant settings:", error);
+        // Silently fail - will show simple button
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchTenantSettings();
+  }, []);
+
+  const handleExport = async (exportId?: string, exportName?: string) => {
     try {
       setIsExporting(true);
+      setCurrentExportName(exportName || null);
 
       // Notify user immediately that export is starting
       toast.info({
@@ -28,8 +63,10 @@ export const ExportSubmissionsButton = ({
         description: "Preparing your file for download...",
       });
 
-      // Use fetch to track the request status
-      const exportUrl = `/api/forms/${formId}/export?format=csv`;
+      // Build export URL with optional exportId
+      const exportUrl = exportId
+        ? `/api/forms/${formId}/export?format=csv&exportId=${exportId}`
+        : `/api/forms/${formId}/export?format=csv`;
 
       const response = await fetch(exportUrl);
 
@@ -62,22 +99,92 @@ export const ExportSubmissionsButton = ({
       });
     } finally {
       setIsExporting(false);
+      setCurrentExportName(null);
     }
   };
 
-  return (
-    <Button
-      variant="outline"
-      onClick={handleExport}
-      disabled={isExporting}
-      className={className}
-    >
-      {isExporting ? (
+  // Show loading state while fetching settings
+  if (isLoadingSettings) {
+    return (
+      <Button
+        variant="outline"
+        disabled
+        className={className}
+      >
         <Spinner className="h-4 w-4 mr-2" />
-      ) : (
-        <Download className="h-4 w-4 mr-2" />
-      )}
-      {isExporting ? "Exporting..." : "Export Submissions"}
-    </Button>
+        Loading...
+      </Button>
+    );
+  }
+
+  // If no custom exports, show simple button
+  if (customExports.length === 0) {
+    return (
+      <Button
+        variant="outline"
+        onClick={() => handleExport()}
+        disabled={isExporting}
+        className={className}
+      >
+        {isExporting ? (
+          <Spinner className="h-4 w-4 mr-2" />
+        ) : (
+          <Download className="h-4 w-4 mr-2" />
+        )}
+        {isExporting ? "Exporting..." : "Export Submissions"}
+      </Button>
+    );
+  }
+
+  // Show dropdown menu button when custom exports exist
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          disabled={isExporting}
+          className={className}
+        >
+          {isExporting && !currentExportName ? (
+            <Spinner className="h-4 w-4 mr-2" />
+          ) : (
+            <Download className="h-4 w-4 mr-2" />
+          )}
+          {isExporting && !currentExportName ? "Exporting..." : "Export Submissions"}
+          <ChevronDown className="h-4 w-4 ml-2" />
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => handleExport()}
+            disabled={isExporting}
+          >
+            {isExporting && !currentExportName ? (
+              <Spinner className="h-4 w-4 mr-2" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Default CSV Export
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          {customExports.map((exportOption) => (
+            <DropdownMenuItem
+              key={exportOption.id}
+              onClick={() => handleExport(exportOption.id, exportOption.name)}
+              disabled={isExporting}
+            >
+              {isExporting && currentExportName === exportOption.name ? (
+                <Spinner className="h-4 w-4 mr-2" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {exportOption.name}
+            </DropdownMenuItem>
+          ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
