@@ -262,6 +262,14 @@ export class EndatixApi {
     details: ApiErrorDetails,
   ): Promise<ApiResult<T>> {
     try {
+      if (response.status === 401) {
+        return ApiResult.authError(
+          "Authentication required",
+          ERROR_CODE.AUTHENTICATION_REQUIRED,
+          details,
+        );
+      }
+
       const problemDetails = await parseErrorResponse(response);
 
       if (problemDetails?.errorCode) {

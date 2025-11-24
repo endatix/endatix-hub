@@ -1,14 +1,17 @@
 import { Session } from "next-auth";
 import {
+  AuthorizationErrorType,
   AuthorizationResult,
   GetAuthDataResult,
 } from "../domain/authorization-result";
 import { revalidateTag, unstable_cache } from "next/cache";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi, isAuthError } from "@/lib/endatix-api";
 
 const USER_PERMISSIONS_CACHE_TAG = "usr_prms";
 const ALL_USER_PERMISSIONS_CACHE_TAG = "usr_prms_all";
 const USER_PERMISSIONS_CACHE_TTL = 720; // 12 minutes
+const DEFAULT_PERMISSION_ERROR_MESSAGE =
+  "An unexpected error occurred while checking permissions";
 
 const getUserPermissionsCacheKey = (userId: string) =>
   `${USER_PERMISSIONS_CACHE_TAG}:${userId}`;
@@ -21,14 +24,28 @@ async function fetchAuthorizationData(
     const endatixApi = new EndatixApi(accessToken);
     const authorizationData = await endatixApi.auth.getAuthorizationData();
 
-    if (ApiResult.isError(authorizationData)) {
-      return AuthorizationResult.error();
+    if (ApiResult.isSuccess(authorizationData)) {
+      return AuthorizationResult.success(authorizationData.data);
     }
 
-    return AuthorizationResult.success(authorizationData.data);
+    const errorMessage =
+      ApiResult.getErrorMessage(authorizationData) ??
+      DEFAULT_PERMISSION_ERROR_MESSAGE;
+
+    if (isAuthError(authorizationData)) {
+      return AuthorizationResult.error({
+        message:
+          "Server authentication failed. Cannot retrieve authorization data",
+        type: AuthorizationErrorType.InvalidTokenError,
+      });
+    }
+
+    return AuthorizationResult.error({ message: errorMessage });
   } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : DEFAULT_PERMISSION_ERROR_MESSAGE;
     console.error("Error getting user permissions from session:", error);
-    return AuthorizationResult.error();
+    return AuthorizationResult.error({ message: errorMessage });
   }
 }
 
@@ -40,7 +57,8 @@ async function fetchAuthorizationData(
 export function getAuthDataForCurrentUser(session: Session | null) {
   return async (): Promise<GetAuthDataResult> => {
     try {
-      if (!session) {
+      const isLoggedIn = !!session;
+      if (!isLoggedIn) {
         return AuthorizationResult.unauthenticated();
       }
 
@@ -50,7 +68,22 @@ export function getAuthDataForCurrentUser(session: Session | null) {
       }
 
       // Use the shared cache instance with userId as parameter
-      return await getCachedAuthorizationData(user.id, accessToken);
+      const authorizationDataResult = await getCachedAuthorizationData(
+        user.id,
+        accessToken,
+      );
+
+      if (
+        !authorizationDataResult.success &&
+        authorizationDataResult.error.type ===
+          AuthorizationErrorType.InvalidTokenError
+      ) {
+        console.error(
+          `🔐 Authorization Data fetching failed with Invalid token error for user ${user.id} with access token from ${session.provider} provider. Error: ${authorizationDataResult.error.message}`,
+        );
+      }
+
+      return authorizationDataResult;
     } catch (error) {
       console.error("Error getting session for permissions:", error);
       return AuthorizationResult.error();
