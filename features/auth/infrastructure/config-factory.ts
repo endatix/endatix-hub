@@ -1,7 +1,10 @@
 import { NextAuthConfig } from "next-auth";
 import { AuthProviderRegistry } from "./auth-provider-registry";
 import { AuthPresentation } from "./types";
-import { invalidateUserAuthorizationCache } from '../authorization/application/authorization-data.provider';
+import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
+
+// Safe margin in seconds to expire session before actual expiration
+const SESSION_EXPIRATION_SAFE_MARGIN_SECONDS = 10;
 
 /**
  * Creates NextAuth configuration from a provider registry.
@@ -38,13 +41,30 @@ export function createAuthConfig(
           invalidateUserAuthorizationCache({ userId });
         }
 
-        return await provider.handleJWT({
+        const jwtToken = await provider.handleJWT({
           token,
           user,
           account: account || undefined,
           session: session || undefined,
           trigger,
         });
+
+        if (!jwtToken?.expires_at) {
+          return jwtToken;
+        }
+
+        const currentTimeSeconds = Math.floor(Date.now() / 1000);
+        const expirationTimeSeconds = jwtToken.expires_at;
+        const expiresWithinMargin =
+          expirationTimeSeconds - SESSION_EXPIRATION_SAFE_MARGIN_SECONDS <
+          currentTimeSeconds;
+
+        return expiresWithinMargin
+          ? {
+              ...jwtToken,
+              error: "SessionExpiredError",
+            }
+          : jwtToken;
       },
 
       session: async (params) => {
