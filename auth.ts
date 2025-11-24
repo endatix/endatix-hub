@@ -21,7 +21,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ...authConfig,
 });
 
-type SessionError =
+export type SessionError =
   | "RefreshTokenError"
   | "SessionExpiredError"
   | "UnknownSessionError";

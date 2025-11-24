@@ -8,7 +8,7 @@
     "dev:inspect": "pnpm discover-questions && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_OPTIONS='--inspect' next dev --turbopack",
     "build": "pnpm discover-questions && next build --turbopack",
     "build:standalone": "pnpm build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
-    "run:standalone": "pnpm build:standalone && NODE_TLS_REJECT_UNAUTHORIZED=0 node .next/standalone/server.js",
+    "run:standalone": "pnpm build:standalone && NODE_TLS_REJECT_UNAUTHORIZED=0 node .next/standalone/server.js --trace-warnings",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
