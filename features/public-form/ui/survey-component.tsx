@@ -32,6 +32,7 @@ interface SurveyComponentProps {
   theme?: string;
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
+  isEmbed?: boolean;
 }
 
 export default function SurveyComponent({
@@ -41,6 +42,7 @@ export default function SurveyComponent({
   theme,
   customQuestions,
   requiresReCaptcha,
+  isEmbed = false,
 }: SurveyComponentProps) {
   const { surveyModel } = useSurveyModel(
     definition,
@@ -69,6 +71,28 @@ export default function SurveyComponent({
       setSubmissionId(submission.id);
     }
   }, [submission?.id]);
+
+  const sendEmbedMessage = useCallback(
+    (type: string, data?: Record<string, unknown>) => {
+      if (isEmbed && typeof window !== "undefined" && window.parent !== window) {
+        window.parent.postMessage(
+          {
+            type: `endatix-${type}`,
+            formId,
+            ...data,
+          },
+          "*"
+        );
+      }
+    },
+    [isEmbed, formId]
+  );
+
+  useEffect(() => {
+    if (surveyModel && isEmbed) {
+      sendEmbedMessage("form-loaded");
+    }
+  }, [surveyModel, isEmbed, sendEmbedMessage]);
 
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];
@@ -124,6 +148,10 @@ export default function SurveyComponent({
         const result = await submitFormAction(formId, submissionData);
         if (ApiResult.isSuccess(result)) {
           event.showSaveSuccess("The results were saved successfully!");
+          sendEmbedMessage("form-complete", {
+            submissionId: result.data.submissionId,
+            success: true
+          });
         } else {
           event.showSaveError(
             result.error.message ??
@@ -132,6 +160,10 @@ export default function SurveyComponent({
           trackException("Form submission failed", {
             form_id: formId,
             error_message: result.error.message,
+          });
+          sendEmbedMessage("form-error", {
+            error: result.error.message,
+            success: false
           });
         }
       });
@@ -143,6 +175,8 @@ export default function SurveyComponent({
       startSubmitting,
       trackException,
       requiresReCaptcha,
+      sendEmbedMessage,
+      surveyLocales.length,
     ],
   );
 

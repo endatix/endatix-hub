@@ -19,6 +19,7 @@ export interface SurveyJsWrapperProps {
   theme?: string;
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
+  isEmbed?: boolean;
 }
 
 const SurveyJsWrapper = ({
@@ -28,6 +29,7 @@ const SurveyJsWrapper = ({
   theme,
   customQuestions,
   requiresReCaptcha,
+  isEmbed = false,
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent
@@ -37,6 +39,7 @@ const SurveyJsWrapper = ({
       theme={theme}
       customQuestions={customQuestions}
       requiresReCaptcha={requiresReCaptcha}
+      isEmbed={isEmbed}
     />
   );
 };
