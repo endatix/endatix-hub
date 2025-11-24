@@ -57,6 +57,29 @@ const nextConfig: NextConfig = {
       permanent: true,
     },
   ],
+  headers: async () => [
+    {
+      // Security headers for embeddable form pages
+      source: "/embed/:path*",
+      headers: [
+        {
+          // Allows embedding in iframes from any origin
+          key: "Content-Security-Policy",
+          value: "frame-ancestors *",
+        },
+        {
+          // Sends origin only for cross-origin requests, full URL for same-origin
+          key: "Referrer-Policy",
+          value: "strict-origin-when-cross-origin",
+        },
+        {
+          // Prevents MIME-type sniffing attacks
+          key: "X-Content-Type-Options",
+          value: "nosniff",
+        },
+      ],
+    },
+  ],
   skipTrailingSlashRedirect: true,
 };
 
