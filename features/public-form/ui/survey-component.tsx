@@ -8,10 +8,18 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
-import { CompleteEvent, SurveyModel } from "survey-core";
+import {
+  CompleteEvent,
+  CurrentPageChangedEvent,
+  DynamicPanelItemValueChangedEvent,
+  MatrixCellValueChangedEvent,
+  SurveyModel,
+  ValueChangedEvent,
+} from "survey-core";
 import "survey-core/survey-core.css";
 import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
@@ -34,6 +42,12 @@ interface SurveyComponentProps {
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
 }
+
+type PartialUpdateEvent =
+  | ValueChangedEvent
+  | CurrentPageChangedEvent
+  | DynamicPanelItemValueChangedEvent
+  | MatrixCellValueChangedEvent;
 
 export default function SurveyComponent({
   definition,
@@ -58,6 +72,7 @@ export default function SurveyComponent({
   useRichText(surveyModel);
   useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
+  const submissionUpdateGuard = useRef<boolean>(false);
 
   useBlobStorage({
     formId,
@@ -99,7 +114,15 @@ export default function SurveyComponent({
   }, [surveyModel]);
 
   const updatePartial = useCallback(
-    (sender: SurveyModel) => {
+    (sender: SurveyModel, event: PartialUpdateEvent) => {
+      if (submissionUpdateGuard.current) {
+        console.debug(
+          "Submission update guard is on, skipping update. Event: ",
+          event,
+        );
+        return;
+      }
+
       const formData = JSON.stringify(sender.data, null, 3);
       const submissionData: SubmissionData = {
         isComplete: false,
@@ -118,9 +141,13 @@ export default function SurveyComponent({
 
   const submitForm = useCallback(
     (sender: SurveyModel, event: CompleteEvent) => {
-      if (isSubmitting) {
+      if (isSubmitting || submissionUpdateGuard.current) {
         return;
       }
+
+
+      // Set guard flag to prevent multiple submissions
+      submissionUpdateGuard.current = true;
 
       clearQueue();
       sender.showCompletePage = true;
@@ -150,9 +177,10 @@ export default function SurveyComponent({
           event.showSaveSuccess("The results were saved successfully!");
           sendEmbedMessage("form-complete", {
             submissionId: result.data.submissionId,
-            success: true
+            success: true,
           });
         } else {
+          submissionUpdateGuard.current = false;
           event.showSaveError(
             result.error.message ??
               "Failed to submit form. Please try again and contact us if the problem persists.",
@@ -163,7 +191,7 @@ export default function SurveyComponent({
           });
           sendEmbedMessage("form-error", {
             error: result.error.message,
-            success: false
+            success: false,
           });
         }
       });
