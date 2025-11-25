@@ -16,6 +16,7 @@ export enum AuthErrorType {
   Configuration = "Configuration",
   Network = "Network",
   Server = "Server",
+  InvalidToken = "InvalidToken",
   Unknown = "Unknown",
 }
 

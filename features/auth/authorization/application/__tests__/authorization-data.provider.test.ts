@@ -5,8 +5,9 @@ import {
   invalidateUserAuthorizationCache,
 } from "../authorization-data.provider";
 import type { AuthorizationData } from "@/lib/endatix-api/auth/types";
-import { EndatixApi } from "@/lib/endatix-api";
+import { ApiErrorType, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import { SessionError } from "@/auth";
+import { AuthorizationErrorType } from "../../domain/authorization-result";
 
 // Mock next/cache
 vi.mock("next/cache", () => ({
@@ -14,14 +15,22 @@ vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
 }));
 
-// Mock EndatixApi
-vi.mock("@/lib/endatix-api", () => ({
-  EndatixApi: vi.fn(),
-  ApiResult: {
-    isSuccess: vi.fn((result) => result.success !== false),
-    isError: vi.fn((result) => result.success === false),
-  },
-}));
+// Partially mock EndatixApi - keep real implementations of isAuthError, ApiErrorType, etc.
+vi.mock("@/lib/endatix-api", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/endatix-api")>(
+    "@/lib/endatix-api",
+  );
+  return {
+    ...actual,
+    EndatixApi: vi.fn(),
+    ApiResult: {
+      ...actual.ApiResult,
+      isSuccess: vi.fn((result) => result.success !== false),
+      isError: vi.fn((result) => result.success === false),
+      getErrorMessage: actual.ApiResult.getErrorMessage,
+    },
+  };
+});
 
 describe("getAuthDataForCurrentUser", () => {
   const mockAuthorizationData: AuthorizationData = {
@@ -145,6 +154,37 @@ describe("getAuthDataForCurrentUser", () => {
       expect(result.data).toEqual(mockAuthorizationData);
       expect(result.data.userId).toBe("user-123");
       expect(result.data.isAdmin).toBe(true);
+    }
+  });
+
+  it("should return InvalidTokenError when API returns unauthorized error", async () => {
+    const { EndatixApi } = await import("@/lib/endatix-api");
+    const mockApiInstance = {
+      auth: {
+        getAuthorizationData: vi.fn().mockResolvedValue({
+          success: false,
+          error: {
+            message: "Authentication required",
+            type: ApiErrorType.AuthError,
+            errorCode: ERROR_CODE.AUTHENTICATION_REQUIRED,
+          },
+        }),
+      },
+    };
+
+    vi.mocked(EndatixApi).mockImplementation(
+      () => mockApiInstance as unknown as EndatixApi,
+    );
+
+    const getAuthData = getAuthDataForCurrentUser(mockSession);
+    const result = await getAuthData();
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe(AuthorizationErrorType.InvalidTokenError);
+      expect(result.error.message).toBe(
+        "Server authentication failed. Cannot retrieve authorization data",
+      );
     }
   });
 

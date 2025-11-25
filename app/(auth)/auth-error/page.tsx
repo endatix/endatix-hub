@@ -1,10 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { SIGNIN_PATH } from "@/features/auth/infrastructure/auth-constants";
+import {
+  SIGNIN_PATH,
+  SIGNOUT_PATH,
+} from "@/features/auth/infrastructure/auth-constants";
 import { XCircle } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
 import AuthErrorDetails from "@/features/auth/ui/auth-error";
 import { AuthErrorType, ErrorDetails } from "@/features/auth";
+import { auth } from "@/auth";
 
 export const metadata: Metadata = {
   title: "Authentication failed | Endatix Hub",
@@ -52,6 +56,11 @@ const errorMap = {
       "There was an unexpected error when trying to authenticate. Please try again and contact us if the issue persists.",
     code: "Server",
   },
+  [AuthErrorType.InvalidToken]: {
+    message:
+      "You are signed in, but your session has been rejected from the authorization server. Please sign out and sign in again and contact us if the issue persists.",
+    code: "InvalidToken",
+  },
   [AuthErrorType.Unknown]: {
     message:
       "There was an unexpected error when trying to authenticate. Please try again and contact us if the issue persists.",
@@ -69,23 +78,36 @@ export default async function AuthErrorPage({
   searchParams,
 }: AuthErrorPageProps) {
   const { error } = await searchParams;
+  const session = await auth();
+  const isLoggedIn = !!session;
   let errorDetatails = defaultErrorDetails;
   if ((error as AuthErrorType) in errorMap) {
     errorDetatails = errorMap[error as AuthErrorType];
   }
+  const hasInvalidTokenError =
+    isLoggedIn && error === AuthErrorType.InvalidToken;
+  const authErrorTitle = hasInvalidTokenError
+    ? "Authorization failed"
+    : "Authentication failed";
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <div className="flex items-center justify-center gap-3 mb-2">
         <XCircle className="h-6 w-6 text-red-500" />
         <h1 className="text-2xl font-semibold tracking-tight">
-          Authentication failed
+          {authErrorTitle}
         </h1>
       </div>
       <AuthErrorDetails errorDetatails={errorDetatails} />
-      <Button variant="default" asChild>
-        <Link href={SIGNIN_PATH}>Go to sign in</Link>
-      </Button>
+      {hasInvalidTokenError ? (
+        <Button variant="default" asChild>
+          <Link href={SIGNOUT_PATH}>Sign out</Link>
+        </Button>
+      ) : (
+        <Button variant="default" asChild>
+          <Link href={SIGNIN_PATH}>Go to sign in</Link>
+        </Button>
+      )}
     </div>
   );
 }

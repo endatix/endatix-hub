@@ -173,14 +173,6 @@ export class EndatixAuthProvider implements IAuthProvider {
       };
     }
 
-    const isExpired = token?.expires_at && token.expires_at < Date.now() / 1000;
-    if (isExpired) {
-      return {
-        ...token,
-        error: "SessionExpiredError",
-      };
-    }
-
     return token;
   }
 

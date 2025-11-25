@@ -12,7 +12,7 @@ import {
 } from "@/features/auth/infrastructure/providers";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
-import { SIGNIN_ERROR_PATH } from "../../infrastructure/auth-constants";
+import { AUTH_ERROR_PATH } from "../../infrastructure/auth-constants";
 
 interface SignInFormState {
   isSuccess?: boolean;
@@ -77,7 +77,7 @@ export async function signInWithEndatixAction(
       case error instanceof NetworkError:
       case error instanceof ServerError:
       case error instanceof UnknownError:
-        return redirect(`${SIGNIN_ERROR_PATH}?error=${error.type}`);
+        return redirect(`${AUTH_ERROR_PATH}?error=${error.type}`);
       case error instanceof Error:
         errorMessage = error.message;
         break;

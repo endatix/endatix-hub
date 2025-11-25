@@ -9,6 +9,7 @@ enum AuthorizationErrorType {
   AuthenticationRequired = "AUTHENTICATION_REQUIRED",
   AccessDenied = "ACCESS_DENIED",
   ServerError = "SERVER_ERROR",
+  InvalidTokenError = "INVALID_TOKEN_ERROR",
 }
 
 interface AuthorizationErrorDetails {
@@ -69,18 +70,25 @@ const AuthorizationResult = {
     },
   }),
 
-  error: <T = never>(
-    type: AuthorizationErrorType = AuthorizationErrorType.ServerError,
-    message: string = "Could not process the authorization request",
-    details?: AuthorizationErrorDetails,
-  ): AuthorizationResult<T> => ({
-    success: false,
-    error: {
-      type,
-      message,
-      details,
-    },
-  }),
+  error: <T = never>(options?: {
+    message?: string;
+    details?: AuthorizationErrorDetails;
+    type?: AuthorizationErrorType;
+  }): AuthorizationResult<T> => {
+    const message =
+      options?.message ?? "Could not process the authorization request";
+    const type = options?.type ?? AuthorizationErrorType.ServerError;
+    const details = options?.details;
+
+    return {
+      success: false,
+      error: {
+        type,
+        message,
+        details,
+      },
+    };
+  },
 
   isSuccess: <T>(
     result: AuthorizationResult<T>,
@@ -127,6 +135,10 @@ const isPermissionDenied = <T>(result: AuthorizationResult<T>): boolean =>
 const isServerError = <T>(result: AuthorizationResult<T>): boolean =>
   !result.success && result.error.type === AuthorizationErrorType.ServerError;
 
+const isInvalidTokenError = <T>(result: AuthorizationResult<T>): boolean =>
+  !result.success &&
+  result.error.type === AuthorizationErrorType.InvalidTokenError;
+
 export type {
   AuthorizationErrorDetails,
   AuthorizationSuccess,
@@ -141,5 +153,6 @@ export {
   isAuthenticationRequired,
   isPermissionDenied,
   isServerError,
+  isInvalidTokenError,
   DEFAULT_PERMISSION_ERROR_MESSAGE,
 };
