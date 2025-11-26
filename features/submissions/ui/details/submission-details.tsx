@@ -11,7 +11,6 @@ import { CustomQuestion } from "@/services/api";
 import { SubmissionDetailsViewOptionsProvider } from "./submission-details-view-options-context";
 import { getSubmissionLocale } from "../../submission-localization";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
-import { AlertBehavior, SystemAlertMessage } from "@/features/alerts";
 
 async function SubmissionDetails({
   formId,
@@ -61,13 +60,6 @@ async function SubmissionDetails({
         submissionId={submissionId}
         status={submission.status}
         submissionLocale={getSubmissionLocale(submission)}
-      />
-      <SystemAlertMessage
-        alertId="pdf-export"
-        title="PDF export functionality is back in service!"
-        description="You can now export submissions to PDF."
-        behavior={AlertBehavior.REMEMBER_DISMISS}
-        className="mb-4"
       />
       <SubmissionProperties submission={submission} />
       <SubmissionAnswers
