@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import {
   Copy,
-  Link2,
+  Share2,
   List,
   MoreHorizontal,
   Trash2,
@@ -44,6 +44,7 @@ import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
 import CopyToClipboard from "@/components/copy-to-clipboard";
 import { WebhookSettings } from "./webhook-settings";
+import { ShareDialog } from "./share-dialog";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -142,6 +143,7 @@ const FormDetails = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const router = useRouter();
 
   const getFormattedDate = (date?: Date) => {
@@ -189,13 +191,6 @@ const FormDetails = ({
 
       toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
     });
-  };
-
-  const getFullShareUrl = () => {
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}/share/${form.id}`;
-    }
-    return `/share/${form.id}`;
   };
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -262,11 +257,9 @@ const FormDetails = ({
               Design
             </Link>
           </Button>
-          <Button variant={"outline"} asChild>
-            <Link href={{ pathname: `/share/${form.id}` }} target="_blank">
-              <Link2 className="mr-2 h-4 w-4" />
-              Share
-            </Link>
+          <Button variant={"outline"} onClick={() => setIsShareDialogOpen(true)}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
           </Button>
           <Button variant={"outline"} asChild>
             <Link
@@ -353,35 +346,16 @@ const FormDetails = ({
         </div>
       </div>
 
-      {/* Sharing Section */}
-      <div className="space-y-4 max-w-2xl mx-auto">
-        <SectionTitle title="Sharing" headingClassName="text-xl mt-4" />
-        <div className="grid grid-cols-4 py-2 gap-4">
-          <div className="col-span-1 flex items-center justify-end">
-            <Label htmlFor="form-share-url">Share URL:</Label>
-          </div>
-          <div className="col-span-3">
-            <div className="relative cursor-pointer">
-              <CopyToClipboard
-                copyValue={getFullShareUrl}
-                label="Copy form url"
-              />
-              <Input
-                readOnly
-                disabled
-                id="form-share-url"
-                value={getFullShareUrl()}
-                className="bg-accent w-full rounded-lg"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Webhook Configuration Section */}
       <WebhookSettings
         formId={form.id}
         initialSettings={form.webHookSettingsJson}
+      />
+
+      <ShareDialog
+        formId={form.id}
+        open={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
       />
 
       <SaveAsTemplateDialog
