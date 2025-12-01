@@ -51,6 +51,14 @@ async function updateExistingSubmissionViaToken(
 ): Promise<ApiResult<SubmissionOperation>> {
   const session = await getSession();
   const endatix = new EndatixApi(session);
+
+  const currentSubmissionResult = await endatix.submissions.public.getByToken(
+    formId,
+    token,
+  );
+  const currentIsComplete = ApiResult.isSuccess(currentSubmissionResult) &&
+    currentSubmissionResult.data.isComplete;
+
   const updateByTokenResult = await endatix.submissions.public.updateByToken(
     formId,
     token,
@@ -58,7 +66,7 @@ async function updateExistingSubmissionViaToken(
   );
 
   if (ApiResult.isSuccess(updateByTokenResult)) {
-    if (updateByTokenResult.data.isComplete) {
+    if (!currentIsComplete && updateByTokenResult.data.isComplete) {
       tokenStore.deleteToken(formId);
     }
 
