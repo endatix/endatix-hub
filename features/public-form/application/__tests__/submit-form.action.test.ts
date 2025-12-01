@@ -12,6 +12,7 @@ interface GlobalTestMocks {
       public: {
         create: ReturnType<typeof vi.fn>;
         updateByToken: ReturnType<typeof vi.fn>;
+        getByToken: ReturnType<typeof vi.fn>;
       };
     };
   };
@@ -25,6 +26,7 @@ vi.mock("@/lib/endatix-api", async () => {
       public: {
         create: vi.fn(),
         updateByToken: vi.fn(),
+        getByToken: vi.fn(),
       },
     },
   };
@@ -119,10 +121,21 @@ describe("submitFormAction", () => {
       currentPage: 2,
     };
 
+    const mockGetResponse = {
+      isComplete: false,
+      id: "submission-123",
+    };
+
     const mockUpdateResponse = {
       isComplete: false,
       id: "submission-123",
     };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
+      ApiResult.success(mockGetResponse),
+    );
 
     (
       globalThis as unknown as GlobalTestMocks
@@ -137,6 +150,10 @@ describe("submitFormAction", () => {
     expect(mockTokenStore.getToken).toHaveBeenCalledWith("form-1");
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.getByToken,
+    ).toHaveBeenCalledWith("form-1", "existing-token");
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.updateByToken,
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
     expect(mockTokenStore.setToken).not.toHaveBeenCalled();
@@ -147,7 +164,7 @@ describe("submitFormAction", () => {
     }
   });
 
-  it("should delete token when submission is complete", async () => {
+  it("should delete token when submission transitions from incomplete to complete", async () => {
     // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
@@ -157,10 +174,21 @@ describe("submitFormAction", () => {
       currentPage: 2,
     };
 
+    const mockGetResponse = {
+      isComplete: false,
+      id: "submission-123",
+    };
+
     const mockUpdateResponse = {
       isComplete: true,
       id: "submission-123",
     };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
+      ApiResult.success(mockGetResponse),
+    );
 
     (
       globalThis as unknown as GlobalTestMocks
@@ -174,15 +202,79 @@ describe("submitFormAction", () => {
     // Assert
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.getByToken,
+    ).toHaveBeenCalledWith("form-1", "existing-token");
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.updateByToken,
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
     expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
     expect(ApiResult.isSuccess(actionResult)).toBe(true);
   });
 
+  it("should NOT delete token when editing an already completed submission", async () => {
+    // Arrange
+    mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
+
+    const mockSubmissionData = {
+      jsonData: '{"updated": true}',
+      isComplete: true,
+      currentPage: 2,
+    };
+
+    const mockGetResponse = {
+      isComplete: true,
+      id: "submission-123",
+    };
+
+    const mockUpdateResponse = {
+      isComplete: true,
+      id: "submission-123",
+    };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
+      ApiResult.success(mockGetResponse),
+    );
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
+      ApiResult.success(mockUpdateResponse),
+    );
+
+    // Act
+    const actionResult = await submitFormAction("form-1", mockSubmissionData);
+
+    // Assert
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.getByToken,
+    ).toHaveBeenCalledWith("form-1", "existing-token");
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.updateByToken,
+    ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
+    expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(actionResult)).toBe(true);
+  });
+
   it("should delete token when update fails due to expired submission token", async () => {
     // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
+
+    const mockGetResponse = {
+      isComplete: false,
+      id: "submission-123",
+    };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
+      ApiResult.success(mockGetResponse),
+    );
+
     (
       globalThis as unknown as GlobalTestMocks
     ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
@@ -213,6 +305,18 @@ describe("submitFormAction", () => {
   it("should NOT delete token when update fails for ReCaptcha error", async () => {
     // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
+
+    const mockGetResponse = {
+      isComplete: false,
+      id: "submission-123",
+    };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
+      ApiResult.success(mockGetResponse),
+    );
+
     (
       globalThis as unknown as GlobalTestMocks
     ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
@@ -275,6 +379,18 @@ describe("submitFormAction", () => {
       isLoggedIn: true,
     };
     vi.mocked(getSession).mockResolvedValue(mockSession);
+
+    const mockGetResponse = {
+      isComplete: false,
+      id: "submission-123",
+    };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
+      ApiResult.success(mockGetResponse),
+    );
+
     (
       globalThis as unknown as GlobalTestMocks
     ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
