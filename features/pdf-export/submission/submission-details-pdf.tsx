@@ -9,7 +9,6 @@ import {
 } from "@react-pdf/renderer";
 import { Model } from "survey-core";
 import { Submission } from "@/lib/endatix-api";
-import { CustomQuestion } from "@/services/api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { PdfSubmissionVariables } from "./pdf-submission-variables";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
@@ -42,7 +41,7 @@ Font.register({
 
 interface SubmissionDetailsPdfProps {
   submission: Submission;
-  customQuestions: CustomQuestion[];
+  customQuestions: string[];
   locale?: string;
 }
 
@@ -57,9 +56,7 @@ export const SubmissionDetailsPdf = ({
 
   registerAudioQuestionModel();
 
-  initializeCustomQuestions(
-    customQuestions.map((q: CustomQuestion) => q.jsonData),
-  );
+  initializeCustomQuestions(customQuestions);
 
   const json = JSON.parse(submission.formDefinition.jsonData);
   const surveyModel = new Model(json);

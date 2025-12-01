@@ -4,7 +4,6 @@ import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/ge
 import { Result } from "@/lib/result";
 import { pdf } from "@react-pdf/renderer";
 import { CustomQuestion } from "@/services/api";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { parseBoolean } from "@/lib/utils/type-parsers";
 import { getSubmissionLocale } from "@/features/submissions/submission-localization";
@@ -27,7 +26,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     searchParams.get(DEFAULT_LOCALE_QUERY_PARAM),
   );
 
-  let customQuestions: CustomQuestion[] = [];
+  let customQuestionsJsonData: string[] = [];
   const [submissionResult, customQuestionsResult] = await Promise.all([
     getSubmissionDetailsUseCase({
       formId,
@@ -44,14 +43,10 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   if (Result.isSuccess(customQuestionsResult)) {
-    customQuestions = customQuestionsResult.value;
+    customQuestionsJsonData = customQuestionsResult.value.map((q: CustomQuestion) => q.jsonData);
   }
 
   const submission = submissionResult.value;
-
-  initializeCustomQuestions(
-    customQuestions.map((q: CustomQuestion) => q.jsonData),
-  );
 
   const pdfLocale = useDefaultLocale
     ? undefined
@@ -60,7 +55,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const pdfBlob = await pdf(
     <SubmissionDetailsPdf
       submission={submission}
-      customQuestions={customQuestions}
+      customQuestions={customQuestionsJsonData}
       locale={pdfLocale}
     />,
   ).toBlob();
