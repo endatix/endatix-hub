@@ -31,6 +31,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   const endatix = new EndatixApi();
+  // eslint-disable-next-line testing-library/no-await-sync-queries
   const submissionResult = await endatix.submissions.public.getByToken(
     formId,
     token,
