@@ -5,6 +5,7 @@ import { pdf } from "@react-pdf/renderer";
 import { parseBoolean } from "@/lib/utils/type-parsers";
 import { getSubmissionLocale } from "@/features/submissions/submission-localization";
 import { EndatixApi, ApiResult } from "@/lib/endatix-api";
+import { apiResponses } from "@/lib/utils/route-handlers";
 
 type Params = {
   params: Promise<{
@@ -24,10 +25,9 @@ export async function GET(req: NextRequest, { params }: Params) {
   );
 
   if (!token) {
-    return NextResponse.json(
-      { error: "Token is required" },
-      { status: 400 }
-    );
+    return apiResponses.badRequest({
+      detail: "Token is required.",
+    });
   }
 
   const endatix = new EndatixApi();
@@ -38,10 +38,9 @@ export async function GET(req: NextRequest, { params }: Params) {
   );
 
   if (!ApiResult.isSuccess(submissionResult)) {
-    return NextResponse.json(
-      { error: "Invalid or expired token" },
-      { status: 404 },
-    );
+    return apiResponses.notFound({
+      detail: "Invalid or expired token.",
+    });
   }
 
   const submission = submissionResult.data;
@@ -57,10 +56,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     customQuestions = activeDefinition.customQuestions || [];
   } catch (error) {
     console.error("Failed to fetch form definition", error);
-    return NextResponse.json(
-      { error: "Form definition not found" },
-      { status: 404 },
-    );
+    return apiResponses.notFound({
+      detail: "Form definition not found.",
+    });
   }
 
   const pdfLocale = useDefaultLocale
