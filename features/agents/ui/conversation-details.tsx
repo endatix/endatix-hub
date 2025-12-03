@@ -1,7 +1,7 @@
 "use client";
 
 import ChatThread from "@/features/forms/ui/chat/chat-thread";
-import PreviewFormContainer from "@/app/(main)/forms/create/ui/preview-form-container";
+import PreviewFormContainer from "@/features/forms/ui/preview/preview-form-container";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,

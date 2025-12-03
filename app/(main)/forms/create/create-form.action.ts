@@ -31,10 +31,7 @@ export async function createFormAction(
     const { requireHubAccess } = await authorization(session);
     await requireHubAccess();
 
-    const rawData = {
-      name: formData.get("name")?.toString().trim() ?? "",
-      description: formData.get("description")?.toString().trim() ?? "",
-    };
+    const rawData = extractFormData(formData);
 
     const initialFormRequest = {
       name: rawData.name,
@@ -91,4 +88,14 @@ export async function createFormAction(
       values: rawData,
     };
   }
+}
+
+function extractFormData(formData: FormData): {
+  name: string;
+  description: string;
+} {
+  return {
+    name: formData.get("name")?.toString().trim() ?? "",
+    description: formData.get("description")?.toString().trim() ?? "",
+  };
 }
