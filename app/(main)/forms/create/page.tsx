@@ -1,5 +1,5 @@
 import PageTitle from "@/components/headings/page-title";
-import { CreateForm } from "@/features/forms/use-cases/create-form";
+import { CreateFormWizard } from "@/features/forms/use-cases/create-form";
 import Link from "next/link";
 
 export default function CreateFormPage() {
@@ -19,7 +19,7 @@ export default function CreateFormPage() {
             Design your form with a simple drag and drop interface.
           </p>
 
-          <CreateForm />
+          <CreateFormWizard />
         </div>
       </div>
     </>

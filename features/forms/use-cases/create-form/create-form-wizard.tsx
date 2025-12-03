@@ -20,7 +20,7 @@ const INITIAL_STATE: CreateFormActionState = {
   isSuccess: false,
 };
 
-export default function CreateForm() {
+export default function CreateFormWizard() {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     createFormAction,
