@@ -95,27 +95,6 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
   const [isCreatingAiForm, setIsCreatingAiForm] = useState(false);
   const router = useRouter();
 
-  const openNewFormInEditor = async () => {
-    if (isPending) {
-      return;
-    }
-
-    startTransition(async () => {
-      const request: CreateFormRequest = {
-        name: "New Form",
-        isEnabled: true,
-        formDefinitionJsonData: JSON.stringify("{ }"),
-      };
-      const formResult = await createFormAction(request);
-      if (Result.isSuccess(formResult) && formResult.value) {
-        const formId = formResult.value;
-        router.push(`/forms/${formId}/design`);
-      } else {
-        alert("Failed to create form");
-      }
-    });
-  };
-
   const handleTemplateSelect = (template: FormTemplate) => {
     setSelectedTemplate(template);
   };
@@ -196,7 +175,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
             icon={BicepsFlexed}
             action="from_scratch"
             isSelected={selectedOption === "from_scratch"}
-            onClick={openNewFormInEditor}
+            onClick={() => router.push("/forms/create")}
             disabled={isPending}
           />
           <CreateFormCard
