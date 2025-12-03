@@ -1,8 +1,13 @@
-export interface CreateFormRequest {
-  name: string;
-  isEnabled: boolean;
-  formDefinitionJsonData: string;
-}
+import { z } from "zod";
+
+export const CreateFormRequestSchema = z.object({
+  name: z.string().min(1, { message: "Name is required" }),
+  description: z.string().optional(),
+  isEnabled: z.boolean(),
+  formDefinitionJsonData: z.string(),
+});
+
+export type CreateFormRequest = z.infer<typeof CreateFormRequestSchema>;
 
 export interface CreateFormResult {
   isSuccess: boolean;

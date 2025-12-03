@@ -1,41 +1,98 @@
 "use server";
 
+import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { CreateFormRequest } from "@/features/forms/ui/chat/use-cases/assistant";
-import { createForm } from "@/services/api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { CreateFormRequestSchema } from "@/lib/form-types";
 
-export interface CreateFormDraftResult {
+export interface CreateFormActionState {
   isSuccess: boolean;
-  error?: string;
+  formErrors?: string[];
+  errors?: {
+    name?: string[];
+    description?: string[];
+  };
+  values?: {
+    name?: string;
+    description?: string;
+  };
   formId?: string;
 }
 
-export async function createFormDraft(
-  request: CreateFormRequest,
-): Promise<CreateFormDraftResult | never> {
-  const { requireHubAccess } = await authorization();
-  await requireHubAccess();
+const EMPTY_FORM_DEFINITION = {};
 
-  const result: CreateFormDraftResult = {
-    isSuccess: false,
-  };
-
-  if (!request) {
-    result.error = "Request is null";
-    return result;
-  }
-
+export async function createFormAction(
+  _prevState: CreateFormActionState,
+  formData: FormData,
+): Promise<CreateFormActionState> {
   try {
-    const formDraft = await createForm(request);
-    if (formDraft.id?.length > 0) {
-      result.formId = formDraft.id;
-      result.isSuccess = true;
-    } else {
-      result.error = "Failed to create form draft";
+    const session = await auth();
+    const { requireHubAccess } = await authorization(session);
+    await requireHubAccess();
+
+    const rawData = extractFormData(formData);
+
+    const initialFormRequest = {
+      name: rawData.name,
+      description: rawData.description || undefined,
+      isEnabled: false,
+      formDefinitionJsonData: JSON.stringify(EMPTY_FORM_DEFINITION),
+    };
+
+    const validatedRequestData =
+      CreateFormRequestSchema.safeParse(initialFormRequest);
+
+    if (!validatedRequestData.success) {
+      const errors = validatedRequestData.error.flatten();
+      return {
+        isSuccess: false,
+        formErrors: errors.formErrors,
+        errors: errors.fieldErrors,
+        values: rawData,
+      };
     }
-  } catch (er) {
-    result.error = `Failed to create form draft. Details: ${er}`;
-  } finally {
-    return result;
+
+    const endatix = new EndatixApi(session?.accessToken);
+    const createFormResult = await endatix.forms.create(
+      validatedRequestData.data,
+    );
+
+    if (ApiResult.isError(createFormResult)) {
+      return {
+        isSuccess: false,
+        formErrors: [
+          createFormResult.error.message ||
+            "Failed to create form. Please try again.",
+        ],
+        values: rawData,
+      };
+    }
+
+    return {
+      isSuccess: true,
+      formId: createFormResult.data.id,
+    };
+  } catch (error) {
+    console.error("Unexpected error in createFormAction:", error);
+    const rawData = extractFormData(formData);
+    return {
+      isSuccess: false,
+      formErrors: [
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred. Please try again.",
+      ],
+      values: rawData,
+    };
   }
+}
+
+function extractFormData(formData: FormData): {
+  name: string;
+  description: string;
+} {
+  const name = formData.get("name")?.toString().trim() ?? "";
+  const description = formData.get("description")?.toString().trim() ?? "";
+
+  return { name, description };
 }

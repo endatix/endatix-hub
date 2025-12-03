@@ -18,7 +18,7 @@ export default async function CreateAgentPage() {
           </Link>
         </div>
         <div className="bg-card border rounded-lg p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold mb-6">Create a new agent</h1>
+          <h2 className="text-2xl font-semibold mb-6">Create a new agent</h2>
           <p className="text-muted-foreground mb-6">
             Agents let you configure LLMs with custom settings and system
             messages.
