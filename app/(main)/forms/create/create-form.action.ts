@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { CreateFormRequestSchema } from "@/lib/form-types";
+import { revalidatePath } from "next/cache";
 
 export interface CreateFormActionState {
   isSuccess: boolean;
@@ -30,7 +31,10 @@ export async function createFormAction(
     const { requireHubAccess } = await authorization(session);
     await requireHubAccess();
 
-    const rawData = extractFormData(formData);
+    const rawData = {
+      name: formData.get("name")?.toString().trim() ?? "",
+      description: formData.get("description")?.toString().trim() ?? "",
+    };
 
     const initialFormRequest = {
       name: rawData.name,
@@ -68,6 +72,8 @@ export async function createFormAction(
       };
     }
 
+    revalidatePath("/(main)/forms");
+
     return {
       isSuccess: true,
       formId: createFormResult.data.id,
@@ -85,14 +91,4 @@ export async function createFormAction(
       values: rawData,
     };
   }
-}
-
-function extractFormData(formData: FormData): {
-  name: string;
-  description: string;
-} {
-  const name = formData.get("name")?.toString().trim() ?? "";
-  const description = formData.get("description")?.toString().trim() ?? "";
-
-  return { name, description };
 }
