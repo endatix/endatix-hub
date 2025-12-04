@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-const PreviewForm = dynamic(() => import("./preview-form"), {
+const PreviewForm = dynamic(() => import("@/features/forms/ui/preview/preview-form"), {
   ssr: false,
 });
 
