@@ -79,6 +79,37 @@ const nextConfig: NextConfig = {
         },
       ],
     },
+    {
+      source: "/embed/v1/embed.js",
+      headers: [
+        {
+          key: "Access-Control-Allow-Origin",
+          value: "*",
+        },
+        {
+          key: "Access-Control-Allow-Methods",
+          value: "GET, OPTIONS",
+        },
+        {
+          key: "Access-Control-Allow-Headers",
+          value: "Content-Type",
+        },
+        {
+          // Cache for 1 hour
+          key: "Cache-Control",
+          value: "public, max-age=3600, must-revalidate",
+        },
+        {
+          // Prevent MIME-type sniffing
+          key: "X-Content-Type-Options",
+          value: "nosniff",
+        },
+        {
+          key: "Content-Type",
+          value: "application/javascript; charset=utf-8",
+        },
+      ],
+    },
   ],
   skipTrailingSlashRedirect: true,
 };

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test: Multiple Forms</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 0 20px;
+    }
+    h1 { color: #333; }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+    .form-box {
+      margin: 20px 0;
+      padding: 15px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>✅ Multiple Forms Test</h1>
+
+  <div class="section">
+    <h2>Embed Snippet (3 forms):</h2>
+    <pre><code>&lt;!-- Form 1 --&gt;
+&lt;script src="http://localhost:3000/embed/v1/embed.js"
+        data-form-id="{formId}"&gt;&lt;/script&gt;
+
+&lt;!-- Form 2 --&gt;
+&lt;script src="http://localhost:3000/embed/v1/embed.js"
+        data-form-id="{formId}"&gt;&lt;/script&gt;
+
+&lt;!-- Form 3 --&gt;
+&lt;script src="http://localhost:3000/embed/v1/embed.js"
+        data-form-id="{formId}"&gt;&lt;/script&gt;</code></pre>
+  </div>
+
+  <div class="section">
+    <h2>Results:</h2>
+
+    <div class="form-box">
+      <h3>Form 1</h3>
+      <script src="http://localhost:3000/embed/v1/embed.js"
+              data-form-id="{formId}"></script>
+    </div>
+
+    <div class="form-box">
+      <h3>Form 2</h3>
+      <script src="http://localhost:3000/embed/v1/embed.js"
+              data-form-id="{formId}"></script>
+    </div>
+
+    <div class="form-box">
+      <h3>Form 3</h3>
+      <script src="http://localhost:3000/embed/v1/embed.js"
+              data-form-id="{formId}"></script>
+    </div>
+  </div>
+
+  <div class="section" style="background: #fffbeb;">
+    <h3>Expected Results:</h3>
+    <ul>
+      <li>✅ All 3 forms appear</li>
+      <li>✅ Each has unique iframe ID</li>
+      <li>✅ No conflicts between forms</li>
+      <li>✅ Script loads once (cached)</li>
+    </ul>
+
+    <h3>Check Console:</h3>
+    <p>Open console and type: <code>window.EndatixEmbed.instances.length</code></p>
+    <p>Should return: <strong>3</strong></p>
+  </div>
+</body>
+</html>

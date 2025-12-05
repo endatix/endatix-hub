@@ -109,6 +109,33 @@ export default function SurveyComponent({
     }
   }, [surveyModel, isEmbed, sendEmbedMessage]);
 
+  const pageNavigationOccurred = useRef(false);
+
+  useEffect(() => {
+    if (!surveyModel || !isEmbed) {
+      return;
+    }
+
+    const handlePageChanged = () => {
+      pageNavigationOccurred.current = true;
+    };
+
+    const handlePageRendered = () => {
+      if (pageNavigationOccurred.current) {
+        pageNavigationOccurred.current = false;
+        sendEmbedMessage("scroll");
+      }
+    };
+
+    surveyModel.onCurrentPageChanged.add(handlePageChanged);
+    surveyModel.onAfterRenderPage.add(handlePageRendered);
+
+    return () => {
+      surveyModel.onCurrentPageChanged.remove(handlePageChanged);
+      surveyModel.onAfterRenderPage.remove(handlePageRendered);
+    };
+  }, [surveyModel, isEmbed, sendEmbedMessage]);
+
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];
   }, [surveyModel]);
