@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test: Single Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 0 20px;
+    }
+    h1 { color: #333; }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>✅ Single Form Test</h1>
+
+  <div class="section">
+    <h2>Embed Snippet (1 line!):</h2>
+    <pre><code>&lt;script src="http://localhost:3000/embed/v1/embed.js"
+        data-form-id="{formId}"&gt;&lt;/script&gt;</code></pre>
+
+    <h2>Result:</h2>
+    <p>Form should appear below:</p>
+
+    <!-- THE ACTUAL EMBED -->
+    <script src="http://localhost:3000/embed/v1/embed.js"
+            data-form-id="{formId}"></script>
+
+    <p style="margin-top: 20px; color: green;">✅ If you see a form above, it works!</p>
+  </div>
+
+  <div class="section" style="background: #fffbef;">
+    <h3>Expected Results:</h3>
+    <ul>
+      <li>✅ Form appears and loads successfully</li>
+      <li>✅ Form resizes dynamically (no scrollbars)</li>
+      <li>✅ Console should be clean (no errors)</li>
+    </ul>
+  </div>
+</body>
+</html>

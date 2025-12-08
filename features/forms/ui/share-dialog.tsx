@@ -35,7 +35,7 @@ const getShareUrl = (formId: string): string => {
 
 const getEmbedCode = (formId: string): string => {
   if (typeof window !== "undefined") {
-    return `<iframe id="endatix-form" src="${window.location.origin}/embed/${formId}" allow="clipboard-write" style="width: 100%; min-height: 400px; border: none;" />`;
+    return `<script src="${window.location.origin}/embed/v1/embed.js" data-form-id="${formId}"></script>`;
   }
   return ``;
 };
