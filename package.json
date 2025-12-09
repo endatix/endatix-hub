@@ -19,7 +19,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:smoke": "playwright test --project=smoke",
     "test:e2e:debug": "playwright test --debug",
-    "discover-questions": "node scripts/discover-questions.mjs"
+    "discover-questions": "node scripts/discover-questions.mjs",
+    "pnpm:comments": "node scripts/echo-pnpm-comments.mjs"
   },
   "dependencies": {
     "@azure/monitor-opentelemetry-exporter": "1.0.0-beta.32",
@@ -128,7 +129,8 @@
   "pnpm": {
     "overrides": {
       "@types/react": "19.2.2",
-      "@types/react-dom": "19.2.2"
+      "@types/react-dom": "19.2.2",
+      "glob": "10.5.0"
     },
     "ignoredBuiltDependencies": [
       "sharp"
@@ -140,6 +142,9 @@
       "protobufjs",
       "sharp",
       "unrs-resolver"
-    ]
+    ],
+    "comments": {
+      "overrides": "@types/react & @types/react-dom are managed by Next.js. |  glob 10.5.0 bump is to address CVE-2025-64756. Remove once move to taiwing 4x"
+    }
   }
 }
