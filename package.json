@@ -99,7 +99,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.57.0",
     "@testing-library/react": "^16.1.0",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^20.17.12",
