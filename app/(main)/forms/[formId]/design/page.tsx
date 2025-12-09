@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { authorization } from "@/features/auth/authorization";
 import { auth } from "@/auth";
+import { trackException } from "@/features/analytics/posthog/server";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -34,6 +35,13 @@ export default async function FormDesignerPage({ params }: Params) {
     formJson = response?.jsonData ? JSON.parse(response.jsonData) : null;
   } catch (error) {
     console.error("Failed to load form:", error);
+
+    await trackException(error, {
+      operation: "load_form",
+      form_id: formId,
+      timestamp: new Date().toISOString()
+    });
+
     formJson = null;
   }
 
