@@ -29,3 +29,16 @@ The script will:
 
 1. Change to the hub directory
 2. Run `pnpm up` for all survey packages
+
+
+## Echo pnpm comments
+
+### `echo-pnpm-comments.mjs`
+
+This script echoes the pnpm comments from the package.json file. Can be used manually or automatically via `pnpm:comments` script.
+
+**Usage:**
+
+```bash
+node scripts/echo-pnpm-comments.mjs
+```
