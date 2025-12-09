@@ -1,0 +1,24 @@
+{
+  "cSpell.words": ["Endatix"],
+  "search.exclude": {
+    ".next": true,
+    "node_modules": true
+  },
+  "editor.codeActionsOnSave": [
+    "source.organizeImports",
+    "source.fixAll.format",
+    "source.fixAll.eslint"
+  ],
+  "vsicons.associations.folders": [
+    {
+      "icon": "helper",
+      "extensions": ["infrastructure"],
+      "format": "svg"
+    },
+    {
+      "icon": "model",
+      "extensions": ["domain"],
+      "format": "svg"
+    },
+  ]
+}
