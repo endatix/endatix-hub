@@ -6,7 +6,7 @@ import { createPostHogConfig, isPostHogEnabled } from '../shared/config';
 import type { PostHogConfig } from '../shared/types';
 
 // Define property types
-type PostHogProperties = Record<string, string | number | boolean | null | undefined>;
+type PostHogProperties = Record<string, string | number | boolean | null | undefined | unknown[]>;
 
 let posthogInstance: PostHog | null = null;
 
@@ -96,13 +96,24 @@ export async function trackException(
     };
 
     // Extract error information if it's an Error object
+    let errorType = 'Error';
+    let errorMessage = 'Unknown error';
+
     if (error instanceof Error) {
       errorProperties.error = error.message;
       errorProperties.stack = error.stack;
+      errorType = error.name || 'Error';
+      errorMessage = error.message;
     } else if (error !== null && error !== undefined) {
       // Handle non-Error objects
       errorProperties.error = String(error);
+      errorMessage = String(error);
     }
+
+    errorProperties.$exception_list = [{
+      type: errorType,
+      value: errorMessage,
+    }];
 
     await client.capture({
       event: '$exception',
