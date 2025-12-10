@@ -130,7 +130,8 @@
     "overrides": {
       "@types/react": "19.2.2",
       "@types/react-dom": "19.2.2",
-      "glob": "10.5.0"
+      "glob": "10.5.0",
+      "vite": "^7.1.11"
     },
     "ignoredBuiltDependencies": [
       "sharp"
@@ -144,7 +145,7 @@
       "unrs-resolver"
     ],
     "comments": {
-      "overrides": "@types/react & @types/react-dom are managed by Next.js. |  glob 10.5.0 bump is to address CVE-2025-64756. Remove once move to taiwing 4x"
+      "overrides": "@types/react & @types/react-dom are managed by Next.js. |  glob 10.5.0 bump is to address CVE-2025-64756. Remove once move to taiwind 4x | vite 7.1.11 bump is to address CVE-2025-62522. Remove once we move to vite 4x"
     }
   }
 }
