@@ -19,12 +19,13 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:smoke": "playwright test --project=smoke",
     "test:e2e:debug": "playwright test --debug",
-    "discover-questions": "node scripts/discover-questions.mjs"
+    "discover-questions": "node scripts/discover-questions.mjs",
+    "pnpm:comments": "node scripts/echo-pnpm-comments.mjs"
   },
   "dependencies": {
     "@azure/monitor-opentelemetry-exporter": "1.0.0-beta.32",
     "@azure/storage-blob": "^12.26.0",
-    "@flags-sdk/posthog": "^0.1.0",
+    "@flags-sdk/posthog": "^0.2.2",
     "@grpc/grpc-js": "^1.13.4",
     "@hookform/resolvers": "^3.10.0",
     "@opentelemetry/api": "^1.9.0",
@@ -77,8 +78,8 @@
     "next": "15.5.7",
     "next-auth": "5.0.0-beta.29",
     "next-themes": "^0.4.6",
-    "posthog-js": "^1.232.4",
-    "posthog-node": "^4.10.1",
+    "posthog-js": "^1.302.2",
+    "posthog-node": "^5.17.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.54.2",
@@ -99,7 +100,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.57.0",
     "@testing-library/react": "^16.1.0",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^20.17.12",
@@ -128,7 +129,8 @@
   "pnpm": {
     "overrides": {
       "@types/react": "19.2.2",
-      "@types/react-dom": "19.2.2"
+      "@types/react-dom": "19.2.2",
+      "glob": "10.5.0"
     },
     "ignoredBuiltDependencies": [
       "sharp"
@@ -140,6 +142,9 @@
       "protobufjs",
       "sharp",
       "unrs-resolver"
-    ]
+    ],
+    "comments": {
+      "overrides": "@types/react & @types/react-dom are managed by Next.js. |  glob 10.5.0 bump is to address CVE-2025-64756. Remove once move to taiwing 4x"
+    }
   }
 }
