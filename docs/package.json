@@ -53,10 +53,11 @@
   "pnpm": {
     "overrides": {
       "node-forge": "^1.3.3",
-      "mdast-util-to-hast": "^13.2.1"
+      "mdast-util-to-hast": "^13.2.1",
+      "medmaid": "^11.10.0"
     },
     "comments": {
-      "overrides": "Override node-forge to version 1.3.3 until issue is addressed by Docusaurus | mdast-util-to-hast on 13.2.1 to fix CVE-2025-66400. Remove on next Docusaurus bump"
+      "overrides": "[node-forge] to version 1.3.3 until issue is addressed by Docusaurus | [mdast-util-to-hast] on 13.2.1 to fix CVE-2025-66400. Remove on next Docusaurus bump | [mermaid] on 11.10.0 to fix CVE-2025-54881. Remove on next Docusaurus bump"
     },
     "onlyBuiltDependencies": [
       "core-js",
