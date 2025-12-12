@@ -1,3 +1,4 @@
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../types";
 import { AgentConversations } from "./conversations";
@@ -8,6 +9,7 @@ import {
   DefineFormResponse,
   UpdateAgentRequest,
 } from "./types";
+import { Result } from "@/lib/result";
 
 export default class Agents {
   private _conversations?: AgentConversations;
@@ -38,7 +40,11 @@ export default class Agents {
   }
 
   async get(agentId: string): Promise<ApiResult<Agent>> {
-    return this.endatix.get<Agent>(`/agents/${agentId}`);
+    const validateAgentIdResult = validateEndatixId(agentId, "agentId");
+    if (Result.isError(validateAgentIdResult)) {
+      return ApiResult.validationError(validateAgentIdResult.message);
+    }
+    return this.endatix.get<Agent>(`/agents/${validateAgentIdResult.value}`);
   }
 
   async create(request: CreateAgentRequest): Promise<ApiResult<Agent>> {
@@ -49,6 +55,14 @@ export default class Agents {
     agentId: string,
     request: UpdateAgentRequest,
   ): Promise<ApiResult<Agent>> {
-    return this.endatix.put<Agent>(`/agents/${agentId}`, request);
+    const validateAgentIdResult = validateEndatixId(agentId, "agentId");
+    if (Result.isError(validateAgentIdResult)) {
+      return ApiResult.validationError(validateAgentIdResult.message);
+    }
+
+    return this.endatix.put<Agent>(
+      `/agents/${validateAgentIdResult.value}`,
+      request,
+    );
   }
 }

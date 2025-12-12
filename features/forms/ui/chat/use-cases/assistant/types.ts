@@ -4,7 +4,7 @@ export type ChatMessage = {
 }
 
 export type ChatContext = {
-    conversationId?: number,
+    conversationId?: string,
     agentId: string,
     threadId: string,
     messages: ChatMessage[],
