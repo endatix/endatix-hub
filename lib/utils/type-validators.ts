@@ -1,7 +1,7 @@
 import { Result } from "../result";
 
-// C# long.MaxValue
-const NET_LONG_MAX_VALUE = BigInt(9223372036854775807);
+// C# long.MaxValue - use string to avoid precision loss
+const NET_LONG_MAX_VALUE = BigInt("9223372036854775807");
 const NUMERIC_STRING_PATTERN = /^\d+$/;
 const HEX_STRING_PATTERN = /^[0-9A-Fa-f]+$/;
 
