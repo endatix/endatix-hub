@@ -2,6 +2,11 @@ import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult } from "../shared/api-result";
 import type { EndatixApi } from "../endatix-api";
 import { Submission } from "./types";
+import {
+  validateEndatixId,
+  validateHexToken,
+} from "@/lib/utils/type-validators";
+import { Result } from "@/lib/result";
 
 class PublicSubmissions {
   constructor(private readonly endatix: EndatixApi) {}
@@ -32,16 +37,18 @@ class PublicSubmissions {
     token: string,
     submissionData: SubmissionData,
   ): Promise<ApiResult<Submission>> {
-    if (!formId) {
-      return ApiResult.validationError("FormId is required");
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
     }
 
-    if (!token) {
-      return ApiResult.validationError("Token is required");
+    const validateTokenResult = validateHexToken(token, "token");
+    if (Result.isError(validateTokenResult)) {
+      return ApiResult.validationError(validateTokenResult.message);
     }
 
     return this.endatix.patch<Submission>(
-      `/forms/${formId}/submissions/by-token/${token}`,
+      `/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
       submissionData,
       { requireAuth: false },
     );
@@ -54,16 +61,18 @@ class PublicSubmissions {
     formId: string,
     token: string,
   ): Promise<ApiResult<Submission>> {
-    if (!formId) {
-      return ApiResult.validationError("FormId is required");
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
     }
 
-    if (!token) {
-      return ApiResult.validationError("Token is required");
+    const validateTokenResult = validateHexToken(token, "token");
+    if (Result.isError(validateTokenResult)) {
+      return ApiResult.validationError(validateTokenResult.message);
     }
 
     return this.endatix.get<Submission>(
-      `/forms/${formId}/submissions/by-token/${token}`,
+      `/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
       { requireAuth: false },
     );
   }

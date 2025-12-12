@@ -1,14 +1,14 @@
 export interface LatestConversationResponse {
-  conversationId: number;
-  agentId: number;
+  conversationId: string;
+  agentId: string;
   createdAt: string;
   lastModified: string;
   resultJson?: string;
 }
 
 export interface ConversationMessage {
-  id: number;
-  conversationId: number;
+  id: string;
+  conversationId: string;
   role: string;
   content: string;
   createdAt: string;
