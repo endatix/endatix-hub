@@ -10,6 +10,11 @@ import { ITheme } from "survey-core";
 import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
 import { Submission } from "@/lib/endatix-api";
+import {
+  validateEndatixId,
+  validateHexToken,
+} from "@/lib/utils/type-validators";
+import { Result } from "@/lib/result";
 
 const API_BASE_URL = process.env.ENDATIX_API_URL;
 
@@ -68,8 +73,13 @@ export const getForm = async (formId: string): Promise<Form> => {
     Authorization: `Bearer ${session?.accessToken}`,
   };
 
+  const validateIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateIdResult)) {
+    throw new Error(validateIdResult.message);
+  }
+
   const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}`,
+    `${API_BASE_URL}/forms/${validateIdResult.value}`,
     requestOptions,
   );
 
@@ -96,17 +106,24 @@ export const updateForm = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${API_BASE_URL}/forms/${formId}`, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify(data),
-  });
+  const validateIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateIdResult)) {
+    throw new Error(validateIdResult.message);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/forms/${validateIdResult.value}`,
+    {
+      method: "PATCH",
+      headers: headers,
+      body: JSON.stringify(data),
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to update form");
   }
 };
-
 
 export const deleteForm = async (formId: string): Promise<string> => {
   const session = await getSession();
@@ -115,12 +132,20 @@ export const deleteForm = async (formId: string): Promise<string> => {
     redirect("/login");
   }
 
+  const validatedIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validatedIdResult)) {
+    throw new Error(validatedIdResult.message);
+  }
+
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(`${API_BASE_URL}/forms/${formId}`, {
-    method: "DELETE",
-    headers: headers,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/forms/${validatedIdResult.value}`,
+    {
+      method: "DELETE",
+      headers: headers,
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to delete form");
@@ -146,9 +171,14 @@ export const getActiveFormDefinition = async (
     headerBuilder.withAuth(session);
   }
 
+  const validateIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateIdResult)) {
+    throw new Error(validateIdResult.message);
+  }
+
   requestOptions.headers = headerBuilder.build();
   const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/definition`,
+    `${API_BASE_URL}/forms/${validateIdResult.value}/definition`,
     requestOptions,
   );
 
@@ -179,11 +209,23 @@ export const getFormDefinition = async (
   }
 
   const headers = new HeaderBuilder().withAuth(session).build();
-
   requestOptions.headers = headers;
 
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
+  }
+
+  const validateDefinitionIdResult = validateEndatixId(
+    definitionId,
+    "definitionId",
+  );
+  if (Result.isError(validateDefinitionIdResult)) {
+    throw new Error(validateDefinitionIdResult.message);
+  }
+
   const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/definitions/${definitionId}`,
+    `${API_BASE_URL}/forms/${validateFormIdResult.value}/definitions/${validateDefinitionIdResult.value}`,
     requestOptions,
   );
 
@@ -211,11 +253,19 @@ export const updateFormDefinition = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${API_BASE_URL}/forms/${formId}/definition`, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ isDraft, jsonData }),
-  });
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/forms/${validateFormIdResult.value}/definition`,
+    {
+      method: "PATCH",
+      headers: headers,
+      body: JSON.stringify({ isDraft, jsonData }),
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to update form definition");
@@ -289,11 +339,19 @@ export const updateTheme = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ jsonData: JSON.stringify(theme) }),
-  });
+  const validateIdResult = validateEndatixId(themeId, "themeId");
+  if (Result.isError(validateIdResult)) {
+    throw new Error(validateIdResult.message);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/themes/${validateIdResult.value}`,
+    {
+      method: "PATCH",
+      headers: headers,
+      body: JSON.stringify({ jsonData: JSON.stringify(theme) }),
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to update theme");
@@ -311,10 +369,18 @@ export const deleteTheme = async (themeId: string): Promise<string> => {
 
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(`${API_BASE_URL}/themes/${themeId}`, {
-    method: "DELETE",
-    headers: headers,
-  });
+  const validateThemeIdResult = validateEndatixId(themeId, "themeId");
+  if (Result.isError(validateThemeIdResult)) {
+    throw new Error(validateThemeIdResult.message);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/themes/${validateThemeIdResult.value}`,
+    {
+      method: "DELETE",
+      headers: headers,
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to delete theme");
@@ -372,9 +438,17 @@ export const getFormTemplate = async (
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(`${API_BASE_URL}/form-templates/${templateId}`, {
-    headers: headers,
-  });
+  const validateTemplateIdResult = validateEndatixId(templateId, "templateId");
+  if (Result.isError(validateTemplateIdResult)) {
+    throw new Error(validateTemplateIdResult.message);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/form-templates/${validateTemplateIdResult.value}`,
+    {
+      headers: headers,
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch form template");
@@ -398,11 +472,19 @@ export const updateFormTemplate = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${API_BASE_URL}/form-templates/${templateId}`, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify(data),
-  });
+  const validateTemplateIdResult = validateEndatixId(templateId, "templateId");
+  if (Result.isError(validateTemplateIdResult)) {
+    throw new Error(validateTemplateIdResult.message);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/form-templates/${validateTemplateIdResult.value}`,
+    {
+      method: "PATCH",
+      headers: headers,
+      body: JSON.stringify(data),
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to update form template");
@@ -420,10 +502,18 @@ export const deleteFormTemplate = async (
 
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(`${API_BASE_URL}/form-templates/${templateId}`, {
-    method: "DELETE",
-    headers: headers,
-  });
+  const validateTemplateIdResult = validateEndatixId(templateId, "templateId");
+  if (Result.isError(validateTemplateIdResult)) {
+    throw new Error(validateTemplateIdResult.message);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/form-templates/${validateTemplateIdResult.value}`,
+    {
+      method: "DELETE",
+      headers: headers,
+    },
+  );
 
   if (!response.ok) {
     throw new Error("Failed to delete form template");
@@ -466,8 +556,17 @@ export const updateSubmission = async (
     redirect("/login");
   }
 
-  if (!formId || !submissionId) {
-    throw new Error("FormId or submissionId is required");
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
+  }
+
+  const validateSubmissionIdResult = validateEndatixId(
+    submissionId,
+    "submissionId",
+  );
+  if (Result.isError(validateSubmissionIdResult)) {
+    throw new Error(validateSubmissionIdResult.message);
   }
 
   const headers = new HeaderBuilder()
@@ -477,7 +576,7 @@ export const updateSubmission = async (
     .build();
 
   const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}`,
+    `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       method: "PATCH",
       headers: headers,
@@ -509,6 +608,19 @@ export const updateSubmissionStatus = async (
     redirect("/login");
   }
 
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
+  }
+
+  const validateSubmissionIdResult = validateEndatixId(
+    submissionId,
+    "submissionId",
+  );
+  if (Result.isError(validateSubmissionIdResult)) {
+    throw new Error(validateSubmissionIdResult.message);
+  }
+
   const headers = new HeaderBuilder()
     .withAuth(session)
     .acceptJson()
@@ -516,7 +628,7 @@ export const updateSubmissionStatus = async (
     .build();
 
   const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}/status`,
+    `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/status`,
     {
       method: "POST",
       headers: headers,
@@ -535,14 +647,20 @@ export const getPartialSubmissionPublic = async (
   formId: string,
   token: string,
 ): Promise<Submission> => {
-  if (!formId || !token) {
-    throw new Error("FormId or token is required");
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
+  }
+
+  const validateTokenResult = validateHexToken(token, "token");
+  if (Result.isError(validateTokenResult)) {
+    throw new Error(validateTokenResult.message);
   }
 
   const headers = new HeaderBuilder().acceptJson().build();
 
   const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions/by-token/${token}`,
+    `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
     {
       headers: headers,
     },
@@ -559,20 +677,28 @@ export const getSubmission = async (
   formId: string,
   submissionId: string,
 ): Promise<Submission> => {
-  if (!formId || !submissionId) {
-    throw new Error("FormId or submissionId is required");
-  }
-
   const session = await getSession();
-
   if (!session.isLoggedIn) {
     redirect("/login");
+  }
+
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
+  }
+
+  const validateSubmissionIdResult = validateEndatixId(
+    submissionId,
+    "submissionId",
+  );
+  if (Result.isError(validateSubmissionIdResult)) {
+    throw new Error(validateSubmissionIdResult.message);
   }
 
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
   const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}`,
+    `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       headers: headers,
     },
@@ -595,10 +721,22 @@ export const getSubmissionFiles = async (
   if (!session?.isLoggedIn) {
     redirect("/login");
   }
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
+  }
+
+  const validateSubmissionIdResult = validateEndatixId(
+    submissionId,
+    "submissionId",
+  );
+  if (Result.isError(validateSubmissionIdResult)) {
+    throw new Error(validateSubmissionIdResult.message);
+  }
 
   const headers = new HeaderBuilder().withAuth(session).provideJson().build();
 
-  const requestUrl = `${API_BASE_URL}/forms/${formId}/submissions/${submissionId}/files`;
+  const requestUrl = `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/files`;
   const requestBody = fileNamesPrefix ? { fileNamesPrefix } : {};
 
   const response = await fetch(requestUrl, {
@@ -643,8 +781,9 @@ export const exportSubmissions = async (
 ): Promise<Response> => {
   const { formId, format = "csv", exportId } = options;
 
-  if (!formId) {
-    throw new Error("FormId is required");
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new Error(validateFormIdResult.message);
   }
 
   const session = await getSession();
@@ -653,7 +792,7 @@ export const exportSubmissions = async (
     redirect("/login");
   }
 
-  const apiUrl = `${API_BASE_URL}/forms/${formId}/submissions/export`;
+  const apiUrl = `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/export`;
 
   // Create a transform stream to handle the data flow
   const { readable, writable } = new TransformStream();
@@ -667,8 +806,12 @@ export const exportSubmissions = async (
     contentDisposition = `attachment; filename=form-${formId}-submissions.json`;
   }
 
+  // Create an AbortController to handle client disconnection
+  const abortController = new AbortController();
+
   // Process the API response in the background
   (async () => {
+    let writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
     try {
       const headers = new HeaderBuilder()
         .withAuth(session)
@@ -676,7 +819,7 @@ export const exportSubmissions = async (
         .build();
 
       const exportRequest: { exportFormat: string; exportId?: string } = {
-        exportFormat: format
+        exportFormat: format,
       };
 
       if (exportId) {
@@ -687,21 +830,25 @@ export const exportSubmissions = async (
         method: "POST",
         headers: headers,
         body: JSON.stringify(exportRequest),
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
-        const writer = writable.getWriter();
-        const errorBody = await response.json();
-        writer.write(
-          new TextEncoder().encode(
-            JSON.stringify({
-              error: errorBody.Detail || "Export failed",
-              status: response.status,
-              statusText: response.statusText,
-            }),
-          ),
-        );
-        writer.close();
+        writer = writable.getWriter();
+        try {
+          const errorBody = await response.json();
+          await writer.write(
+            new TextEncoder().encode(
+              JSON.stringify({
+                error: errorBody.Detail || "Export failed",
+                status: response.status,
+                statusText: response.statusText,
+              }),
+            ),
+          );
+        } finally {
+          await writer.close();
+        }
         return;
       }
 
@@ -720,28 +867,102 @@ export const exportSubmissions = async (
 
       // Pipe the response body directly to our writable stream
       if (response.body) {
-        await response.body.pipeTo(writable);
+        await response.body.pipeTo(writable, {
+          signal: abortController.signal,
+        });
       } else {
-        const writer = writable.getWriter();
-        writer.write(new TextEncoder().encode("No data returned from API"));
-        writer.close();
+        writer = writable.getWriter();
+        try {
+          await writer.write(
+            new TextEncoder().encode("No data returned from API"),
+          );
+        } finally {
+          await writer.close();
+        }
       }
     } catch (error) {
-      const writer = writable.getWriter();
-      writer.write(
-        new TextEncoder().encode(
-          JSON.stringify({
-            error: "Failed to export data",
-            message: error instanceof Error ? error.message : String(error),
-          }),
-        ),
-      );
-      writer.close();
+      // Only write error if stream is still open and not aborted
+      if (
+        error instanceof Error &&
+        error.name !== "AbortError" &&
+        !abortController.signal.aborted
+      ) {
+        try {
+          writer = writable.getWriter();
+          await writer.write(
+            new TextEncoder().encode(
+              JSON.stringify({
+                error: "Failed to export data",
+                message: error.message,
+              }),
+            ),
+          );
+          await writer.close();
+        } catch {
+          // Stream may already be closed, ignore
+        }
+      } else if (error instanceof Error && error.name === "AbortError") {
+        // Client disconnected - abort the writable stream to clean up
+        try {
+          writer = writable.getWriter();
+          await writer.abort();
+        } catch {
+          // Ignore errors during abort cleanup
+        }
+      }
     }
   })();
 
-  // Return the readable stream with appropriate headers
-  return new Response(readable, {
+  // Create a custom ReadableStream that aborts the fetch when cancelled
+  // This ensures proper cleanup of HTTP connections when the client disconnects
+  let streamReader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  const cancellableReadable = new ReadableStream({
+    start(controller) {
+      // Pipe data from the transform stream's readable
+      streamReader = readable.getReader();
+      const pump = async () => {
+        try {
+          while (true) {
+            const { done, value } = await streamReader!.read();
+            if (done) {
+              controller.close();
+              break;
+            }
+            controller.enqueue(value);
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name !== "AbortError") {
+            controller.error(error);
+          } else {
+            controller.close();
+          }
+        } finally {
+          if (streamReader) {
+            streamReader.releaseLock();
+            streamReader = null;
+          }
+        }
+      };
+      pump();
+    },
+    cancel(reason) {
+      // When the client cancels, abort the fetch to clean up the connection
+      abortController.abort();
+      // Cancel the reader if it exists
+      if (streamReader) {
+        streamReader.cancel(reason).catch(() => {
+          // Ignore cancellation errors
+        });
+      }
+      // Also cancel the original readable stream
+      readable.cancel(reason).catch(() => {
+        // Ignore cancellation errors
+      });
+    },
+  });
+
+  // Return the response with the cancellable readable stream
+  return new Response(cancellableReadable, {
     headers: {
       "Content-Type": contentType,
       "Content-Disposition": contentDisposition,
