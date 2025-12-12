@@ -32,7 +32,7 @@ export function validateEndatixId(
   try {
     const bigintId = BigInt(id);
 
-    if (bigintId < 0) {
+    if (bigintId <= 0) {
       return Result.validationError(`${paramName} must be greater than 0`);
     }
 

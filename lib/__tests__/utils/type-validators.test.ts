@@ -136,17 +136,6 @@ describe("validateEndatixId", () => {
       }
     });
 
-    it("should accept zero (validator allows >= 0)", () => {
-      // Note: The validator checks bigintId < 0, not bigintId <= 0
-      // So zero is technically allowed. If this should be rejected,
-      // the validator needs to be updated to check bigintId <= 0
-      const result = validateEndatixId("0", "formId");
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) {
-        expect(result.value).toBe("0");
-      }
-    });
-
     it("should reject numbers exceeding long.MaxValue", () => {
       const tooLarge = "9223372036854775808"; // long.MaxValue + 1
       const result = validateEndatixId(tooLarge, "formId");
