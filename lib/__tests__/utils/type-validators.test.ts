@@ -84,7 +84,7 @@ describe("validateEndatixId", () => {
     });
 
     it("should reject path traversal with backslash", () => {
-      const result = validateEndatixId("123\\..\\admin", "formId");
+      const result = validateEndatixId(String.raw`123\..\admin`, "formId");
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain(
@@ -281,7 +281,7 @@ describe("validateHexToken", () => {
 
     it("should reject path traversal with backslash", () => {
       const result = validateHexToken(
-        "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E\\..\\admin",
+        String.raw`39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E\..\admin`,
         "token",
       );
       expect(Result.isError(result)).toBe(true);

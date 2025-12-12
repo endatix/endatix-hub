@@ -173,7 +173,7 @@ export const getActiveFormDefinition = async (
 
   const validateIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateIdResult)) {
-    throw new Error(validateIdResult.message);
+    throw new TypeError(validateIdResult.message);
   }
 
   requestOptions.headers = headerBuilder.build();
