@@ -75,7 +75,7 @@ export const getForm = async (formId: string): Promise<Form> => {
 
   const validateIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateIdResult)) {
-    throw new Error(validateIdResult.message);
+    throw new TypeError(validateIdResult.message);
   }
 
   const response = await fetch(
@@ -108,7 +108,7 @@ export const updateForm = async (
 
   const validateIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateIdResult)) {
-    throw new Error(validateIdResult.message);
+    throw new TypeError(validateIdResult.message);
   }
 
   const response = await fetch(
@@ -134,7 +134,7 @@ export const deleteForm = async (formId: string): Promise<string> => {
 
   const validatedIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validatedIdResult)) {
-    throw new Error(validatedIdResult.message);
+    throw new TypeError(validatedIdResult.message);
   }
 
   const headers = new HeaderBuilder().withAuth(session).build();
@@ -193,14 +193,6 @@ export const getFormDefinition = async (
   formId: string,
   definitionId: string,
 ): Promise<FormDefinition> => {
-  if (!formId) {
-    throw new Error(`FormId is required`);
-  }
-
-  if (!definitionId) {
-    throw new Error(`DefinitionId is required`);
-  }
-
   const requestOptions: RequestInit = {};
   const session = await getSession();
 
@@ -208,12 +200,9 @@ export const getFormDefinition = async (
     redirect("/login");
   }
 
-  const headers = new HeaderBuilder().withAuth(session).build();
-  requestOptions.headers = headers;
-
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
 
   const validateDefinitionIdResult = validateEndatixId(
@@ -221,8 +210,11 @@ export const getFormDefinition = async (
     "definitionId",
   );
   if (Result.isError(validateDefinitionIdResult)) {
-    throw new Error(validateDefinitionIdResult.message);
+    throw new TypeError(validateDefinitionIdResult.message);
   }
+
+  const headers = new HeaderBuilder().withAuth(session).build();
+  requestOptions.headers = headers;
 
   const response = await fetch(
     `${API_BASE_URL}/forms/${validateFormIdResult.value}/definitions/${validateDefinitionIdResult.value}`,
@@ -255,7 +247,7 @@ export const updateFormDefinition = async (
 
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
 
   const response = await fetch(
@@ -341,7 +333,7 @@ export const updateTheme = async (
 
   const validateIdResult = validateEndatixId(themeId, "themeId");
   if (Result.isError(validateIdResult)) {
-    throw new Error(validateIdResult.message);
+    throw new TypeError(validateIdResult.message);
   }
 
   const response = await fetch(
@@ -371,7 +363,7 @@ export const deleteTheme = async (themeId: string): Promise<string> => {
 
   const validateThemeIdResult = validateEndatixId(themeId, "themeId");
   if (Result.isError(validateThemeIdResult)) {
-    throw new Error(validateThemeIdResult.message);
+    throw new TypeError(validateThemeIdResult.message);
   }
 
   const response = await fetch(
@@ -440,7 +432,7 @@ export const getFormTemplate = async (
 
   const validateTemplateIdResult = validateEndatixId(templateId, "templateId");
   if (Result.isError(validateTemplateIdResult)) {
-    throw new Error(validateTemplateIdResult.message);
+    throw new TypeError(validateTemplateIdResult.message);
   }
 
   const response = await fetch(
@@ -474,7 +466,7 @@ export const updateFormTemplate = async (
 
   const validateTemplateIdResult = validateEndatixId(templateId, "templateId");
   if (Result.isError(validateTemplateIdResult)) {
-    throw new Error(validateTemplateIdResult.message);
+    throw new TypeError(validateTemplateIdResult.message);
   }
 
   const response = await fetch(
@@ -504,7 +496,7 @@ export const deleteFormTemplate = async (
 
   const validateTemplateIdResult = validateEndatixId(templateId, "templateId");
   if (Result.isError(validateTemplateIdResult)) {
-    throw new Error(validateTemplateIdResult.message);
+    throw new TypeError(validateTemplateIdResult.message);
   }
 
   const response = await fetch(
@@ -558,7 +550,7 @@ export const updateSubmission = async (
 
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
 
   const validateSubmissionIdResult = validateEndatixId(
@@ -566,7 +558,7 @@ export const updateSubmission = async (
     "submissionId",
   );
   if (Result.isError(validateSubmissionIdResult)) {
-    throw new Error(validateSubmissionIdResult.message);
+    throw new TypeError(validateSubmissionIdResult.message);
   }
 
   const headers = new HeaderBuilder()
@@ -610,7 +602,7 @@ export const updateSubmissionStatus = async (
 
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
 
   const validateSubmissionIdResult = validateEndatixId(
@@ -618,7 +610,7 @@ export const updateSubmissionStatus = async (
     "submissionId",
   );
   if (Result.isError(validateSubmissionIdResult)) {
-    throw new Error(validateSubmissionIdResult.message);
+    throw new TypeError(validateSubmissionIdResult.message);
   }
 
   const headers = new HeaderBuilder()
@@ -649,12 +641,12 @@ export const getPartialSubmissionPublic = async (
 ): Promise<Submission> => {
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
 
   const validateTokenResult = validateHexToken(token, "token");
   if (Result.isError(validateTokenResult)) {
-    throw new Error(validateTokenResult.message);
+    throw new TypeError(validateTokenResult.message);
   }
 
   const headers = new HeaderBuilder().acceptJson().build();
@@ -684,7 +676,7 @@ export const getSubmission = async (
 
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
 
   const validateSubmissionIdResult = validateEndatixId(
@@ -692,7 +684,7 @@ export const getSubmission = async (
     "submissionId",
   );
   if (Result.isError(validateSubmissionIdResult)) {
-    throw new Error(validateSubmissionIdResult.message);
+    throw new TypeError(validateSubmissionIdResult.message);
   }
 
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
@@ -723,7 +715,7 @@ export const getSubmissionFiles = async (
   }
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
 
   const validateSubmissionIdResult = validateEndatixId(
@@ -731,7 +723,7 @@ export const getSubmissionFiles = async (
     "submissionId",
   );
   if (Result.isError(validateSubmissionIdResult)) {
-    throw new Error(validateSubmissionIdResult.message);
+    throw new TypeError(validateSubmissionIdResult.message);
   }
 
   const headers = new HeaderBuilder().withAuth(session).provideJson().build();
@@ -783,8 +775,9 @@ export const exportSubmissions = async (
 
   const validateFormIdResult = validateEndatixId(formId, "formId");
   if (Result.isError(validateFormIdResult)) {
-    throw new Error(validateFormIdResult.message);
+    throw new TypeError(validateFormIdResult.message);
   }
+  const validatedFormId = validateFormIdResult.value;
 
   const session = await getSession();
 
@@ -792,26 +785,22 @@ export const exportSubmissions = async (
     redirect("/login");
   }
 
-  const apiUrl = `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/export`;
+  const apiUrl = `${API_BASE_URL}/forms/${validatedFormId}/submissions/export`;
 
   // Create a transform stream to handle the data flow
   const { readable, writable } = new TransformStream();
 
   // Default content type based on format
   let contentType = "text/csv";
-  let contentDisposition = `attachment; filename=form-${formId}-submissions.csv`;
+  let contentDisposition = `attachment; filename=form-${validatedFormId}-submissions.csv`;
 
   if (format === "json") {
     contentType = "application/json";
-    contentDisposition = `attachment; filename=form-${formId}-submissions.json`;
+    contentDisposition = `attachment; filename=form-${validatedFormId}-submissions.json`;
   }
-
-  // Create an AbortController to handle client disconnection
-  const abortController = new AbortController();
 
   // Process the API response in the background
   (async () => {
-    let writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
     try {
       const headers = new HeaderBuilder()
         .withAuth(session)
@@ -830,25 +819,21 @@ export const exportSubmissions = async (
         method: "POST",
         headers: headers,
         body: JSON.stringify(exportRequest),
-        signal: abortController.signal,
       });
 
       if (!response.ok) {
-        writer = writable.getWriter();
-        try {
-          const errorBody = await response.json();
-          await writer.write(
-            new TextEncoder().encode(
-              JSON.stringify({
-                error: errorBody.Detail || "Export failed",
-                status: response.status,
-                statusText: response.statusText,
-              }),
-            ),
-          );
-        } finally {
-          await writer.close();
-        }
+        const writer = writable.getWriter();
+        const errorBody = await response.json();
+        writer.write(
+          new TextEncoder().encode(
+            JSON.stringify({
+              error: errorBody.Detail || "Export failed",
+              status: response.status,
+              statusText: response.statusText,
+            }),
+          ),
+        );
+        writer.close();
         return;
       }
 
@@ -867,102 +852,28 @@ export const exportSubmissions = async (
 
       // Pipe the response body directly to our writable stream
       if (response.body) {
-        await response.body.pipeTo(writable, {
-          signal: abortController.signal,
-        });
+        await response.body.pipeTo(writable);
       } else {
-        writer = writable.getWriter();
-        try {
-          await writer.write(
-            new TextEncoder().encode("No data returned from API"),
-          );
-        } finally {
-          await writer.close();
-        }
+        const writer = writable.getWriter();
+        writer.write(new TextEncoder().encode("No data returned from API"));
+        writer.close();
       }
     } catch (error) {
-      // Only write error if stream is still open and not aborted
-      if (
-        error instanceof Error &&
-        error.name !== "AbortError" &&
-        !abortController.signal.aborted
-      ) {
-        try {
-          writer = writable.getWriter();
-          await writer.write(
-            new TextEncoder().encode(
-              JSON.stringify({
-                error: "Failed to export data",
-                message: error.message,
-              }),
-            ),
-          );
-          await writer.close();
-        } catch {
-          // Stream may already be closed, ignore
-        }
-      } else if (error instanceof Error && error.name === "AbortError") {
-        // Client disconnected - abort the writable stream to clean up
-        try {
-          writer = writable.getWriter();
-          await writer.abort();
-        } catch {
-          // Ignore errors during abort cleanup
-        }
-      }
+      const writer = writable.getWriter();
+      writer.write(
+        new TextEncoder().encode(
+          JSON.stringify({
+            error: "Failed to export data",
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        ),
+      );
+      writer.close();
     }
   })();
 
-  // Create a custom ReadableStream that aborts the fetch when cancelled
-  // This ensures proper cleanup of HTTP connections when the client disconnects
-  let streamReader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-  const cancellableReadable = new ReadableStream({
-    start(controller) {
-      // Pipe data from the transform stream's readable
-      streamReader = readable.getReader();
-      const pump = async () => {
-        try {
-          while (true) {
-            const { done, value } = await streamReader!.read();
-            if (done) {
-              controller.close();
-              break;
-            }
-            controller.enqueue(value);
-          }
-        } catch (error) {
-          if (error instanceof Error && error.name !== "AbortError") {
-            controller.error(error);
-          } else {
-            controller.close();
-          }
-        } finally {
-          if (streamReader) {
-            streamReader.releaseLock();
-            streamReader = null;
-          }
-        }
-      };
-      pump();
-    },
-    cancel(reason) {
-      // When the client cancels, abort the fetch to clean up the connection
-      abortController.abort();
-      // Cancel the reader if it exists
-      if (streamReader) {
-        streamReader.cancel(reason).catch(() => {
-          // Ignore cancellation errors
-        });
-      }
-      // Also cancel the original readable stream
-      readable.cancel(reason).catch(() => {
-        // Ignore cancellation errors
-      });
-    },
-  });
-
-  // Return the response with the cancellable readable stream
-  return new Response(cancellableReadable, {
+  // Return the readable stream with appropriate headers
+  return new Response(readable, {
     headers: {
       "Content-Type": contentType,
       "Content-Disposition": contentDisposition,
