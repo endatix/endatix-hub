@@ -179,7 +179,6 @@
 
           if (event.data && event.data.type === "endatix:resize") {
             var height = event.data.height;
-            console.log("Height is px", height);
             instance.iframe.style.height = height + "px";
           }
 
