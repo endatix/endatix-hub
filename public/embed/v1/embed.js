@@ -83,13 +83,11 @@
       },
 
       setupMessageListener: function () {
-        var self = this;
-
-        window.addEventListener("message", function (event) {
+        window.addEventListener("message", (event) => {
           if (event.data && event.data.type === "endatix:resize") {
             var height = event.data.height;
 
-            var instance = self.findInstanceBySource(event.source);
+            var instance = this.findInstanceBySource(event.source);
 
             if (instance && instance.iframe) {
               instance.iframe.style.height = height + "px";
@@ -97,7 +95,7 @@
           }
 
           if (event.data && event.data.type === "endatix-scroll") {
-            var instance = self.findInstanceBySource(event.source);
+            var instance = this.findInstanceBySource(event.source);
 
             if (instance && instance.iframe) {
               requestAnimationFrame(function () {
