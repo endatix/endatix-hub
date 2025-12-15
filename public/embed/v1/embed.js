@@ -137,6 +137,7 @@
         iframe.allow = "clipboard-write";
         iframe.setAttribute("frameborder", "0");
         iframe.setAttribute("scrolling", "no");
+        iframe.loading = "lazy";
         iframe.style.width = "100%";
         iframe.style.border = "none";
         iframe.style.overflow = "hidden";
@@ -151,6 +152,7 @@
           container: container,
           formId: validatedFormId,
           options: options,
+          expectedOrigin: parsedUrl.origin,
         });
       },
 
@@ -166,33 +168,35 @@
 
       setupMessageListener: function () {
         window.addEventListener("message", (event) => {
+          var instance = this.findInstanceBySource(event.source);
+          if (
+            !instance ||
+            !instance.iframe ||
+            event.origin !== instance.expectedOrigin
+          ) {
+            return;
+          }
+
           if (event.data && event.data.type === "endatix:resize") {
             var height = event.data.height;
-
-            var instance = this.findInstanceBySource(event.source);
-
-            if (instance && instance.iframe) {
-              instance.iframe.style.height = height + "px";
-            }
+            console.log("Height is px", height);
+            instance.iframe.style.height = height + "px";
           }
 
           if (event.data && event.data.type === "endatix-scroll") {
-            var instance = this.findInstanceBySource(event.source);
-
-            if (instance && instance.iframe) {
-              requestAnimationFrame(function () {
-                instance.iframe.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                });
+            requestAnimationFrame(function () {
+              instance.iframe.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
               });
-            }
+            });
           }
         });
       },
     };
 
     window.EndatixEmbed.setupMessageListener();
+    Object.seal(window.EndatixEmbed);
   }
 
   if (currentScript && currentScript.hasAttribute("data-form-id")) {
