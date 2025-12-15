@@ -3,7 +3,7 @@
 
   var currentScript = document.currentScript;
 
-  var parseUrl = (urlString) => {
+  var parseUrl = function (urlString) {
     if (
       !urlString ||
       typeof urlString !== "string" ||
@@ -26,6 +26,48 @@
     }
   };
 
+  var parseNumericId = function (idString, paramName) {
+    if (!paramName || typeof paramName !== "string") {
+      return {
+        isValid: false,
+        id: null,
+        error: "paramName must be a non-empty string",
+      };
+    }
+
+    if (!idString || typeof idString !== "string") {
+      return {
+        isValid: false,
+        id: null,
+        error: `${paramName} must be a non-empty string`,
+      };
+    }
+
+    try {
+      var id = BigInt(idString);
+      var maxPossibleValue = BigInt("9223372036854775807");
+      if (id <= 0 || id > maxPossibleValue) {
+        return {
+          isValid: false,
+          id: null,
+          error: `${paramName} must be a positive number and less than ${maxPossibleValue}`,
+        };
+      }
+
+      return {
+        isValid: true,
+        id: id,
+        error: null,
+      };
+    } catch {
+      return {
+        isValid: false,
+        id: null,
+        error: `${paramName} must be a valid numeric value`,
+      };
+    }
+  };
+
   if (!window.EndatixEmbed) {
     window.EndatixEmbed = {
       version: "1.0.0",
@@ -35,12 +77,15 @@
         return currentScript?.src || "";
       },
       embedFormAt: function (formId, options, targetScript) {
-        if (!formId) {
+        var parsedFormId = parseNumericId(formId, "formId");
+        if (!parsedFormId.isValid) {
+          console.error(parsedFormId.error);
           return;
         }
+        var validatedFormId = parsedFormId.id.toString();
 
         var container = document.createElement("div");
-        container.setAttribute("data-endatix-form", formId);
+        container.setAttribute("data-endatix-form", validatedFormId);
         container.setAttribute("data-endatix-loaded", "true");
 
         if (targetScript && targetScript.parentNode) {
@@ -52,11 +97,12 @@
           document.body.appendChild(container);
         }
 
-        var instanceId = "endatix-form-" + formId + "-" + this.instances.length;
+        var instanceId =
+          "endatix-form-" + validatedFormId + "-" + this.instances.length;
 
         var iframe = document.createElement("iframe");
         iframe.id = instanceId;
-        iframe.setAttribute("data-form-id", formId);
+        iframe.setAttribute("data-form-id", validatedFormId);
         var baseUrl = options.baseUrl || this.getDefaultBaseUrl();
         var parsedUrl = parseUrl(baseUrl);
         if (!parsedUrl) {
@@ -71,16 +117,20 @@
         }
 
         var embedProtocol = parsedUrl.protocol;
-        if (embedProtocol !== window.location.protocol && embedProtocol !== "https:") {
+        if (
+          embedProtocol !== window.location.protocol &&
+          embedProtocol !== "https:"
+        ) {
           console.warn(
             "Endatix embed form protocol does not match current protocol.",
           );
         }
 
-        var src = embedProtocol + "//" + parsedUrl.host + "/embed/" + formId;
+        var src =
+          embedProtocol + "//" + parsedUrl.host + "/embed/" + validatedFormId;
 
         if (options.prefill) {
-          src += "&" + options.prefill;
+          src += "?" + options.prefill;
         }
 
         iframe.src = src;
@@ -99,7 +149,7 @@
           id: instanceId,
           iframe: iframe,
           container: container,
-          formId: formId,
+          formId: validatedFormId,
           options: options,
         });
       },
