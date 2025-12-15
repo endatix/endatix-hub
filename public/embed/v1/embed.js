@@ -3,21 +3,36 @@
 
   var currentScript = document.currentScript;
 
+  var parseUrl = (urlString) => {
+    if (
+      !urlString ||
+      typeof urlString !== "string" ||
+      urlString.trim().length === 0
+    ) {
+      console.warn("urlString must be a non-empty string");
+      return null;
+    }
+
+    try {
+      var parsedUrl = new URL(urlString);
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        console.warn("urlString protocol must be http or https");
+        return null;
+      }
+      return parsedUrl;
+    } catch {
+      console.warn("Invalid urlString format");
+      return null;
+    }
+  };
+
   if (!window.EndatixEmbed) {
     window.EndatixEmbed = {
       version: "1.0.0",
       loaded: true,
       instances: [],
       getDefaultBaseUrl: function () {
-        if (currentScript && currentScript.src) {
-          try {
-            const scriptUrl = new URL(currentScript.src);
-            return scriptUrl.origin;
-          } catch (error) {
-            console.error("Error getting default base url", error);
-          }
-        }
-        return "";
+        return currentScript?.src || "";
       },
       embedFormAt: function (formId, options, targetScript) {
         if (!formId) {
@@ -42,22 +57,36 @@
         var iframe = document.createElement("iframe");
         iframe.id = instanceId;
         iframe.setAttribute("data-form-id", formId);
-
-        var protocol = window.location.protocol;
         var baseUrl = options.baseUrl || this.getDefaultBaseUrl();
-        var cleanUrl = baseUrl.replace(/^https?:\/\//, "");
-        var src = protocol + "//" + cleanUrl + "/embed/" + formId;
+        var parsedUrl = parseUrl(baseUrl);
+        if (!parsedUrl) {
+          console.warn("No valid baseUrl passed. Falling back to default.");
+          parsedUrl = parseUrl(this.getDefaultBaseUrl());
+          if (!parsedUrl) {
+            console.error(
+              "Cannot auto-resolve valid base URL. Cannot embed form",
+            );
+            return;
+          }
+        }
+
+        var embedProtocol = parsedUrl.protocol;
+        if (embedProtocol !== window.location.protocol && embedProtocol !== "https:") {
+          console.warn(
+            "Endatix embed form protocol does not match current protocol.",
+          );
+        }
+
+        var src = embedProtocol + "//" + parsedUrl.host + "/embed/" + formId;
 
         if (options.prefill) {
           src += "&" + options.prefill;
         }
 
         iframe.src = src;
-
         iframe.allow = "clipboard-write";
         iframe.setAttribute("frameborder", "0");
         iframe.setAttribute("scrolling", "no");
-
         iframe.style.width = "100%";
         iframe.style.border = "none";
         iframe.style.overflow = "hidden";
