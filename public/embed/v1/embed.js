@@ -8,14 +8,17 @@
       version: "1.0.0",
       loaded: true,
       instances: [],
-
       getDefaultBaseUrl: function () {
-        if (typeof window !== "undefined") {
-          return window.location.origin;
+        if (currentScript && currentScript.src) {
+          try {
+            const scriptUrl = new URL(currentScript.src);
+            return scriptUrl.origin;
+          } catch (error) {
+            console.error("Error getting default base url", error);
+          }
         }
         return "";
       },
-
       embedFormAt: function (formId, options, targetScript) {
         if (!formId) {
           return;
