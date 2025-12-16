@@ -185,6 +185,17 @@ function validateAndSanitizeCustomQuestion(
     return null;
   }
 
+  const elementsJSON = sanitized.elementsJSON as Question[] | undefined;
+  const questionJSON = sanitized.questionJSON as Question | undefined;
+
+  let jsonStructure: { elementsJSON?: Question[]; questionJSON?: Question } =
+    {};
+  if (elementsJSON) {
+    jsonStructure = { elementsJSON };
+  } else if (questionJSON) {
+    jsonStructure = { questionJSON };
+  }
+
   const config: CustomQuestionConfig = {
     name: (sanitized.name as string).trim(),
     title: (sanitized.title as string).trim(),
@@ -204,11 +215,7 @@ function validateAndSanitizeCustomQuestion(
       typeof sanitized.inheritBaseProps === "boolean"
         ? sanitized.inheritBaseProps
         : true,
-    ...(sanitized.elementsJSON
-      ? { elementsJSON: sanitized.elementsJSON as Question[] }
-      : sanitized.questionJSON
-      ? { questionJSON: sanitized.questionJSON as Question }
-      : {}),
+    ...jsonStructure,
   };
 
   return config;
@@ -221,15 +228,22 @@ function validateAndSanitizeCustomQuestion(
 export function createCustomQuestionClass(config: CustomQuestionConfig) {
   return class extends SpecializedSurveyQuestion {
     get customQuestionConfig(): ICustomQuestionTypeConfiguration {
+      let jsonStructure: {
+        elementsJSON?: Question[];
+        questionJSON?: Question;
+      } = {};
+      if (config.elementsJSON) {
+        jsonStructure = { elementsJSON: config.elementsJSON };
+      } else if (config.questionJSON) {
+        jsonStructure = { questionJSON: config.questionJSON };
+      }
       return {
         name: config.name,
         title: config.title,
         iconName: config.iconName,
         defaultQuestionTitle: config.defaultQuestionTitle || config.title,
         inheritBaseProps: config.inheritBaseProps ?? true,
-        ...(config.elementsJSON
-          ? { elementsJSON: config.elementsJSON }
-          : { questionJSON: config.questionJSON }),
+        ...jsonStructure,
       };
     }
 
