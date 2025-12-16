@@ -42,6 +42,179 @@ export interface CustomQuestionConfig {
 }
 
 /**
+ * Properties that must be ignored to prevent code injection and other security issues
+ */
+const IGNORED_PROPERTIES = new Set([
+  "onInit",
+  "onCreated",
+  "onAfterRender",
+  "onAfterRenderContentElement",
+  "onUpdateQuestionCssClasses",
+  "onPropertyChanged",
+  "onValueChanged",
+  "__proto__",
+  "constructor",
+  "prototype",
+  "eval",
+  "Function",
+]);
+
+/**
+ * Maximum allowed size for custom question JSON (24KB)
+ */
+const MAX_JSON_SIZE = 24 * 1024;
+
+/**
+ * Parses JSON string with size validation and error handling
+ * @param jsonData - JSON string to parse
+ * @returns Parsed object or null if parsing fails or exceeds size limit
+ */
+function parseJsonSafely(jsonData: string): Record<string, unknown> | null {
+  if (jsonData.length > MAX_JSON_SIZE) {
+    console.error("Custom question JSON exceeds size limit");
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(jsonData);
+
+    // Validate structure
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      console.error("Invalid custom question JSON structure");
+      return null;
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch (error) {
+    console.error("Failed to parse custom question JSON:", error);
+    return null;
+  }
+}
+
+/**
+ * Recursively sanitizes an object by removing dangerous properties
+ */
+function sanitizeObject(obj: unknown): unknown {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (typeof obj === "function") {
+    return undefined;
+  }
+
+  if (typeof obj === "string") {
+    const suspiciousPatterns = [
+      /function\s*\(/,
+      /=>/,
+      /eval\s*\(/,
+      /new\s+Function/,
+      /setTimeout\s*\(/,
+      /setInterval\s*\(/,
+    ];
+
+    if (suspiciousPatterns.some((pattern) => pattern.test(obj))) {
+      return undefined;
+    }
+  }
+
+  if (Array.isArray(obj)) {
+    return obj
+      .map((item) => sanitizeObject(item))
+      .filter((item) => item !== undefined);
+  }
+
+  if (typeof obj === "object") {
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (IGNORED_PROPERTIES.has(key)) {
+        continue;
+      }
+
+      const sanitizedValue = sanitizeObject(value);
+      if (sanitizedValue !== undefined) {
+        sanitized[key] = sanitizedValue;
+      }
+    }
+
+    return sanitized;
+  }
+
+  // Primitives are safe, return the original object
+  return obj;
+}
+
+/**
+ * Validates and sanitizes custom question JSON data
+ */
+function validateAndSanitizeCustomQuestion(
+  parsedJson: Record<string, unknown>,
+): CustomQuestionConfig | null {
+  if (
+    !parsedJson ||
+    typeof parsedJson !== "object" ||
+    Array.isArray(parsedJson)
+  ) {
+    console.error("Invalid custom question JSON structure");
+    return null;
+  }
+
+  if (
+    !parsedJson.name ||
+    typeof parsedJson.name !== "string" ||
+    parsedJson.name.trim().length === 0
+  ) {
+    console.error("Custom question missing or invalid name");
+    return null;
+  }
+
+  if (
+    !parsedJson.title ||
+    typeof parsedJson.title !== "string" ||
+    parsedJson.title.trim().length === 0
+  ) {
+    console.error("Custom question missing or invalid title");
+    return null;
+  }
+
+  const sanitized = sanitizeObject(parsedJson) as Record<string, unknown>;
+
+  if (!sanitized) {
+    console.error("Sanitization removed all data");
+    return null;
+  }
+
+  const config: CustomQuestionConfig = {
+    name: (sanitized.name as string).trim(),
+    title: (sanitized.title as string).trim(),
+    iconName:
+      typeof sanitized.iconName === "string" ? sanitized.iconName : undefined,
+    category:
+      typeof sanitized.category === "string" ? sanitized.category : undefined,
+    orderedAfter:
+      typeof sanitized.orderedAfter === "string"
+        ? sanitized.orderedAfter
+        : undefined,
+    defaultQuestionTitle:
+      typeof sanitized.defaultQuestionTitle === "string"
+        ? sanitized.defaultQuestionTitle
+        : undefined,
+    inheritBaseProps:
+      typeof sanitized.inheritBaseProps === "boolean"
+        ? sanitized.inheritBaseProps
+        : true,
+    ...(sanitized.elementsJSON
+      ? { elementsJSON: sanitized.elementsJSON as Question[] }
+      : sanitized.questionJSON
+      ? { questionJSON: sanitized.questionJSON as Question }
+      : {}),
+  };
+
+  return config;
+}
+
+/**
  * Creates a class that extends SpecializedSurveyQuestion from a config object
  * @param config - The configuration of the custom question
  */
@@ -105,32 +278,34 @@ export function initializeCustomQuestions(
   const questionClasses = questions
     .map((jsonData) => {
       try {
-        const parsedJson = JSON.parse(jsonData);
-
-        if (customQuestionsRegistry.has(parsedJson.name)) {
-          return customQuestionsRegistry.get(parsedJson.name);
+        const parsedJson = parseJsonSafely(jsonData);
+        if (!parsedJson) {
+          return null;
         }
 
-        const config: CustomQuestionConfig = {
-          name: parsedJson.name,
-          title: parsedJson.title,
-          iconName: parsedJson.iconName,
-          category: parsedJson.category,
-          orderedAfter: parsedJson.orderedAfter,
-          defaultQuestionTitle: parsedJson.defaultQuestionTitle,
-          inheritBaseProps: parsedJson.inheritBaseProps,
-          ...(parsedJson.elementsJSON
-            ? { elementsJSON: parsedJson.elementsJSON }
-            : { questionJSON: parsedJson.questionJSON }),
-        };
+        const questionName =
+          typeof parsedJson.name === "string" ? parsedJson.name : null;
+
+        if (!questionName) {
+          console.error("Custom question missing name");
+          return null;
+        }
+
+        if (customQuestionsRegistry.has(questionName)) {
+          return customQuestionsRegistry.get(questionName);
+        }
+
+        const config = validateAndSanitizeCustomQuestion(parsedJson);
+        if (!config) {
+          return null;
+        }
 
         const QuestionClass = createCustomQuestionClass(config);
         registerSpecializedQuestion(QuestionClass);
         customQuestionsRegistry.set(config.name, QuestionClass);
         return QuestionClass;
-      } catch (error) {
-        console.error("Error registering custom question:", error);
-        console.error("Custom question JSON:", jsonData);
+      } catch {
+        console.error("Error registering custom question:", jsonData);
         return null;
       }
     })
@@ -146,15 +321,20 @@ export function initializeCustomQuestions(
 export function registerSpecializedQuestion(
   questionClass: SpecializedSurveyQuestionType,
 ) {
-  const instance =
-    new (questionClass as unknown as new () => SpecializedSurveyQuestion)();
+  try {
+    const instance =
+      new (questionClass as unknown as new () => SpecializedSurveyQuestion)();
 
-  const isQuestionRegistered =
-    ComponentCollection.Instance.getCustomQuestionByName(
-      instance.customQuestionConfig.name,
-    );
+    const config = instance.customQuestionConfig;
+    const questionName = config.name;
 
-  if (!isQuestionRegistered && instance) {
-    ComponentCollection.Instance.add(instance.customQuestionConfig);
+    const isQuestionRegistered =
+      ComponentCollection.Instance.getCustomQuestionByName(questionName);
+
+    if (!isQuestionRegistered) {
+      ComponentCollection.Instance.add(config);
+    }
+  } catch (error) {
+    console.error("Failed to register specialized question:", error);
   }
 }
