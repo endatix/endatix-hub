@@ -18,15 +18,10 @@ import { useEffect, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import ChatBox from "../chat/chat-box";
 import ChatThread from "../chat/chat-thread";
-import {
-  AssistantStore,
-  DefineFormCommand,
-  ChatMessage,
-} from "../chat/use-cases/assistant";
 import DotLoader from "@/components/loaders/dot-loader";
 import FormEditorContainer from "./form-editor-container";
 import { ICreatorOptions } from "survey-creator-core";
-import { useFormAssistant } from '../../use-cases/design-form/form-assistant.context';
+import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
 
 const CRITICAL_WIDTH = 600;
 
@@ -60,16 +55,21 @@ export default function FormEditorWithChat({
   const [isMobile, setIsMobile] = useState(false);
   const [shouldType, setShouldType] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
-  const [messages, setMessages] = useState(new Array<ChatMessage>());
   const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(null);
-  const [conversationError, setConversationError] = useState<string | null>(null);
+  const [conversationError, setConversationError] = useState<string | null>(
+    null,
+  );
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const [isTranslationMode, setIsTranslationMode] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState("");
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const languageInputRef = useRef<HTMLInputElement>(null);
-  const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(null);
+  const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(
+    null,
+  );
   const { chatContext } = useFormAssistant();
+  const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
+  const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
 
   useEffect(() => {
     const initializeConversation = async () => {
@@ -83,12 +83,8 @@ export default function FormEditorWithChat({
         setShouldType(true);
       }
 
-      if (chatContext?.messages) {
-        setMessages(chatContext.messages);
-      }
-
       // If form definition is empty but conversation has resultJson, load it
-      if ((!formJson || Object.keys(formJson).length === 0) && chatContext?.resultJson) {
+      if (chatContext?.resultJson) {
         try {
           const parsedJson = JSON.parse(chatContext.resultJson);
           setUpdatedFormJson(parsedJson);
@@ -97,12 +93,13 @@ export default function FormEditorWithChat({
           console.error("Failed to parse conversation resultJson:", error);
         }
       }
-
       setConversationLoaded(true);
     };
 
     initializeConversation();
+  }, [formId, onUnsavedChanges, chatContext, formJson, hasNonEmptyFormJson]);
 
+  useEffect(() => {
     const checkWidth = () => {
       setIsMobile(window.innerWidth < CRITICAL_WIDTH);
       if (window.innerWidth < CRITICAL_WIDTH) {
@@ -113,26 +110,15 @@ export default function FormEditorWithChat({
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
-  }, [formId, formJson, onUnsavedChanges, chatContext]);
+  }, []);
 
-  const defineFormHandler = (stateCommand: DefineFormCommand, newDefinition?: object) => {
-    const contextStore = new AssistantStore();
-    switch (stateCommand) {
-      case DefineFormCommand.fullStateUpdate:
-        const formContext = contextStore.getChatContext(formId);
-
-        setShouldType(true);
-        setMessages(formContext?.messages ?? []);
-
-        if (newDefinition) {
-          setUpdatedFormJson({ ...newDefinition });
-          onUnsavedChanges?.(true);
-        }
-        break;
-      default:
-        break;
+  useEffect(() => {
+    if (isTranslationMode) {
+      languageInputRef.current?.focus();
+    } else {
+      chatInputRef.current?.focus();
     }
-  };
+  }, [isTranslationMode]);
 
   const toggleCollapse = () => {
     const chatPanel = chatPanelRef.current;
@@ -164,25 +150,9 @@ export default function FormEditorWithChat({
     setTargetLanguage("");
   };
 
-  // Focus language input when translation mode becomes active
-  useEffect(() => {
-    if (isTranslationMode) {
-      languageInputRef.current?.focus();
-    } else {
-      chatInputRef.current?.focus();
-    }
-  }, [isTranslationMode]);
-
-  // Render FormEditor if we have non empty form JSON OR after conversation is loaded
-  const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
-  const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
-
   return (
     <div className="flex-1 flex overflow-hidden">
-      <ResizablePanelGroup
-        direction="horizontal"
-        className="flex-1"
-      >
+      <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={70}>
           {shouldRenderEditor ? (
             <FormEditorContainer
@@ -228,7 +198,9 @@ export default function FormEditorWithChat({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`${isMobile ? "hidden" : "flex"} items-center justify-center -mt-2`}
+                        className={`${
+                          isMobile ? "hidden" : "flex"
+                        } items-center justify-center -mt-2`}
                         onClick={toggleCollapse}
                       >
                         <ChevronLeft className="h-10 w-10 stroke-[2.5]" />
@@ -240,10 +212,19 @@ export default function FormEditorWithChat({
                   </Tooltip>
                 </TooltipProvider>
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-lg font-semibold text-foreground/70 tracking-wide" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                  <span
+                    className="text-lg font-semibold text-foreground/70 tracking-wide"
+                    style={{
+                      writingMode: "vertical-rl",
+                      textOrientation: "mixed",
+                    }}
+                  >
                     AI Assistant
                   </span>
-                  <span className="px-1 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-full tracking-wide" style={{ writingMode: 'vertical-rl' }}>
+                  <span
+                    className="px-1 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-full tracking-wide"
+                    style={{ writingMode: "vertical-rl" }}
+                  >
                     Beta
                   </span>
                 </div>
@@ -299,12 +280,17 @@ export default function FormEditorWithChat({
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-muted-foreground">Loading conversation...</p>
+                      <p className="text-muted-foreground">
+                        Loading conversation...
+                      </p>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <ChatThread isTyping={shouldType} messages={messages} />
+                    <ChatThread
+                      isTyping={shouldType}
+                      messages={chatContext?.messages ?? []}
+                    />
                     {isWaiting && (
                       <DotLoader className="flex flex-none items-center m-auto" />
                     )}
@@ -334,14 +320,13 @@ export default function FormEditorWithChat({
                       )}
                     </div>
                     <ChatBox
-                      currentDefinition={JSON.stringify(updatedFormJson || formJson)}
+                      currentDefinition={JSON.stringify(
+                        updatedFormJson || formJson,
+                      )}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."
                       onPendingChange={(pending) => {
                         setIsWaiting(pending);
-                      }}
-                      onStateChange={(stateCommand, newDefinition) => {
-                        defineFormHandler(stateCommand, newDefinition);
                       }}
                       isTranslationMode={isTranslationMode}
                       targetLanguage={targetLanguage}

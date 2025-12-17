@@ -342,7 +342,7 @@ export function FormAssistantProvider({
         ],
       };
       dispatch({
-        type: ConversationActionType.SET_RESULT_JSON,
+        type: ConversationActionType.ADD_RESPONSE,
         payload: {
           definition: promptResponse.definition as object,
           agentResponse: promptResponse.agentResponse,

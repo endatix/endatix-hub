@@ -5,22 +5,30 @@ import {
 
 export enum ConversationActionType {
   ADD_USER_MESSAGE = "ADD_USER_MESSAGE",
-  SET_RESULT_JSON = "SET_RESULT_JSON",
-  SET_FORM_ID = "SET_FORM_ID",
+  ADD_RESPONSE = "ADD_RESPONSE",
+  SET_METADATA = "SET_METADATA",
   SET_ERROR = "SET_ERROR",
-  RESET = "RESET",
   INIT = "INIT",
 }
 
 type ConversationAction =
   | { type: ConversationActionType.ADD_USER_MESSAGE; payload: string }
   | {
-      type: ConversationActionType.SET_RESULT_JSON;
-      payload: { definition: object; agentResponse: string };
+      type: ConversationActionType.ADD_RESPONSE;
+      payload: {
+        definition: object;
+        agentResponse: string;
+      };
     }
-  | { type: ConversationActionType.SET_FORM_ID; payload: { formId: string } }
+  | {
+      type: ConversationActionType.SET_METADATA;
+      payload: {
+        formId: string;
+        threadId: string;
+        agentId: string;
+      };
+    }
   | { type: ConversationActionType.SET_ERROR; payload: { error: string } }
-  | { type: ConversationActionType.RESET }
   | { type: ConversationActionType.INIT; payload: ConversationState };
 
 /**
@@ -46,19 +54,22 @@ export function conversationStateReducer(
         ],
         error: undefined,
       };
-    case ConversationActionType.SET_RESULT_JSON:
+    case ConversationActionType.ADD_RESPONSE:
+      const messages = action.payload.agentResponse
+        ? [
+            ...state.messages,
+            {
+              isAi: true,
+              content: action.payload.agentResponse,
+            },
+          ]
+        : state.messages;
       return {
         ...state,
         resultJson: action.payload.definition
           ? JSON.stringify(action.payload.definition)
           : undefined,
-        messages: [
-          ...state.messages,
-          {
-            isAi: true,
-            content: action.payload.agentResponse,
-          },
-        ],
+        messages: messages,
         error: undefined,
       };
     case ConversationActionType.SET_ERROR:
@@ -66,10 +77,15 @@ export function conversationStateReducer(
         ...state,
         error: action.payload.error,
       };
-    case ConversationActionType.RESET:
-      return emptyConversationState();
+    case ConversationActionType.SET_METADATA:
+      return {
+        ...state,
+        threadId: action.payload.threadId,
+        agentId: action.payload.agentId,
+        error: undefined,
+      };
     case ConversationActionType.INIT:
-      return action.payload;
+      return emptyConversationState();
     default:
       return state;
   }

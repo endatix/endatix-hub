@@ -250,8 +250,6 @@ const CreateFormSheet: FC = () => {
                 build the form
               </p>
               <ChatBoxProxy
-                formId={aiFormId}
-                requiresNewContext={true}
                 onPendingChange={(pending) => {
                   setPending(pending);
                 }}

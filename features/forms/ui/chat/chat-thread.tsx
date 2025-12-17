@@ -53,7 +53,7 @@ const ChatThread: React.FC<ChatThreadProps> = ({ messages, isTyping }) => {
                   <Avatar className="w-12 h-12 p-2 bg-muted">
                     <AvatarImage
                       className="h-10 p-1 pb-2.5 opacity-50"
-                      src={"/icons/atom.svg?height=16&width=16"}
+                      src={"/assets/icons/atom.svg?height=16&width=16"}
                     />
                     <AvatarFallback>AI</AvatarFallback>
                   </Avatar>

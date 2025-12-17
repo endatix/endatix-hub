@@ -20,15 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useActionState, useEffect, useState, startTransition } from "react";
-import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  AssistantStore,
-  DefineFormCommand,
-} from "@/features/forms/ui/chat/use-cases/assistant";
-import { redirect } from "next/navigation";
-import { defineFormAction } from "../../application/actions/define-form.action";
-import { ApiResult } from "@/lib/endatix-api";
 import {
   ConversationState,
   useFormAssistant,
@@ -87,17 +79,10 @@ const SubmitButton = ({
   );
 };
 
-const initialState = PromptResult.InitialState();
-
 interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   currentDefinition?: string;
-  requiresNewContext?: boolean;
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
-  onStateChange?: (
-    stateCommand: DefineFormCommand,
-    newDefinition?: object,
-  ) => void;
   onFormGenerated?: () => void;
   isTranslationMode?: boolean;
   targetLanguage?: string;
@@ -111,9 +96,7 @@ const ChatBox = ({
   className,
   placeholder,
   currentDefinition,
-  requiresNewContext,
   onPendingChange,
-  onStateChange,
   onFormGenerated,
   isTranslationMode = false,
   targetLanguage = "",
@@ -184,13 +167,6 @@ const ChatBox = ({
     if (newChatContext.error) {
       setRetryMode(true);
       return newChatContext;
-    }
-
-    if (newChatContext.resultJson && onStateChange) {
-      onStateChange(
-        DefineFormCommand.fullStateUpdate,
-        JSON.parse(newChatContext?.resultJson ?? "{}"),
-      );
     }
 
     onFormGenerated?.();

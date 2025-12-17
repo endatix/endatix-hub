@@ -11,15 +11,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
 import { useActionState, useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  AssistantStore,
-  DefineFormCommand,
-} from "@/features/forms/ui/chat/use-cases/assistant";
-import { defineFormAction } from "@/features/forms/application/actions/define-form.action";
-import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
+import { ConversationState, useFormAssistant } from "../use-cases/design-form";
 
 const ChatErrorAlert = ({
   errorMessage,
@@ -66,133 +60,76 @@ const SubmitButton = ({
   );
 };
 
-const initialState = PromptResult.InitialState();
-
 interface ChatBoxProxyProps extends React.HTMLAttributes<HTMLDivElement> {
-  formId?: string;
-  requiresNewContext?: boolean;
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
-  onStateChange?: (stateCommand: DefineFormCommand) => void;
   onFormGenerated?: () => void;
 }
 
 const ChatBoxProxy = ({
   className,
   placeholder,
-  formId,
-  requiresNewContext,
   onPendingChange,
-  onStateChange,
   onFormGenerated,
   ...props
 }: ChatBoxProxyProps) => {
   const [input, setInput] = useState("");
-  const [state, action, pending] = useActionState(
-    async (prevState: PromptResult, formData: FormData) => {
-      const contextStore = new AssistantStore();
-
-      if (requiresNewContext) {
-        contextStore.clear(formId);
-        contextStore.setChatContext(
-          {
-            messages: [],
-            threadId: "",
-            agentId: "",
-            isInitialPrompt: true,
-          },
-          formId,
-        );
-      }
-
-      const formContext = contextStore.getChatContext(formId);
-      if (formContext) {
-        if (formContext.threadId) {
-          formData.set("threadId", formContext.threadId);
-        }
-        if (formContext.agentId) {
-          formData.set("agentId", formContext.agentId);
-        }
-      }
-
-      // Pass formId to backend for conversation tracking
-      if (formId) {
-        formData.set("formId", formId);
-      }
-
-      const promptResult = await defineFormAction({
-        prompt: formData.get("prompt") as string,
-        definition: formData.get("definition") as string,
-        threadId: formContext?.threadId,
-        formId: formId,
-      });
-      
-      if (promptResult === undefined) {
-        return PromptResult.Error("Could not proceed with defining form");
-      }
-
-      if (promptResult.success && promptResult.data?.definition) {
-        const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(
-          JSON.stringify(promptResult.data.definition),
-          formId,
-        );
-        const currentContext = contextStore.getChatContext(formId);
-        currentContext.threadId = promptResult.data.threadId ?? "";
-        currentContext.agentId = promptResult.data.agentId ?? "";
-
-        if (currentContext.messages === undefined) {
-          currentContext.messages = [];
-        }
-
-        currentContext.messages.push({
-          isAi: false,
-          content: prompt,
-        });
-
-        if (currentContext.messages.length > 1) {
-          currentContext.isInitialPrompt = false;
-        }
-
-        if (promptResult.data.agentResponse) {
-          currentContext.messages.push({
-            isAi: true,
-            content: promptResult.data.agentResponse,
-          });
-        }
-
-        contextStore.setChatContext(currentContext, formId);
-
-        if (onStateChange) {
-          onStateChange(DefineFormCommand.fullStateUpdate);
-        }
-
-        onFormGenerated?.();
-
-        setInput("");
-      }
-      return promptResult;
+  const { chatContext, sendPrompt } = useFormAssistant();
+  const [promptState, promptAction, isGeneratingResponse] = useActionState(
+    async (
+      _: ConversationState | undefined,
+      formData: FormData,
+    ): Promise<ConversationState | undefined> => {
+      return await handleSendPrompt(formData);
     },
-    initialState,
+    undefined as unknown as ConversationState,
   );
 
   useEffect(() => {
     if (onPendingChange) {
-      onPendingChange(pending);
+      onPendingChange(isGeneratingResponse);
     }
-  }, [pending, onPendingChange]);
+  }, [isGeneratingResponse, onPendingChange]);
 
-  const handleSendPrompt = async (formData: FormData) => {
-    console.log("handleSendPrompt", formData);
-  }
+  const handleSendPrompt = async (
+    formData: FormData,
+  ): Promise<ConversationState | undefined> => {
+    const prompt = formData.get("prompt") as string;
+    if (!prompt?.trim()) {
+      return undefined;
+    }
+
+    try {
+      const newChatContext = await sendPrompt(prompt);
+
+      if (newChatContext.error) {
+        return newChatContext;
+      }
+
+      if (newChatContext.resultJson && onFormGenerated) {
+        onFormGenerated();
+      }
+
+      setInput("");
+      return newChatContext;
+    } catch (error) {
+      return {
+        ...chatContext!,
+        error:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
+      };
+    }
+  };
 
   return (
     <div className={`flex flex-col flex-1 gap-2 ${className}`} {...props}>
-      {!PromptResult.isError(state) ? null : (
-        <ChatErrorAlert errorMessage={PromptResult.getErrorMessage(state)} />
+      {chatContext?.error && (
+        <ChatErrorAlert errorMessage={chatContext.error} />
       )}
       <form
-        action={handleSendPrompt}
+        action={promptAction}
         className="flex-1 relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
       >
         <Label htmlFor="prompt" className="sr-only">
@@ -206,7 +143,7 @@ const ChatBoxProxy = ({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              if (input.trim() && !pending) {
+              if (input.trim() && !isGeneratingResponse) {
                 const form = e.currentTarget.form;
                 if (form) {
                   form.requestSubmit();
@@ -258,7 +195,10 @@ const ChatBoxProxy = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <SubmitButton pending={pending} disabled={input.length === 0} />
+          <SubmitButton
+            pending={isGeneratingResponse}
+            disabled={input.length === 0}
+          />
         </div>
       </form>
       <p className="text-center text-xs text-gray-500">
