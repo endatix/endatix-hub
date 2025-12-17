@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 
 import { useActionState, useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { redirect } from "next/navigation";
 import {
   AssistantStore,
   DefineFormCommand,
@@ -69,7 +68,7 @@ const SubmitButton = ({
 
 const initialState = PromptResult.InitialState();
 
-interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ChatBoxProxyProps extends React.HTMLAttributes<HTMLDivElement> {
   formId?: string;
   requiresNewContext?: boolean;
   placeholder?: string;
@@ -78,7 +77,7 @@ interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   onFormGenerated?: () => void;
 }
 
-const ChatBox = ({
+const ChatBoxProxy = ({
   className,
   placeholder,
   formId,
@@ -87,7 +86,7 @@ const ChatBox = ({
   onStateChange,
   onFormGenerated,
   ...props
-}: ChatBoxProps) => {
+}: ChatBoxProxyProps) => {
   const [input, setInput] = useState("");
   const [state, action, pending] = useActionState(
     async (prevState: PromptResult, formData: FormData) => {
@@ -121,8 +120,13 @@ const ChatBox = ({
         formData.set("formId", formId);
       }
 
-      const promptResult = await defineFormAction(prevState, formData);
-
+      const promptResult = await defineFormAction({
+        prompt: formData.get("prompt") as string,
+        definition: formData.get("definition") as string,
+        threadId: formContext?.threadId,
+        formId: formId,
+      });
+      
       if (promptResult === undefined) {
         return PromptResult.Error("Could not proceed with defining form");
       }
@@ -163,13 +167,7 @@ const ChatBox = ({
           onStateChange(DefineFormCommand.fullStateUpdate);
         }
 
-        // If onFormGenerated callback is provided (Create Form sheet scenario),
-        // call it to navigate to designer. Otherwise, redirect to preview page.
-        if (onFormGenerated) {
-          onFormGenerated();
-        } else if (window.location.pathname === "/forms") {
-          redirect("/forms/create");
-        }
+        onFormGenerated?.();
 
         setInput("");
       }
@@ -184,13 +182,17 @@ const ChatBox = ({
     }
   }, [pending, onPendingChange]);
 
+  const handleSendPrompt = async (formData: FormData) => {
+    console.log("handleSendPrompt", formData);
+  }
+
   return (
     <div className={`flex flex-col flex-1 gap-2 ${className}`} {...props}>
       {!PromptResult.isError(state) ? null : (
         <ChatErrorAlert errorMessage={PromptResult.getErrorMessage(state)} />
       )}
       <form
-        action={action}
+        action={handleSendPrompt}
         className="flex-1 relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
       >
         <Label htmlFor="prompt" className="sr-only">
@@ -266,4 +268,4 @@ const ChatBox = ({
   );
 };
 
-export default ChatBox;
+export default ChatBoxProxy;

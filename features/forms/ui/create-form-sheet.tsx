@@ -22,8 +22,9 @@ import { FormTemplate } from "@/types";
 import { BicepsFlexed, Code, Copy, Folder, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FC, useState, useTransition, useEffect } from "react";
-import ChatBox from "./chat-box";
+import ChatBoxProxy from "./chat-box-proxy";
 import TemplateSelector from "./template-selector";
+import { useFormAssistant } from "../use-cases/design-form/form-assistant.context";
 
 type CreateFormOption =
   | "from_scratch"
@@ -40,10 +41,6 @@ interface FormCreateSheetProps {
   isSelected?: boolean;
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
-}
-
-interface CreateFormSheetContainerProps {
-  aiFeatureFlag: boolean;
 }
 
 const CreateFormCard: FC<FormCreateSheetProps> = ({
@@ -78,9 +75,7 @@ const CreateFormCard: FC<FormCreateSheetProps> = ({
   );
 };
 
-const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
-  aiFeatureFlag,
-}) => {
+const CreateFormSheet: FC = () => {
   const [pending, setPending] = useState(false);
   const [selectedOption, setSelectedOption] = useState<CreateFormOption>();
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
@@ -94,6 +89,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
   const [aiFormId, setAiFormId] = useState<string | null>(null);
   const [isCreatingAiForm, setIsCreatingAiForm] = useState(false);
   const router = useRouter();
+  const { isAssistantEnabled } = useFormAssistant();
 
   const handleTemplateSelect = (template: FormTemplate) => {
     setSelectedTemplate(template);
@@ -124,7 +120,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
 
   // Create empty form for AI assistant when feature flag is enabled
   useEffect(() => {
-    if (aiFeatureFlag && !aiFormId && !isCreatingAiForm) {
+    if (isAssistantEnabled && !aiFormId && !isCreatingAiForm) {
       setIsCreatingAiForm(true);
       startTransition(async () => {
         const request: CreateFormRequest = {
@@ -151,7 +147,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
         setIsCreatingAiForm(false);
       });
     }
-  }, [aiFeatureFlag, aiFormId, isCreatingAiForm]);
+  }, [isAssistantEnabled, aiFormId, isCreatingAiForm]);
 
   const handleAiFormGenerated = () => {
     if (aiFormId) {
@@ -236,7 +232,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
             </div>
           )}
 
-          {aiFeatureFlag && aiFormId && (
+          {isAssistantEnabled && aiFormId && (
             <div className="w-full space-y-3">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -253,7 +249,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
                 Let <span className="font-bold">Endatix AI Assistant</span>{" "}
                 build the form
               </p>
-              <ChatBox
+              <ChatBoxProxy
                 formId={aiFormId}
                 requiresNewContext={true}
                 onPendingChange={(pending) => {
