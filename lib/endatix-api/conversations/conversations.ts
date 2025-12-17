@@ -1,8 +1,7 @@
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import {
   LatestConversationResponse,
-  ConversationMessage,
-  ChatMessage,
+  ConversationMessage
 } from "./types";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
@@ -37,14 +36,5 @@ export class Conversations {
     return this.baseApi.get<ConversationMessage[]>(
       `/agents/conversations/${validateConversationIdResult.value}/messages`,
     );
-  }
-
-  transformMessages(messages: ConversationMessage[]): ChatMessage[] {
-    return messages
-      .sort((a, b) => a.sequence - b.sequence)
-      .map((msg) => ({
-        isAi: msg.role === "assistant",
-        content: msg.content,
-      }));
   }
 }
