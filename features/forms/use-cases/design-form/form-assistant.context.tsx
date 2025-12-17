@@ -1,17 +1,20 @@
 "use client";
 
-import { createContext, ReactNode, use, useState } from "react";
+import { createContext, ReactNode, use, useReducer } from "react";
 import {
   ConversationState,
   emptyConversationState,
 } from "./form.assistant.domain";
-import { ApiResult } from "@/lib/endatix-api";
+import { ApiResult, DefineFormResponse } from "@/lib/endatix-api";
+import {
+  ConversationActionType,
+  conversationStateReducer,
+} from "./form-assistant.reducer";
 
 interface FormAssistantContext {
   isAssistantEnabled: boolean;
   chatContext: ConversationState | null;
   formId?: string;
-  isGeneratingResponse: boolean;
   sendPrompt: (
     prompt: string,
     definition?: string,
@@ -56,269 +59,264 @@ export function FormAssistantProvider({
   const initialConversation = getConversationPromise
     ? use(getConversationPromise)
     : emptyConversationState();
-  const [chatContext, setChatContext] =
-    useState<ConversationState>(initialConversation);
-  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+  const [chatContext, dispatch] = useReducer(
+    conversationStateReducer,
+    initialConversation,
+  );
 
   const sendPrompt = async (
     prompt: string,
     definition?: string,
   ): Promise<ConversationState> => {
-    setIsGeneratingResponse(true);
-    setChatContext({
-      ...chatContext,
-      messages: [
-        ...chatContext.messages,
-        {
-          isAi: false,
-          content: prompt,
-        },
-      ],
+    dispatch({
+      type: ConversationActionType.ADD_USER_MESSAGE,
+      payload: prompt,
     });
 
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    const result = ApiResult.success({
+    const formDefinitionObj = {
+      pages: [
+        {
+          name: "page1",
+          elements: [
+            {
+              name: "fullName",
+              type: "text",
+              title: "Full name",
+              isRequired: true,
+            },
+            {
+              name: "email",
+              type: "text",
+              title: "Email address",
+              inputType: "email",
+              isRequired: true,
+            },
+            {
+              name: "phone",
+              type: "text",
+              title: "Phone number",
+              inputType: "tel",
+              startWithNewLine: false,
+            },
+            {
+              name: "age",
+              type: "text",
+              title: "Age",
+              inputType: "number",
+              isRequired: true,
+              validators: [
+                {
+                  type: "numeric",
+                  maxValue: 120,
+                  minValue: 1,
+                },
+              ],
+            },
+            {
+              name: "guardianName",
+              type: "text",
+              title: "Parent/Guardian full name",
+              visibleIf: "{age} < 18",
+              isRequired: true,
+            },
+            {
+              name: "guardianPhone",
+              type: "text",
+              title: "Parent/Guardian phone number",
+              inputType: "tel",
+              visibleIf: "{age} < 18",
+              isRequired: true,
+            },
+            {
+              name: "experience",
+              type: "radiogroup",
+              title: "Experience level",
+              choices: [
+                {
+                  text: "Beginner",
+                  value: "beginner",
+                },
+                {
+                  text: "Intermediate",
+                  value: "intermediate",
+                },
+                {
+                  text: "Advanced",
+                  value: "advanced",
+                },
+              ],
+              isRequired: true,
+            },
+            {
+              name: "styles",
+              type: "checkbox",
+              title: "Preferred styles",
+              choices: [
+                {
+                  text: "Rock",
+                  value: "rock",
+                },
+                {
+                  text: "Pop",
+                  value: "pop",
+                },
+                {
+                  text: "Blues",
+                  value: "blues",
+                },
+                {
+                  text: "Jazz",
+                  value: "jazz",
+                },
+                {
+                  text: "Classical",
+                  value: "classical",
+                },
+                {
+                  text: "Metal",
+                  value: "metal",
+                },
+                {
+                  text: "Country",
+                  value: "country",
+                },
+              ],
+              hasOther: true,
+            },
+            {
+              name: "lessonsPerWeek",
+              type: "text",
+              title: "Lessons per week",
+              inputType: "number",
+              isRequired: true,
+              validators: [
+                {
+                  type: "numeric",
+                  minValue: 0,
+                },
+              ],
+            },
+            {
+              name: "lessonLength",
+              type: "radiogroup",
+              title: "Preferred lesson length",
+              choices: [
+                {
+                  text: "30 minutes",
+                  value: 30,
+                },
+                {
+                  text: "45 minutes",
+                  value: 45,
+                },
+                {
+                  text: "60 minutes",
+                  value: 60,
+                },
+              ],
+              isRequired: true,
+              startWithNewLine: false,
+            },
+            {
+              name: "hourlyRate",
+              type: "text",
+              title: "Preferred hourly rate (USD)",
+              inputType: "number",
+              isRequired: true,
+              validators: [
+                {
+                  type: "numeric",
+                  minValue: 0,
+                },
+              ],
+            },
+            {
+              name: "estimatedMonthlyCost",
+              type: "expression",
+              title: "Estimated monthly cost",
+              expression:
+                "iif(({hourlyRate} > 0 and {lessonsPerWeek} > 0 and {lessonLength} > 0), {hourlyRate} * ({lessonsPerWeek} * {lessonLength} / 60) * 4, 0)",
+              displayStyle: "currency",
+            },
+            {
+              name: "availabilityDays",
+              type: "checkbox",
+              title: "Available days",
+              choices: [
+                {
+                  text: "Monday",
+                  value: "monday",
+                },
+                {
+                  text: "Tuesday",
+                  value: "tuesday",
+                },
+                {
+                  text: "Wednesday",
+                  value: "wednesday",
+                },
+                {
+                  text: "Thursday",
+                  value: "thursday",
+                },
+                {
+                  text: "Friday",
+                  value: "friday",
+                },
+                {
+                  text: "Saturday",
+                  value: "saturday",
+                },
+                {
+                  text: "Sunday",
+                  value: "sunday",
+                },
+              ],
+            },
+            {
+              name: "availabilityTimes",
+              type: "comment",
+              title: "Preferred times or scheduling notes",
+            },
+            {
+              name: "referral",
+              type: "dropdown",
+              title: "How did you hear about us?",
+              choices: [
+                "Google search",
+                "Social media",
+                "Friend or family",
+                "Flyer or poster",
+                "Other",
+              ],
+            },
+            {
+              name: "consent",
+              type: "boolean",
+              title:
+                "I agree to be contacted about lessons and to the studio's policies",
+              isRequired: true,
+            },
+            {
+              name: "additionalComments",
+              type: "comment",
+              title: "Additional comments or questions",
+            },
+          ],
+        },
+      ],
+      title: "AI Generated Lesson",
+      width: "800px",
+      widthMode: "static",
+      showQuestionNumbers: "off",
+    };
+    const result: ApiResult<DefineFormResponse> = ApiResult.success({
       agentResponse: "Yes, of course, I can help you with that.",
-      agentId: chatContext?.agentId,
-      threadId: chatContext?.threadId,
-      definition: {
-        pages: [
-          {
-            name: "page1",
-            elements: [
-              {
-                name: "fullName",
-                type: "text",
-                title: "Full name",
-                isRequired: true,
-              },
-              {
-                name: "email",
-                type: "text",
-                title: "Email address",
-                inputType: "email",
-                isRequired: true,
-              },
-              {
-                name: "phone",
-                type: "text",
-                title: "Phone number",
-                inputType: "tel",
-                startWithNewLine: false,
-              },
-              {
-                name: "age",
-                type: "text",
-                title: "Age",
-                inputType: "number",
-                isRequired: true,
-                validators: [
-                  {
-                    type: "numeric",
-                    maxValue: 120,
-                    minValue: 1,
-                  },
-                ],
-              },
-              {
-                name: "guardianName",
-                type: "text",
-                title: "Parent/Guardian full name",
-                visibleIf: "{age} < 18",
-                isRequired: true,
-              },
-              {
-                name: "guardianPhone",
-                type: "text",
-                title: "Parent/Guardian phone number",
-                inputType: "tel",
-                visibleIf: "{age} < 18",
-                isRequired: true,
-              },
-              {
-                name: "experience",
-                type: "radiogroup",
-                title: "Experience level",
-                choices: [
-                  {
-                    text: "Beginner",
-                    value: "beginner",
-                  },
-                  {
-                    text: "Intermediate",
-                    value: "intermediate",
-                  },
-                  {
-                    text: "Advanced",
-                    value: "advanced",
-                  },
-                ],
-                isRequired: true,
-              },
-              {
-                name: "styles",
-                type: "checkbox",
-                title: "Preferred styles",
-                choices: [
-                  {
-                    text: "Rock",
-                    value: "rock",
-                  },
-                  {
-                    text: "Pop",
-                    value: "pop",
-                  },
-                  {
-                    text: "Blues",
-                    value: "blues",
-                  },
-                  {
-                    text: "Jazz",
-                    value: "jazz",
-                  },
-                  {
-                    text: "Classical",
-                    value: "classical",
-                  },
-                  {
-                    text: "Metal",
-                    value: "metal",
-                  },
-                  {
-                    text: "Country",
-                    value: "country",
-                  },
-                ],
-                hasOther: true,
-              },
-              {
-                name: "lessonsPerWeek",
-                type: "text",
-                title: "Lessons per week",
-                inputType: "number",
-                isRequired: true,
-                validators: [
-                  {
-                    type: "numeric",
-                    minValue: 0,
-                  },
-                ],
-              },
-              {
-                name: "lessonLength",
-                type: "radiogroup",
-                title: "Preferred lesson length",
-                choices: [
-                  {
-                    text: "30 minutes",
-                    value: 30,
-                  },
-                  {
-                    text: "45 minutes",
-                    value: 45,
-                  },
-                  {
-                    text: "60 minutes",
-                    value: 60,
-                  },
-                ],
-                isRequired: true,
-                startWithNewLine: false,
-              },
-              {
-                name: "hourlyRate",
-                type: "text",
-                title: "Preferred hourly rate (USD)",
-                inputType: "number",
-                isRequired: true,
-                validators: [
-                  {
-                    type: "numeric",
-                    minValue: 0,
-                  },
-                ],
-              },
-              {
-                name: "estimatedMonthlyCost",
-                type: "expression",
-                title: "Estimated monthly cost",
-                expression:
-                  "iif(({hourlyRate} > 0 and {lessonsPerWeek} > 0 and {lessonLength} > 0), {hourlyRate} * ({lessonsPerWeek} * {lessonLength} / 60) * 4, 0)",
-                displayStyle: "currency",
-              },
-              {
-                name: "availabilityDays",
-                type: "checkbox",
-                title: "Available days",
-                choices: [
-                  {
-                    text: "Monday",
-                    value: "monday",
-                  },
-                  {
-                    text: "Tuesday",
-                    value: "tuesday",
-                  },
-                  {
-                    text: "Wednesday",
-                    value: "wednesday",
-                  },
-                  {
-                    text: "Thursday",
-                    value: "thursday",
-                  },
-                  {
-                    text: "Friday",
-                    value: "friday",
-                  },
-                  {
-                    text: "Saturday",
-                    value: "saturday",
-                  },
-                  {
-                    text: "Sunday",
-                    value: "sunday",
-                  },
-                ],
-              },
-              {
-                name: "availabilityTimes",
-                type: "comment",
-                title: "Preferred times or scheduling notes",
-              },
-              {
-                name: "referral",
-                type: "dropdown",
-                title: "How did you hear about us?",
-                choices: [
-                  "Google search",
-                  "Social media",
-                  "Friend or family",
-                  "Flyer or poster",
-                  "Other",
-                ],
-              },
-              {
-                name: "consent",
-                type: "boolean",
-                title:
-                  "I agree to be contacted about lessons and to the studio's policies",
-                isRequired: true,
-              },
-              {
-                name: "additionalComments",
-                type: "comment",
-                title: "Additional comments or questions",
-              },
-            ],
-          },
-        ],
-        title: "AI Generated Lesson",
-        width: "800px",
-        widthMode: "static",
-        showQuestionNumbers: "off",
-      },
+      agentId: chatContext?.agentId ?? "",
+      threadId: chatContext?.threadId ?? "",
+      definition: formDefinitionObj,
     });
 
     // const result = await defineFormAction({
@@ -328,10 +326,9 @@ export function FormAssistantProvider({
     //   formId: formId,
     // });
 
-    let newChatContext: ConversationState | undefined;
     if (result.success) {
       const promptResponse = result.data;
-      newChatContext = {
+      const newChatContext = {
         ...chatContext,
         resultJson: promptResponse.definition
           ? JSON.stringify(promptResponse.definition)
@@ -344,19 +341,23 @@ export function FormAssistantProvider({
           },
         ],
       };
-      setChatContext(newChatContext);
+      dispatch({
+        type: ConversationActionType.SET_RESULT_JSON,
+        payload: {
+          definition: promptResponse.definition as object,
+          agentResponse: promptResponse.agentResponse,
+        },
+      });
+      return newChatContext;
     }
 
-    setIsGeneratingResponse(false);
-
-    return newChatContext ?? chatContext;
+    return chatContext;
   };
 
   const assistantContext: FormAssistantContext = {
     chatContext,
     isAssistantEnabled,
     formId,
-    isGeneratingResponse,
     sendPrompt,
   };
 

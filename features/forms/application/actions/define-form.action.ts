@@ -1,15 +1,18 @@
 "use server";
 
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { getSession } from "@/features/auth";
 import {
   DefineFormRequestSchema,
   DefineFormRequest,
 } from "@/lib/endatix-api/agents/types";
 import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
 import { Model } from "survey-core";
-import { authorization } from '@/features/auth/authorization';
-import { trackException, trackEvent } from "@/features/analytics/posthog/server";
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import {
+  trackException,
+  trackEvent,
+} from "@/features/analytics/posthog/server";
 
 function buildDefineFormRequest(formData: FormData): DefineFormRequest {
   const request: DefineFormRequest = {
@@ -35,13 +38,11 @@ function buildDefineFormRequest(formData: FormData): DefineFormRequest {
 }
 
 export async function defineFormAction(
-  prevState: PromptResult,
-  formData: FormData,
+  request: DefineFormRequest,
 ): Promise<PromptResult | never> {
-  const { requireHubAccess } = await authorization();
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
-
-  const request = buildDefineFormRequest(formData);
 
   const validationResult = DefineFormRequestSchema.safeParse(request);
   if (!validationResult.success) {
@@ -52,22 +53,22 @@ export async function defineFormAction(
     );
   }
 
-  const session = await getSession();
-  const endatixApi = new EndatixApi(session);
+  const endatixApi = new EndatixApi(session?.accessToken);
   const result = await endatixApi.agents.defineForm(validationResult.data);
 
   if (ApiResult.isError(result)) {
     await trackException(result.error.message, {
       operation: "define_form",
       form_id: request.formId || "unknown",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return PromptResult.Error(result.error.message);
   }
 
   try {
-    const validatedModel = new Model(result.data.definition);
+    const validatedModel = new Model();
+    validatedModel.fromJSON(result.data.definition);
     result.data.definition = validatedModel.toJSON();
 
     await trackEvent("form_defined", {
@@ -76,7 +77,7 @@ export async function defineFormAction(
       agent_id: result.data.agentId || "unknown",
       has_definition: !!result.data.definition,
       definition_size: JSON.stringify(result.data.definition || {}).length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return PromptResult.Success(result.data);
@@ -84,7 +85,7 @@ export async function defineFormAction(
     await trackException(error, {
       operation: "define_form",
       form_id: request.formId || "unknown",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return PromptResult.Error(

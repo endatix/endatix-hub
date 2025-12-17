@@ -29,6 +29,10 @@ import {
 import { redirect } from "next/navigation";
 import { defineFormAction } from "../../application/actions/define-form.action";
 import { ApiResult } from "@/lib/endatix-api";
+import {
+  ConversationState,
+  useFormAssistant,
+} from "../../use-cases/design-form";
 
 const ChatErrorAlert = ({
   errorMessage,
@@ -53,7 +57,6 @@ const SubmitButton = ({
   disabled: boolean;
   retryMode?: boolean;
 }) => {
-
   const chatIcon = retryMode ? (
     <Repeat2 className="size-4" />
   ) : pending ? (
@@ -87,12 +90,14 @@ const SubmitButton = ({
 const initialState = PromptResult.InitialState();
 
 interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
-  formId?: string;
   currentDefinition?: string;
   requiresNewContext?: boolean;
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
-  onStateChange?: (stateCommand: DefineFormCommand, newDefinition?: object) => void;
+  onStateChange?: (
+    stateCommand: DefineFormCommand,
+    newDefinition?: object,
+  ) => void;
   onFormGenerated?: () => void;
   isTranslationMode?: boolean;
   targetLanguage?: string;
@@ -105,7 +110,6 @@ interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
 const ChatBox = ({
   className,
   placeholder,
-  formId,
   currentDefinition,
   requiresNewContext,
   onPendingChange,
@@ -121,146 +125,88 @@ const ChatBox = ({
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
   const [retryMode, setRetryMode] = useState(false);
-  const [state, action, pending] = useActionState(
-    async (prevState: PromptResult, formData: FormData) => {
-      const contextStore = new AssistantStore();
-      setRetryMode(false);
+  const { formId, chatContext, sendPrompt } = useFormAssistant();
 
-      if (requiresNewContext) {
-        contextStore.clear(formId);
-        contextStore.setChatContext({
-          messages: [],
-          threadId: "",
-          agentId: "",
-          isInitialPrompt: true,
-        }, formId);
-      }
-
-      const formContext = contextStore.getChatContext(formId);
-      if (formContext) {
-        if (formContext.threadId) {
-          formData.set("threadId", formContext.threadId);
-        }
-        if (formContext.agentId) {
-          formData.set("agentId", formContext.agentId);
-        }
-      }
-
-      // Send current definition to AI for context
-      if (currentDefinition) {
-        formData.set("definition", currentDefinition);
-      }
-
-      // Pass formId to backend for conversation tracking
-      if (formId) {
-        formData.set("formId", formId);
-      }
-
-      const promptResult = await defineFormAction(prevState, formData);
-
-      if (promptResult === undefined){
-        setRetryMode(false);
-        return PromptResult.Error("Could not proceed with defining form");
-      }
-
-      if (ApiResult.isError(promptResult)) {
-        setRetryMode(true);
-        return promptResult;
-      }
-
-      if (promptResult.data?.definition) {
-        const prompt = formData.get("prompt") as string;
-        contextStore.setFormModel(JSON.stringify(promptResult.data.definition), formId);
-        const currentContext = contextStore.getChatContext(formId);
-        currentContext.threadId = promptResult.data?.threadId ?? "";
-        currentContext.agentId = promptResult.data?.agentId ?? "";
-
-        if (currentContext.messages === undefined) {
-          currentContext.messages = [];
-        }
-
-        currentContext.messages.push({
-          isAi: false,
-          content: prompt,
-        });
-
-        if (currentContext.messages.length > 1) {
-          currentContext.isInitialPrompt = false;
-        }
-
-        if (promptResult.data?.agentResponse) {
-          currentContext.messages.push({
-            isAi: true,
-            content: promptResult.data?.agentResponse,
-          });
-        }
-
-        contextStore.setChatContext(currentContext, formId);
-
-        if (onStateChange) {
-          onStateChange(DefineFormCommand.fullStateUpdate, promptResult.data.definition);
-        }
-
-        // If onFormGenerated callback is provided (Create Form sheet scenario),
-        // call it to navigate to designer. Otherwise, redirect to preview page.
-        if (onFormGenerated) {
-          onFormGenerated();
-        } else if (window.location.pathname === "/forms") {
-          redirect("/forms/create");
-        }
-
-        setInput("");
-      }
-      return promptResult;
+  const [promptState, promptAction, isGeneratingResponse] = useActionState(
+    async (
+      _: ConversationState | undefined,
+      formData: FormData,
+    ): Promise<ConversationState | undefined> => {
+      return await handleSendPrompt(formData);
     },
-    initialState,
+    undefined as unknown as ConversationState,
   );
 
   useEffect(() => {
     if (onPendingChange) {
-      onPendingChange(pending);
+      onPendingChange(isGeneratingResponse);
     }
-  }, [pending, onPendingChange]);
+  }, [isGeneratingResponse, onPendingChange]);
 
-  // Hide translation UI when operation starts or completes
   useEffect(() => {
-    if (pending && isTranslationMode) {
+    if (isGeneratingResponse && isTranslationMode) {
       onTranslationModeChange?.(false);
     }
-  }, [pending, isTranslationMode, onTranslationModeChange]);
+  }, [isGeneratingResponse, isTranslationMode, onTranslationModeChange]);
 
-  // Handle translation submission
   const handleTranslateSubmit = () => {
     setRetryMode(false);
-
     if (!targetLanguage.trim()) {
       return;
     }
-
     const formData = new FormData();
     formData.set(
       "prompt",
       `Add ${targetLanguage} translations to this form...`,
     );
 
-    const contextStore = new AssistantStore();
-    const formContext = contextStore.getChatContext();
-    if (formContext) {
-      formData.set("threadId", formContext.threadId ?? "");
-      formData.set("agentId", formContext.agentId ?? "");
+    if (chatContext) {
+      formData.set("threadId", chatContext.threadId ?? "");
+      formData.set("agentId", chatContext.agentId ?? "");
     }
 
     startTransition(() => {
-      action(formData);
+      promptAction(formData);
     });
+  };
+
+  const handleSendPrompt = async (
+    formData: FormData,
+  ): Promise<ConversationState | undefined> => {
+    const prompt = formData.get("prompt") as string;
+    if (!prompt?.trim()) {
+      return undefined;
+    }
+
+    setRetryMode(false);
+
+    const newChatContext = await sendPrompt(prompt, currentDefinition);
+    if (newChatContext.error) {
+      setRetryMode(true);
+      return newChatContext;
+    }
+
+    if (newChatContext.resultJson && onStateChange) {
+      onStateChange(
+        DefineFormCommand.fullStateUpdate,
+        JSON.parse(newChatContext?.resultJson ?? "{}"),
+      );
+    }
+
+    onFormGenerated?.();
+    setInput("");
+    return newChatContext;
   };
 
   return (
     <div className={`flex flex-col flex-1 gap-2 ${className}`} {...props}>
-      {ApiResult.isError(state) && (
-        <ChatErrorAlert errorMessage={state.error.message} />
+      {chatContext?.error && (
+        <ChatErrorAlert errorMessage={chatContext.error} />
       )}
 
+      <h3 className="text-sm font-medium">
+        {JSON.parse(chatContext?.resultJson ?? "{}").title}
+      </h3>
       {isTranslationMode && (
         <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
           <span className="text-sm font-medium">Add new languages:</span>
@@ -273,20 +219,20 @@ const ChatBox = ({
             className="flex-1 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-ring"
           />
           <Button
-            disabled={pending || !targetLanguage.trim()}
+            disabled={isGeneratingResponse || !targetLanguage.trim()}
             variant="default"
             size="sm"
             onClick={handleTranslateSubmit}
             className="h-8"
           >
             <Globe className="mr-2 h-4 w-4" />
-            {pending ? "Translating..." : "Translate"}
+            {isGeneratingResponse ? "Translating..." : "Translate"}
           </Button>
         </div>
       )}
 
       <form
-        action={action}
+        action={promptAction}
         className="flex-1 relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
       >
         <Label htmlFor="prompt" className="sr-only">
@@ -301,7 +247,7 @@ const ChatBox = ({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              if (input.trim() && !pending) {
+              if (input.trim() && !isGeneratingResponse) {
                 const form = e.currentTarget.form;
                 if (form) {
                   form.requestSubmit();
@@ -332,7 +278,9 @@ const ChatBox = ({
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="top" className="z-[9999]">File attachments coming soon</TooltipContent>
+              <TooltipContent side="top" className="z-[9999]">
+                File attachments coming soon
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -348,10 +296,16 @@ const ChatBox = ({
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="top" className="z-[9999]">Voice input coming soon</TooltipContent>
+              <TooltipContent side="top" className="z-[9999]">
+                Voice input coming soon
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <SubmitButton pending={pending} disabled={input.length === 0} retryMode={retryMode} />
+          <SubmitButton
+            pending={isGeneratingResponse}
+            disabled={input.length === 0}
+            retryMode={retryMode}
+          />
         </div>
       </form>
       <p className="text-center text-xs text-gray-500">

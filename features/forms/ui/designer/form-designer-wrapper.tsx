@@ -7,6 +7,7 @@ import FormEditorWithChat from "../editor/form-editor-with-chat";
 import { ICreatorOptions } from "survey-creator-core";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
+import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
 
 export interface FormDesignerLayoutProps {
   formId: string;
@@ -15,7 +16,6 @@ export interface FormDesignerLayoutProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
-  aiFeatureFlag?: boolean;
 }
 
 export default function FormDesignerLayout({
@@ -25,7 +25,6 @@ export default function FormDesignerLayout({
   options,
   slkVal,
   themeId,
-  aiFeatureFlag = false,
 }: FormDesignerLayoutProps) {
   const router = useRouter();
 
@@ -33,6 +32,7 @@ export default function FormDesignerLayout({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
+  const { isAssistantEnabled } = useFormAssistant();
 
   // Wrapper for FormEditor's save handler
   const handleSave = useCallback(async () => {
@@ -63,7 +63,7 @@ export default function FormDesignerLayout({
         hasUnsavedChanges={hasUnsavedChanges}
         isCurrentThemeModified={isCurrentThemeModified}
       />
-      {aiFeatureFlag ? (
+      {isAssistantEnabled ? (
         <FormEditorWithChat
           formId={formId}
           formJson={formJson}

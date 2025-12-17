@@ -26,7 +26,7 @@ import {
 import DotLoader from "@/components/loaders/dot-loader";
 import FormEditorContainer from "./form-editor-container";
 import { ICreatorOptions } from "survey-creator-core";
-import { getConversationAction } from "../../application/actions/get-conversation.action";
+import { useFormAssistant } from '../../use-cases/design-form/form-assistant.context';
 
 const CRITICAL_WIDTH = 600;
 
@@ -69,33 +69,28 @@ export default function FormEditorWithChat({
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const languageInputRef = useRef<HTMLInputElement>(null);
   const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(null);
+  const { chatContext } = useFormAssistant();
 
   useEffect(() => {
     const initializeConversation = async () => {
-      const currentContext = await getConversationAction(formId);
-
-      if (currentContext?.error) {
-        setConversationError(currentContext.error);
+      if (chatContext?.error) {
+        setConversationError(chatContext.error);
         setConversationLoaded(true);
         return;
       }
 
-      // Store in localStorage for client-side access
-      const contextStore = new AssistantStore();
-      contextStore.setChatContext(currentContext, formId);
-
-      if (currentContext?.isInitialPrompt) {
+      if (chatContext?.isInitialPrompt) {
         setShouldType(true);
       }
 
-      if (currentContext?.messages) {
-        setMessages(currentContext.messages);
+      if (chatContext?.messages) {
+        setMessages(chatContext.messages);
       }
 
       // If form definition is empty but conversation has resultJson, load it
-      if ((!formJson || Object.keys(formJson).length === 0) && currentContext?.resultJson) {
+      if ((!formJson || Object.keys(formJson).length === 0) && chatContext?.resultJson) {
         try {
-          const parsedJson = JSON.parse(currentContext.resultJson);
+          const parsedJson = JSON.parse(chatContext.resultJson);
           setUpdatedFormJson(parsedJson);
           onUnsavedChanges?.(true);
         } catch (error) {
@@ -118,7 +113,7 @@ export default function FormEditorWithChat({
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
-  }, [formId, formJson, onUnsavedChanges]);
+  }, [formId, formJson, onUnsavedChanges, chatContext]);
 
   const defineFormHandler = (stateCommand: DefineFormCommand, newDefinition?: object) => {
     const contextStore = new AssistantStore();
@@ -127,7 +122,7 @@ export default function FormEditorWithChat({
         const formContext = contextStore.getChatContext(formId);
 
         setShouldType(true);
-        setMessages(formContext.messages);
+        setMessages(formContext?.messages ?? []);
 
         if (newDefinition) {
           setUpdatedFormJson({ ...newDefinition });
@@ -339,7 +334,6 @@ export default function FormEditorWithChat({
                       )}
                     </div>
                     <ChatBox
-                      formId={formId}
                       currentDefinition={JSON.stringify(updatedFormJson || formJson)}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."

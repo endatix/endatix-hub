@@ -12,6 +12,8 @@ import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { authorization } from "@/features/auth/authorization";
 import { auth } from "@/auth";
 import { trackException } from "@/features/analytics/posthog/server";
+import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
+import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -23,7 +25,8 @@ export default async function FormDesignerPage({ params }: Params) {
   await requireHubAccess();
 
   const { formId } = await params;
-  const ai = await aiFeaturesFlag();
+  const aiFeaturesEnabled = await aiFeaturesFlag();
+  const chatContextPromise = getCurrentConversationUseCase(formId, session);
 
   let form: Form | null = null;
   let formJson: object | null = null;
@@ -66,13 +69,18 @@ export default async function FormDesignerPage({ params }: Params) {
     formName: form.name,
     slkVal: process.env.NEXT_PUBLIC_SLK,
     themeId: form.themeId ?? undefined,
-    aiFeatureFlag: ai,
   };
 
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <FormDesignerLayout {...props} />
+        <FormAssistantProvider
+          isAssistantEnabled={aiFeaturesEnabled}
+          formId={formId}
+          getConversationPromise={chatContextPromise}
+        >
+          <FormDesignerLayout {...props} />
+        </FormAssistantProvider>
       </div>
     </Suspense>
   );
