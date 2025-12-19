@@ -64,11 +64,13 @@ describe("SubmissionQueue", () => {
       1,
       items[0].formId,
       items[0].data,
+      undefined, // urlToken
     );
     expect(mockSubmitForm).toHaveBeenNthCalledWith(
       2,
       items[1].formId,
       items[1].data,
+      undefined, // urlToken
     );
   });
 

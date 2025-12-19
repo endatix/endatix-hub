@@ -6,6 +6,7 @@ import { ApiResult } from "@/lib/endatix-api";
 interface QueueItem {
   formId: string;
   data: SubmissionData;
+  urlToken?: string;
 }
 
 export class SubmissionQueue {
@@ -27,6 +28,7 @@ export class SubmissionQueue {
       const submitResult = await submitFormAction(
         itemToProcess.formId,
         itemToProcess.data,
+        itemToProcess.urlToken,
       );
 
       if (ApiResult.isError(submitResult)) {

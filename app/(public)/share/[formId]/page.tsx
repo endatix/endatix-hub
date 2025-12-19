@@ -2,7 +2,6 @@
 
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
-import { TokenHandler } from "@/features/public-form/ui/token-handler";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
@@ -29,6 +28,10 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
     getActiveDefinitionUseCase({ formId }),
   ]);
 
+  if (ApiResult.isError(submissionResult) && urlToken) {
+    notFound();
+  }
+
   const submission = ApiResult.isSuccess(submissionResult)
     ? submissionResult.data
     : undefined;
@@ -54,7 +57,6 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
         height: "100%",
       }}
     >
-      {urlToken && <TokenHandler formId={formId} />}
       {shouldLoadReCaptcha && (
         <>
           <Script src={recaptchaConfig.JS_URL} strategy="beforeInteractive" />
@@ -68,6 +70,7 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
         theme={activeDefinition.themeModel}
         customQuestions={activeDefinition.customQuestions}
         requiresReCaptcha={activeDefinition.requiresReCaptcha}
+        urlToken={urlToken}
       />
     </div>
   );
