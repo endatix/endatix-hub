@@ -1,24 +1,33 @@
 "use client";
 
-import { createContext, ReactNode, use, useReducer } from "react";
+import {
+  createContext,
+  ReactNode,
+  use,
+  useOptimistic,
+  useReducer,
+} from "react";
 import {
   ConversationState,
   emptyConversationState,
 } from "./form.assistant.domain";
-import { ApiResult, DefineFormResponse } from "@/lib/endatix-api";
 import {
   ConversationActionType,
   conversationStateReducer,
 } from "./form-assistant.reducer";
+import { Model } from "survey-core";
+import { defineFormAction } from "../../application/actions/define-form.action";
+import { generateFormForConversationAction } from "./generate-form-for-conversation.action";
+import { ChatMessage } from "@/lib/endatix-api/conversations/types";
 
 interface FormAssistantContext {
   isAssistantEnabled: boolean;
   chatContext: ConversationState | null;
-  formId?: string;
   sendPrompt: (
     prompt: string,
     definition?: string,
   ) => Promise<ConversationState>;
+  generateAssociatedForm: () => Promise<string | undefined>;
 }
 
 /**
@@ -54,7 +63,6 @@ export function FormAssistantProvider({
   children,
   isAssistantEnabled,
   getConversationPromise,
-  formId,
 }: FormAssistantProviderProps) {
   const initialConversation = getConversationPromise
     ? use(getConversationPromise)
@@ -63,302 +71,160 @@ export function FormAssistantProvider({
     conversationStateReducer,
     initialConversation,
   );
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    chatContext?.messages ?? [],
+    (state: ChatMessage[], newMessage: ChatMessage) => [...state, newMessage],
+  );
 
   const sendPrompt = async (
     prompt: string,
     definition?: string,
   ): Promise<ConversationState> => {
-    dispatch({
-      type: ConversationActionType.ADD_USER_MESSAGE,
-      payload: prompt,
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const formDefinitionObj = {
-      pages: [
-        {
-          name: "page1",
-          elements: [
-            {
-              name: "fullName",
-              type: "text",
-              title: "Full name",
-              isRequired: true,
-            },
-            {
-              name: "email",
-              type: "text",
-              title: "Email address",
-              inputType: "email",
-              isRequired: true,
-            },
-            {
-              name: "phone",
-              type: "text",
-              title: "Phone number",
-              inputType: "tel",
-              startWithNewLine: false,
-            },
-            {
-              name: "age",
-              type: "text",
-              title: "Age",
-              inputType: "number",
-              isRequired: true,
-              validators: [
-                {
-                  type: "numeric",
-                  maxValue: 120,
-                  minValue: 1,
-                },
-              ],
-            },
-            {
-              name: "guardianName",
-              type: "text",
-              title: "Parent/Guardian full name",
-              visibleIf: "{age} < 18",
-              isRequired: true,
-            },
-            {
-              name: "guardianPhone",
-              type: "text",
-              title: "Parent/Guardian phone number",
-              inputType: "tel",
-              visibleIf: "{age} < 18",
-              isRequired: true,
-            },
-            {
-              name: "experience",
-              type: "radiogroup",
-              title: "Experience level",
-              choices: [
-                {
-                  text: "Beginner",
-                  value: "beginner",
-                },
-                {
-                  text: "Intermediate",
-                  value: "intermediate",
-                },
-                {
-                  text: "Advanced",
-                  value: "advanced",
-                },
-              ],
-              isRequired: true,
-            },
-            {
-              name: "styles",
-              type: "checkbox",
-              title: "Preferred styles",
-              choices: [
-                {
-                  text: "Rock",
-                  value: "rock",
-                },
-                {
-                  text: "Pop",
-                  value: "pop",
-                },
-                {
-                  text: "Blues",
-                  value: "blues",
-                },
-                {
-                  text: "Jazz",
-                  value: "jazz",
-                },
-                {
-                  text: "Classical",
-                  value: "classical",
-                },
-                {
-                  text: "Metal",
-                  value: "metal",
-                },
-                {
-                  text: "Country",
-                  value: "country",
-                },
-              ],
-              hasOther: true,
-            },
-            {
-              name: "lessonsPerWeek",
-              type: "text",
-              title: "Lessons per week",
-              inputType: "number",
-              isRequired: true,
-              validators: [
-                {
-                  type: "numeric",
-                  minValue: 0,
-                },
-              ],
-            },
-            {
-              name: "lessonLength",
-              type: "radiogroup",
-              title: "Preferred lesson length",
-              choices: [
-                {
-                  text: "30 minutes",
-                  value: 30,
-                },
-                {
-                  text: "45 minutes",
-                  value: 45,
-                },
-                {
-                  text: "60 minutes",
-                  value: 60,
-                },
-              ],
-              isRequired: true,
-              startWithNewLine: false,
-            },
-            {
-              name: "hourlyRate",
-              type: "text",
-              title: "Preferred hourly rate (USD)",
-              inputType: "number",
-              isRequired: true,
-              validators: [
-                {
-                  type: "numeric",
-                  minValue: 0,
-                },
-              ],
-            },
-            {
-              name: "estimatedMonthlyCost",
-              type: "expression",
-              title: "Estimated monthly cost",
-              expression:
-                "iif(({hourlyRate} > 0 and {lessonsPerWeek} > 0 and {lessonLength} > 0), {hourlyRate} * ({lessonsPerWeek} * {lessonLength} / 60) * 4, 0)",
-              displayStyle: "currency",
-            },
-            {
-              name: "availabilityDays",
-              type: "checkbox",
-              title: "Available days",
-              choices: [
-                {
-                  text: "Monday",
-                  value: "monday",
-                },
-                {
-                  text: "Tuesday",
-                  value: "tuesday",
-                },
-                {
-                  text: "Wednesday",
-                  value: "wednesday",
-                },
-                {
-                  text: "Thursday",
-                  value: "thursday",
-                },
-                {
-                  text: "Friday",
-                  value: "friday",
-                },
-                {
-                  text: "Saturday",
-                  value: "saturday",
-                },
-                {
-                  text: "Sunday",
-                  value: "sunday",
-                },
-              ],
-            },
-            {
-              name: "availabilityTimes",
-              type: "comment",
-              title: "Preferred times or scheduling notes",
-            },
-            {
-              name: "referral",
-              type: "dropdown",
-              title: "How did you hear about us?",
-              choices: [
-                "Google search",
-                "Social media",
-                "Friend or family",
-                "Flyer or poster",
-                "Other",
-              ],
-            },
-            {
-              name: "consent",
-              type: "boolean",
-              title:
-                "I agree to be contacted about lessons and to the studio's policies",
-              isRequired: true,
-            },
-            {
-              name: "additionalComments",
-              type: "comment",
-              title: "Additional comments or questions",
-            },
-          ],
-        },
-      ],
-      title: "AI Generated Lesson",
-      width: "800px",
-      widthMode: "static",
-      showQuestionNumbers: "off",
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      isAi: false,
+      content: prompt,
     };
-    const result: ApiResult<DefineFormResponse> = ApiResult.success({
-      agentResponse: "Yes, of course, I can help you with that.",
-      agentId: chatContext?.agentId ?? "",
-      threadId: chatContext?.threadId ?? "",
-      definition: formDefinitionObj,
+    addOptimisticMessage(userMessage);
+
+    dispatch({
+      type: ConversationActionType.ADD_MESSAGE,
+      payload: userMessage,
     });
 
-    // const result = await defineFormAction({
-    //   prompt,
-    //   definition,
-    //   threadId: chatContext?.threadId,
-    //   formId: formId,
-    // });
+    const result = await defineFormAction({
+      prompt,
+      definition,
+      threadId: chatContext?.threadId,
+      formId: chatContext?.formId,
+    });
 
-    if (result.success) {
-      const promptResponse = result.data;
-      const newChatContext = {
-        ...chatContext,
-        resultJson: promptResponse.definition
-          ? JSON.stringify(promptResponse.definition)
-          : undefined,
-        messages: [
-          ...chatContext.messages,
-          {
-            isAi: true,
-            content: promptResponse.agentResponse,
-          },
-        ],
-      };
+    if (!result.success) {
       dispatch({
-        type: ConversationActionType.ADD_RESPONSE,
-        payload: {
-          definition: promptResponse.definition as object,
-          agentResponse: promptResponse.agentResponse,
-        },
+        type: ConversationActionType.SET_ERROR,
+        payload: { error: result.error.message },
       });
-      return newChatContext;
+      return chatContext;
     }
 
-    return chatContext;
+    const promptResponse = result.data;
+    let definitionErrors: string[] = [];
+    let validatedDefinition: object | undefined = undefined;
+    let validationError: string | undefined = undefined;
+
+    try {
+      const resultJson = JSON.parse(
+        promptResponse.agentResponse.definition ?? "{}",
+      );
+      const surveyModel = new Model();
+      surveyModel.fromJSON(resultJson);
+      if (surveyModel.jsonErrors?.length > 0) {
+        definitionErrors = surveyModel.jsonErrors.map((error) => error.message);
+        validationError = "Form generated with errors";
+      }
+      validatedDefinition = surveyModel.toJSON();
+    } catch {
+      dispatch({
+        type: ConversationActionType.SET_ERROR,
+        payload: {
+          error: "Error parsing definition",
+          definitionErrors: [],
+        },
+      });
+      return chatContext;
+    }
+
+    const isNewConversation = !chatContext?.threadId || !chatContext?.agentId;
+
+    dispatch({
+      type: ConversationActionType.ADD_RESPONSE,
+      payload: {
+        userMessage: userMessage,
+        tempUserMessageId: userMessage.id,
+        agentResponse: promptResponse.agentResponse,
+        resultDefinition: validatedDefinition ?? {},
+        definitionErrors,
+        error: validationError,
+        threadId: isNewConversation ? promptResponse.threadId : undefined,
+        agentId: isNewConversation ? promptResponse.agentId : undefined,
+      },
+    });
+
+    return {
+      ...chatContext,
+      resultDefinition: validatedDefinition,
+      definitionErrors,
+      messages: [
+        ...chatContext.messages,
+        userMessage,
+        {
+          ...userMessage,
+          isAi: false,
+          id: promptResponse.userPrompt.id,
+        },
+        {
+          ...promptResponse.agentResponse,
+          isAi: true,
+        },
+      ],
+      error: validationError,
+    };
+  };
+
+  const generateAssociatedForm = async (): Promise<string | undefined> => {
+    if (chatContext?.formId) {
+      console.debug("Form already created, skipping creation");
+      return chatContext.formId;
+    }
+
+    try {
+      const surveyModel = new Model();
+      surveyModel.fromJSON(chatContext?.resultDefinition ?? "{}");
+
+      const generateFormResult = await generateFormForConversationAction({
+        formTitle: surveyModel.title ?? surveyModel.name ?? "AI Generated Form",
+        formDefinitionSchema: surveyModel.toJSON(),
+        conversationId: chatContext?.threadId ?? "",
+        agentId: chatContext?.agentId ?? "",
+      });
+
+      if (!generateFormResult.success) {
+        dispatch({
+          type: ConversationActionType.SET_ERROR,
+          payload: {
+            error: generateFormResult.error.message,
+          },
+        });
+        return undefined;
+      }
+
+      dispatch({
+        type: ConversationActionType.SET_FORM_ID,
+        payload: {
+          formId: generateFormResult.data,
+        },
+      });
+      return generateFormResult.data;
+    } catch (error) {
+      console.error("Error creating form", error);
+      dispatch({
+        type: ConversationActionType.SET_ERROR,
+        payload: {
+          error: "Error creating form",
+        },
+      });
+      return undefined;
+    }
   };
 
   const assistantContext: FormAssistantContext = {
-    chatContext,
+    chatContext: {
+      ...chatContext,
+      messages: optimisticMessages,
+    },
     isAssistantEnabled,
-    formId,
     sendPrompt,
+    generateAssociatedForm,
   };
 
   return (

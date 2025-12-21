@@ -1,7 +1,8 @@
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { ApiResult, Conversation, EndatixApi } from "@/lib/endatix-api";
 import {
   LatestConversationResponse,
-  ConversationMessage
+  ConversationMessage,
+  PartialUpdateConversationRequest,
 } from "./types";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
@@ -35,6 +36,35 @@ export class Conversations {
 
     return this.baseApi.get<ConversationMessage[]>(
       `/agents/conversations/${validateConversationIdResult.value}/messages`,
+    );
+  }
+
+  async partialUpdateConversation(
+    request: PartialUpdateConversationRequest,
+  ): Promise<ApiResult<Conversation>> {
+    const validateConversationIdResult = validateEndatixId(
+      request.conversationId,
+      "conversationId",
+    );
+    const validateAgentIdResult = validateEndatixId(request.agentId, "agentId");
+
+    if (Result.isError(validateConversationIdResult)) {
+      return ApiResult.validationError(validateConversationIdResult.message);
+    }
+
+    if (Result.isError(validateAgentIdResult)) {
+      return ApiResult.validationError(validateAgentIdResult.message);
+    }
+
+    const requestBody = {
+      formId: request.formId,
+      title: request.title,
+      resultSchema: request.resultJson,
+    };
+
+    return this.baseApi.patch<Conversation>(
+      `/agents/${validateAgentIdResult.value}/conversations/${validateConversationIdResult.value}`,
+      requestBody,
     );
   }
 }

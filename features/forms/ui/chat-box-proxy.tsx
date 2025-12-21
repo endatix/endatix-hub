@@ -63,14 +63,12 @@ const SubmitButton = ({
 interface ChatBoxProxyProps extends React.HTMLAttributes<HTMLDivElement> {
   placeholder?: string;
   onPendingChange?: (pending: boolean) => void;
-  onFormGenerated?: () => void;
 }
 
 const ChatBoxProxy = ({
   className,
   placeholder,
   onPendingChange,
-  onFormGenerated,
   ...props
 }: ChatBoxProxyProps) => {
   const [input, setInput] = useState("");
@@ -104,10 +102,6 @@ const ChatBoxProxy = ({
 
       if (newChatContext.error) {
         return newChatContext;
-      }
-
-      if (newChatContext.resultJson && onFormGenerated) {
-        onFormGenerated();
       }
 
       setInput("");

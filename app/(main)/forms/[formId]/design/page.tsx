@@ -1,7 +1,7 @@
 import { Form, FormDefinition } from "@/types";
 import { getForm, getActiveFormDefinition } from "@/services/api";
-import FormDesignerLayout, {
-  FormDesignerLayoutProps,
+import FormDesignerWrapper, {
+  FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
@@ -63,7 +63,7 @@ export default async function FormDesignerPage({ params }: Params) {
     );
   }
 
-  const props: FormDesignerLayoutProps = {
+  const props: FormDesignerWrapperProps = {
     formId: formId,
     formJson: formJson,
     formName: form.name,
@@ -79,7 +79,7 @@ export default async function FormDesignerPage({ params }: Params) {
           formId={formId}
           getConversationPromise={chatContextPromise}
         >
-          <FormDesignerLayout {...props} />
+          <FormDesignerWrapper {...props} />
         </FormAssistantProvider>
       </div>
     </Suspense>

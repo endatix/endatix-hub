@@ -3,9 +3,10 @@ import { ChatMessage } from '@/lib/endatix-api/conversations/types';
 export interface ConversationState {
   threadId?: string;
   agentId?: string;
+  formId?: string;
   messages: ChatMessage[];
-  isInitialPrompt: boolean;
-  resultJson?: string;
+  resultDefinition?: object;
+  definitionErrors: string[];
   error?: string;
 }
 
@@ -13,7 +14,11 @@ export interface ConversationState {
 export const emptyConversationState = (
   error: string | undefined = undefined,
 ): ConversationState => ({
+  threadId: undefined,
+  agentId: undefined,
+  formId: undefined,
   messages: [],
-  isInitialPrompt: true,
+  resultDefinition: undefined,
+  definitionErrors: [],
   error: error,
 });

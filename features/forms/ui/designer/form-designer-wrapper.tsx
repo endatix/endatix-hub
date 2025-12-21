@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
 import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
 
-export interface FormDesignerLayoutProps {
+export interface FormDesignerWrapperProps {
   formId: string;
   formJson: object | null;
   formName: string;
@@ -18,14 +18,14 @@ export interface FormDesignerLayoutProps {
   themeId?: string;
 }
 
-export default function FormDesignerLayout({
+export default function FormDesignerWrapper({
   formId,
   formJson,
   formName,
   options,
   slkVal,
   themeId,
-}: FormDesignerLayoutProps) {
+}: FormDesignerWrapperProps) {
   const router = useRouter();
 
   // State for header coordination

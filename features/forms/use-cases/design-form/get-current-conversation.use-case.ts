@@ -9,6 +9,7 @@ import {
   ConversationMessage,
   LatestConversationResponse,
 } from "@/lib/endatix-api/conversations/types";
+import { Model } from "survey-core";
 
 /**
  * Gets the current conversation for the form.
@@ -36,6 +37,28 @@ export async function getCurrentConversationUseCase(
     const { conversationId, agentId, resultJson } =
       latestConversationResult.data;
 
+    let resultDefinition: object = {};
+    let definitionErrors: string[] = [];
+
+    if (resultJson) {
+      try {
+        resultDefinition = JSON.parse(resultJson);
+        const surveyModel = new Model();
+        surveyModel.fromJSON(resultDefinition);
+
+        if (surveyModel.jsonErrors?.length > 0) {
+          definitionErrors = surveyModel.jsonErrors.map(
+            (error) => error.message,
+          );
+        }
+      } catch {
+        console.error(
+          "Failed to parse resultJson. Using empty object instead.",
+          resultJson,
+        );
+      }
+    }
+
     const messagesResult = await api.conversations.getConversationMessages(
       conversationId,
     );
@@ -44,12 +67,13 @@ export async function getCurrentConversationUseCase(
       return {
         threadId: conversationId,
         agentId: agentId,
+        formId: formId,
         messages: [],
-        resultJson: resultJson,
-        isInitialPrompt: false,
+        resultDefinition: resultDefinition,
         error:
           messagesResult.error.message ||
           "Failed to load conversation message. Please try again.",
+        definitionErrors,
       };
     }
 
@@ -58,9 +82,10 @@ export async function getCurrentConversationUseCase(
     return {
       threadId: conversationId,
       agentId: agentId,
+      formId: formId,
       messages: chatMessages,
-      isInitialPrompt: chatMessages.length === 0,
-      resultJson: resultJson,
+      resultDefinition,
+      definitionErrors,
     };
   } catch (error) {
     const errorMessage =
@@ -110,5 +135,6 @@ function transformConversationMessages(
     .map((msg) => ({
       isAi: msg.role === "assistant",
       content: msg.content,
+      id: msg.id,
     }));
 }

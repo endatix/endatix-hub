@@ -15,7 +15,19 @@ export interface ConversationMessage {
   sequence: number;
 }
 
-export interface ChatMessage {
-  isAi: boolean;
+export interface Message {
+  id: string;
   content: string;
+}
+
+export interface ChatMessage extends Message {
+  isAi: boolean;
+}
+
+export interface PartialUpdateConversationRequest {
+  agentId: string;
+  conversationId: string;
+  formId?: string;
+  title?: string;
+  resultJson?: object;
 }

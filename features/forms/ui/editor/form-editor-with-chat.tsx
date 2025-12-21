@@ -55,9 +55,8 @@ export default function FormEditorWithChat({
   const [isMobile, setIsMobile] = useState(false);
   const [shouldType, setShouldType] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
-  const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(null);
-  const [conversationError, setConversationError] = useState<string | null>(
-    null,
+  const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(
+    formJson,
   );
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const [isTranslationMode, setIsTranslationMode] = useState(false);
@@ -74,30 +73,29 @@ export default function FormEditorWithChat({
   useEffect(() => {
     const initializeConversation = async () => {
       if (chatContext?.error) {
-        setConversationError(chatContext.error);
         setConversationLoaded(true);
         return;
       }
 
-      if (chatContext?.isInitialPrompt) {
+      if (!chatContext?.formId) {
         setShouldType(true);
       }
 
       // If form definition is empty but conversation has resultJson, load it
-      if (chatContext?.resultJson) {
-        try {
-          const parsedJson = JSON.parse(chatContext.resultJson);
-          setUpdatedFormJson(parsedJson);
-          onUnsavedChanges?.(true);
-        } catch (error) {
-          console.error("Failed to parse conversation resultJson:", error);
-        }
+      if (chatContext?.resultDefinition) {
+        setUpdatedFormJson(chatContext?.resultDefinition);
+        onUnsavedChanges?.(true);
       }
       setConversationLoaded(true);
     };
 
     initializeConversation();
-  }, [formId, onUnsavedChanges, chatContext, formJson, hasNonEmptyFormJson]);
+  }, [
+    chatContext?.error,
+    chatContext?.formId,
+    chatContext?.resultDefinition,
+    onUnsavedChanges,
+  ]);
 
   useEffect(() => {
     const checkWidth = () => {
@@ -157,7 +155,7 @@ export default function FormEditorWithChat({
           {shouldRenderEditor ? (
             <FormEditorContainer
               formId={formId}
-              formJson={updatedFormJson || formJson}
+              formJson={updatedFormJson}
               formName={formName}
               options={options}
               slkVal={slkVal}
@@ -259,12 +257,12 @@ export default function FormEditorWithChat({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                {conversationError ? (
+                {chatContext?.error ? (
                   <Alert variant="destructive" className="mt-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Unable to load conversation</AlertTitle>
                     <AlertDescription>
-                      {conversationError}
+                      {chatContext?.error}
                       <br />
                       <Button
                         variant="outline"

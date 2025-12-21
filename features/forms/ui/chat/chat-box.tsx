@@ -108,7 +108,7 @@ const ChatBox = ({
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
   const [retryMode, setRetryMode] = useState(false);
-  const { formId, chatContext, sendPrompt } = useFormAssistant();
+  const { chatContext, sendPrompt } = useFormAssistant();
 
   const [promptState, promptAction, isGeneratingResponse] = useActionState(
     async (
@@ -180,9 +180,6 @@ const ChatBox = ({
         <ChatErrorAlert errorMessage={chatContext.error} />
       )}
 
-      <h3 className="text-sm font-medium">
-        {JSON.parse(chatContext?.resultJson ?? "{}").title}
-      </h3>
       {isTranslationMode && (
         <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
           <span className="text-sm font-medium">Add new languages:</span>

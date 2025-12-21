@@ -1,4 +1,5 @@
 export type ChatMessage = {
+    id: string;
     isAi: boolean;
     content: string;
 }
