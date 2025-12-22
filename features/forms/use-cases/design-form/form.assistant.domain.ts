@@ -1,6 +1,7 @@
-import { ChatMessage } from '@/lib/endatix-api/conversations/types';
+import { ChatMessage } from "@/lib/endatix-api/conversations/types";
 
 export interface ConversationState {
+  isResponsePending: boolean;
   threadId?: string;
   agentId?: string;
   formId?: string;
@@ -10,10 +11,10 @@ export interface ConversationState {
   error?: string;
 }
 
-
 export const emptyConversationState = (
   error: string | undefined = undefined,
 ): ConversationState => ({
+  isResponsePending: false,
   threadId: undefined,
   agentId: undefined,
   formId: undefined,

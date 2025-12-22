@@ -54,7 +54,6 @@ export default function FormEditorWithChat({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [shouldType, setShouldType] = useState(false);
-  const [isWaiting, setIsWaiting] = useState(false);
   const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(
     formJson,
   );
@@ -67,6 +66,7 @@ export default function FormEditorWithChat({
     null,
   );
   const { chatContext } = useFormAssistant();
+  const isGeneratingResponse = chatContext?.isResponsePending ?? false;
   const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
   const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
 
@@ -289,7 +289,7 @@ export default function FormEditorWithChat({
                       isTyping={shouldType}
                       messages={chatContext?.messages ?? []}
                     />
-                    {isWaiting && (
+                    {isGeneratingResponse && (
                       <DotLoader className="flex flex-none items-center m-auto" />
                     )}
                     <div className="items-center gap-2 flex justify-end">
@@ -299,14 +299,14 @@ export default function FormEditorWithChat({
                           size="sm"
                           className="h-8 border-dashed"
                           onClick={handleCancelTranslation}
-                          disabled={isWaiting}
+                          disabled={isGeneratingResponse}
                         >
                           Cancel translation
                         </Button>
                       )}
                       {!isTranslationMode && (
                         <Button
-                          disabled={isWaiting}
+                          disabled={isGeneratingResponse}
                           variant="outline"
                           size="sm"
                           className="h-8 border-dashed"
@@ -323,9 +323,6 @@ export default function FormEditorWithChat({
                       )}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."
-                      onPendingChange={(pending) => {
-                        setIsWaiting(pending);
-                      }}
                       isTranslationMode={isTranslationMode}
                       targetLanguage={targetLanguage}
                       onTargetLanguageChange={setTargetLanguage}

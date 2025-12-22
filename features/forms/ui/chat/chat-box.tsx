@@ -82,7 +82,6 @@ const SubmitButton = ({
 interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   currentDefinition?: string;
   placeholder?: string;
-  onPendingChange?: (pending: boolean) => void;
   onFormGenerated?: () => void;
   isTranslationMode?: boolean;
   targetLanguage?: string;
@@ -96,7 +95,6 @@ const ChatBox = ({
   className,
   placeholder,
   currentDefinition,
-  onPendingChange,
   onFormGenerated,
   isTranslationMode = false,
   targetLanguage = "",
@@ -109,8 +107,9 @@ const ChatBox = ({
   const [input, setInput] = useState("");
   const [retryMode, setRetryMode] = useState(false);
   const { chatContext, sendPrompt } = useFormAssistant();
+  const isGeneratingResponse = chatContext?.isResponsePending ?? false;
 
-  const [promptState, promptAction, isGeneratingResponse] = useActionState(
+  const [, promptAction] = useActionState(
     async (
       _: ConversationState | undefined,
       formData: FormData,
@@ -119,12 +118,6 @@ const ChatBox = ({
     },
     undefined as unknown as ConversationState,
   );
-
-  useEffect(() => {
-    if (onPendingChange) {
-      onPendingChange(isGeneratingResponse);
-    }
-  }, [isGeneratingResponse, onPendingChange]);
 
   useEffect(() => {
     if (isGeneratingResponse && isTranslationMode) {

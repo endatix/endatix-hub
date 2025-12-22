@@ -71,9 +71,12 @@ export function FormAssistantProvider({
     conversationStateReducer,
     initialConversation,
   );
-  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
-    chatContext?.messages ?? [],
-    (state: ChatMessage[], newMessage: ChatMessage) => [...state, newMessage],
+  const [optimisticChatContext, setOptimisticChatContext] = useOptimistic(
+    chatContext,
+    (state: ConversationState, update: Partial<ConversationState>) => ({
+      ...state,
+      ...update,
+    }),
   );
 
   const sendPrompt = async (
@@ -85,11 +88,18 @@ export function FormAssistantProvider({
       isAi: false,
       content: prompt,
     };
-    addOptimisticMessage(userMessage);
+
+    setOptimisticChatContext({
+      isResponsePending: true,
+      messages: [...chatContext.messages, userMessage],
+    });
 
     dispatch({
       type: ConversationActionType.ADD_MESSAGE,
-      payload: userMessage,
+      payload: {
+        message: userMessage,
+        isResponsePending: true,
+      },
     });
 
     const result = await defineFormAction({
@@ -177,6 +187,10 @@ export function FormAssistantProvider({
       return chatContext.formId;
     }
 
+    setOptimisticChatContext({
+      isResponsePending: true,
+    });
+
     try {
       const surveyModel = new Model();
       surveyModel.fromJSON(chatContext?.resultDefinition ?? "{}");
@@ -218,10 +232,7 @@ export function FormAssistantProvider({
   };
 
   const assistantContext: FormAssistantContext = {
-    chatContext: {
-      ...chatContext,
-      messages: optimisticMessages,
-    },
+    chatContext: optimisticChatContext,
     isAssistantEnabled,
     sendPrompt,
     generateAssociatedForm,

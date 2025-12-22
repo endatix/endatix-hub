@@ -20,10 +20,10 @@ import { FormTemplate } from "@/types";
 import { BicepsFlexed, Code, Copy, Folder, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FC, useState, useTransition } from "react";
-import ChatBoxProxy from "./chat-box-proxy";
 import TemplateSelector from "./template-selector";
 import { useFormAssistant } from "../use-cases/design-form/form-assistant.context";
 import { useAutoCreateForm } from "../use-cases/design-form/use-auto-create-form.hook";
+import ChatBox from "./chat/chat-box";
 
 type CreateFormOption =
   | "from_scratch"
@@ -75,7 +75,6 @@ const CreateFormCard: FC<FormCreateSheetProps> = ({
 };
 
 const CreateFormSheet: FC = () => {
-  const [pending, setPending] = useState(false);
   const [selectedOption, setSelectedOption] = useState<CreateFormOption>();
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
     null,
@@ -86,13 +85,15 @@ const CreateFormSheet: FC = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const { isAssistantEnabled } = useFormAssistant();
+  const { isAssistantEnabled, chatContext } = useFormAssistant();
   const { isCreatingForm } = useAutoCreateForm({
     onFormCreated: (formId) => {
       toast.success("Form created successfully");
       router.push(`/forms/${formId}/design`);
     },
   });
+
+  const isGeneratingResponse = (chatContext?.isResponsePending ?? false) || isCreatingForm;
 
   const handleTemplateSelect = (template: FormTemplate) => {
     setSelectedTemplate(template);
@@ -168,7 +169,9 @@ const CreateFormSheet: FC = () => {
           />
         </div>
       </div>
-      {pending && <DotLoader className="flex-1 text-center m-auto" />}
+      {isGeneratingResponse && (
+        <DotLoader className="flex-1 text-center m-auto" />
+      )}
       <SheetFooter className="flex-end">
         <div className="w-full space-y-4">
           {selectedOption === "from_template" && (
@@ -213,12 +216,7 @@ const CreateFormSheet: FC = () => {
                 Let <span className="font-bold">Endatix AI Assistant</span>{" "}
                 build the form
               </p>
-              <ChatBoxProxy
-                onPendingChange={(pending) => {
-                  setPending(pending);
-                }}
-              />
-              {isCreatingForm && <Spinner className="mr-2 h-4 w-4" />}
+              <ChatBox />
             </div>
           )}
         </div>
