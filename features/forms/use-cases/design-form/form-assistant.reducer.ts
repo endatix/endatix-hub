@@ -70,7 +70,7 @@ export function conversationStateReducer(
         messages: [...state.messages, action.payload.message],
         error: undefined,
       };
-    case ConversationActionType.ADD_RESPONSE:
+    case ConversationActionType.ADD_RESPONSE: {
       let updatedMessages: ChatMessage[] = state.messages;
       const payload = action.payload;
 
@@ -103,6 +103,7 @@ export function conversationStateReducer(
         threadId: action.payload.threadId ?? state.threadId,
         agentId: action.payload.agentId ?? state.agentId,
       };
+    }
     case ConversationActionType.SET_ERROR:
       return {
         ...state,
