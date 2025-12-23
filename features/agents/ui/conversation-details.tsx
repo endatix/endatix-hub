@@ -213,7 +213,7 @@ export default function ConversationDetails({
                 </CollapsibleContent>
               </Collapsible>
               <h3 className="text-l font-bold">Chat History</h3>
-              <ChatThread isTyping={false} messages={chatMessages} />
+              <ChatThread />
             </div>
           )}
         </div>
