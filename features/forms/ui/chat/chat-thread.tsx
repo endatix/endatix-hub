@@ -128,7 +128,15 @@ const TypingEffect: React.FC<TypingEffectProps> = ({
   const [text, setText] = React.useState("");
   const [index, setIndex] = React.useState(0);
 
-  const typingSpeed = 10 + Math.floor(Math.random() * 30);
+  const typingSpeed = React.useMemo(() => {
+    if (!window?.crypto) {
+      return 30;
+    }
+
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    return 10 + (array[0] % 30);
+  }, []);
 
   React.useEffect(() => {
     if (!shouldAddEffect) {
