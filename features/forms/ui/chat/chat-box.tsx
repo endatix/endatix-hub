@@ -19,7 +19,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useActionState, useEffect, useState, startTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+  startTransition,
+  useRef,
+} from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   ConversationState,
@@ -83,12 +89,6 @@ interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   currentDefinition?: string;
   placeholder?: string;
   onFormGenerated?: () => void;
-  isTranslationMode?: boolean;
-  targetLanguage?: string;
-  onTargetLanguageChange?: (language: string) => void;
-  onTranslationModeChange?: (isTranslationMode: boolean) => void;
-  chatInputRef?: React.RefObject<HTMLTextAreaElement | null>;
-  languageInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 const ChatBox = ({
@@ -96,18 +96,25 @@ const ChatBox = ({
   placeholder,
   currentDefinition,
   onFormGenerated,
-  isTranslationMode = false,
-  targetLanguage = "",
-  onTargetLanguageChange,
-  onTranslationModeChange,
-  chatInputRef,
-  languageInputRef,
   ...props
 }: ChatBoxProps) => {
   const [input, setInput] = useState("");
   const [retryMode, setRetryMode] = useState(false);
   const { chatContext, sendPrompt } = useFormAssistant();
+  const [isTranslationMode, setIsTranslationMode] = useState(false);
+  const [targetLanguage, setTargetLanguage] = useState("");
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const languageInputRef = useRef<HTMLInputElement>(null);
   const isGeneratingResponse = chatContext?.isResponsePending ?? false;
+  const hasFormCreated = !!chatContext?.formId;
+
+  useEffect(() => {
+    if (isTranslationMode) {
+      languageInputRef.current?.focus();
+    } else {
+      chatInputRef.current?.focus();
+    }
+  }, [isTranslationMode]);
 
   const [, promptAction] = useActionState(
     async (
@@ -118,12 +125,6 @@ const ChatBox = ({
     },
     undefined as unknown as ConversationState,
   );
-
-  useEffect(() => {
-    if (isGeneratingResponse && isTranslationMode) {
-      onTranslationModeChange?.(false);
-    }
-  }, [isGeneratingResponse, isTranslationMode, onTranslationModeChange]);
 
   const handleTranslateSubmit = () => {
     setRetryMode(false);
@@ -144,6 +145,8 @@ const ChatBox = ({
     startTransition(() => {
       promptAction(formData);
     });
+
+    setIsTranslationMode(false);
   };
 
   const handleSendPrompt = async (
@@ -167,20 +170,56 @@ const ChatBox = ({
     return newChatContext;
   };
 
+  const handleAddLanguages = () => {
+    setIsTranslationMode(true);
+    setTargetLanguage("");
+  };
+
+  const handleCancelTranslation = () => {
+    setIsTranslationMode(false);
+    setTargetLanguage("");
+  };
+
   return (
     <div className={`flex flex-col flex-1 gap-2 ${className}`} {...props}>
       {chatContext?.error && (
         <ChatErrorAlert errorMessage={chatContext.error} />
       )}
 
-      {isTranslationMode && (
+      <div className="items-center gap-2 flex justify-end">
+        {hasFormCreated && isTranslationMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 border-dashed"
+            onClick={handleCancelTranslation}
+            disabled={isGeneratingResponse}
+          >
+            Cancel translation
+          </Button>
+        )}
+        {hasFormCreated && !isTranslationMode && (
+          <Button
+            disabled={isGeneratingResponse}
+            variant="outline"
+            size="sm"
+            className="h-8 border-dashed"
+            onClick={handleAddLanguages}
+          >
+            <Globe className="mr-2 h-4 w-4" />
+            Add languages
+          </Button>
+        )}
+      </div>
+
+      {hasFormCreated && isTranslationMode && (
         <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
           <span className="text-sm font-medium">Add new languages:</span>
           <input
             ref={languageInputRef}
             type="text"
             value={targetLanguage}
-            onChange={(e) => onTargetLanguageChange?.(e.target.value)}
+            onChange={(e) => setTargetLanguage(e.target.value)}
             placeholder="e.g., Spanish, French, German..."
             className="flex-1 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-ring"
           />

@@ -130,7 +130,6 @@ export function FormAssistantProvider({
       surveyModel.fromJSON(resultJson);
       if (surveyModel.jsonErrors?.length > 0) {
         definitionErrors = surveyModel.jsonErrors.map((error) => error.message);
-        validationError = "Form generated with errors";
       }
       validatedDefinition = surveyModel.toJSON();
     } catch {

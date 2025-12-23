@@ -13,7 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, AlertCircle, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import ChatBox from "../chat/chat-box";
@@ -53,15 +53,10 @@ export default function FormEditorWithChat({
   const chatPanelRef = useRef<ImperativePanelHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [shouldType, setShouldType] = useState(false);
   const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(
     formJson,
   );
   const [conversationLoaded, setConversationLoaded] = useState(false);
-  const [isTranslationMode, setIsTranslationMode] = useState(false);
-  const [targetLanguage, setTargetLanguage] = useState("");
-  const chatInputRef = useRef<HTMLTextAreaElement>(null);
-  const languageInputRef = useRef<HTMLInputElement>(null);
   const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(
     null,
   );
@@ -75,10 +70,6 @@ export default function FormEditorWithChat({
       if (chatContext?.error) {
         setConversationLoaded(true);
         return;
-      }
-
-      if (!chatContext?.formId) {
-        setShouldType(true);
       }
 
       // If form definition is empty but conversation has resultJson, load it
@@ -110,14 +101,6 @@ export default function FormEditorWithChat({
     return () => window.removeEventListener("resize", checkWidth);
   }, []);
 
-  useEffect(() => {
-    if (isTranslationMode) {
-      languageInputRef.current?.focus();
-    } else {
-      chatInputRef.current?.focus();
-    }
-  }, [isTranslationMode]);
-
   const toggleCollapse = () => {
     const chatPanel = chatPanelRef.current;
     if (chatPanel?.isCollapsed()) {
@@ -136,16 +119,6 @@ export default function FormEditorWithChat({
       toggleCollapse();
       return;
     }
-  };
-
-  const handleAddLanguages = () => {
-    setIsTranslationMode(true);
-    setTargetLanguage("");
-  };
-
-  const handleCancelTranslation = () => {
-    setIsTranslationMode(false);
-    setTargetLanguage("");
   };
 
   return (
@@ -285,50 +258,16 @@ export default function FormEditorWithChat({
                   </div>
                 ) : (
                   <>
-                    <ChatThread
-                      isTyping={shouldType}
-                      messages={chatContext?.messages ?? []}
-                    />
+                    <ChatThread />
                     {isGeneratingResponse && (
                       <DotLoader className="flex flex-none items-center m-auto" />
                     )}
-                    <div className="items-center gap-2 flex justify-end">
-                      {isTranslationMode && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 border-dashed"
-                          onClick={handleCancelTranslation}
-                          disabled={isGeneratingResponse}
-                        >
-                          Cancel translation
-                        </Button>
-                      )}
-                      {!isTranslationMode && (
-                        <Button
-                          disabled={isGeneratingResponse}
-                          variant="outline"
-                          size="sm"
-                          className="h-8 border-dashed"
-                          onClick={handleAddLanguages}
-                        >
-                          <Globe className="mr-2 h-4 w-4" />
-                          Add languages
-                        </Button>
-                      )}
-                    </div>
                     <ChatBox
                       currentDefinition={JSON.stringify(
                         updatedFormJson || formJson,
                       )}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."
-                      isTranslationMode={isTranslationMode}
-                      targetLanguage={targetLanguage}
-                      onTargetLanguageChange={setTargetLanguage}
-                      onTranslationModeChange={setIsTranslationMode}
-                      chatInputRef={chatInputRef}
-                      languageInputRef={languageInputRef}
                     />
                   </>
                 )}

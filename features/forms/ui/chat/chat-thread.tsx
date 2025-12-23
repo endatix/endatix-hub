@@ -6,44 +6,49 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import UserAvatar from "@/components/user/user-avatar";
 import { Pencil } from "lucide-react";
 import React, { useEffect, useMemo, useRef } from "react";
-import { ChatMessage } from "./use-cases/assistant/types";
+import { useFormAssistant } from "../../use-cases/design-form";
 
-interface ChatThreadProps {
-  messages: ChatMessage[];
-  isTyping: boolean;
-}
-
-const ChatThread: React.FC<ChatThreadProps> = ({ messages, isTyping }) => {
+const ChatThread: React.FC = () => {
+  const { chatContext } = useFormAssistant();
   const lastMessageRef = useRef<HTMLDivElement>(null);
-
-  const validMessages = useMemo(
-    () =>
-      messages.filter(
-        (message) => message.content && message.content.length > 0,
-      ),
-    [messages],
+  const isActiveConversationRef = useRef(false);
+  const chatMessages = useMemo(
+    () => chatContext?.messages ?? [],
+    [chatContext?.messages],
   );
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (!isTyping && validMessages.length > 0 && lastMessageRef.current) {
+    const autoScrollTimeout = setTimeout(() => {
+      if (
+        !isActiveConversationRef.current &&
+        chatMessages.length > 0 &&
+        lastMessageRef.current
+      ) {
         lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
       }
     }, 500);
 
-    return () => clearTimeout(timeout);
-  }, [validMessages, isTyping]);
+    return () => clearTimeout(autoScrollTimeout);
+  }, [chatMessages]);
+
+  useEffect(() => {
+    if (chatContext?.isResponsePending && !isActiveConversationRef.current) {
+      isActiveConversationRef.current = true;
+    }
+  }, [chatContext?.isResponsePending]);
 
   const scrollToLastMessage = () => {
-    if (isTyping && lastMessageRef.current) {
+    if (isActiveConversationRef.current && lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   return (
     <ScrollArea className="relative h-full p-4">
-      {validMessages.map((message, index) => {
-        const isLastMessage = index === validMessages.length - 1;
+      {chatMessages.map((message, index) => {
+        const isLastMessage = index === chatMessages.length - 1;
+        const shouldAddEffect =
+          isActiveConversationRef.current && message.isAi && isLastMessage;
 
         return (
           <div
@@ -80,9 +85,7 @@ const ChatThread: React.FC<ChatThreadProps> = ({ messages, isTyping }) => {
               >
                 {message.isAi ? (
                   <TypingEffect
-                    shouldAddEffect={
-                      isTyping && message.isAi && isLastMessage
-                    }
+                    shouldAddEffect={shouldAddEffect}
                     content={message.content}
                     onNewWordTyped={() => scrollToLastMessage()}
                   />
@@ -125,7 +128,7 @@ const TypingEffect: React.FC<TypingEffectProps> = ({
   const [text, setText] = React.useState("");
   const [index, setIndex] = React.useState(0);
 
-  const typingSpeed = 10 + Math.floor(Math.random() * 40);
+  const typingSpeed = 10 + Math.floor(Math.random() * 30);
 
   React.useEffect(() => {
     if (!shouldAddEffect) {
