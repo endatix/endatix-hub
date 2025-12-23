@@ -76,7 +76,6 @@ export default async function FormDesignerPage({ params }: Params) {
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
         <FormAssistantProvider
           isAssistantEnabled={aiFeaturesEnabled}
-          formId={formId}
           getConversationPromise={chatContextPromise}
         >
           <FormDesignerWrapper {...props} />

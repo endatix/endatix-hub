@@ -49,13 +49,11 @@ export const FormAssistantContext = createContext<
  * @description Props for the FormAssistantProvider
  * @property {ReactNode} children - The children to render
  * @property {boolean} isAssistantEnabled - Whether the form assistant is enabled
- * @property {string} formId - The form id to use for the conversation
  * @property {ChatState} initialChatState - The initial chat state
  */
 interface FormAssistantProviderProps {
   children: ReactNode;
   isAssistantEnabled: boolean;
-  formId?: string;
   getConversationPromise?: Promise<ConversationState>;
 }
 
@@ -63,7 +61,7 @@ export function FormAssistantProvider({
   children,
   isAssistantEnabled,
   getConversationPromise,
-}: FormAssistantProviderProps) {
+}: Readonly<FormAssistantProviderProps>) {
   const initialConversation = getConversationPromise
     ? use(getConversationPromise)
     : emptyConversationState();
@@ -120,7 +118,6 @@ export function FormAssistantProvider({
     const promptResponse = result.data;
     let definitionErrors: string[] = [];
     let validatedDefinition: object | undefined = undefined;
-    let validationError: string | undefined = undefined;
 
     try {
       const resultJson = JSON.parse(
@@ -153,7 +150,7 @@ export function FormAssistantProvider({
         agentResponse: promptResponse.agentResponse,
         resultDefinition: validatedDefinition ?? {},
         definitionErrors,
-        error: validationError,
+        error: undefined,
         threadId: isNewConversation ? promptResponse.threadId : undefined,
         agentId: isNewConversation ? promptResponse.agentId : undefined,
       },
@@ -176,7 +173,7 @@ export function FormAssistantProvider({
           isAi: true,
         },
       ],
-      error: validationError,
+      error: undefined,
     };
   };
 

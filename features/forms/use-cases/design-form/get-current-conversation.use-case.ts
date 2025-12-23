@@ -65,6 +65,7 @@ export async function getCurrentConversationUseCase(
 
     if (ApiResult.isError(messagesResult)) {
       return {
+        isResponsePending: false,
         threadId: conversationId,
         agentId: agentId,
         formId: formId,
@@ -80,6 +81,7 @@ export async function getCurrentConversationUseCase(
     const chatMessages = transformConversationMessages(messagesResult.data);
 
     return {
+      isResponsePending: false,
       threadId: conversationId,
       agentId: agentId,
       formId: formId,
@@ -131,7 +133,7 @@ function transformConversationMessages(
   }
 
   return messages
-    .sort((a, b) => a.sequence - b.sequence)
+    .toSorted((a, b) => a.sequence - b.sequence)
     .map((msg) => ({
       isAi: msg.role === "assistant",
       content: msg.content,
