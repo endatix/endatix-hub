@@ -67,10 +67,6 @@ export type TokenUsage = z.infer<typeof TokenUsageSchema>;
 
 export const DefineFormRequestSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
-  definition: z
-    .string()
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
   threadId: z
     .string()
     .optional()
@@ -79,13 +75,24 @@ export const DefineFormRequestSchema = z.object({
     .string()
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  definition: z
+    .string()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
 });
 
 export type DefineFormRequest = z.infer<typeof DefineFormRequestSchema>;
 
 export interface DefineFormResponse {
-  agentResponse: string;
+  userPrompt: {
+    id: string;
+    content: string;
+  };
+  agentResponse: {
+    id: string;
+    content: string;
+    definition: string;
+  };
   agentId: string;
   threadId: string;
-  definition?: object;
 }

@@ -3,7 +3,6 @@
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -66,9 +65,7 @@ const FormSheet = ({
       <Sheet {...props}>
         <SheetContent className="w-[600px] sm:w-[640px] sm:max-w-none overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="sr-only">
-              {selectedForm?.name}
-            </SheetTitle>
+            <SheetTitle className="sr-only">{selectedForm?.name}</SheetTitle>
           </SheetHeader>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
