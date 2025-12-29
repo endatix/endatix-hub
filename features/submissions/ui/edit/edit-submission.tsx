@@ -2,7 +2,9 @@
 
 import { toast } from "@/components/ui/toast";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
+import { editSubmissionByTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-token.use-case";
 import { Submission } from "@/lib/endatix-api";
+import { ActiveDefinition } from "@/types";
 import { Info } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -35,9 +37,12 @@ for (const questionName of customQuestions) {
 
 interface EditSubmissionProps {
   submission: Submission;
+  formId?: string; // Optional: for public mode
+  token?: string; // Optional: for public mode
 }
 
-function EditSubmission({ submission }: EditSubmissionProps) {
+function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
+  const isPublicMode = token !== undefined;
   const submissionData: Record<string, unknown> = useMemo(() => {
     try {
       return JSON.parse(submission.jsonData);
@@ -86,30 +91,57 @@ function EditSubmission({ submission }: EditSubmissionProps) {
 
       try {
         startTransition(async () => {
-          await editSubmissionUseCase(submission.formId, submission.id, {
-            jsonData: JSON.stringify(surveyModel.data),
-          });
-          toast.success("Changes saved");
-          setSaveDialogOpen(false);
-          router.push(
-            `/forms/${submission.formId}/submissions/${submission.id}`,
-          );
+          if (isPublicMode && formId && token) {
+            await editSubmissionByTokenUseCase(formId, token, {
+              jsonData: JSON.stringify(surveyModel.data),
+            });
+            toast.success("Changes saved");
+            setSaveDialogOpen(false);
+            setChanges({});
+          } else {
+            await editSubmissionUseCase(submission.formId, submission.id, {
+              jsonData: JSON.stringify(surveyModel.data),
+            });
+            toast.success("Changes saved");
+            setSaveDialogOpen(false);
+            router.push(
+              `/forms/${submission.formId}/submissions/${submission.id}`,
+            );
+          }
         });
       } catch (error) {
         console.error(error);
         toast.error("Failed to save changes");
       }
     },
-    [changes, router, submission.formId, submission.id, surveyModel?.data],
+    [
+      changes,
+      isPublicMode,
+      formId,
+      token,
+      router,
+      submission.formId,
+      submission.id,
+      surveyModel?.data,
+    ],
   );
 
   const handleDiscard = useCallback(() => {
     if (isPending) {
       return;
     }
-    setSaveDialogOpen(false);
-    router.back();
-  }, [router, isPending]);
+
+    if (isPublicMode) {
+      if (surveyModel) {
+        surveyModel.data = submissionData;
+      }
+      setChanges({});
+      setSaveDialogOpen(false);
+    } else {
+      setSaveDialogOpen(false);
+      router.back();
+    }
+  }, [isPublicMode, surveyModel, submissionData, router, isPending]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,6 +155,11 @@ function EditSubmission({ submission }: EditSubmissionProps) {
       <EditSurveyWrapper
         submission={submission}
         onChange={onSubmissionChange}
+        customQuestions={
+          isPublicMode
+            ? (submission.formDefinition as ActiveDefinition)?.customQuestions
+            : undefined
+        }
       />
       <div className="h-8 text-muted-foreground flex flex-row justify-center items-center gap-2">
         <Info className="h-4 w-4" />
