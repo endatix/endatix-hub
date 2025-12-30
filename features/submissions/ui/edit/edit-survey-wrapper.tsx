@@ -31,12 +31,16 @@ interface EditSurveyWrapperProps {
       | DynamicPanelItemValueChangedEvent
       | MatrixCellValueChangedEvent,
   ) => void;
+  customQuestions?: string[];
 }
 
 registerAudioQuestion();
 addRandomizeGroupFeature();
 
-function useSurveyModel(submission: Submission) {
+function useSurveyModel(
+  submission: Submission,
+  customQuestions?: string[],
+) {
   const modelRef = useRef<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,16 +55,25 @@ function useSurveyModel(submission: Submission) {
         return;
       }
 
-      const result = await getCustomQuestionsAction();
+      let questionsList: string[] = [];
+      if (customQuestions) {
+        questionsList = customQuestions;
+      } else {
+        const result = await getCustomQuestionsAction();
 
-      if (result === undefined) {
-        toast.error("Could not proceed with fetching custom questions");
-        return;
+        if (result === undefined) {
+          toast.error("Could not proceed with fetching custom questions");
+          return;
+        }
+
+        if (Result.isSuccess(result)) {
+          questionsList = result.value.map((q) => q.jsonData);
+        }
       }
 
       try {
-        if (Result.isSuccess(result)) {
-          initializeCustomQuestions(result.value.map((q) => q.jsonData));
+        if (questionsList.length > 0) {
+          initializeCustomQuestions(questionsList);
         }
 
         const json = JSON.parse(submission.formDefinition.jsonData);
@@ -98,13 +111,17 @@ function useSurveyModel(submission: Submission) {
     };
 
     initializeModel();
-  }, [submission]);
+  }, [submission, customQuestions]);
 
   return { model: modelRef.current, isLoading };
 }
 
-function EditSurveyWrapper({ submission, onChange }: EditSurveyWrapperProps) {
-  const { model, isLoading } = useSurveyModel(submission);
+function EditSurveyWrapper({
+  submission,
+  onChange,
+  customQuestions,
+}: EditSurveyWrapperProps) {
+  const { model, isLoading } = useSurveyModel(submission, customQuestions);
   const { setFromMetadata } = useDynamicVariables(model);
   useRichText(model);
 
