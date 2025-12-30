@@ -39,13 +39,6 @@ vi.mock("@/features/auth", () => ({
   requireAdminAccess: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock(
-  "@/features/public-form/application/actions/set-token-from-url.action",
-  () => ({
-    setTokenFromUrlAction: vi.fn().mockResolvedValue({ success: true }),
-  }),
-);
-
 // Mock use cases
 vi.mock(
   "@/features/public-form/use-cases/get-active-definition.use-case",

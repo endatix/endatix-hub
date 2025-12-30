@@ -2,13 +2,12 @@
 
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
-import { TokenHandler } from "@/features/public-form/ui/token-handler";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { ApiResult } from "@/lib/endatix-api";
+import { ApiResult, isNotFoundError, isValidationError } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -30,6 +29,10 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
     getActiveDefinitionUseCase({ formId }),
   ]);
 
+  if ((isNotFoundError(submissionResult) || isValidationError(submissionResult)) && urlToken) {
+    notFound();
+  }
+
   const submission = ApiResult.isSuccess(submissionResult)
     ? submissionResult.data
     : undefined;
@@ -49,7 +52,6 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
         width: "100%",
       }}
     >
-      {urlToken && <TokenHandler formId={formId} />}
       {shouldLoadReCaptcha && (
         <>
           <Script src={recaptchaConfig.JS_URL} strategy="beforeInteractive" />
@@ -67,6 +69,7 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
         customQuestions={activeDefinition.customQuestions}
         requiresReCaptcha={activeDefinition.requiresReCaptcha}
         isEmbed={true}
+        urlToken={urlToken}
       />
     </div>
   );

@@ -2,12 +2,12 @@ import { useCallback } from "react";
 import { submissionQueue } from "./submission-queue";
 import { SubmissionData } from "@/features/submissions/types";
 
-export function useSubmissionQueue(formId: string) {
+export function useSubmissionQueue(formId: string, urlToken?: string) {
   const enqueueSubmission = useCallback(
     (data: SubmissionData) => {
-      submissionQueue.enqueue({ formId, data });
+      submissionQueue.enqueue({ formId, data, urlToken });
     },
-    [formId],
+    [formId, urlToken],
   );
 
   const clearQueue = useCallback(() => {

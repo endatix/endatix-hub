@@ -20,6 +20,7 @@ export interface SurveyJsWrapperProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
+  urlToken?: string;
 }
 
 const SurveyJsWrapper = ({
@@ -30,6 +31,7 @@ const SurveyJsWrapper = ({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
+  urlToken,
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent
@@ -40,6 +42,7 @@ const SurveyJsWrapper = ({
       customQuestions={customQuestions}
       requiresReCaptcha={requiresReCaptcha}
       isEmbed={isEmbed}
+      urlToken={urlToken}
     />
   );
 };

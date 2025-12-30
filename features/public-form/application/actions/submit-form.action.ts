@@ -20,23 +20,37 @@ export type SubmissionOperationResult = ApiResult<SubmissionOperation>;
  *
  * @param formId - The unique identifier of the form being submitted
  * @param submissionData - The data being submitted, including form responses and completion status
+ * @param urlToken - Optional token from URL query string. When provided, cookie operations are bypassed.
  * @returns A Result indicating success or failure of the submission operation
  */
 export async function submitFormAction(
   formId: string,
   submissionData: SubmissionData,
+  urlToken?: string,
 ): Promise<SubmissionOperationResult> {
   // Get cookie store and check for existing submission token
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
-  const tokenResult = tokenStore.getToken(formId);
+  const performCookieOperations = !urlToken;
 
+  if (urlToken) {
+    return await updateExistingSubmissionViaToken(
+      formId,
+      urlToken,
+      submissionData,
+      tokenStore,
+      performCookieOperations,
+    );
+  }
+
+  const tokenResult = tokenStore.getToken(formId);
   const submissionOperationResult = Result.isSuccess(tokenResult)
     ? await updateExistingSubmissionViaToken(
         formId,
         tokenResult.value,
         submissionData,
         tokenStore,
+        performCookieOperations,
       )
     : await createNewSubmission(formId, submissionData, tokenStore);
 
@@ -48,16 +62,10 @@ async function updateExistingSubmissionViaToken(
   token: string,
   submissionData: SubmissionData,
   tokenStore: FormTokenCookieStore,
+  performCookieOperations: boolean,
 ): Promise<ApiResult<SubmissionOperation>> {
   const session = await getSession();
   const endatix = new EndatixApi(session);
-
-  const currentSubmissionResult = await endatix.submissions.public.getByToken(
-    formId,
-    token,
-  );
-  const currentIsComplete = ApiResult.isSuccess(currentSubmissionResult) &&
-    currentSubmissionResult.data.isComplete;
 
   const updateByTokenResult = await endatix.submissions.public.updateByToken(
     formId,
@@ -66,13 +74,14 @@ async function updateExistingSubmissionViaToken(
   );
 
   if (ApiResult.isSuccess(updateByTokenResult)) {
-    if (!currentIsComplete && updateByTokenResult.data.isComplete) {
+    if (performCookieOperations && updateByTokenResult.data.isComplete) {
       tokenStore.deleteToken(formId);
     }
 
     return ApiResult.success({ submissionId: updateByTokenResult.data.id });
   } else {
     if (
+      performCookieOperations &&
       updateByTokenResult.error.errorCode ===
       ERROR_CODE.SUBMISSION_TOKEN_INVALID
     ) {

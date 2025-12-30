@@ -41,6 +41,7 @@ interface SurveyComponentProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
+  urlToken?: string;
 }
 
 type PartialUpdateEvent =
@@ -57,13 +58,14 @@ export default function SurveyComponent({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
+  urlToken,
 }: SurveyComponentProps) {
   const { surveyModel } = useSurveyModel(
     definition,
     submission,
     customQuestions,
   );
-  const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId);
+  const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId, urlToken);
   const [isSubmitting, startSubmitting] = useTransition();
   const [submissionId, setSubmissionId] = useState<string>(
     submission?.id ?? "",
@@ -199,7 +201,7 @@ export default function SurveyComponent({
           submissionData.reCaptchaToken = reCaptchaToken;
         }
 
-        const result = await submitFormAction(formId, submissionData);
+        const result = await submitFormAction(formId, submissionData, urlToken);
         if (ApiResult.isSuccess(result)) {
           event.showSaveSuccess("The results were saved successfully!");
           sendEmbedMessage("form-complete", {

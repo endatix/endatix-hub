@@ -150,10 +150,6 @@ describe("submitFormAction", () => {
     expect(mockTokenStore.getToken).toHaveBeenCalledWith("form-1");
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
-        .public.getByToken,
-    ).toHaveBeenCalledWith("form-1", "existing-token");
-    expect(
-      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.updateByToken,
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
     expect(mockTokenStore.setToken).not.toHaveBeenCalled();
@@ -202,17 +198,13 @@ describe("submitFormAction", () => {
     // Assert
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
-        .public.getByToken,
-    ).toHaveBeenCalledWith("form-1", "existing-token");
-    expect(
-      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.updateByToken,
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
     expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
     expect(ApiResult.isSuccess(actionResult)).toBe(true);
   });
 
-  it("should NOT delete token when editing an already completed submission", async () => {
+  it("should delete token when submission is complete", async () => {
     // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
@@ -222,21 +214,10 @@ describe("submitFormAction", () => {
       currentPage: 2,
     };
 
-    const mockGetResponse = {
-      isComplete: true,
-      id: "submission-123",
-    };
-
     const mockUpdateResponse = {
       isComplete: true,
       id: "submission-123",
     };
-
-    (
-      globalThis as unknown as GlobalTestMocks
-    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
-      ApiResult.success(mockGetResponse),
-    );
 
     (
       globalThis as unknown as GlobalTestMocks
@@ -250,13 +231,9 @@ describe("submitFormAction", () => {
     // Assert
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
-        .public.getByToken,
-    ).toHaveBeenCalledWith("form-1", "existing-token");
-    expect(
-      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.updateByToken,
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
-    expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
+    expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
     expect(ApiResult.isSuccess(actionResult)).toBe(true);
   });
 
