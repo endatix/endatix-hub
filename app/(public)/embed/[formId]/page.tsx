@@ -7,7 +7,7 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { ApiResult } from "@/lib/endatix-api";
+import { ApiResult, isNotFoundError, isValidationError } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -29,7 +29,7 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
     getActiveDefinitionUseCase({ formId }),
   ]);
 
-  if (ApiResult.isError(submissionResult) && urlToken) {
+  if ((isNotFoundError(submissionResult) || isValidationError(submissionResult)) && urlToken) {
     notFound();
   }
 
