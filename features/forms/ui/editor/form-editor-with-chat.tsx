@@ -13,20 +13,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, AlertCircle, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import ChatBox from "../chat/chat-box";
 import ChatThread from "../chat/chat-thread";
-import {
-  AssistantStore,
-  DefineFormCommand,
-  ChatMessage,
-} from "../chat/use-cases/assistant";
 import DotLoader from "@/components/loaders/dot-loader";
 import FormEditorContainer from "./form-editor-container";
 import { ICreatorOptions } from "survey-creator-core";
-import { getConversationAction } from "../../application/actions/get-conversation.action";
+import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
 
 const CRITICAL_WIDTH = 600;
 
@@ -58,56 +53,42 @@ export default function FormEditorWithChat({
   const chatPanelRef = useRef<ImperativePanelHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [shouldType, setShouldType] = useState(false);
-  const [isWaiting, setIsWaiting] = useState(false);
-  const [messages, setMessages] = useState(new Array<ChatMessage>());
-  const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(null);
-  const [conversationError, setConversationError] = useState<string | null>(null);
+  const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(
+    formJson,
+  );
   const [conversationLoaded, setConversationLoaded] = useState(false);
-  const [isTranslationMode, setIsTranslationMode] = useState(false);
-  const [targetLanguage, setTargetLanguage] = useState("");
-  const chatInputRef = useRef<HTMLTextAreaElement>(null);
-  const languageInputRef = useRef<HTMLInputElement>(null);
-  const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(null);
+  const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(
+    null,
+  );
+  const { chatContext } = useFormAssistant();
+  const isGeneratingResponse = chatContext?.isResponsePending ?? false;
+  const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
+  const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
 
   useEffect(() => {
     const initializeConversation = async () => {
-      const currentContext = await getConversationAction(formId);
-
-      if (currentContext?.error) {
-        setConversationError(currentContext.error);
+      if (chatContext?.error) {
         setConversationLoaded(true);
         return;
       }
 
-      // Store in localStorage for client-side access
-      const contextStore = new AssistantStore();
-      contextStore.setChatContext(currentContext, formId);
-
-      if (currentContext?.isInitialPrompt) {
-        setShouldType(true);
-      }
-
-      if (currentContext?.messages) {
-        setMessages(currentContext.messages);
-      }
-
       // If form definition is empty but conversation has resultJson, load it
-      if ((!formJson || Object.keys(formJson).length === 0) && currentContext?.resultJson) {
-        try {
-          const parsedJson = JSON.parse(currentContext.resultJson);
-          setUpdatedFormJson(parsedJson);
-          onUnsavedChanges?.(true);
-        } catch (error) {
-          console.error("Failed to parse conversation resultJson:", error);
-        }
+      if (chatContext?.resultDefinition) {
+        setUpdatedFormJson(chatContext?.resultDefinition);
+        onUnsavedChanges?.(true);
       }
-
       setConversationLoaded(true);
     };
 
     initializeConversation();
+  }, [
+    chatContext?.error,
+    chatContext?.formId,
+    chatContext?.resultDefinition,
+    onUnsavedChanges,
+  ]);
 
+  useEffect(() => {
     const checkWidth = () => {
       setIsMobile(window.innerWidth < CRITICAL_WIDTH);
       if (window.innerWidth < CRITICAL_WIDTH) {
@@ -118,26 +99,7 @@ export default function FormEditorWithChat({
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
-  }, [formId, formJson, onUnsavedChanges]);
-
-  const defineFormHandler = (stateCommand: DefineFormCommand, newDefinition?: object) => {
-    const contextStore = new AssistantStore();
-    switch (stateCommand) {
-      case DefineFormCommand.fullStateUpdate:
-        const formContext = contextStore.getChatContext(formId);
-
-        setShouldType(true);
-        setMessages(formContext.messages);
-
-        if (newDefinition) {
-          setUpdatedFormJson({ ...newDefinition });
-          onUnsavedChanges?.(true);
-        }
-        break;
-      default:
-        break;
-    }
-  };
+  }, []);
 
   const toggleCollapse = () => {
     const chatPanel = chatPanelRef.current;
@@ -159,40 +121,14 @@ export default function FormEditorWithChat({
     }
   };
 
-  const handleAddLanguages = () => {
-    setIsTranslationMode(true);
-    setTargetLanguage("");
-  };
-
-  const handleCancelTranslation = () => {
-    setIsTranslationMode(false);
-    setTargetLanguage("");
-  };
-
-  // Focus language input when translation mode becomes active
-  useEffect(() => {
-    if (isTranslationMode) {
-      languageInputRef.current?.focus();
-    } else {
-      chatInputRef.current?.focus();
-    }
-  }, [isTranslationMode]);
-
-  // Render FormEditor if we have non empty form JSON OR after conversation is loaded
-  const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
-  const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
-
   return (
     <div className="flex-1 flex overflow-hidden">
-      <ResizablePanelGroup
-        direction="horizontal"
-        className="flex-1"
-      >
+      <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={70}>
           {shouldRenderEditor ? (
             <FormEditorContainer
               formId={formId}
-              formJson={updatedFormJson || formJson}
+              formJson={updatedFormJson}
               formName={formName}
               options={options}
               slkVal={slkVal}
@@ -233,7 +169,9 @@ export default function FormEditorWithChat({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`${isMobile ? "hidden" : "flex"} items-center justify-center -mt-2`}
+                        className={`${
+                          isMobile ? "hidden" : "flex"
+                        } items-center justify-center -mt-2`}
                         onClick={toggleCollapse}
                       >
                         <ChevronLeft className="h-10 w-10 stroke-[2.5]" />
@@ -245,10 +183,19 @@ export default function FormEditorWithChat({
                   </Tooltip>
                 </TooltipProvider>
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-lg font-semibold text-foreground/70 tracking-wide" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                  <span
+                    className="text-lg font-semibold text-foreground/70 tracking-wide"
+                    style={{
+                      writingMode: "vertical-rl",
+                      textOrientation: "mixed",
+                    }}
+                  >
                     AI Assistant
                   </span>
-                  <span className="px-1 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-full tracking-wide" style={{ writingMode: 'vertical-rl' }}>
+                  <span
+                    className="px-1 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-full tracking-wide"
+                    style={{ writingMode: "vertical-rl" }}
+                  >
                     Beta
                   </span>
                 </div>
@@ -283,12 +230,12 @@ export default function FormEditorWithChat({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                {conversationError ? (
+                {chatContext?.error ? (
                   <Alert variant="destructive" className="mt-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Unable to load conversation</AlertTitle>
                     <AlertDescription>
-                      {conversationError}
+                      {chatContext?.error}
                       <br />
                       <Button
                         variant="outline"
@@ -304,57 +251,23 @@ export default function FormEditorWithChat({
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-muted-foreground">Loading conversation...</p>
+                      <p className="text-muted-foreground">
+                        Loading conversation...
+                      </p>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <ChatThread isTyping={shouldType} messages={messages} />
-                    {isWaiting && (
+                    <ChatThread />
+                    {isGeneratingResponse && (
                       <DotLoader className="flex flex-none items-center m-auto" />
                     )}
-                    <div className="items-center gap-2 flex justify-end">
-                      {isTranslationMode && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 border-dashed"
-                          onClick={handleCancelTranslation}
-                          disabled={isWaiting}
-                        >
-                          Cancel translation
-                        </Button>
-                      )}
-                      {!isTranslationMode && (
-                        <Button
-                          disabled={isWaiting}
-                          variant="outline"
-                          size="sm"
-                          className="h-8 border-dashed"
-                          onClick={handleAddLanguages}
-                        >
-                          <Globe className="mr-2 h-4 w-4" />
-                          Add languages
-                        </Button>
-                      )}
-                    </div>
                     <ChatBox
-                      formId={formId}
-                      currentDefinition={JSON.stringify(updatedFormJson || formJson)}
+                      currentDefinition={JSON.stringify(
+                        updatedFormJson || formJson,
+                      )}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."
-                      onPendingChange={(pending) => {
-                        setIsWaiting(pending);
-                      }}
-                      onStateChange={(stateCommand, newDefinition) => {
-                        defineFormHandler(stateCommand, newDefinition);
-                      }}
-                      isTranslationMode={isTranslationMode}
-                      targetLanguage={targetLanguage}
-                      onTargetLanguageChange={setTargetLanguage}
-                      onTranslationModeChange={setIsTranslationMode}
-                      chatInputRef={chatInputRef}
-                      languageInputRef={languageInputRef}
                     />
                   </>
                 )}

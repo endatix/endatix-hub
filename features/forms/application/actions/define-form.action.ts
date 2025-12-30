@@ -1,90 +1,78 @@
 "use server";
 
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { getSession } from "@/features/auth";
 import {
   DefineFormRequestSchema,
   DefineFormRequest,
+  DefineFormResponse,
 } from "@/lib/endatix-api/agents/types";
-import { PromptResult } from "@/features/forms/ui/chat/prompt-result";
-import { Model } from "survey-core";
-import { authorization } from '@/features/auth/authorization';
-import { trackException, trackEvent } from "@/features/analytics/posthog/server";
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import {
+  trackException,
+  trackEvent,
+} from "@/features/analytics/posthog/server";
 
-function buildDefineFormRequest(formData: FormData): DefineFormRequest {
-  const request: DefineFormRequest = {
-    prompt: formData.get("prompt") as string,
-  };
+type PromptResult = ApiResult<DefineFormResponse>;
 
-  const definition = formData.get("definition") as string;
-  if (definition?.trim()) {
-    request.definition = definition;
-  }
+const PromptResult = {
+  Success(data: DefineFormResponse): PromptResult {
+    return ApiResult.success(data);
+  },
 
-  const threadId = formData.get("threadId") as string;
-  if (threadId?.trim()) {
-    request.threadId = threadId;
-  }
-
-  const formId = formData.get("formId") as string;
-  if (formId?.trim()) {
-    request.formId = formId;
-  }
-
-  return request;
-}
+  Error(message: string): PromptResult {
+    return ApiResult.validationError(message);
+  },
+};
 
 export async function defineFormAction(
-  prevState: PromptResult,
-  formData: FormData,
+  request: DefineFormRequest,
 ): Promise<PromptResult | never> {
-  const { requireHubAccess } = await authorization();
-  await requireHubAccess();
-
-  const request = buildDefineFormRequest(formData);
-
-  const validationResult = DefineFormRequestSchema.safeParse(request);
-  if (!validationResult.success) {
-    return PromptResult.Error(
-      `Validation failed: ${validationResult.error.errors
-        .map((e) => e.message)
-        .join(", ")}`,
-    );
-  }
-
-  const session = await getSession();
-  const endatixApi = new EndatixApi(session);
-  const result = await endatixApi.agents.defineForm(validationResult.data);
-
-  if (ApiResult.isError(result)) {
-    await trackException(result.error.message, {
-      operation: "define_form",
-      form_id: request.formId || "unknown",
-      timestamp: new Date().toISOString()
-    });
-
-    return PromptResult.Error(result.error.message);
-  }
-
   try {
-    const validatedModel = new Model(result.data.definition);
-    result.data.definition = validatedModel.toJSON();
+    const session = await auth();
+    const { requireHubAccess } = await authorization(session);
+    await requireHubAccess();
 
+    const validationResult = DefineFormRequestSchema.safeParse(request);
+    if (!validationResult.success) {
+      return PromptResult.Error(
+        `Validation failed: ${validationResult.error.errors
+          .map((e) => e.message)
+          .join(", ")}`,
+      );
+    }
+
+    const endatixApi = new EndatixApi(session?.accessToken);
+    const defineFormResult = await endatixApi.agents.defineForm(
+      validationResult.data,
+    );
+
+    if (ApiResult.isError(defineFormResult)) {
+      await trackException(defineFormResult.error.message, {
+        operation: "define_form",
+        form_id: request.formId || "unknown",
+        timestamp: new Date().toISOString(),
+      });
+
+      return PromptResult.Error(defineFormResult.error.message);
+    }
+
+    const promptResponse = defineFormResult.data;
     await trackEvent("form_defined", {
       form_id: request.formId || "unknown",
-      thread_id: result.data.threadId || "unknown",
-      agent_id: result.data.agentId || "unknown",
-      has_definition: !!result.data.definition,
-      definition_size: JSON.stringify(result.data.definition || {}).length,
-      timestamp: new Date().toISOString()
+      thread_id: promptResponse.threadId,
+      agent_id: promptResponse.agentId,
+      has_definition: !!promptResponse.agentResponse.definition,
+      definition_size: promptResponse.agentResponse.definition?.length ?? 0,
+      timestamp: new Date().toISOString(),
     });
 
-    return PromptResult.Success(result.data);
+    return PromptResult.Success(defineFormResult.data);
   } catch (error) {
     await trackException(error, {
       operation: "define_form",
       form_id: request.formId || "unknown",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return PromptResult.Error(

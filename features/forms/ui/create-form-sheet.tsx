@@ -14,16 +14,16 @@ import {
 import { toast } from "@/components/ui/toast";
 import { useTemplateAction } from "@/features/form-templates/application/use-template.action";
 import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
-import { createFormAction } from "@/features/forms/application/actions/create-form.action";
-import { CreateFormRequest } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import { BicepsFlexed, Code, Copy, Folder, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FC, useState, useTransition, useEffect } from "react";
-import ChatBox from "./chat-box";
+import { FC, useState, useTransition } from "react";
 import TemplateSelector from "./template-selector";
+import { useFormAssistant } from "../use-cases/design-form/form-assistant.context";
+import { useAutoCreateForm } from "../use-cases/design-form/use-auto-create-form.hook";
+import ChatBox from "./chat/chat-box";
 
 type CreateFormOption =
   | "from_scratch"
@@ -40,10 +40,6 @@ interface FormCreateSheetProps {
   isSelected?: boolean;
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
-}
-
-interface CreateFormSheetContainerProps {
-  aiFeatureFlag: boolean;
 }
 
 const CreateFormCard: FC<FormCreateSheetProps> = ({
@@ -78,10 +74,7 @@ const CreateFormCard: FC<FormCreateSheetProps> = ({
   );
 };
 
-const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
-  aiFeatureFlag,
-}) => {
-  const [pending, setPending] = useState(false);
+const CreateFormSheet: FC = () => {
   const [selectedOption, setSelectedOption] = useState<CreateFormOption>();
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
     null,
@@ -91,9 +84,16 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
   );
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [aiFormId, setAiFormId] = useState<string | null>(null);
-  const [isCreatingAiForm, setIsCreatingAiForm] = useState(false);
   const router = useRouter();
+  const { isAssistantEnabled, chatContext } = useFormAssistant();
+  const { isCreatingForm } = useAutoCreateForm({
+    onFormCreated: (formId) => {
+      toast.success("Form created successfully");
+      router.push(`/forms/${formId}/design`);
+    },
+  });
+
+  const isGeneratingResponse = (chatContext?.isResponsePending ?? false) || isCreatingForm;
 
   const handleTemplateSelect = (template: FormTemplate) => {
     setSelectedTemplate(template);
@@ -120,43 +120,6 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
         toast.error(result.message || "Failed to create form from template");
       }
     });
-  };
-
-  // Create empty form for AI assistant when feature flag is enabled
-  useEffect(() => {
-    if (aiFeatureFlag && !aiFormId && !isCreatingAiForm) {
-      setIsCreatingAiForm(true);
-      startTransition(async () => {
-        const request: CreateFormRequest = {
-          name: "AI Generated Form",
-          isEnabled: false,
-          formDefinitionJsonData: JSON.stringify({}),
-        };
-        const result = await createFormAction(request);
-        if (result === undefined) {
-          toast.error("Could not proceed with creating AI form");
-          return;
-        }
-
-        if (Result.isSuccess(result) && result.value) {
-          setAiFormId(result.value);
-        } else {
-          const errorMessage = Result.isError(result)
-            ? result.message
-            : "Unknown error";
-          console.debug("Failed to create AI form:", errorMessage);
-          toast.error("Failed to initialize AI assistant");
-        }
-
-        setIsCreatingAiForm(false);
-      });
-    }
-  }, [aiFeatureFlag, aiFormId, isCreatingAiForm]);
-
-  const handleAiFormGenerated = () => {
-    if (aiFormId) {
-      router.push(`/forms/${aiFormId}/design`);
-    }
   };
 
   return (
@@ -206,7 +169,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
           />
         </div>
       </div>
-      {(pending || isCreatingAiForm) && (
+      {isGeneratingResponse && (
         <DotLoader className="flex-1 text-center m-auto" />
       )}
       <SheetFooter className="flex-end">
@@ -223,7 +186,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
                   onClick={handleCreateFromTemplate}
                   disabled={isPending}
                 >
-                  {isPending ? (
+                  {isPending || isCreatingForm ? (
                     <>
                       <Spinner className="mr-2 h-4 w-4" />
                       Creating...
@@ -236,7 +199,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
             </div>
           )}
 
-          {aiFeatureFlag && aiFormId && (
+          {isAssistantEnabled && (
             <div className="w-full space-y-3">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -253,14 +216,7 @@ const CreateFormSheet: FC<CreateFormSheetContainerProps> = ({
                 Let <span className="font-bold">Endatix AI Assistant</span>{" "}
                 build the form
               </p>
-              <ChatBox
-                formId={aiFormId}
-                requiresNewContext={true}
-                onPendingChange={(pending) => {
-                  setPending(pending);
-                }}
-                onFormGenerated={handleAiFormGenerated}
-              />
+              <ChatBox />
             </div>
           )}
         </div>

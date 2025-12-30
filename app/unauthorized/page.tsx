@@ -1,7 +1,9 @@
 import { auth } from "@/auth";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
-import { SIGNIN_PATH } from "@/features/auth";
+import { Button } from "@/components/ui/button";
+import { SIGNIN_PATH, SIGNOUT_PATH } from "@/features/auth";
 import { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -35,5 +37,11 @@ export default async function UnauthorizedPage() {
     redirect(SIGNIN_PATH);
   }
 
-  return <UnauthorizedComponent />;
+  return (
+    <UnauthorizedComponent>
+      <Button variant="default" asChild>
+        <Link href={SIGNOUT_PATH}>Sign out</Link>
+      </Button>
+    </UnauthorizedComponent>
+  );
 }

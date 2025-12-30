@@ -138,7 +138,6 @@ function FormEditor({
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
-  const lastFormJsonRef = useRef(formJson);
   const handleThemeIdChanged = useCallback(() => {
     onUnsavedChanges?.(true);
   }, [onUnsavedChanges]);
@@ -491,11 +490,6 @@ function FormEditor({
           }
         });
 
-        // Set initial JSON during creator initialization
-        if (formJson) {
-          newCreator.JSON = formJson;
-        }
-
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }
@@ -518,17 +512,6 @@ function FormEditor({
     initialPropertyGridVisible,
     formJson,
   ]);
-
-  useEffect(() => {
-    if (!creator || !formJson) return;
-
-    if (lastFormJsonRef.current === formJson) {
-      return;
-    }
-
-    lastFormJsonRef.current = formJson;
-    creator.JSON = formJson;
-  }, [creator, formJson]);
 
   useEffect(() => {
     if (!creator) return;
@@ -647,29 +630,28 @@ function FormEditor({
   }, [hasUnsavedChanges, isCurrentThemeModified]);
 
   useEffect(() => {
-    document.body.classList.add("overflow-hidden");
-    return () => {
-      document.body.classList.remove("overflow-hidden");
-    };
-  }, []);
+    if (!creator || !formJson) {
+      return;
+    }
+
+    creator.JSON = formJson;
+  }, [creator, formJson]);
 
   return (
-    <>
-      <div id="creator">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-muted-foreground">Loading designer...</p>
-            </div>
+    <div id="creator">
+      {isLoading ? (
+        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-muted-foreground">Loading designer...</p>
           </div>
-        ) : creator ? (
-          <SurveyCreatorComponent creator={creator} />
-        ) : (
-          <div>Error loading form editor</div>
-        )}
-      </div>
-    </>
+        </div>
+      ) : creator ? (
+        <SurveyCreatorComponent creator={creator} />
+      ) : (
+        <div>Error loading form editor</div>
+      )}
+    </div>
   );
 }
 export default FormEditor;
