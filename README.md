@@ -1,10 +1,60 @@
 # Endatix Hub
-This is the Endatix Hub, a Form Management system, built with Next.js. It uses the Endatix API to manage forms and submissions and offer data collection and reporting.
+
+# What is Endatix Hub
+Endatix Hub is a commercial multi-tenant form management system, built on top of the Endatix API and designed for the SurveyJS library. It can be used to launch, build, or integrate self-hosted or SaaS solutions that focus on collecting information from [humans](https://en.wikipedia.org/wiki/Human) in industries such as market research, legal, insurance, finance, education, healthcare, and more.
+
+This project contains user-facing interface and seamlessly integrates with the SurveyJS Creator form building tool.
+
+## Licensing
+
+Endatix Hub is a commercial product and it requires the purchase of a license from Endatix, Ltd. For pricing and licensing conditions please refer to our [website](https://endatix.com/) or email us at info@endatix.com.
+
+## Features
+
+* **Form Versioning** (Allows a form to be modified after it has started collecting submissions)
+* **Form Access Control** (Forms can be publically accessible or password-protected) 
+* **Form Lifecycle Management** (draft vs. published state)
+* **Form Templates**
+* **Themes** (Based on SurveyJS [Themes and Styles](https://surveyjs.io/form-library/documentation/manage-default-themes-and-styles))
+* **Partial Submissions** (Users can resume incomplete submissions)
+* **Prefilled forms**
+* **Embedded or standalone forms**
+* **Submission metadata** (Including completion status, date/time started, and date/time completed)
+* **PDF export** (Server-side rendering with inline images)
+* **Data export** (CSV, JSON, Codebook, or custom export options)
+* **AI Assistant** (Chat-based AI form builder, system prompt management and analytics per tenant)
+* **Webhooks** (Support for *submission completed*, *form created*, *form updated*, and *form deleted* events)
+* **reCAPTCHA support**
+* **Email Notifications** (Sendgrid and Mailgun connectors)
+* **Database-stored Custom Question Types** (SurveyJS [specialized](https://surveyjs.io/form-library/documentation/customize-question-types/create-specialized-question-types) or [composite](https://surveyjs.io/form-library/documentation/customize-question-types/create-composite-question-types) custom question code can be added at runtime)
+* **Multitenancy** (ORM-enforced tenant isolation)
+* **Basic Authentication**
+* **Role Based Access Control**
+* **Single-Sign-On** (Supports Keycloak and other [OAuth 2.0](https://oauth.net/2/) implementations)
+
+## Screenshots
+
+**Form builder**<br>
+<img width="480" alt="image" src="assets/images/form-builder.webp"><br>
+**Submissions**<br>
+<img width="480" alt="image" src="assets/images/submissions.webp"><br>
+**Submission Details**<br>
+<img width="480" alt="image" src="assets/images/submission-details.webp"><br>
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/)
+- **Backend API**: [Endatix API](https://github.com/endatix/endatix)
+- **Form builder**: [SurveyJS Creator](https://github.com/surveyjs/survey-creator)
+- **Database**: [Postgres](https://www.postgresql.org/), [Azure SQL](https://azure.microsoft.com/en-us/products/azure-sql/database), or [MS SQL Server](https://www.microsoft.com/en-us/sql-server)
 
 ## System Requirements
 
 - **Node.js 20.x.x** (Node 20.9.0 is recommended)
-- Windows, Linux and MacOS are all supported
+
+## Supported Environments
+
+<img width="480" alt="image" src="assets/images/environments.png"><br>
 
 ## Prerequisites
 
