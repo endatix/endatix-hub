@@ -56,6 +56,10 @@ Endatix Hub is a commercial product and it requires the purchase of a license fr
 
 <img width="480" alt="image" src="assets/images/environments.png"><br>
 
+Endatix runs on any server or workstation that supports [.NET 10.0 (formerly .NET Core)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0), including **Linux**, **Windows**, and **macOS**.
+
+It can be deployed to on-premise servers, cloud environments such as **Azure**, **AWS**, or **Google Cloud**, and also runs in [**Docker Containers**](https://hub.docker.com/u/endatix) for simplified setup and scaling.
+
 ## Prerequisites
 
 - **pnpm >=9.0.0** - we recommend using pnpm as the package manager for this project. You can install pnpm by running `npm install -g pnpm`
