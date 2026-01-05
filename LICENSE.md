@@ -1,6 +1,6 @@
 Endatix Ltd
 Commercial developer license for Endatix Hub form management application.
-Copyright (C) 2024-2025 ENDATIX LTD.
+Copyright (C) 2024-2026 ENDATIX LTD.
 
 END-USER LICENSE AGREEMENT
 FOR ALL SOFTWARE PRODUCT(S) INCLUDED IN THIS DISTRIBUTION
