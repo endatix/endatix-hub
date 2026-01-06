@@ -357,6 +357,123 @@ describe("StorageService", () => {
       expect(configModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(false);
       expect(configModule.STORAGE_SERVICE_CONFIG.accountKey).toBe("");
     });
+
+    it("should have isPrivate true when AZURE_STORAGE_IS_PRIVATE is set", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.isPrivate).toBe(true);
+    });
+
+    it("should have isPrivate false when AZURE_STORAGE_IS_PRIVATE is not set", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      delete process.env.AZURE_STORAGE_IS_PRIVATE;
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.isPrivate).toBe(false);
+    });
+
+    it("should have isPrivate false when AZURE_STORAGE_IS_PRIVATE is empty string", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_IS_PRIVATE = "";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.isPrivate).toBe(false);
+    });
+
+    it("should use default sasReadExpiryMinutes (15) when not set", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      delete process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES;
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
+    });
+
+    it("should parse valid sasReadExpiryMinutes from environment", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(30);
+    });
+
+    it("should use default sasReadExpiryMinutes when value is NaN", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "invalid";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
+    });
+
+    it("should use default sasReadExpiryMinutes when value is zero", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "0";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
+    });
+
+    it("should use default sasReadExpiryMinutes when value is negative", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "-5";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
+    });
+
+    it("should parse valid positive sasReadExpiryMinutes", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "60";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(60);
+    });
   });
 
   describe("deleteBlob", () => {
@@ -638,6 +755,75 @@ describe("StorageService", () => {
 
       // Act & Assert
       expect(storageServiceModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(false);
+    });
+  });
+
+  describe("CONTAINER_NAMES", () => {
+    const originalEnv = { ...process.env };
+
+    beforeEach(() => {
+      vi.resetModules();
+      vi.clearAllMocks();
+      process.env = { ...originalEnv };
+    });
+
+    it("should use default USER_FILES container name when not set", async () => {
+      // Arrange
+      delete process.env.USER_FILES_STORAGE_CONTAINER_NAME;
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe("user-files");
+    });
+
+    it("should use custom USER_FILES container name when set", async () => {
+      // Arrange
+      process.env.USER_FILES_STORAGE_CONTAINER_NAME = "custom-user-files";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe(
+        "custom-user-files",
+      );
+    });
+
+    it("should use default CONTENT container name when not set", async () => {
+      // Arrange
+      delete process.env.CONTENT_STORAGE_CONTAINER_NAME;
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.CONTAINER_NAMES.CONTENT).toBe("content");
+    });
+
+    it("should use custom CONTENT container name when set", async () => {
+      // Arrange
+      process.env.CONTENT_STORAGE_CONTAINER_NAME = "custom-content";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.CONTAINER_NAMES.CONTENT).toBe("custom-content");
+    });
+
+    it("should use both custom container names when both are set", async () => {
+      // Arrange
+      process.env.USER_FILES_STORAGE_CONTAINER_NAME = "my-user-files";
+      process.env.CONTENT_STORAGE_CONTAINER_NAME = "my-content";
+
+      // Act
+      const configModule = await import("../../infrastructure/storage-service");
+
+      // Assert
+      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe("my-user-files");
+      expect(configModule.CONTAINER_NAMES.CONTENT).toBe("my-content");
     });
   });
 });
