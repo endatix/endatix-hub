@@ -33,11 +33,15 @@ declare namespace NodeJS {
     SLACK_CLIENT_SECRET?: string;
     SLACK_REDIRECT_URI?: string;
 
-    // Storage
-    AZURE_STORAGE_ACCOUNT_NAME?: string;
-    AZURE_STORAGE_ACCOUNT_KEY?: string;
+    // Storage:General
     USER_FILES_STORAGE_CONTAINER_NAME?: string;
     CONTENT_STORAGE_CONTAINER_NAME?: string;
+
+    // Storage:Azure
+    AZURE_STORAGE_ACCOUNT_NAME?: string;
+    AZURE_STORAGE_ACCOUNT_KEY?: string;
+    AZURE_STORAGE_IS_PRIVATE?: string;
+    AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES?: string;
 
     // Image Resize
     RESIZE_IMAGES?: string;

@@ -5,11 +5,16 @@ import {
   SASProtocol,
 } from "@azure/storage-blob";
 
-type AzureStorageConfig = {
+interface IStorageConfig {
   isEnabled: boolean;
+  isPrivate: boolean;
+}
+
+type AzureStorageConfig = IStorageConfig & {
   accountName: string;
   accountKey: string;
   hostName: string;
+  sasReadExpiryMinutes: number;
 };
 
 interface FileOptions {
@@ -18,22 +23,35 @@ interface FileOptions {
   folderPath?: string;
 }
 
+const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
+
 const STORAGE_SERVICE_CONFIG: AzureStorageConfig = Object.freeze({
   isEnabled: (() => {
     const { AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY } =
       process.env;
     return !!AZURE_STORAGE_ACCOUNT_NAME && !!AZURE_STORAGE_ACCOUNT_KEY;
   })(),
-  accountName: (() => {
-    return process.env.AZURE_STORAGE_ACCOUNT_NAME || "";
-  })(),
-  accountKey: (() => {
-    return process.env.AZURE_STORAGE_ACCOUNT_KEY || "";
-  })(),
+  isPrivate: !!process.env.AZURE_STORAGE_IS_PRIVATE,
+  accountName: process.env.AZURE_STORAGE_ACCOUNT_NAME || "",
+  accountKey: process.env.AZURE_STORAGE_ACCOUNT_KEY || "",
   hostName: (() => {
     return process.env.AZURE_STORAGE_ACCOUNT_NAME
       ? `${process.env.AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net`
       : "";
+  })(),
+  sasReadExpiryMinutes: (() => {
+    const { AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES } = process.env;
+    if (!AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES) {
+      return DEFAULT_SAS_READ_EXPIRY_MINUTES;
+    }
+    const parsedMinutes = Number.parseInt(
+      AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES,
+      10,
+    );
+    if (Number.isNaN(parsedMinutes) || parsedMinutes <= 0) {
+      return DEFAULT_SAS_READ_EXPIRY_MINUTES;
+    }
+    return parsedMinutes;
   })(),
 });
 
