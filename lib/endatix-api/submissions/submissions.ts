@@ -1,7 +1,7 @@
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult } from "../shared/api-result";
 import type { EndatixApi } from "../endatix-api";
-import { Submission } from "./types";
+import { ExportSubmissionsRequest, Submission } from "./types";
 import {
   validateEndatixId,
   validateHexToken,
@@ -91,5 +91,26 @@ export class Submissions {
       this._public = new PublicSubmissions(this.endatix);
     }
     return this._public;
+  }
+
+  /**
+   * Exports form submissions in the specified format (CSV, JSON, etc.)
+   * Returns a streaming response for direct download with all headers preserved
+   */
+  async export(
+    request: ExportSubmissionsRequest,
+  ): Promise<ApiResult<Response>> {
+    const { formId, exportFormat, exportId } = request;
+
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    const validatedFormId = validateFormIdResult.value;
+    return this.endatix.postStream(
+      `/forms/${validatedFormId}/submissions/export`,
+      { exportFormat, exportId },
+    );
   }
 }

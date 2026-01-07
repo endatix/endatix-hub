@@ -88,6 +88,12 @@ export type ExportSubmissionsDto = {
   };
 };
 
+export interface ExportSubmissionsRequest{
+  formId: string;
+  exportFormat?: string;
+  exportId?: string;
+}
+
 // ============================================================================
 // API Method Responses (using ApiResult)
 // ============================================================================

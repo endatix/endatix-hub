@@ -221,6 +221,76 @@ export class EndatixApi {
   }
 
   /**
+   * Request method for streaming responses (file downloads, etc.)
+   * Returns the raw Response object with all headers preserved.
+   * Does NOT parse JSON - use this for binary/streaming responses.
+   */
+  async requestStream(
+    endpoint: string,
+    options: RequestOptions = {},
+  ): Promise<ApiResult<Response>> {
+    const {
+      method = "GET",
+      requireAuth = true,
+      body,
+      headers: customHeaders = {},
+    } = options;
+
+    try {
+      const headerBuilder = new HeaderBuilder();
+      const baseHeaders = headerBuilder.build();
+
+      const allHeaders = {
+        ...baseHeaders,
+        ...this.defaultHeaders,
+        ...customHeaders,
+      };
+
+      if (this.session?.isLoggedIn) {
+        headerBuilder.withAuth(this.session);
+      } else if (requireAuth) {
+        return ApiResult.authError(
+          "Authentication required",
+          ERROR_CODE.AUTHENTICATION_REQUIRED,
+          {
+            endpoint,
+            method,
+            statusCode: 401,
+          },
+        );
+      }
+
+      if (body && method !== "GET") {
+        headerBuilder.provideJson();
+      }
+
+      const requestOptions: RequestInit = {
+        method,
+        headers: { ...headerBuilder.build(), ...allHeaders },
+      };
+
+      if (body) {
+        requestOptions.body = JSON.stringify(body);
+      }
+
+      const url = `${this.baseUrl}${endpoint}`;
+      const response = await fetch(url, requestOptions);
+
+      if (!response.ok) {
+        return await this.handleErrorResponse<Response>(response, {
+          statusCode: response.status,
+          endpoint,
+          method,
+        });
+      }
+
+      return ApiResult.success(response);
+    } catch (error) {
+      return this.handleNetworkError<Response>(error, endpoint, method);
+    }
+  }
+
+  /**
    * Handle HTTP response and convert to ApiResult
    */
   private async handleResponse<T>(
@@ -475,5 +545,24 @@ export class EndatixApi {
     options: Omit<RequestOptions, "method"> = {},
   ): Promise<ApiResult<T>> {
     return this.request<T>(endpoint, { ...options, method: "DELETE" });
+  }
+
+  async postStream(
+    endpoint: string,
+    body?: unknown,
+    options: Omit<RequestOptions, "method" | "body"> = {},
+  ): Promise<ApiResult<Response>> {
+    return this.requestStream(endpoint, {
+      ...options,
+      method: "POST",
+      body,
+    });
+  }
+
+  async getStream(
+    endpoint: string,
+    options: Omit<RequestOptions, "method"> = {},
+  ): Promise<ApiResult<Response>> {
+    return this.requestStream(endpoint, { ...options, method: "GET" });
   }
 }
