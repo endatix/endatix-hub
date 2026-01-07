@@ -68,17 +68,22 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 >[!TIP]
 >If you are using nvm, you can install the correct version of node by running `nvm install v20.9.0`
 
-## Getting Started
+## ⚙️ Getting Started
 
 1. Setup correct node version. Open the terminal and run `nvm use v20.9.0`
 2. Install the dependencies. Run `pnpm install`
 3. Run the development server with `pnpm dev`
 4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. 
 
->[!TIP]
+> [!TIP]
 >You can also run the website with self-signed SSL enabled by running `pnpm dev-https`, which will make the website available at [https://localhost:3000](https://localhost:3000).
 >More info at [Next.js documentation](https://vercel.com/guides/access-nextjs-localhost-https-certificate-self-signed).
+
+
+> [!NOTE]
+> **Environment Variable**
 >💡 Remember to update your `.env` file with the correct values for the development server such as AUTH_URL, etc.
+> Check the [.env.example](./.env.example) file for all variables and their description. The required variables are marked with a `[REQUIRED]` tag.
 
 ## Project Structure
 
@@ -87,10 +92,6 @@ For information on project structure, feature organization, and vertical slice a
 - **[Project Structure](./project-structure.md)** - Quick reference for organizing features and use cases
 - **[Vertical Slice Architecture](./docs/vertical-slice-architecture.md)** - Detailed architecture explanation
 
-## Environment Variables
-
-Check the [.env.example](./.env.example) file for all variables and their description. The required variables are marked with a `[REQUIRED]` tag.
-
 ## Running the production build locally
 
 This is useful for testing the production build locally e.g. test with enabled caching, telemetry, etc. Note that the root `.env` file will be used to prepare the build and next.js will copy it's contents into the `hub/.next/standalone/.env` file.
@@ -98,39 +99,7 @@ This is useful for testing the production build locally e.g. test with enabled c
 1. Run `pnpm run:standalone`;
 2. Run the site at [http://localhost:3000](http://localhost:3000)
 
-## E2E Testing
-
-The end-to-eng test suite (e2e) is built with [Playwright](https://playwright.dev/docs/intro). 
-
-> [!TIP]
-> You can use [Playwright's MCP](https://github.com/microsoft/playwright-mcp) to accelerate the workflow of intiial prototyping, debugging and running the e2e tests. Playwright's team is actively adding new features and improving the experience, so for best results we recommend using the latest version of MCP.
-
-Check most common commands below (note you can also use `npx` instead of `pnpm exec`):
-
-```bash
-pnpm exec playwright test
-```
-
-To run the tests in interactive mode, use the following command:
-
-```bash
-pnpm exec playwright test --ui
-```
-
-To run the tests in debug mode, use the following command:
-
-```bash
-pnpm exec playwright test --debug
-```
-
-For CI or running againt a specific environment we can set the `BASE_URL` environment variable.
-```sh
-export BASE_URL=https://your-ci-url.com
-npx playwright test
-# or
-BASE_URL=https://ci.app.endatix.com  npx playwright test
-```
-
+## Like what we are doing? Give us a star ⭐
 
 ## Learn More
 
