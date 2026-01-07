@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: '.'
+        working-directory: "."
 
     steps:
       - name: 🔍 Checkout code
@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 🥡 Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -42,7 +42,7 @@ jobs:
         run: pnpm build
 
       - name: 📊 Upload Coverage Report to Coveralls
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
         with:
           format: cobertura
           file: .coverage/endatix-hub/cobertura-coverage.xml
