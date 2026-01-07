@@ -12,7 +12,10 @@ import { Spinner } from "@/components/loaders/spinner";
 import { toast } from "@/components/ui/toast";
 import { Download, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getFilenameFromContentDisposition, initiateFileDownload } from "@/lib/utils/files-download";
+import {
+  getFilenameFromContentDisposition,
+  initiateFileDownload,
+} from "@/lib/utils/files-download";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import type { CustomExportSettings } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
@@ -28,8 +31,12 @@ export const ExportSubmissionsButton = ({
 }: ExportSubmissionsButtonProps) => {
   const [isExporting, setIsExporting] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
-  const [customExports, setCustomExports] = useState<CustomExportSettings[]>([]);
-  const [currentExportName, setCurrentExportName] = useState<string | null>(null);
+  const [customExports, setCustomExports] = useState<CustomExportSettings[]>(
+    [],
+  );
+  const [currentExportName, setCurrentExportName] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchTenantSettings = async () => {
@@ -65,8 +72,8 @@ export const ExportSubmissionsButton = ({
 
       // Build export URL with optional exportId
       const exportUrl = exportId
-        ? `/api/forms/${formId}/export?format=csv&exportId=${exportId}`
-        : `/api/forms/${formId}/export?format=csv`;
+        ? `/api/forms/${formId}/export?exportId=${exportId}`
+        : `/api/forms/${formId}/export`;
 
       const response = await fetch(exportUrl);
 
@@ -106,11 +113,7 @@ export const ExportSubmissionsButton = ({
   // Show loading state while fetching settings
   if (isLoadingSettings) {
     return (
-      <Button
-        variant="outline"
-        disabled
-        className={className}
-      >
+      <Button variant="outline" disabled className={className}>
         <Spinner className="h-4 w-4 mr-2" />
         Loading...
       </Button>
@@ -140,50 +143,45 @@ export const ExportSubmissionsButton = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          disabled={isExporting}
-          className={className}
-        >
+        <Button variant="outline" disabled={isExporting} className={className}>
           {isExporting && !currentExportName ? (
             <Spinner className="h-4 w-4 mr-2" />
           ) : (
             <Download className="h-4 w-4 mr-2" />
           )}
-          {isExporting && !currentExportName ? "Exporting..." : "Export Submissions"}
+          {isExporting && !currentExportName
+            ? "Exporting..."
+            : "Export Submissions"}
           <ChevronDown className="h-4 w-4 ml-2" />
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleExport()} disabled={isExporting}>
+          {isExporting && !currentExportName ? (
+            <Spinner className="h-4 w-4 mr-2" />
+          ) : (
+            <Download className="h-4 w-4 mr-2" />
+          )}
+          Default CSV Export
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        {customExports.map((exportOption) => (
           <DropdownMenuItem
-            onClick={() => handleExport()}
+            key={exportOption.id}
+            onClick={() => handleExport(exportOption.id, exportOption.name)}
             disabled={isExporting}
           >
-            {isExporting && !currentExportName ? (
+            {isExporting && currentExportName === exportOption.name ? (
               <Spinner className="h-4 w-4 mr-2" />
             ) : (
               <Download className="h-4 w-4 mr-2" />
             )}
-            Default CSV Export
+            {exportOption.name}
           </DropdownMenuItem>
-
-          <DropdownMenuSeparator />
-
-          {customExports.map((exportOption) => (
-            <DropdownMenuItem
-              key={exportOption.id}
-              onClick={() => handleExport(exportOption.id, exportOption.name)}
-              disabled={isExporting}
-            >
-              {isExporting && currentExportName === exportOption.name ? (
-                <Spinner className="h-4 w-4 mr-2" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              {exportOption.name}
-            </DropdownMenuItem>
-          ))}
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );

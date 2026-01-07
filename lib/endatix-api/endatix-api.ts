@@ -28,16 +28,19 @@ export const getEdatixApiUrl = (): string => {
 
 const DEFAULT_HEADERS = {};
 
+type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+type RequestHeaders = Record<string, string>;
+
 export interface EndatixApiOptions {
   baseUrl?: string;
-  defaultHeaders?: Record<string, string>;
+  defaultHeaders?: RequestHeaders;
 }
 
 export interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+  method?: RequestMethod;
   requireAuth?: boolean;
   body?: unknown;
-  headers?: Record<string, string>;
+  headers?: RequestHeaders;
 }
 
 export class EndatixApi {
@@ -162,61 +165,65 @@ export class EndatixApi {
     endpoint: string,
     options: RequestOptions = {},
   ): Promise<ApiResult<T>> {
-    const {
-      method = "GET",
-      requireAuth = true,
-      body,
-      headers: customHeaders = {},
-    } = options;
+    const method = options.method || "GET";
 
     try {
-      const headerBuilder = new HeaderBuilder();
-      const baseHeaders = headerBuilder.build();
+      const requestInitResult = this.initializeRequest(
+        endpoint,
+        options,
+        (headerBuilder) => {
+          headerBuilder.acceptJson();
+        },
+      );
 
-      const allHeaders = {
-        ...baseHeaders,
-        ...this.defaultHeaders,
-        ...customHeaders,
-      };
-      if (this.session?.isLoggedIn) {
-        headerBuilder.withAuth(this.session);
-      } else if (requireAuth) {
-        return ApiResult.authError(
-          "Authentication required",
-          ERROR_CODE.AUTHENTICATION_REQUIRED,
-          {
-            endpoint,
-            method,
-            statusCode: 401,
-          },
-        );
+      if (ApiResult.isError(requestInitResult)) {
+        return requestInitResult;
       }
 
-      // Set content type for requests with body
-      if (body && method !== "GET") {
-        headerBuilder.provideJson();
-      }
-
-      // Always accept JSON responses
-      headerBuilder.acceptJson();
-      headerBuilder.build();
-
-      const requestOptions: RequestInit = {
-        method,
-        headers: { ...headerBuilder.build(), ...allHeaders },
-      };
-
-      if (body) {
-        requestOptions.body = JSON.stringify(body);
-      }
-
+      const requestInit = requestInitResult.data;
       const url = `${this.baseUrl}${endpoint}`;
 
-      const response = await fetch(url, requestOptions);
+      const response = await fetch(url, requestInit);
 
       return await this.handleResponse<T>(response, endpoint, method);
     } catch (error) {
       return this.handleNetworkError<T>(error, endpoint, method);
+    }
+  }
+
+  /**
+   * Request method for streaming responses (file downloads, etc.)
+   * Returns the raw Response object with all headers preserved.
+   * Does NOT parse JSON - use this for binary/streaming responses.
+   */
+  async requestStream(
+    endpoint: string,
+    options: RequestOptions = {},
+  ): Promise<ApiResult<Response>> {
+    const method = options.method || "GET";
+
+    try {
+      const requestInitResult = this.initializeRequest(endpoint, options);
+
+      if (ApiResult.isError(requestInitResult)) {
+        return requestInitResult;
+      }
+
+      const requestInit = requestInitResult.data;
+      const url = `${this.baseUrl}${endpoint}`;
+      const response = await fetch(url, requestInit);
+
+      if (!response.ok) {
+        return await this.handleErrorResponse<Response>(response, {
+          statusCode: response.status,
+          endpoint,
+          method,
+        });
+      }
+
+      return ApiResult.success(response);
+    } catch (error) {
+      return this.handleNetworkError<Response>(error, endpoint, method);
     }
   }
 
@@ -257,6 +264,70 @@ export class EndatixApi {
     }
   }
 
+  /**
+   * Common method to build the request options including headers, auth, and body.
+   * @param endpoint - The endpoint to request.
+   * @param requestOptions - The request options.
+   * @param headerActions - Optional actions to perform on the header builder.
+   * @returns The request initialization object for use with fetch api.
+   */
+  private initializeRequest(
+    endpoint: string,
+    requestOptions: RequestOptions,
+    headerActions?: (headerBuilder: HeaderBuilder) => void,
+  ): ApiResult<RequestInit> {
+    const {
+      method = "GET",
+      requireAuth = true,
+      body,
+      headers: customHeaders = {},
+    } = requestOptions;
+
+    if (requireAuth && !this.session?.isLoggedIn) {
+      return ApiResult.authError(
+        "Authentication required",
+        ERROR_CODE.AUTHENTICATION_REQUIRED,
+        {
+          endpoint,
+          method,
+          statusCode: 401,
+        },
+      );
+    }
+
+    const headerBuilder = new HeaderBuilder();
+    const baseHeaders = headerBuilder.build();
+
+    const allHeaders = {
+      ...baseHeaders,
+      ...this.defaultHeaders,
+      ...customHeaders,
+    };
+
+    if (this.session?.isLoggedIn) {
+      headerBuilder.withAuth(this.session);
+    }
+
+    if (body && method !== "GET") {
+      headerBuilder.provideJson();
+    }
+
+    if (headerActions) {
+      headerActions(headerBuilder);
+    }
+
+    const requestInit: RequestInit = {
+      method,
+      headers: { ...headerBuilder.build(), ...allHeaders },
+      body: body ? JSON.stringify(body) : undefined,
+    };
+
+    return ApiResult.success(requestInit);
+  }
+
+  /**
+   * Handles the error response and converts it to an ApiResult.
+   */
   private async handleErrorResponse<T>(
     response: Response,
     details: ApiErrorDetails,
@@ -475,5 +546,24 @@ export class EndatixApi {
     options: Omit<RequestOptions, "method"> = {},
   ): Promise<ApiResult<T>> {
     return this.request<T>(endpoint, { ...options, method: "DELETE" });
+  }
+
+  async postStream(
+    endpoint: string,
+    body?: unknown,
+    options: Omit<RequestOptions, "method" | "body"> = {},
+  ): Promise<ApiResult<Response>> {
+    return this.requestStream(endpoint, {
+      ...options,
+      method: "POST",
+      body,
+    });
+  }
+
+  async getStream(
+    endpoint: string,
+    options: Omit<RequestOptions, "method"> = {},
+  ): Promise<ApiResult<Response>> {
+    return this.requestStream(endpoint, { ...options, method: "GET" });
   }
 }

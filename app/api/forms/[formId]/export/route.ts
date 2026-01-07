@@ -1,41 +1,55 @@
 import { NextRequest } from "next/server";
-import { getSession } from "@/features/auth";
-import { exportSubmissions } from "@/services/api";
+import {
+  ApiResult,
+  EndatixApi,
+  ExportSubmissionsRequest,
+} from "@/lib/endatix-api";
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> },
 ) {
   const { formId } = await params;
-  const session = await getSession();
+  const session = await auth();
 
-  if (!session.isLoggedIn) {
+  const { requireHubAccess } = await authorization(session);
+  await requireHubAccess();
+
+  const searchParams = request.nextUrl.searchParams;
+  const format = searchParams.get("format");
+  const exportId = searchParams.get("exportId");
+  const exportOptions: ExportSubmissionsRequest = {
+    formId,
+    exportFormat: format ?? undefined,
+    exportId: exportId ?? undefined,
+  };
+
+  const endatix = new EndatixApi(session?.accessToken);
+  const exportResult = await endatix.submissions.export(exportOptions);
+  if (ApiResult.isError(exportResult)) {
     return new Response(
       JSON.stringify({
-        error: "Unauthorized",
+        error: exportResult.error.message,
       }),
       {
-        status: 401,
+        status: exportResult.error.details?.statusCode ?? 500,
         headers: { "Content-Type": "application/json" },
       },
     );
   }
 
-  const searchParams = request.nextUrl.searchParams;
-  const format = searchParams.get("format") || "csv";
-  const exportId = searchParams.get("exportId");
+  const response = exportResult.data;
+  const contentType =
+    response.headers.get("Content-Type") ?? "application/octet-stream";
+  const contentDisposition =
+    response.headers.get("Content-Disposition") ?? "attachment";
 
-  try {
-    return await exportSubmissions({
-      formId,
-      format,
-      exportId: exportId || undefined,
-    });
-  } catch (error) {
+  if (!contentType || !contentDisposition) {
     return new Response(
       JSON.stringify({
-        error: "Export failed",
-        message: error instanceof Error ? error.message : String(error),
+        error: "Content type or content disposition not found",
       }),
       {
         status: 500,
@@ -43,4 +57,11 @@ export async function GET(
       },
     );
   }
+
+  return new Response(exportResult.data.body, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": contentDisposition,
+    },
+  });
 }
