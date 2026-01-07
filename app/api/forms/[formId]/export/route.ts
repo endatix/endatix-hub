@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getSession } from "@/features/auth";
-import { exportSubmissions } from "@/services/api";
+import { ExportOptions, exportSubmissions } from "@/services/api";
 
 export async function GET(
   request: NextRequest,
@@ -22,15 +22,16 @@ export async function GET(
   }
 
   const searchParams = request.nextUrl.searchParams;
-  const format = searchParams.get("format") || "csv";
+  const format = searchParams.get("format");
   const exportId = searchParams.get("exportId");
+  const exportOptions: ExportOptions = {
+    formId,
+    format: format ?? undefined,
+    exportId: exportId ?? undefined,
+  };
 
   try {
-    return await exportSubmissions({
-      formId,
-      format,
-      exportId: exportId || undefined,
-    });
+    return await exportSubmissions(exportOptions);
   } catch (error) {
     return new Response(
       JSON.stringify({
