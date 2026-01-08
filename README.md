@@ -1,5 +1,8 @@
 # Endatix Hub
 
+[![Build & Test](https://github.com/endatix/endatix-hub/actions/workflows/build-ci.yml/badge.svg)](https://github.com/endatix/endatix-hub/actions/workflows/build-ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/endatix/endatix-hub/badge.svg?branch=main)](https://coveralls.io/github/endatix/endatix-hub?branch=main)
+
 ## What is Endatix Hub
 Endatix Hub is a commercial multi-tenant form management system, built on top of the [Endatix API](https://github.com/endatix/endatix) and designed for the [SurveyJS](https://github.com/surveyjs) library. It can be used to launch, build, or integrate self-hosted or SaaS solutions that focus on collecting information from [humans](https://en.wikipedia.org/wiki/Human) in industries such as market research, legal, insurance, finance, education, healthcare, and more.
 
