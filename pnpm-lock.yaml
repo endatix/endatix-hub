@@ -10,6 +10,7 @@ overrides:
   glob: 10.5.0
   vite: ^7.1.11
   js-yaml: ^4.1.1
+  preact: 10.27.3
 
 importers:
 
@@ -181,8 +182,8 @@ importers:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       posthog-js:
-        specifier: ^1.302.2
-        version: 1.302.2
+        specifier: ^1.315.1
+        version: 1.315.1
       posthog-node:
         specifier: ^5.17.2
         version: 5.17.2
@@ -1274,6 +1275,12 @@ packages:
 
   '@posthog/core@1.7.1':
     resolution: {integrity: sha512-kjK0eFMIpKo9GXIbts8VtAknsoZ18oZorANdtuTj1CbgS28t4ZVq//HAWhnxEuXRTrtkd+SUJ6Ux3j2Af8NCuA==}
+
+  '@posthog/core@1.9.0':
+    resolution: {integrity: sha512-j7KSWxJTUtNyKynLt/p0hfip/3I46dWU2dk+pt7dKRoz2l5CYueHuHK4EO7Wlgno5yo1HO4sc4s30MXMTICHJw==}
+
+  '@posthog/types@1.315.1':
+    resolution: {integrity: sha512-m2NggfJRYby3AkAES6yHMLURvTeK+rxN+5nmkuaCbOXQPdtWacSFIG5ZwN8d3crSx+WpiFauCDdr1sc3ZFkTHg==}
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -4029,8 +4036,8 @@ packages:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
 
-  posthog-js@1.302.2:
-    resolution: {integrity: sha512-4voih22zQe7yHA7DynlQ3B7kgzJOaKIjzV7K3jJ2Qf+UDXd1ZgO7xYmLWYVtuKEvD1OXHbKk/fPhUTZeHEWpBw==}
+  posthog-js@1.315.1:
+    resolution: {integrity: sha512-ambT1azidu4hKhSmB95KdLY6yHfj9vvz1XNn68syh8DtkQ0uSdjpRY6tjMp96EQtPqCrDKr+8QpcusT1KQEZSA==}
 
   posthog-node@4.11.1:
     resolution: {integrity: sha512-Hdby0Rq2K1rzjHxQdUmFBEP2UqAR/tY4d0WbNp7GxkYUK0YZvAD15MkeorSo4b8X7zgosHfQJVRxGx0HWSYPBA==}
@@ -4043,13 +4050,10 @@ packages:
   preact-render-to-string@6.5.11:
     resolution: {integrity: sha512-ubnauqoGczeGISiOh6RjX0/cdaF8v/oDXIjO85XALCQjwQP+SB4RDXXtvZ6yTYSjG+PC1QRP2AhPgCEsM2EvUw==}
     peerDependencies:
-      preact: '>=10'
+      preact: 10.27.3
 
-  preact@10.24.3:
-    resolution: {integrity: sha512-Z2dPnBnMUfyQfSQ+GBdsGa16hz35YmLmtTLhM169uW944hYL6xzTYkJjC07j+Wosz733pMWx0fgON3JNw1jJQA==}
-
-  preact@10.27.1:
-    resolution: {integrity: sha512-V79raXEWch/rbqoNc7nT9E4ep7lu+mI3+sBmfRD4i1M73R3WLYcCtdI0ibxGVf4eQL8ZIz2nFacqEC+rmnOORQ==}
+  preact@10.27.3:
+    resolution: {integrity: sha512-ZieIP3zQHiQsNF3BA+SNVS8dcuRIg/nsxlkFbCMBLS2L1Ww4Bkxd9n6Md2A1crfTZsEbQPADV0neYmh/EElgeQ==}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -4930,8 +4934,8 @@ snapshots:
       '@panva/hkdf': 1.2.1
       jose: 6.1.0
       oauth4webapi: 3.8.3
-      preact: 10.24.3
-      preact-render-to-string: 6.5.11(preact@10.24.3)
+      preact: 10.27.3
+      preact-render-to-string: 6.5.11(preact@10.27.3)
 
   '@azure/abort-controller@2.1.2':
     dependencies:
@@ -5917,6 +5921,12 @@ snapshots:
   '@posthog/core@1.7.1':
     dependencies:
       cross-spawn: 7.0.6
+
+  '@posthog/core@1.9.0':
+    dependencies:
+      cross-spawn: 7.0.6
+
+  '@posthog/types@1.315.1': {}
 
   '@protobufjs/aspromise@1.1.2': {}
 
@@ -8899,12 +8909,13 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  posthog-js@1.302.2:
+  posthog-js@1.315.1:
     dependencies:
-      '@posthog/core': 1.7.1
+      '@posthog/core': 1.9.0
+      '@posthog/types': 1.315.1
       core-js: 3.45.1
       fflate: 0.4.8
-      preact: 10.27.1
+      preact: 10.27.3
       web-vitals: 4.2.4
 
   posthog-node@4.11.1:
@@ -8917,13 +8928,11 @@ snapshots:
     dependencies:
       '@posthog/core': 1.7.1
 
-  preact-render-to-string@6.5.11(preact@10.24.3):
+  preact-render-to-string@6.5.11(preact@10.27.3):
     dependencies:
-      preact: 10.24.3
+      preact: 10.27.3
 
-  preact@10.24.3: {}
-
-  preact@10.27.1: {}
+  preact@10.27.3: {}
 
   prelude-ls@1.2.1: {}
 
