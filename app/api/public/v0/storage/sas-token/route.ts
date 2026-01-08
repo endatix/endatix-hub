@@ -1,7 +1,7 @@
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import {
   CONTAINER_NAMES,
-  generateSASUrl,
+  generateUploadUrl,
 } from "@/features/storage/infrastructure/storage-service";
 import { generateUniqueFileName } from "@/features/storage/utils";
 import { ApiResult } from "@/lib/endatix-api";
@@ -69,7 +69,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     try {
-      const sasToken = await generateSASUrl({
+      const sasToken = await generateUploadUrl({
         containerName,
         folderPath: `s/${formId}/${submissionId}`,
         fileName: uniqueFileNameResult.value,

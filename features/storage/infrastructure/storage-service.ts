@@ -134,7 +134,7 @@ async function uploadToStorage(
   }
 }
 
-async function generateSASUrl(
+async function generateUploadUrl(
   fileOptions: FileOptions,
   permissions: "w" | "r" = "w",
 ): Promise<string> {
@@ -226,7 +226,7 @@ export {
   CONTAINER_NAMES,
   type FileOptions,
   uploadToStorage,
-  generateSASUrl,
+  generateUploadUrl,
   deleteBlob,
   resetBlobServiceClient,
 };

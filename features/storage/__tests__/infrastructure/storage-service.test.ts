@@ -173,7 +173,7 @@ describe("StorageService", () => {
     });
   });
 
-  describe("generateSASUrl", () => {
+  describe("generateUploadUrl", () => {
     let mockBlobClient: BlockBlobClient;
     let mockContainerClient: ContainerClient;
     let mockBlobServiceClient: BlobServiceClient;
@@ -202,7 +202,7 @@ describe("StorageService", () => {
 
     it("should throw error when storage is not enabled", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      const { generateSASUrl } = await import(
+      const { generateUploadUrl } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -213,13 +213,13 @@ describe("StorageService", () => {
       };
 
       // Act & Assert
-      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+      await expect(() => generateUploadUrl(fileOptions)).rejects.toThrow(
         "Azure storage is not enabled",
       );
     });
 
     it("should successfully generate SAS URL", async () => {
-      const { generateSASUrl } = await import(
+      const { generateUploadUrl } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -230,7 +230,7 @@ describe("StorageService", () => {
       };
 
       // Act
-      const result = await generateSASUrl(fileOptions);
+      const result = await generateUploadUrl(fileOptions);
 
       // Assert
       expect(BlobServiceClient).toHaveBeenCalledWith(
@@ -250,7 +250,7 @@ describe("StorageService", () => {
     });
 
     it("should throw error when fileName is not provided", async () => {
-      const { generateSASUrl } = await import(
+      const { generateUploadUrl } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -261,13 +261,13 @@ describe("StorageService", () => {
       };
 
       // Act & Assert
-      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+      await expect(() => generateUploadUrl(fileOptions)).rejects.toThrow(
         "a file is not provided",
       );
     });
 
     it("should throw error when folderPath is not provided", async () => {
-      const { generateSASUrl } = await import(
+      const { generateUploadUrl } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -278,13 +278,13 @@ describe("StorageService", () => {
       };
 
       // Act & Assert
-      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+      await expect(() => generateUploadUrl(fileOptions)).rejects.toThrow(
         "a folder path is not provided",
       );
     });
 
     it("should throw error when containerName is not provided", async () => {
-      const { generateSASUrl } = await import(
+      const { generateUploadUrl } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -295,7 +295,7 @@ describe("StorageService", () => {
       };
 
       // Act & Assert
-      await expect(() => generateSASUrl(fileOptions)).rejects.toThrow(
+      await expect(() => generateUploadUrl(fileOptions)).rejects.toThrow(
         "container name is not provided",
       );
     });
@@ -695,7 +695,7 @@ describe("StorageService", () => {
         () => ({} as StorageSharedKeyCredential),
       );
 
-      const { uploadToStorage, generateSASUrl, deleteBlob } = await import(
+      const { uploadToStorage, generateUploadUrl, deleteBlob } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -712,7 +712,7 @@ describe("StorageService", () => {
         mockContainerName,
         mockFolderPath,
       );
-      await generateSASUrl(fileOptions);
+      await generateUploadUrl(fileOptions);
       await deleteBlob(fileOptions);
 
       // Assert - BlobServiceClient should only be instantiated once
@@ -786,9 +786,7 @@ describe("StorageService", () => {
       const configModule = await import("../../infrastructure/storage-service");
 
       // Assert
-      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe(
-        "custom-user-files",
-      );
+      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe("custom-user-files");
     });
 
     it("should use default CONTENT container name when not set", async () => {
