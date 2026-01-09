@@ -1,20 +1,20 @@
-import { EndatixApi, ApiResult, Submission } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi, Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 
-export type GetSubmissionByTokenQuery = {
+export type GetSubmissionByAccessTokenQuery = {
   formId: string;
   token: string;
 };
 
-export type SubmissionByTokenResult = Result<Submission>;
+export type SubmissionByAccessTokenResult = Result<Submission>;
 
-export const getSubmissionByTokenUseCase = async ({
+export const getSubmissionByAccessTokenUseCase = async ({
   formId,
   token,
-}: GetSubmissionByTokenQuery): Promise<SubmissionByTokenResult> => {
+}: GetSubmissionByAccessTokenQuery): Promise<SubmissionByAccessTokenResult> => {
   try {
     const endatixApi = new EndatixApi();
-    const apiResult = await endatixApi.submissions.public.getByToken(
+    const apiResult = await endatixApi.submissions.public.getByAccessToken(
       formId,
       token,
     );

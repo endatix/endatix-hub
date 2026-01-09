@@ -1,9 +1,11 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { customQuestions } from "@/customizations/questions/question-registry";
+import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
-import { editSubmissionByTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-token.use-case";
 import { Submission } from "@/lib/endatix-api";
+import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { ActiveDefinition } from "@/types";
 import { Info } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -18,8 +20,6 @@ import {
 } from "survey-core";
 import EditSubmissionAlertDialog from "./edit-submission-alert-dialog";
 import EditSubmissionHeader from "./edit-submission-header";
-import { customQuestions } from "@/customizations/questions/question-registry";
-import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 
 const EditSurveyWrapper = dynamic(() => import("./edit-survey-wrapper"), {
   ssr: false,
@@ -89,10 +89,10 @@ function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
       event.preventDefault();
       if (!surveyModel?.data || Object.keys(changes).length === 0) return;
 
-      try {
-        startTransition(async () => {
+      startTransition(async () => {
+        try {
           if (isPublicMode && formId && token) {
-            await editSubmissionByTokenUseCase(formId, token, {
+            await editSubmissionByAccessTokenUseCase(formId, token, {
               jsonData: JSON.stringify(surveyModel.data),
             });
             toast.success("Changes saved");
@@ -108,11 +108,17 @@ function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
               `/forms/${submission.formId}/submissions/${submission.id}`,
             );
           }
-        });
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to save changes");
-      }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
+
+          if (errorMessage.includes("expired")) {
+            toast.error("Your access link has expired. Please request a new one.");
+          } else {
+            console.error(error);
+            toast.error("Failed to save changes");
+          }
+        }
+      });
     },
     [
       changes,

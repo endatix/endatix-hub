@@ -1,11 +1,21 @@
-import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getSubmissionByTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-token.use-case";
-import { Result } from "@/lib/result";
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
-import { validateHexToken, validateEndatixId } from "@/lib/utils/type-validators";
+import { Result } from "@/lib/result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import { getActiveFormDefinition } from "@/services/api";
+import { Suspense } from "react";
+
+function hasEditPermission(token: string): boolean {
+  // Token format: {submissionId}.{expiryUnix}.{permissionsCode}.{signature}
+  const parts = token.split(".");
+  if (parts.length < 4) {
+    return false;
+  }
+  const permissionsCode = parts[2];
+  return permissionsCode.includes("w"); // w=write/edit
+}
 
 type Params = {
   params: Promise<{
@@ -39,36 +49,59 @@ export default async function PublicEditSubmissionPage({
     return (
       <NotFoundComponent
         notFoundTitle="Token Required"
-        notFoundSubtitle="No edit token provided"
-        notFoundMessage="You need a valid token to edit this submission."
+        notFoundSubtitle="No access token provided"
+        notFoundMessage="You need a valid access token to edit this submission."
         titleSize="medium"
       />
     );
   }
 
-  const validateTokenResult = validateHexToken(token, "token");
-  if (Result.isError(validateTokenResult)) {
+  if (!hasEditPermission(token)) {
     return (
       <NotFoundComponent
-        notFoundTitle="Invalid Token"
-        notFoundSubtitle="The provided token is invalid"
-        notFoundMessage={validateTokenResult.message}
+        notFoundTitle="Access Denied"
+        notFoundSubtitle="You don't have permission to edit this submission"
+        notFoundMessage="The access token does not include edit permissions."
         titleSize="medium"
       />
     );
   }
 
-  const submissionResult = await getSubmissionByTokenUseCase({
+  const submissionResult = await getSubmissionByAccessTokenUseCase({
     formId: validateFormIdResult.value,
-    token: validateTokenResult.value,
+    token,
   });
 
   if (Result.isError(submissionResult)) {
+    const errorMessage = submissionResult.message.toLowerCase();
+
+    if (errorMessage.includes("expired")) {
+      return (
+        <NotFoundComponent
+          notFoundTitle="Token Expired"
+          notFoundSubtitle="This link has expired"
+          notFoundMessage="Please request a new access link to edit this submission."
+          titleSize="medium"
+        />
+      );
+    }
+
+    if (errorMessage.includes("permission") || errorMessage.includes("forbidden")) {
+      return (
+        <NotFoundComponent
+          notFoundTitle="Access Denied"
+          notFoundSubtitle="You don't have permission to view this submission"
+          notFoundMessage="The access token does not have view permissions."
+          titleSize="medium"
+        />
+      );
+    }
+
     return (
       <NotFoundComponent
         notFoundTitle="Submission Not Found"
         notFoundSubtitle="Unable to load submission"
-        notFoundMessage="The submission may have been deleted, the token may have expired, or you may not have permission to edit it."
+        notFoundMessage="The submission may have been deleted or the token is invalid."
         titleSize="medium"
       />
     );
@@ -99,7 +132,7 @@ export default async function PublicEditSubmissionPage({
       <EditSubmission
         submission={submission}
         formId={validateFormIdResult.value}
-        token={validateTokenResult.value}
+        token={token}
       />
     </Suspense>
   );
