@@ -1,3 +1,7 @@
+<a href="https://endatix.com"><img width="100%" src="assets/images/endatix-hub-banner.png" alt="Self-Hosted Alternative to SaaS Form and Survey Platforms" /></a>
+<br />
+<br />
+
 # Endatix Hub
 
 [![Build & Test](https://github.com/endatix/endatix-hub/actions/workflows/build-ci.yml/badge.svg)](https://github.com/endatix/endatix-hub/actions/workflows/build-ci.yml)
