@@ -1,21 +1,12 @@
+import { Result } from "@/lib/result";
 import {
   BlobServiceClient,
   StorageSharedKeyCredential,
   BlobSASPermissions,
   SASProtocol,
+  generateBlobSASQueryParameters,
 } from "@azure/storage-blob";
-
-interface IStorageConfig {
-  isEnabled: boolean;
-  isPrivate: boolean;
-}
-
-type AzureStorageConfig = IStorageConfig & {
-  accountName: string;
-  accountKey: string;
-  hostName: string;
-  sasReadExpiryMinutes: number;
-};
+import { getStorageConfig } from "./storage-config";
 
 interface FileOptions {
   fileName: string;
@@ -23,61 +14,17 @@ interface FileOptions {
   folderPath?: string;
 }
 
-const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
-
-const STORAGE_SERVICE_CONFIG: AzureStorageConfig = Object.freeze({
-  isEnabled: (() => {
-    const { AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY } =
-      process.env;
-    return !!AZURE_STORAGE_ACCOUNT_NAME && !!AZURE_STORAGE_ACCOUNT_KEY;
-  })(),
-  isPrivate: !!process.env.AZURE_STORAGE_IS_PRIVATE,
-  accountName: process.env.AZURE_STORAGE_ACCOUNT_NAME || "",
-  accountKey: process.env.AZURE_STORAGE_ACCOUNT_KEY || "",
-  hostName: (() => {
-    return process.env.AZURE_STORAGE_ACCOUNT_NAME
-      ? `${process.env.AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net`
-      : "";
-  })(),
-  sasReadExpiryMinutes: (() => {
-    const { AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES } = process.env;
-    if (!AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES) {
-      return DEFAULT_SAS_READ_EXPIRY_MINUTES;
-    }
-    const parsedMinutes = Number.parseInt(
-      AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES,
-      10,
-    );
-    if (Number.isNaN(parsedMinutes) || parsedMinutes <= 0) {
-      return DEFAULT_SAS_READ_EXPIRY_MINUTES;
-    }
-    return parsedMinutes;
-  })(),
-});
-
-const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
-const DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME = "content";
-
-const CONTAINER_NAMES = {
-  USER_FILES:
-    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
-    DEFAULT_USER_FILES_CONTAINER_NAME,
-  CONTENT:
-    process.env.CONTENT_STORAGE_CONTAINER_NAME ??
-    DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME,
-};
+const READ_ONLY_PERMISSIONS = BlobSASPermissions.parse("r");
 
 // Singleton BlobServiceClient to prevent memory leaks
 let _blobServiceClient: BlobServiceClient | null = null;
 
 function getBlobServiceClient(): BlobServiceClient {
   if (!_blobServiceClient) {
+    const config = getStorageConfig();
     _blobServiceClient = new BlobServiceClient(
-      `https://${STORAGE_SERVICE_CONFIG.hostName}`,
-      new StorageSharedKeyCredential(
-        STORAGE_SERVICE_CONFIG.accountName,
-        STORAGE_SERVICE_CONFIG.accountKey,
-      ),
+      `https://${config.hostName}`,
+      new StorageSharedKeyCredential(config.accountName, config.accountKey),
     );
   }
   return _blobServiceClient;
@@ -96,7 +43,8 @@ async function uploadToStorage(
   containerName: string,
   folderPath?: string,
 ): Promise<string> {
-  if (!STORAGE_SERVICE_CONFIG.isEnabled) {
+  const config = getStorageConfig();
+  if (!config.isEnabled) {
     throw new Error("Azure storage is not enabled");
   }
 
@@ -134,11 +82,160 @@ async function uploadToStorage(
   }
 }
 
-async function generateSASUrl(
+interface ReadUrlOptions extends Omit<FileOptions, "fileName"> {
+  resourceType: "file" | "directory" | "container";
+  resourceNames?: string[];
+  expiresInMinutes?: number;
+}
+
+interface ReadTokensResponse {
+  /**
+   * A record of requested resource names and the corresponding tokens generated for read access
+   */
+  readTokens: Record<string, string>;
+  /**
+   * The date and time when the tokens will expire
+   */
+  expiresOn: Date;
+  /**
+   * The date and time when the tokens were generated
+   */
+  generatedAt: Date;
+}
+
+type ReadTokensResult = Result<ReadTokensResponse>;
+
+/**
+ * Generates Azure Blob Storage SAS token for container-level access
+ */
+function generateContainerReadToken(
+  containerName: string,
+  credential: StorageSharedKeyCredential,
+  startsOn: Date,
+  expiresOn: Date,
+): string {
+  return generateBlobSASQueryParameters(
+    {
+      containerName,
+      permissions: READ_ONLY_PERMISSIONS,
+      startsOn,
+      expiresOn,
+      protocol: SASProtocol.Https,
+    },
+    credential,
+  ).toString();
+}
+
+/**
+ * Generates Azure Blob Storage SAS token for blob-level access
+ */
+function generateBlobReadToken(
+  containerName: string,
+  blobName: string,
+  credential: StorageSharedKeyCredential,
+  startsOn: Date,
+  expiresOn: Date,
+): string {
+  return generateBlobSASQueryParameters(
+    {
+      containerName,
+      blobName,
+      permissions: READ_ONLY_PERMISSIONS,
+      startsOn,
+      expiresOn,
+      protocol: SASProtocol.Https,
+    },
+    credential,
+  ).toString();
+}
+
+/**
+ * Generates read tokens for accessing storage resources
+ * Supports generating tokens for containers, directories, or individual files
+ * @param options - The options for generating the tokens
+ * @returns A Promise resolving to the tokens and expiration information
+ */
+async function generateReadTokens(
+  options: ReadUrlOptions,
+): Promise<ReadTokensResult> {
+  const { containerName, resourceType, resourceNames, expiresInMinutes } =
+    options;
+
+  const config = getStorageConfig();
+  if (!config.isEnabled) {
+    return Result.error("Azure storage is not enabled");
+  }
+
+  if (!config.isPrivate) {
+    return Result.error("Azure storage is not private");
+  }
+
+  if (!containerName) {
+    return Result.validationError("A container name is not provided");
+  }
+
+  if (!resourceType) {
+    return Result.validationError("A resource type is not provided");
+  }
+
+  if (
+    resourceType !== "container" &&
+    (!resourceNames || resourceNames.length === 0)
+  ) {
+    return Result.validationError(
+      "Resource names are required for file or directory resource types",
+    );
+  }
+
+  const credential = new StorageSharedKeyCredential(
+    config.accountName,
+    config.accountKey,
+  );
+
+  const now = new Date(Date.now());
+  const expirationSpanInMs =
+    (expiresInMinutes ?? config.sasReadExpiryMinutes) * 60 * 1000;
+  const expiresOn = new Date(now.valueOf() + expirationSpanInMs);
+
+  try {
+    const readTokens: Record<string, string> = {};
+
+    if (resourceType === "container") {
+      readTokens.container = generateContainerReadToken(
+        containerName,
+        credential,
+        now,
+        expiresOn,
+      );
+    } else {
+      for (const resourceName of resourceNames!) {
+        readTokens[resourceName] = generateBlobReadToken(
+          containerName,
+          resourceName,
+          credential,
+          now,
+          expiresOn,
+        );
+      }
+    }
+
+    return Result.success({
+      readTokens,
+      expiresOn,
+      generatedAt: now,
+    });
+  } catch (error) {
+    console.error("Error generating SAS token:", error);
+    return Result.error("Unexpected error generating Read SAS Tokens");
+  }
+}
+
+async function generateUploadUrl(
   fileOptions: FileOptions,
-  permissions: "w" | "r" = "w",
+  permissions: "wr" = "wr",
 ): Promise<string> {
-  if (!STORAGE_SERVICE_CONFIG.isEnabled) {
+  const config = getStorageConfig();
+  if (!config.isEnabled) {
     throw new Error("Azure storage is not enabled");
   }
 
@@ -171,7 +268,7 @@ async function generateSASUrl(
       startsOn: NOW,
       permissions: BlobSASPermissions.parse(permissions),
       expiresOn: new Date(NOW.valueOf() + EXPIRY_IN_MS),
-      protocol: SASProtocol.HttpsAndHttp,
+      protocol: SASProtocol.Https,
     });
 
     return sasToken;
@@ -182,7 +279,8 @@ async function generateSASUrl(
 }
 
 async function deleteBlob(fileOptions: FileOptions): Promise<void> {
-  if (!STORAGE_SERVICE_CONFIG.isEnabled) {
+  const config = getStorageConfig();
+  if (!config.isEnabled) {
     throw new Error("Azure storage is not enabled");
   }
 
@@ -220,13 +318,11 @@ function resetBlobServiceClient(): void {
     _blobServiceClient = null;
   }
 }
-
 export {
-  STORAGE_SERVICE_CONFIG,
-  CONTAINER_NAMES,
   type FileOptions,
   uploadToStorage,
-  generateSASUrl,
+  generateReadTokens,
+  generateUploadUrl,
   deleteBlob,
   resetBlobServiceClient,
 };

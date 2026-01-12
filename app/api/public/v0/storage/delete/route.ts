@@ -1,5 +1,5 @@
+import { getContainerNames } from "@/features/storage/infrastructure/storage-config";
 import {
-  CONTAINER_NAMES,
   deleteBlob,
   FileOptions,
 } from "@/features/storage/infrastructure/storage-service";
@@ -29,7 +29,8 @@ export async function DELETE(request: Request) {
     );
   }
 
-  const containerName = CONTAINER_NAMES.USER_FILES;
+  const containerNames = getContainerNames();
+  const containerName = containerNames.USER_FILES;
   const folderPath = `s/${formId}/${submissionId}`;
 
   try {

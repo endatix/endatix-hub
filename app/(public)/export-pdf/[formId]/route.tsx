@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
 import { getActiveFormDefinition } from "@/services/api";
 import { pdf } from "@react-pdf/renderer";
