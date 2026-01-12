@@ -1,5 +1,5 @@
+import { CONTAINER_NAMES } from "@/features/storage/infrastructure/storage-config";
 import {
-  CONTAINER_NAMES,
   deleteBlob,
   FileOptions,
 } from "@/features/storage/infrastructure/storage-service";

@@ -1,11 +1,11 @@
 import { Result } from "@/lib/result";
 import { optimizeImageSize } from "../infrastructure/image-service";
+import { uploadToStorage } from "../infrastructure/storage-service";
+import { generateUniqueFileName } from "../utils";
 import {
   CONTAINER_NAMES,
   STORAGE_SERVICE_CONFIG,
-  uploadToStorage,
-} from "../infrastructure/storage-service";
-import { generateUniqueFileName } from "../utils";
+} from "../infrastructure/storage-config";
 
 export type UploadUserFilesCommand = {
   formId: string;
