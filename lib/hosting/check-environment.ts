@@ -10,7 +10,7 @@ import {
   DEFAULT_COOKIE_NAME,
 } from "@/features/public-form/infrastructure/cookie-store";
 import styles from "../utils/console-styles";
-import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-config";
+import { getStorageConfig } from "@/features/storage/infrastructure/storage-config";
 
 type EnvConfig = {
   name: string;
@@ -103,7 +103,8 @@ function validateEnv(): { valid: boolean; errors: string[] } {
     }
   }
 
-  if (!STORAGE_SERVICE_CONFIG.isEnabled) {
+  const storageConfig = getStorageConfig();
+  if (!storageConfig.isEnabled) {
     console.log(
       `${styles.warning(
         "Storage service is not enabled, so no files will be uploaded to storage. Please check your environment variables to enable it.",

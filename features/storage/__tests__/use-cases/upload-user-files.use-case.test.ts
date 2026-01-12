@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files.use-case";
 import * as storageService from "@/features/storage/infrastructure/storage-service";
+import * as storageConfig from "@/features/storage/infrastructure/storage-config";
 import { ErrorType, Result } from "@/lib/result";
 import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
 import { generateUniqueFileName } from "@/features/storage/utils";
@@ -8,17 +9,20 @@ import { generateUniqueFileName } from "@/features/storage/utils";
 // Mock the entire modules
 vi.mock("@/features/storage/infrastructure/storage-service", () => ({
   uploadToStorage: vi.fn().mockResolvedValue("mock-url"),
-  // Mock STORAGE_SERVICE_CONFIG as an object
-  STORAGE_SERVICE_CONFIG: {
+}));
+vi.mock("@/features/storage/infrastructure/storage-config", () => ({
+  getStorageConfig: vi.fn().mockReturnValue({
     isEnabled: true,
     accountName: "mock-account-name",
     accountKey: "mock-account-key",
     hostName: "mock-host-name",
-  },
-  CONTAINER_NAMES: {
+    isPrivate: false,
+    sasReadExpiryMinutes: 15,
+  }),
+  getContainerNames: vi.fn().mockReturnValue({
     USER_FILES: "user-files",
     CONTENT: "content",
-  },
+  }),
 }));
 
 vi.mock("@/features/storage/infrastructure/image-service", () => ({
@@ -59,11 +63,13 @@ describe("uploadUserFilesUseCase", () => {
     const mockUrl = "https://storage.test/test.jpg";
     vi.mocked(storageService.uploadToStorage).mockResolvedValue(mockUrl);
     vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
-    vi.spyOn(storageService, "STORAGE_SERVICE_CONFIG", "get").mockReturnValue({
+    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
       isEnabled: true,
       accountName: "mock-account-name",
       accountKey: "mock-account-key",
       hostName: "mock-host-name",
+      isPrivate: false,
+      sasReadExpiryMinutes: 15,
     });
 
     // Act
@@ -86,12 +92,14 @@ describe("uploadUserFilesUseCase", () => {
     // Arrange
     vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
 
-    // Set STORAGE_SERVICE_CONFIG.isEnabled to false
-    vi.spyOn(storageService, "STORAGE_SERVICE_CONFIG", "get").mockReturnValue({
+    // Set storage config to disabled
+    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
       isEnabled: false,
       accountName: "",
       accountKey: "",
       hostName: "",
+      isPrivate: false,
+      sasReadExpiryMinutes: 15,
     });
 
     // Act
@@ -178,11 +186,13 @@ describe("uploadUserFilesUseCase", () => {
     vi.mocked(storageService.uploadToStorage).mockRejectedValue(
       new Error("Upload failed"),
     );
-    vi.spyOn(storageService, "STORAGE_SERVICE_CONFIG", "get").mockReturnValue({
+    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
       isEnabled: true,
       accountName: "mock-account-name",
       accountKey: "mock-account-key",
       hostName: "mock-host-name",
+      isPrivate: false,
+      sasReadExpiryMinutes: 15,
     });
 
     // Act

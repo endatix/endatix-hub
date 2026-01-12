@@ -3,8 +3,8 @@ import { optimizeImageSize } from "../infrastructure/image-service";
 import { uploadToStorage } from "../infrastructure/storage-service";
 import { generateUniqueFileName } from "../utils";
 import {
-  CONTAINER_NAMES,
-  STORAGE_SERVICE_CONFIG,
+  getContainerNames,
+  getStorageConfig,
 } from "../infrastructure/storage-config";
 
 export type UploadUserFilesCommand = {
@@ -39,7 +39,9 @@ export const uploadUserFilesUseCase = async ({
 
   const folderPath = `s/${formId}/${submissionId}`;
 
-  const containerName = CONTAINER_NAMES.USER_FILES;
+  const containerNames = getContainerNames();
+  const storageConfig = getStorageConfig();
+  const containerName = containerNames.USER_FILES;
   const uploadedFiles: UploadFileResult[] = [];
 
   try {
@@ -58,7 +60,7 @@ export const uploadUserFilesUseCase = async ({
 
       const fileName = initialFileNameResult.value;
 
-      if (STORAGE_SERVICE_CONFIG.isEnabled) {
+      if (storageConfig.isEnabled) {
         const fileUrl = await uploadToStorage(
           fileBuffer,
           fileName,

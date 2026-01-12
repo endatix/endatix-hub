@@ -3,7 +3,7 @@ import {
   getRewriteRuleFor,
   includesRemoteImageHostnames,
 } from "./lib/hosting/next-config-helper";
-import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-config";
+import { getStorageConfig } from "@/features/storage/infrastructure/storage-config";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
 
@@ -116,10 +116,11 @@ const nextConfig: NextConfig = {
 
 includesRemoteImageHostnames(nextConfig.images?.remotePatterns);
 
-if (STORAGE_SERVICE_CONFIG.isEnabled) {
+const storageConfig = getStorageConfig();
+if (storageConfig.isEnabled) {
   nextConfig?.images?.remotePatterns?.push({
     protocol: "https",
-    hostname: STORAGE_SERVICE_CONFIG.hostName,
+    hostname: storageConfig.hostName,
   });
 }
 

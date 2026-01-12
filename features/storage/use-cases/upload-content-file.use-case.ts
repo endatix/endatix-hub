@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from "uuid";
 import { uploadToStorage } from "../infrastructure/storage-service";
 import { optimizeImageSize } from "../infrastructure/image-service";
 import {
-  CONTAINER_NAMES,
-  STORAGE_SERVICE_CONFIG,
+  getContainerNames,
+  getStorageConfig,
 } from "../infrastructure/storage-config";
 
 export type UploadContentFileCommand = {
@@ -32,7 +32,9 @@ export const uploadContentFileUseCase = async ({
   }
 
   const folderPath = `f/${formId}`;
-  const containerName = CONTAINER_NAMES.CONTENT;
+  const containerNames = getContainerNames();
+  const storageConfig = getStorageConfig();
+  const containerName = containerNames.CONTENT;
   try {
     let fileBuffer = Buffer.from(await file.arrayBuffer());
 
@@ -54,7 +56,7 @@ export const uploadContentFileUseCase = async ({
 
     const fileName = `${uuid}.${fileExtension}`;
     let fileUrl: string = "";
-    if (STORAGE_SERVICE_CONFIG.isEnabled) {
+    if (storageConfig.isEnabled) {
       fileUrl = await uploadToStorage(
         fileBuffer,
         fileName,

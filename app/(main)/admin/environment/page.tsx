@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
-import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-config";
+import { getStorageConfig } from "@/features/storage/infrastructure/storage-config";
 import nextConfig from "@/next.config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +66,8 @@ const isKnownVariable = (name: string): boolean => {
 export default async function EnvironmentPage() {
   await requireAdmin();
 
+  const storageConfig = getStorageConfig();
+
   // Get all environment variables
   const allEnvVars = Object.keys(process.env).sort();
 
@@ -91,14 +93,12 @@ export default async function EnvironmentPage() {
               <span className="font-medium">Azure Storage</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  {STORAGE_SERVICE_CONFIG.isEnabled ? "Enabled" : "Disabled"}
+                  {storageConfig.isEnabled ? "Enabled" : "Disabled"}
                 </span>
                 <Badge
-                  variant={
-                    STORAGE_SERVICE_CONFIG.isEnabled ? "default" : "secondary"
-                  }
+                  variant={storageConfig.isEnabled ? "default" : "secondary"}
                 >
-                  {STORAGE_SERVICE_CONFIG.hostName}
+                  {storageConfig.hostName}
                 </Badge>
               </div>
             </div>

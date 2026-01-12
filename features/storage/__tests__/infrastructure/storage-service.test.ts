@@ -4,7 +4,9 @@ import {
   ContainerClient,
   BlockBlobClient,
   StorageSharedKeyCredential,
+  generateBlobSASQueryParameters,
 } from "@azure/storage-blob";
+import { Result } from "@/lib/result";
 
 // Mock entire module
 vi.mock("@azure/storage-blob", () => ({
@@ -13,11 +15,13 @@ vi.mock("@azure/storage-blob", () => ({
   BlockBlobClient: vi.fn(),
   StorageSharedKeyCredential: vi.fn(),
   BlobSASPermissions: {
-    parse: vi.fn().mockReturnValue({ write: true }),
+    parse: vi.fn().mockReturnValue({ write: true, read: true }),
   },
   SASProtocol: {
     HttpsAndHttp: "https,http",
+    Https: "https",
   },
+  generateBlobSASQueryParameters: vi.fn(),
 }));
 vi.mock("next/dist/server/image-optimizer");
 
@@ -242,9 +246,9 @@ describe("StorageService", () => {
       );
       expect(mockBlobClient.generateSasUrl).toHaveBeenCalledWith({
         startsOn: expect.any(Date),
-        permissions: { write: true }, // Mocked BlobSASPermissions.parse() return value
+        permissions: { write: true, read: true }, // Mocked BlobSASPermissions.parse() return value
         expiresOn: expect.any(Date),
-        protocol: "https,http",
+        protocol: "https", // SASProtocol.Https
       });
       expect(result).toBe("https://test.blob.core.windows.net/test?sas-token");
     });
@@ -301,178 +305,275 @@ describe("StorageService", () => {
     });
   });
 
-  describe("STORAGE_SERVICE_CONFIG", () => {
-    const originalEnv = { ...process.env };
+  describe("generateReadTokens", () => {
+    let mockCredential: StorageSharedKeyCredential;
+    const mockSasToken =
+      "?sv=2021-06-08&ss=b&srt=sco&sp=r&se=2024-01-01T00:00:00Z&sig=test";
 
     beforeEach(() => {
-      vi.resetModules();
-      vi.clearAllMocks();
-      process.env = { ...originalEnv };
+      mockCredential = {} as StorageSharedKeyCredential;
+      vi.mocked(StorageSharedKeyCredential).mockImplementation(
+        () => mockCredential,
+      );
+      vi.mocked(generateBlobSASQueryParameters).mockReturnValue({
+        toString: () => mockSasToken,
+      } as unknown as ReturnType<typeof generateBlobSASQueryParameters>);
     });
 
-    it("should have isEnabled true when account name and key are set", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(true);
-      expect(configModule.STORAGE_SERVICE_CONFIG.accountName).toBe(
-        mockAccountName,
-      );
-      expect(configModule.STORAGE_SERVICE_CONFIG.accountKey).toBe(
-        mockAccountKey,
-      );
-      expect(configModule.STORAGE_SERVICE_CONFIG.hostName).toBe(
-        `${mockAccountName}.blob.core.windows.net`,
-      );
-    });
-
-    it("should have isEnabled false when account name is not set", async () => {
-      // Arrange
+    it("should return error when storage is not enabled", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "file",
+        resourceNames: ["test.jpg"],
+      });
 
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(false);
-      expect(configModule.STORAGE_SERVICE_CONFIG.accountName).toBe("");
-      expect(configModule.STORAGE_SERVICE_CONFIG.hostName).toBe("");
+      expect(Result.isError(result)).toBe(true);
+      if (Result.isError(result)) {
+        expect(result.message).toBe("Azure storage is not enabled");
+      }
     });
 
-    it("should have isEnabled false when account key is not set", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = "";
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(false);
-      expect(configModule.STORAGE_SERVICE_CONFIG.accountKey).toBe("");
-    });
-
-    it("should have isPrivate true when AZURE_STORAGE_IS_PRIVATE is set", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.isPrivate).toBe(true);
-    });
-
-    it("should have isPrivate false when AZURE_STORAGE_IS_PRIVATE is not set", async () => {
-      // Arrange
+    it("should return error when storage is not private", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
       process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
       delete process.env.AZURE_STORAGE_IS_PRIVATE;
+      vi.resetModules();
 
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.isPrivate).toBe(false);
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "file",
+        resourceNames: ["test.jpg"],
+      });
+
+      expect(Result.isError(result)).toBe(true);
+      if (Result.isError(result)) {
+        expect(result.message).toBe("Azure storage is not private");
+      }
     });
 
-    it("should have isPrivate false when AZURE_STORAGE_IS_PRIVATE is empty string", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      process.env.AZURE_STORAGE_IS_PRIVATE = "";
+    it("should return validation error when containerName is not provided", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      vi.resetModules();
 
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.isPrivate).toBe(false);
+      const result = await generateReadTokens({
+        containerName: "",
+        resourceType: "file",
+        resourceNames: ["test.jpg"],
+      });
+
+      expect(Result.isError(result)).toBe(true);
+      if (Result.isError(result)) {
+        expect(result.message).toBe("A container name is not provided");
+      }
     });
 
-    it("should use default sasReadExpiryMinutes (15) when not set", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      delete process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES;
+    it("should return validation error when resourceType is not provided", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      vi.resetModules();
 
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: undefined as unknown as "file",
+        resourceNames: ["test.jpg"],
+      });
+
+      expect(Result.isError(result)).toBe(true);
+      if (Result.isError(result)) {
+        expect(result.message).toBe("A resource type is not provided");
+      }
     });
 
-    it("should parse valid sasReadExpiryMinutes from environment", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+    it("should return validation error when resourceNames are missing for file type", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      vi.resetModules();
+
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "file",
+        resourceNames: [],
+      });
+
+      expect(Result.isError(result)).toBe(true);
+      if (Result.isError(result)) {
+        expect(result.message).toBe(
+          "Resource names are required for file or directory resource types",
+        );
+      }
+    });
+
+    it("should generate container-level token", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      vi.resetModules();
+
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "container",
+      });
+
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(result.value.readTokens.container).toBe(mockSasToken);
+        expect(result.value.readTokens).toHaveProperty("container");
+        expect(Object.keys(result.value.readTokens)).toHaveLength(1);
+        expect(result.value.expiresOn).toBeInstanceOf(Date);
+        expect(result.value.generatedAt).toBeInstanceOf(Date);
+      }
+
+      expect(generateBlobSASQueryParameters).toHaveBeenCalledWith(
+        expect.objectContaining({
+          containerName: mockContainerName,
+          permissions: expect.anything(),
+          startsOn: expect.any(Date),
+          expiresOn: expect.any(Date),
+          protocol: expect.anything(),
+        }),
+        expect.anything(),
+      );
+    });
+
+    it("should generate blob-level tokens for multiple files", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      vi.resetModules();
+
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const resourceNames = ["file1.jpg", "file2.png", "file3.pdf"];
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "file",
+        resourceNames,
+      });
+
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(Object.keys(result.value.readTokens)).toHaveLength(3);
+        resourceNames.forEach((name) => {
+          expect(result.value.readTokens[name]).toBe(mockSasToken);
+        });
+        expect(result.value.expiresOn).toBeInstanceOf(Date);
+        expect(result.value.generatedAt).toBeInstanceOf(Date);
+      }
+
+      expect(generateBlobSASQueryParameters).toHaveBeenCalledTimes(3);
+      resourceNames.forEach((name) => {
+        expect(generateBlobSASQueryParameters).toHaveBeenCalledWith(
+          expect.objectContaining({
+            containerName: mockContainerName,
+            blobName: name,
+            permissions: expect.anything(),
+            startsOn: expect.any(Date),
+            expiresOn: expect.any(Date),
+            protocol: expect.anything(),
+          }),
+          expect.anything(),
+        );
+      });
+    });
+
+    it("should use custom expiresInMinutes when provided", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      vi.resetModules();
+
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      const customExpiryMinutes = 60;
+      const beforeCall = Date.now();
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "container",
+        expiresInMinutes: customExpiryMinutes,
+      });
+      const afterCall = Date.now();
+
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        const expectedExpiry = beforeCall + customExpiryMinutes * 60 * 1000;
+        const actualExpiry = result.value.expiresOn.getTime();
+        expect(actualExpiry).toBeGreaterThanOrEqual(expectedExpiry - 1000);
+        expect(actualExpiry).toBeLessThanOrEqual(
+          afterCall + customExpiryMinutes * 60 * 1000,
+        );
+      }
+    });
+
+    it("should use default expiresInMinutes when not provided", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
+      vi.resetModules();
 
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(30);
+      const beforeCall = Date.now();
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "container",
+      });
+      const afterCall = Date.now();
+
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        const expectedExpiry = beforeCall + 30 * 60 * 1000;
+        const actualExpiry = result.value.expiresOn.getTime();
+        expect(actualExpiry).toBeGreaterThanOrEqual(expectedExpiry - 1000);
+        expect(actualExpiry).toBeLessThanOrEqual(afterCall + 30 * 60 * 1000);
+      }
     });
 
-    it("should use default sasReadExpiryMinutes when value is NaN", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "invalid";
+    it("should handle errors gracefully", async () => {
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      vi.resetModules();
 
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
+      const error = new Error("SAS generation failed");
+      vi.mocked(generateBlobSASQueryParameters).mockImplementation(() => {
+        throw error;
+      });
 
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
-    });
+      const { generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
-    it("should use default sasReadExpiryMinutes when value is zero", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "0";
+      const result = await generateReadTokens({
+        containerName: mockContainerName,
+        resourceType: "container",
+      });
 
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
-    });
-
-    it("should use default sasReadExpiryMinutes when value is negative", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "-5";
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(15);
-    });
-
-    it("should parse valid positive sasReadExpiryMinutes", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "60";
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.STORAGE_SERVICE_CONFIG.sasReadExpiryMinutes).toBe(60);
+      expect(Result.isError(result)).toBe(true);
+      if (Result.isError(result)) {
+        expect(result.message).toBe(
+          "Unexpected error generating Read SAS Tokens",
+        );
+      }
     });
   });
 
@@ -717,111 +818,6 @@ describe("StorageService", () => {
 
       // Assert - BlobServiceClient should only be instantiated once
       expect(BlobServiceClient).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("isEnabled", () => {
-    // Create a fresh import for each test
-    let storageServiceModule: typeof import("../../infrastructure/storage-service");
-
-    beforeEach(async () => {
-      storageServiceModule = await import(
-        "../../infrastructure/storage-service"
-      );
-      vi.resetModules();
-      vi.clearAllMocks();
-    });
-
-    it("should return true when config is enabled", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      storageServiceModule = await import(
-        "../../infrastructure/storage-service"
-      );
-
-      // Act & Assert
-      expect(storageServiceModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(true);
-    });
-
-    it("should return false when config is disabled", async () => {
-      // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-
-      storageServiceModule = await import(
-        "../../infrastructure/storage-service"
-      );
-
-      // Act & Assert
-      expect(storageServiceModule.STORAGE_SERVICE_CONFIG.isEnabled).toBe(false);
-    });
-  });
-
-  describe("CONTAINER_NAMES", () => {
-    const originalEnv = { ...process.env };
-
-    beforeEach(() => {
-      vi.resetModules();
-      vi.clearAllMocks();
-      process.env = { ...originalEnv };
-    });
-
-    it("should use default USER_FILES container name when not set", async () => {
-      // Arrange
-      delete process.env.USER_FILES_STORAGE_CONTAINER_NAME;
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe("user-files");
-    });
-
-    it("should use custom USER_FILES container name when set", async () => {
-      // Arrange
-      process.env.USER_FILES_STORAGE_CONTAINER_NAME = "custom-user-files";
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe("custom-user-files");
-    });
-
-    it("should use default CONTENT container name when not set", async () => {
-      // Arrange
-      delete process.env.CONTENT_STORAGE_CONTAINER_NAME;
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.CONTAINER_NAMES.CONTENT).toBe("content");
-    });
-
-    it("should use custom CONTENT container name when set", async () => {
-      // Arrange
-      process.env.CONTENT_STORAGE_CONTAINER_NAME = "custom-content";
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.CONTAINER_NAMES.CONTENT).toBe("custom-content");
-    });
-
-    it("should use both custom container names when both are set", async () => {
-      // Arrange
-      process.env.USER_FILES_STORAGE_CONTAINER_NAME = "my-user-files";
-      process.env.CONTENT_STORAGE_CONTAINER_NAME = "my-content";
-
-      // Act
-      const configModule = await import("../../infrastructure/storage-service");
-
-      // Assert
-      expect(configModule.CONTAINER_NAMES.USER_FILES).toBe("my-user-files");
-      expect(configModule.CONTAINER_NAMES.CONTENT).toBe("my-content");
     });
   });
 });
