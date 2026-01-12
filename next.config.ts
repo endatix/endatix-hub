@@ -3,7 +3,7 @@ import {
   getRewriteRuleFor,
   includesRemoteImageHostnames,
 } from "./lib/hosting/next-config-helper";
-import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
+import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-config";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
 

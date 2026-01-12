@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
-import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
+import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-config";
 import nextConfig from "@/next.config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

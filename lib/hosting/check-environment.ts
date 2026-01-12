@@ -10,7 +10,7 @@ import {
   DEFAULT_COOKIE_NAME,
 } from "@/features/public-form/infrastructure/cookie-store";
 import styles from "../utils/console-styles";
-import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-service";
+import { STORAGE_SERVICE_CONFIG } from "@/features/storage/infrastructure/storage-config";
 
 type EnvConfig = {
   name: string;
