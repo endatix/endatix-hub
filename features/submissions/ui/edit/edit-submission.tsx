@@ -5,12 +5,13 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import { Submission } from "@/lib/endatix-api";
+import { parseTokenExpiry } from "@/lib/utils";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { ActiveDefinition } from "@/types";
 import { Info } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   DynamicPanelItemValueChangedEvent,
   MatrixCellValueChangedEvent,
@@ -21,7 +22,7 @@ import {
 import EditSubmissionAlertDialog from "./edit-submission-alert-dialog";
 import EditSubmissionHeader from "./edit-submission-header";
 
-const EditSurveyWrapper = dynamic(() => import("./edit-survey-wrapper"), {
+const SubmissionSurvey = dynamic(() => import("../shared/submission-survey"), {
   ssr: false,
 });
 
@@ -43,18 +44,56 @@ interface EditSubmissionProps {
 
 function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
   const isPublicMode = token !== undefined;
-  const submissionData: Record<string, unknown> = useMemo(() => {
+  const [submissionData, setSubmissionData] = useState<Record<string, unknown>>(() => {
     try {
       return JSON.parse(submission.jsonData);
     } catch {
       return {};
     }
-  }, [submission.jsonData]);
+  });
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [changes, setChanges] = useState<Record<string, Question>>({});
   const [surveyModel, setSurveyModel] = useState<SurveyModel | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
+  const shownWarningsRef = useRef<Set<number>>(new Set());
   const router = useRouter();
+
+  // Track token expiry for public mode
+  useEffect(() => {
+    if (!isPublicMode || !token) return;
+
+    const expiryTime = parseTokenExpiry(token);
+    if (!expiryTime) return;
+
+    const updateTimeRemaining = () => {
+      const now = Date.now();
+      const remaining = expiryTime - now;
+      const minutes = Math.floor(remaining / 60000);
+
+      setMinutesRemaining(minutes);
+
+      // Show toast warnings at thresholds
+      if (minutes === 30 && !shownWarningsRef.current.has(30)) {
+        toast.warning("Your edit access will expire in 30 minutes. Please save your changes soon.");
+        shownWarningsRef.current.add(30);
+      } else if (minutes === 10 && !shownWarningsRef.current.has(10)) {
+        toast.warning("Your edit access will expire in 10 minutes. Save your changes!");
+        shownWarningsRef.current.add(10);
+      } else if (minutes === 5 && !shownWarningsRef.current.has(5)) {
+        toast.error("Your access expires in 5 minutes! Save now or your changes may be lost.");
+        shownWarningsRef.current.add(5);
+      }
+    };
+
+    // Initial check
+    updateTimeRemaining();
+
+    // Check every 30 seconds
+    const interval = setInterval(updateTimeRemaining, 30000);
+
+    return () => clearInterval(interval);
+  }, [isPublicMode, token]);
 
   const onSubmissionChange = useCallback(
     (
@@ -98,6 +137,7 @@ function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
             toast.success("Changes saved");
             setSaveDialogOpen(false);
             setChanges({});
+            setSubmissionData(surveyModel.data);
           } else {
             await editSubmissionUseCase(submission.formId, submission.id, {
               jsonData: JSON.stringify(surveyModel.data),
@@ -129,6 +169,7 @@ function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
       submission.formId,
       submission.id,
       surveyModel?.data,
+      setSubmissionData,
     ],
   );
 
@@ -157,8 +198,10 @@ function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
         onDiscardClick={handleDiscard}
         hasChanges={Object.keys(changes).length > 0}
         isSaving={isPending}
+        isPublicMode={isPublicMode}
+        minutesRemaining={minutesRemaining}
       />
-      <EditSurveyWrapper
+      <SubmissionSurvey
         submission={submission}
         onChange={onSubmissionChange}
         customQuestions={
@@ -166,6 +209,7 @@ function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
             ? (submission.formDefinition as ActiveDefinition)?.customQuestions
             : undefined
         }
+        readOnly={false}
       />
       <div className="h-8 text-muted-foreground flex flex-row justify-center items-center gap-2">
         <Info className="h-4 w-4" />
