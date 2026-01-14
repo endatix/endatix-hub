@@ -6,11 +6,20 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { ApiResult, isNotFoundError, isValidationError } from "@/lib/endatix-api";
+import {
+  getContainerNames,
+} from "@/features/storage/infrastructure/storage-config";
+import { generateReadTokensAction } from "@/features/storage/use-cases/generate-read-tokens";
+import {
+  ApiResult,
+  isNotFoundError,
+  isValidationError,
+} from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
+import { Suspense } from "react";
 
 type ShareSurveyPage = {
   params: Promise<{ formId: string }>;
@@ -23,12 +32,22 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
 
+  const containerNames = getContainerNames();
+  const userFilesTokenPromise = generateReadTokensAction(
+    containerNames.USER_FILES,
+  );
+  const contentTokenPromise = generateReadTokensAction(containerNames.CONTENT);
+
   const [submissionResult, activeDefinitionResult] = await Promise.all([
     getPartialSubmissionUseCase({ formId, tokenStore, urlToken }),
     getActiveDefinitionUseCase({ formId }),
   ]);
 
-  if ((isNotFoundError(submissionResult) || isValidationError(submissionResult)) && urlToken) {
+  if (
+    (isNotFoundError(submissionResult) ||
+      isValidationError(submissionResult)) &&
+    urlToken
+  ) {
     notFound();
   }
 
@@ -63,15 +82,21 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
           <ReCaptchaStyleFix />
         </>
       )}
-      <SurveyJsWrapper
-        formId={formId}
-        definition={activeDefinition.jsonData}
-        submission={submission}
-        theme={activeDefinition.themeModel}
-        customQuestions={activeDefinition.customQuestions}
-        requiresReCaptcha={activeDefinition.requiresReCaptcha}
-        urlToken={urlToken}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <SurveyJsWrapper
+          formId={formId}
+          definition={activeDefinition.jsonData}
+          submission={submission}
+          theme={activeDefinition.themeModel}
+          customQuestions={activeDefinition.customQuestions}
+          requiresReCaptcha={activeDefinition.requiresReCaptcha}
+          urlToken={urlToken}
+          readTokenPromises={{
+            userFiles: userFilesTokenPromise,
+            content: contentTokenPromise,
+          }}
+        />
+      </Suspense>
     </div>
   );
 }

@@ -32,6 +32,8 @@ import { SubmissionData } from "@/features/submissions/types";
 import { LanguageSelector } from "./language-selector";
 import "survey-core/survey.i18n";
 import { useRichText } from "@/lib/survey-features/rich-text";
+import { ReadTokensResult } from "@/features/storage/use-cases/generate-read-tokens";
+import "@/lib/survey-features/file-preview/private-file-preview";
 
 interface SurveyComponentProps {
   definition: string;
@@ -42,6 +44,10 @@ interface SurveyComponentProps {
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
   urlToken?: string;
+  readTokenPromises?: {
+    userFiles: Promise<ReadTokensResult>;
+    content: Promise<ReadTokensResult>;
+  };
 }
 
 type PartialUpdateEvent =
@@ -59,29 +65,35 @@ export default function SurveyComponent({
   requiresReCaptcha,
   isEmbed = false,
   urlToken,
+  readTokenPromises,
 }: SurveyComponentProps) {
   const { surveyModel } = useSurveyModel(
     definition,
     submission,
     customQuestions,
+    readTokenPromises
   );
-  const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId, urlToken);
+  const { enqueueSubmission, clearQueue } = useSubmissionQueue(
+    formId,
+    urlToken,
+  );
   const [isSubmitting, startSubmitting] = useTransition();
   const [submissionId, setSubmissionId] = useState<string>(
     submission?.id ?? "",
   );
+  useBlobStorage({
+    formId,
+    submissionId,
+    surveyModel,
+    onSubmissionIdChange: setSubmissionId,
+    readTokenPromises,
+  });
   useSurveyTheme(theme, surveyModel);
   useRichText(surveyModel);
   useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
 
-  useBlobStorage({
-    formId,
-    submissionId,
-    surveyModel,
-    onSubmissionIdChange: setSubmissionId,
-  });
 
   useEffect(() => {
     if (submission?.id) {
@@ -91,18 +103,22 @@ export default function SurveyComponent({
 
   const sendEmbedMessage = useCallback(
     (type: string, data?: Record<string, unknown>) => {
-      if (isEmbed && typeof window !== "undefined" && window.parent !== window) {
+      if (
+        isEmbed &&
+        typeof window !== "undefined" &&
+        window.parent !== window
+      ) {
         window.parent.postMessage(
           {
             type: `endatix-${type}`,
             formId,
             ...data,
           },
-          "*"
+          "*",
         );
       }
     },
-    [isEmbed, formId]
+    [isEmbed, formId],
   );
 
   useEffect(() => {
@@ -173,7 +189,6 @@ export default function SurveyComponent({
       if (isSubmitting || submissionUpdateGuard.current) {
         return;
       }
-
 
       // Set guard flag to prevent multiple submissions
       submissionUpdateGuard.current = true;

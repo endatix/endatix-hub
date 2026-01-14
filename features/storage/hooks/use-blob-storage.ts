@@ -1,12 +1,23 @@
-import { useCallback, useEffect, useMemo } from "react";
-import { ClearFilesEvent, SurveyModel, UploadFilesEvent } from "survey-core";
+import { use, useCallback, useEffect, useMemo } from "react";
+import {
+  ClearFilesEvent,
+  DownloadFileEvent,
+  SurveyModel,
+  UploadFilesEvent,
+} from "survey-core";
 import { BlockBlobClient } from "@azure/storage-blob";
+import { ReadTokensResult } from "../use-cases/generate-read-tokens";
+import { Result } from "@/lib/result";
 
 interface UseBlobStorageProps {
   formId: string;
   submissionId?: string;
   surveyModel: SurveyModel | null;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
+  readTokenPromises?: {
+    userFiles: Promise<ReadTokensResult>;
+    content: Promise<ReadTokensResult>;
+  };
 }
 
 interface UploadFilesToBlobProps extends UseBlobStorageProps {
@@ -107,11 +118,13 @@ const uploadToBlob = async (
           },
         });
 
+        const [url] = sasResult.url.split("?");
+
         return {
           success: true,
           data: {
             file: file,
-            content: sasResult.url.split("?")[0],
+            content: url,
           },
         };
       } catch (error) {
@@ -188,6 +201,7 @@ const uploadToServer = async (
       return {
         file: file,
         content: remoteFile?.url,
+        token: remoteFile?.token,
       };
     });
 
@@ -204,7 +218,19 @@ export function useBlobStorage({
   submissionId = "",
   onSubmissionIdChange,
   surveyModel,
+  readTokenPromises,
 }: UseBlobStorageProps) {
+  const userFilesTokenResult = use(
+    readTokenPromises?.userFiles ??
+      Promise.resolve(
+        Result.success({
+          token: "",
+          hostName: "",
+          expiresOn: new Date(),
+          generatedAt: new Date(),
+        }),
+      ),
+  );
   /**
    * Groups files by upload strategy.
    * Images below LARGE_FILE_THRESHOLD are flagged for resize;
@@ -358,14 +384,43 @@ export function useBlobStorage({
     [formId, submissionId],
   );
 
+  const downloadFile = useCallback(
+    async (_: SurveyModel, options: DownloadFileEvent) => {
+      const userFilesToken = Result.isSuccess(userFilesTokenResult)
+        ? userFilesTokenResult.value.token
+        : "";
+      if (userFilesToken) {
+        fetch(`${options.content}?${userFilesToken}`)
+          .then((response) => response.blob())
+          .then((blob) => {
+            const file = new File([blob], options.fileValue.name, {
+              type: options.fileValue.type,
+            });
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              options.callback("success", e?.target?.result ?? "");
+            };
+            reader.readAsDataURL(file);
+          })
+          .catch((error) => {
+            console.error("Error: ", error);
+            options.callback("error");
+          });
+      }
+    },
+    [userFilesTokenResult],
+  );
+
   useEffect(() => {
     surveyModel?.onUploadFiles.add(uploadFiles);
     surveyModel?.onClearFiles.add(deleteFiles);
+    surveyModel?.onDownloadFile.add(downloadFile);
     return () => {
       surveyModel?.onUploadFiles.remove(uploadFiles);
       surveyModel?.onClearFiles.remove(deleteFiles);
+      surveyModel?.onDownloadFile.remove(downloadFile);
     };
-  }, [surveyModel, uploadFiles, deleteFiles]);
+  }, [surveyModel, uploadFiles, deleteFiles, downloadFile]);
 
   return { uploadFiles, deleteFiles };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadTokensResult } from '@/features/storage/use-cases/generate-read-tokens';
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -21,6 +22,10 @@ export interface SurveyJsWrapperProps {
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
   urlToken?: string;
+  readTokenPromises?: {
+    userFiles: Promise<ReadTokensResult>;
+    content: Promise<ReadTokensResult>;
+  };
 }
 
 const SurveyJsWrapper = ({
@@ -32,6 +37,7 @@ const SurveyJsWrapper = ({
   requiresReCaptcha,
   isEmbed = false,
   urlToken,
+  readTokenPromises,
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent
@@ -43,6 +49,7 @@ const SurveyJsWrapper = ({
       requiresReCaptcha={requiresReCaptcha}
       isEmbed={isEmbed}
       urlToken={urlToken}
+      readTokenPromises={readTokenPromises}
     />
   );
 };
