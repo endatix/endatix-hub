@@ -2,8 +2,13 @@
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
+import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
+import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
+import { useRichText } from "@/lib/survey-features/rich-text";
+import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import {
   useCallback,
   useEffect,
@@ -21,17 +26,13 @@ import {
   ValueChangedEvent,
 } from "survey-core";
 import "survey-core/survey-core.css";
+import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
-import { useSurveyModel } from "./use-survey-model.hook";
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
-import { useSurveyTheme } from "./use-survey-theme.hook";
-import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
-import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
-import { SubmissionData } from "@/features/submissions/types";
 import { LanguageSelector } from "./language-selector";
-import "survey-core/survey.i18n";
-import { useRichText } from "@/lib/survey-features/rich-text";
+import { useSurveyModel } from "./use-survey-model.hook";
+import { useSurveyTheme } from "./use-survey-theme.hook";
 
 interface SurveyComponentProps {
   definition: string;
@@ -72,6 +73,7 @@ export default function SurveyComponent({
   );
   useSurveyTheme(theme, surveyModel);
   useRichText(surveyModel);
+  useLoopAwareSummaryTable(surveyModel);
   useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
