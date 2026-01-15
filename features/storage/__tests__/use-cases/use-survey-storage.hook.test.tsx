@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyModel } from "survey-core";
 import { useSurveyStorage } from "@/features/storage/use-cases/use-survey-storage.hook";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/storage/types";
-import {
-  StorageConfigProvider,
-} from "@/features/storage/infrastructure/storage-config.context";
+import { StorageConfigProvider } from "@/features/storage/infrastructure/storage-config.context";
 import { StorageConfig } from "@/features/storage/infrastructure/storage-config-client";
 
 // Mock the hooks
@@ -15,18 +13,24 @@ const mockSetModelMetadata = vi.fn();
 const mockRegisterViewHandlers = vi.fn();
 const mockRegisterUploadHandlers = vi.fn();
 
-vi.mock("@/features/storage/use-cases/view-files/use-storage-view.hook", () => ({
-  useStorageView: () => ({
-    setModelMetadata: mockSetModelMetadata,
-    registerViewHandlers: mockRegisterViewHandlers,
+vi.mock(
+  "@/features/storage/use-cases/view-files/use-storage-view.hook",
+  () => ({
+    useStorageView: () => ({
+      setModelMetadata: mockSetModelMetadata,
+      registerViewHandlers: mockRegisterViewHandlers,
+    }),
   }),
-}));
+);
 
-vi.mock("@/features/storage/use-cases/upload-files/use-storage-upload.hook", () => ({
-  useStorageUpload: () => ({
-    registerUploadHandlers: mockRegisterUploadHandlers,
+vi.mock(
+  "@/features/storage/use-cases/upload-files/use-storage-upload.hook",
+  () => ({
+    useStorageUpload: () => ({
+      registerUploadHandlers: mockRegisterUploadHandlers,
+    }),
   }),
-}));
+);
 
 const createMockSurveyModel = (): SurveyModel => {
   return {
@@ -63,27 +67,39 @@ describe("useSurveyStorage", () => {
     mockRegisterUploadHandlers.mockReturnValue(() => {});
   });
 
-  const wrapper = (config: StorageConfig | null) => ({ children }: { children: React.ReactNode }) => { 
-    return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <StorageConfigProvider config={config}>
-        {children}
-      </StorageConfigProvider>
-    </Suspense>
-  );
+  const wrapper = (config: StorageConfig | null) => {
+    function TestStorageConfigWrapper({
+      children,
+    }: {
+      children: React.ReactNode;
+    }) {
+      return (
+        <Suspense fallback={<div>Loading...</div>}>
+          <StorageConfigProvider config={config}>
+            {children}
+          </StorageConfigProvider>
+        </Suspense>
+      );
+    }
+    return TestStorageConfigWrapper;
+  };
 
   it("should return registerStorageHandlers function immediately when readTokenPromises is not provided", () => {
     const model = createMockSurveyModel();
-    const { result } = renderHook(() => useSurveyStorage({
-      model,
-      formId: "test-form",
-    }), {
-      wrapper: wrapper(null),
-    });
+    const { result } = renderHook(
+      () =>
+        useSurveyStorage({
+          model,
+          formId: "test-form",
+        }),
+      {
+        wrapper: wrapper(null),
+      },
+    );
 
     expect(result.current.registerStorageHandlers).toBeDefined();
     expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-    
+
     const unregister = result.current.registerStorageHandlers(model);
     expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
     expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
@@ -105,17 +121,21 @@ describe("useSurveyStorage", () => {
       };
 
       const model = createMockSurveyModel();
-      const { result } = renderHook(() => useSurveyStorage({
-        model,
-        formId: "test-form",
-        readTokenPromises,
-      }), {
-        wrapper: wrapper(disabledConfig),
-      });
+      const { result } = renderHook(
+        () =>
+          useSurveyStorage({
+            model,
+            formId: "test-form",
+            readTokenPromises,
+          }),
+        {
+          wrapper: wrapper(disabledConfig),
+        },
+      );
 
       expect(result.current.registerStorageHandlers).toBeDefined();
       expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-      
+
       const unregister = result.current.registerStorageHandlers(model);
       expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
       expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
@@ -134,16 +154,20 @@ describe("useSurveyStorage", () => {
       };
 
       const model = createMockSurveyModel();
-      const { result } = renderHook(() => useSurveyStorage({
-        model,
-        formId: "test-form",
-        readTokenPromises,
-      }), {
-        wrapper: wrapper(publicConfig),
-      });
+      const { result } = renderHook(
+        () =>
+          useSurveyStorage({
+            model,
+            formId: "test-form",
+            readTokenPromises,
+          }),
+        {
+          wrapper: wrapper(publicConfig),
+        },
+      );
 
       expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-      
+
       const unregister = result.current.registerStorageHandlers(model);
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
       expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
@@ -162,16 +186,20 @@ describe("useSurveyStorage", () => {
       };
 
       const model = createMockSurveyModel();
-      const { result } = renderHook(() => useSurveyStorage({
-        model,
-        formId: "test-form",
-        readTokenPromises,
-      }), {
-        wrapper: wrapper(privateConfig),
-      });
+      const { result } = renderHook(
+        () =>
+          useSurveyStorage({
+            model,
+            formId: "test-form",
+            readTokenPromises,
+          }),
+        {
+          wrapper: wrapper(privateConfig),
+        },
+      );
 
       expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-      
+
       const unregister = result.current.registerStorageHandlers(model);
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
       expect(mockRegisterViewHandlers).toHaveBeenCalledWith(model);
@@ -195,13 +223,17 @@ describe("useSurveyStorage", () => {
       mockRegisterUploadHandlers.mockReturnValue(unregisterUpload);
       mockRegisterViewHandlers.mockReturnValue(unregisterView);
 
-      const { result } = renderHook(() => useSurveyStorage({
-        model,
-        formId: "test-form",
-        readTokenPromises,
-      }), {
-        wrapper: wrapper(privateConfig),
-      });
+      const { result } = renderHook(
+        () =>
+          useSurveyStorage({
+            model,
+            formId: "test-form",
+            readTokenPromises,
+          }),
+        {
+          wrapper: wrapper(privateConfig),
+        },
+      );
 
       const unregister = result.current.registerStorageHandlers(model);
       unregister();
