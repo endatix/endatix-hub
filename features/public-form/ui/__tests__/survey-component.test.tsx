@@ -1,3 +1,4 @@
+import React from "react";
 import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SurveyComponent from "../survey-component";
@@ -47,9 +48,24 @@ vi.mock("@/features/analytics/posthog/client", () => ({
   captureException: vi.fn(),
 }));
 
-vi.mock("@/features/storage/hooks/use-blob-storage", () => ({
+vi.mock("@/features/storage/use-cases/upload-files/use-blob-storage", () => ({
   useBlobStorage: vi.fn(),
 }));
+
+vi.mock("@/features/storage/infrastructure/storage-config-context", () => ({
+  useStorageConfig: vi.fn(() => null),
+  StorageConfigProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
+vi.mock("@/features/storage/ui/survey-storage-decorator", () => ({
+  SurveyStorageDecorator: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="survey-storage-decorator">{children}</div>
+  ),
+}));
+
+vi.mock("@/features/storage/use-cases/view-files/ui/protected-file-preview", () => ({}));
 
 vi.mock("./use-survey-theme.hook", () => ({
   useSurveyTheme: vi.fn(),

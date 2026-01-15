@@ -22,6 +22,7 @@ import DotLoader from "@/components/loaders/dot-loader";
 import FormEditorContainer from "./form-editor-container";
 import { ICreatorOptions } from "survey-creator-core";
 import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
+import { ReadTokensResult } from "@/features/storage/use-cases/view-files";
 
 const CRITICAL_WIDTH = 600;
 
@@ -36,6 +37,10 @@ export interface FormEditorWithChatProps {
   onUnsavedChanges?: (hasChanges: boolean) => void;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
+  readTokenPromises?: {
+    userFiles: Promise<ReadTokensResult>;
+    content: Promise<ReadTokensResult>;
+  };
 }
 
 export default function FormEditorWithChat({
@@ -49,6 +54,7 @@ export default function FormEditorWithChat({
   onUnsavedChanges,
   onThemeModificationChange,
   onSaveHandlerReady,
+  readTokenPromises,
 }: FormEditorWithChatProps) {
   const chatPanelRef = useRef<ImperativePanelHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -141,6 +147,7 @@ export default function FormEditorWithChat({
               onPropertyGridControllerReady={(controller) => {
                 propertyGridControllerRef.current = controller;
               }}
+              readTokenPromises={readTokenPromises}
             />
           ) : null}
         </ResizablePanel>

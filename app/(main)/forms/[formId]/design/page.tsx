@@ -14,6 +14,9 @@ import { auth } from "@/auth";
 import { trackException } from "@/features/analytics/posthog/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
+import { generateReadTokensAction } from "@/features/storage/use-cases/view-files";
+import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
+import { StorageConfigProvider } from "@/features/storage/infrastructure";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -42,7 +45,7 @@ export default async function FormDesignerPage({ params }: Params) {
     await trackException(error, {
       operation: "load_form",
       form_id: formId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     formJson = null;
@@ -63,23 +66,34 @@ export default async function FormDesignerPage({ params }: Params) {
     );
   }
 
+  const storageConfig = createStorageConfigClient().config;
+  const readTokenPromises = {
+    userFiles: generateReadTokensAction(
+      storageConfig.containerNames.USER_FILES,
+    ),
+    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
+  };
+
   const props: FormDesignerWrapperProps = {
     formId: formId,
     formJson: formJson,
     formName: form.name,
     slkVal: process.env.NEXT_PUBLIC_SLK,
     themeId: form.themeId ?? undefined,
+    readTokenPromises,
   };
 
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <FormAssistantProvider
-          isAssistantEnabled={aiFeaturesEnabled}
-          getConversationPromise={chatContextPromise}
-        >
-          <FormDesignerWrapper {...props} />
-        </FormAssistantProvider>
+        <StorageConfigProvider config={storageConfig}>
+          <FormAssistantProvider
+            isAssistantEnabled={aiFeaturesEnabled}
+            getConversationPromise={chatContextPromise}
+          >
+            <FormDesignerWrapper {...props} />
+          </FormAssistantProvider>
+        </StorageConfigProvider>
       </div>
     </Suspense>
   );

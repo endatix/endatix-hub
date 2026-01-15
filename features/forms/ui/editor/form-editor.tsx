@@ -43,6 +43,8 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { useStorageView } from "@/features/storage/use-cases/view-files/use-storage-view.hook";
+import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -83,6 +85,8 @@ const invalidJsonErrorMessage =
 
 registerSurveyTheme(DefaultLight);
 
+import { ReadTokensResult } from "@/features/storage/use-cases/view-files";
+
 interface FormEditorProps {
   formId: string;
   formJson: object | null;
@@ -98,6 +102,10 @@ interface FormEditorProps {
   onPropertyGridControllerReady?: (
     controller: (visible: boolean) => void,
   ) => void;
+  readTokenPromises?: {
+    userFiles: Promise<ReadTokensResult>;
+    content: Promise<ReadTokensResult>;
+  };
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -131,10 +139,21 @@ function FormEditor({
   onThemeModificationChange,
   onSaveHandlerReady,
   onPropertyGridControllerReady,
+  readTokenPromises,
 }: FormEditorProps) {
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Call useTokenInjection. If promises are missing, it will handle it.
+  // Note: We only call this hook if promises are provided to avoid overhead.
+  const tokenInjection = useStorageView(
+    readTokenPromises ?? {
+      userFiles: Promise.resolve(Result.error("No promises")),
+      content: Promise.resolve(Result.error("No promises")),
+    },
+  );
+  
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
@@ -478,6 +497,11 @@ function FormEditor({
         newCreator.applyCreatorTheme(endatixTheme);
         newCreator.onUploadFile.add(handleUploadFile);
         newCreator.onSurveyInstanceCreated.add((_, options) => {
+          // Apply token injection to all survey instances (designer, property grid, preview)
+          if (tokenInjection.isPrivate) {
+            tokenInjection.injectTokens(options.survey);
+          }
+
           if (options.area === "property-grid") {
             const downloadSettingsCategory =
               options.survey.getPageByName("downloadSettings");

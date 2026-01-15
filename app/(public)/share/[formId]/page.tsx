@@ -6,10 +6,9 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import {
-  getContainerNames,
-} from "@/features/storage/infrastructure/storage-config";
-import { generateReadTokensAction } from "@/features/storage/use-cases/generate-read-tokens";
+import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
+import { StorageConfigProvider } from "@/features/storage/infrastructure";
+import { generateReadTokensAction } from "@/features/storage/use-cases/view-files";
 import {
   ApiResult,
   isNotFoundError,
@@ -32,11 +31,13 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
 
-  const containerNames = getContainerNames();
+  const storageConfig = createStorageConfigClient().config;
   const userFilesTokenPromise = generateReadTokensAction(
-    containerNames.USER_FILES,
+    storageConfig.containerNames.USER_FILES,
   );
-  const contentTokenPromise = generateReadTokensAction(containerNames.CONTENT);
+  const contentTokenPromise = generateReadTokensAction(
+    storageConfig.containerNames.CONTENT,
+  );
 
   const [submissionResult, activeDefinitionResult] = await Promise.all([
     getPartialSubmissionUseCase({ formId, tokenStore, urlToken }),
@@ -83,19 +84,21 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
         </>
       )}
       <Suspense fallback={<div>Loading...</div>}>
-        <SurveyJsWrapper
-          formId={formId}
-          definition={activeDefinition.jsonData}
-          submission={submission}
-          theme={activeDefinition.themeModel}
-          customQuestions={activeDefinition.customQuestions}
-          requiresReCaptcha={activeDefinition.requiresReCaptcha}
-          urlToken={urlToken}
-          readTokenPromises={{
-            userFiles: userFilesTokenPromise,
-            content: contentTokenPromise,
-          }}
-        />
+        <StorageConfigProvider config={storageConfig}>
+          <SurveyJsWrapper
+            formId={formId}
+            definition={activeDefinition.jsonData}
+            submission={submission}
+            theme={activeDefinition.themeModel}
+            customQuestions={activeDefinition.customQuestions}
+            requiresReCaptcha={activeDefinition.requiresReCaptcha}
+            urlToken={urlToken}
+            readTokenPromises={{
+              userFiles: userFilesTokenPromise,
+              content: contentTokenPromise,
+            }}
+          />
+        </StorageConfigProvider>
       </Suspense>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReadTokensResult } from '@/features/storage/use-cases/generate-read-tokens';
+import { ReadTokensResult } from '@/features/storage/use-cases/view-files';
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as storageService from "@/features/storage/infrastructure/storage-service";
 import * as storageConfig from "@/features/storage/infrastructure/storage-config";
 import { ErrorType, Result } from "@/lib/result";
-import { uploadContentFileUseCase } from "@/features/storage/use-cases/upload-content-file.use-case";
+import { uploadContentFileUseCase } from "@/features/storage/use-cases/upload-files/upload-content-file.use-case";
 import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
 
 // Mock entire modules
@@ -17,6 +17,10 @@ vi.mock("@/features/storage/infrastructure/storage-config", () => ({
     hostName: "mock-host-name",
     isPrivate: false,
     sasReadExpiryMinutes: 15,
+    containerNames: {
+      USER_FILES: "user-files",
+      CONTENT: "content",
+    },
   }),
   getContainerNames: vi.fn().mockReturnValue({
     USER_FILES: "user-files",
@@ -96,6 +100,10 @@ describe("uploadContentFileUseCase", () => {
       hostName: "mock-host-name",
       isPrivate: false,
       sasReadExpiryMinutes: 15,
+      containerNames: {
+        USER_FILES: "user-files",
+        CONTENT: "content",
+      },
     });
 
     // Act
@@ -126,6 +134,10 @@ describe("uploadContentFileUseCase", () => {
       hostName: "",
       isPrivate: false,
       sasReadExpiryMinutes: 15,
+      containerNames: {
+        USER_FILES: "user-files",
+        CONTENT: "content",
+      },
     });
 
     // Act
@@ -187,6 +199,10 @@ describe("uploadContentFileUseCase", () => {
       hostName: "mock-host-name",
       isPrivate: false,
       sasReadExpiryMinutes: 15,
+      containerNames: {
+        USER_FILES: "user-files",
+        CONTENT: "content",
+      },
     });
 
     // Act

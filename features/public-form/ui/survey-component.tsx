@@ -2,7 +2,6 @@
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
-import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import {
   useCallback,
@@ -32,8 +31,9 @@ import { SubmissionData } from "@/features/submissions/types";
 import { LanguageSelector } from "./language-selector";
 import "survey-core/survey.i18n";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import { ReadTokensResult } from "@/features/storage/use-cases/generate-read-tokens";
-import "@/lib/survey-features/file-preview/private-file-preview";
+import { ReadTokensResult } from "@/features/storage";
+import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
+import { SurveyStorageDecorator } from "@/features/storage/ui/survey-storage-decorator";
 
 interface SurveyComponentProps {
   definition: string;
@@ -71,7 +71,6 @@ export default function SurveyComponent({
     definition,
     submission,
     customQuestions,
-    readTokenPromises
   );
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(
     formId,
@@ -81,19 +80,11 @@ export default function SurveyComponent({
   const [submissionId, setSubmissionId] = useState<string>(
     submission?.id ?? "",
   );
-  useBlobStorage({
-    formId,
-    submissionId,
-    surveyModel,
-    onSubmissionIdChange: setSubmissionId,
-    readTokenPromises,
-  });
   useSurveyTheme(theme, surveyModel);
   useRichText(surveyModel);
   useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
-
 
   useEffect(() => {
     if (submission?.id) {
@@ -249,6 +240,7 @@ export default function SurveyComponent({
       requiresReCaptcha,
       sendEmbedMessage,
       surveyLocales.length,
+      urlToken,
     ],
   );
 
@@ -282,7 +274,15 @@ export default function SurveyComponent({
         availableLocales={surveyLocales}
         surveyModel={surveyModel}
       />
-      <Survey model={surveyModel} />
+      <SurveyStorageDecorator
+        model={surveyModel}
+        readTokenPromises={readTokenPromises}
+        formId={formId}
+        submissionId={submissionId}
+        onSubmissionIdChange={setSubmissionId}
+      >
+        <Survey model={surveyModel} />
+      </SurveyStorageDecorator>
     </>
   );
 }

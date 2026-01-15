@@ -4,7 +4,7 @@ import { ReactElementFactory, SurveyFilePreview } from "survey-react-ui";
 import { File } from "@/lib/questions/file/file-type";
 import { SurveyModelWithPrivateStorage } from '@/features/storage/types';
 
-export class PrivateFilePreview extends SurveyFilePreview {
+export class ProtectedFilePreview extends SurveyFilePreview {
   protected get question(): QuestionFileModel {
     return this.props.question;
   }
@@ -35,5 +35,5 @@ export class PrivateFilePreview extends SurveyFilePreview {
 }
 
 ReactElementFactory.Instance.registerElement("sv-file-preview", (props) => {
-  return React.createElement(PrivateFilePreview, props);
+  return React.createElement(ProtectedFilePreview, props);
 });

@@ -7,7 +7,14 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { ApiResult, isNotFoundError, isValidationError } from "@/lib/endatix-api";
+import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
+import { StorageConfigProvider } from "@/features/storage/infrastructure";
+import { generateReadTokensAction } from "@/features/storage/use-cases/view-files";
+import {
+  ApiResult,
+  isNotFoundError,
+  isValidationError,
+} from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -29,7 +36,11 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
     getActiveDefinitionUseCase({ formId }),
   ]);
 
-  if ((isNotFoundError(submissionResult) || isValidationError(submissionResult)) && urlToken) {
+  if (
+    (isNotFoundError(submissionResult) ||
+      isValidationError(submissionResult)) &&
+    urlToken
+  ) {
     notFound();
   }
 
@@ -46,6 +57,14 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
 
+  const storageConfig = createStorageConfigClient().config;
+  const userFilesTokenPromise = generateReadTokensAction(
+    storageConfig.containerNames.USER_FILES,
+  );
+  const contentTokenPromise = generateReadTokensAction(
+    storageConfig.containerNames.CONTENT,
+  );
+
   return (
     <div
       style={{
@@ -61,16 +80,22 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
 
       <EmbedHeightReporter />
 
-      <SurveyJsWrapper
-        formId={formId}
-        definition={activeDefinition.jsonData}
-        submission={submission}
-        theme={activeDefinition.themeModel}
-        customQuestions={activeDefinition.customQuestions}
-        requiresReCaptcha={activeDefinition.requiresReCaptcha}
-        isEmbed={true}
-        urlToken={urlToken}
-      />
+      <StorageConfigProvider config={storageConfig}>
+        <SurveyJsWrapper
+          formId={formId}
+          definition={activeDefinition.jsonData}
+          submission={submission}
+          theme={activeDefinition.themeModel}
+          customQuestions={activeDefinition.customQuestions}
+          requiresReCaptcha={activeDefinition.requiresReCaptcha}
+          isEmbed={true}
+          urlToken={urlToken}
+          readTokenPromises={{
+            userFiles: userFilesTokenPromise,
+            content: contentTokenPromise,
+          }}
+        />
+      </StorageConfigProvider>
     </div>
   );
 }

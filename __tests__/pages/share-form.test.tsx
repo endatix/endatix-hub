@@ -72,6 +72,37 @@ vi.mock("@/features/recaptcha/ui/recaptcha-style-fix", () => ({
   ReCaptchaStyleFix: () => <div data-testid="recaptcha-style-fix" />,
 }));
 
+// Mock storage config
+vi.mock("@/features/storage/infrastructure/storage-config", () => ({
+  createStorageConfigClient: vi.fn().mockReturnValue({
+    config: {
+      isEnabled: true,
+      isPrivate: false,
+      hostName: "mock-host-name",
+      containerNames: {
+        USER_FILES: "user-files",
+        CONTENT: "content",
+      },
+    },
+  }),
+}));
+
+// Mock view files action
+vi.mock("@/features/storage/use-cases/view-files", () => ({
+  generateReadTokensAction: vi.fn().mockResolvedValue({
+    kind: 0, // Kind.Success (enum value)
+    value: {
+      token: "mock-token",
+      hostName: "mock-host-name",
+      expiresOn: new Date(),
+      generatedAt: new Date(),
+      isPrivate: false,
+    },
+  }),
+}));
+
+
+
 // Mock SurveyJsWrapper
 vi.mock("@/features/public-form/ui/survey-js-wrapper", () => ({
   default: ({

@@ -4,16 +4,13 @@ import { Result } from "@/lib/result";
 import { generateReadTokens } from "../../infrastructure/storage-service";
 import { getStorageConfig } from "../../infrastructure/storage-config";
 import { auth } from "@/auth";
+import { ContainerReadToken, ReadTokensResult } from "../../types";
 
-interface ContainerReadToken {
-  token: string;
-  hostName: string;
-  expiresOn: Date;
-  generatedAt: Date;
-}
-
-export type ReadTokensResult = Result<ContainerReadToken>;
-
+/**
+ * Generates a read token for a container
+ * @param containerName - The name of the container
+ * @returns A result containing the read token and expiration information
+ */
 export async function generateReadTokensAction(
   containerName: string,
 ): Promise<ReadTokensResult> {
@@ -24,17 +21,12 @@ export async function generateReadTokensAction(
   }
 
   if (!storageConfig.isPrivate) {
-    return Result.success<ContainerReadToken>({
-      token: "",
-      hostName: storageConfig.hostName,
-      expiresOn: new Date(),
-      generatedAt: new Date(),
-    });
+    return Result.success(emptyReadToken(containerName));
   }
 
   const session = await auth();
   if (!session?.user || session.error) {
-    return Result.error("You are not authenticated");
+    return Result.success(emptyReadToken(containerName));
   }
 
   if (!containerName) {
@@ -52,10 +44,19 @@ export async function generateReadTokensAction(
   }
 
   const readToken = readTokensResult.value.readTokens["container"];
-  return Result.success<ContainerReadToken>({
+  return Result.success({
     token: readToken,
-    hostName: storageConfig.hostName,
     expiresOn: readTokensResult.value.expiresOn,
     generatedAt: readTokensResult.value.generatedAt,
+    containerName,
   });
+}
+
+function emptyReadToken(containerName: string): ContainerReadToken {
+  return {
+    token: null,
+    expiresOn: new Date(),
+    generatedAt: new Date(),
+    containerName: containerName,
+  };
 }

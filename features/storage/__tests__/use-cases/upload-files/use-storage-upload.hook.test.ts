@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
+import { useStorageUpload } from "@/features/storage/use-cases/upload-files/use-storage-upload.hook";
 import { SurveyModel, UploadFilesEvent, ClearFilesEvent } from "survey-core";
 import { BlockBlobClient } from "@azure/storage-blob";
+import { Result } from "@/lib/result";
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -12,7 +13,25 @@ vi.mock("@azure/storage-blob", () => ({
   BlockBlobClient: vi.fn(),
 }));
 
-describe("useBlobStorage", () => {
+const resolvedTokenResult = Result.success({
+  token: "",
+  isPrivate: false,
+  hostName: "test.blob.core.windows.net",
+  containerName: "user-files",
+  expiresOn: new Date(),
+  generatedAt: new Date(),
+});
+
+// Create promises that are already resolved
+// React's use hook should be able to read these without suspending
+const sharedResolvedPromise = Promise.resolve(resolvedTokenResult);
+
+const createDefaultReadTokenPromises = () => ({
+  userFiles: sharedResolvedPromise,
+  content: sharedResolvedPromise,
+});
+
+describe("useStorageUpload", () => {
   const mockFormId = "form-123";
   const mockSubmissionId = "submission-123";
   const mockOnSubmissionIdChange = vi.fn();
@@ -26,7 +45,20 @@ describe("useBlobStorage", () => {
       add: vi.fn(),
       remove: vi.fn(),
     },
+    onDownloadFile: {
+      add: vi.fn(),
+      remove: vi.fn(),
+    },
   } as unknown as SurveyModel;
+
+  const createHookProps = (
+    overrides?: Partial<Parameters<typeof useStorageUpload>[0]>,
+  ) => ({
+    formId: mockFormId,
+    surveyModel: mockSurveyModel,
+    readTokenPromises: createDefaultReadTokenPromises(),
+    ...overrides,
+  });
 
   const mockFile = new File(["test content"], "test.jpg", {
     type: "image/jpeg",
@@ -46,44 +78,66 @@ describe("useBlobStorage", () => {
   });
 
   describe("hook initialization", () => {
-    it("should initialize with default submissionId", () => {
-      const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          surveyModel: mockSurveyModel,
-        }),
-      );
+    it("should initialize with default submissionId", async () => {
+      const props = createHookProps();
+      let result: ReturnType<typeof renderHook>["result"];
 
-      expect(result.current.uploadFiles).toBeDefined();
-      expect(result.current.deleteFiles).toBeDefined();
+      // eslint-disable-next-line testing-library/no-unnecessary-act
+      await act(async () => {
+        const view = renderHook(() => useStorageUpload(props));
+        result = view.result;
+        // Await promises to ensure they're processed within act
+        await props.readTokenPromises.userFiles;
+        await props.readTokenPromises.content;
+        await Promise.resolve();
+      });
+
+      // The hook should return after the promise resolves
+      expect(result!.current).not.toBeNull();
+      const hookResult = result!.current as ReturnType<typeof useStorageUpload>;
+      expect(hookResult.registerUploadHandlers).toBeDefined();
+      expect(hookResult.uploadFiles).toBeDefined();
+      expect(hookResult.deleteFiles).toBeDefined();
     });
 
-    it("should register event handlers on surveyModel", () => {
-      renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-          onSubmissionIdChange: mockOnSubmissionIdChange,
-        }),
+    it("should provide registerUploadHandlers that adds event handlers on surveyModel", async () => {
+      const { result } = renderHook(() =>
+        useStorageUpload(
+          createHookProps({
+            submissionId: mockSubmissionId,
+            onSubmissionIdChange: mockOnSubmissionIdChange,
+          }),
+        ),
       );
+
+      await act(async () => {
+        result.current.registerUploadHandlers(mockSurveyModel);
+      });
 
       expect(mockSurveyModel.onUploadFiles.add).toHaveBeenCalledTimes(1);
       expect(mockSurveyModel.onClearFiles.add).toHaveBeenCalledTimes(1);
+      expect(mockSurveyModel.onDownloadFile.add).toHaveBeenCalledTimes(1);
     });
 
-    it("should clean up event handlers on unmount", () => {
-      const { unmount } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          surveyModel: mockSurveyModel,
-        }),
+    it("should return cleanup function from registerUploadHandlers", async () => {
+      const { result } = renderHook(() =>
+        useStorageUpload(createHookProps()),
       );
 
-      unmount();
+      let unregister: () => void = () => {};
+      await act(async () => {
+        unregister = result.current.registerUploadHandlers(mockSurveyModel);
+      });
+
+      expect(mockSurveyModel.onUploadFiles.add).toHaveBeenCalled();
+
+      await act(async () => {
+        unregister();
+      });
 
       expect(mockSurveyModel.onUploadFiles.remove).toHaveBeenCalledTimes(1);
       expect(mockSurveyModel.onClearFiles.remove).toHaveBeenCalledTimes(1);
+      expect(mockSurveyModel.onDownloadFile.remove).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -117,11 +171,9 @@ describe("useBlobStorage", () => {
 
     it("should upload small image files to server for resizing", async () => {
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -150,11 +202,9 @@ describe("useBlobStorage", () => {
       } as unknown as UploadFilesEvent;
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -210,11 +260,9 @@ describe("useBlobStorage", () => {
         });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -239,11 +287,9 @@ describe("useBlobStorage", () => {
       );
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -277,11 +323,9 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -338,11 +382,9 @@ describe("useBlobStorage", () => {
 
     it("should delete files successfully", async () => {
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -375,11 +417,9 @@ describe("useBlobStorage", () => {
       } as unknown as ClearFilesEvent;
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -398,11 +438,9 @@ describe("useBlobStorage", () => {
       } as unknown as ClearFilesEvent;
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -442,11 +480,9 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -467,11 +503,9 @@ describe("useBlobStorage", () => {
 
     it("should handle partial deletion success", async () => {
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -495,11 +529,9 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -515,11 +547,9 @@ describe("useBlobStorage", () => {
       );
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -542,11 +572,9 @@ describe("useBlobStorage", () => {
       } as unknown as ClearFilesEvent;
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -583,11 +611,9 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -628,11 +654,9 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -671,11 +695,9 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-        }),
+        useStorageUpload(
+          createHookProps({ submissionId: mockSubmissionId }),
+        ),
       );
 
       await act(async () => {
@@ -712,12 +734,12 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-          onSubmissionIdChange: mockOnSubmissionIdChange,
-        }),
+        useStorageUpload(
+          createHookProps({
+            submissionId: mockSubmissionId,
+            onSubmissionIdChange: mockOnSubmissionIdChange,
+          }),
+        ),
       );
 
       await act(async () => {
@@ -750,12 +772,12 @@ describe("useBlobStorage", () => {
       });
 
       const { result } = renderHook(() =>
-        useBlobStorage({
-          formId: mockFormId,
-          submissionId: mockSubmissionId,
-          surveyModel: mockSurveyModel,
-          onSubmissionIdChange: mockOnSubmissionIdChange,
-        }),
+        useStorageUpload(
+          createHookProps({
+            submissionId: mockSubmissionId,
+            onSubmissionIdChange: mockOnSubmissionIdChange,
+          }),
+        ),
       );
 
       await act(async () => {

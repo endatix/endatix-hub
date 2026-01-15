@@ -1,11 +1,11 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
-import { uploadToStorage } from "../infrastructure/storage-service";
-import { optimizeImageSize } from "../infrastructure/image-service";
+import { uploadToStorage } from "../../infrastructure/storage-service";
+import { optimizeImageSize } from "../../infrastructure/image-service";
 import {
   getContainerNames,
   getStorageConfig,
-} from "../infrastructure/storage-config";
+} from "../../infrastructure/storage-config";
 
 export type UploadContentFileCommand = {
   formId: string;

@@ -1,6 +1,13 @@
+import { StorageConfigClient } from "./storage-config-client";
+
 interface IStorageConfig {
   isEnabled: boolean;
   isPrivate: boolean;
+}
+
+export interface ContainerNames {
+  USER_FILES: string;
+  CONTENT: string;
 }
 
 export type AzureStorageConfig = IStorageConfig & {
@@ -8,12 +15,8 @@ export type AzureStorageConfig = IStorageConfig & {
   accountKey: string;
   hostName: string;
   sasReadExpiryMinutes: number;
+  containerNames: ContainerNames;
 };
-
-export interface ContainerNames {
-  USER_FILES: string;
-  CONTENT: string;
-}
 
 const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
 const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
@@ -53,6 +56,7 @@ export function getStorageConfig(): AzureStorageConfig {
     accountKey: AZURE_STORAGE_ACCOUNT_KEY || "",
     hostName,
     sasReadExpiryMinutes,
+    containerNames: getContainerNames(),
   });
 }
 
@@ -62,12 +66,36 @@ export function getStorageConfig(): AzureStorageConfig {
  * @returns The frozen container names object
  */
 export function getContainerNames(): ContainerNames {
+  const userFilesContainerName =
+    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
+    DEFAULT_USER_FILES_CONTAINER_NAME;
+  const contentContainerName =
+    process.env.CONTENT_STORAGE_CONTAINER_NAME ??
+    DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME;
+    
   return Object.freeze({
-    USER_FILES:
-      process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
-      DEFAULT_USER_FILES_CONTAINER_NAME,
-    CONTENT:
-      process.env.CONTENT_STORAGE_CONTAINER_NAME ??
-      DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME,
+    USER_FILES: userFilesContainerName.toLowerCase(),
+    CONTENT: contentContainerName.toLowerCase(),
+  });
+}
+
+/**
+ * Creates the combined client-safe storage configuration.
+ * This is intended to be called in Server Components only.
+ */
+export function createStorageConfigClient(): StorageConfigClient {
+  const serverConfig = getStorageConfig();
+  const containerNames = getContainerNames();
+
+  return Object.freeze({
+    config: {
+      isEnabled: serverConfig.isEnabled,
+      isPrivate: serverConfig.isPrivate,
+      hostName: serverConfig.hostName,
+      containerNames: {
+        USER_FILES: containerNames.USER_FILES,
+        CONTENT: containerNames.CONTENT,
+      },
+    },
   });
 }

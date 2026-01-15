@@ -14,16 +14,44 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
     }
   }
 >
-  <default
-    customQuestions={[]}
-    definition={
-      {
-        "title": "Test Form",
-      }
+  <React.Suspense
+    fallback={
+      <div>
+        Loading...
+      </div>
     }
-    formId="valid-id"
-    requiresReCaptcha={false}
-    theme={{}}
-  />
+  >
+    <StorageConfigProvider
+      config={
+        {
+          "containerNames": {
+            "CONTENT": "content",
+            "USER_FILES": "user-files",
+          },
+          "hostName": "mock-host-name",
+          "isEnabled": true,
+          "isPrivate": false,
+        }
+      }
+    >
+      <default
+        customQuestions={[]}
+        definition={
+          {
+            "title": "Test Form",
+          }
+        }
+        formId="valid-id"
+        readTokenPromises={
+          {
+            "content": Promise {},
+            "userFiles": Promise {},
+          }
+        }
+        requiresReCaptcha={false}
+        theme={{}}
+      />
+    </StorageConfigProvider>
+  </React.Suspense>
 </div>
 `;

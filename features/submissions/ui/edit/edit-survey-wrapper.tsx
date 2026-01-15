@@ -1,4 +1,3 @@
-import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { Submission } from "@/lib/endatix-api";
@@ -21,6 +20,9 @@ import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
 import { useRichText } from "@/lib/survey-features/rich-text";
+import { SurveyStorageDecorator } from "@/features/storage/ui/survey-storage-decorator";
+import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
+import { ReadTokensResult } from "@/features/storage";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -32,15 +34,16 @@ interface EditSurveyWrapperProps {
       | MatrixCellValueChangedEvent,
   ) => void;
   customQuestions?: string[];
+  readTokenPromises?: {
+    userFiles: Promise<ReadTokensResult>;
+    content: Promise<ReadTokensResult>;
+  };
 }
 
 registerAudioQuestion();
 addRandomizeGroupFeature();
 
-function useSurveyModel(
-  submission: Submission,
-  customQuestions?: string[],
-) {
+function useSurveyModel(submission: Submission, customQuestions?: string[]) {
   const modelRef = useRef<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -120,16 +123,12 @@ function EditSurveyWrapper({
   submission,
   onChange,
   customQuestions,
+  readTokenPromises,
 }: EditSurveyWrapperProps) {
   const { model, isLoading } = useSurveyModel(submission, customQuestions);
   const { setFromMetadata } = useDynamicVariables(model);
+  const [submissionId, setSubmissionId] = useState(submission.id);
   useRichText(model);
-
-  useBlobStorage({
-    formId: submission.formId,
-    submissionId: submission.id,
-    surveyModel: model,
-  });
 
   useEffect(() => {
     if (!model) {
@@ -162,7 +161,17 @@ function EditSurveyWrapper({
     return <div>Submission not found</div>;
   }
 
-  return <Survey model={model} />;
+  return (
+    <SurveyStorageDecorator
+      model={model}
+      readTokenPromises={readTokenPromises}
+      formId={submission.formId}
+      submissionId={submissionId}
+      onSubmissionIdChange={setSubmissionId}
+    >
+      <Survey model={model} />
+    </SurveyStorageDecorator>
+  );
 }
 
 export default EditSurveyWrapper;

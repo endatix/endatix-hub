@@ -1,4 +1,4 @@
-import { use, useCallback, useEffect, useMemo } from "react";
+import { use, useCallback, useMemo } from "react";
 import {
   ClearFilesEvent,
   DownloadFileEvent,
@@ -6,10 +6,10 @@ import {
   UploadFilesEvent,
 } from "survey-core";
 import { BlockBlobClient } from "@azure/storage-blob";
-import { ReadTokensResult } from "../use-cases/generate-read-tokens";
+import { ReadTokensResult } from "../../types";
 import { Result } from "@/lib/result";
 
-interface UseBlobStorageProps {
+interface UseStorageUploadProps {
   formId: string;
   submissionId?: string;
   surveyModel: SurveyModel | null;
@@ -20,12 +20,12 @@ interface UseBlobStorageProps {
   };
 }
 
-interface UploadFilesToBlobProps extends UseBlobStorageProps {
+interface UploadFilesToBlobProps extends UseStorageUploadProps {
   files: File[];
   options: UploadFilesEvent;
 }
 
-interface UploadFilesToServerProps extends UseBlobStorageProps {
+interface UploadFilesToServerProps extends UseStorageUploadProps {
   files: File[];
 }
 
@@ -213,18 +213,29 @@ const uploadToServer = async (
   }
 };
 
-export function useBlobStorage({
+/**
+ * Hook to upload files to storage.
+ * @param formId - The form ID.
+ * @param submissionId - The submission ID.
+ * @param onSubmissionIdChange - The function to call when the submission ID changes.
+ * @param surveyModel - The survey model.
+ * @param readTokenPromises - The read token promises.
+ * @returns The registerStorageHandlers function.
+ */
+export function useStorageUpload({
   formId,
   submissionId = "",
   onSubmissionIdChange,
   surveyModel,
   readTokenPromises,
-}: UseBlobStorageProps) {
+}: UseStorageUploadProps) {
   const userFilesTokenResult = use(
     readTokenPromises?.userFiles ??
       Promise.resolve(
         Result.success({
-          token: "",
+          token: null,
+          containerName: "",
+          isPrivate: false,
           hostName: "",
           expiresOn: new Date(),
           generatedAt: new Date(),
@@ -260,7 +271,7 @@ export function useBlobStorage({
     [],
   );
 
-  const uploadFiles = useCallback(
+  const onUploadFiles = useCallback(
     async (sender: SurveyModel, options: UploadFilesEvent) => {
       try {
         const { filesForUpload, filesForResize } = groupFilesByUploadStrategy(
@@ -307,7 +318,7 @@ export function useBlobStorage({
     ],
   );
 
-  const deleteFiles = useCallback(
+  const onClearFiles = useCallback(
     async (sender: SurveyModel, options: ClearFilesEvent) => {
       try {
         if (options.question?.storeDataAsText) {
@@ -384,43 +395,54 @@ export function useBlobStorage({
     [formId, submissionId],
   );
 
-  const downloadFile = useCallback(
+  const onDownloadFile = useCallback(
     async (_: SurveyModel, options: DownloadFileEvent) => {
       const userFilesToken = Result.isSuccess(userFilesTokenResult)
         ? userFilesTokenResult.value.token
         : "";
-      if (userFilesToken) {
-        fetch(`${options.content}?${userFilesToken}`)
-          .then((response) => response.blob())
-          .then((blob) => {
-            const file = new File([blob], options.fileValue.name, {
-              type: options.fileValue.type,
-            });
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              options.callback("success", e?.target?.result ?? "");
-            };
-            reader.readAsDataURL(file);
-          })
-          .catch((error) => {
-            console.error("Error: ", error);
-            options.callback("error");
+
+      const url = userFilesToken
+        ? `${options.content}?${userFilesToken}`
+        : options.content;
+
+      fetch(url)
+        .then((response) => response.blob())
+        .then((blob) => {
+          const file = new File([blob], options.fileValue.name, {
+            type: options.fileValue.type,
           });
-      }
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            options.callback("success", e?.target?.result ?? "");
+          };
+          reader.readAsDataURL(file);
+        })
+        .catch((error) => {
+          console.error("Error: ", error);
+          options.callback("error");
+        });
     },
     [userFilesTokenResult],
   );
 
-  useEffect(() => {
-    surveyModel?.onUploadFiles.add(uploadFiles);
-    surveyModel?.onClearFiles.add(deleteFiles);
-    surveyModel?.onDownloadFile.add(downloadFile);
-    return () => {
-      surveyModel?.onUploadFiles.remove(uploadFiles);
-      surveyModel?.onClearFiles.remove(deleteFiles);
-      surveyModel?.onDownloadFile.remove(downloadFile);
-    };
-  }, [surveyModel, uploadFiles, deleteFiles, downloadFile]);
+  const registerUploadHandlers = useCallback(
+    (model: SurveyModel) => {
+      model.onUploadFiles.add(onUploadFiles);
+      model.onClearFiles.add(onClearFiles);
+      model.onDownloadFile.add(onDownloadFile);
 
-  return { uploadFiles, deleteFiles };
+      return () => {
+        model.onUploadFiles.remove(onUploadFiles);
+        model.onClearFiles.remove(onClearFiles);
+        model.onDownloadFile.remove(onDownloadFile);
+      };
+    },
+    [onUploadFiles, onClearFiles, onDownloadFile],
+  );
+
+  return {
+    registerUploadHandlers,
+    uploadFiles: onUploadFiles,
+    deleteFiles: onClearFiles,
+  };
 }

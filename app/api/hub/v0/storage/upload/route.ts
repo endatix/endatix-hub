@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import {
   UploadContentFileCommand,
   uploadContentFileUseCase,
-} from "@/features/storage/use-cases/upload-content-file.use-case";
+} from "@/features/storage/use-cases/upload-files/upload-content-file.use-case";
 import { Result } from "@/lib/result";
 
 export async function POST(request: Request) {

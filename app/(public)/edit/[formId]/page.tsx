@@ -4,8 +4,14 @@ import { getSubmissionByTokenUseCase } from "@/features/public-submissions/edit/
 import { Result } from "@/lib/result";
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
-import { validateHexToken, validateEndatixId } from "@/lib/utils/type-validators";
+import {
+  validateHexToken,
+  validateEndatixId,
+} from "@/lib/utils/type-validators";
 import { getActiveFormDefinition } from "@/services/api";
+import { generateReadTokensAction } from "@/features/storage/use-cases/view-files";
+import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
+import { StorageConfigProvider } from "@/features/storage/infrastructure";
 
 type Params = {
   params: Promise<{
@@ -94,13 +100,24 @@ export default async function PublicEditSubmissionPage({
     );
   }
 
+  const storageConfig = createStorageConfigClient().config;
+  const readTokenPromises = {
+    userFiles: generateReadTokensAction(
+      storageConfig.containerNames.USER_FILES,
+    ),
+    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
+  };
+
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <EditSubmission
-        submission={submission}
-        formId={validateFormIdResult.value}
-        token={validateTokenResult.value}
-      />
+      <StorageConfigProvider config={storageConfig}>
+        <EditSubmission
+          submission={submission}
+          formId={validateFormIdResult.value}
+          token={validateTokenResult.value}
+          readTokenPromises={readTokenPromises}
+        />
+      </StorageConfigProvider>
     </Suspense>
   );
 }

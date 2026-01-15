@@ -8,6 +8,9 @@ import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import { generateReadTokensAction } from "@/features/storage/use-cases/view-files";
+import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
+import { StorageConfigProvider } from "@/features/storage/infrastructure";
 
 type Params = {
   params: Promise<{
@@ -49,9 +52,22 @@ export default async function EditSubmissionPage({ params }: Params) {
   }
   const submission = submissionResult.value;
 
+  const storageConfig = createStorageConfigClient().config;
+  const readTokenPromises = {
+    userFiles: generateReadTokensAction(
+      storageConfig.containerNames.USER_FILES,
+    ),
+    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
+  };
+
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <EditSubmission submission={submission} />
+      <StorageConfigProvider config={storageConfig}>
+        <EditSubmission
+          submission={submission}
+          readTokenPromises={readTokenPromises}
+        />
+      </StorageConfigProvider>
     </Suspense>
   );
 }
