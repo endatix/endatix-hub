@@ -1,45 +1,20 @@
-import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Result } from "@/lib/result";
 import { Submission } from "@/lib/endatix-api";
 import { useEffect, useRef, useState } from "react";
-import {
-  DynamicPanelItemValueChangedEvent,
-  MatrixCellValueChangedEvent,
-  ValueChangedEvent,
-} from "survey-core";
-import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
-import { Model, Survey, SurveyModel } from "survey-react-ui";
+import { Model } from "survey-react-ui";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
-import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
 import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
-import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
-import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
-import { useRichText } from "@/lib/survey-features/rich-text";
 
-interface EditSurveyWrapperProps {
-  submission: Submission;
-  onChange: (
-    sender: SurveyModel,
-    event:
-      | ValueChangedEvent
-      | DynamicPanelItemValueChangedEvent
-      | MatrixCellValueChangedEvent,
-  ) => void;
-  customQuestions?: string[];
-}
-
-registerAudioQuestion();
-addRandomizeGroupFeature();
-
-function useSurveyModel(
+export function useSurveyModel(
   submission: Submission,
   customQuestions?: string[],
+  readOnly: boolean = false,
 ) {
   const modelRef = useRef<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,6 +77,10 @@ function useSurveyModel(
 
         model.applyTheme(SharpLightPanelless);
 
+        if (readOnly) {
+          model.mode = "display";
+        }
+
         modelRef.current = model;
       } catch (error) {
         console.error("Error initializing survey model:", error);
@@ -115,54 +94,3 @@ function useSurveyModel(
 
   return { model: modelRef.current, isLoading };
 }
-
-function EditSurveyWrapper({
-  submission,
-  onChange,
-  customQuestions,
-}: EditSurveyWrapperProps) {
-  const { model, isLoading } = useSurveyModel(submission, customQuestions);
-  const { setFromMetadata } = useDynamicVariables(model);
-  useRichText(model);
-
-  useBlobStorage({
-    formId: submission.formId,
-    submissionId: submission.id,
-    surveyModel: model,
-  });
-
-  useEffect(() => {
-    if (!model) {
-      return;
-    }
-
-    setFromMetadata(submission.metadata);
-    model.onValueChanged.add(onChange);
-    model.onDynamicPanelValueChanged.add(onChange);
-    model.onMatrixCellValueChanged.add(onChange);
-    return () => {
-      model.onValueChanged.remove(onChange);
-      model.onDynamicPanelValueChanged.remove(onChange);
-      model.onMatrixCellValueChanged.remove(onChange);
-    };
-  }, [model, onChange, setFromMetadata, submission.metadata]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-muted-foreground">Loading submission...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!model) {
-    return <div>Submission not found</div>;
-  }
-
-  return <Survey model={model} />;
-}
-
-export default EditSurveyWrapper;

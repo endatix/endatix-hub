@@ -114,3 +114,42 @@ export function formatNumber(number: number, fallback: string = "-"): string {
     maximumFractionDigits: 1,
   }).format(number);
 }
+
+/**
+ * Token permission types for public submission access
+ */
+export const TokenPermission = {
+  Read: "r",
+  Write: "w",
+} as const;
+
+export type TokenPermissionValue = typeof TokenPermission[keyof typeof TokenPermission];
+
+/**
+ * Checks if an access token has a specific permission.
+ * Token format: {submissionId}.{expiryUnix}.{permissionsCode}.{signature}
+ * @param token - The access token string
+ * @param permission - The permission to check (TokenPermission.Read or TokenPermission.Write)
+ * @returns true if the token has the specified permission
+ */
+export function hasTokenPermission(token: string, permission: TokenPermissionValue): boolean {
+  const parts = token.split(".");
+  if (parts.length < 4) {
+    return false;
+  }
+  const permissionsCode = parts[2];
+  return permissionsCode.includes(permission);
+}
+
+/**
+ * Parses an access token to extract the expiry timestamp.
+ * Token format: {submissionId}.{expiryUnix}.{permissionsCode}.{signature}
+ * @param token - The access token string
+ * @returns The expiry time in milliseconds, or null if invalid
+ */
+export function parseTokenExpiry(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length < 4) return null;
+  const expiryUnix = parseInt(parts[1], 10);
+  return isNaN(expiryUnix) ? null : expiryUnix * 1000; // Convert to milliseconds
+}
