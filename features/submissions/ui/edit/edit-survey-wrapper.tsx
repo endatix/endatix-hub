@@ -20,9 +20,9 @@ import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import { SurveyStorageDecorator } from "@/features/storage/ui/survey-storage-decorator";
 import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
 import { ReadTokensResult } from "@/features/storage";
+import { useSurveyStorage } from "@/features/storage/use-cases/use-survey-storage.hook";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -130,21 +130,31 @@ function EditSurveyWrapper({
   const [submissionId, setSubmissionId] = useState(submission.id);
   useRichText(model);
 
+  const { registerStorageHandlers } = useSurveyStorage({
+    model: model,
+    formId: submission.formId,
+    submissionId,
+    onSubmissionIdChange: setSubmissionId,
+    readTokenPromises,
+  });
+
   useEffect(() => {
     if (!model) {
       return;
     }
 
+    const unregisterStorage = registerStorageHandlers(model);
     setFromMetadata(submission.metadata);
     model.onValueChanged.add(onChange);
     model.onDynamicPanelValueChanged.add(onChange);
     model.onMatrixCellValueChanged.add(onChange);
     return () => {
+      unregisterStorage();
       model.onValueChanged.remove(onChange);
       model.onDynamicPanelValueChanged.remove(onChange);
       model.onMatrixCellValueChanged.remove(onChange);
     };
-  }, [model, onChange, setFromMetadata, submission.metadata]);
+  }, [model, onChange, setFromMetadata, submission.metadata, registerStorageHandlers]);
 
   if (isLoading) {
     return (
@@ -162,15 +172,7 @@ function EditSurveyWrapper({
   }
 
   return (
-    <SurveyStorageDecorator
-      model={model}
-      readTokenPromises={readTokenPromises}
-      formId={submission.formId}
-      submissionId={submissionId}
-      onSubmissionIdChange={setSubmissionId}
-    >
-      <Survey model={model} />
-    </SurveyStorageDecorator>
+    <Survey model={model} />
   );
 }
 

@@ -59,10 +59,10 @@ vi.mock("@/features/storage/infrastructure/storage-config-context", () => ({
   ),
 }));
 
-vi.mock("@/features/storage/ui/survey-storage-decorator", () => ({
-  SurveyStorageDecorator: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="survey-storage-decorator">{children}</div>
-  ),
+vi.mock("@/features/storage/use-cases/use-survey-storage.hook", () => ({
+  useSurveyStorage: vi.fn(() => ({ 
+    registerStorageHandlers: vi.fn(() => () => {}) 
+  })),
 }));
 
 vi.mock("@/features/storage/use-cases/view-files/ui/protected-file-preview", () => ({}));

@@ -23,8 +23,8 @@ import {
   ICreatorOptions,
   registerSurveyTheme,
   SurveyCreatorModel,
+  SurveyInstanceCreatedEvent,
   TabJsonEditorTextareaPlugin,
-  UploadFileEvent,
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
@@ -43,8 +43,10 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useStorageView } from "@/features/storage/use-cases/view-files/use-storage-view.hook";
+import { useCreatorStorage } from "@/features/storage/use-cases/view-files/use-creator-storage.hook";
+import { ReadTokensResult } from "@/features/storage";
 import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
+import { useStorageConfig } from "@/features/storage";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -84,8 +86,6 @@ const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
 
 registerSurveyTheme(DefaultLight);
-
-import { ReadTokensResult } from "@/features/storage/use-cases/view-files";
 
 interface FormEditorProps {
   formId: string;
@@ -145,15 +145,14 @@ function FormEditor({
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Call useTokenInjection. If promises are missing, it will handle it.
-  // Note: We only call this hook if promises are provided to avoid overhead.
-  const tokenInjection = useStorageView(
-    readTokenPromises ?? {
-      userFiles: Promise.resolve(Result.error("No promises")),
-      content: Promise.resolve(Result.error("No promises")),
-    },
-  );
-  
+  useCreatorStorage({
+    creator,
+    formId,
+    readTokenPromises,
+  });
+
+  const storageConfig = useStorageConfig();
+
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
@@ -161,32 +160,6 @@ function FormEditor({
     onUnsavedChanges?.(true);
   }, [onUnsavedChanges]);
   useRichTextEditing(creator);
-
-  const handleUploadFile = useCallback(
-    async (_: SurveyCreatorModel, options: UploadFileEvent) => {
-      const formData = new FormData();
-      options.files.forEach(function (file: File) {
-        formData.append("file", file);
-      });
-
-      fetch("/api/hub/v0/storage/upload", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "edx-form-id": formId,
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          options.callback("success", data.url);
-        })
-        .catch((error) => {
-          console.error("Error: ", error);
-          options.callback("error", undefined);
-        });
-    },
-    [formId],
-  );
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -481,11 +454,8 @@ function FormEditor({
           try {
             await questionLoaderModule.loadQuestion(questionName);
             console.debug(`✅ Loaded custom question: ${questionName}`);
-          } catch (error) {
-            console.warn(
-              `⚠️ Failed to load custom question: ${questionName}`,
-              error,
-            );
+          } catch {
+            console.warn(`⚠️ Failed to load custom question: ${questionName}`);
           }
         }
 
@@ -495,24 +465,21 @@ function FormEditor({
         };
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
-        newCreator.onUploadFile.add(handleUploadFile);
-        newCreator.onSurveyInstanceCreated.add((_, options) => {
-          // Apply token injection to all survey instances (designer, property grid, preview)
-          if (tokenInjection.isPrivate) {
-            tokenInjection.injectTokens(options.survey);
-          }
 
-          if (options.area === "property-grid") {
-            const downloadSettingsCategory =
-              options.survey.getPageByName("downloadSettings");
-            if (downloadSettingsCategory) {
-              (
-                downloadSettingsCategory as unknown as { iconName: string }
-              ).iconName = "icon-download-settings";
-              downloadSettingsCategory.title = "Download Settings";
+        newCreator.onSurveyInstanceCreated.add(
+          (_, options: SurveyInstanceCreatedEvent) => {
+            if (options.area === "property-grid") {
+              const downloadSettingsCategory =
+                options.survey.getPageByName("downloadSettings");
+              if (downloadSettingsCategory) {
+                (
+                  downloadSettingsCategory as unknown as { iconName: string }
+                ).iconName = "icon-download-settings";
+                downloadSettingsCategory.title = "Download Settings";
+              }
             }
-          }
-        });
+          },
+        );
 
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
@@ -531,7 +498,7 @@ function FormEditor({
   }, [
     options,
     slkVal,
-    handleUploadFile,
+    storageConfig,
     creator,
     initialPropertyGridVisible,
     formJson,

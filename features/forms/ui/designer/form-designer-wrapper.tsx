@@ -8,7 +8,7 @@ import { ICreatorOptions } from "survey-creator-core";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
 import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
-import { ReadTokensResult } from "@/features/storage/use-cases/view-files";
+import { ReadTokensResult } from "@/features/storage";
 
 export interface FormDesignerWrapperProps {
   formId: string;

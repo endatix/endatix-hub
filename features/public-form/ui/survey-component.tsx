@@ -33,7 +33,7 @@ import "survey-core/survey.i18n";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { ReadTokensResult } from "@/features/storage";
 import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
-import { SurveyStorageDecorator } from "@/features/storage/ui/survey-storage-decorator";
+import { useSurveyStorage } from "@/features/storage/use-cases/use-survey-storage.hook";
 
 interface SurveyComponentProps {
   definition: string;
@@ -85,6 +85,14 @@ export default function SurveyComponent({
   useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
+
+  const { registerStorageHandlers } = useSurveyStorage({
+    model: surveyModel,
+    formId,
+    submissionId,
+    onSubmissionIdChange: setSubmissionId,
+    readTokenPromises,
+  });
 
   useEffect(() => {
     if (submission?.id) {
@@ -249,6 +257,7 @@ export default function SurveyComponent({
       return;
     }
 
+    const unregisterStorage = registerStorageHandlers(surveyModel);
     surveyModel.onComplete.add(submitForm);
     surveyModel.onValueChanged.add(updatePartial);
     surveyModel.onCurrentPageChanged.add(updatePartial);
@@ -256,13 +265,14 @@ export default function SurveyComponent({
     surveyModel.onMatrixCellValueChanged.add(updatePartial);
 
     return () => {
+      unregisterStorage();
       surveyModel.onComplete.remove(submitForm);
       surveyModel.onValueChanged.remove(updatePartial);
       surveyModel.onCurrentPageChanged.remove(updatePartial);
       surveyModel.onDynamicPanelValueChanged.remove(updatePartial);
       surveyModel.onMatrixCellValueChanged.remove(updatePartial);
     };
-  }, [surveyModel, submitForm, updatePartial]);
+  }, [surveyModel, submitForm, updatePartial, registerStorageHandlers]);
 
   if (!surveyModel) {
     return <div>Loading...</div>;
@@ -274,15 +284,7 @@ export default function SurveyComponent({
         availableLocales={surveyLocales}
         surveyModel={surveyModel}
       />
-      <SurveyStorageDecorator
-        model={surveyModel}
-        readTokenPromises={readTokenPromises}
-        formId={formId}
-        submissionId={submissionId}
-        onSubmissionIdChange={setSubmissionId}
-      >
-        <Survey model={surveyModel} />
-      </SurveyStorageDecorator>
+      <Survey model={surveyModel} />
     </>
   );
 }

@@ -22,7 +22,7 @@ import DotLoader from "@/components/loaders/dot-loader";
 import FormEditorContainer from "./form-editor-container";
 import { ICreatorOptions } from "survey-creator-core";
 import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
-import { ReadTokensResult } from "@/features/storage/use-cases/view-files";
+import { ReadTokensResult } from "@/features/storage";
 
 const CRITICAL_WIDTH = 600;
 

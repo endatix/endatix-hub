@@ -18,7 +18,7 @@ import {
   ReadTokensResult,
   SurveyModelWithPrivateStorage,
 } from "../../types";
-import { useStorageConfig } from "../../infrastructure/storage-config-context";
+import { useStorageConfig } from "../../infrastructure/storage-config.context";
 import { StorageConfig } from "../../infrastructure";
 
 /**
@@ -128,15 +128,29 @@ interface UseStorageViewProps {
   userFiles: Promise<ReadTokensResult>;
   content: Promise<ReadTokensResult>;
 }
+
+const defaultReadTokensResult = Result.success<ContainerReadToken>({
+  token: null,
+  containerName: "",
+  expiresOn: new Date(),
+  generatedAt: new Date(),
+});
+
+const defaultReadTokensPromise = Promise.resolve(defaultReadTokensResult);
+
 /**
  * Custom hook to handle viewing files from storage.
  * @param promises - The promises to use to get the read tokens.
  * @returns The isPrivate, setModelMetadata, and registerEventHandlers functions.
  */
-export function useStorageView(promises: UseStorageViewProps) {
+export function useStorageView(promises?: UseStorageViewProps) {
   const storageConfig = useStorageConfig();
-  const userFilesResult = use(promises.userFiles);
-  const contentResult = use(promises.content);
+  const userFilesResult = use(
+    promises?.userFiles ?? defaultReadTokensPromise,
+  );
+  const contentResult = use(
+    promises?.content ?? defaultReadTokensPromise,
+  );
 
   const tokens = useMemo(
     () => ({

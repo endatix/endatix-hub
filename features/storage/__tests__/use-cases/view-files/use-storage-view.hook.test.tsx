@@ -16,7 +16,7 @@ import { ContainerReadToken, ProtectedFile } from "@/features/storage/types";
 import {
   StorageConfigProvider,
   useStorageConfig,
-} from "@/features/storage/infrastructure/storage-config-context";
+} from "@/features/storage/infrastructure/storage-config.context";
 
 // Mock the not-allowed image
 vi.mock("@/public/assets/images/signs/not-allowed-image.svg", () => ({

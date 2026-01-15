@@ -1,10 +1,10 @@
 "use client";
 
-import { ReadTokensResult } from '@/features/storage/use-cases/view-files';
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import dynamic from "next/dynamic";
+import { ReadTokensResult } from "@/features/storage/types";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
