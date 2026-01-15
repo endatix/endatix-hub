@@ -9,9 +9,6 @@ import { registerLoopAwareSummaryTable } from "./register-loop-aware-summary-tab
  * @returns void
  */
 export function useLoopAwareSummaryTableEditing(surveyCreator: SurveyCreator | null) {
-
-  console.log("Summary Table Registered");
-
   useEffect(() => {
     if (!surveyCreator) {
       return;
