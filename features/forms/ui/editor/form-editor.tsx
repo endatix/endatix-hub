@@ -1,21 +1,31 @@
 "use client";
 
+import { endatixTheme } from "@/components/editors/endatix-theme";
 import { toast } from "@/components/ui/toast";
+import { customQuestions } from "@/customizations/questions/question-registry";
+import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
+import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
+import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import {
   initializeCustomQuestions,
   SpecializedSurveyQuestionType,
 } from "@/lib/questions/infrastructure/specialized-survey-question";
-import type { Question } from "survey-core";
+import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
+import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { CreateCustomQuestionRequest } from "@/services/api";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Question } from "survey-core";
 import {
+  JsonObject,
   Serializer,
   settings,
   slk,
   SurveyModel,
   SvgRegistry,
-  JsonObject,
 } from "survey-core";
+import "survey-core/i18n";
 import "survey-core/survey-core.css";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
@@ -26,23 +36,14 @@ import {
   TabJsonEditorTextareaPlugin,
   UploadFileEvent,
 } from "survey-creator-core";
+import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
+import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
+import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
-import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
-import { CreateCustomQuestionRequest } from "@/services/api";
-import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
-import "survey-core/i18n";
-import "survey-creator-core/i18n";
-import { endatixTheme } from "@/components/editors/endatix-theme";
-import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
-import { questionLoaderModule } from "@/lib/questions/question-loader-module";
-import { customQuestions } from "@/customizations/questions/question-registry";
-import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
-import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
-import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -142,6 +143,7 @@ function FormEditor({
     onUnsavedChanges?.(true);
   }, [onUnsavedChanges]);
   useRichTextEditing(creator);
+  useLoopAwareSummaryTableEditing(creator);
 
   const handleUploadFile = useCallback(
     async (_: SurveyCreatorModel, options: UploadFileEvent) => {
@@ -656,3 +658,4 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
+

@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
-import "survey-core/survey-core.css";
-import "survey-creator-core/survey-creator-core.css";
-import { ICreatorOptions } from "survey-creator-core";
-import { BorderlessLight } from "survey-core/themes";
-import SurveyCreatorTheme from "survey-creator-core/themes";
-import { slk } from "survey-core";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { useEffect, useState } from "react";
+import { slk } from "survey-core";
+import "survey-core/survey-core.css";
+import { BorderlessLight } from "survey-core/themes";
+import { ICreatorOptions } from "survey-creator-core";
+import "survey-creator-core/survey-creator-core.css";
+import SurveyCreatorTheme from "survey-creator-core/themes";
+import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 
 interface PreviewFormProps {
   model: string;
@@ -26,6 +27,8 @@ const creatorOptions: ICreatorOptions = {
 const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   useRichTextEditing(creator);
+  useLoopAwareSummaryTableEditing(creator);
+ 
 
   useEffect(() => {
     if (creator) {
