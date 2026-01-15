@@ -28,9 +28,9 @@ function updateImageSrc(
   htmlContainer: Element,
   imageSrc: string,
   readToken: ContainerReadToken | null,
-  config: StorageConfig,
+  config: StorageConfig | null,
 ): void {
-  if (!config.isPrivate) return;
+  if (!config?.isPrivate) return;
 
   if (!readToken) return;
 
@@ -65,17 +65,19 @@ function updateImageSrc(
  */
 function resolveContainerFromUrl(
   url: string,
-  storageConfig: StorageConfig,
+  storageConfig: StorageConfig | null,
 ): IContainerInfo | null {
   if (!url) return null;
 
   if (url.startsWith("data:")) return null;
 
+  if (!storageConfig) return null;
+
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
 
-    if (storageConfig?.hostName.toLowerCase() !== hostname) {
+    if (storageConfig.hostName.toLowerCase() !== hostname) {
       return null;
     }
 
@@ -83,7 +85,7 @@ function resolveContainerFromUrl(
     const containerName = pathParts[0]?.toLowerCase() ?? null;
     if (!containerName) return null;
 
-    if (containerName === storageConfig?.containerNames.USER_FILES) {
+    if (containerName === storageConfig.containerNames.USER_FILES) {
       return {
         containerType: "USER_FILES",
         containerName: containerName,
@@ -91,7 +93,7 @@ function resolveContainerFromUrl(
         isPrivate: true,
       };
     }
-    if (containerName === storageConfig?.containerNames.CONTENT) {
+    if (containerName === storageConfig.containerNames.CONTENT) {
       return {
         containerType: "CONTENT",
         containerName: containerName,
@@ -111,7 +113,7 @@ function resolveContainerFromUrl(
 function isUrlFromContainer(
   url: string,
   containerName: string,
-  storageConfig: StorageConfig,
+  storageConfig: StorageConfig | null,
 ): boolean {
   if (!containerName) return false;
 

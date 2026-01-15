@@ -1,0 +1,563 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import React, { Suspense } from "react";
+import { useStorageView } from "@/features/storage/use-cases/view-files/use-storage-view.hook";
+import {
+  SurveyModel,
+  AfterRenderQuestionEvent,
+  AfterRenderHeaderEvent,
+  QuestionImageModel,
+  QuestionImagePickerModel,
+  QuestionSignaturePadModel,
+  QuestionFileModel,
+} from "survey-core";
+import { Result } from "@/lib/result";
+import { ContainerReadToken, ProtectedFile } from "@/features/storage/types";
+import {
+  StorageConfigProvider,
+  useStorageConfig,
+} from "@/features/storage/infrastructure/storage-config-context";
+
+// Mock the not-allowed image
+vi.mock("@/public/assets/images/signs/not-allowed-image.svg", () => ({
+  default: { src: "/not-allowed.svg" },
+}));
+
+const resolvedTokenResult = Result.success<ContainerReadToken>({
+  token: "test-token-123",
+  containerName: "content",
+  expiresOn: new Date(),
+  generatedAt: new Date(),
+});
+
+const resolvedUserFilesTokenResult = Result.success<ContainerReadToken>({
+  token: "user-files-token-456",
+  containerName: "user-files",
+  expiresOn: new Date(),
+  generatedAt: new Date(),
+});
+
+const createDefaultReadTokenPromises = () => ({
+  userFiles: Promise.resolve(resolvedUserFilesTokenResult),
+  content: Promise.resolve(resolvedTokenResult),
+});
+
+const mockStorageConfig = {
+  isEnabled: true,
+  isPrivate: true,
+  hostName: "testaccount.blob.core.windows.net",
+  containerNames: {
+    USER_FILES: "user-files",
+    CONTENT: "content",
+  },
+};
+
+describe("useStorageView", () => {
+  const mockSurveyModel = {
+    locale: "en",
+    locLogo: {
+      renderedHtml: "https://testaccount.blob.core.windows.net/content/logo.png",
+    },
+    onAfterRenderQuestion: {
+      add: vi.fn(),
+      remove: vi.fn(),
+    },
+    onAfterRenderHeader: {
+      add: vi.fn(),
+      remove: vi.fn(),
+    },
+  } as unknown as SurveyModel;
+
+  const createWrapper = (config: typeof mockStorageConfig | null = mockStorageConfig) => {
+    return ({ children }: { children: React.ReactNode }) => (
+      <Suspense fallback={<div>Loading...</div>}>
+        <StorageConfigProvider config={config}>{children}</StorageConfigProvider>
+      </Suspense>
+    );
+  };
+
+  const renderHookWithSuspense = async (
+    config: typeof mockStorageConfig | null = mockStorageConfig,
+  ) => {
+    const props = createDefaultReadTokenPromises();
+    let result: ReturnType<typeof renderHook>["result"] | undefined;
+
+    await act(async () => {
+      const view = renderHook(() => useStorageView(props), {
+        wrapper: createWrapper(config),
+      });
+      result = view.result;
+      await props.userFiles;
+      await props.content;
+      await Promise.resolve();
+    });
+
+    return {
+      result: result! as { current: ReturnType<typeof useStorageView> },
+      props,
+    };
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("hook initialization", () => {
+    it("should initialize and return setModelMetadata and registerViewHandlers", async () => {
+      const props = createDefaultReadTokenPromises();
+      let result: ReturnType<typeof renderHook>["result"];
+
+      await act(async () => {
+        const view = renderHook(() => useStorageView(props), {
+          wrapper: createWrapper(),
+        });
+        result = view.result;
+        // Await promises to ensure they're processed within act
+        await props.userFiles;
+        await props.content;
+        await Promise.resolve();
+      });
+
+      const hookResult = result!.current as ReturnType<typeof useStorageView>;
+      expect(hookResult).not.toBeNull();
+      expect(hookResult.setModelMetadata).toBeDefined();
+      expect(hookResult.registerViewHandlers).toBeDefined();
+    });
+  });
+
+  describe("setModelMetadata", () => {
+    it("should set isPrivateStorage and readTokens when storage is private", async () => {
+      const props = createDefaultReadTokenPromises();
+      let result: ReturnType<typeof renderHook>["result"];
+
+      await act(async () => {
+        const view = renderHook(() => useStorageView(props), {
+          wrapper: createWrapper(),
+        });
+        result = view.result;
+        await props.userFiles;
+        await props.content;
+        await Promise.resolve();
+      });
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      const hookResult = result!.current as ReturnType<typeof useStorageView>;
+      hookResult.setModelMetadata(model);
+
+      expect((model as any).isPrivateStorage).toBe(true);
+      expect((model as any).readTokens).toEqual({
+        userFiles: resolvedUserFilesTokenResult.value,
+        content: resolvedTokenResult.value,
+      });
+    });
+
+    it("should not set metadata when storage is not private", async () => {
+      const publicConfig = { ...mockStorageConfig, isPrivate: false };
+      const props = createDefaultReadTokenPromises();
+      let result: ReturnType<typeof renderHook>["result"];
+
+      await act(async () => {
+        const view = renderHook(() => useStorageView(props), {
+          wrapper: createWrapper(publicConfig),
+        });
+        result = view.result;
+        await props.userFiles;
+        await props.content;
+        await Promise.resolve();
+      });
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      const hookResult = result!.current as ReturnType<typeof useStorageView>;
+      hookResult.setModelMetadata(model);
+
+      expect((model as any).isPrivateStorage).toBeUndefined();
+      expect((model as any).readTokens).toBeUndefined();
+    });
+
+    it("should not set metadata when storage config is null", async () => {
+      const props = createDefaultReadTokenPromises();
+      let result: ReturnType<typeof renderHook>["result"];
+
+      await act(async () => {
+        const view = renderHook(() => useStorageView(props), {
+          wrapper: createWrapper(null),
+        });
+        result = view.result;
+        await props.userFiles;
+        await props.content;
+        await Promise.resolve();
+      });
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      const hookResult = result!.current as ReturnType<typeof useStorageView>;
+      hookResult.setModelMetadata(model);
+
+      expect((model as any).isPrivateStorage).toBeUndefined();
+      expect((model as any).readTokens).toBeUndefined();
+    });
+  });
+
+  describe("registerViewHandlers", () => {
+    it("should register event handlers when storage is private", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      const unregister = result.current.registerViewHandlers(model);
+
+      expect(model.onAfterRenderQuestion.add).toHaveBeenCalledTimes(1);
+      expect(model.onAfterRenderHeader.add).toHaveBeenCalledTimes(1);
+
+      unregister();
+
+      expect(model.onAfterRenderQuestion.remove).toHaveBeenCalledTimes(1);
+      expect(model.onAfterRenderHeader.remove).toHaveBeenCalledTimes(1);
+    });
+
+    it("should return no-op cleanup when storage is not private", async () => {
+      const publicConfig = { ...mockStorageConfig, isPrivate: false };
+      const { result } = await renderHookWithSuspense(publicConfig);
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      const unregister = result.current.registerViewHandlers(model);
+
+      expect(model.onAfterRenderQuestion.add).not.toHaveBeenCalled();
+      expect(model.onAfterRenderHeader.add).not.toHaveBeenCalled();
+
+      // Should be safe to call
+      unregister();
+    });
+
+    it("should handle image question type", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const imageQuestion = {
+        getType: () => "image",
+        imageLink: "https://testaccount.blob.core.windows.net/content/image.jpg",
+      } as unknown as QuestionImageModel;
+
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", imageQuestion.imageLink);
+      mockHtmlElement.appendChild(mockImage);
+
+      const event = {
+        question: imageQuestion,
+        htmlElement: mockHtmlElement,
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(mockImage.getAttribute("src")).toBe(
+        `${imageQuestion.imageLink}?${resolvedTokenResult.value.token}`,
+      );
+    });
+
+    it("should handle imagepicker question type", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      const imageLink = "https://testaccount.blob.core.windows.net/content/choice.jpg";
+      mockImage.setAttribute("src", imageLink);
+      mockHtmlElement.appendChild(mockImage);
+
+      const imagePickerQuestion = {
+        getType: () => "imagepicker",
+        choices: [
+          { imageLink },
+          { imageLink: "https://other.com/image.jpg" }, // Should be ignored
+        ],
+      } as unknown as QuestionImagePickerModel;
+
+      const event = {
+        question: imagePickerQuestion,
+        htmlElement: mockHtmlElement,
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(mockImage.getAttribute("src")).toBe(
+        `${imageLink}?${resolvedTokenResult.value.token}`,
+      );
+    });
+
+    it("should handle signaturepad question type", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const signatureQuestion = {
+        getType: () => "signaturepad",
+        backgroundImage: "https://testaccount.blob.core.windows.net/content/signature-bg.png",
+      } as unknown as QuestionSignaturePadModel;
+
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", signatureQuestion.backgroundImage);
+      mockHtmlElement.appendChild(mockImage);
+
+      const event = {
+        question: signatureQuestion,
+        htmlElement: mockHtmlElement,
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(mockImage.getAttribute("src")).toBe(
+        `${signatureQuestion.backgroundImage}?${resolvedTokenResult.value.token}`,
+      );
+    });
+
+    it("should handle file question type with content container", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const file: ProtectedFile = {
+        content: "https://testaccount.blob.core.windows.net/content/file.pdf",
+      } as ProtectedFile;
+
+      const fileQuestion = {
+        getType: () => "file",
+        value: file,
+      } as unknown as QuestionFileModel;
+
+      const event = {
+        question: fileQuestion,
+        htmlElement: document.createElement("div"),
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(file.token).toBe(resolvedTokenResult.value.token);
+    });
+
+    it("should handle file question type with user-files container", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const file: ProtectedFile = {
+        content: "https://testaccount.blob.core.windows.net/user-files/document.pdf",
+      } as ProtectedFile;
+
+      const fileQuestion = {
+        getType: () => "file",
+        value: file,
+      } as unknown as QuestionFileModel;
+
+      const event = {
+        question: fileQuestion,
+        htmlElement: document.createElement("div"),
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(file.token).toBe(resolvedUserFilesTokenResult.value.token);
+    });
+
+    it("should handle file question with array value", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const files: ProtectedFile[] = [
+        {
+          content: "https://testaccount.blob.core.windows.net/content/file1.pdf",
+        } as ProtectedFile,
+        {
+          content: "https://testaccount.blob.core.windows.net/user-files/file2.pdf",
+        } as ProtectedFile,
+      ];
+
+      const fileQuestion = {
+        getType: () => "file",
+        value: files,
+      } as unknown as QuestionFileModel;
+
+      const event = {
+        question: fileQuestion,
+        htmlElement: document.createElement("div"),
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(files[0].token).toBe(resolvedTokenResult.value.token);
+      expect(files[1].token).toBe(resolvedUserFilesTokenResult.value.token);
+    });
+
+    it("should handle header logo rendering", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = {
+        ...mockSurveyModel,
+        locLogo: {
+          renderedHtml: "https://testaccount.blob.core.windows.net/content/logo.png",
+        },
+      } as unknown as SurveyModel;
+
+      result.current.registerViewHandlers(model);
+
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", model.locLogo.renderedHtml);
+      mockHtmlElement.appendChild(mockImage);
+
+      const event = {
+        htmlElement: mockHtmlElement,
+      } as unknown as AfterRenderHeaderEvent;
+
+      const handler = (model.onAfterRenderHeader.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(mockImage.getAttribute("src")).toBe(
+        `${model.locLogo.renderedHtml}?${resolvedTokenResult.value.token}`,
+      );
+    });
+
+    it("should show not-allowed image when token is null", async () => {
+      const noTokenResult = Result.success<ContainerReadToken>({
+        token: null,
+        containerName: "content",
+        expiresOn: new Date(),
+        generatedAt: new Date(),
+      });
+
+      const props = {
+        userFiles: Promise.resolve(resolvedUserFilesTokenResult),
+        content: Promise.resolve(noTokenResult),
+      };
+      let result: ReturnType<typeof renderHook>["result"];
+
+      await act(async () => {
+        const view = renderHook(() => useStorageView(props), {
+          wrapper: createWrapper(),
+        });
+        result = view.result;
+        await props.userFiles;
+        await props.content;
+        await Promise.resolve();
+      });
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      const hookResult = result!.current as ReturnType<typeof useStorageView>;
+      hookResult.registerViewHandlers(model);
+
+      const imageQuestion = {
+        getType: () => "image",
+        imageLink: "https://testaccount.blob.core.windows.net/content/image.jpg",
+      } as unknown as QuestionImageModel;
+
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", imageQuestion.imageLink);
+      mockHtmlElement.appendChild(mockImage);
+
+      const event = {
+        question: imageQuestion,
+        htmlElement: mockHtmlElement,
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      expect(mockImage.getAttribute("src")).toBe("/not-allowed.svg");
+      expect(mockImage.getAttribute("aria-label")).toBe(
+        "You are not allowed to access this image",
+      );
+      expect(mockImage.title).toBe("You are not allowed to access this image");
+    });
+
+    it("should ignore URLs from different hostnames", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const imageQuestion = {
+        getType: () => "image",
+        imageLink: "https://other-storage.blob.core.windows.net/content/image.jpg",
+      } as unknown as QuestionImageModel;
+
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", imageQuestion.imageLink);
+      mockHtmlElement.appendChild(mockImage);
+
+      const event = {
+        question: imageQuestion,
+        htmlElement: mockHtmlElement,
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      // Should not modify the image src for different hostname
+      expect(mockImage.getAttribute("src")).toBe(imageQuestion.imageLink);
+    });
+
+    it("should ignore data URLs", async () => {
+      const { result } = await renderHookWithSuspense();
+
+      const model = { ...mockSurveyModel } as SurveyModel;
+      result.current.registerViewHandlers(model);
+
+      const imageQuestion = {
+        getType: () => "image",
+        imageLink: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      } as unknown as QuestionImageModel;
+
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", imageQuestion.imageLink);
+      mockHtmlElement.appendChild(mockImage);
+
+      const event = {
+        question: imageQuestion,
+        htmlElement: mockHtmlElement,
+      } as unknown as AfterRenderQuestionEvent;
+
+      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
+        .calls[0][0];
+
+      handler(model, event);
+
+      // Should not modify data URLs
+      expect(mockImage.getAttribute("src")).toBe(imageQuestion.imageLink);
+    });
+  });
+});
