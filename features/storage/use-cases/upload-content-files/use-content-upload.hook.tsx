@@ -4,20 +4,26 @@ import { useCallback } from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import { uploadContentFileAction } from "./upload-content-file.action";
 import { Result } from "@/lib/result";
+import { useStorageConfig } from "../../infrastructure";
+import { ContentItemType } from "../../types";
 
 interface UseContentUploadProps {
-  formId: string;
+  itemId: string;
+  itemType: ContentItemType;
 }
 
 /**
  * Hook to handle content file uploads in SurveyJS Creator.
- * Provides a handler for the onUploadFile event.
+ * Provides a handler for the onUploadFile event. Enabled only if storage is enabled.
  */
-export function useContentUpload({ formId }: UseContentUploadProps) {
+export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
+  const storageConfig = useStorageConfig();
+
   const onUploadFile = useCallback(
     async (_sender: SurveyCreatorModel, options: UploadFileEvent) => {
       const formData = new FormData();
-      formData.append("formId", formId);
+      formData.append("itemId", itemId);
+      formData.append("itemType", itemType);
 
       options.files.forEach((file: File) => {
         formData.append("file", file);
@@ -41,10 +47,30 @@ export function useContentUpload({ formId }: UseContentUploadProps) {
         );
       }
     },
-    [formId],
+    [itemId, itemType],
+  );
+
+  /**
+   * Registers the upload handler to the SurveyJS Creator instance.
+   * @param creator The SurveyCreatorModel instance.
+   * @returns A cleanup function to unregister the handler.
+   */
+  const registerUploadHandlers = useCallback(
+    (creator: SurveyCreatorModel) => {
+      if (!storageConfig?.isEnabled) {
+        return () => {};
+      }
+
+      creator.onUploadFile.add(onUploadFile);
+
+      return () => {
+        creator.onUploadFile.remove(onUploadFile);
+      };
+    },
+    [storageConfig?.isEnabled, onUploadFile],
   );
 
   return {
-    onUploadFile,
+    registerUploadHandlers,
   };
 }

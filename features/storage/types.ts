@@ -4,6 +4,8 @@ import { Result } from "@/lib/result";
 
 export type ContainerType = "USER_FILES" | "CONTENT";
 
+export type ContentItemType = "form" | "template";
+
 export interface IContainerInfo {
   containerType: ContainerType;
   containerName: string;

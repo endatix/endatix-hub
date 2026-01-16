@@ -1,3 +1,5 @@
+"use server";
+
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
 import { uploadToStorage } from "../../infrastructure/storage-service";
@@ -6,9 +8,11 @@ import {
   getContainerNames,
   getStorageConfig,
 } from "../../infrastructure/storage-config";
+import { ContentItemType } from "../../types";
 
 export type UploadContentFileCommand = {
-  formId: string;
+  itemId: string;
+  itemType: ContentItemType;
   file: File;
 };
 
@@ -19,19 +23,30 @@ export type UploadFileResult = {
 
 export type UploadContentFileResult = Result<UploadFileResult>;
 
+/**
+ * Use case to upload a content file to the storage.
+ * @param {UploadContentFileCommand} param0 - The command to upload a content file.
+ * @returns {Promise<UploadContentFileResult>} - The result of the upload content file use case.
+ */
 export const uploadContentFileUseCase = async ({
-  formId,
+  itemId,
+  itemType,
   file,
 }: UploadContentFileCommand): Promise<UploadContentFileResult> => {
-  if (!formId) {
-    return Result.validationError("Form ID is required");
+  if (!itemId) {
+    return Result.validationError("Item ID is required");
+  }
+
+  if (!itemType) {
+    return Result.validationError("Item type is required");
   }
 
   if (!file) {
     return Result.validationError("File is required");
   }
 
-  const folderPath = `f/${formId}`;
+  const rootPath = itemType === "form" ? "f" : "t";
+  const folderPath = `${rootPath}/${itemId}`;
   const containerNames = getContainerNames();
   const storageConfig = getStorageConfig();
   const containerName = containerNames.CONTENT;

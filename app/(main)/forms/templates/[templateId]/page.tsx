@@ -6,6 +6,13 @@ import Link from "next/link";
 import { FormTemplate } from "@/types";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
+import {
+  generateReadTokensAction,
+  StorageConfigProvider,
+} from "@/features/storage";
+import { Suspense } from "react";
+import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 
 type Params = {
   params: Promise<{ templateId: string }>;
@@ -39,6 +46,14 @@ export default async function FormTemplateEditPage({ params }: Params) {
     );
   }
 
+  const storageConfig = createStorageConfigClient().config;
+  const readTokenPromises = {
+    userFiles: generateReadTokensAction(
+      storageConfig.containerNames.USER_FILES,
+    ),
+    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
+  };
+
   let templateJson = null;
   try {
     templateJson = JSON.parse(template.jsonData || "{}");
@@ -53,11 +68,16 @@ export default async function FormTemplateEditPage({ params }: Params) {
     templateName: template.name,
     description: template.description,
     isEnabled: template.isEnabled,
+    readTokenPromises,
   };
 
   return (
-    <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-      <FormTemplateEditorContainer {...props} />
-    </div>
+    <Suspense fallback={<FormEditorLoader />}>
+      <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
+        <StorageConfigProvider config={storageConfig}>
+          <FormTemplateEditorContainer {...props} />
+        </StorageConfigProvider>
+      </div>
+    </Suspense>
   );
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as storageService from "@/features/storage/infrastructure/storage-service";
 import * as storageConfig from "@/features/storage/infrastructure/storage-config";
 import { ErrorType, Result } from "@/lib/result";
-import { uploadContentFileUseCase } from "@/features/storage/use-cases/upload-files/upload-content-file.use-case";
+import { uploadContentFileUseCase } from "@/features/storage/use-cases/upload-content-files/upload-content-file.use-case";
 import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
 
 // Mock entire modules
@@ -48,7 +48,8 @@ describe("uploadContentFileUseCase", () => {
   };
   const mockFile = createMockFile("test.jpg");
   const mockCommand = {
-    formId: "form-123",
+    itemId: "form-123",
+    itemType: "form" as const,
     file: mockFile,
   };
 
@@ -56,10 +57,11 @@ describe("uploadContentFileUseCase", () => {
     vi.clearAllMocks();
   });
 
-  it("should return validation error when formId is empty", async () => {
+  it("should return validation error when itemId is empty", async () => {
     // Act
     const result = await uploadContentFileUseCase({
-      formId: "",
+      itemId: "",
+      itemType: "form",
       file: mockFile,
     });
 
@@ -67,14 +69,31 @@ describe("uploadContentFileUseCase", () => {
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.errorType).toBe(ErrorType.ValidationError);
-      expect(result.message).toBe("Form ID is required");
+      expect(result.message).toBe("Item ID is required");
+    }
+  });
+
+  it("should return validation error when itemType is missing", async () => {
+    // Act
+    const result = await uploadContentFileUseCase({
+      itemId: "form-123",
+      itemType: undefined as any,
+      file: mockFile,
+    });
+
+    // Assert
+    expect(Result.isError(result)).toBe(true);
+    if (Result.isError(result)) {
+      expect(result.errorType).toBe(ErrorType.ValidationError);
+      expect(result.message).toBe("Item type is required");
     }
   });
 
   it("should return validation error when file is missing", async () => {
     // Act
     const result = await uploadContentFileUseCase({
-      formId: "form-123",
+      itemId: "form-123",
+      itemType: "form",
       file: undefined as unknown as File,
     });
 
@@ -118,7 +137,43 @@ describe("uploadContentFileUseCase", () => {
       expect.any(Buffer),
       "mock-uuid.jpg",
       expect.any(String),
-      `f/${mockCommand.formId}`,
+      `f/${mockCommand.itemId}`,
+    );
+  });
+
+  it("should successfully upload file to Azure for templates", async () => {
+    // Arrange
+    const mockUrl = "https://storage.test/template.jpg";
+    vi.mocked(storageService.uploadToStorage).mockResolvedValue(mockUrl);
+    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+      isEnabled: true,
+      accountName: "mock-account-name",
+      accountKey: "mock-account-key",
+      hostName: "mock-host-name",
+      isPrivate: false,
+      sasReadExpiryMinutes: 15,
+      containerNames: {
+        USER_FILES: "user-files",
+        CONTENT: "content",
+      },
+    });
+
+    const templateCommand = {
+      itemId: "template-456",
+      itemType: "template" as const,
+      file: mockFile,
+    };
+
+    // Act
+    const result = await uploadContentFileUseCase(templateCommand);
+
+    // Assert
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(storageService.uploadToStorage).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "mock-uuid.jpg",
+      expect.any(String),
+      `t/${templateCommand.itemId}`,
     );
   });
 
@@ -169,13 +224,14 @@ describe("uploadContentFileUseCase", () => {
   it("should return error when fileExtension is not supported", async () => {
     // Arrange
     const mockFileWithoutExtension = createMockFile("noextension_name");
-    const uploadUserFilesCommand = {
-      formId: "form-123",
+    const commandWithoutExtension = {
+      itemId: "form-123",
+      itemType: "form" as const,
       file: mockFileWithoutExtension,
     };
 
     // Act
-    const result = await uploadContentFileUseCase(uploadUserFilesCommand);
+    const result = await uploadContentFileUseCase(commandWithoutExtension);
 
     // Assert
     expect(Result.isError(result)).toBe(true);

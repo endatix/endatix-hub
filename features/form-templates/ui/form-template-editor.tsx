@@ -31,6 +31,8 @@ import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specia
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { useContentUpload, useCreatorView } from "@/features/storage/use-cases";
+import { ReadTokensResult } from "@/features/storage";
 
 const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
@@ -43,6 +45,10 @@ export interface FormTemplateEditorProps {
   isEnabled: boolean;
   options?: ICreatorOptions;
   slkVal?: string;
+  readTokenPromises?: {
+    userFiles: Promise<ReadTokensResult>;
+    content: Promise<ReadTokensResult>;
+  };
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -60,8 +66,14 @@ function FormTemplateEditor({
   templateName,
   options,
   slkVal,
+  readTokenPromises,
 }: FormTemplateEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
+  const { registerUploadHandlers } = useContentUpload({
+    itemId: templateId,
+    itemType: "template",
+  });
+  const { registerViewHandlers } = useCreatorView({ readTokenPromises });
   const router = useRouter();
   const [isEditingName, setIsEditingName] = useState(false);
   const [name, setName] = useState(templateName);
@@ -103,32 +115,6 @@ function FormTemplateEditor({
     setIsEditingName(false);
   }, [templateId, name, originalName, startTransition]);
 
-  const handleUploadFile = useCallback(
-    async (_: SurveyCreatorModel, options: UploadFileEvent) => {
-      const formData = new FormData();
-      options.files.forEach(function (file: File) {
-        formData.append("file", file);
-      });
-
-      fetch("/api/hub/v0/storage/upload", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "edx-form-id": templateId,
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          options.callback("success", data.url);
-        })
-        .catch((error) => {
-          console.error("Error", error);
-          options.callback("error", undefined);
-        });
-    },
-    [templateId],
-  );
-
   useLayoutEffect(() => {
     if (!creator) return;
 
@@ -163,6 +149,8 @@ function FormTemplateEditor({
 
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
+        const unregisterUpload = registerUploadHandlers(newCreator);
+        const unregisterView = registerViewHandlers(newCreator);
         newCreator.saveSurveyFunc = (
           no: number,
           callback: (num: number, status: boolean) => void,
@@ -170,11 +158,15 @@ function FormTemplateEditor({
           console.log(JSON.stringify(newCreator?.JSON));
           callback(no, true);
         };
-        newCreator.onUploadFile.add(handleUploadFile);
         setCreator(newCreator);
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }
+
+        return () => {
+          unregisterUpload();
+          unregisterView();
+        };
       } catch (error) {
         console.error("Error loading custom questions:", error);
       } finally {
@@ -183,7 +175,7 @@ function FormTemplateEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, handleUploadFile, creator]);
+  }, [options, slkVal, registerUploadHandlers, registerViewHandlers, creator]);
 
   useEffect(() => {
     if (creator && templateJson) {
