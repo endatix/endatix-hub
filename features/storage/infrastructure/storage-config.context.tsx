@@ -31,15 +31,13 @@ export function StorageConfigProvider({
   children,
   config,
 }: Readonly<StorageConfigProviderProps>) {
-  const resolvedConfig = useMemo(
-    () => (config instanceof Promise ? use(config) : config),
-    [config],
-  );
+  const contextVal = useMemo(() => {
+    const resolvedConfig = config instanceof Promise ? use(config) : config;
+    return { config: resolvedConfig };
+  }, [config]);
 
   return (
-    <StorageConfigContext value={{ config: resolvedConfig }}>
-      {children}
-    </StorageConfigContext>
+    <StorageConfigContext value={contextVal}>{children}</StorageConfigContext>
   );
 }
 

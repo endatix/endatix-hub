@@ -145,12 +145,8 @@ const defaultReadTokensPromise = Promise.resolve(defaultReadTokensResult);
  */
 export function useStorageView(promises?: UseStorageViewProps) {
   const storageConfig = useStorageConfig();
-  const userFilesResult = use(
-    promises?.userFiles ?? defaultReadTokensPromise,
-  );
-  const contentResult = use(
-    promises?.content ?? defaultReadTokensPromise,
-  );
+  const userFilesResult = use(promises?.userFiles ?? defaultReadTokensPromise);
+  const contentResult = use(promises?.content ?? defaultReadTokensPromise);
 
   const tokens = useMemo(
     () => ({
@@ -189,7 +185,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
         const type = question.getType();
 
         switch (type) {
-          case "imagepicker":
+          case "imagepicker": {
             const imagePickerQuestion = question as QuestionImagePickerModel;
             imagePickerQuestion.choices.forEach((choice: ChoiceItem) => {
               updateImageSrc(
@@ -200,7 +196,8 @@ export function useStorageView(promises?: UseStorageViewProps) {
               );
             });
             break;
-          case "image":
+          }
+          case "image": {
             const imageQuestion = question as QuestionImageModel;
             updateImageSrc(
               questionHtml,
@@ -209,7 +206,8 @@ export function useStorageView(promises?: UseStorageViewProps) {
               storageConfig,
             );
             break;
-          case "signaturepad":
+          }
+          case "signaturepad": {
             const signatureQuestion = question as QuestionSignaturePadModel;
             updateImageSrc(
               questionHtml,
@@ -218,7 +216,8 @@ export function useStorageView(promises?: UseStorageViewProps) {
               storageConfig,
             );
             break;
-          case "file":
+          }
+          case "file": {
             const fileQuestion = question as QuestionFileModel;
             const files = Array.isArray(fileQuestion.value)
               ? fileQuestion.value
@@ -238,6 +237,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
               }
             });
             break;
+          }
           default:
             break;
         }
@@ -267,7 +267,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
     [tokens, storageConfig],
   );
 
-  return { 
+  return {
     setModelMetadata,
     registerViewHandlers,
   };
