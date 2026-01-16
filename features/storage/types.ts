@@ -17,7 +17,7 @@ export interface ProtectedFile extends File {
 }
 
 export interface SurveyModelWithPrivateStorage extends SurveyModel {
-  isPrivateStorage: boolean;
+  hasPrivateStorage: boolean;
   readTokens: {
     userFiles: IReadToken | null;
     content: IReadToken | null;

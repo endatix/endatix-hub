@@ -168,7 +168,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
   const setModelMetadata = useCallback(
     (model: SurveyModel) => {
       if (storageConfig?.isPrivate) {
-        (model as SurveyModelWithPrivateStorage).isPrivateStorage = true;
+        (model as SurveyModelWithPrivateStorage).hasPrivateStorage = true;
         (model as SurveyModelWithPrivateStorage).readTokens = tokens;
       }
     },

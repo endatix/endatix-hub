@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, use } from "react";
+import React, { createContext, use, useMemo } from "react";
 import { StorageConfig } from "./storage-config-client";
 
 interface StorageConfigContextValue {
@@ -31,7 +31,10 @@ export function StorageConfigProvider({
   children,
   config,
 }: Readonly<StorageConfigProviderProps>) {
-  const resolvedConfig = config instanceof Promise ? use(config) : config;
+  const resolvedConfig = useMemo(
+    () => (config instanceof Promise ? use(config) : config),
+    [config],
+  );
 
   return (
     <StorageConfigContext value={{ config: resolvedConfig }}>

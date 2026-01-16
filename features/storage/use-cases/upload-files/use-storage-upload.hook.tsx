@@ -97,7 +97,7 @@ const uploadToBlob = async (
     const uploadPromises = files.map(async (file) => {
       const sasResult = sasData.sasTokens[file.name];
 
-      if (!sasResult || !sasResult.success) {
+      if (!sasResult?.success) {
         return {
           success: false,
           error: sasResult?.message || `No upload URL for file: ${file.name}`,

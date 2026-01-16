@@ -34,7 +34,7 @@ vi.mock(
 
 const createMockSurveyModel = (): SurveyModel => {
   return {
-    isPrivateStorage: false,
+    hasPrivateStorage: false,
     readTokens: null,
   } as unknown as SurveyModel;
 };

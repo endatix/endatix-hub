@@ -11,9 +11,9 @@ export class ProtectedFilePreview extends SurveyFilePreview {
 
   protected renderElement(): React.JSX.Element | null {
     const question = this.question;
-    const surveyWithPrivateStorage = question.survey as SurveyModelWithPrivateStorage;
+    const decoratedSurvey = question.survey as SurveyModelWithPrivateStorage | undefined;
 
-    if (!surveyWithPrivateStorage || !surveyWithPrivateStorage.isPrivateStorage) {
+    if (!decoratedSurvey?.hasPrivateStorage) {
       return super.renderElement();
     }
 

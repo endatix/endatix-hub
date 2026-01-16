@@ -13,10 +13,7 @@ import {
 } from "survey-core";
 import { Result } from "@/lib/result";
 import { ContainerReadToken, ProtectedFile } from "@/features/storage/types";
-import {
-  StorageConfigProvider,
-  useStorageConfig,
-} from "@/features/storage/infrastructure/storage-config.context";
+import { StorageConfigProvider } from "@/features/storage/infrastructure/storage-config.context";
 
 // Mock the not-allowed image
 vi.mock("@/public/assets/images/signs/not-allowed-image.svg", () => ({
@@ -56,7 +53,8 @@ describe("useStorageView", () => {
   const mockSurveyModel = {
     locale: "en",
     locLogo: {
-      renderedHtml: "https://testaccount.blob.core.windows.net/content/logo.png",
+      renderedHtml:
+        "https://testaccount.blob.core.windows.net/content/logo.png",
     },
     onAfterRenderQuestion: {
       add: vi.fn(),
@@ -68,10 +66,14 @@ describe("useStorageView", () => {
     },
   } as unknown as SurveyModel;
 
-  const createWrapper = (config: typeof mockStorageConfig | null = mockStorageConfig) => {
+  const createWrapper = (
+    config: typeof mockStorageConfig | null = mockStorageConfig,
+  ) => {
     return ({ children }: { children: React.ReactNode }) => (
       <Suspense fallback={<div>Loading...</div>}>
-        <StorageConfigProvider config={config}>{children}</StorageConfigProvider>
+        <StorageConfigProvider config={config}>
+          {children}
+        </StorageConfigProvider>
       </Suspense>
     );
   };
@@ -126,7 +128,7 @@ describe("useStorageView", () => {
   });
 
   describe("setModelMetadata", () => {
-    it("should set isPrivateStorage and readTokens when storage is private", async () => {
+    it("should set hasPrivateStorage and readTokens when storage is private", async () => {
       const props = createDefaultReadTokenPromises();
       let result: ReturnType<typeof renderHook>["result"];
 
@@ -144,7 +146,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      expect((model as any).isPrivateStorage).toBe(true);
+      expect((model as any).hasPrivateStorage).toBe(true);
       expect((model as any).readTokens).toEqual({
         userFiles: resolvedUserFilesTokenResult.value,
         content: resolvedTokenResult.value,
@@ -170,7 +172,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      expect((model as any).isPrivateStorage).toBeUndefined();
+      expect((model as any).hasPrivateStorage).toBeUndefined();
       expect((model as any).readTokens).toBeUndefined();
     });
 
@@ -235,7 +237,8 @@ describe("useStorageView", () => {
 
       const imageQuestion = {
         getType: () => "image",
-        imageLink: "https://testaccount.blob.core.windows.net/content/image.jpg",
+        imageLink:
+          "https://testaccount.blob.core.windows.net/content/image.jpg",
       } as unknown as QuestionImageModel;
 
       const mockHtmlElement = document.createElement("div");
@@ -248,8 +251,9 @@ describe("useStorageView", () => {
         htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -266,7 +270,8 @@ describe("useStorageView", () => {
 
       const mockHtmlElement = document.createElement("div");
       const mockImage = document.createElement("img");
-      const imageLink = "https://testaccount.blob.core.windows.net/content/choice.jpg";
+      const imageLink =
+        "https://testaccount.blob.core.windows.net/content/choice.jpg";
       mockImage.setAttribute("src", imageLink);
       mockHtmlElement.appendChild(mockImage);
 
@@ -283,8 +288,9 @@ describe("useStorageView", () => {
         htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -301,7 +307,8 @@ describe("useStorageView", () => {
 
       const signatureQuestion = {
         getType: () => "signaturepad",
-        backgroundImage: "https://testaccount.blob.core.windows.net/content/signature-bg.png",
+        backgroundImage:
+          "https://testaccount.blob.core.windows.net/content/signature-bg.png",
       } as unknown as QuestionSignaturePadModel;
 
       const mockHtmlElement = document.createElement("div");
@@ -314,8 +321,9 @@ describe("useStorageView", () => {
         htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -344,8 +352,9 @@ describe("useStorageView", () => {
         htmlElement: document.createElement("div"),
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -359,7 +368,8 @@ describe("useStorageView", () => {
       result.current.registerViewHandlers(model);
 
       const file: ProtectedFile = {
-        content: "https://testaccount.blob.core.windows.net/user-files/document.pdf",
+        content:
+          "https://testaccount.blob.core.windows.net/user-files/document.pdf",
       } as ProtectedFile;
 
       const fileQuestion = {
@@ -372,8 +382,9 @@ describe("useStorageView", () => {
         htmlElement: document.createElement("div"),
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -388,10 +399,12 @@ describe("useStorageView", () => {
 
       const files: ProtectedFile[] = [
         {
-          content: "https://testaccount.blob.core.windows.net/content/file1.pdf",
+          content:
+            "https://testaccount.blob.core.windows.net/content/file1.pdf",
         } as ProtectedFile,
         {
-          content: "https://testaccount.blob.core.windows.net/user-files/file2.pdf",
+          content:
+            "https://testaccount.blob.core.windows.net/user-files/file2.pdf",
         } as ProtectedFile,
       ];
 
@@ -405,8 +418,9 @@ describe("useStorageView", () => {
         htmlElement: document.createElement("div"),
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -420,7 +434,8 @@ describe("useStorageView", () => {
       const model = {
         ...mockSurveyModel,
         locLogo: {
-          renderedHtml: "https://testaccount.blob.core.windows.net/content/logo.png",
+          renderedHtml:
+            "https://testaccount.blob.core.windows.net/content/logo.png",
         },
       } as unknown as SurveyModel;
 
@@ -435,8 +450,9 @@ describe("useStorageView", () => {
         htmlElement: mockHtmlElement,
       } as unknown as AfterRenderHeaderEvent;
 
-      const handler = (model.onAfterRenderHeader.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderHeader.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -475,7 +491,8 @@ describe("useStorageView", () => {
 
       const imageQuestion = {
         getType: () => "image",
-        imageLink: "https://testaccount.blob.core.windows.net/content/image.jpg",
+        imageLink:
+          "https://testaccount.blob.core.windows.net/content/image.jpg",
       } as unknown as QuestionImageModel;
 
       const mockHtmlElement = document.createElement("div");
@@ -488,8 +505,9 @@ describe("useStorageView", () => {
         htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -508,7 +526,8 @@ describe("useStorageView", () => {
 
       const imageQuestion = {
         getType: () => "image",
-        imageLink: "https://other-storage.blob.core.windows.net/content/image.jpg",
+        imageLink:
+          "https://other-storage.blob.core.windows.net/content/image.jpg",
       } as unknown as QuestionImageModel;
 
       const mockHtmlElement = document.createElement("div");
@@ -521,8 +540,9 @@ describe("useStorageView", () => {
         htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
@@ -538,7 +558,8 @@ describe("useStorageView", () => {
 
       const imageQuestion = {
         getType: () => "image",
-        imageLink: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        imageLink:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       } as unknown as QuestionImageModel;
 
       const mockHtmlElement = document.createElement("div");
@@ -551,8 +572,9 @@ describe("useStorageView", () => {
         htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
-      const handler = (model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const handler = (
+        model.onAfterRenderQuestion.add as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0];
 
       handler(model, event);
 
