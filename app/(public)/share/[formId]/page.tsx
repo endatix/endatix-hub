@@ -1,5 +1,6 @@
 "use server";
 
+import "@/components/error-handling/not-found/not-found-styles-standalone.css";
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";

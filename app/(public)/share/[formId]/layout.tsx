@@ -1,4 +1,3 @@
-import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-provider";
 import { getSession } from "@/features/auth";
