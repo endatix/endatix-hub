@@ -68,7 +68,7 @@ function FormTemplateEditor({
   readTokenPromises,
 }: FormTemplateEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
-  const { registerStorageHandlers, isStorageReady } = useCreatorStorage({
+  const { registerStorageHandlers } = useCreatorStorage({
     itemId: templateId,
     itemType: "template",
     readTokenPromises,

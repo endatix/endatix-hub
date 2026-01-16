@@ -1,9 +1,10 @@
 import React from "react";
 import { QuestionFileModel } from "survey-core";
-import { StorageConfigContext } from "@/features/storage/infrastructure";
-import { StorageConfig } from "@/features/storage/infrastructure";
-import { RenderResult } from "@testing-library/react";
-import { render } from "@testing-library/react";
+import {
+  StorageConfig,
+  StorageConfigContext,
+} from "@/features/storage/infrastructure";
+import { render, RenderResult } from "@testing-library/react";
 
 /**
  * Type for SurveyJS components that have a protected renderElement method.
@@ -58,14 +59,16 @@ export interface RenderSurveyJsComponentOptions<TContextValue = unknown> {
  *   contextValue: mockValue
  * });
  */
-export function renderSurveyJsComponent<TContextValue = { config: StorageConfig | null }>(
+export function renderSurveyJsComponent<
+  TContextValue = { config: StorageConfig | null },
+>(
   ComponentClass: new (props: { question: QuestionFileModel }) => unknown,
   question: QuestionFileModel,
   options?: RenderSurveyJsComponentOptions<TContextValue>,
 ): RenderResult {
   const TestWrapper = () => {
     const instance = React.useMemo(() => {
-      return new ComponentClass({ question }) as unknown as SurveyJsComponent;
+      return new ComponentClass({ question }) as SurveyJsComponent;
     }, []);
 
     const view = instance.renderElement();
