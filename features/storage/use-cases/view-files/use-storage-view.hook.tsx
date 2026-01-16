@@ -81,8 +81,8 @@ function resolveContainerFromUrl(
       return null;
     }
 
-    const pathParts = urlObj.pathname.split("/").filter(Boolean);
-    const containerName = pathParts[0]?.toLowerCase() ?? null;
+    const firstPathPart = urlObj.pathname.split("/").find((part) => part.length > 0);
+    const containerName = firstPathPart?.toLowerCase() ?? null;
     if (!containerName) return null;
 
     if (containerName === storageConfig.containerNames.USER_FILES) {
