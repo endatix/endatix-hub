@@ -1,11 +1,11 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { File, FileType, getFileType } from "@/lib/questions/file/file-type";
+import { IFile, FileType, getFileType } from "@/lib/questions/file/file-type";
 import { FileText, FileX2 } from "lucide-react";
 import Link from "next/link";
 
 interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
-  file: File;
+  file: IFile;
   width?: number;
   height?: number;
   aspectRatio?: "portrait" | "square";

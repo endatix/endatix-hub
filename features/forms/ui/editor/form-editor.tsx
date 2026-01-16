@@ -45,7 +45,6 @@ import addRandomizeGroupFeature from "@/lib/questions/features/group-randomizati
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useCreatorStorage } from "@/features/storage/hooks/use-creator-storage.hook";
 import { ReadTokensResult } from "@/features/storage";
-import "@/features/storage/use-cases/view-protected-files/ui/protected-file-preview";
 
 Serializer.addProperty("theme", {
   name: "id",

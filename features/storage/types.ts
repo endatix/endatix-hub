@@ -1,4 +1,4 @@
-import { File } from "@/lib/questions/file/file-type";
+import { IFile } from "@/lib/questions/file/file-type";
 import { SurveyModel } from "survey-react-ui";
 import { Result } from "@/lib/result";
 
@@ -12,7 +12,7 @@ export interface IContainerInfo {
   hostName: string;
   isPrivate: boolean;
 }
-export interface ProtectedFile extends File {
+export interface ProtectedFile extends IFile {
   token?: string;
 }
 
@@ -34,3 +34,24 @@ export interface ContainerReadToken extends IReadToken {
 }
 
 export type ReadTokensResult = Result<ContainerReadToken>;
+
+export type UploadUserFilesCommand = {
+  formId: string;
+  submissionId?: string;
+  files: { name: string; file: File }[];
+};
+
+export type UploadFileResult = {
+  name: string;
+  url: string;
+};
+
+export type UploadUserFilesResult = Result<UploadFileResult[]>;
+
+export type UploadContentFileCommand = {
+  itemId: string;
+  itemType: ContentItemType;
+  file: File;
+};
+
+export type UploadContentFileResult = Result<UploadFileResult>;

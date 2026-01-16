@@ -5,7 +5,9 @@ import { SurveyCreatorModel } from "survey-creator-core";
 import { ReadTokensResult } from "../types";
 import { useContentUpload } from "../use-cases/upload-content-files/use-content-upload.hook";
 import { useCreatorView } from "../use-cases/view-protected-files/use-creator-view.hook";
-import { useStorageConfig } from "../infrastructure";
+import { useStorageConfig } from "../infrastructure/storage-config.context";
+import { registerProtectedFilePreview } from "../use-cases/view-protected-files/ui/protected-file-preview";
+import { useEffect } from "react";
 
 interface UseCreatorStorageProps {
   itemId: string;
@@ -30,6 +32,10 @@ export function useCreatorStorage({
 
   const { registerUploadHandlers } = useContentUpload({ itemId, itemType });
   const { registerViewHandlers } = useCreatorView({ readTokenPromises });
+
+  useEffect(() => {
+    registerProtectedFilePreview();
+  }, []);
 
   /**
    * Registers all storage-related handlers (upload and view) to the provided creator.

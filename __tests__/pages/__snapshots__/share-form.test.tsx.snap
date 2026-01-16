@@ -28,9 +28,6 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
             "CONTENT": "content",
             "USER_FILES": "user-files",
           },
-          "hostName": "mock-host-name",
-          "isEnabled": true,
-          "isPrivate": false,
         }
       }
     >

@@ -7,7 +7,7 @@ interface StorageConfigContextValue {
   config: StorageConfig | null;
 }
 
-export const StorageConfigContext = createContext<
+const StorageConfigContext = createContext<
   StorageConfigContextValue | undefined
 >(undefined);
 
@@ -27,7 +27,7 @@ interface StorageConfigProviderProps {
  * Provider for Storage Configuration.
  * Can accept either a resolved config object or a promise (for streaming).
  */
-export function StorageConfigProvider({
+function StorageConfigProvider({
   children,
   config,
 }: Readonly<StorageConfigProviderProps>) {
@@ -45,7 +45,7 @@ export function StorageConfigProvider({
  * Hook to access the Storage Configuration from the context.
  * @throws {Error} If used outside of StorageConfigProvider
  */
-export function useStorageConfig(): StorageConfig | null {
+function useStorageConfig(): StorageConfig | null {
   const context = use(StorageConfigContext);
 
   if (!context) {
@@ -57,3 +57,10 @@ export function useStorageConfig(): StorageConfig | null {
 
   return context.config;
 }
+
+export {
+  StorageConfigContext,
+  StorageConfigProvider,
+  useStorageConfig,
+  type StorageConfigContextValue,
+};

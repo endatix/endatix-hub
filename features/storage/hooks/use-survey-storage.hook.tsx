@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SurveyModel } from "survey-core";
 import { ReadTokensResult } from "../types";
 import { useStorageView } from "../use-cases/view-protected-files/use-storage-view.hook";
 import { useStorageUpload } from "../use-cases/upload-files/use-storage-upload.hook";
-import { useStorageConfig } from "../infrastructure";
+import { useStorageConfig } from "../infrastructure/storage-config.context";
+import { registerProtectedFilePreview } from "../use-cases/view-protected-files/ui/protected-file-preview";
 
 interface UseSurveyStorageProps {
   model: SurveyModel | null;
@@ -40,6 +41,10 @@ export function useSurveyStorage({
     onSubmissionIdChange,
     readTokenPromises,
   });
+
+  useEffect(() => {
+    registerProtectedFilePreview();
+  }, []);
 
   useMemo(() => {
     if (model) {

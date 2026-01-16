@@ -7,9 +7,6 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
-import { StorageConfigProvider } from "@/features/storage/infrastructure";
-import { generateReadTokensAction } from "@/features/storage/use-cases/view-protected-files";
 import {
   ApiResult,
   isNotFoundError,
@@ -19,6 +16,11 @@ import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
+import {
+  createStorageConfigClient,
+  generateReadTokensAction,
+} from "@/features/storage/server";
+import { StorageConfigProvider } from "@/features/storage/client";
 
 type EmbedSurveyPage = {
   params: Promise<{ formId: string }>;

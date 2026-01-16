@@ -20,7 +20,6 @@ import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import "@/features/storage/use-cases/view-protected-files/ui/protected-file-preview";
 import { ReadTokensResult } from "@/features/storage";
 import { useSurveyStorage } from "@/features/storage/hooks/use-survey-storage.hook";
 

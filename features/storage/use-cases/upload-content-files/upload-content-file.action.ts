@@ -1,10 +1,7 @@
 "use server";
 
-import { ContentItemType } from "../../types";
-import {
-  uploadContentFileUseCase,
-  UploadContentFileResult,
-} from "./upload-content-file.use-case";
+import { ContentItemType, UploadContentFileResult } from "../../types";
+import { uploadContentFileUseCase } from "./upload-content-file.use-case";
 
 /**
  * Server action to upload a content file (e.g., logo, image in question).

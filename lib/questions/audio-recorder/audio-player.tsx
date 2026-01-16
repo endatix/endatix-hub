@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { File } from "@/lib/questions/file/file-type";
+import { IFile } from "@/lib/questions/file/file-type";
 import { Play, Pause, Download } from "lucide-react";
 
 interface AudioPlayerProps {
-  file: File | File[] | undefined;
+  file: IFile | IFile[] | undefined;
   isDisplayMode?: boolean;
 }
 
@@ -19,7 +19,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLInputElement>(null);
 
-  const getAudioSource = (file: File): string => {
+  const getAudioSource = (file: IFile): string => {
     if (!file.content) {
       return "";
     }

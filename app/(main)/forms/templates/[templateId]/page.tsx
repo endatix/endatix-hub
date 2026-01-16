@@ -6,11 +6,11 @@ import Link from "next/link";
 import { FormTemplate } from "@/types";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
 import {
+  createStorageConfigClient,
   generateReadTokensAction,
-  StorageConfigProvider,
-} from "@/features/storage";
+} from "@/features/storage/server";
+import { StorageConfigProvider } from "@/features/storage/client";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 

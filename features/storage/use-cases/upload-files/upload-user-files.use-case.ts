@@ -6,21 +6,13 @@ import {
   getContainerNames,
   getStorageConfig,
 } from "../../infrastructure/storage-config";
+import {
+  UploadFileResult,
+  UploadUserFilesCommand,
+  UploadUserFilesResult,
+} from "../../types";
 
-export type UploadUserFilesCommand = {
-  formId: string;
-  submissionId?: string;
-  files: { name: string; file: File }[];
-};
-
-export type UploadFileResult = {
-  name: string;
-  url: string;
-};
-
-export type UploadUserFilesResult = Result<UploadFileResult[]>;
-
-export const uploadUserFilesUseCase = async ({
+const uploadUserFilesUseCase = async ({
   formId,
   submissionId,
   files,
@@ -83,4 +75,11 @@ export const uploadUserFilesUseCase = async ({
       err instanceof Error ? err.message : "Unknown error",
     );
   }
+};
+
+export {
+  uploadUserFilesUseCase,
+  type UploadUserFilesCommand,
+  type UploadUserFilesResult,
+  type UploadFileResult,
 };

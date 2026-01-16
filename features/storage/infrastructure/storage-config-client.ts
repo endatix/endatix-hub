@@ -4,11 +4,13 @@ import { AzureStorageConfig } from "./storage-config";
  * Client-safe storage configuration.
  * Contains only the subset of config needed on the client side.
  */
-export type StorageConfig = Omit<
+type StorageConfig = Omit<
   AzureStorageConfig,
   "accountKey" | "accountName" | "expiryMinutes" | "sasReadExpiryMinutes"
 >;
 
-export interface StorageConfigClient {
+interface StorageConfigClient {
   config: StorageConfig;
 }
+
+  export type { StorageConfig, StorageConfigClient };

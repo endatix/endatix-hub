@@ -1,15 +1,17 @@
 import * as React from "react";
 import { QuestionFileModel } from "survey-core";
 import { ReactElementFactory, SurveyFilePreview } from "survey-react-ui";
-import { File } from "@/lib/questions/file/file-type";
-import { StorageConfigContext } from "@/features/storage/infrastructure";
+import { IFile } from "@/lib/questions/file/file-type";
+import { StorageConfigContext } from "../../../infrastructure/storage-config.context";
+
+let isRegistered = false;
 
 /**
  * A custom file preview component that renders the file preview for a file question.
  * It will only render the file preview if the storage is enabled and private.
  * It will also add the token to the file content if the file is in private storage.
  */
-export class ProtectedFilePreview extends SurveyFilePreview {
+class ProtectedFilePreview extends SurveyFilePreview {
   protected get question(): QuestionFileModel {
     return this.props.question;
   }
@@ -28,9 +30,9 @@ export class ProtectedFilePreview extends SurveyFilePreview {
           const currentShownPage = question.renderedPages[question.indexToShow];
           if (currentShownPage) {
             currentShownPage.items = currentShownPage.items.map(
-              (item: File) => {
+              (item: IFile) => {
                 const shownFile = question.value?.find(
-                  (file: File) => file.content === item.content,
+                  (file: IFile) => file.content === item.content,
                 );
                 if (shownFile?.token) {
                   const content = item.content;
@@ -48,6 +50,14 @@ export class ProtectedFilePreview extends SurveyFilePreview {
   }
 }
 
-ReactElementFactory.Instance.registerElement("sv-file-preview", (props) => {
-  return React.createElement(ProtectedFilePreview, props);
-});
+function registerProtectedFilePreview() {
+  if (globalThis.window === undefined || isRegistered) return;
+
+  ReactElementFactory.Instance.registerElement("sv-file-preview", (props) => {
+    return React.createElement(ProtectedFilePreview, props);
+  });
+
+  isRegistered = true;
+}
+
+export { registerProtectedFilePreview, ProtectedFilePreview };

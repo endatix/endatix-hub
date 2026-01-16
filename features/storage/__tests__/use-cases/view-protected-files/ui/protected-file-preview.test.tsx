@@ -3,10 +3,9 @@ import { screen } from "@testing-library/react";
 import React from "react";
 import { QuestionFileModel } from "survey-core";
 import { ProtectedFilePreview } from "@/features/storage/use-cases/view-protected-files/ui/protected-file-preview";
-import { StorageConfig } from "@/features/storage/infrastructure";
-import { File } from "@/lib/questions/file/file-type";
+import { IFile } from "@/lib/questions/file/file-type";
 import { renderSurveyJsComponent } from "@/__tests__/utils/test-utils";
-
+import { StorageConfig } from "@/features/storage/client";
 
 // Mock SurveyFilePreview
 const mockRenderElement = vi.fn(() => (
@@ -46,13 +45,13 @@ describe("ProtectedFilePreview", () => {
               "https://testaccount.blob.core.windows.net/content/file1.pdf",
             name: "file1.pdf",
             type: "application/pdf",
-          } as File,
+          } as IFile,
           {
             content:
               "https://testaccount.blob.core.windows.net/content/file2.jpg",
             name: "file2.jpg",
             type: "image/jpeg",
-          } as File,
+          } as IFile,
         ],
       },
     ],
@@ -62,12 +61,12 @@ describe("ProtectedFilePreview", () => {
         content: "https://testaccount.blob.core.windows.net/content/file1.pdf",
         name: "file1.pdf",
         token: "token-123",
-      } as File & { token?: string },
+      } as IFile & { token?: string },
       {
         content: "https://testaccount.blob.core.windows.net/content/file2.jpg",
         name: "file2.jpg",
         token: "token-456",
-      } as File & { token?: string },
+      } as IFile & { token?: string },
     ],
   } as unknown as QuestionFileModel;
 
@@ -79,12 +78,12 @@ describe("ProtectedFilePreview", () => {
         content: "https://testaccount.blob.core.windows.net/content/file1.pdf",
         name: "file1.pdf",
         type: "application/pdf",
-      } as File,
+      } as IFile,
       {
         content: "https://testaccount.blob.core.windows.net/content/file2.jpg",
         name: "file2.jpg",
         type: "image/jpeg",
-      } as File,
+      } as IFile,
     ];
   });
 
@@ -190,7 +189,7 @@ describe("ProtectedFilePreview", () => {
                   "https://testaccount.blob.core.windows.net/content/file3.pdf",
                 name: "file3.pdf",
                 type: "application/pdf",
-              } as File,
+              } as IFile,
             ],
           },
         ],
@@ -200,7 +199,7 @@ describe("ProtectedFilePreview", () => {
               "https://testaccount.blob.core.windows.net/content/file3.pdf",
             name: "file3.pdf",
             // No token
-          } as File,
+          } as IFile,
         ],
       } as unknown as QuestionFileModel;
 
@@ -236,13 +235,13 @@ describe("ProtectedFilePreview", () => {
                   "https://testaccount.blob.core.windows.net/content/file1.pdf",
                 name: "file1.pdf",
                 type: "application/pdf",
-              } as File,
+              } as IFile,
               {
                 content:
                   "https://testaccount.blob.core.windows.net/content/file2.jpg",
                 name: "file2.jpg",
                 type: "image/jpeg",
-              } as File,
+              } as IFile,
             ],
           },
         ],
@@ -252,13 +251,13 @@ describe("ProtectedFilePreview", () => {
               "https://testaccount.blob.core.windows.net/content/file1.pdf",
             name: "file1.pdf",
             token: "token-123",
-          } as File & { token?: string },
+          } as IFile & { token?: string },
           {
             content:
               "https://testaccount.blob.core.windows.net/content/file2.jpg",
             name: "file2.jpg",
             // No token for file2
-          } as File,
+          } as IFile,
         ],
       } as unknown as QuestionFileModel;
 

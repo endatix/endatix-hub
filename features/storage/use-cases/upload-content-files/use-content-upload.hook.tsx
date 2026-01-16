@@ -4,8 +4,8 @@ import { useCallback, useState } from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import { uploadContentFileAction } from "./upload-content-file.action";
 import { Result } from "@/lib/result";
-import { useStorageConfig } from "../../infrastructure";
 import { ContentItemType } from "../../types";
+import { useStorageConfig } from "../../infrastructure/storage-config.context";
 
 interface UseContentUploadProps {
   itemId: string;

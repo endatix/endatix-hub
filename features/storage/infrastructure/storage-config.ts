@@ -5,12 +5,12 @@ interface IStorageConfig {
   isPrivate: boolean;
 }
 
-export interface ContainerNames {
+interface ContainerNames {
   USER_FILES: string;
   CONTENT: string;
 }
 
-export type AzureStorageConfig = IStorageConfig & {
+type AzureStorageConfig = IStorageConfig & {
   accountName: string;
   accountKey: string;
   hostName: string;
@@ -27,7 +27,7 @@ const DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME = "content";
  * Returns a frozen object to prevent modification after initialization
  * @returns The frozen storage configuration object
  */
-export function getStorageConfig(): AzureStorageConfig {
+function getStorageConfig(): AzureStorageConfig {
   const { AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY } = process.env;
 
   const isEnabled = !!AZURE_STORAGE_ACCOUNT_NAME && !!AZURE_STORAGE_ACCOUNT_KEY;
@@ -65,14 +65,14 @@ export function getStorageConfig(): AzureStorageConfig {
  * Returns a frozen object to prevent modification after initialization
  * @returns The frozen container names object
  */
-export function getContainerNames(): ContainerNames {
+function getContainerNames(): ContainerNames {
   const userFilesContainerName =
     process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
     DEFAULT_USER_FILES_CONTAINER_NAME;
   const contentContainerName =
     process.env.CONTENT_STORAGE_CONTAINER_NAME ??
     DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME;
-    
+
   return Object.freeze({
     USER_FILES: userFilesContainerName.toLowerCase(),
     CONTENT: contentContainerName.toLowerCase(),
@@ -83,7 +83,7 @@ export function getContainerNames(): ContainerNames {
  * Creates the combined client-safe storage configuration.
  * This is intended to be called in Server Components only.
  */
-export function createStorageConfigClient(): StorageConfigClient {
+function createStorageConfigClient(): StorageConfigClient {
   const serverConfig = getStorageConfig();
   const containerNames = getContainerNames();
 
@@ -99,3 +99,12 @@ export function createStorageConfigClient(): StorageConfigClient {
     },
   });
 }
+
+export {
+  getStorageConfig,
+  getContainerNames,
+  createStorageConfigClient,
+  type ContainerNames,
+  type AzureStorageConfig,
+  type IStorageConfig,
+};

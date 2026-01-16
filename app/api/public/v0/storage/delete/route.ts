@@ -1,8 +1,8 @@
-import { getContainerNames } from "@/features/storage/infrastructure/storage-config";
 import {
+  getContainerNames,
   deleteBlob,
-  FileOptions,
-} from "@/features/storage/infrastructure/storage-service";
+  type FileOptions,
+} from "@/features/storage/server";
 
 interface DeleteFilesRequest {
   formId: string;

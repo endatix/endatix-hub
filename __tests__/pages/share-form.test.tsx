@@ -73,35 +73,24 @@ vi.mock("@/features/recaptcha/ui/recaptcha-style-fix", () => ({
 }));
 
 // Mock storage config
-vi.mock("@/features/storage/infrastructure/storage-config", () => ({
-  createStorageConfigClient: vi.fn().mockReturnValue({
+vi.mock("@/features/storage/server", () => ({
+  createStorageConfigClient: vi.fn(() => ({
     config: {
-      isEnabled: true,
-      isPrivate: false,
-      hostName: "mock-host-name",
       containerNames: {
         USER_FILES: "user-files",
         CONTENT: "content",
       },
     },
-  }),
+  })),
+  generateReadTokensAction: vi.fn(() => Promise.resolve(Result.success({}))),
 }));
 
-// Mock view files action
-vi.mock("@/features/storage/use-cases/view-protected-files", () => ({
-  generateReadTokensAction: vi.fn().mockResolvedValue({
-    kind: 0, // Kind.Success (enum value)
-    value: {
-      token: "mock-token",
-      hostName: "mock-host-name",
-      expiresOn: new Date(),
-      generatedAt: new Date(),
-      isPrivate: false,
-    },
-  }),
+// Mock storage client components
+vi.mock("@/features/storage/client", () => ({
+  StorageConfigProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="storage-config-provider">{children}</div>
+  ),
 }));
-
-
 
 // Mock SurveyJsWrapper
 vi.mock("@/features/public-form/ui/survey-js-wrapper", () => ({

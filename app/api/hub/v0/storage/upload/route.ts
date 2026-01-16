@@ -1,12 +1,9 @@
 import { getSession } from "@/features/auth";
 import { headers } from "next/headers";
-import {
-  UploadContentFileCommand,
-  uploadContentFileUseCase,
-} from "@/features/storage/use-cases/upload-content-files/upload-content-file.use-case";
 import { Result } from "@/lib/result";
-import { ContentItemType } from "@/features/storage";
 import { apiResponses } from "@/lib/utils/route-handlers";
+import { ContentItemType, UploadContentFileCommand } from "@/features/storage";
+import { uploadContentFileUseCase } from "@/features/storage/server";
 
 export async function POST(request: Request) {
   const session = await getSession();

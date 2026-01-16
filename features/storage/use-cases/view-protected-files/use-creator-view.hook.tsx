@@ -5,7 +5,7 @@ import {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
-import { useStorageConfig } from "../../infrastructure";
+import { useStorageConfig } from "../../infrastructure/storage-config.context";
 import { ReadTokensResult } from "../../types";
 import { useStorageView } from "./use-storage-view.hook";
 

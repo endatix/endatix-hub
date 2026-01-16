@@ -8,9 +8,11 @@ import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { generateReadTokensAction } from "@/features/storage/use-cases/view-protected-files";
-import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
-import { StorageConfigProvider } from "@/features/storage/infrastructure";
+import {
+  createStorageConfigClient,
+  generateReadTokensAction,
+} from "@/features/storage/server";
+import { StorageConfigProvider } from "@/features/storage/client";
 
 type Params = {
   params: Promise<{

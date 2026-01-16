@@ -33,7 +33,6 @@ import "survey-core/survey.i18n";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { ReadTokensResult } from "@/features/storage";
 import { useSurveyStorage } from "@/features/storage/hooks/use-survey-storage.hook";
-import "@/features/storage/use-cases/view-protected-files/ui/protected-file-preview";
 
 interface SurveyComponentProps {
   definition: string;

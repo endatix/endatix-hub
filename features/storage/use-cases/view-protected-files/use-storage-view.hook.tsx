@@ -1,4 +1,6 @@
-import { use, useCallback, useMemo } from "react";
+"use client";
+
+import { use, useCallback, useEffect, useMemo } from "react";
 import {
   AfterRenderHeaderEvent,
   AfterRenderQuestionEvent,
@@ -19,8 +21,9 @@ import {
   SurveyModelWithTokens,
 } from "../../types";
 import { useStorageConfig } from "../../infrastructure/storage-config.context";
-import { StorageConfig } from "../../infrastructure";
-import { File } from "@/lib/questions/file/file-type";
+import { IFile } from "@/lib/questions/file/file-type";
+import { registerProtectedFilePreview } from "./ui/protected-file-preview";
+import { StorageConfig } from "../../infrastructure/storage-config-client";
 
 /**
  * Updates the src attribute of an image element to include a SAS token if the image is in private storage.
@@ -173,6 +176,10 @@ export function useStorageView(promises?: UseStorageViewProps) {
     [storageConfig?.isPrivate, tokens],
   );
 
+  useEffect(() => {
+    registerProtectedFilePreview();
+  }, []);
+
   const registerViewHandlers = useCallback(
     (model: SurveyModel) => {
       if (!storageConfig?.isPrivate) return () => {};
@@ -241,7 +248,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
             const currentShownPage =
               fileQuestion.renderedPages[fileQuestion.indexToShow];
             if (currentShownPage) {
-              currentShownPage.items.forEach((item: File) => {
+              currentShownPage.items.forEach((item: IFile) => {
                 updateImageSrc(
                   questionHtml,
                   item.content,
