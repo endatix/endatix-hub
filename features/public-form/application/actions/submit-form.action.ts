@@ -1,12 +1,13 @@
 "use server";
 
-import { cookies } from "next/headers";
-import { Result } from "@/lib/result";
-import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { getPostHog } from "@/features/analytics/posthog/server/node-client";
+import { getSession } from "@/features/auth";
+import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
-import { getSession } from "@/features/auth";
+import { Result } from "@/lib/result";
+import { isAccessToken } from "@/lib/utils";
+import { cookies } from "next/headers";
 
 export type SubmissionOperation = {
   submissionId: string;
@@ -67,11 +68,17 @@ async function updateExistingSubmissionViaToken(
   const session = await getSession();
   const endatix = new EndatixApi(session);
 
-  const updateByTokenResult = await endatix.submissions.public.updateByToken(
-    formId,
-    token,
-    submissionData,
-  );
+  const updateByTokenResult = isAccessToken(token)
+    ? await endatix.submissions.public.updateByAccessToken(
+        formId,
+        token,
+        submissionData,
+      )
+    : await endatix.submissions.public.updateByToken(
+        formId,
+        token,
+        submissionData,
+      );
 
   if (ApiResult.isSuccess(updateByTokenResult)) {
     if (performCookieOperations && updateByTokenResult.data.isComplete) {
