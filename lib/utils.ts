@@ -142,6 +142,18 @@ export function hasTokenPermission(token: string, permission: TokenPermissionVal
 }
 
 /**
+ * Checks if a token is an access token (4-part format) or a partial submission token (hex format).
+ * Access tokens: {submissionId}.{expiryUnix}.{permissionsCode}.{signature}
+ * Partial tokens: hexadecimal string
+ * @param token - The token string to check
+ * @returns true if access token, false if partial/hex token
+ */
+export function isAccessToken(token: string): boolean {
+  if (!token) return false;
+  return token.split(".").length === 4;
+}
+
+/**
  * Parses an access token to extract the expiry timestamp.
  * Token format: {submissionId}.{expiryUnix}.{permissionsCode}.{signature}
  * @param token - The access token string
