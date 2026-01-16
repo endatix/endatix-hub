@@ -9,7 +9,7 @@ import {
   validateEndatixId,
 } from "@/lib/utils/type-validators";
 import { getActiveFormDefinition } from "@/services/api";
-import { generateReadTokensAction } from "@/features/storage/use-cases/view-files";
+import { generateReadTokensAction } from "@/features/storage/use-cases/view-protected-files";
 import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
 import { StorageConfigProvider } from "@/features/storage/infrastructure";
 

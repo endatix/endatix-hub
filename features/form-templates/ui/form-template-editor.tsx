@@ -30,7 +30,7 @@ import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specia
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useContentUpload, useCreatorView } from "@/features/storage/use-cases";
+import { useCreatorStorage } from "@/features/storage/hooks/use-creator-storage.hook";
 import { ReadTokensResult } from "@/features/storage";
 
 const invalidJsonErrorMessage =
@@ -68,11 +68,11 @@ function FormTemplateEditor({
   readTokenPromises,
 }: FormTemplateEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
-  const { registerUploadHandlers } = useContentUpload({
+  const { registerStorageHandlers, isStorageReady } = useCreatorStorage({
     itemId: templateId,
     itemType: "template",
+    readTokenPromises,
   });
-  const { registerViewHandlers } = useCreatorView({ readTokenPromises });
   const router = useRouter();
   const [isEditingName, setIsEditingName] = useState(false);
   const [name, setName] = useState(templateName);
@@ -148,8 +148,7 @@ function FormTemplateEditor({
 
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
-        const unregisterUpload = registerUploadHandlers(newCreator);
-        const unregisterView = registerViewHandlers(newCreator);
+        const unregisterStorage = registerStorageHandlers(newCreator);
         newCreator.saveSurveyFunc = (
           no: number,
           callback: (num: number, status: boolean) => void,
@@ -163,8 +162,7 @@ function FormTemplateEditor({
         }
 
         return () => {
-          unregisterUpload();
-          unregisterView();
+          unregisterStorage();
         };
       } catch (error) {
         console.error("Error loading custom questions:", error);
@@ -174,7 +172,7 @@ function FormTemplateEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, registerUploadHandlers, registerViewHandlers, creator]);
+  }, [options, slkVal, registerStorageHandlers, creator]);
 
   useEffect(() => {
     if (creator && templateJson) {

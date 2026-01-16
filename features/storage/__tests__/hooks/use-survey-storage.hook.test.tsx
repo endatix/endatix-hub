@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyModel } from "survey-core";
-import { useSurveyStorage } from "@/features/storage/use-cases/use-survey-storage.hook";
+import { useSurveyStorage } from "@/features/storage/hooks/use-survey-storage.hook";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/storage/types";
 import { StorageConfigProvider } from "@/features/storage/infrastructure/storage-config.context";
@@ -14,7 +14,7 @@ const mockRegisterViewHandlers = vi.fn();
 const mockRegisterUploadHandlers = vi.fn();
 
 vi.mock(
-  "@/features/storage/use-cases/view-files/use-storage-view.hook",
+  "@/features/storage/use-cases/view-protected-files/use-storage-view.hook",
   () => ({
     useStorageView: () => ({
       setModelMetadata: mockSetModelMetadata,
@@ -34,7 +34,6 @@ vi.mock(
 
 const createMockSurveyModel = (): SurveyModel => {
   return {
-    hasPrivateStorage: false,
     readTokens: null,
   } as unknown as SurveyModel;
 };

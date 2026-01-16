@@ -16,10 +16,11 @@ import {
   IContainerInfo,
   ProtectedFile,
   ReadTokensResult,
-  SurveyModelWithPrivateStorage,
+  SurveyModelWithTokens,
 } from "../../types";
 import { useStorageConfig } from "../../infrastructure/storage-config.context";
 import { StorageConfig } from "../../infrastructure";
+import { File } from "@/lib/questions/file/file-type";
 
 /**
  * Updates the src attribute of an image element to include a SAS token if the image is in private storage.
@@ -81,7 +82,9 @@ function resolveContainerFromUrl(
       return null;
     }
 
-    const firstPathPart = urlObj.pathname.split("/").find((part) => part.length > 0);
+    const firstPathPart = urlObj.pathname
+      .split("/")
+      .find((part) => part.length > 0);
     const containerName = firstPathPart?.toLowerCase() ?? null;
     if (!containerName) return null;
 
@@ -164,8 +167,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
   const setModelMetadata = useCallback(
     (model: SurveyModel) => {
       if (storageConfig?.isPrivate) {
-        (model as SurveyModelWithPrivateStorage).hasPrivateStorage = true;
-        (model as SurveyModelWithPrivateStorage).readTokens = tokens;
+        (model as SurveyModelWithTokens).readTokens = tokens;
       }
     },
     [storageConfig?.isPrivate, tokens],
@@ -236,6 +238,19 @@ export function useStorageView(promises?: UseStorageViewProps) {
                 }
               }
             });
+            const currentShownPage =
+              fileQuestion.renderedPages[fileQuestion.indexToShow];
+            if (currentShownPage) {
+              currentShownPage.items.forEach((item: File) => {
+                updateImageSrc(
+                  questionHtml,
+                  item.content,
+                  tokens.userFiles,
+                  storageConfig,
+                );
+              });
+            }
+
             break;
           }
           default:

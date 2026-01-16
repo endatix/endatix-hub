@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { SurveyModel } from "survey-core";
 import { ReadTokensResult } from "../types";
-import { useStorageView } from "../use-cases/view-files/use-storage-view.hook";
+import { useStorageView } from "../use-cases/view-protected-files/use-storage-view.hook";
 import { useStorageUpload } from "../use-cases/upload-files/use-storage-upload.hook";
 import { useStorageConfig } from "../infrastructure";
 
@@ -20,7 +20,7 @@ interface UseSurveyStorageProps {
 
 /**
  * Hook to provide storage feature activation for a SurveyModel.
- * @returns {Object} { registerStorageHandlers } - Function to register all storage event handlers.
+ * @returns {Object} { registerStorageHandlers, isStorageReady } - Function to register all storage event handlers and readiness flag.
  */
 export function useSurveyStorage({
   model,
@@ -30,9 +30,9 @@ export function useSurveyStorage({
   readTokenPromises,
 }: UseSurveyStorageProps) {
   const storageConfig = useStorageConfig();
-
-  // Initialize hooks regardless of readTokenPromises existence to maintain hook order
-  const { setModelMetadata, registerViewHandlers } = useStorageView(readTokenPromises);
+  const [isStorageReady, setIsStorageReady] = useState(false);
+  const { setModelMetadata, registerViewHandlers } =
+    useStorageView(readTokenPromises);
   const { registerUploadHandlers } = useStorageUpload({
     surveyModel: model ?? null,
     formId,
@@ -41,7 +41,6 @@ export function useSurveyStorage({
     readTokenPromises,
   });
 
-  // Apply metadata synchronously during render
   useMemo(() => {
     if (model) {
       setModelMetadata(model);
@@ -53,23 +52,35 @@ export function useSurveyStorage({
    * @param surveyModel The model to register handlers on.
    * @returns A cleanup function to unregister all handlers.
    */
-  const registerStorageHandlers = useCallback((surveyModel: SurveyModel) => {
-    if (!readTokenPromises || !storageConfig?.isEnabled) {
-      return () => {};
-    }
+  const registerStorageHandlers = useCallback(
+    (surveyModel: SurveyModel) => {
+      if (!readTokenPromises || !storageConfig?.isEnabled) {
+        setIsStorageReady(true);
+        return () => {};
+      }
 
-    const unregisterUpload = registerUploadHandlers(surveyModel);
-    let unregisterView = () => {};
+      const unregisterUpload = registerUploadHandlers(surveyModel);
+      let unregisterView = () => {};
 
-    if (storageConfig.isPrivate) {
-      unregisterView = registerViewHandlers(surveyModel);
-    }
+      if (storageConfig.isPrivate) {
+        unregisterView = registerViewHandlers(surveyModel);
+      }
 
-    return () => {
-      unregisterUpload?.();
-      unregisterView?.();
-    };
-  }, [storageConfig, readTokenPromises, registerUploadHandlers, registerViewHandlers]);
+      setIsStorageReady(true);
 
-  return { registerStorageHandlers };
+      return () => {
+        setIsStorageReady(false);
+        unregisterUpload?.();
+        unregisterView?.();
+      };
+    },
+    [
+      storageConfig,
+      readTokenPromises,
+      registerUploadHandlers,
+      registerViewHandlers,
+    ],
+  );
+
+  return { registerStorageHandlers, isStorageReady };
 }

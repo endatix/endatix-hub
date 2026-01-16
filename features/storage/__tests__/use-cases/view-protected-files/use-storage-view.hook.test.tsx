@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
-import { useStorageView } from "@/features/storage/use-cases/view-files/use-storage-view.hook";
+import { useStorageView } from "@/features/storage/use-cases/view-protected-files/use-storage-view.hook";
 import {
   SurveyModel,
   AfterRenderQuestionEvent,
@@ -69,13 +69,16 @@ describe("useStorageView", () => {
   const createWrapper = (
     config: typeof mockStorageConfig | null = mockStorageConfig,
   ) => {
-    return ({ children }: { children: React.ReactNode }) => (
-      <Suspense fallback={<div>Loading...</div>}>
-        <StorageConfigProvider config={config}>
-          {children}
-        </StorageConfigProvider>
-      </Suspense>
-    );
+    function TestWrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <Suspense fallback={<div>Loading...</div>}>
+          <StorageConfigProvider config={config}>
+            {children}
+          </StorageConfigProvider>
+        </Suspense>
+      );
+    }
+    return TestWrapper;
   };
 
   const renderHookWithSuspense = async (
@@ -128,7 +131,7 @@ describe("useStorageView", () => {
   });
 
   describe("setModelMetadata", () => {
-    it("should set hasPrivateStorage and readTokens when storage is private", async () => {
+    it("should set readTokens when storage is private", async () => {
       const props = createDefaultReadTokenPromises();
       let result: ReturnType<typeof renderHook>["result"];
 
@@ -146,7 +149,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      expect((model as any).hasPrivateStorage).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((model as any).readTokens).toEqual({
         userFiles: resolvedUserFilesTokenResult.value,
         content: resolvedTokenResult.value,
@@ -172,7 +175,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      expect((model as any).hasPrivateStorage).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((model as any).readTokens).toBeUndefined();
     });
 
@@ -194,7 +197,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      expect((model as any).isPrivateStorage).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((model as any).readTokens).toBeUndefined();
     });
   });
@@ -345,6 +348,12 @@ describe("useStorageView", () => {
       const fileQuestion = {
         getType: () => "file",
         value: file,
+        renderedPages: [
+          {
+            items: [file],
+          },
+        ],
+        indexToShow: 0,
       } as unknown as QuestionFileModel;
 
       const event = {
@@ -375,6 +384,12 @@ describe("useStorageView", () => {
       const fileQuestion = {
         getType: () => "file",
         value: file,
+        renderedPages: [
+          {
+            items: [file],
+          },
+        ],
+        indexToShow: 0,
       } as unknown as QuestionFileModel;
 
       const event = {
@@ -411,6 +426,12 @@ describe("useStorageView", () => {
       const fileQuestion = {
         getType: () => "file",
         value: files,
+        renderedPages: [
+          {
+            items: files,
+          },
+        ],
+        indexToShow: 0,
       } as unknown as QuestionFileModel;
 
       const event = {

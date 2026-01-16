@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import { uploadContentFileAction } from "./upload-content-file.action";
 import { Result } from "@/lib/result";
@@ -17,6 +17,7 @@ interface UseContentUploadProps {
  * Provides a handler for the onUploadFile event. Enabled only if storage is enabled.
  */
 export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
+  const [isStorageReady, setIsStorageReady] = useState(false);
   const storageConfig = useStorageConfig();
 
   const onUploadFile = useCallback(
@@ -58,12 +59,15 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
   const registerUploadHandlers = useCallback(
     (creator: SurveyCreatorModel) => {
       if (!storageConfig?.isEnabled) {
+        setIsStorageReady(true);
         return () => {};
       }
 
       creator.onUploadFile.add(onUploadFile);
+      setIsStorageReady(true);
 
       return () => {
+        setIsStorageReady(false);
         creator.onUploadFile.remove(onUploadFile);
       };
     },
@@ -72,5 +76,6 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
 
   return {
     registerUploadHandlers,
+    isStorageReady,
   };
 }

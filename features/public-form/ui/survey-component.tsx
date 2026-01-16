@@ -32,8 +32,8 @@ import { LanguageSelector } from "./language-selector";
 import "survey-core/survey.i18n";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { ReadTokensResult } from "@/features/storage";
-import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
-import { useSurveyStorage } from "@/features/storage/use-cases/use-survey-storage.hook";
+import { useSurveyStorage } from "@/features/storage/hooks/use-survey-storage.hook";
+import "@/features/storage/use-cases/view-protected-files/ui/protected-file-preview";
 
 interface SurveyComponentProps {
   definition: string;
@@ -86,13 +86,15 @@ export default function SurveyComponent({
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
 
-  const { registerStorageHandlers } = useSurveyStorage({
+  const { registerStorageHandlers, isStorageReady } = useSurveyStorage({
     model: surveyModel,
     formId,
     submissionId,
     onSubmissionIdChange: setSubmissionId,
     readTokenPromises,
   });
+
+  const isModelReady = surveyModel && isStorageReady;
 
   useEffect(() => {
     if (submission?.id) {
@@ -274,7 +276,7 @@ export default function SurveyComponent({
     };
   }, [surveyModel, submitForm, updatePartial, registerStorageHandlers]);
 
-  if (!surveyModel) {
+  if (!isModelReady) {
     return <div>Loading...</div>;
   }
 

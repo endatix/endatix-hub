@@ -8,7 +8,7 @@ import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
 import { createStorageConfigClient } from "@/features/storage/infrastructure/storage-config";
 import { StorageConfigProvider } from "@/features/storage/infrastructure";
-import { generateReadTokensAction } from "@/features/storage/use-cases/view-files";
+import { generateReadTokensAction } from "@/features/storage/use-cases/view-protected-files";
 import {
   ApiResult,
   isNotFoundError,

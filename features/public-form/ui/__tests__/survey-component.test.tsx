@@ -59,13 +59,14 @@ vi.mock("@/features/storage/infrastructure/storage-config-context", () => ({
   ),
 }));
 
-vi.mock("@/features/storage/use-cases/use-survey-storage.hook", () => ({
+vi.mock("@/features/storage/hooks/use-survey-storage.hook", () => ({
   useSurveyStorage: vi.fn(() => ({ 
-    registerStorageHandlers: vi.fn(() => () => {}) 
+    registerStorageHandlers: vi.fn(() => () => {}),
+    isStorageReady: true
   })),
 }));
 
-vi.mock("@/features/storage/use-cases/view-files/ui/protected-file-preview", () => ({}));
+vi.mock("@/features/storage/use-cases/view-protected-files/ui/protected-file-preview", () => ({}));
 
 vi.mock("./use-survey-theme.hook", () => ({
   useSurveyTheme: vi.fn(),

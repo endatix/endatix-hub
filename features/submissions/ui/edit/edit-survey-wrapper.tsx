@@ -20,9 +20,9 @@ import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
+import "@/features/storage/use-cases/view-protected-files/ui/protected-file-preview";
 import { ReadTokensResult } from "@/features/storage";
-import { useSurveyStorage } from "@/features/storage/use-cases/use-survey-storage.hook";
+import { useSurveyStorage } from "@/features/storage/hooks/use-survey-storage.hook";
 
 interface EditSurveyWrapperProps {
   submission: Submission;
@@ -130,7 +130,7 @@ function EditSurveyWrapper({
   const [submissionId, setSubmissionId] = useState(submission.id);
   useRichText(model);
 
-  const { registerStorageHandlers } = useSurveyStorage({
+  const { registerStorageHandlers, isStorageReady } = useSurveyStorage({
     model: model,
     formId: submission.formId,
     submissionId,
@@ -173,7 +173,7 @@ function EditSurveyWrapper({
     );
   }
 
-  if (!model) {
+  if (!model || !isStorageReady) {
     return <div>Submission not found</div>;
   }
 

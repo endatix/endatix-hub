@@ -43,10 +43,9 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useCreatorView } from "@/features/storage/use-cases/view-files/use-creator-view.hook";
-import { useContentUpload } from "@/features/storage/use-cases/upload-content-files/use-content-upload.hook";
+import { useCreatorStorage } from "@/features/storage/hooks/use-creator-storage.hook";
 import { ReadTokensResult } from "@/features/storage";
-import "@/features/storage/use-cases/view-files/ui/protected-file-preview";
+import "@/features/storage/use-cases/view-protected-files/ui/protected-file-preview";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -145,11 +144,11 @@ function FormEditor({
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { registerUploadHandlers } = useContentUpload({
+  const { registerStorageHandlers } = useCreatorStorage({
     itemId: formId,
     itemType: "form",
+    readTokenPromises,
   });
-  const { registerViewHandlers } = useCreatorView({ readTokenPromises });
 
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
@@ -464,8 +463,7 @@ function FormEditor({
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
 
-        const unregisterUpload = registerUploadHandlers(newCreator);
-        const unregisterView = registerViewHandlers(newCreator);
+        const unregisterStorage = registerStorageHandlers(newCreator);
 
         newCreator.onSurveyInstanceCreated.add(
           (_, options: SurveyInstanceCreatedEvent) => {
@@ -490,8 +488,7 @@ function FormEditor({
         isCreatorInitializedRef.current = true;
 
         return () => {
-          unregisterUpload();
-          unregisterView();
+          unregisterStorage();
         };
       } catch (error) {
         console.error("Error loading custom questions:", error);
@@ -507,8 +504,7 @@ function FormEditor({
     creator,
     initialPropertyGridVisible,
     formJson,
-    registerUploadHandlers,
-    registerViewHandlers,
+    registerStorageHandlers,
   ]);
 
   useEffect(() => {

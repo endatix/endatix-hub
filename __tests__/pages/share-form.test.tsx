@@ -88,7 +88,7 @@ vi.mock("@/features/storage/infrastructure/storage-config", () => ({
 }));
 
 // Mock view files action
-vi.mock("@/features/storage/use-cases/view-files", () => ({
+vi.mock("@/features/storage/use-cases/view-protected-files", () => ({
   generateReadTokensAction: vi.fn().mockResolvedValue({
     kind: 0, // Kind.Success (enum value)
     value: {

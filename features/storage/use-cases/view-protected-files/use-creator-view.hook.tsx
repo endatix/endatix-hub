@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import { useStorageConfig } from "../../infrastructure";
-import { useStorageView } from "../view-files/use-storage-view.hook";
 import { ReadTokensResult } from "../../types";
+import { useStorageView } from "./use-storage-view.hook";
 
 interface UseCreatorViewProps {
   readTokenPromises?: {
@@ -21,8 +21,10 @@ interface UseCreatorViewProps {
  * Decorates every internal survey instance (Designer, Preview, Property Grid) with SAS tokens.
  */
 export function useCreatorView({ readTokenPromises }: UseCreatorViewProps) {
+  const [isStorageReady, setIsStorageReady] = useState(false);
   const storageConfig = useStorageConfig();
-  const { setModelMetadata, registerViewHandlers } = useStorageView(readTokenPromises);
+  const { setModelMetadata, registerViewHandlers } =
+    useStorageView(readTokenPromises);
 
   /**
    * Registers the view decoration handler to the SurveyJS Creator instance.
@@ -35,10 +37,8 @@ export function useCreatorView({ readTokenPromises }: UseCreatorViewProps) {
         _: SurveyCreatorModel,
         options: SurveyInstanceCreatedEvent,
       ) => {
-        // Always set metadata (synchronous flags)
         setModelMetadata(options.survey);
 
-        // Register view handlers if storage is private
         if (storageConfig?.isPrivate) {
           registerViewHandlers(options.survey);
         }
@@ -46,7 +46,10 @@ export function useCreatorView({ readTokenPromises }: UseCreatorViewProps) {
 
       creator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
 
+      setIsStorageReady(true);
+
       return () => {
+        setIsStorageReady(false);
         creator.onSurveyInstanceCreated.remove(handleSurveyInstanceCreated);
       };
     },
@@ -55,5 +58,6 @@ export function useCreatorView({ readTokenPromises }: UseCreatorViewProps) {
 
   return {
     registerViewHandlers: registerViewHandlersInCreator,
+    isStorageReady,
   };
 }
