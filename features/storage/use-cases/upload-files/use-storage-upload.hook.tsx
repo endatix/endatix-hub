@@ -289,7 +289,7 @@ export function useStorageUpload({
           surveyModel,
           onSubmissionIdChange,
         });
-        allResults.push(...(blobResults.data as Array<unknown>));
+        allResults.push(...blobResults.data);
         allErrors.push(...blobResults.errors);
 
         const serverResults = await uploadToServer({
@@ -299,7 +299,7 @@ export function useStorageUpload({
           surveyModel,
           onSubmissionIdChange,
         });
-        allResults.push(...(serverResults.data as Array<unknown>));
+        allResults.push(...serverResults.data);
         allErrors.push(...serverResults.errors);
 
         options.callback(allResults, allErrors);

@@ -18,7 +18,6 @@ import {
   ICreatorOptions,
   SurveyCreatorModel,
   TabJsonEditorTextareaPlugin,
-  UploadFileEvent,
 } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";

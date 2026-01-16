@@ -124,7 +124,7 @@ function EditSurveyWrapper({
   onChange,
   customQuestions,
   readTokenPromises,
-}: EditSurveyWrapperProps) {
+}: Readonly<EditSurveyWrapperProps>) {
   const { model, isLoading } = useSurveyModel(submission, customQuestions);
   const { setFromMetadata } = useDynamicVariables(model);
   const [submissionId, setSubmissionId] = useState(submission.id);
@@ -154,7 +154,13 @@ function EditSurveyWrapper({
       model.onDynamicPanelValueChanged.remove(onChange);
       model.onMatrixCellValueChanged.remove(onChange);
     };
-  }, [model, onChange, setFromMetadata, submission.metadata, registerStorageHandlers]);
+  }, [
+    model,
+    onChange,
+    setFromMetadata,
+    submission.metadata,
+    registerStorageHandlers,
+  ]);
 
   if (isLoading) {
     return (
@@ -171,9 +177,7 @@ function EditSurveyWrapper({
     return <div>Submission not found</div>;
   }
 
-  return (
-    <Survey model={model} />
-  );
+  return <Survey model={model} />;
 }
 
 export default EditSurveyWrapper;

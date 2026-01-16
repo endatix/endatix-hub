@@ -24,7 +24,7 @@ export class ProtectedFilePreview extends SurveyFilePreview {
           (file: File) => file.content === item.content,
         );
         if (shownFile?.token) {
-          const content = item.content as string;
+          const content = item.content;
           item.content = `${content}?${shownFile.token}`;
         }
         return item;

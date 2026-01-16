@@ -51,7 +51,7 @@ function EditSubmission({
   formId,
   token,
   readTokenPromises,
-}: EditSubmissionProps) {
+}: Readonly<EditSubmissionProps>) {
   const isPublicMode = token !== undefined;
   const submissionData: Record<string, unknown> = useMemo(() => {
     try {

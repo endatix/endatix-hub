@@ -104,8 +104,8 @@ export default function SurveyComponent({
     (type: string, data?: Record<string, unknown>) => {
       if (
         isEmbed &&
-        typeof window !== "undefined" &&
-        window.parent !== window
+        typeof globalThis.window !== "undefined" &&
+        window.parent !== globalThis.window
       ) {
         window.parent.postMessage(
           {
