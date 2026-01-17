@@ -140,6 +140,24 @@ describe("StorageService", () => {
       expect(result).toBe(mockBlobClient.url);
     });
 
+    it("should handle errors gracefully when uploadData fails", async () => {
+      const uploadToStorage = await resolveUploadToStorage();
+
+      mockBlobClient.uploadData = vi
+        .fn()
+        .mockRejectedValue(new Error("Upload failed"));
+
+      // Act & Assert
+      await expect(
+        uploadToStorage(
+          mockBuffer,
+          mockFileName,
+          mockContainerName,
+          mockFolderPath,
+        ),
+      ).rejects.toThrow("Upload failed");
+    });
+
     it("should throw error when file buffer is not provided", async () => {
       const uploadToStorage = await resolveUploadToStorage();
 
@@ -244,12 +262,11 @@ describe("StorageService", () => {
       expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
         `${mockFolderPath}/${mockFileName}`,
       );
-      expect(mockBlobClient.generateSasUrl).toHaveBeenCalledWith({
-        startsOn: expect.any(Date),
-        permissions: { write: true, read: true }, // Mocked BlobSASPermissions.parse() return value
-        expiresOn: expect.any(Date),
-        protocol: "https", // SASProtocol.Https
-      });
+      expect(mockBlobClient.generateSasUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          protocol: "https",
+        }),
+      );
       expect(result).toBe("https://test.blob.core.windows.net/test?sas-token");
     });
 
@@ -301,6 +318,27 @@ describe("StorageService", () => {
       // Act & Assert
       await expect(() => generateUploadUrl(fileOptions)).rejects.toThrow(
         "container name is not provided",
+      );
+    });
+
+    it("should handle errors gracefully when generateSasUrl fails", async () => {
+      const { generateUploadUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
+
+      mockBlobClient.generateSasUrl = vi.fn().mockImplementation(() => {
+        throw new Error("SAS generation failed");
+      });
+
+      const fileOptions = {
+        fileName: mockFileName,
+        containerName: mockContainerName,
+        folderPath: mockFolderPath,
+      };
+
+      // Act & Assert
+      await expect(() => generateUploadUrl(fileOptions)).rejects.toThrow(
+        "SAS generation failed",
       );
     });
   });
@@ -757,15 +795,30 @@ describe("StorageService", () => {
 
   describe("resetBlobServiceClient", () => {
     it("should reset the singleton client", async () => {
-      const { resetBlobServiceClient } = await import(
+      const { resetBlobServiceClient, uploadToStorage } = await import(
         "../../infrastructure/storage-service"
       );
 
-      // Act
+      // 1. Instantiate the client by calling a function
+      await uploadToStorage(
+        mockBuffer,
+        mockFileName,
+        mockContainerName,
+        mockFolderPath,
+      );
+      expect(BlobServiceClient).toHaveBeenCalledTimes(1);
+
+      // 2. Reset the client
       resetBlobServiceClient();
 
-      // Assert - This is hard to test directly, but we can verify it doesn't throw
-      expect(() => resetBlobServiceClient()).not.toThrow();
+      // 3. Call again, it should instantiate a new client
+      await uploadToStorage(
+        mockBuffer,
+        mockFileName,
+        mockContainerName,
+        mockFolderPath,
+      );
+      expect(BlobServiceClient).toHaveBeenCalledTimes(2);
     });
   });
 

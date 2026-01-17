@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getStorageConfig,
   getContainerNames,
+  createStorageConfigClient,
+  AzureStorageConfig,
 } from "../../infrastructure/storage-config";
 
 describe("StorageConfig", () => {
@@ -418,6 +420,48 @@ describe("StorageConfig", () => {
         expect(Object.isFrozen(containerNames1)).toBe(true);
         expect(Object.isFrozen(containerNames2)).toBe(true);
       });
+    });
+  });
+
+  describe("createStorageConfigClient", () => {
+    it("should return a client-safe config object", () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.USER_FILES_STORAGE_CONTAINER_NAME = "custom-user-files";
+      process.env.CONTENT_STORAGE_CONTAINER_NAME = "custom-content";
+
+      // Act
+      const clientConfig = createStorageConfigClient();
+
+      // Assert
+      expect(clientConfig.config).toBeDefined();
+      expect(clientConfig.config.isEnabled).toBe(true);
+      expect(clientConfig.config.isPrivate).toBe(true);
+      expect(clientConfig.config.hostName).toBe(
+        `${mockAccountName}.blob.core.windows.net`,
+      );
+      expect(clientConfig.config.containerNames.USER_FILES).toBe(
+        "custom-user-files",
+      );
+      expect(clientConfig.config.containerNames.CONTENT).toBe("custom-content");
+
+      // Verify server-only properties are NOT present
+      expect(
+        (clientConfig.config as unknown as AzureStorageConfig).accountKey,
+      ).toBeUndefined();
+      expect(
+        (clientConfig.config as unknown as AzureStorageConfig).accountName,
+      ).toBeUndefined();
+    });
+
+    it("should return a frozen object", () => {
+      // Act
+      const clientConfig = createStorageConfigClient();
+
+      // Assert
+      expect(Object.isFrozen(clientConfig)).toBe(true);
     });
   });
 });
