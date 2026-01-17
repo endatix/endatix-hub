@@ -5,15 +5,14 @@ import {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
-import { useStorageConfig } from "../../infrastructure/storage-config.context";
-import { ReadTokensResult } from "../../types";
+import {
+  useStorageConfig,
+  StorageTokens,
+} from "../../infrastructure/storage-config.context";
 import { useStorageView } from "./use-storage-view.hook";
 
 interface UseCreatorViewProps {
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
+  readTokenPromises?: StorageTokens;
 }
 
 /**

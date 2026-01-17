@@ -35,12 +35,13 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   const tokenStore = new FormTokenCookieStore(cookieStore);
 
   const storageConfig = createStorageConfigClient().config;
-  const userFilesTokenPromise = generateReadTokensAction(
-    storageConfig.containerNames.USER_FILES,
-  );
-  const contentTokenPromise = generateReadTokensAction(
-    storageConfig.containerNames.CONTENT,
-  );
+  const readTokenPromises = {
+    userFiles: generateReadTokensAction(
+      storageConfig.containerNames.USER_FILES),
+    content: generateReadTokensAction(
+      storageConfig.containerNames.CONTENT,
+    ),
+  };
 
   const [submissionResult, activeDefinitionResult] = await Promise.all([
     getPartialSubmissionUseCase({ formId, tokenStore, urlToken }),
@@ -87,7 +88,7 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
         </>
       )}
       <Suspense fallback={<div>Loading...</div>}>
-        <StorageConfigProvider config={storageConfig}>
+        <StorageConfigProvider config={storageConfig} readTokenPromises={readTokenPromises}>
           <SurveyJsWrapper
             formId={formId}
             definition={activeDefinition.jsonData}
@@ -96,10 +97,6 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
             customQuestions={activeDefinition.customQuestions}
             requiresReCaptcha={activeDefinition.requiresReCaptcha}
             urlToken={urlToken}
-            readTokenPromises={{
-              userFiles: userFilesTokenPromise,
-              content: contentTokenPromise,
-            }}
           />
         </StorageConfigProvider>
       </Suspense>

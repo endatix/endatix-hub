@@ -31,7 +31,6 @@ import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useCreatorStorage } from "@/features/storage/client";
-import { ReadTokensResult } from "@/features/storage";
 
 const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
@@ -44,10 +43,6 @@ export interface FormTemplateEditorProps {
   isEnabled: boolean;
   options?: ICreatorOptions;
   slkVal?: string;
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -65,13 +60,11 @@ function FormTemplateEditor({
   templateName,
   options,
   slkVal,
-  readTokenPromises,
 }: FormTemplateEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const { registerStorageHandlers } = useCreatorStorage({
     itemId: templateId,
     itemType: "template",
-    readTokenPromises,
   });
   const router = useRouter();
   const [isEditingName, setIsEditingName] = useState(false);

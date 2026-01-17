@@ -56,19 +56,17 @@ export default async function EditSubmissionPage({ params }: Params) {
 
   const storageConfig = createStorageConfigClient().config;
   const readTokenPromises = {
-    userFiles: generateReadTokensAction(
-      storageConfig.containerNames.USER_FILES,
-    ),
+    userFiles: generateReadTokensAction(storageConfig.containerNames.USER_FILES),
     content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
   };
 
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <StorageConfigProvider config={storageConfig}>
-        <EditSubmission
-          submission={submission}
-          readTokenPromises={readTokenPromises}
-        />
+      <StorageConfigProvider
+        config={storageConfig}
+        readTokenPromises={readTokenPromises}
+      >
+        <EditSubmission submission={submission} />
       </StorageConfigProvider>
     </Suspense>
   );

@@ -2,19 +2,19 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { ReadTokensResult } from "../../types";
 import { useContentUpload } from "./use-content-upload.hook";
 import { useCreatorView } from "../view-protected-files/use-creator-view.hook";
-import { useStorageConfig } from "../../infrastructure/storage-config.context";
+import {
+  useStorageConfig,
+  StorageTokens,
+  useStorageTokens,
+} from "../../infrastructure/storage-config.context";
 import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
 
 interface UseCreatorStorageProps {
   itemId: string;
   itemType: "form" | "template";
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
+  readTokenPromises?: StorageTokens;
 }
 
 /**
@@ -24,8 +24,11 @@ interface UseCreatorStorageProps {
 export function useCreatorStorage({
   itemId,
   itemType,
-  readTokenPromises,
+  readTokenPromises: propsReadTokenPromises,
 }: UseCreatorStorageProps) {
+  const contextTokens = useStorageTokens();
+  const readTokenPromises = propsReadTokenPromises ?? contextTokens;
+
   const [isStorageReady, setIsStorageReady] = useState(false);
   const storageConfig = useStorageConfig();
 
@@ -46,11 +49,15 @@ export function useCreatorStorage({
       // If storage is disabled, we consider storage "ready" immediately
       if (!storageConfig?.isEnabled) {
         setIsStorageReady(true);
-        return () => {};
+        return () => { };
       }
 
       const unregisterUpload = registerUploadHandlers(creator);
-      const unregisterView = registerViewHandlers(creator);
+      let unregisterView = () => { };
+
+      if (storageConfig.isPrivate) {
+        unregisterView = registerViewHandlers(creator);
+      }
 
       setIsStorageReady(true);
 

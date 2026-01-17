@@ -20,7 +20,6 @@ import EditSubmissionAlertDialog from "./edit-submission-alert-dialog";
 import EditSubmissionHeader from "./edit-submission-header";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
-import { ReadTokensResult } from "@/features/storage";
 
 const EditSurveyWrapper = dynamic(() => import("./edit-survey-wrapper"), {
   ssr: false,
@@ -40,17 +39,12 @@ interface EditSubmissionProps {
   submission: Submission;
   formId?: string; // Optional: for public mode
   token?: string; // Optional: for public mode
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
 }
 
 function EditSubmission({
   submission,
   formId,
   token,
-  readTokenPromises,
 }: Readonly<EditSubmissionProps>) {
   const isPublicMode = token !== undefined;
   const submissionData: Record<string, unknown> = useMemo(() => {
@@ -170,7 +164,6 @@ function EditSubmission({
             ? (submission.formDefinition as ActiveDefinition)?.customQuestions
             : undefined
         }
-        readTokenPromises={readTokenPromises}
       />
       <div className="h-8 text-muted-foreground flex flex-row justify-center items-center gap-2">
         <Info className="h-4 w-4" />

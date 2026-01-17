@@ -8,18 +8,18 @@ import {
   UploadFilesEvent,
 } from "survey-core";
 import { BlockBlobClient } from "@azure/storage-blob";
-import { ReadTokensResult } from "../../types";
 import { Result } from "@/lib/result";
+import {
+  StorageTokens,
+  useStorageTokens,
+} from "../../infrastructure/storage-config.context";
 
 interface UseStorageUploadProps {
   formId: string;
   submissionId?: string;
   surveyModel: SurveyModel | null;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
+  readTokenPromises?: StorageTokens;
 }
 
 interface UploadFilesToBlobProps extends UseStorageUploadProps {
@@ -199,7 +199,7 @@ const uploadToServer = async (
     if (!response.ok) {
       throw new Error(
         data?.error ??
-          "Failed to upload files. Please refresh your page and try again.",
+        "Failed to upload files. Please refresh your page and try again.",
       );
     }
 
@@ -240,8 +240,11 @@ export function useStorageUpload({
   submissionId = "",
   onSubmissionIdChange,
   surveyModel,
-  readTokenPromises,
+  readTokenPromises: propsReadTokenPromises,
 }: UseStorageUploadProps) {
+  const contextTokens = useStorageTokens();
+  const readTokenPromises = propsReadTokenPromises ?? contextTokens;
+
   const userFilesTokenResult = use(
     readTokenPromises?.userFiles ?? DEFAULT_READ_TOKEN_PROMISE,
   );

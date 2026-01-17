@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SurveyModel } from "survey-core";
-import { ReadTokensResult } from "../../types";
 import { useStorageView } from "../view-protected-files/use-storage-view.hook";
 import { useStorageUpload } from "./use-storage-upload.hook";
-import { useStorageConfig } from "../../infrastructure/storage-config.context";
+import {
+  useStorageConfig,
+  StorageTokens,
+  useStorageTokens,
+} from "../../infrastructure/storage-config.context";
 import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
 
 interface UseSurveyStorageProps {
@@ -13,10 +16,7 @@ interface UseSurveyStorageProps {
   formId: string;
   submissionId?: string;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
+  readTokenPromises?: StorageTokens;
 }
 
 /**
@@ -28,9 +28,12 @@ export function useSurveyStorage({
   formId,
   submissionId,
   onSubmissionIdChange,
-  readTokenPromises,
+  readTokenPromises: propsReadTokenPromises,
 }: UseSurveyStorageProps) {
   const storageConfig = useStorageConfig();
+  const contextTokens = useStorageTokens();
+  const readTokenPromises = propsReadTokenPromises ?? contextTokens;
+
   const [isStorageReady, setIsStorageReady] = useState(false);
   const { setModelMetadata, registerViewHandlers } =
     useStorageView(readTokenPromises);
@@ -61,11 +64,11 @@ export function useSurveyStorage({
     (surveyModel: SurveyModel) => {
       if (!readTokenPromises || !storageConfig?.isEnabled) {
         setIsStorageReady(true);
-        return () => {};
+        return () => { };
       }
 
       const unregisterUpload = registerUploadHandlers(surveyModel);
-      let unregisterView = () => {};
+      let unregisterView = () => { };
 
       if (storageConfig.isPrivate) {
         unregisterView = registerViewHandlers(surveyModel);

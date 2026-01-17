@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useStorageUpload } from "@/features/storage/client";
+import React, { Suspense } from "react";
+import {
+  useStorageUpload,
+  StorageConfigProvider,
+} from "@/features/storage/client";
 import {
   SurveyModel,
   UploadFilesEvent,
@@ -42,6 +46,16 @@ const createDefaultReadTokenPromises = () => ({
   content: sharedResolvedPromise,
 });
 
+const mockStorageConfig = {
+  isEnabled: true,
+  isPrivate: true,
+  hostName: "test.blob.core.windows.net",
+  containerNames: {
+    USER_FILES: "user-files",
+    CONTENT: "content",
+  },
+};
+
 describe("useStorageUpload", () => {
   const mockFormId = "form-123";
   const mockSubmissionId = "submission-123";
@@ -62,12 +76,30 @@ describe("useStorageUpload", () => {
     },
   } as unknown as SurveyModel;
 
+  const createWrapper = (
+    config: typeof mockStorageConfig | null = mockStorageConfig,
+    readTokenPromises = createDefaultReadTokenPromises(),
+  ) => {
+    function TestWrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <Suspense fallback={<div>Loading...</div>}>
+          <StorageConfigProvider
+            config={config}
+            readTokenPromises={readTokenPromises}
+          >
+            {children}
+          </StorageConfigProvider>
+        </Suspense>
+      );
+    }
+    return TestWrapper;
+  };
+
   const createHookProps = (
     overrides?: Partial<Parameters<typeof useStorageUpload>[0]>,
   ) => ({
     formId: mockFormId,
     surveyModel: mockSurveyModel,
-    readTokenPromises: createDefaultReadTokenPromises(),
     ...overrides,
   });
 
@@ -95,11 +127,10 @@ describe("useStorageUpload", () => {
 
       // eslint-disable-next-line testing-library/no-unnecessary-act
       await act(async () => {
-        const view = renderHook(() => useStorageUpload(props));
+        const view = renderHook(() => useStorageUpload(props), {
+          wrapper: createWrapper(),
+        });
         result = view.result;
-        // Await promises to ensure they're processed within act
-        await props.readTokenPromises.userFiles;
-        await props.readTokenPromises.content;
         await Promise.resolve();
       });
 
@@ -120,7 +151,9 @@ describe("useStorageUpload", () => {
 
       // eslint-disable-next-line testing-library/no-unnecessary-act
       await act(async () => {
-        const view = renderHook(() => useStorageUpload(props));
+        const view = renderHook(() => useStorageUpload(props), {
+          wrapper: createWrapper(),
+        });
         result = view.result;
         await Promise.resolve();
       });
@@ -133,13 +166,17 @@ describe("useStorageUpload", () => {
     });
 
     it("should provide registerUploadHandlers that adds event handlers on surveyModel", async () => {
-      const { result } = renderHook(() =>
-        useStorageUpload(
-          createHookProps({
-            submissionId: mockSubmissionId,
-            onSubmissionIdChange: mockOnSubmissionIdChange,
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              submissionId: mockSubmissionId,
+              onSubmissionIdChange: mockOnSubmissionIdChange,
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -152,9 +189,11 @@ describe("useStorageUpload", () => {
     });
 
     it("should return cleanup function from registerUploadHandlers", async () => {
-      const { result } = renderHook(() => useStorageUpload(createHookProps()));
+      const { result } = renderHook(() => useStorageUpload(createHookProps()), {
+        wrapper: createWrapper(),
+      });
 
-      let unregister: () => void = () => {};
+      let unregister: () => void = () => { };
       await act(async () => {
         unregister = result.current.registerUploadHandlers(mockSurveyModel);
       });
@@ -200,8 +239,12 @@ describe("useStorageUpload", () => {
     });
 
     it("should upload small image files to server for resizing", async () => {
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -229,8 +272,12 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -285,8 +332,12 @@ describe("useStorageUpload", () => {
             }),
         });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -310,8 +361,12 @@ describe("useStorageUpload", () => {
         new Error("Network error"),
       );
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -344,8 +399,12 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -401,8 +460,12 @@ describe("useStorageUpload", () => {
     });
 
     it("should delete files successfully", async () => {
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -434,8 +497,12 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as ClearFilesEvent;
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -453,8 +520,12 @@ describe("useStorageUpload", () => {
         question: { storeDataAsText: true },
       } as unknown as ClearFilesEvent;
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -493,8 +564,12 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -514,8 +589,12 @@ describe("useStorageUpload", () => {
     });
 
     it("should handle partial deletion success", async () => {
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -538,8 +617,12 @@ describe("useStorageUpload", () => {
         json: () => Promise.resolve({ error: "API Error" }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -554,8 +637,12 @@ describe("useStorageUpload", () => {
         new Error("Network error"),
       );
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -577,8 +664,12 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as ClearFilesEvent;
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -614,8 +705,12 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -655,8 +750,12 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -694,8 +793,12 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -731,13 +834,17 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(
-          createHookProps({
-            submissionId: mockSubmissionId,
-            onSubmissionIdChange: mockOnSubmissionIdChange,
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              submissionId: mockSubmissionId,
+              onSubmissionIdChange: mockOnSubmissionIdChange,
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -769,13 +876,17 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(
-          createHookProps({
-            submissionId: mockSubmissionId,
-            onSubmissionIdChange: mockOnSubmissionIdChange,
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              submissionId: mockSubmissionId,
+              onSubmissionIdChange: mockOnSubmissionIdChange,
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -831,16 +942,17 @@ describe("useStorageUpload", () => {
       });
 
       const userFiles = Promise.resolve(tokenResult);
-      const props = createHookProps({
-        readTokenPromises: {
-          userFiles,
-          content: sharedResolvedPromise,
-        },
-      });
+      const props = createHookProps();
+      const readTokenPromises = {
+        userFiles,
+        content: sharedResolvedPromise,
+      };
 
       let result: ReturnType<typeof renderHook>["result"];
       await act(async () => {
-        const view = renderHook(() => useStorageUpload(props));
+        const view = renderHook(() => useStorageUpload(props), {
+          wrapper: createWrapper(mockStorageConfig, readTokenPromises),
+        });
         result = view.result;
         await Promise.resolve();
       });
@@ -874,7 +986,9 @@ describe("useStorageUpload", () => {
     });
 
     it("should download file without token when token is not available", async () => {
-      const { result } = renderHook(() => useStorageUpload(createHookProps()));
+      const { result } = renderHook(() => useStorageUpload(createHookProps()), {
+        wrapper: createWrapper(),
+      });
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         blob: () =>
@@ -905,7 +1019,9 @@ describe("useStorageUpload", () => {
     });
 
     it("should handle download errors", async () => {
-      const { result } = renderHook(() => useStorageUpload(createHookProps()));
+      const { result } = renderHook(() => useStorageUpload(createHookProps()), {
+        wrapper: createWrapper(),
+      });
 
       (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
         new Error("Network error"),
@@ -930,8 +1046,12 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -953,8 +1073,12 @@ describe("useStorageUpload", () => {
         json: () => Promise.resolve({ error: "SAS token generation failed" }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -986,8 +1110,12 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -1026,8 +1154,12 @@ describe("useStorageUpload", () => {
         uploadData: mockUploadData,
       }));
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -1067,13 +1199,17 @@ describe("useStorageUpload", () => {
         uploadData: mockUploadData,
       }));
 
-      const { result } = renderHook(() =>
-        useStorageUpload(
-          createHookProps({
-            submissionId: mockSubmissionId,
-            onSubmissionIdChange: mockOnSubmissionIdChange,
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              submissionId: mockSubmissionId,
+              onSubmissionIdChange: mockOnSubmissionIdChange,
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -1093,8 +1229,12 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -1116,8 +1256,12 @@ describe("useStorageUpload", () => {
         json: () => Promise.resolve({ error: "Server error" }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -1147,13 +1291,17 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(
-          createHookProps({
-            submissionId: mockSubmissionId,
-            onSubmissionIdChange: mockOnSubmissionIdChange,
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              submissionId: mockSubmissionId,
+              onSubmissionIdChange: mockOnSubmissionIdChange,
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {
@@ -1185,8 +1333,12 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const { result } = renderHook(() =>
-        useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+        {
+          wrapper: createWrapper(),
+        },
       );
 
       await act(async () => {

@@ -8,7 +8,6 @@ import { ICreatorOptions } from "survey-creator-core";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
 import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
-import { ReadTokensResult } from "@/features/storage";
 
 export interface FormDesignerWrapperProps {
   formId: string;
@@ -17,10 +16,6 @@ export interface FormDesignerWrapperProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
 }
 
 export default function FormDesignerWrapper({
@@ -30,7 +25,6 @@ export default function FormDesignerWrapper({
   options,
   slkVal,
   themeId,
-  readTokenPromises,
 }: FormDesignerWrapperProps) {
   const router = useRouter();
 
@@ -81,7 +75,6 @@ export default function FormDesignerWrapper({
           onUnsavedChanges={setHasUnsavedChanges}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
-          readTokenPromises={readTokenPromises}
         />
       ) : (
         <FormEditorContainer
@@ -95,7 +88,6 @@ export default function FormDesignerWrapper({
           onUnsavedChanges={setHasUnsavedChanges}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
-          readTokenPromises={readTokenPromises}
         />
       )}
     </div>

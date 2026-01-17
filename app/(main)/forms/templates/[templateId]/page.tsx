@@ -68,13 +68,15 @@ export default async function FormTemplateEditPage({ params }: Params) {
     templateName: template.name,
     description: template.description,
     isEnabled: template.isEnabled,
-    readTokenPromises,
   };
 
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <StorageConfigProvider config={storageConfig}>
+        <StorageConfigProvider
+          config={storageConfig}
+          readTokenPromises={readTokenPromises}
+        >
           <FormTemplateEditorContainer {...props} />
         </StorageConfigProvider>
       </div>

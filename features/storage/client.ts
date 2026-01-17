@@ -12,7 +12,9 @@ export {
   StorageConfigContext,
   StorageConfigProvider,
   useStorageConfig,
+  useStorageTokens,
   type StorageConfigContextValue,
+  type StorageTokens,
 } from "./infrastructure/storage-config.context";
 
 // Hooks

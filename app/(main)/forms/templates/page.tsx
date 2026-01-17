@@ -9,6 +9,11 @@ import { getFormTemplates } from "@/services/api";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import {
+  getStorageConfig,
+  generateReadTokensAction,
+} from "@/features/storage/server";
+import { StorageConfigProvider } from "@/features/storage/client";
 
 export default async function FormTemplatesPage() {
   const session = await auth();
@@ -41,11 +46,22 @@ export default async function FormTemplatesPage() {
 
 async function FormsTabsContent() {
   const templates = await getFormTemplates();
+  const storageConfig = getStorageConfig();
+
+  const readTokenPromises = {
+    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
+    userFiles: generateReadTokensAction(storageConfig.containerNames.USER_FILES),
+  };
 
   return (
-    <TabsContent value="all">
-      <FormTemplatesList templates={templates} />
-    </TabsContent>
+    <StorageConfigProvider
+      config={storageConfig}
+      readTokenPromises={readTokenPromises}
+    >
+      <TabsContent value="all">
+        <FormTemplatesList templates={templates} />
+      </TabsContent>
+    </StorageConfigProvider>
   );
 }
 

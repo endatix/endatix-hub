@@ -20,7 +20,10 @@ import {
   ReadTokensResult,
   SurveyModelWithTokens,
 } from "../../types";
-import { useStorageConfig } from "../../infrastructure/storage-config.context";
+import {
+  useStorageConfig,
+  useStorageTokens,
+} from "../../infrastructure/storage-config.context";
 import { IFile } from "@/lib/questions/file/file-type";
 import { registerProtectedFilePreview } from "./ui/protected-file-preview";
 import { StorageConfig } from "../../infrastructure/storage-config-client";
@@ -146,13 +149,21 @@ const defaultReadTokensPromise = Promise.resolve(defaultReadTokensResult);
 
 /**
  * Custom hook to handle viewing files from storage.
- * @param promises - The promises to use to get the read tokens.
+ * @param promises - The promises to use to get the read tokens. If not provided, it will try to get them from the StorageConfigContext.
  * @returns The isPrivate, setModelMetadata, and registerEventHandlers functions.
  */
 export function useStorageView(promises?: UseStorageViewProps) {
   const storageConfig = useStorageConfig();
-  const userFilesResult = use(promises?.userFiles ?? defaultReadTokensPromise);
-  const contentResult = use(promises?.content ?? defaultReadTokensPromise);
+  const contextTokens = useStorageTokens();
+
+  const userFilesResult = use(
+    promises?.userFiles ??
+    contextTokens?.userFiles ??
+    defaultReadTokensPromise,
+  );
+  const contentResult = use(
+    promises?.content ?? contextTokens?.content ?? defaultReadTokensPromise,
+  );
 
   const tokens = useMemo(
     () => ({
@@ -182,7 +193,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
 
   const registerViewHandlers = useCallback(
     (model: SurveyModel) => {
-      if (!storageConfig?.isPrivate) return () => {};
+      if (!storageConfig?.isPrivate) return () => { };
 
       const onAfterRenderQuestion = (
         _sender: SurveyModel,

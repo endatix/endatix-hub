@@ -31,7 +31,6 @@ import { SubmissionData } from "@/features/submissions/types";
 import { LanguageSelector } from "./language-selector";
 import "survey-core/survey.i18n";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import { ReadTokensResult } from "@/features/storage";
 import { useSurveyStorage } from "@/features/storage/client";
 
 interface SurveyComponentProps {
@@ -43,10 +42,6 @@ interface SurveyComponentProps {
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
   urlToken?: string;
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
 }
 
 type PartialUpdateEvent =
@@ -64,7 +59,6 @@ export default function SurveyComponent({
   requiresReCaptcha,
   isEmbed = false,
   urlToken,
-  readTokenPromises,
 }: SurveyComponentProps) {
   const { surveyModel } = useSurveyModel(
     definition,
@@ -90,7 +84,6 @@ export default function SurveyComponent({
     formId,
     submissionId,
     onSubmissionIdChange: setSubmissionId,
-    readTokenPromises,
   });
 
   const isModelReady = surveyModel && isStorageReady;

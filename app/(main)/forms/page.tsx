@@ -15,6 +15,8 @@ import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
+import { StorageConfigProvider } from '@/features/storage/client';
+import { generateReadTokensAction, getStorageConfig } from '@/features/storage/server';
 
 export default async function FormsPage() {
   const [session, aiFeatureFlag] = await Promise.all([
@@ -25,31 +27,40 @@ export default async function FormsPage() {
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
+
+  const storageConfig = getStorageConfig();
+  const readTokenPromises = {
+    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
+    userFiles: generateReadTokensAction(storageConfig.containerNames.USER_FILES),
+  };
+
   return (
     <>
       <PageTitle title="Forms" />
       <div className="flex-1 space-y-2">
         <FormAssistantProvider isAssistantEnabled={aiFeatureFlag}>
-          <Tabs defaultValue="all" className="space-y-0">
-            <div className="flex items-center justify-end space-y-0 mb-4">
-              <div className="flex items-center space-x-2">
-                <Sheet modal={false}>
-                  <SheetTrigger asChild>
-                    <Button variant="default">
-                      <FilePlus2 className="h-4 w-4" />
-                      Create a Form
-                    </Button>
-                  </SheetTrigger>
-                  <CreateFormSheet />
-                </Sheet>
+          <StorageConfigProvider config={storageConfig} readTokenPromises={readTokenPromises}>
+            <Tabs defaultValue="all" className="space-y-0">
+              <div className="flex items-center justify-end space-y-0 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Sheet modal={false}>
+                    <SheetTrigger asChild>
+                      <Button variant="default">
+                        <FilePlus2 className="h-4 w-4" />
+                        Create a Form
+                      </Button>
+                    </SheetTrigger>
+                    <CreateFormSheet />
+                  </Sheet>
+                </div>
               </div>
-            </div>
-            <Suspense fallback={<FormsSkeleton />}>
-              <FormsTabsContent session={session} />
-            </Suspense>
-          </Tabs>
+              <Suspense fallback={<FormsSkeleton />}>
+                <FormsTabsContent session={session} />
+              </Suspense>
+            </Tabs>
+          </StorageConfigProvider>
         </FormAssistantProvider>
-      </div>
+      </div >
     </>
   );
 }

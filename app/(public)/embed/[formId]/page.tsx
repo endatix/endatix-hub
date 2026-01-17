@@ -60,12 +60,10 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
 
   const storageConfig = createStorageConfigClient().config;
-  const userFilesTokenPromise = generateReadTokensAction(
-    storageConfig.containerNames.USER_FILES,
-  );
-  const contentTokenPromise = generateReadTokensAction(
-    storageConfig.containerNames.CONTENT,
-  );
+  const readTokenPromises = {
+    userFiles: generateReadTokensAction(storageConfig.containerNames.USER_FILES),
+    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
+  };
 
   return (
     <div
@@ -82,7 +80,10 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
 
       <EmbedHeightReporter />
 
-      <StorageConfigProvider config={storageConfig}>
+      <StorageConfigProvider
+        config={storageConfig}
+        readTokenPromises={readTokenPromises}
+      >
         <SurveyJsWrapper
           formId={formId}
           definition={activeDefinition.jsonData}
@@ -92,10 +93,6 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
           requiresReCaptcha={activeDefinition.requiresReCaptcha}
           isEmbed={true}
           urlToken={urlToken}
-          readTokenPromises={{
-            userFiles: userFilesTokenPromise,
-            content: contentTokenPromise,
-          }}
         />
       </StorageConfigProvider>
     </div>

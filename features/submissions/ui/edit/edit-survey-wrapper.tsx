@@ -20,7 +20,6 @@ import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import { ReadTokensResult } from "@/features/storage";
 import { useSurveyStorage } from "@/features/storage/client";
 
 interface EditSurveyWrapperProps {
@@ -33,10 +32,6 @@ interface EditSurveyWrapperProps {
       | MatrixCellValueChangedEvent,
   ) => void;
   customQuestions?: string[];
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
 }
 
 registerAudioQuestion();
@@ -122,7 +117,6 @@ function EditSurveyWrapper({
   submission,
   onChange,
   customQuestions,
-  readTokenPromises,
 }: Readonly<EditSurveyWrapperProps>) {
   const { model, isLoading } = useSurveyModel(submission, customQuestions);
   const { setFromMetadata } = useDynamicVariables(model);
@@ -134,7 +128,6 @@ function EditSurveyWrapper({
     formId: submission.formId,
     submissionId,
     onSubmissionIdChange: setSubmissionId,
-    readTokenPromises,
   });
 
   useEffect(() => {

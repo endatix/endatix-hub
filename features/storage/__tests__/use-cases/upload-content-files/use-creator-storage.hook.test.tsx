@@ -1,41 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
-import { SurveyModel } from "survey-core";
-import { useSurveyStorage } from "@/features/storage/client";
+import { SurveyCreatorModel } from "survey-creator-core";
+import { useCreatorStorage } from "@/features/storage/client";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/storage/types";
 import { StorageConfigProvider } from "@/features/storage/client";
 import { StorageConfig } from "@/features/storage/client";
 
 // Mock the hooks
-const mockSetModelMetadata = vi.fn();
 const mockRegisterViewHandlers = vi.fn();
 const mockRegisterUploadHandlers = vi.fn();
 
 vi.mock(
-  "@/features/storage/use-cases/view-protected-files/use-storage-view.hook",
+  "@/features/storage/use-cases/view-protected-files/use-creator-view.hook",
   () => ({
-    useStorageView: () => ({
-      setModelMetadata: mockSetModelMetadata,
+    useCreatorView: () => ({
       registerViewHandlers: mockRegisterViewHandlers,
     }),
   }),
 );
 
 vi.mock(
-  "@/features/storage/use-cases/upload-user-files/use-storage-upload.hook",
+  "@/features/storage/use-cases/upload-content-files/use-content-upload.hook",
   () => ({
-    useStorageUpload: () => ({
+    useContentUpload: () => ({
       registerUploadHandlers: mockRegisterUploadHandlers,
     }),
   }),
 );
 
-const createMockSurveyModel = (): SurveyModel => {
-  return {
-    readTokens: null,
-  } as unknown as SurveyModel;
+const createMockCreatorModel = (): SurveyCreatorModel => {
+  return {} as unknown as SurveyCreatorModel;
 };
 
 const createReadTokenPromises = () => {
@@ -59,7 +55,7 @@ const createReadTokenPromises = () => {
   };
 };
 
-describe("useSurveyStorage", () => {
+describe("useCreatorStorage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRegisterViewHandlers.mockReturnValue(() => { });
@@ -83,13 +79,12 @@ describe("useSurveyStorage", () => {
     return TestStorageConfigWrapper;
   };
 
-  it("should return registerStorageHandlers function immediately when readTokenPromises is not provided", () => {
-    const model = createMockSurveyModel();
+  it("should return registerStorageHandlers function", async () => {
     const { result } = renderHook(
       () =>
-        useSurveyStorage({
-          model,
-          formId: "test-form",
+        useCreatorStorage({
+          itemId: "test-item",
+          itemType: "form",
         }),
       {
         wrapper: wrapper(null),
@@ -97,15 +92,7 @@ describe("useSurveyStorage", () => {
     );
 
     expect(result.current.registerStorageHandlers).toBeDefined();
-    expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-
-    let unregister: () => void = () => { };
-    act(() => {
-      unregister = result.current.registerStorageHandlers(model);
-    });
-    expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
-    expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
-    unregister();
+    expect(result.current.isStorageReady).toBe(false);
   });
 
   describe("when readTokenPromises is provided", () => {
@@ -122,14 +109,14 @@ describe("useSurveyStorage", () => {
         },
       };
 
-      const model = createMockSurveyModel();
+      const creator = createMockCreatorModel();
       let result: any;
       await act(async () => {
         const view = renderHook(
           () =>
-            useSurveyStorage({
-              model,
-              formId: "test-form",
+            useCreatorStorage({
+              itemId: "test-item",
+              itemType: "form",
               readTokenPromises,
             }),
           {
@@ -141,11 +128,10 @@ describe("useSurveyStorage", () => {
       });
 
       expect(result.current.registerStorageHandlers).toBeDefined();
-      expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
 
       let unregister: () => void = () => { };
       act(() => {
-        unregister = result.current.registerStorageHandlers(model);
+        unregister = result.current.registerStorageHandlers(creator);
       });
       expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
       expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
@@ -163,14 +149,14 @@ describe("useSurveyStorage", () => {
         },
       };
 
-      const model = createMockSurveyModel();
+      const creator = createMockCreatorModel();
       let result: any;
       await act(async () => {
         const view = renderHook(
           () =>
-            useSurveyStorage({
-              model,
-              formId: "test-form",
+            useCreatorStorage({
+              itemId: "test-item",
+              itemType: "form",
               readTokenPromises,
             }),
           {
@@ -181,13 +167,11 @@ describe("useSurveyStorage", () => {
         await Promise.resolve();
       });
 
-      expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-
       let unregister: () => void = () => { };
       act(() => {
-        unregister = result.current.registerStorageHandlers(model);
+        unregister = result.current.registerStorageHandlers(creator);
       });
-      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
+      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
       expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
       unregister();
     });
@@ -203,14 +187,14 @@ describe("useSurveyStorage", () => {
         },
       };
 
-      const model = createMockSurveyModel();
+      const creator = createMockCreatorModel();
       let result: any;
       await act(async () => {
         const view = renderHook(
           () =>
-            useSurveyStorage({
-              model,
-              formId: "test-form",
+            useCreatorStorage({
+              itemId: "test-item",
+              itemType: "form",
               readTokenPromises,
             }),
           {
@@ -221,61 +205,13 @@ describe("useSurveyStorage", () => {
         await Promise.resolve();
       });
 
-      expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-
       let unregister: () => void = () => { };
       act(() => {
-        unregister = result.current.registerStorageHandlers(model);
+        unregister = result.current.registerStorageHandlers(creator);
       });
-      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
-      expect(mockRegisterViewHandlers).toHaveBeenCalledWith(model);
+      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
+      expect(mockRegisterViewHandlers).toHaveBeenCalledWith(creator);
       unregister();
-    });
-
-    it("should return a combined cleanup function", async () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
-        isPrivate: true,
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
-
-      const model = createMockSurveyModel();
-      const unregisterUpload = vi.fn();
-      const unregisterView = vi.fn();
-      mockRegisterUploadHandlers.mockReturnValue(unregisterUpload);
-      mockRegisterViewHandlers.mockReturnValue(unregisterView);
-
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useSurveyStorage({
-              model,
-              formId: "test-form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(privateConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
-
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(model);
-      });
-      act(() => {
-        unregister();
-      });
-
-      expect(unregisterUpload).toHaveBeenCalled();
-      expect(unregisterView).toHaveBeenCalled();
     });
   });
 });

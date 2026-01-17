@@ -82,13 +82,15 @@ export default async function FormDesignerPage({ params }: Params) {
     formName: form.name,
     slkVal: process.env.NEXT_PUBLIC_SLK,
     themeId: form.themeId ?? undefined,
-    readTokenPromises,
   };
 
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <StorageConfigProvider config={storageConfig}>
+        <StorageConfigProvider
+          config={storageConfig}
+          readTokenPromises={readTokenPromises}
+        >
           <FormAssistantProvider
             isAssistantEnabled={aiFeaturesEnabled}
             getConversationPromise={chatContextPromise}

@@ -44,7 +44,6 @@ import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useCreatorStorage } from "@/features/storage/client";
-import { ReadTokensResult } from "@/features/storage";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -100,10 +99,6 @@ interface FormEditorProps {
   onPropertyGridControllerReady?: (
     controller: (visible: boolean) => void,
   ) => void;
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
 }
 
 const defaultCreatorOptions: ICreatorOptions = {
@@ -137,7 +132,6 @@ function FormEditor({
   onThemeModificationChange,
   onSaveHandlerReady,
   onPropertyGridControllerReady,
-  readTokenPromises,
 }: FormEditorProps) {
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
@@ -146,7 +140,6 @@ function FormEditor({
   const { registerStorageHandlers } = useCreatorStorage({
     itemId: formId,
     itemType: "form",
-    readTokenPromises,
   });
 
   const [questionClasses, setQuestionClasses] = useState<
@@ -178,11 +171,11 @@ function FormEditor({
           ...(element.getType() === "panel"
             ? { elementsJSON: json.elements }
             : {
-                questionJSON: {
-                  ...json,
-                  type: element.getType(),
-                },
-              }),
+              questionJSON: {
+                ...json,
+                type: element.getType(),
+              },
+            }),
         }),
       };
 
@@ -363,11 +356,9 @@ function FormEditor({
 
         const surveyDefinition = JSON.parse(
           `{"pages":[{"name":"page1","elements":[
-          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${
-            element.name
+          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${element.name
           }&quot;</b> as a custom question.</p>"},
-          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${
-            isDefaultName ? "" : element.name
+          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${isDefaultName ? "" : element.name
           }","defaultValue":"${isDefaultName ? "" : element.name}"},
           {"type":"text","name":"question_title","title":"Enter the custom question title","requiredIf":"true","requiredErrorText":"Question title is required","placeholder":"${defaultTitle}","defaultValue":"${defaultTitle}"}
         ]}],"showNavigationButtons":false,"questionErrorLocation":"bottom","requiredText":"*"}`,

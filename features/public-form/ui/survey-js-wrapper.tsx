@@ -4,7 +4,6 @@ import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import dynamic from "next/dynamic";
-import { ReadTokensResult } from "@/features/storage/types";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -22,10 +21,6 @@ export interface SurveyJsWrapperProps {
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
   urlToken?: string;
-  readTokenPromises?: {
-    userFiles: Promise<ReadTokensResult>;
-    content: Promise<ReadTokensResult>;
-  };
 }
 
 const SurveyJsWrapper = ({
@@ -36,8 +31,7 @@ const SurveyJsWrapper = ({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
-  urlToken,
-  readTokenPromises,
+  urlToken
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent
@@ -49,7 +43,6 @@ const SurveyJsWrapper = ({
       requiresReCaptcha={requiresReCaptcha}
       isEmbed={isEmbed}
       urlToken={urlToken}
-      readTokenPromises={readTokenPromises}
     />
   );
 };
