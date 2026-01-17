@@ -30,6 +30,12 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
           },
         }
       }
+      readTokenPromises={
+        {
+          "content": Promise {},
+          "userFiles": Promise {},
+        }
+      }
     >
       <default
         customQuestions={[]}
@@ -39,12 +45,6 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
           }
         }
         formId="valid-id"
-        readTokenPromises={
-          {
-            "content": Promise {},
-            "userFiles": Promise {},
-          }
-        }
         requiresReCaptcha={false}
         theme={{}}
       />
