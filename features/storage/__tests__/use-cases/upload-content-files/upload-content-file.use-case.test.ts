@@ -4,6 +4,7 @@ import * as storageConfig from "@/features/storage/infrastructure/storage-config
 import { ErrorType, Result } from "@/lib/result";
 import { uploadContentFileUseCase } from "@/features/storage/use-cases/upload-content-files/upload-content-file.use-case";
 import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
+import { ContentItemType } from '@/features/storage/types';
 
 // Mock entire modules
 vi.mock("@/features/storage/infrastructure/storage-service", () => ({
@@ -77,7 +78,7 @@ describe("uploadContentFileUseCase", () => {
     // Act
     const result = await uploadContentFileUseCase({
       itemId: "form-123",
-      itemType: undefined as any,
+      itemType: undefined as unknown as ContentItemType,
       file: mockFile,
     });
 
