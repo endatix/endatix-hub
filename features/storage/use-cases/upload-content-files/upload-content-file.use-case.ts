@@ -8,11 +8,7 @@ import {
   getContainerNames,
   getStorageConfig,
 } from "../../infrastructure/storage-config";
-import {
-  ContentItemType,
-  UploadContentFileCommand,
-  UploadContentFileResult,
-} from "../../types";
+import { UploadContentFileCommand, UploadContentFileResult } from "../../types";
 
 /**
  * Use case to upload a content file to the storage.

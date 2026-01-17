@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { ReadTokensResult } from "../../types";
 import { useContentUpload } from "./use-content-upload.hook";
 import { useCreatorView } from "../view-protected-files/use-creator-view.hook";
 import { useStorageConfig } from "../../infrastructure/storage-config.context";
 import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
-import { useEffect } from "react";
 
 interface UseCreatorStorageProps {
   itemId: string;

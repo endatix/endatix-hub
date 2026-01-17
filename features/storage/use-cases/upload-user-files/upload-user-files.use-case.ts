@@ -77,9 +77,4 @@ const uploadUserFilesUseCase = async ({
   }
 };
 
-export {
-  uploadUserFilesUseCase,
-  type UploadUserFilesCommand,
-  type UploadUserFilesResult,
-  type UploadFileResult,
-};
+export { uploadUserFilesUseCase };
