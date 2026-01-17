@@ -30,7 +30,7 @@ import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specia
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useCreatorStorage } from "@/features/storage/hooks/use-creator-storage.hook";
+import { useCreatorStorage } from "@/features/storage/client";
 import { ReadTokensResult } from "@/features/storage";
 
 const invalidJsonErrorMessage =

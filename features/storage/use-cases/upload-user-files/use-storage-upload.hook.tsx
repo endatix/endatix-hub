@@ -1,3 +1,5 @@
+"use client";
+
 import { use, useCallback, useMemo } from "react";
 import {
   ClearFilesEvent,
@@ -63,6 +65,17 @@ const UploadResult = {
 };
 
 const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
+
+const DEFAULT_READ_TOKEN_RESULT = Result.success({
+  token: null,
+  containerName: "",
+  isPrivate: false,
+  hostName: "",
+  expiresOn: new Date(),
+  generatedAt: new Date(),
+});
+
+const DEFAULT_READ_TOKEN_PROMISE = Promise.resolve(DEFAULT_READ_TOKEN_RESULT);
 
 const uploadToBlob = async (
   props: UploadFilesToBlobProps,
@@ -230,17 +243,7 @@ export function useStorageUpload({
   readTokenPromises,
 }: UseStorageUploadProps) {
   const userFilesTokenResult = use(
-    readTokenPromises?.userFiles ??
-      Promise.resolve(
-        Result.success({
-          token: null,
-          containerName: "",
-          isPrivate: false,
-          hostName: "",
-          expiresOn: new Date(),
-          generatedAt: new Date(),
-        }),
-      ),
+    readTokenPromises?.userFiles ?? DEFAULT_READ_TOKEN_PROMISE,
   );
   /**
    * Groups files by upload strategy.

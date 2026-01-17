@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SurveyModel } from "survey-core";
-import { ReadTokensResult } from "../types";
-import { useStorageView } from "../use-cases/view-protected-files/use-storage-view.hook";
-import { useStorageUpload } from "../use-cases/upload-files/use-storage-upload.hook";
-import { useStorageConfig } from "../infrastructure/storage-config.context";
-import { registerProtectedFilePreview } from "../use-cases/view-protected-files/ui/protected-file-preview";
+import { ReadTokensResult } from "../../types";
+import { useStorageView } from "../view-protected-files/use-storage-view.hook";
+import { useStorageUpload } from "./use-storage-upload.hook";
+import { useStorageConfig } from "../../infrastructure/storage-config.context";
+import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
 
 interface UseSurveyStorageProps {
   model: SurveyModel | null;

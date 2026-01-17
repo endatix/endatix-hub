@@ -9,8 +9,8 @@ import React, { Suspense } from "react";
 import {
   StorageConfigProvider,
   useStorageConfig,
-} from "@/features/storage/infrastructure/storage-config.context";
-import { StorageConfig } from "@/features/storage/infrastructure/storage-config-client";
+} from "@/features/storage/client";
+import { StorageConfig } from "@/features/storage/client";
 
 const mockStorageConfig: StorageConfig = {
   isEnabled: true,

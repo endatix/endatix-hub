@@ -21,7 +21,7 @@ import addRandomizeGroupFeature from "@/lib/questions/features/group-randomizati
 import { toast } from "@/components/ui/toast";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { ReadTokensResult } from "@/features/storage";
-import { useSurveyStorage } from "@/features/storage/hooks/use-survey-storage.hook";
+import { useSurveyStorage } from "@/features/storage/client";
 
 interface EditSurveyWrapperProps {
   submission: Submission;

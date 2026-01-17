@@ -48,25 +48,17 @@ vi.mock("@/features/analytics/posthog/client", () => ({
   captureException: vi.fn(),
 }));
 
-vi.mock("@/features/storage/use-cases/upload-files/use-blob-storage", () => ({
-  useBlobStorage: vi.fn(),
-}));
-
-vi.mock("@/features/storage/infrastructure/storage-config-context", () => ({
+vi.mock("@/features/storage/client", () => ({
+  useSurveyStorage: vi.fn(() => ({
+    registerStorageHandlers: vi.fn(() => () => {}),
+    isStorageReady: true,
+  })),
   useStorageConfig: vi.fn(() => null),
   StorageConfigProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
+  registerProtectedFilePreview: vi.fn(),
 }));
-
-vi.mock("@/features/storage/hooks/use-survey-storage.hook", () => ({
-  useSurveyStorage: vi.fn(() => ({ 
-    registerStorageHandlers: vi.fn(() => () => {}),
-    isStorageReady: true
-  })),
-}));
-
-vi.mock("@/features/storage/use-cases/view-protected-files/ui/protected-file-preview", () => ({}));
 
 vi.mock("./use-survey-theme.hook", () => ({
   useSurveyTheme: vi.fn(),

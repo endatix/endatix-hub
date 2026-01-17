@@ -2,11 +2,11 @@
 
 import { useCallback, useState } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { ReadTokensResult } from "../types";
-import { useContentUpload } from "../use-cases/upload-content-files/use-content-upload.hook";
-import { useCreatorView } from "../use-cases/view-protected-files/use-creator-view.hook";
-import { useStorageConfig } from "../infrastructure/storage-config.context";
-import { registerProtectedFilePreview } from "../use-cases/view-protected-files/ui/protected-file-preview";
+import { ReadTokensResult } from "../../types";
+import { useContentUpload } from "./use-content-upload.hook";
+import { useCreatorView } from "../view-protected-files/use-creator-view.hook";
+import { useStorageConfig } from "../../infrastructure/storage-config.context";
+import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
 import { useEffect } from "react";
 
 interface UseCreatorStorageProps {

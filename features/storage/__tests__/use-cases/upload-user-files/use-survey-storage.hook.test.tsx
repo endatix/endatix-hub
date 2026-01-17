@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyModel } from "survey-core";
-import { useSurveyStorage } from "@/features/storage/hooks/use-survey-storage.hook";
+import { useSurveyStorage } from "@/features/storage/client";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/storage/types";
-import { StorageConfigProvider } from "@/features/storage/infrastructure/storage-config.context";
-import { StorageConfig } from "@/features/storage/infrastructure/storage-config-client";
+import { StorageConfigProvider } from "@/features/storage/client";
+import { StorageConfig } from "@/features/storage/client";
 
 // Mock the hooks
 const mockSetModelMetadata = vi.fn();
@@ -24,7 +24,7 @@ vi.mock(
 );
 
 vi.mock(
-  "@/features/storage/use-cases/upload-files/use-storage-upload.hook",
+  "@/features/storage/use-cases/upload-user-files/use-storage-upload.hook",
   () => ({
     useStorageUpload: () => ({
       registerUploadHandlers: mockRegisterUploadHandlers,
@@ -99,7 +99,10 @@ describe("useSurveyStorage", () => {
     expect(result.current.registerStorageHandlers).toBeDefined();
     expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
 
-    const unregister = result.current.registerStorageHandlers(model);
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result.current.registerStorageHandlers(model);
+    });
     expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
     expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
     unregister();
@@ -135,7 +138,10 @@ describe("useSurveyStorage", () => {
       expect(result.current.registerStorageHandlers).toBeDefined();
       expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
 
-      const unregister = result.current.registerStorageHandlers(model);
+      let unregister: () => void = () => {};
+      act(() => {
+        unregister = result.current.registerStorageHandlers(model);
+      });
       expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
       expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
       unregister();
@@ -167,7 +173,10 @@ describe("useSurveyStorage", () => {
 
       expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
 
-      const unregister = result.current.registerStorageHandlers(model);
+      let unregister: () => void = () => {};
+      act(() => {
+        unregister = result.current.registerStorageHandlers(model);
+      });
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
       expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
       unregister();
@@ -199,7 +208,10 @@ describe("useSurveyStorage", () => {
 
       expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
 
-      const unregister = result.current.registerStorageHandlers(model);
+      let unregister: () => void = () => {};
+      act(() => {
+        unregister = result.current.registerStorageHandlers(model);
+      });
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
       expect(mockRegisterViewHandlers).toHaveBeenCalledWith(model);
       unregister();
@@ -234,8 +246,13 @@ describe("useSurveyStorage", () => {
         },
       );
 
-      const unregister = result.current.registerStorageHandlers(model);
-      unregister();
+      let unregister: () => void = () => {};
+      act(() => {
+        unregister = result.current.registerStorageHandlers(model);
+      });
+      act(() => {
+        unregister();
+      });
 
       expect(unregisterUpload).toHaveBeenCalled();
       expect(unregisterView).toHaveBeenCalled();
