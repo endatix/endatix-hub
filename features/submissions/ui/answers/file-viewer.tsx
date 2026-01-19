@@ -1,12 +1,9 @@
-import { useAssetStorage } from '@/features/asset-storage/client';
-import { enhanceUrlWithToken, resolveContainerFromUrl } from '@/features/asset-storage/utils';
+import { useAssetStorage } from "@/features/asset-storage/client";
 import { FileType, getFileType, IFile } from "@/lib/questions/file/file-type";
-import { Result } from '@/lib/result';
 import { cn } from "@/lib/utils";
 import { FileText, FileX2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { use } from 'react';
 
 interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
   file: IFile;
@@ -14,13 +11,6 @@ interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
   height?: number;
   aspectRatio?: "portrait" | "square";
 }
-
-const defaultReadTokenPromise = Promise.resolve(Result.success({
-  token: null,
-  containerName: "",
-  expiresOn: new Date(),
-  generatedAt: new Date(),
-}));
 
 export function FileViewer({
   file,
@@ -30,21 +20,9 @@ export function FileViewer({
   aspectRatio = "portrait",
   ...props
 }: FileViewerProps) {
-  const { tokens, config: storageConfig } = useAssetStorage();
-  const contentToken = use(tokens?.content ?? defaultReadTokenPromise);
-  const userFilesToken = use(tokens?.userFiles ?? defaultReadTokenPromise);
-
-  const containerInfo = resolveContainerFromUrl(file.content, storageConfig);
+  const { resolveStorageUrl } = useAssetStorage();
+  const enhancedFileContent = resolveStorageUrl(file.content);
   const fileType = getFileType(file);
-
-  const enhancedFileContent = (() => {
-    const tokenResult = (containerInfo?.containerType === "USER_FILES") ? userFilesToken : contentToken;
-    if (!Result.isSuccess(tokenResult)) {
-      return file.content;
-    }
-    return enhanceUrlWithToken(file.content, tokenResult.value.token);
-  })();
-
 
   return (
     <div className={cn("space-y-3", className)} {...props}>

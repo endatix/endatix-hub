@@ -1,8 +1,10 @@
 "use client";
 
-import React, { createContext, use, useMemo } from "react";
+import { Result } from "@/lib/result";
+import React, { createContext, use, useCallback, useMemo } from "react";
 import { StorageConfig } from "../infrastructure/storage-config-client";
 import { ReadTokenResult } from "../types";
+import { enhanceUrlWithToken, resolveContainerFromUrl } from "../utils";
 
 export interface AssetStorageTokens {
   userFiles: Promise<ReadTokenResult>;
@@ -12,6 +14,7 @@ export interface AssetStorageTokens {
 export interface AssetStorageContextValue {
   config: StorageConfig | null;
   tokens?: AssetStorageTokens;
+  resolveStorageUrl: (url: string) => string;
 }
 
 export const AssetStorageContext = createContext<
@@ -34,13 +37,43 @@ export function AssetStorageClientProvider({
   tokens,
 }: Readonly<AssetStorageClientProviderProps>) {
   const resolvedConfig = config instanceof Promise ? use(config) : config;
+  const userFilesResult = tokens?.userFiles ? use(tokens.userFiles) : null;
+  const contentResult = tokens?.content ? use(tokens.content) : null;
+
+  const resolveStorageUrl = useCallback(
+    (url: string) => {
+      if (!resolvedConfig?.isEnabled || !resolvedConfig?.isPrivate || !url) {
+        return url;
+      }
+
+      const containerInfo = resolveContainerFromUrl(url, resolvedConfig);
+      if (!containerInfo) {
+        return url;
+      }
+
+      // 2. Select the appropriate token based on container type
+      const tokenResult =
+        containerInfo.containerType === "USER_FILES"
+          ? userFilesResult
+          : contentResult;
+
+      // 3. Apply token if successful
+      if (tokenResult && Result.isSuccess(tokenResult)) {
+        return enhanceUrlWithToken(url, tokenResult.value.token);
+      }
+
+      return url;
+    },
+    [resolvedConfig, userFilesResult, contentResult],
+  );
 
   const contextVal = useMemo(
     () => ({
       config: resolvedConfig,
       tokens,
+      resolveStorageUrl,
     }),
-    [resolvedConfig, tokens],
+    [resolvedConfig, tokens, resolveStorageUrl],
   );
 
   return (

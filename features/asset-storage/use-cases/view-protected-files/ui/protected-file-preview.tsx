@@ -1,8 +1,8 @@
+import { AssetStorageContext } from "@/features/asset-storage/client";
+import { IFile } from "@/lib/questions/file/file-type";
 import * as React from "react";
 import { QuestionFileModel } from "survey-core";
 import { ReactElementFactory, SurveyFilePreview } from "survey-react-ui";
-import { IFile } from "@/lib/questions/file/file-type";
-import { AssetStorageContext } from "@/features/asset-storage/client";
 
 let isRegistered = false;
 
@@ -60,4 +60,5 @@ function registerProtectedFilePreview() {
   isRegistered = true;
 }
 
-export { registerProtectedFilePreview, ProtectedFilePreview };
+export { ProtectedFilePreview, registerProtectedFilePreview };
+
