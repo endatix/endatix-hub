@@ -140,18 +140,32 @@ function enhanceUrlWithToken(url: string, token: string | null | undefined): str
 }
 
 /**
+ * Escapes all regex special characters in a string to make it safe for use in RegExp.
+ * This prevents regex injection attacks by treating the input as a literal string.
+ * @param str - The string to escape
+ * @returns The escaped string safe for use in RegExp constructor
+ */
+function escapeRegexSpecialChars(str: string): string {
+  // Escape all regex special characters: \ ^ $ . | ? * + ( ) [ ] { }
+  return str.replace(/[\\^$.|?*+()[\]{}]/g, '\\$&');
+}
+
+/**
  * Safely extracts all storage URLs from a string using regex.
  * This is much faster than JSON.parse + recursive walk for large strings.
  * @param content - The string to scan (JSON or otherwise)
- * @param hostName - The storage host name to match
+ * @param hostName - The storage host name to match (will be escaped for regex safety)
  * @returns An array of unique storage URLs
  */
 function extractStorageUrls(content: string | null | undefined, hostName: string): string[] {
   if (!content || !hostName) return [];
 
+  // Escape hostName to prevent regex injection attacks
+  const escapedHostName = escapeRegexSpecialChars(hostName);
+
   // Matches https://{hostName}/{container}/{blob...}
   // Avoids capturing quotes or query parameters that might already be there
-  const regex = new RegExp(`https://${hostName.replace(/\./g, '\\.')}/[^"\\s?]+`, 'g');
+  const regex = new RegExp(`https://${escapedHostName}/[^"\\s?]+`, 'g');
   const matches = content.match(regex);
 
   if (!matches) return [];
@@ -164,6 +178,7 @@ export {
   isUrlFromContainer,
   getBlobNameFromUrl,
   enhanceUrlWithToken,
+  escapeRegexSpecialChars,
   extractStorageUrls,
 };
 

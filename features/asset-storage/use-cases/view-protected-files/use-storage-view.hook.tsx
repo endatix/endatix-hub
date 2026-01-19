@@ -26,6 +26,7 @@ import {
 import { IFile } from "@/lib/questions/file/file-type";
 import { registerProtectedFilePreview } from "./ui/protected-file-preview";
 import { StorageConfig } from "../../infrastructure/storage-config-client";
+import { resolveContainerFromUrl, isUrlFromContainer } from "../../utils";
 
 /**
  * Updates the src attribute of an image element to include a SAS token if the image is in private storage.
@@ -63,74 +64,8 @@ function updateImageSrc(
   }
 }
 
-/**
- * Resolves the container information for a given URL.
- * @param url - The URL to resolve
- * @param storageConfig - The storage configuration
- * @returns The container information if the URL matches a known container, null otherwise
- */
-function resolveContainerFromUrl(
-  url: string,
-  storageConfig: StorageConfig | null,
-): IContainerInfo | null {
-  if (!url) return null;
 
-  if (url.startsWith("data:")) return null;
 
-  if (!storageConfig) return null;
-
-  try {
-    const urlObj = new URL(url);
-    const hostname = urlObj.hostname.toLowerCase();
-
-    if (storageConfig.hostName.toLowerCase() !== hostname) {
-      return null;
-    }
-
-    const firstPathPart = urlObj.pathname
-      .split("/")
-      .find((part) => part.length > 0);
-    const containerName = firstPathPart?.toLowerCase() ?? null;
-    if (!containerName) return null;
-
-    if (containerName === storageConfig.containerNames.USER_FILES) {
-      return {
-        containerType: "USER_FILES",
-        containerName: containerName,
-        hostName: hostname,
-        isPrivate: true,
-      };
-    }
-    if (containerName === storageConfig.containerNames.CONTENT) {
-      return {
-        containerType: "CONTENT",
-        containerName: containerName,
-        hostName: hostname,
-        isPrivate: true,
-      };
-    }
-
-    // No matching container found, so return null
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/* Small helper function to check if a URL is from a specific container */
-function isUrlFromContainer(
-  url: string,
-  containerName: string,
-  storageConfig: StorageConfig | null,
-): boolean {
-  if (!containerName) return false;
-
-  const resolvedContainer = resolveContainerFromUrl(url, storageConfig);
-
-  if (!resolvedContainer) return false;
-
-  return resolvedContainer.containerName === containerName;
-}
 
 interface UseStorageViewProps {
   userFiles: Promise<ReadTokensResult>;
