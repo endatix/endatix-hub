@@ -1,8 +1,12 @@
-import Image from "next/image";
+import { useAssetStorage } from '@/features/asset-storage/client';
+import { enhanceUrlWithToken, resolveContainerFromUrl } from '@/features/asset-storage/utils';
+import { FileType, getFileType, IFile } from "@/lib/questions/file/file-type";
+import { Result } from '@/lib/result';
 import { cn } from "@/lib/utils";
-import { IFile, FileType, getFileType } from "@/lib/questions/file/file-type";
 import { FileText, FileX2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { use } from 'react';
 
 interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
   file: IFile;
@@ -10,6 +14,13 @@ interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
   height?: number;
   aspectRatio?: "portrait" | "square";
 }
+
+const defaultReadTokenPromise = Promise.resolve(Result.success({
+  token: null,
+  containerName: "",
+  expiresOn: new Date(),
+  generatedAt: new Date(),
+}));
 
 export function FileViewer({
   file,
@@ -19,14 +30,28 @@ export function FileViewer({
   aspectRatio = "portrait",
   ...props
 }: FileViewerProps) {
+  const { tokens, config: storageConfig } = useAssetStorage();
+  const contentToken = use(tokens?.content ?? defaultReadTokenPromise);
+  const userFilesToken = use(tokens?.userFiles ?? defaultReadTokenPromise);
+
+  const containerInfo = resolveContainerFromUrl(file.content, storageConfig);
   const fileType = getFileType(file);
+
+  const enhancedFileContent = (() => {
+    const tokenResult = (containerInfo?.containerType === "USER_FILES") ? userFilesToken : contentToken;
+    if (!Result.isSuccess(tokenResult)) {
+      return file.content;
+    }
+    return enhanceUrlWithToken(file.content, tokenResult.value.token);
+  })();
+
 
   return (
     <div className={cn("space-y-3", className)} {...props}>
       <div className="overflow-hidden rounded-md">
         {fileType === FileType.Image && (
           <Image
-            src={file.content}
+            src={enhancedFileContent}
             alt={file.name || ""}
             width={width}
             height={height}
@@ -38,24 +63,24 @@ export function FileViewer({
         )}
         {fileType === FileType.Video && (
           <video
-            src={file.content}
+            src={enhancedFileContent}
             controls
             className="h-[230px] w-auto object-cover transition-all"
           >
-            <source src={file.content} type={file.type} />
+            <source src={enhancedFileContent} type={file.type} />
             <track kind="captions" />
           </video>
         )}
         {fileType === FileType.Document && (
           <div className="flex h-[230px] w-[150px] items-center justify-center bg-muted">
             <FileText className="h-10 w-10" />
-            <Link href={{ pathname: file.content }}>Link to file</Link>
+            <Link href={{ pathname: enhancedFileContent }}>Link to file</Link>
           </div>
         )}
         {fileType === FileType.Unknown && (
           <div className="flex h-[230px] w-[150px] items-center justify-center bg-muted">
             <FileX2 className="h-10 w-10" />
-            <Link href={{ pathname: file.content }}>Link to file</Link>
+            <Link href={{ pathname: enhancedFileContent }}>Link to file</Link>
           </div>
         )}
       </div>
