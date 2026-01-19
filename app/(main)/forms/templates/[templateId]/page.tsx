@@ -9,8 +9,8 @@ import { authorization } from "@/features/auth/authorization";
 import {
   createStorageConfigClient,
   generateReadTokensAction,
-} from "@/features/storage/server";
-import { StorageConfigProvider } from "@/features/storage/client";
+} from "@/features/asset-storage/server";
+import { StorageConfigProvider } from "@/features/asset-storage/client";
 import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 

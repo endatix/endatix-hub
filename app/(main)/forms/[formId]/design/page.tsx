@@ -14,11 +14,11 @@ import { auth } from "@/auth";
 import { trackException } from "@/features/analytics/posthog/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
-import { StorageConfigProvider } from "@/features/storage/client";
+import { StorageConfigProvider } from "@/features/asset-storage/client";
 import {
   createStorageConfigClient,
   generateReadTokensAction,
-} from "@/features/storage/server";
+} from "@/features/asset-storage/server";
 
 type Params = {
   params: Promise<{ formId: string }>;

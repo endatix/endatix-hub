@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import React from "react";
 import { QuestionFileModel } from "survey-core";
-import { ProtectedFilePreview } from "@/features/storage/client";
+import { ProtectedFilePreview } from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
 import { renderSurveyJsComponent } from "@/__tests__/utils/test-utils";
-import { StorageConfig } from "@/features/storage/client";
+import { StorageConfig } from "@/features/asset-storage/client";
 
 // Mock SurveyFilePreview
 const mockRenderElement = vi.fn(() => (

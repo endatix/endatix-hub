@@ -43,7 +43,7 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useCreatorStorage } from "@/features/storage/client";
+import { useCreatorStorage } from "@/features/asset-storage/client";
 
 Serializer.addProperty("theme", {
   name: "id",

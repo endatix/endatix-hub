@@ -6,11 +6,11 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { StorageConfigProvider } from "@/features/storage/client";
+import { StorageConfigProvider } from "@/features/asset-storage/client";
 import {
   createStorageConfigClient,
   generateReadTokensAction,
-} from "@/features/storage/server";
+} from "@/features/asset-storage/server";
 
 import {
   ApiResult,

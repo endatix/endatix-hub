@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useCreatorView } from "@/features/storage/use-cases/view-protected-files/use-creator-view.hook";
+import { useCreatorView } from "@/features/asset-storage/use-cases/view-protected-files/use-creator-view.hook";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { useStorageConfig } from "@/features/storage/infrastructure/storage-config.context";
-import { useStorageView } from "@/features/storage/use-cases/view-protected-files/use-storage-view.hook";
+import { useStorageConfig } from "@/features/asset-storage/infrastructure/storage-config.context";
+import { useStorageView } from "@/features/asset-storage/use-cases/view-protected-files/use-storage-view.hook";
 
 // Mock dependencies
-vi.mock("@/features/storage/infrastructure/storage-config.context", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-config.context", () => ({
   useStorageConfig: vi.fn(),
 }));
 
 vi.mock(
-  "@/features/storage/use-cases/view-protected-files/use-storage-view.hook",
+  "@/features/asset-storage/use-cases/view-protected-files/use-storage-view.hook",
   () => ({
     useStorageView: vi.fn(),
   }),

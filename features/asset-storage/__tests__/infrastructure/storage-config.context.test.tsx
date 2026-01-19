@@ -10,8 +10,8 @@ import {
   StorageConfigProvider,
   useStorageConfig,
   useStorageTokens,
-} from "@/features/storage/client";
-import { StorageConfig } from "@/features/storage/client";
+} from "@/features/asset-storage/client";
+import { StorageConfig } from "@/features/asset-storage/client";
 import { Result } from "@/lib/result";
 
 const mockStorageConfig: StorageConfig = {

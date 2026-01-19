@@ -20,7 +20,7 @@ import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { toast } from "@/components/ui/toast";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import { useSurveyStorage } from "@/features/storage/client";
+import { useSurveyStorage } from "@/features/asset-storage/client";
 
 interface EditSurveyWrapperProps {
   submission: Submission;

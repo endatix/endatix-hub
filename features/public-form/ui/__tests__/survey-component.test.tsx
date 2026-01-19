@@ -48,7 +48,7 @@ vi.mock("@/features/analytics/posthog/client", () => ({
   captureException: vi.fn(),
 }));
 
-vi.mock("@/features/storage/client", () => ({
+vi.mock("@/features/asset-storage/client", () => ({
   useSurveyStorage: vi.fn(() => ({
     registerStorageHandlers: vi.fn(() => () => {}),
     isStorageReady: true,

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import { getAuthConfig, EndatixAuthConfig } from "./auth-config";
 import { getApiConfig } from "./api-config";
-import { StorageConfigClient } from "../storage/infrastructure/storage-config-client";
+import { StorageConfigClient } from "../asset-storage/infrastructure/storage-config-client";
 
 export interface EndatixConfig {
   auth?: {

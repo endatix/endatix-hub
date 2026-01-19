@@ -73,7 +73,7 @@ vi.mock("@/features/recaptcha/ui/recaptcha-style-fix", () => ({
 }));
 
 // Mock storage config
-vi.mock("@/features/storage/server", () => ({
+vi.mock("@/features/asset-storage/server", () => ({
   createStorageConfigClient: vi.fn(() => ({
     config: {
       containerNames: {
@@ -86,7 +86,7 @@ vi.mock("@/features/storage/server", () => ({
 }));
 
 // Mock storage client components
-vi.mock("@/features/storage/client", () => ({
+vi.mock("@/features/asset-storage/client", () => ({
   StorageConfigProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="storage-config-provider">{children}</div>
   ),

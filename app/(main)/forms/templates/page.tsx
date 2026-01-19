@@ -12,8 +12,8 @@ import { authorization } from "@/features/auth/authorization";
 import {
   getStorageConfig,
   generateReadTokensAction,
-} from "@/features/storage/server";
-import { StorageConfigProvider } from "@/features/storage/client";
+} from "@/features/asset-storage/server";
+import { StorageConfigProvider } from "@/features/asset-storage/client";
 
 export default async function FormTemplatesPage() {
   const session = await auth();

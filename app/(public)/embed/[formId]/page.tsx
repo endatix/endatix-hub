@@ -19,8 +19,8 @@ import Script from "next/script";
 import {
   createStorageConfigClient,
   generateReadTokensAction,
-} from "@/features/storage/server";
-import { StorageConfigProvider } from "@/features/storage/client";
+} from "@/features/asset-storage/server";
+import { StorageConfigProvider } from "@/features/asset-storage/client";
 
 type EmbedSurveyPage = {
   params: Promise<{ formId: string }>;

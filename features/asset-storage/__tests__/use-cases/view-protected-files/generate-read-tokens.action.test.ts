@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { generateReadTokensAction } from "@/features/storage/use-cases/view-protected-files/generate-read-tokens.action";
-import * as storageService from "@/features/storage/infrastructure/storage-service";
-import * as storageConfig from "@/features/storage/infrastructure/storage-config";
+import { generateReadTokensAction } from "@/features/asset-storage/use-cases/view-protected-files/generate-read-tokens.action";
+import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
+import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
 import { auth } from "@/auth";
 import { Result } from "@/lib/result";
 
 // Mock dependencies
-vi.mock("@/features/storage/infrastructure/storage-service", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
   generateReadTokens: vi.fn(),
 }));
 
-vi.mock("@/features/storage/infrastructure/storage-config", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
   getStorageConfig: vi.fn(),
 }));
 

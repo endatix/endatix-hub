@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files/upload-user-files.use-case";
-import * as storageService from "@/features/storage/infrastructure/storage-service";
-import * as storageConfig from "@/features/storage/infrastructure/storage-config";
+import { uploadUserFilesUseCase } from "@/features/asset-storage/use-cases/upload-user-files/upload-user-files.use-case";
+import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
+import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
 import { ErrorType, Result } from "@/lib/result";
-import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
-import { generateUniqueFileName } from "@/features/storage/utils";
+import { optimizeImageSize } from "@/features/asset-storage/infrastructure/image-service";
+import { generateUniqueFileName } from "@/features/asset-storage/utils";
 
 // Mock the entire modules
-vi.mock("@/features/storage/infrastructure/storage-service", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
   uploadToStorage: vi.fn().mockResolvedValue("mock-url"),
 }));
-vi.mock("@/features/storage/infrastructure/storage-config", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
   getStorageConfig: vi.fn().mockReturnValue({
     isEnabled: true,
     accountName: "mock-account-name",
@@ -29,7 +29,7 @@ vi.mock("@/features/storage/infrastructure/storage-config", () => ({
   }),
 }));
 
-vi.mock("@/features/storage/infrastructure/image-service", () => ({
+vi.mock("@/features/asset-storage/infrastructure/image-service", () => ({
   optimizeImageSize: vi.fn().mockResolvedValue(Buffer.from("optimized")),
 }));
 
@@ -37,7 +37,7 @@ vi.mock("uuid", () => ({
   v4: vi.fn().mockReturnValue("mock-uuid"),
 }));
 
-vi.mock("@/features/storage/utils", () => ({
+vi.mock("@/features/asset-storage/utils", () => ({
   generateUniqueFileName: vi.fn(),
 }));
 

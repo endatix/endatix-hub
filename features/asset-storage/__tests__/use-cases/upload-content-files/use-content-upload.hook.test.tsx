@@ -5,13 +5,13 @@ import { SurveyCreatorModel } from "survey-creator-core";
 import {
   useContentUpload,
   StorageConfigProvider,
-} from "@/features/storage/client";
+} from "@/features/asset-storage/client";
 import { Result } from "@/lib/result";
 
 // Mock the action
 const mockUploadContentFileAction = vi.fn();
 vi.mock(
-  "@/features/storage/use-cases/upload-content-files/upload-content-file.action",
+  "@/features/asset-storage/use-cases/upload-content-files/upload-content-file.action",
   () => ({
     uploadContentFileAction: (formData: FormData) =>
       mockUploadContentFileAction(formData),

@@ -15,8 +15,8 @@ import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
-import { StorageConfigProvider } from '@/features/storage/client';
-import { generateReadTokensAction, getStorageConfig } from '@/features/storage/server';
+import { StorageConfigProvider } from '@/features/asset-storage/client';
+import { generateReadTokensAction, getStorageConfig } from '@/features/asset-storage/server';
 
 export default async function FormsPage() {
   const [session, aiFeatureFlag] = await Promise.all([

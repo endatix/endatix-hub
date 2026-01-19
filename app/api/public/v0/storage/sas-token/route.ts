@@ -2,8 +2,8 @@ import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases
 import {
   getContainerNames,
   generateUploadUrl,
-} from "@/features/storage/server";
-import { generateUniqueFileName } from "@/features/storage";
+} from "@/features/asset-storage/server";
+import { generateUniqueFileName } from "@/features/asset-storage";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 

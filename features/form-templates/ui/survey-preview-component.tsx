@@ -7,7 +7,7 @@ import { Model } from "survey-core";
 import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Survey } from "survey-react-ui";
-import { useStorageView } from "@/features/storage/client";
+import { useStorageView } from "@/features/asset-storage/client";
 
 interface SurveyPreviewComponentProps {
   template: FormTemplate;

@@ -1,6 +1,6 @@
 import React from "react";
 import { QuestionFileModel } from "survey-core";
-import { StorageConfig, StorageConfigContext } from "@/features/storage/client";
+import { StorageConfig, StorageConfigContext } from "@/features/asset-storage/client";
 import { render, RenderResult } from "@testing-library/react";
 
 /**

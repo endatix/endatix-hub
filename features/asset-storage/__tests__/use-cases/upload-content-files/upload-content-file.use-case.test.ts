@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import * as storageService from "@/features/storage/infrastructure/storage-service";
-import * as storageConfig from "@/features/storage/infrastructure/storage-config";
+import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
+import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
 import { ErrorType, Result } from "@/lib/result";
-import { uploadContentFileUseCase } from "@/features/storage/use-cases/upload-content-files/upload-content-file.use-case";
-import { optimizeImageSize } from "@/features/storage/infrastructure/image-service";
-import { ContentItemType } from '@/features/storage/types';
+import { uploadContentFileUseCase } from "@/features/asset-storage/use-cases/upload-content-files/upload-content-file.use-case";
+import { optimizeImageSize } from "@/features/asset-storage/infrastructure/image-service";
+import { ContentItemType } from '@/features/asset-storage/types';
 
 // Mock entire modules
-vi.mock("@/features/storage/infrastructure/storage-service", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
   uploadToStorage: vi.fn().mockResolvedValue("mock-url"),
 }));
-vi.mock("@/features/storage/infrastructure/storage-config", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
   getStorageConfig: vi.fn().mockReturnValue({
     isEnabled: true,
     accountName: "mock-account-name",
@@ -29,7 +29,7 @@ vi.mock("@/features/storage/infrastructure/storage-config", () => ({
   }),
 }));
 
-vi.mock("@/features/storage/infrastructure/image-service", () => ({
+vi.mock("@/features/asset-storage/infrastructure/image-service", () => ({
   optimizeImageSize: vi.fn().mockResolvedValue(Buffer.from("optimized")),
 }));
 

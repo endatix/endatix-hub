@@ -31,7 +31,7 @@ import { SubmissionData } from "@/features/submissions/types";
 import { LanguageSelector } from "./language-selector";
 import "survey-core/survey.i18n";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import { useSurveyStorage } from "@/features/storage/client";
+import { useSurveyStorage } from "@/features/asset-storage/client";
 
 interface SurveyComponentProps {
   definition: string;

@@ -2,7 +2,7 @@ import {
   getContainerNames,
   deleteBlob,
   type FileOptions,
-} from "@/features/storage/server";
+} from "@/features/asset-storage/server";
 
 interface DeleteFilesRequest {
   formId: string;

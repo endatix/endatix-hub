@@ -12,8 +12,8 @@ import { getActiveFormDefinition } from "@/services/api";
 import {
   createStorageConfigClient,
   generateReadTokensAction,
-} from "@/features/storage/server";
-import { StorageConfigProvider } from "@/features/storage/client";
+} from "@/features/asset-storage/server";
+import { StorageConfigProvider } from "@/features/asset-storage/client";
 
 type Params = {
   params: Promise<{

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
-import { useStorageView } from "@/features/storage/client";
+import { useStorageView } from "@/features/asset-storage/client";
 import {
   SurveyModel,
   AfterRenderQuestionEvent,
@@ -12,8 +12,8 @@ import {
   QuestionFileModel,
 } from "survey-core";
 import { Result } from "@/lib/result";
-import { ContainerReadToken, ProtectedFile } from "@/features/storage/types";
-import { StorageConfigProvider } from "@/features/storage/client";
+import { ContainerReadToken, ProtectedFile } from "@/features/asset-storage/types";
+import { StorageConfigProvider } from "@/features/asset-storage/client";
 
 // Mock the not-allowed image
 vi.mock("@/public/assets/images/signs/not-allowed-image.svg", () => ({

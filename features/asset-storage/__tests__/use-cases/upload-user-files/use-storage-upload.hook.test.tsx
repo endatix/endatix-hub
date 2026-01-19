@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import {
   useStorageUpload,
   StorageConfigProvider,
-} from "@/features/storage/client";
+} from "@/features/asset-storage/client";
 import {
   SurveyModel,
   UploadFilesEvent,

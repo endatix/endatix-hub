@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import type {
   StorageConfig,
   StorageConfigClient,
-} from "@/features/storage/client";
-import type { AzureStorageConfig } from "@/features/storage/server";
+} from "@/features/asset-storage/client";
+import type { AzureStorageConfig } from "@/features/asset-storage/server";
 
 describe("storage-config-client", () => {
   describe("StorageConfig type", () => {

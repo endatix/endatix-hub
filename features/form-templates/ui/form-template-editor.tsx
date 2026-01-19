@@ -30,7 +30,7 @@ import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specia
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useCreatorStorage } from "@/features/storage/client";
+import { useCreatorStorage } from "@/features/asset-storage/client";
 
 const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
