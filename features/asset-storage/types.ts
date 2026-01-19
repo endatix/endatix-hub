@@ -1,6 +1,6 @@
 import { IFile } from "@/lib/questions/file/file-type";
-import { SurveyModel } from "survey-react-ui";
 import { Result } from "@/lib/result";
+import { SurveyModel } from "survey-react-ui";
 
 export type ContainerType = "USER_FILES" | "CONTENT";
 
@@ -40,6 +40,12 @@ export type UploadUserFilesCommand = {
   submissionId?: string;
   files: { name: string; file: File }[];
 };
+
+/**
+ * A map of storage tokens used for granular read access 
+ * @type {Record<string, string>}
+ */
+export type StorageTokenMap = Record<string, string>;
 
 export type UploadFileResult = {
   name: string;

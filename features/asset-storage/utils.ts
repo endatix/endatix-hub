@@ -178,12 +178,12 @@ function extractStorageUrls(content: string | null | undefined, hostName: string
 }
 
 export {
-  generateUniqueFileName,
-  resolveContainerFromUrl,
-  isUrlFromContainer,
-  getBlobNameFromUrl,
   enhanceUrlWithToken,
   escapeRegex,
   extractStorageUrls,
+  generateUniqueFileName,
+  getBlobNameFromUrl,
+  isUrlFromContainer,
+  resolveContainerFromUrl
 };
 
