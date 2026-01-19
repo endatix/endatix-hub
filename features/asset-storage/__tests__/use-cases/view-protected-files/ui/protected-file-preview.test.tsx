@@ -2,10 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import React from "react";
 import { QuestionFileModel } from "survey-core";
-import { ProtectedFilePreview } from "@/features/asset-storage/client";
+import {
+  AssetStorageContext,
+  AssetStorageContextValue,
+  ProtectedFilePreview,
+  StorageConfig,
+} from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
 import { renderSurveyJsComponent } from "@/__tests__/utils/test-utils";
-import { StorageConfig } from "@/features/asset-storage/client";
 
 // Mock SurveyFilePreview
 const mockRenderElement = vi.fn(() => (
@@ -28,11 +32,19 @@ vi.mock("survey-react-ui", () => ({
 // Helper wrapper for ProtectedFilePreview
 const renderWithContext = (
   question: QuestionFileModel,
-  contextValue?: { config: StorageConfig | null } | undefined,
+  contextValue?: AssetStorageContextValue | undefined,
 ) => {
-  return renderSurveyJsComponent(ProtectedFilePreview, question, {
-    contextValue,
-  });
+  if (contextValue === undefined) {
+    return renderSurveyJsComponent(ProtectedFilePreview, question);
+  }
+  return renderSurveyJsComponent<AssetStorageContextValue>(
+    ProtectedFilePreview,
+    question,
+    {
+      ContextProvider: AssetStorageContext.Provider,
+      contextValue,
+    },
+  );
 };
 
 describe("ProtectedFilePreview", () => {

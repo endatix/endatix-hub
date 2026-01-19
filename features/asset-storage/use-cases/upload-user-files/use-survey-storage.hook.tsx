@@ -5,10 +5,9 @@ import { SurveyModel } from "survey-core";
 import { useStorageView } from "../view-protected-files/use-storage-view.hook";
 import { useStorageUpload } from "./use-storage-upload.hook";
 import {
-  useStorageConfig,
-  StorageTokens,
-  useStorageTokens,
-} from "../../infrastructure/storage-config.context";
+  useAssetStorage,
+  AssetStorageTokens,
+} from "../../ui/asset-storage.context";
 import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
 
 interface UseSurveyStorageProps {
@@ -16,7 +15,7 @@ interface UseSurveyStorageProps {
   formId: string;
   submissionId?: string;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
-  readTokenPromises?: StorageTokens;
+  readTokenPromises?: AssetStorageTokens;
 }
 
 /**
@@ -30,8 +29,7 @@ export function useSurveyStorage({
   onSubmissionIdChange,
   readTokenPromises: propsReadTokenPromises,
 }: UseSurveyStorageProps) {
-  const storageConfig = useStorageConfig();
-  const contextTokens = useStorageTokens();
+  const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
   const readTokenPromises = propsReadTokenPromises ?? contextTokens;
 
   const [isStorageReady, setIsStorageReady] = useState(false);

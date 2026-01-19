@@ -41,6 +41,8 @@ features/
 │   │   │   └── ui/                           # Use-case specific components
 │   ├── infrastructure/                       # External adapters, config
 │   ├── ui/                                   # Cross-use-case components & context
+│   │   ├── {feature-name}.context.tsx        # React Context & Client Provider
+│   │   └── {feature-name}.provider.tsx       # Server Component Context Provider Wrapper
 │   └── __tests__/                            # Feature-level tests
 ```
 
@@ -117,21 +119,32 @@ For optimal performance and UX, prefer **streaming promises** from Server Compon
 2.  **Context Provider (Client)**: Accept the promise as a prop and use `use(promise)` to resolve it.
 
 ```tsx
-// features/my-feature/ui/my-feature-provider.tsx (Client Component)
+// features/my-feature/ui/my-feature.context.tsx (Client Component)
 'use client';
 import { createContext, use, useMemo } from 'react';
 
-export function MyFeatureProvider({ children, dataPromise }) {
+export function MyFeatureClientProvider({ children, dataPromise }) {
   const data = use(dataPromise); // Resolves via React Suspense
   const value = useMemo(() => ({ data }), [data]);
   return <MyContext value={value}>{children}</MyContext>;
 }
 
-// app/(main)/my-feature/page.tsx (Server Component)
-export default async function Page() {
-  const dataPromise = getMyData(); // Start fetching, don't await
+// features/my-feature/ui/my-feature.provider.tsx (Server Component)
+import { MyFeatureClientProvider } from './my-feature.context';
+
+export function MyFeatureProvider({ children }) {
+  const dataPromise = getMyData(); // Start fetching locally on server
   return (
-    <MyFeatureProvider dataPromise={dataPromise}>
+    <MyFeatureClientProvider dataPromise={dataPromise}>
+      {children}
+    </MyFeatureClientProvider>
+  );
+}
+
+// app/(main)/my-feature/page.tsx (Server Page)
+export default async function Page() {
+  return (
+    <MyFeatureProvider>
       <MyFeatureComponent />
     </MyFeatureProvider>
   );
@@ -161,9 +174,12 @@ export function FeatureProvider({ children, initialDataPromise }) {
 
 #### Best Practices
 - **Thin Providers**: Keep context providers focused on data sharing and state management.
-- **Custom Hooks**: Expose context via hooks (e.g., `useMyFeature`) to provide a clean API.
+- **Custom Hooks**: Expose context via hooks (e.g., `useAssetStorage`) to provide a clean API.
+- **Server-Side Providers**: Use Server Component wrappers (like `AssetStorageProvider`) to orchestrate configuration and data fetching on the server.
+- **Zero-Latency Orchestration**: By using Server Components for providers, we can pass *unresolved* promises to the client. This allows the page to start streaming immediately while SAS tokens or other data are generated on the server, avoiding extra HTTP round-trips from the client.
 - **Reference Implementations**:
-  - `storage-config.context.tsx`: Clean configuration streaming.
+  - `asset-storage.context.tsx`: Clean configuration streaming and client-side state.
+  - `asset-storage.provider.tsx`: Server Component orchestration.
   - `form-assistant.context.tsx`: Complex state with optimistic updates and reducer.
 
 More on this in the [Next.js Data Fetching Documentation](https://nextjs.org/docs/app/getting-started/fetching-data#streaming-data-with-the-use-hook).

@@ -16,11 +16,7 @@ import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
-import {
-  createStorageConfigClient,
-  generateReadTokensAction,
-} from "@/features/asset-storage/server";
-import { StorageConfigProvider } from "@/features/asset-storage/client";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 type EmbedSurveyPage = {
   params: Promise<{ formId: string }>;
@@ -59,12 +55,6 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
 
-  const storageConfig = createStorageConfigClient().config;
-  const readTokenPromises = {
-    userFiles: generateReadTokensAction(storageConfig.containerNames.USER_FILES),
-    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
-  };
-
   return (
     <div
       style={{
@@ -80,10 +70,7 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
 
       <EmbedHeightReporter />
 
-      <StorageConfigProvider
-        config={storageConfig}
-        readTokenPromises={readTokenPromises}
-      >
+      <AssetStorageProvider>
         <SurveyJsWrapper
           formId={formId}
           definition={activeDefinition.jsonData}
@@ -94,7 +81,7 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
           isEmbed={true}
           urlToken={urlToken}
         />
-      </StorageConfigProvider>
+      </AssetStorageProvider>
     </div>
   );
 }

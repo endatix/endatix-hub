@@ -6,11 +6,7 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { StorageConfigProvider } from "@/features/asset-storage/client";
-import {
-  createStorageConfigClient,
-  generateReadTokensAction,
-} from "@/features/asset-storage/server";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 import {
   ApiResult,
@@ -33,15 +29,6 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   const { token: urlToken } = await searchParams;
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
-
-  const storageConfig = createStorageConfigClient().config;
-  const readTokenPromises = {
-    userFiles: generateReadTokensAction(
-      storageConfig.containerNames.USER_FILES),
-    content: generateReadTokensAction(
-      storageConfig.containerNames.CONTENT,
-    ),
-  };
 
   const [submissionResult, activeDefinitionResult] = await Promise.all([
     getPartialSubmissionUseCase({ formId, tokenStore, urlToken }),
@@ -88,7 +75,7 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
         </>
       )}
       <Suspense fallback={<div>Loading...</div>}>
-        <StorageConfigProvider config={storageConfig} readTokenPromises={readTokenPromises}>
+        <AssetStorageProvider>
           <SurveyJsWrapper
             formId={formId}
             definition={activeDefinition.jsonData}
@@ -98,7 +85,7 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
             requiresReCaptcha={activeDefinition.requiresReCaptcha}
             urlToken={urlToken}
           />
-        </StorageConfigProvider>
+        </AssetStorageProvider>
       </Suspense>
     </div>
   );

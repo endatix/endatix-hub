@@ -2,7 +2,7 @@ import * as React from "react";
 import { QuestionFileModel } from "survey-core";
 import { ReactElementFactory, SurveyFilePreview } from "survey-react-ui";
 import { IFile } from "@/lib/questions/file/file-type";
-import { StorageConfigContext } from "../../../infrastructure/storage-config.context";
+import { AssetStorageContext } from "@/features/asset-storage/client";
 
 let isRegistered = false;
 
@@ -20,7 +20,7 @@ class ProtectedFilePreview extends SurveyFilePreview {
     const question = this.question;
 
     return (
-      <StorageConfigContext.Consumer>
+      <AssetStorageContext.Consumer>
         {(contextValue) => {
           const config = contextValue?.config;
           if (!config?.isEnabled || !config?.isPrivate) {
@@ -45,7 +45,7 @@ class ProtectedFilePreview extends SurveyFilePreview {
 
           return super.renderElement();
         }}
-      </StorageConfigContext.Consumer>
+      </AssetStorageContext.Consumer>
     );
   }
 }

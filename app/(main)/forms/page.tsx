@@ -15,8 +15,7 @@ import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
-import { StorageConfigProvider } from '@/features/asset-storage/client';
-import { generateReadTokensAction, getStorageConfig } from '@/features/asset-storage/server';
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 export default async function FormsPage() {
   const [session, aiFeatureFlag] = await Promise.all([
@@ -27,19 +26,12 @@ export default async function FormsPage() {
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-
-  const storageConfig = getStorageConfig();
-  const readTokenPromises = {
-    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
-    userFiles: generateReadTokensAction(storageConfig.containerNames.USER_FILES),
-  };
-
   return (
     <>
       <PageTitle title="Forms" />
       <div className="flex-1 space-y-2">
         <FormAssistantProvider isAssistantEnabled={aiFeatureFlag}>
-          <StorageConfigProvider config={storageConfig} readTokenPromises={readTokenPromises}>
+          <AssetStorageProvider>
             <Tabs defaultValue="all" className="space-y-0">
               <div className="flex items-center justify-end space-y-0 mb-4">
                 <div className="flex items-center space-x-2">
@@ -58,7 +50,7 @@ export default async function FormsPage() {
                 <FormsTabsContent session={session} />
               </Suspense>
             </Tabs>
-          </StorageConfigProvider>
+          </AssetStorageProvider>
         </FormAssistantProvider>
       </div >
     </>

@@ -22,3 +22,4 @@ export {
 } from "./infrastructure/storage-config";
 export { uploadContentFileUseCase } from "./use-cases/upload-content-files/upload-content-file.use-case";
 export { uploadUserFilesUseCase } from "./use-cases/upload-user-files/upload-user-files.use-case";
+export { AssetStorageProvider } from "./ui/asset-storage.provider";

@@ -5,7 +5,7 @@ import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import { uploadContentFileAction } from "./upload-content-file.action";
 import { Result } from "@/lib/result";
 import { ContentItemType } from "../../types";
-import { useStorageConfig } from "../../infrastructure/storage-config.context";
+import { useAssetStorage } from "../../ui/asset-storage.context";
 
 interface UseContentUploadProps {
   itemId: string;
@@ -18,7 +18,7 @@ interface UseContentUploadProps {
  */
 export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
   const [isStorageReady, setIsStorageReady] = useState(false);
-  const storageConfig = useStorageConfig();
+  const { config: storageConfig } = useAssetStorage();
 
   const onUploadFile = useCallback(
     async (_sender: SurveyCreatorModel, options: UploadFileEvent) => {

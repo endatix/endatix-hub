@@ -10,16 +10,16 @@ import {
 import { BlockBlobClient } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
 import {
-  StorageTokens,
-  useStorageTokens,
-} from "../../infrastructure/storage-config.context";
+  AssetStorageTokens,
+  useAssetStorage,
+} from "../../ui/asset-storage.context";
 
 interface UseStorageUploadProps {
   formId: string;
   submissionId?: string;
   surveyModel: SurveyModel | null;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
-  readTokenPromises?: StorageTokens;
+  readTokenPromises?: AssetStorageTokens;
 }
 
 interface UploadFilesToBlobProps extends UseStorageUploadProps {
@@ -242,7 +242,7 @@ export function useStorageUpload({
   surveyModel,
   readTokenPromises: propsReadTokenPromises,
 }: UseStorageUploadProps) {
-  const contextTokens = useStorageTokens();
+  const { tokens: contextTokens } = useAssetStorage();
   const readTokenPromises = propsReadTokenPromises ?? contextTokens;
 
   const userFilesTokenResult = use(

@@ -1,6 +1,5 @@
 import React from "react";
 import { QuestionFileModel } from "survey-core";
-import { StorageConfig, StorageConfigContext } from "@/features/asset-storage/client";
 import { render, RenderResult } from "@testing-library/react";
 
 /**
@@ -16,16 +15,16 @@ export type SurveyJsComponent = {
  */
 export interface RenderSurveyJsComponentOptions<TContextValue = unknown> {
   /**
-   * Optional context provider component. If not provided and contextValue is set,
-   * defaults to StorageConfigContext.
+   * Context provider component. Required when contextValue is provided.
+   * Can be a React Context.Provider or any component that accepts value and children props.
    */
   ContextProvider?: React.ComponentType<{
-    value?: TContextValue;
+    value: TContextValue;
     children: React.ReactNode;
   }>;
   /**
    * Optional context value to pass to the context provider.
-   * If provided without ContextProvider, uses StorageConfigContext.
+   * If provided, ContextProvider must also be provided.
    */
   contextValue?: TContextValue;
 }
@@ -44,21 +43,13 @@ export interface RenderSurveyJsComponentOptions<TContextValue = unknown> {
  * renderSurveyJsComponent(ProtectedFilePreview, question);
  *
  * @example
- * // Render with default StorageConfigContext
+ * // Render with context provider
  * renderSurveyJsComponent(ProtectedFilePreview, question, {
+ *   ContextProvider: AssetStorageContext,
  *   contextValue: { config: mockConfig }
  * });
- *
- * @example
- * // Render with custom/mocked context
- * renderSurveyJsComponent(ProtectedFilePreview, question, {
- *   ContextProvider: MockContext,
- *   contextValue: mockValue
- * });
  */
-export function renderSurveyJsComponent<
-  TContextValue = { config: StorageConfig | null },
->(
+export function renderSurveyJsComponent<TContextValue = unknown>(
   ComponentClass: new (props: { question: QuestionFileModel }) => unknown,
   question: QuestionFileModel,
   options?: RenderSurveyJsComponentOptions<TContextValue>,
@@ -75,17 +66,23 @@ export function renderSurveyJsComponent<
       return <>{view}</>;
     }
 
-    // Use provided ContextProvider or default to StorageConfigContext
-    const ContextProvider = options.ContextProvider ?? StorageConfigContext;
+    // ContextProvider is required when contextValue is provided
+    if (options?.contextValue && !options?.ContextProvider) {
+      throw new Error(
+        "ContextProvider must be provided when contextValue is set",
+      );
+    }
+
+    const ContextProvider = options.ContextProvider!;
 
     // Type assertion needed because ContextProvider is generic and accepts different value types
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Provider = ContextProvider as React.ComponentType<{
-      value?: unknown;
+      value: unknown;
       children: React.ReactNode;
     }>;
 
-    return <Provider value={options.contextValue}>{view}</Provider>;
+    return <Provider value={options.contextValue!}>{view}</Provider>;
   };
 
   return render(<TestWrapper />);

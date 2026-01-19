@@ -53,8 +53,8 @@ vi.mock("@/features/asset-storage/client", () => ({
     registerStorageHandlers: vi.fn(() => () => {}),
     isStorageReady: true,
   })),
-  useStorageConfig: vi.fn(() => null),
-  StorageConfigProvider: ({ children }: { children: React.ReactNode }) => (
+  useAssetStorage: vi.fn(() => ({ config: null, tokens: undefined })),
+  AssetStorageClientProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
   registerProtectedFilePreview: vi.fn(),

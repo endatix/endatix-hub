@@ -4,7 +4,7 @@ import React from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import {
   useContentUpload,
-  StorageConfigProvider,
+  AssetStorageClientProvider,
 } from "@/features/asset-storage/client";
 import { Result } from "@/lib/result";
 
@@ -34,9 +34,9 @@ describe("useContentUpload", () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <StorageConfigProvider config={mockStorageConfig}>
+    <AssetStorageClientProvider config={mockStorageConfig}>
       {children}
-    </StorageConfigProvider>
+    </AssetStorageClientProvider>
   );
 
   const createMockCreatorModel = () => {

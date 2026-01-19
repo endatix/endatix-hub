@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import {
   useStorageUpload,
-  StorageConfigProvider,
+  AssetStorageClientProvider,
 } from "@/features/asset-storage/client";
 import {
   SurveyModel,
@@ -83,12 +83,12 @@ describe("useStorageUpload", () => {
     function TestWrapper({ children }: { children: React.ReactNode }) {
       return (
         <Suspense fallback={<div>Loading...</div>}>
-          <StorageConfigProvider
+          <AssetStorageClientProvider
             config={config}
-            readTokenPromises={readTokenPromises}
+            tokens={readTokenPromises}
           >
             {children}
-          </StorageConfigProvider>
+          </AssetStorageClientProvider>
         </Suspense>
       );
     }

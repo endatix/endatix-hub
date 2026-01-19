@@ -21,9 +21,8 @@ import {
   SurveyModelWithTokens,
 } from "../../types";
 import {
-  useStorageConfig,
-  useStorageTokens,
-} from "../../infrastructure/storage-config.context";
+  useAssetStorage,
+} from "../../ui/asset-storage.context";
 import { IFile } from "@/lib/questions/file/file-type";
 import { registerProtectedFilePreview } from "./ui/protected-file-preview";
 import { StorageConfig } from "../../infrastructure/storage-config-client";
@@ -153,8 +152,7 @@ const defaultReadTokensPromise = Promise.resolve(defaultReadTokensResult);
  * @returns The isPrivate, setModelMetadata, and registerEventHandlers functions.
  */
 export function useStorageView(promises?: UseStorageViewProps) {
-  const storageConfig = useStorageConfig();
-  const contextTokens = useStorageTokens();
+  const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
 
   const userFilesResult = use(
     promises?.userFiles ??

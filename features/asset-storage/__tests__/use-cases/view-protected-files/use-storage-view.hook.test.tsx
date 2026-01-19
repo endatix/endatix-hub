@@ -13,7 +13,7 @@ import {
 } from "survey-core";
 import { Result } from "@/lib/result";
 import { ContainerReadToken, ProtectedFile } from "@/features/asset-storage/types";
-import { StorageConfigProvider } from "@/features/asset-storage/client";
+import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 
 // Mock the not-allowed image
 vi.mock("@/public/assets/images/signs/not-allowed-image.svg", () => ({
@@ -72,9 +72,9 @@ describe("useStorageView", () => {
     function TestWrapper({ children }: { children: React.ReactNode }) {
       return (
         <Suspense fallback={<div>Loading...</div>}>
-          <StorageConfigProvider config={config}>
+          <AssetStorageClientProvider config={config}>
             {children}
-          </StorageConfigProvider>
+          </AssetStorageClientProvider>
         </Suspense>
       );
     }

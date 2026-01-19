@@ -6,13 +6,13 @@ import {
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import {
-  useStorageConfig,
-  StorageTokens,
-} from "../../infrastructure/storage-config.context";
+  useAssetStorage,
+  AssetStorageTokens,
+} from "../../ui/asset-storage.context";
 import { useStorageView } from "./use-storage-view.hook";
 
 interface UseCreatorViewProps {
-  readTokenPromises?: StorageTokens;
+  readTokenPromises?: AssetStorageTokens;
 }
 
 /**
@@ -21,7 +21,7 @@ interface UseCreatorViewProps {
  */
 export function useCreatorView({ readTokenPromises }: UseCreatorViewProps) {
   const [isStorageReady, setIsStorageReady] = useState(false);
-  const storageConfig = useStorageConfig();
+  const { config: storageConfig } = useAssetStorage();
   const { setModelMetadata, registerViewHandlers } =
     useStorageView(readTokenPromises);
 

@@ -21,22 +21,7 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
       </div>
     }
   >
-    <StorageConfigProvider
-      config={
-        {
-          "containerNames": {
-            "CONTENT": "content",
-            "USER_FILES": "user-files",
-          },
-        }
-      }
-      readTokenPromises={
-        {
-          "content": Promise {},
-          "userFiles": Promise {},
-        }
-      }
-    >
+    <AssetStorageProvider>
       <default
         customQuestions={[]}
         definition={
@@ -48,7 +33,7 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
         requiresReCaptcha={false}
         theme={{}}
       />
-    </StorageConfigProvider>
+    </AssetStorageProvider>
   </React.Suspense>
 </div>
 `;

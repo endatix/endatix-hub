@@ -14,11 +14,7 @@ import { auth } from "@/auth";
 import { trackException } from "@/features/analytics/posthog/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
-import { StorageConfigProvider } from "@/features/asset-storage/client";
-import {
-  createStorageConfigClient,
-  generateReadTokensAction,
-} from "@/features/asset-storage/server";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -68,14 +64,6 @@ export default async function FormDesignerPage({ params }: Params) {
     );
   }
 
-  const storageConfig = createStorageConfigClient().config;
-  const readTokenPromises = {
-    userFiles: generateReadTokensAction(
-      storageConfig.containerNames.USER_FILES,
-    ),
-    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
-  };
-
   const props: FormDesignerWrapperProps = {
     formId: formId,
     formJson: formJson,
@@ -87,17 +75,14 @@ export default async function FormDesignerPage({ params }: Params) {
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <StorageConfigProvider
-          config={storageConfig}
-          readTokenPromises={readTokenPromises}
-        >
+        <AssetStorageProvider>
           <FormAssistantProvider
             isAssistantEnabled={aiFeaturesEnabled}
             getConversationPromise={chatContextPromise}
           >
             <FormDesignerWrapper {...props} />
           </FormAssistantProvider>
-        </StorageConfigProvider>
+        </AssetStorageProvider>
       </div>
     </Suspense>
   );

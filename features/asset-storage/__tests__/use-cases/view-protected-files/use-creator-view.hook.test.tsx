@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCreatorView } from "@/features/asset-storage/use-cases/view-protected-files/use-creator-view.hook";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { useStorageConfig } from "@/features/asset-storage/infrastructure/storage-config.context";
+import { useAssetStorage } from "@/features/asset-storage/ui/asset-storage.context";
 import { useStorageView } from "@/features/asset-storage/use-cases/view-protected-files/use-storage-view.hook";
 
 // Mock dependencies
-vi.mock("@/features/asset-storage/infrastructure/storage-config.context", () => ({
-  useStorageConfig: vi.fn(),
+vi.mock("@/features/asset-storage/ui/asset-storage.context", () => ({
+  useAssetStorage: vi.fn(),
 }));
 
 vi.mock(
@@ -30,7 +30,7 @@ describe("useCreatorView", () => {
   });
 
   it("should initialize correctly", () => {
-    vi.mocked(useStorageConfig).mockReturnValue({ isPrivate: true } as any);
+    vi.mocked(useAssetStorage).mockReturnValue({ config: { isPrivate: true } } as any);
 
     const { result } = renderHook(() => useCreatorView({}));
 
@@ -39,7 +39,7 @@ describe("useCreatorView", () => {
   });
 
   it("should register survey instance created handler in creator", () => {
-    vi.mocked(useStorageConfig).mockReturnValue({ isPrivate: true } as any);
+    vi.mocked(useAssetStorage).mockReturnValue({ config: { isPrivate: true } } as any);
     const mockCreator = {
       onSurveyInstanceCreated: {
         add: vi.fn(),
@@ -66,7 +66,7 @@ describe("useCreatorView", () => {
   });
 
   it("should handle survey instance creation and call handlers when private", () => {
-    vi.mocked(useStorageConfig).mockReturnValue({ isPrivate: true } as any);
+    vi.mocked(useAssetStorage).mockReturnValue({ config: { isPrivate: true } } as any);
     const mockCreator = {
       onSurveyInstanceCreated: {
         add: vi.fn(),
@@ -96,7 +96,7 @@ describe("useCreatorView", () => {
   });
 
   it("should only call setModelMetadata but not registerViewHandlers when not private", () => {
-    vi.mocked(useStorageConfig).mockReturnValue({ isPrivate: false } as any);
+    vi.mocked(useAssetStorage).mockReturnValue({ config: { isPrivate: false } } as any);
     const mockCreator = {
       onSurveyInstanceCreated: {
         add: vi.fn(),

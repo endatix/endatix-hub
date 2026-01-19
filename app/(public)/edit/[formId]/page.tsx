@@ -9,11 +9,7 @@ import {
   validateEndatixId,
 } from "@/lib/utils/type-validators";
 import { getActiveFormDefinition } from "@/services/api";
-import {
-  createStorageConfigClient,
-  generateReadTokensAction,
-} from "@/features/asset-storage/server";
-import { StorageConfigProvider } from "@/features/asset-storage/client";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 type Params = {
   params: Promise<{
@@ -102,24 +98,15 @@ export default async function PublicEditSubmissionPage({
     );
   }
 
-  const storageConfig = createStorageConfigClient().config;
-  const readTokenPromises = {
-    userFiles: generateReadTokensAction(storageConfig.containerNames.USER_FILES),
-    content: generateReadTokensAction(storageConfig.containerNames.CONTENT),
-  };
-
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <StorageConfigProvider
-        config={storageConfig}
-        readTokenPromises={readTokenPromises}
-      >
+      <AssetStorageProvider>
         <EditSubmission
           submission={submission}
           formId={validateFormIdResult.value}
           token={validateTokenResult.value}
         />
-      </StorageConfigProvider>
+      </AssetStorageProvider>
     </Suspense>
   );
 }

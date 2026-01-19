@@ -5,7 +5,7 @@ import { SurveyModel } from "survey-core";
 import { useSurveyStorage } from "@/features/asset-storage/client";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/asset-storage/types";
-import { StorageConfigProvider } from "@/features/asset-storage/client";
+import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import { StorageConfig } from "@/features/asset-storage/client";
 
 // Mock the hooks
@@ -74,9 +74,9 @@ describe("useSurveyStorage", () => {
     }) {
       return (
         <Suspense fallback={<div>Loading...</div>}>
-          <StorageConfigProvider config={config}>
+          <AssetStorageClientProvider config={config}>
             {children}
-          </StorageConfigProvider>
+          </AssetStorageClientProvider>
         </Suspense>
       );
     }

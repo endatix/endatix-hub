@@ -5,16 +5,15 @@ import { SurveyCreatorModel } from "survey-creator-core";
 import { useContentUpload } from "./use-content-upload.hook";
 import { useCreatorView } from "../view-protected-files/use-creator-view.hook";
 import {
-  useStorageConfig,
-  StorageTokens,
-  useStorageTokens,
-} from "../../infrastructure/storage-config.context";
+  useAssetStorage,
+  AssetStorageTokens,
+} from "../../ui/asset-storage.context";
 import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
 
 interface UseCreatorStorageProps {
   itemId: string;
   itemType: "form" | "template";
-  readTokenPromises?: StorageTokens;
+  readTokenPromises?: AssetStorageTokens;
 }
 
 /**
@@ -26,11 +25,10 @@ export function useCreatorStorage({
   itemType,
   readTokenPromises: propsReadTokenPromises,
 }: UseCreatorStorageProps) {
-  const contextTokens = useStorageTokens();
+  const { tokens: contextTokens, config: storageConfig } = useAssetStorage();
   const readTokenPromises = propsReadTokenPromises ?? contextTokens;
 
   const [isStorageReady, setIsStorageReady] = useState(false);
-  const storageConfig = useStorageConfig();
 
   const { registerUploadHandlers } = useContentUpload({ itemId, itemType });
   const { registerViewHandlers } = useCreatorView({ readTokenPromises });
@@ -67,7 +65,7 @@ export function useCreatorStorage({
         unregisterView?.();
       };
     },
-    [storageConfig?.isEnabled, registerUploadHandlers, registerViewHandlers],
+    [storageConfig?.isEnabled, storageConfig?.isPrivate, registerUploadHandlers, registerViewHandlers],
   );
 
   return { registerStorageHandlers, isStorageReady };
