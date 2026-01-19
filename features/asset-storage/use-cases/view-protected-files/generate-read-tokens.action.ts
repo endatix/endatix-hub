@@ -1,10 +1,10 @@
 "use server";
 
-import { Result } from "@/lib/result";
-import { generateReadTokens } from "../../infrastructure/storage-service";
-import { getStorageConfig } from "../../infrastructure/storage-config";
 import { auth } from "@/auth";
-import { ContainerReadToken, ReadTokensResult } from "../../types";
+import { Result } from "@/lib/result";
+import { getStorageConfig } from "../../infrastructure/storage-config";
+import { bulkGenerateReadTokens } from "../../infrastructure/storage-service";
+import { ContainerReadToken, ReadTokenResult } from "../../types";
 
 /**
  * Generates a read token for a container
@@ -13,7 +13,7 @@ import { ContainerReadToken, ReadTokensResult } from "../../types";
  */
 export async function generateReadTokensAction(
   containerName: string,
-): Promise<ReadTokensResult> {
+): Promise<ReadTokenResult> {
   const storageConfig = getStorageConfig();
 
   if (!storageConfig.isEnabled) {
@@ -33,7 +33,7 @@ export async function generateReadTokensAction(
     return Result.validationError("Container name is required");
   }
 
-  const readTokensResult = await generateReadTokens({
+  const readTokensResult = await bulkGenerateReadTokens({
     containerName,
     resourceType: "container",
     resourceNames: [containerName],

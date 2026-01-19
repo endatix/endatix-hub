@@ -2,11 +2,11 @@
 
 import React, { createContext, use, useMemo } from "react";
 import { StorageConfig } from "../infrastructure/storage-config-client";
-import { ReadTokensResult } from "../types";
+import { ReadTokenResult } from "../types";
 
 export interface AssetStorageTokens {
-  userFiles: Promise<ReadTokensResult>;
-  content: Promise<ReadTokensResult>;
+  userFiles: Promise<ReadTokenResult>;
+  content: Promise<ReadTokenResult>;
 }
 
 export interface AssetStorageContextValue {

@@ -13,4 +13,4 @@ interface StorageConfigClient {
   config: StorageConfig;
 }
 
-  export type { StorageConfig, StorageConfigClient };
+export type { StorageConfig, StorageConfigClient };

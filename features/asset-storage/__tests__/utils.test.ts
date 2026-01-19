@@ -1,15 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
+import { ErrorType, Result } from "@/lib/result";
+import { describe, expect, it, vi } from "vitest";
+import { StorageConfig } from "../infrastructure/storage-config-client";
 import {
-  generateUniqueFileName,
-  resolveContainerFromUrl,
-  isUrlFromContainer,
-  getBlobNameFromUrl,
   enhanceUrlWithToken,
   escapeRegex,
   extractStorageUrls,
+  generateUniqueFileName,
+  isUrlFromContainer,
+  resolveContainerFromUrl
 } from "../utils";
-import { Result, ErrorType } from "@/lib/result";
-import { StorageConfig } from "../infrastructure/storage-config-client";
 
 // Mock uuid
 vi.mock("uuid", () => ({
@@ -190,6 +189,7 @@ describe("resolveContainerFromUrl", () => {
   const mockStorageConfig: StorageConfig = {
     isEnabled: true,
     isPrivate: true,
+    protocol: "https",
     hostName: "testaccount.blob.core.windows.net",
     containerNames: {
       USER_FILES: "user-files",
@@ -303,6 +303,7 @@ describe("isUrlFromContainer", () => {
   const mockStorageConfig: StorageConfig = {
     isEnabled: true,
     isPrivate: true,
+    protocol: "https",
     hostName: "testaccount.blob.core.windows.net",
     containerNames: {
       USER_FILES: "user-files",
@@ -343,79 +344,6 @@ describe("isUrlFromContainer", () => {
     const result = isUrlFromContainer(url, "content", mockStorageConfig);
 
     expect(result).toBe(true);
-  });
-});
-
-describe("getBlobNameFromUrl", () => {
-  const mockStorageConfig: StorageConfig = {
-    isEnabled: true,
-    isPrivate: true,
-    hostName: "testaccount.blob.core.windows.net",
-    containerNames: {
-      USER_FILES: "user-files",
-      CONTENT: "content",
-    },
-  };
-
-  it("should extract blob name from simple URL", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg";
-    const result = getBlobNameFromUrl(url, mockStorageConfig);
-
-    expect(result).toBe("image.jpg");
-  });
-
-  it("should extract blob name with nested path", () => {
-    const url = "https://testaccount.blob.core.windows.net/user-files/folder/subfolder/document.pdf";
-    const result = getBlobNameFromUrl(url, mockStorageConfig);
-
-    expect(result).toBe("folder/subfolder/document.pdf");
-  });
-
-  it("should return null for URL without blob path", () => {
-    const url = "https://testaccount.blob.core.windows.net/content";
-    const result = getBlobNameFromUrl(url, mockStorageConfig);
-
-    expect(result).toBeNull();
-  });
-
-  it("should return null for URL with only container", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/";
-    const result = getBlobNameFromUrl(url, mockStorageConfig);
-
-    expect(result).toBeNull();
-  });
-
-  it("should return null for empty URL", () => {
-    const result = getBlobNameFromUrl("", mockStorageConfig);
-    expect(result).toBeNull();
-  });
-
-  it("should return null when storageConfig is null", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg";
-    const result = getBlobNameFromUrl(url, null);
-
-    expect(result).toBeNull();
-  });
-
-  it("should return null for invalid URL", () => {
-    const url = "not-a-valid-url";
-    const result = getBlobNameFromUrl(url, mockStorageConfig);
-
-    expect(result).toBeNull();
-  });
-
-  it("should handle URLs with query parameters", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08";
-    const result = getBlobNameFromUrl(url, mockStorageConfig);
-
-    expect(result).toBe("image.jpg");
-  });
-
-  it("should handle deep nested paths", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/a/b/c/d/e/file.txt";
-    const result = getBlobNameFromUrl(url, mockStorageConfig);
-
-    expect(result).toBe("a/b/c/d/e/file.txt");
   });
 });
 

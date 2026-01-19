@@ -51,11 +51,11 @@ function resolveContainerFromUrl(
       return null;
     }
 
-    const firstPathPart = urlObj.pathname
-      .split('/')
-      .find((part) => part.length > 0);
-    const containerName = firstPathPart?.toLowerCase() ?? null;
-    if (!containerName) return null;
+    const pathParts = urlObj.pathname.split('/').filter((part) => part.length > 0);
+    if (pathParts.length < 1) return null;
+
+    const containerName = pathParts[0].toLowerCase();
+    const blobName = pathParts.slice(1).join('/');
 
     if (containerName === storageConfig.containerNames.USER_FILES) {
       return {
@@ -63,6 +63,7 @@ function resolveContainerFromUrl(
         containerName: containerName,
         hostName: hostname,
         isPrivate: true,
+        blobName: blobName,
       };
     }
     if (containerName === storageConfig.containerNames.CONTENT) {
@@ -71,6 +72,7 @@ function resolveContainerFromUrl(
         containerName: containerName,
         hostName: hostname,
         isPrivate: true,
+        blobName: blobName,
       };
     }
 
@@ -94,32 +96,6 @@ function isUrlFromContainer(
   if (!resolvedContainer) return false;
 
   return resolvedContainer.containerName === containerName;
-}
-
-/**
- * Extracts the blob name from a storage URL.
- * @param url - The storage URL
- * @param storageConfig - The storage configuration
- * @returns The blob name (including folder path) or null if not a valid storage URL
- */
-function getBlobNameFromUrl(
-  url: string,
-  storageConfig: StorageConfig | null,
-): string | null {
-  if (!url || !storageConfig) return null;
-
-  try {
-    const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split('/').filter((p) => p.length > 0);
-
-    // The first part is the container name
-    if (pathParts.length < 2) return null;
-
-    // Remove the container name and join the rest as the blob name
-    return pathParts.slice(1).join("/");
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -182,7 +158,6 @@ export {
   escapeRegex,
   extractStorageUrls,
   generateUniqueFileName,
-  getBlobNameFromUrl,
   isUrlFromContainer,
   resolveContainerFromUrl
 };

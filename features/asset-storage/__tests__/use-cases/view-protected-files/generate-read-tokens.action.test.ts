@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { generateReadTokensAction } from "@/features/asset-storage/use-cases/view-protected-files/generate-read-tokens.action";
-import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
-import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
 import { auth } from "@/auth";
+import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
+import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
+import { generateReadTokensAction } from "@/features/asset-storage/use-cases/view-protected-files/generate-read-tokens.action";
 import { Result } from "@/lib/result";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies
 vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
-  generateReadTokens: vi.fn(),
+  bulkGenerateReadTokens: vi.fn(),
 }));
 
 vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
@@ -101,7 +101,7 @@ describe("generateReadTokensAction", () => {
 
     const mockExpiry = new Date();
     const mockGenerated = new Date();
-    vi.mocked(storageService.generateReadTokens).mockResolvedValue(
+    vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
       Result.success({
         readTokens: {
           container: "mock-token",
@@ -120,7 +120,7 @@ describe("generateReadTokensAction", () => {
       expect(result.value.expiresOn).toBe(mockExpiry);
     }
 
-    expect(storageService.generateReadTokens).toHaveBeenCalledWith({
+    expect(storageService.bulkGenerateReadTokens).toHaveBeenCalledWith({
       containerName: "test-container",
       resourceType: "container",
       resourceNames: ["test-container"],
@@ -134,7 +134,7 @@ describe("generateReadTokensAction", () => {
     } as any);
     vi.mocked(auth).mockResolvedValue({ user: { id: "1" } } as any);
 
-    vi.mocked(storageService.generateReadTokens).mockResolvedValue(
+    vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
       Result.error("Generation failed") as any,
     );
 

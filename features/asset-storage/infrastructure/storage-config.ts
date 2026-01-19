@@ -1,21 +1,18 @@
-import { StorageConfigClient } from "./storage-config-client";
+import { ContainerType } from '../types';
+import { StorageConfig, StorageConfigClient } from "./storage-config-client";
 
 interface IStorageConfig {
   isEnabled: boolean;
   isPrivate: boolean;
 }
 
-interface ContainerNames {
-  USER_FILES: string;
-  CONTENT: string;
-}
-
 type AzureStorageConfig = IStorageConfig & {
   accountName: string;
   accountKey: string;
   hostName: string;
+  protocol: "https" | "http";
   sasReadExpiryMinutes: number;
-  containerNames: ContainerNames;
+  containerNames: Record<ContainerType, string>;
 };
 
 const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
@@ -55,6 +52,7 @@ function getStorageConfig(): AzureStorageConfig {
     accountName,
     accountKey: AZURE_STORAGE_ACCOUNT_KEY || "",
     hostName,
+    protocol: "https",
     sasReadExpiryMinutes,
     containerNames: getContainerNames(),
   });
@@ -65,7 +63,7 @@ function getStorageConfig(): AzureStorageConfig {
  * Returns a frozen object to prevent modification after initialization
  * @returns The frozen container names object
  */
-function getContainerNames(): ContainerNames {
+function getContainerNames(): Record<ContainerType, string> {
   const userFilesContainerName =
     process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
     DEFAULT_USER_FILES_CONTAINER_NAME;
@@ -92,6 +90,7 @@ function createStorageConfigClient(): StorageConfigClient {
       isEnabled: serverConfig.isEnabled,
       isPrivate: serverConfig.isPrivate,
       hostName: serverConfig.hostName,
+      protocol: serverConfig.protocol,
       containerNames: {
         USER_FILES: containerNames.USER_FILES,
         CONTENT: containerNames.CONTENT,
@@ -100,11 +99,23 @@ function createStorageConfigClient(): StorageConfigClient {
   });
 }
 
+/**
+ * Gets the URL for a container
+ * @param containerName - The name of the container
+ * @param config - The storage configuration
+ * @returns The URL for the container
+ */
+function getContainerUrl(containerName: string, config: AzureStorageConfig | StorageConfig): string {
+  return `${config.protocol}://${config.hostName}/${containerName}`;
+}
+
 export {
-  getStorageConfig,
-  getContainerNames,
   createStorageConfigClient,
-  type ContainerNames,
+  getContainerNames,
+  getContainerUrl,
+  getStorageConfig,
   type AzureStorageConfig,
-  type IStorageConfig,
+  type ContainerType,
+  type IStorageConfig
 };
+

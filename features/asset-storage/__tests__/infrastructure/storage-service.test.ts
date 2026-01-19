@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Result } from "@/lib/result";
 import {
   BlobServiceClient,
-  ContainerClient,
   BlockBlobClient,
+  ContainerClient,
   StorageSharedKeyCredential,
   generateBlobSASQueryParameters,
 } from "@azure/storage-blob";
-import { Result } from "@/lib/result";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock entire module
 vi.mock("@azure/storage-blob", () => ({
@@ -360,7 +360,7 @@ describe("StorageService", () => {
 
     it("should return error when storage is not enabled", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -382,7 +382,7 @@ describe("StorageService", () => {
       delete process.env.AZURE_STORAGE_IS_PRIVATE;
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -402,7 +402,7 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -422,7 +422,7 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -442,7 +442,7 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -464,7 +464,7 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -498,7 +498,7 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -539,7 +539,7 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -568,7 +568,7 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
       vi.resetModules();
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 
@@ -597,7 +597,7 @@ describe("StorageService", () => {
         throw error;
       });
 
-      const { generateReadTokens } = await import(
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
         "../../infrastructure/storage-service"
       );
 

@@ -1,8 +1,8 @@
 import React from "react";
 import { getStorageConfig } from "../infrastructure/storage-config";
+import { StorageConfig } from "../infrastructure/storage-config-client";
 import { generateReadTokensAction } from "../use-cases/view-protected-files/generate-read-tokens.action";
 import { AssetStorageClientProvider, AssetStorageTokens } from "./asset-storage.context";
-import { StorageConfig } from "../infrastructure/storage-config-client";
 
 /**
  * Server Component that orchestrates Asset Storage configuration and tokens.
@@ -27,6 +27,7 @@ export function AssetStorageProvider({
     isEnabled: serverConfig.isEnabled,
     isPrivate: serverConfig.isPrivate,
     hostName: serverConfig.hostName,
+    protocol: serverConfig.protocol,
     containerNames: serverConfig.containerNames,
   };
 

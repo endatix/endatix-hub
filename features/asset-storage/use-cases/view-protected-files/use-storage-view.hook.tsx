@@ -1,5 +1,8 @@
 "use client";
 
+import { IFile } from "@/lib/questions/file/file-type";
+import { Result } from "@/lib/result";
+import notAllowedImageSrc from "@/public/assets/images/signs/not-allowed-image.svg";
 import { use, useCallback, useEffect, useMemo } from "react";
 import {
   AfterRenderHeaderEvent,
@@ -11,22 +14,18 @@ import {
   QuestionSignaturePadModel,
   SurveyModel,
 } from "survey-core";
-import { Result } from "@/lib/result";
-import notAllowedImageSrc from "@/public/assets/images/signs/not-allowed-image.svg";
+import { StorageConfig } from "../../infrastructure/storage-config-client";
 import {
   ContainerReadToken,
-  IContainerInfo,
   ProtectedFile,
-  ReadTokensResult,
-  SurveyModelWithTokens,
+  ReadTokenResult,
+  SurveyModelWithTokens
 } from "../../types";
 import {
   useAssetStorage,
 } from "../../ui/asset-storage.context";
-import { IFile } from "@/lib/questions/file/file-type";
+import { isUrlFromContainer, resolveContainerFromUrl } from "../../utils";
 import { registerProtectedFilePreview } from "./ui/protected-file-preview";
-import { StorageConfig } from "../../infrastructure/storage-config-client";
-import { resolveContainerFromUrl, isUrlFromContainer } from "../../utils";
 
 /**
  * Updates the src attribute of an image element to include a SAS token if the image is in private storage.
@@ -68,8 +67,8 @@ function updateImageSrc(
 
 
 interface UseStorageViewProps {
-  userFiles: Promise<ReadTokensResult>;
-  content: Promise<ReadTokensResult>;
+  userFiles: Promise<ReadTokenResult>;
+  content: Promise<ReadTokenResult>;
 }
 
 const defaultReadTokensResult = Result.success<ContainerReadToken>({

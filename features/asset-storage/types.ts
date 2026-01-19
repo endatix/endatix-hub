@@ -11,6 +11,7 @@ export interface IContainerInfo {
   containerName: string;
   hostName: string;
   isPrivate: boolean;
+  blobName: string;
 }
 export interface ProtectedFile extends IFile {
   token?: string;
@@ -33,7 +34,25 @@ export interface ContainerReadToken extends IReadToken {
   containerName: string;
 }
 
-export type ReadTokensResult = Result<ContainerReadToken>;
+export type ReadTokenResult = Result<ContainerReadToken>;
+
+
+interface ReadTokensResponse {
+  /**
+   * A record of requested resource names and the corresponding tokens generated for read access
+   */
+  readTokens: Record<string, string>;
+  /**
+   * The date and time when the tokens will expire
+   */
+  expiresOn: Date;
+  /**
+   * The date and time when the tokens were generated
+   */
+  generatedAt: Date;
+}
+
+export type ReadTokensResult = Result<ReadTokensResponse>;
 
 export type UploadUserFilesCommand = {
   formId: string;

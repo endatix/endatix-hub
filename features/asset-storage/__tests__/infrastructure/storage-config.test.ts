@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getStorageConfig,
   getContainerNames,
+  getContainerUrl,
   createStorageConfigClient,
   AzureStorageConfig,
 } from "../../infrastructure/storage-config";
@@ -176,6 +177,33 @@ describe("StorageConfig", () => {
 
         // Assert
         expect(config.hostName).toBe("");
+      });
+    });
+
+    describe("protocol", () => {
+      it("should default to https", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.protocol).toBe("https");
+      });
+
+      it("should always be https regardless of environment", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.protocol).toBe("https");
+        expect(config.protocol).not.toBe("http");
       });
     });
 
@@ -446,6 +474,7 @@ describe("StorageConfig", () => {
         "custom-user-files",
       );
       expect(clientConfig.config.containerNames.CONTENT).toBe("custom-content");
+      expect(clientConfig.config.protocol).toBe("https");
 
       // Verify server-only properties are NOT present
       expect(
@@ -462,6 +491,241 @@ describe("StorageConfig", () => {
 
       // Assert
       expect(Object.isFrozen(clientConfig)).toBe(true);
+    });
+  });
+
+  describe("getContainerUrl", () => {
+    describe("with AzureStorageConfig", () => {
+      it("should construct URL with https protocol", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: true,
+          isPrivate: true,
+          accountName: "testaccount",
+          accountKey: "testkey",
+          hostName: "testaccount.blob.core.windows.net",
+          protocol: "https",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+
+        // Act
+        const url = getContainerUrl("content", config);
+
+        // Assert
+        expect(url).toBe("https://testaccount.blob.core.windows.net/content");
+      });
+
+      it("should construct URL with http protocol when provided", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: true,
+          isPrivate: true,
+          accountName: "testaccount",
+          accountKey: "testkey",
+          hostName: "testaccount.blob.core.windows.net",
+          protocol: "http",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+
+        // Act
+        const url = getContainerUrl("user-files", config);
+
+        // Assert
+        expect(url).toBe("http://testaccount.blob.core.windows.net/user-files");
+      });
+
+      it("should handle container names with special characters", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: true,
+          isPrivate: true,
+          accountName: "testaccount",
+          accountKey: "testkey",
+          hostName: "testaccount.blob.core.windows.net",
+          protocol: "https",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+
+        // Act
+        const url = getContainerUrl("my-container-123", config);
+
+        // Assert
+        expect(url).toBe("https://testaccount.blob.core.windows.net/my-container-123");
+      });
+
+      it("should handle empty container name", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: true,
+          isPrivate: true,
+          accountName: "testaccount",
+          accountKey: "testkey",
+          hostName: "testaccount.blob.core.windows.net",
+          protocol: "https",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+
+        // Act
+        const url = getContainerUrl("", config);
+
+        // Assert
+        expect(url).toBe("https://testaccount.blob.core.windows.net/");
+      });
+
+      it("should handle empty hostName", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: false,
+          isPrivate: false,
+          accountName: "",
+          accountKey: "",
+          hostName: "",
+          protocol: "https",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+
+        // Act
+        const url = getContainerUrl("content", config);
+
+        // Assert
+        expect(url).toBe("https:///content");
+      });
+    });
+
+    describe("with StorageConfig (client config)", () => {
+      it("should construct URL with https protocol from client config", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        const clientConfig = createStorageConfigClient();
+
+        // Act
+        const url = getContainerUrl("content", clientConfig.config);
+
+        // Assert
+        expect(url).toBe(`https://${mockAccountName}.blob.core.windows.net/content`);
+      });
+
+      it("should work with both container types from client config", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        const clientConfig = createStorageConfigClient();
+
+        // Act
+        const contentUrl = getContainerUrl(clientConfig.config.containerNames.CONTENT, clientConfig.config);
+        const userFilesUrl = getContainerUrl(clientConfig.config.containerNames.USER_FILES, clientConfig.config);
+
+        // Assert
+        expect(contentUrl).toBe(`https://${mockAccountName}.blob.core.windows.net/content`);
+        expect(userFilesUrl).toBe(`https://${mockAccountName}.blob.core.windows.net/user-files`);
+      });
+
+      it("should use protocol from client config", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        const clientConfig = createStorageConfigClient();
+
+        // Act
+        const url = getContainerUrl("test-container", clientConfig.config);
+
+        // Assert
+        expect(url).toMatch(/^https:\/\//);
+        expect(clientConfig.config.protocol).toBe("https");
+      });
+    });
+
+    describe("edge cases", () => {
+      it("should handle container names with uppercase letters", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: true,
+          isPrivate: true,
+          accountName: "testaccount",
+          accountKey: "testkey",
+          hostName: "testaccount.blob.core.windows.net",
+          protocol: "https",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+
+        // Act
+        const url = getContainerUrl("MY-CONTAINER", config);
+
+        // Assert
+        expect(url).toBe("https://testaccount.blob.core.windows.net/MY-CONTAINER");
+      });
+
+      it("should handle container names with underscores", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: true,
+          isPrivate: true,
+          accountName: "testaccount",
+          accountKey: "testkey",
+          hostName: "testaccount.blob.core.windows.net",
+          protocol: "https",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+
+        // Act
+        const url = getContainerUrl("my_container_name", config);
+
+        // Assert
+        expect(url).toBe("https://testaccount.blob.core.windows.net/my_container_name");
+      });
+
+      it("should handle very long container names", () => {
+        // Arrange
+        const config: AzureStorageConfig = {
+          isEnabled: true,
+          isPrivate: true,
+          accountName: "testaccount",
+          accountKey: "testkey",
+          hostName: "testaccount.blob.core.windows.net",
+          protocol: "https",
+          sasReadExpiryMinutes: 15,
+          containerNames: {
+            USER_FILES: "user-files",
+            CONTENT: "content",
+          },
+        };
+        const longContainerName = "a".repeat(100);
+
+        // Act
+        const url = getContainerUrl(longContainerName, config);
+
+        // Assert
+        expect(url).toBe(`https://testaccount.blob.core.windows.net/${longContainerName}`);
+      });
     });
   });
 });

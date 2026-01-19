@@ -1,11 +1,12 @@
 import { Result } from "@/lib/result";
 import {
-  BlobServiceClient,
-  StorageSharedKeyCredential,
   BlobSASPermissions,
+  BlobServiceClient,
   SASProtocol,
+  StorageSharedKeyCredential,
   generateBlobSASQueryParameters,
 } from "@azure/storage-blob";
+import { ReadTokensResult as BulkReadTokensResult } from '../types';
 import { getStorageConfig } from "./storage-config";
 
 interface FileOptions {
@@ -82,28 +83,11 @@ async function uploadToStorage(
   }
 }
 
-interface ReadUrlOptions extends Omit<FileOptions, "fileName"> {
+interface BulkReadUrlsOptions extends Omit<FileOptions, "fileName"> {
   resourceType: "file" | "directory" | "container";
   resourceNames?: string[];
   expiresInMinutes?: number;
 }
-
-interface ReadTokensResponse {
-  /**
-   * A record of requested resource names and the corresponding tokens generated for read access
-   */
-  readTokens: Record<string, string>;
-  /**
-   * The date and time when the tokens will expire
-   */
-  expiresOn: Date;
-  /**
-   * The date and time when the tokens were generated
-   */
-  generatedAt: Date;
-}
-
-type ReadTokensResult = Result<ReadTokensResponse>;
 
 /**
  * Generates Azure Blob Storage SAS token for container-level access
@@ -150,14 +134,14 @@ function generateBlobReadToken(
 }
 
 /**
- * Generates read tokens for accessing storage resources
+ * Generates multiple read tokens for accessing storage resources
  * Supports generating tokens for containers, directories, or individual files
  * @param options - The options for generating the tokens
  * @returns A Promise resolving to the tokens and expiration information
  */
-async function generateReadTokens(
-  options: ReadUrlOptions,
-): Promise<ReadTokensResult> {
+async function bulkGenerateReadTokens(
+  options: BulkReadUrlsOptions,
+): Promise<BulkReadTokensResult> {
   const { containerName, resourceType, resourceNames, expiresInMinutes } =
     options;
 
@@ -318,11 +302,13 @@ function resetBlobServiceClient(): void {
     _blobServiceClient = null;
   }
 }
+
 export {
-  type FileOptions,
-  uploadToStorage,
-  generateReadTokens,
-  generateUploadUrl,
+  bulkGenerateReadTokens,
   deleteBlob,
+  generateUploadUrl,
   resetBlobServiceClient,
+  uploadToStorage, type BulkReadUrlsOptions,
+  type FileOptions
 };
+

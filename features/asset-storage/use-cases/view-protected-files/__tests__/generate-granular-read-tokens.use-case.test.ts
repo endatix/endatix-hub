@@ -8,17 +8,16 @@ vi.mock("../../../infrastructure/storage-config", () => ({
 }));
 
 vi.mock("../../../infrastructure/storage-service", () => ({
-  generateReadTokens: vi.fn(),
+  bulkGenerateReadTokens: vi.fn(),
 }));
 
 vi.mock("../../../utils", () => ({
   resolveContainerFromUrl: vi.fn(),
-  getBlobNameFromUrl: vi.fn(),
 }));
 
 import { getStorageConfig } from "../../../infrastructure/storage-config";
-import { generateReadTokens } from "../../../infrastructure/storage-service";
-import { getBlobNameFromUrl, resolveContainerFromUrl } from "../../../utils";
+import { bulkGenerateReadTokens } from "../../../infrastructure/storage-service";
+import { resolveContainerFromUrl } from "../../../utils";
 
 describe("generateGranularReadTokensUseCase", () => {
   const mockStorageConfig = {
@@ -81,7 +80,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(generateReadTokens).not.toHaveBeenCalled();
+      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should return empty tokens for null urls", async () => {
@@ -91,7 +90,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(generateReadTokens).not.toHaveBeenCalled();
+      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should return empty tokens for undefined urls", async () => {
@@ -101,14 +100,13 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(generateReadTokens).not.toHaveBeenCalled();
+      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
   });
 
   describe("URL resolution and grouping", () => {
     it("should skip URLs that cannot be resolved to a container", async () => {
       vi.mocked(resolveContainerFromUrl).mockReturnValue(null);
-      vi.mocked(getBlobNameFromUrl).mockReturnValue(null);
 
       const result = await generateGranularReadTokensUseCase([
         "https://other-storage.com/file.jpg",
@@ -119,7 +117,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(generateReadTokens).not.toHaveBeenCalled();
+      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should skip URLs that cannot resolve blob name", async () => {
@@ -128,8 +126,8 @@ describe("generateGranularReadTokensUseCase", () => {
         containerName: "content",
         hostName: "testaccount.blob.core.windows.net",
         isPrivate: true,
+        blobName: "", // Empty blob name should be skipped
       });
-      vi.mocked(getBlobNameFromUrl).mockReturnValue(null);
 
       const result = await generateGranularReadTokensUseCase([
         "https://testaccount.blob.core.windows.net/content/",
@@ -139,7 +137,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(generateReadTokens).not.toHaveBeenCalled();
+      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should group URLs by container", async () => {
@@ -148,33 +146,37 @@ describe("generateGranularReadTokensUseCase", () => {
       const userFilesUrl = "https://testaccount.blob.core.windows.net/user-files/doc.pdf";
 
       vi.mocked(resolveContainerFromUrl).mockImplementation((url) => {
-        if (url.includes("content")) {
+        if (url === contentUrl1) {
           return {
             containerType: "CONTENT",
             containerName: "content",
             hostName: "testaccount.blob.core.windows.net",
             isPrivate: true,
+            blobName: "file1.jpg",
           };
         }
-        if (url.includes("user-files")) {
+        if (url === contentUrl2) {
+          return {
+            containerType: "CONTENT",
+            containerName: "content",
+            hostName: "testaccount.blob.core.windows.net",
+            isPrivate: true,
+            blobName: "file2.jpg",
+          };
+        }
+        if (url === userFilesUrl) {
           return {
             containerType: "USER_FILES",
             containerName: "user-files",
             hostName: "testaccount.blob.core.windows.net",
             isPrivate: true,
+            blobName: "doc.pdf",
           };
         }
         return null;
       });
 
-      vi.mocked(getBlobNameFromUrl).mockImplementation((url) => {
-        if (url === contentUrl1) return "file1.jpg";
-        if (url === contentUrl2) return "file2.jpg";
-        if (url === userFilesUrl) return "doc.pdf";
-        return null;
-      });
-
-      vi.mocked(generateReadTokens).mockResolvedValue(
+      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file1.jpg": "token1",
@@ -192,13 +194,13 @@ describe("generateGranularReadTokensUseCase", () => {
         userFilesUrl,
       ]);
 
-      expect(generateReadTokens).toHaveBeenCalledTimes(2);
-      expect(generateReadTokens).toHaveBeenCalledWith({
+      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(2);
+      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "content",
         resourceType: "file",
         resourceNames: ["file1.jpg", "file2.jpg"],
       });
-      expect(generateReadTokens).toHaveBeenCalledWith({
+      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "user-files",
         resourceType: "file",
         resourceNames: ["doc.pdf"],
@@ -224,11 +226,10 @@ describe("generateGranularReadTokensUseCase", () => {
         containerName: "content",
         hostName: "testaccount.blob.core.windows.net",
         isPrivate: true,
+        blobName: "file.jpg",
       });
 
-      vi.mocked(getBlobNameFromUrl).mockReturnValue("file.jpg");
-
-      vi.mocked(generateReadTokens).mockResolvedValue(
+      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file.jpg": "token123",
@@ -241,8 +242,8 @@ describe("generateGranularReadTokensUseCase", () => {
       const result = await generateGranularReadTokensUseCase([url1, url2, url3]);
 
       // Should only call once with unique blob name
-      expect(generateReadTokens).toHaveBeenCalledTimes(1);
-      expect(generateReadTokens).toHaveBeenCalledWith({
+      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(1);
+      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "content",
         resourceType: "file",
         resourceNames: ["file.jpg"],
@@ -267,11 +268,10 @@ describe("generateGranularReadTokensUseCase", () => {
         containerName: "content",
         hostName: "testaccount.blob.core.windows.net",
         isPrivate: true,
+        blobName: "image.jpg",
       });
 
-      vi.mocked(getBlobNameFromUrl).mockReturnValue("image.jpg");
-
-      vi.mocked(generateReadTokens).mockResolvedValue(
+      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "image.jpg": "sas-token-123",
@@ -299,11 +299,10 @@ describe("generateGranularReadTokensUseCase", () => {
         containerName: "content",
         hostName: "testaccount.blob.core.windows.net",
         isPrivate: true,
+        blobName: "folder/subfolder/file.pdf",
       });
 
-      vi.mocked(getBlobNameFromUrl).mockReturnValue("folder/subfolder/file.pdf");
-
-      vi.mocked(generateReadTokens).mockResolvedValue(
+      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "folder/subfolder/file.pdf": "nested-token",
@@ -328,12 +327,13 @@ describe("generateGranularReadTokensUseCase", () => {
       const userFilesUrl = "https://testaccount.blob.core.windows.net/user-files/file2.pdf";
 
       vi.mocked(resolveContainerFromUrl).mockImplementation((url) => {
-        if (url.includes("content")) {
+        if (url === contentUrl) {
           return {
             containerType: "CONTENT",
             containerName: "content",
             hostName: "testaccount.blob.core.windows.net",
             isPrivate: true,
+            blobName: "file1.jpg",
           };
         }
         return {
@@ -341,16 +341,12 @@ describe("generateGranularReadTokensUseCase", () => {
           containerName: "user-files",
           hostName: "testaccount.blob.core.windows.net",
           isPrivate: true,
+          blobName: "file2.pdf",
         };
       });
 
-      vi.mocked(getBlobNameFromUrl).mockImplementation((url) => {
-        if (url === contentUrl) return "file1.jpg";
-        return "file2.pdf";
-      });
-
       // First container fails, second succeeds
-      vi.mocked(generateReadTokens).mockImplementation(async (options) => {
+      vi.mocked(bulkGenerateReadTokens).mockImplementation(async (options) => {
         if (options.containerName === "content") {
           return Result.error("Failed to generate tokens");
         }
@@ -365,7 +361,7 @@ describe("generateGranularReadTokensUseCase", () => {
 
       const result = await generateGranularReadTokensUseCase([contentUrl, userFilesUrl]);
 
-      expect(generateReadTokens).toHaveBeenCalledTimes(2);
+      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(2);
       expect(Result.isSuccess(result)).toBe(true);
       if (Result.isSuccess(result)) {
         // Only user-files token should be present
@@ -380,20 +376,18 @@ describe("generateGranularReadTokensUseCase", () => {
       const url1 = "https://testaccount.blob.core.windows.net/content/file1.jpg";
       const url2 = "https://testaccount.blob.core.windows.net/content/file2.jpg";
 
-      vi.mocked(resolveContainerFromUrl).mockReturnValue({
-        containerType: "CONTENT",
-        containerName: "content",
-        hostName: "testaccount.blob.core.windows.net",
-        isPrivate: true,
-      });
-
-      vi.mocked(getBlobNameFromUrl).mockImplementation((url) => {
-        if (url === url1) return "file1.jpg";
-        return "file2.jpg";
+      vi.mocked(resolveContainerFromUrl).mockImplementation((url) => {
+        return {
+          containerType: "CONTENT",
+          containerName: "content",
+          hostName: "testaccount.blob.core.windows.net",
+          isPrivate: true,
+          blobName: url === url1 ? "file1.jpg" : "file2.jpg",
+        };
       });
 
       // Only file1.jpg gets a token, file2.jpg doesn't
-      vi.mocked(generateReadTokens).mockResolvedValue(
+      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file1.jpg": "token1",
@@ -427,14 +421,13 @@ describe("generateGranularReadTokensUseCase", () => {
             containerName: "content",
             hostName: "testaccount.blob.core.windows.net",
             isPrivate: true,
+            blobName: "file.jpg",
           };
         }
         return null;
       });
 
-      vi.mocked(getBlobNameFromUrl).mockReturnValue("file.jpg");
-
-      vi.mocked(generateReadTokens).mockResolvedValue(
+      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file.jpg": "token",
@@ -463,16 +456,16 @@ describe("generateGranularReadTokensUseCase", () => {
         `https://testaccount.blob.core.windows.net/content/file${i}.jpg`,
       );
 
-      vi.mocked(resolveContainerFromUrl).mockReturnValue({
-        containerType: "CONTENT",
-        containerName: "content",
-        hostName: "testaccount.blob.core.windows.net",
-        isPrivate: true,
-      });
-
-      vi.mocked(getBlobNameFromUrl).mockImplementation((url) => {
+      vi.mocked(resolveContainerFromUrl).mockImplementation((url) => {
         const match = url.match(/file(\d+)\.jpg/);
-        return match ? `file${match[1]}.jpg` : null;
+        if (!match) return null;
+        return {
+          containerType: "CONTENT",
+          containerName: "content",
+          hostName: "testaccount.blob.core.windows.net",
+          isPrivate: true,
+          blobName: `file${match[1]}.jpg`,
+        };
       });
 
       const readTokens: Record<string, string> = {};
@@ -483,7 +476,7 @@ describe("generateGranularReadTokensUseCase", () => {
         }
       });
 
-      vi.mocked(generateReadTokens).mockResolvedValue(
+      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens,
           expiresOn: new Date(),
@@ -494,8 +487,8 @@ describe("generateGranularReadTokensUseCase", () => {
       const result = await generateGranularReadTokensUseCase(urls);
 
       expect(Result.isSuccess(result)).toBe(true);
-      expect(generateReadTokens).toHaveBeenCalledTimes(1);
-      expect(generateReadTokens).toHaveBeenCalledWith({
+      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(1);
+      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "content",
         resourceType: "file",
         resourceNames: expect.arrayContaining([

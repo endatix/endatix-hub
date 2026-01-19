@@ -2,14 +2,14 @@ export {
   IMAGE_SERVICE_CONFIG, optimizeImageSize
 } from "./infrastructure/image-service";
 export {
-  createStorageConfigClient, getContainerNames, getStorageConfig, type AzureStorageConfig, type ContainerNames, type IStorageConfig
+  createStorageConfigClient, getContainerNames, getStorageConfig, type AzureStorageConfig, type IStorageConfig
 } from "./infrastructure/storage-config";
 export {
-  deleteBlob, generateReadTokens,
+  deleteBlob, bulkGenerateReadTokens as generateReadTokens,
   generateUploadUrl, resetBlobServiceClient, uploadToStorage, type FileOptions
 } from "./infrastructure/storage-service";
-export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export * from "./types";
+export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export { uploadContentFileAction } from "./use-cases/upload-content-files/upload-content-file.action";
 export { uploadContentFileUseCase } from "./use-cases/upload-content-files/upload-content-file.use-case";
 export { uploadUserFilesUseCase } from "./use-cases/upload-user-files/upload-user-files.use-case";
