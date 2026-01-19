@@ -24,23 +24,33 @@ Quick reference for organizing features using vertical slice architecture.
 
 ## Feature Structure
 
-```
+Vertical Slice Architecture: organize by business feature, then by use-case.
+
+```text
 features/
 ├── {feature-name}/
-│   ├── index.ts                              # Public API exports
+│   ├── client.ts                             # Client-side only exports
+│   ├── server.ts                             # Server-side only exports
+│   ├── index.ts                              # Shared exports (both client and server)
 │   ├── types.ts                              # Feature-specific types
-│   ├── __tests__/                            # Feature-level tests
 │   ├── use-cases/                            # Business logic by use case
-│   │   ├── {verb-noun}/                      # e.g., create-form, update-user
+│   │   ├── {verb-noun}/                      # e.g., create-form
 │   │   │   ├── {verb-noun}.use-case.ts       # Pure business logic
-│   │   │   ├── {verb-noun}.action.ts         # Next.js server action
-│   │   │   ├── {verb-noun}.hook.ts           # Client hook (optional)
+│   │   │   ├── {verb-noun}.action.ts         # Use case specific server action
+│   │   │   ├── use-{noun}.hook.ts            # Use-case specific hook
 │   │   │   └── ui/                           # Use-case specific components
-│   │   └── ...
-│   ├── infrastructure/                       # External adapters, providers
-│   ├── shared/                               # Cross use-case items
-│   └── ui/                                   # Feature-wide components
+│   ├── infrastructure/                       # External adapters, config
+│   ├── ui/                                   # Cross-use-case components & context
+│   └── __tests__/                            # Feature-level tests
 ```
+
+### Entry Point Pattern (Idiomatic Next.js)
+
+To prevent server-side dependencies (like database clients or SDKs) from leaking into the client bundle, use explicit entry points:
+
+1.  **client.ts**: Exports for Client Components (hooks, providers, safe types). Mark with `"use client"`.
+2.  **server.ts**: Exports for Server Components and Server Actions. Mark with `"use server"`.
+3.  **index.ts**: Shared exports (primitive types, basic utilities) that are safe for both environments.
 
 ## Why Vertical Slice Architecture?
 
@@ -96,6 +106,68 @@ export async function createFormAction(
 - External adapters (auth providers, storage, APIs)
 - Framework-specific integrations
 - Configuration and setup
+
+### Data Fetching and State Management
+
+#### Data Fetching (Server to Client)
+For optimal performance and UX, prefer **streaming promises** from Server Components to Client Components. Use the React `use()` hook to unwrap these promises. This prevents blocking the initial render while data is being fetched.
+
+**Recommended Pattern:**
+1.  **Server Page/Component**: Initiate the fetch and pass the *promise* (not the awaited result).
+2.  **Context Provider (Client)**: Accept the promise as a prop and use `use(promise)` to resolve it.
+
+```tsx
+// features/my-feature/ui/my-feature-provider.tsx (Client Component)
+'use client';
+import { createContext, use, useMemo } from 'react';
+
+export function MyFeatureProvider({ children, dataPromise }) {
+  const data = use(dataPromise); // Resolves via React Suspense
+  const value = useMemo(() => ({ data }), [data]);
+  return <MyContext value={value}>{children}</MyContext>;
+}
+
+// app/(main)/my-feature/page.tsx (Server Component)
+export default async function Page() {
+  const dataPromise = getMyData(); // Start fetching, don't await
+  return (
+    <MyFeatureProvider dataPromise={dataPromise}>
+      <MyFeatureComponent />
+    </MyFeatureProvider>
+  );
+}
+```
+
+#### State Management & Interactions
+Combine `use()` with `useReducer` and `useOptimistic` for features with complex interactions (like forms or AI assistants).
+
+```tsx
+// Example in FormAssistantProvider
+export function FeatureProvider({ children, initialDataPromise }) {
+  const initialData = initialDataPromise ? use(initialDataPromise) : defaultState;
+  const [state, dispatch] = useReducer(reducer, initialData);
+  const [optimisticState, setOptimisticState] = useOptimistic(state, (s, u) => ({ ...s, ...u }));
+
+  const handleAction = async (payload) => {
+    setOptimisticState({ isPending: true }); // Immediate UI feedback
+    const result = await myServerAction(payload); // Next.js Server Action
+    dispatch({ type: 'UPDATE', payload: result });
+  };
+  
+  const value = useMemo(() => ({ state: optimisticState, handleAction }), [optimisticState]);
+  return <MyContext value={value}>{children}</MyContext>;
+}
+```
+
+#### Best Practices
+- **Thin Providers**: Keep context providers focused on data sharing and state management.
+- **Custom Hooks**: Expose context via hooks (e.g., `useMyFeature`) to provide a clean API.
+- **Reference Implementations**:
+  - `storage-config.context.tsx`: Clean configuration streaming.
+  - `form-assistant.context.tsx`: Complex state with optimistic updates and reducer.
+
+More on this in the [Next.js Data Fetching Documentation](https://nextjs.org/docs/app/getting-started/fetching-data#streaming-data-with-the-use-hook).
+
 
 ## Naming Conventions
 
