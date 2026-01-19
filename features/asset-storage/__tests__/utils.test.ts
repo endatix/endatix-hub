@@ -5,7 +5,7 @@ import {
   isUrlFromContainer,
   getBlobNameFromUrl,
   enhanceUrlWithToken,
-  escapeRegexSpecialChars,
+  escapeRegex,
   extractStorageUrls,
 } from "../utils";
 import { Result, ErrorType } from "@/lib/result";
@@ -474,100 +474,100 @@ describe("enhanceUrlWithToken", () => {
   });
 });
 
-describe("escapeRegexSpecialChars", () => {
+describe("escapeRegex", () => {
   it("should escape backslash", () => {
     const input = "test\\path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\\\path");
   });
 
   it("should escape caret", () => {
     const input = "test^path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\^path");
   });
 
   it("should escape dollar sign", () => {
     const input = "test$path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\$path");
   });
 
   it("should escape dot", () => {
     const input = "test.path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\.path");
   });
 
   it("should escape pipe", () => {
     const input = "test|path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\|path");
   });
 
   it("should escape question mark", () => {
     const input = "test?path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\?path");
   });
 
   it("should escape asterisk", () => {
     const input = "test*path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\*path");
   });
 
   it("should escape plus sign", () => {
     const input = "test+path";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\+path");
   });
 
   it("should escape parentheses", () => {
     const input = "test(path)";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\(path\\)");
   });
 
   it("should escape brackets", () => {
     const input = "test[path]";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\[path\\]");
   });
 
   it("should escape braces", () => {
     const input = "test{path}";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\{path\\}");
   });
 
   it("should escape multiple special characters", () => {
     const input = "test.path*with+special(chars)";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("test\\.path\\*with\\+special\\(chars\\)");
   });
 
   it("should not escape regular characters", () => {
     const input = "testaccount.blob.core.windows.net";
-    const result = escapeRegexSpecialChars(input);
+    const result = escapeRegex(input);
 
     expect(result).toBe("testaccount\\.blob\\.core\\.windows\\.net");
   });
 
   it("should handle empty string", () => {
-    const result = escapeRegexSpecialChars("");
+    const result = escapeRegex("");
     expect(result).toBe("");
   });
 });
