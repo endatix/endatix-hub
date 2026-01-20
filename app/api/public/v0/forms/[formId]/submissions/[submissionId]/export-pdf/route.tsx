@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { preparePdfModel } from "@/features/pdf-export/server";
 import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
-import { pdf } from "@react-pdf/renderer";
-import { CustomQuestion } from "@/services/api";
-import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { parseBoolean } from "@/lib/utils/type-parsers";
-import { getSubmissionLocale } from "@/features/submissions/submission-localization";
+import { CustomQuestion } from "@/services/api";
+import { pdf } from "@react-pdf/renderer";
+import { NextRequest, NextResponse } from "next/server";
 
 type Params = {
   params: Promise<{
@@ -48,15 +48,16 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const submission = submissionResult.value;
 
-  const pdfLocale = useDefaultLocale
-    ? undefined
-    : getSubmissionLocale(submission);
+  const surveyModel = await preparePdfModel({
+    submission,
+    customQuestionsJsonData,
+    useDefaultLocale,
+  });
 
   const pdfBlob = await pdf(
     <SubmissionDetailsPdf
       submission={submission}
-      customQuestions={customQuestionsJsonData}
-      locale={pdfLocale}
+      surveyModel={surveyModel}
     />,
   ).toBlob();
 

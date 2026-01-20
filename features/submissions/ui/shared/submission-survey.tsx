@@ -1,7 +1,7 @@
 "use client";
 
+import { useSurveyStorage } from '@/features/asset-storage/client';
 import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
-import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -37,15 +37,14 @@ function SubmissionSurvey({
   customQuestions,
   readOnly = false,
   onChange,
-}: SubmissionSurveyProps) {
+}: Readonly<SubmissionSurveyProps>) {
   const { model, isLoading } = useSurveyModel(submission, customQuestions, readOnly);
   const { setFromMetadata } = useDynamicVariables(model);
   useRichText(model);
-
-  useBlobStorage({
+  const { registerStorageHandlers, isStorageReady } = useSurveyStorage({
+    model: model,
     formId: submission.formId,
-    submissionId: submission.id,
-    surveyModel: model,
+    submissionId: submission.id
   });
 
   useEffect(() => {
@@ -53,6 +52,7 @@ function SubmissionSurvey({
       return;
     }
 
+    const unregisterStorage = registerStorageHandlers(model);
     setFromMetadata(submission.metadata);
 
     // Only register onChange handlers if NOT readOnly AND onChange is provided
@@ -63,14 +63,15 @@ function SubmissionSurvey({
       model.onMatrixCellValueChanged.add(onChange);
 
       return () => {
+        unregisterStorage();
         model.onValueChanged.remove(onChange);
         model.onDynamicPanelValueChanged.remove(onChange);
         model.onMatrixCellValueChanged.remove(onChange);
       };
     }
-  }, [model, onChange, setFromMetadata, submission.metadata, readOnly]);
+  }, [model, onChange, setFromMetadata, submission.metadata, readOnly, registerStorageHandlers]);
 
-  if (isLoading) {
+  if (isLoading || !isStorageReady) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-4">

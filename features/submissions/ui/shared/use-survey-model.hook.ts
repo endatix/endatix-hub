@@ -1,15 +1,15 @@
+import { toast } from "@/components/ui/toast";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { Result } from "@/lib/result";
 import { Submission } from "@/lib/endatix-api";
+import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import { Result } from "@/lib/result";
 import { useEffect, useRef, useState } from "react";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Model } from "survey-react-ui";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
-import { toast } from "@/components/ui/toast";
 
 export function useSurveyModel(
   submission: Submission,
@@ -90,7 +90,7 @@ export function useSurveyModel(
     };
 
     initializeModel();
-  }, [submission, customQuestions]);
+  }, [submission, customQuestions, readOnly]);
 
   return { model: modelRef.current, isLoading };
 }

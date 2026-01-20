@@ -3,6 +3,7 @@
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
+import { useCreatorStorage } from '@/features/asset-storage/client';
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -33,8 +34,8 @@ import {
   ICreatorOptions,
   registerSurveyTheme,
   SurveyCreatorModel,
+  SurveyInstanceCreatedEvent,
   TabJsonEditorTextareaPlugin,
-  UploadFileEvent,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
@@ -136,6 +137,12 @@ function FormEditor({
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const { registerStorageHandlers } = useCreatorStorage({
+    itemId: formId,
+    itemType: "form",
+  });
+
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
@@ -144,32 +151,6 @@ function FormEditor({
   }, [onUnsavedChanges]);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
-
-  const handleUploadFile = useCallback(
-    async (_: SurveyCreatorModel, options: UploadFileEvent) => {
-      const formData = new FormData();
-      options.files.forEach(function (file: File) {
-        formData.append("file", file);
-      });
-
-      fetch("/api/hub/v0/storage/upload", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "edx-form-id": formId,
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          options.callback("success", data.url);
-        })
-        .catch((error) => {
-          console.error("Error: ", error);
-          options.callback("error", undefined);
-        });
-    },
-    [formId],
-  );
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -192,11 +173,11 @@ function FormEditor({
           ...(element.getType() === "panel"
             ? { elementsJSON: json.elements }
             : {
-                questionJSON: {
-                  ...json,
-                  type: element.getType(),
-                },
-              }),
+              questionJSON: {
+                ...json,
+                type: element.getType(),
+              },
+            }),
         }),
       };
 
@@ -377,11 +358,9 @@ function FormEditor({
 
         const surveyDefinition = JSON.parse(
           `{"pages":[{"name":"page1","elements":[
-          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${
-            element.name
+          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${element.name
           }&quot;</b> as a custom question.</p>"},
-          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${
-            isDefaultName ? "" : element.name
+          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${isDefaultName ? "" : element.name
           }","defaultValue":"${isDefaultName ? "" : element.name}"},
           {"type":"text","name":"question_title","title":"Enter the custom question title","requiredIf":"true","requiredErrorText":"Question title is required","placeholder":"${defaultTitle}","defaultValue":"${defaultTitle}"}
         ]}],"showNavigationButtons":false,"questionErrorLocation":"bottom","requiredText":"*"}`,
@@ -464,11 +443,8 @@ function FormEditor({
           try {
             await questionLoaderModule.loadQuestion(questionName);
             console.debug(`✅ Loaded custom question: ${questionName}`);
-          } catch (error) {
-            console.warn(
-              `⚠️ Failed to load custom question: ${questionName}`,
-              error,
-            );
+          } catch {
+            console.warn(`⚠️ Failed to load custom question: ${questionName}`);
           }
         }
 
@@ -478,19 +454,23 @@ function FormEditor({
         };
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
-        newCreator.onUploadFile.add(handleUploadFile);
-        newCreator.onSurveyInstanceCreated.add((_, options) => {
-          if (options.area === "property-grid") {
-            const downloadSettingsCategory =
-              options.survey.getPageByName("downloadSettings");
-            if (downloadSettingsCategory) {
-              (
-                downloadSettingsCategory as unknown as { iconName: string }
-              ).iconName = "icon-download-settings";
-              downloadSettingsCategory.title = "Download Settings";
+
+        const unregisterStorage = registerStorageHandlers(newCreator);
+
+        newCreator.onSurveyInstanceCreated.add(
+          (_, options: SurveyInstanceCreatedEvent) => {
+            if (options.area === "property-grid") {
+              const downloadSettingsCategory =
+                options.survey.getPageByName("downloadSettings");
+              if (downloadSettingsCategory) {
+                (
+                  downloadSettingsCategory as unknown as { iconName: string }
+                ).iconName = "icon-download-settings";
+                downloadSettingsCategory.title = "Download Settings";
+              }
             }
-          }
-        });
+          },
+        );
 
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
@@ -498,6 +478,10 @@ function FormEditor({
 
         setCreator(newCreator);
         isCreatorInitializedRef.current = true;
+
+        return () => {
+          unregisterStorage();
+        };
       } catch (error) {
         console.error("Error loading custom questions:", error);
       } finally {
@@ -509,10 +493,10 @@ function FormEditor({
   }, [
     options,
     slkVal,
-    handleUploadFile,
     creator,
     initialPropertyGridVisible,
     formJson,
+    registerStorageHandlers,
   ]);
 
   useEffect(() => {

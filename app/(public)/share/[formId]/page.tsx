@@ -1,20 +1,22 @@
 "use server";
 
-import "@/components/error-handling/not-found/not-found-styles-standalone.css";
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
+import "@/components/error-handling/not-found/not-found-styles-standalone.css";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
-import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
+import { ReCaptchaStyleFix } from '@/features/recaptcha/ui/recaptcha-style-fix';
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
+import { Suspense } from "react";
 
 type ShareSurveyPage = {
   params: Promise<{ formId: string }>;
@@ -132,15 +134,19 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
           <ReCaptchaStyleFix />
         </>
       )}
-      <SurveyJsWrapper
-        formId={formId}
-        definition={activeDefinition.jsonData}
-        submission={submission}
-        theme={activeDefinition.themeModel}
-        customQuestions={activeDefinition.customQuestions}
-        requiresReCaptcha={activeDefinition.requiresReCaptcha}
-        urlToken={urlToken}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <AssetStorageProvider>
+          <SurveyJsWrapper
+            formId={formId}
+            definition={activeDefinition.jsonData}
+            submission={submission}
+            theme={activeDefinition.themeModel}
+            customQuestions={activeDefinition.customQuestions}
+            requiresReCaptcha={activeDefinition.requiresReCaptcha}
+            urlToken={urlToken}
+          />
+        </AssetStorageProvider>
+      </Suspense>
     </div>
   );
 }

@@ -6,6 +6,9 @@ import Link from "next/link";
 import { FormTemplate } from "@/types";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { Suspense } from "react";
+import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 
 type Params = {
   params: Promise<{ templateId: string }>;
@@ -56,8 +59,12 @@ export default async function FormTemplateEditPage({ params }: Params) {
   };
 
   return (
-    <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-      <FormTemplateEditorContainer {...props} />
-    </div>
+    <Suspense fallback={<FormEditorLoader />}>
+      <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
+        <AssetStorageProvider>
+          <FormTemplateEditorContainer {...props} />
+        </AssetStorageProvider>
+      </div>
+    </Suspense>
   );
 }

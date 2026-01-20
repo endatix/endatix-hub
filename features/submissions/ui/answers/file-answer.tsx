@@ -1,7 +1,7 @@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { QuestionFileModel } from "survey-core";
-import { File } from "@/lib/questions/file/file-type";
+import { IFile } from "@/lib/questions/file/file-type";
 import { FileViewer } from "./file-viewer";
 import { ImageOff, MessageSquareText } from "lucide-react";
 import {
@@ -15,7 +15,7 @@ interface FileAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
 }
 
 export function FileAnswer({ question, className, ...props }: FileAnswerProps) {
-  const files: File[] = Array.isArray(question?.value) ? question?.value : [];
+  const files: IFile[] = Array.isArray(question?.value) ? question?.value : [];
 
   if (files.length === 0) {
     return (

@@ -5,8 +5,8 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import { Submission } from "@/lib/endatix-api";
-import { parseTokenExpiry } from "@/lib/utils";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
+import { parseTokenExpiry } from "@/lib/utils";
 import { ActiveDefinition } from "@/types";
 import { Info } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -42,7 +42,7 @@ interface EditSubmissionProps {
   token?: string; // Optional: for public mode
 }
 
-function EditSubmission({ submission, formId, token }: EditSubmissionProps) {
+function EditSubmission({ submission, formId, token }: Readonly<EditSubmissionProps>) {
   const isPublicMode = token !== undefined;
   const [submissionData, setSubmissionData] = useState<Record<string, unknown>>(() => {
     try {

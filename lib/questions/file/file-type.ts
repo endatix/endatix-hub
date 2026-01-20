@@ -1,7 +1,7 @@
 /**
- * Represents a file with its content and metadata
+ * Represents a SurveyJS file with its content and metadata
  */
-export interface File {
+export interface IFile {
   content: string; // Base64 or URL content of the file
   name?: string; // Optional filename
   type?: string; // Optional MIME type
@@ -22,7 +22,7 @@ export enum FileType {
  * @param file - The file object to analyze
  * @returns The detected FileType enum value
  */
-export function getFileType(file: File): FileType {
+export function getFileType(file: IFile): FileType {
   // Return unknown if file or required properties are missing
   if (!file || !file.content || !file.type) {
     return FileType.Unknown;

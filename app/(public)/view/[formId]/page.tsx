@@ -1,5 +1,6 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AssetStorageProvider } from '@/features/asset-storage/server';
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import ViewSubmission from "@/features/submissions/ui/view/view-submission";
 import { Result } from "@/lib/result";
@@ -120,7 +121,9 @@ export default async function PublicViewSubmissionPage({
 
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <ViewSubmission submission={submission} />
+      <AssetStorageProvider>
+        <ViewSubmission submission={submission} />
+      </AssetStorageProvider>
     </Suspense>
   );
 }

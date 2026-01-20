@@ -14,6 +14,7 @@ import { auth } from "@/auth";
 import { trackException } from "@/features/analytics/posthog/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -42,7 +43,7 @@ export default async function FormDesignerPage({ params }: Params) {
     await trackException(error, {
       operation: "load_form",
       form_id: formId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     formJson = null;
@@ -74,12 +75,14 @@ export default async function FormDesignerPage({ params }: Params) {
   return (
     <Suspense fallback={<FormEditorLoader />}>
       <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
-        <FormAssistantProvider
-          isAssistantEnabled={aiFeaturesEnabled}
-          getConversationPromise={chatContextPromise}
-        >
-          <FormDesignerWrapper {...props} />
-        </FormAssistantProvider>
+        <AssetStorageProvider>
+          <FormAssistantProvider
+            isAssistantEnabled={aiFeaturesEnabled}
+            getConversationPromise={chatContextPromise}
+          >
+            <FormDesignerWrapper {...props} />
+          </FormAssistantProvider>
+        </AssetStorageProvider>
       </div>
     </Suspense>
   );

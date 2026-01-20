@@ -1,10 +1,13 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
-import { validateEndatixId } from "@/lib/utils/type-validators";
+import {
+  validateEndatixId,
+} from "@/lib/utils/type-validators";
 import { getActiveFormDefinition } from "@/services/api";
 import { Suspense } from "react";
 
@@ -120,11 +123,13 @@ export default async function PublicEditSubmissionPage({
 
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <EditSubmission
-        submission={submission}
-        formId={validateFormIdResult.value}
-        token={token}
-      />
+      <AssetStorageProvider>
+        <EditSubmission
+          submission={submission}
+          formId={validateFormIdResult.value}
+          token={token}
+        />
+      </AssetStorageProvider>
     </Suspense>
   );
 }

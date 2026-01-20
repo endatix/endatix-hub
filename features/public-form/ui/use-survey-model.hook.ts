@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { Model } from "survey-core";
+import {
+  Model,
+  SurveyModel,
+} from "survey-core";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
@@ -47,8 +50,10 @@ export function useSurveyModel(
   }, [customQuestions]);
 
   useEffect(() => {
+    let model: SurveyModel | undefined;
     if (definition && !isLoadingQuestions) {
-      setSurveyModel(new Model(definition));
+      model = new SurveyModel(definition);
+      setSurveyModel(model);
     } else if (!definition) {
       setSurveyModel(null);
     }

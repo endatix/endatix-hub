@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { PdfFileViewer } from "../pdf-file-viewer";
 import { QuestionFileModel } from "survey-core";
-import { File } from "@/lib/questions/file/file-type";
+import { IFile } from "@/lib/questions/file/file-type";
 interface FileAnswerProps {
   question: QuestionFileModel;
 }
@@ -10,7 +10,7 @@ interface FileAnswerProps {
 export function PdfFileAnswer({
   question,
 }: FileAnswerProps): React.ReactElement {
-  const files: File[] = Array.isArray(question?.value) ? question?.value : [];
+  const files: IFile[] = Array.isArray(question?.value) ? question?.value : [];
 
   return (
     <View style={styles.container} wrap={false}>

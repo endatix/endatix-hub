@@ -8,6 +8,7 @@ import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 type Params = {
   params: Promise<{
@@ -51,7 +52,9 @@ export default async function EditSubmissionPage({ params }: Params) {
 
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
-      <EditSubmission submission={submission} />
+      <AssetStorageProvider>
+        <EditSubmission submission={submission} />
+      </AssetStorageProvider>
     </Suspense>
   );
 }

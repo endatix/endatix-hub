@@ -1,11 +1,11 @@
-import { NextRequest } from "next/server";
+import { preparePdfModel } from "@/features/pdf-export/server";
 import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
-import { getActiveFormDefinition } from "@/services/api";
-import { pdf } from "@react-pdf/renderer";
-import { parseBoolean } from "@/lib/utils/type-parsers";
-import { getSubmissionLocale } from "@/features/submissions/submission-localization";
-import { EndatixApi, ApiResult } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { apiResponses } from "@/lib/utils/route-handlers";
+import { parseBoolean } from "@/lib/utils/type-parsers";
+import { CustomQuestion, getActiveFormDefinition } from "@/services/api";
+import { pdf } from "@react-pdf/renderer";
+import { NextRequest } from "next/server";
 
 type Params = {
   params: Promise<{
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const submission = submissionResult.data;
 
-  let customQuestions: string[] = [];
+  let customQuestionsJsonData: string[] = [];
   try {
     const activeDefinition = await getActiveFormDefinition(
       submission.formId,
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     );
 
     submission.formDefinition = activeDefinition;
-    customQuestions = activeDefinition.customQuestions || [];
+    customQuestionsJsonData = (activeDefinition.customQuestions || []).map((q: string | CustomQuestion) => typeof q === "string" ? q : q.jsonData);
   } catch (error) {
     console.error("Failed to fetch form definition", error);
     return apiResponses.notFound({
@@ -61,15 +61,16 @@ export async function GET(req: NextRequest, { params }: Params) {
     });
   }
 
-  const pdfLocale = useDefaultLocale
-    ? undefined
-    : getSubmissionLocale(submission);
+  const surveyModel = await preparePdfModel({
+    submission,
+    customQuestionsJsonData,
+    useDefaultLocale,
+  });
 
   const pdfBlob = await pdf(
     <SubmissionDetailsPdf
       submission={submission}
-      customQuestions={customQuestions}
-      locale={pdfLocale}
+      surveyModel={surveyModel}
     />,
   ).toBlob();
 

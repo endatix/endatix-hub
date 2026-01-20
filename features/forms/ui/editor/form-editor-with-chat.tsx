@@ -169,9 +169,8 @@ export default function FormEditorWithChat({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`${
-                          isMobile ? "hidden" : "flex"
-                        } items-center justify-center -mt-2`}
+                        className={`${isMobile ? "hidden" : "flex"
+                          } items-center justify-center -mt-2`}
                         onClick={toggleCollapse}
                       >
                         <ChevronLeft className="h-10 w-10 stroke-[2.5]" />

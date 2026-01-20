@@ -80,6 +80,29 @@ vi.mock("@/features/recaptcha/ui/recaptcha-style-fix", () => ({
   ReCaptchaStyleFix: () => <div data-testid="recaptcha-style-fix" />,
 }));
 
+// Mock storage config
+vi.mock("@/features/asset-storage/server", () => ({
+  AssetStorageProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="asset-storage-provider">{children}</div>
+  ),
+  createStorageConfigClient: vi.fn(() => ({
+    config: {
+      containerNames: {
+        USER_FILES: "user-files",
+        CONTENT: "content",
+      },
+    },
+  })),
+  generateReadTokensAction: vi.fn(() => Promise.resolve(Result.success({}))),
+}));
+
+// Mock storage client components
+vi.mock("@/features/asset-storage/client", () => ({
+  AssetStorageClientProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="asset-storage-client-provider">{children}</div>
+  ),
+}));
+
 // Mock SurveyJsWrapper
 vi.mock("@/features/public-form/ui/survey-js-wrapper", () => ({
   default: ({
