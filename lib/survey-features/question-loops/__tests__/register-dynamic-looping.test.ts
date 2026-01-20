@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SurveyModel, ValueChangedEvent } from "survey-core";
+import { QuestionPanelDynamicModel, SurveyModel, ValueChangedEvent } from "survey-core";
 import { registerDynamicLooping } from "../register-dynamic-looping";
+
+interface PanelItem {
+  item: string;
+  itemId: string;
+}
 
 describe("registerDynamicLooping", () => {
   let survey: SurveyModel;
@@ -135,7 +140,8 @@ describe("registerDynamicLooping", () => {
       const panel = survey.addNewPage().addNewQuestion("paneldynamic", "panel1");
       panel.loopSource = ["q1"];
       // Set choicePattern using setProperty to avoid triggering onSetValue
-      (panel as any).setPropertyValue("choicePattern", "Selected Only");
+      // Use setPropertyValue to avoid triggering onSetValue handler
+      (panel as QuestionPanelDynamicModel & { setPropertyValue: (name: string, value: unknown) => void }).setPropertyValue("choicePattern", "Selected Only");
       
       const checkbox = survey.addNewPage().addNewQuestion("checkbox", "q1");
       checkbox.choices = [
@@ -145,12 +151,12 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
-      expect(panelValue.map((v: any) => v.itemId)).toContain("1");
-      expect(panelValue.map((v: any) => v.itemId)).toContain("2");
-      expect(panelValue.map((v: any) => v.itemId)).not.toContain("3");
+      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("1");
+      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("2");
+      expect(panelValue?.map((v: PanelItem) => v.itemId)).not.toContain("3");
     });
 
     it("should filter to unselected choices when choicePattern is 'Unselected Only'", () => {
@@ -159,7 +165,8 @@ describe("registerDynamicLooping", () => {
       const panel = survey.addNewPage().addNewQuestion("paneldynamic", "panel1");
       panel.loopSource = ["q1"];
       // Set choicePattern using setProperty to avoid triggering onSetValue
-      (panel as any).setPropertyValue("choicePattern", "Unselected Only");
+      // Use setPropertyValue to avoid triggering onSetValue handler
+      (panel as QuestionPanelDynamicModel & { setPropertyValue: (name: string, value: unknown) => void }).setPropertyValue("choicePattern", "Unselected Only");
       
       const checkbox = survey.addNewPage().addNewQuestion("checkbox", "q1");
       checkbox.choices = [
@@ -169,12 +176,12 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
-      expect(panelValue.map((v: any) => v.itemId)).toContain("2");
-      expect(panelValue.map((v: any) => v.itemId)).toContain("3");
-      expect(panelValue.map((v: any) => v.itemId)).not.toContain("1");
+      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("2");
+      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("3");
+      expect(panelValue?.map((v: PanelItem) => v.itemId)).not.toContain("1");
     });
 
     it("should include all choices when choicePattern is not set or invalid", () => {
@@ -184,7 +191,8 @@ describe("registerDynamicLooping", () => {
       panel.loopSource = ["q1"];
       // Set to an invalid value (not "Selected Only" or "Unselected Only")
       // This should fall through to the else case which includes all choices
-      (panel as any).setPropertyValue("choicePattern", "Invalid Pattern");
+      // Use setPropertyValue to avoid triggering onSetValue handler
+      (panel as QuestionPanelDynamicModel & { setPropertyValue: (name: string, value: unknown) => void }).setPropertyValue("choicePattern", "Invalid Pattern");
       
       const checkbox = survey.addNewPage().addNewQuestion("checkbox", "q1");
       checkbox.choices = [
@@ -193,7 +201,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       // When pattern is invalid, all choices should be included
       expect(panelValue.length).toBe(2);
@@ -204,7 +212,8 @@ describe("registerDynamicLooping", () => {
       
       const panel = survey.addNewPage().addNewQuestion("paneldynamic", "panel1");
       panel.loopSource = ["q1"];
-      (panel as any).setPropertyValue("choicePattern", "Selected Only");
+      // Use setPropertyValue to avoid triggering onSetValue handler
+      (panel as QuestionPanelDynamicModel & { setPropertyValue: (name: string, value: unknown) => void }).setPropertyValue("choicePattern", "Selected Only");
       
       const radiogroup = survey.addNewPage().addNewQuestion("radiogroup", "q1");
       radiogroup.choices = [
@@ -213,7 +222,7 @@ describe("registerDynamicLooping", () => {
       ];
       radiogroup.value = "1"; // Single value, not array
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(1);
       expect(panelValue[0].itemId).toBe("1");
@@ -241,7 +250,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox2.value = ["3", "4"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(4);
     });
@@ -266,8 +275,8 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox2.value = ["shared", "unique2"];
       
-      const panelValue = panel.value as any[];
-      const itemIds = panelValue.map((v: any) => v.itemId);
+      const panelValue = panel.value as PanelItem[] | undefined;
+      const itemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
       expect(itemIds.filter((id: string) => id === "shared").length).toBe(1);
       expect(itemIds).toContain("shared");
       expect(itemIds).toContain("unique1");
@@ -285,7 +294,7 @@ describe("registerDynamicLooping", () => {
       checkbox.value = ["1"];
       
       // Should not throw and should process existing question
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(1);
     });
@@ -308,9 +317,9 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2", "3", "4"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
-      const itemIds = panelValue.map((v: any) => v.itemId);
+      const itemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
       
       // Priority items should come first
       expect(itemIds[0]).toBe("2");
@@ -334,7 +343,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
     });
@@ -358,14 +367,14 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2", "3", "4"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       
       // Priority item should be first
       expect(panelValue[0].itemId).toBe("1");
       
       // Other items should be present but order may vary
-      const otherItemIds = panelValue.slice(1).map((v: any) => v.itemId);
+      const otherItemIds = panelValue?.slice(1).map((v: PanelItem) => v.itemId) ?? [];
       expect(otherItemIds).toContain("2");
       expect(otherItemIds).toContain("3");
       expect(otherItemIds).toContain("4");
@@ -386,7 +395,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2", "3"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(3);
     });
@@ -409,7 +418,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2", "3", "4"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
     });
@@ -431,10 +440,10 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2", "3", "4"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
-      const itemIds = panelValue.map((v: any) => v.itemId);
+      const itemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
       // Priority items should be included
       expect(itemIds).toContain("3");
       expect(itemIds).toContain("4");
@@ -455,7 +464,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1", "2", "3"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(3);
     });
@@ -474,7 +483,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(1);
       expect(panelValue[0]).toHaveProperty("item");
@@ -495,7 +504,7 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1"];
       
-      const panelValue = panel.value as any[];
+      const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue[0].item).toBe("1");
       expect(panelValue[0].itemId).toBe("1");
@@ -532,7 +541,8 @@ describe("registerDynamicLooping", () => {
       const panel = survey.addNewPage().addNewQuestion("paneldynamic", "panel1");
       panel.loopSource = ["q1"];
       // Set choicePattern using setProperty to avoid infinite loop
-      (panel as any).setPropertyValue("choicePattern", "Selected Only");
+      // Use setPropertyValue to avoid triggering onSetValue handler
+      (panel as QuestionPanelDynamicModel & { setPropertyValue: (name: string, value: unknown) => void }).setPropertyValue("choicePattern", "Selected Only");
       
       const checkbox = survey.addNewPage().addNewQuestion("checkbox", "q1");
       checkbox.choices = [
@@ -541,13 +551,13 @@ describe("registerDynamicLooping", () => {
       ];
       checkbox.value = ["1"];
       
-      const firstValue = panel.value as any[];
+      const firstValue = panel.value as PanelItem[] | undefined;
       expect(firstValue.length).toBe(1);
       
       // Change source value
       checkbox.value = ["1", "2"];
       
-      const secondValue = panel.value as any[];
+      const secondValue = panel.value as PanelItem[] | undefined;
       expect(secondValue.length).toBe(2);
     });
   });
