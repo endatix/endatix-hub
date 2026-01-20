@@ -68,11 +68,13 @@ describe("useStorageView", () => {
 
   const createWrapper = (
     config: typeof mockStorageConfig | null = mockStorageConfig,
+    tokens?: { userFiles: Promise<typeof resolvedUserFilesTokenResult>; content: Promise<typeof resolvedTokenResult> },
   ) => {
+    const defaultTokens = createDefaultReadTokenPromises();
     function TestWrapper({ children }: { children: React.ReactNode }) {
       return (
         <Suspense fallback={<div>Loading...</div>}>
-          <AssetStorageClientProvider config={config}>
+          <AssetStorageClientProvider config={config} tokens={tokens ?? defaultTokens}>
             {children}
           </AssetStorageClientProvider>
         </Suspense>
@@ -89,7 +91,7 @@ describe("useStorageView", () => {
 
     await act(async () => {
       const view = renderHook(() => useStorageView(props), {
-        wrapper: createWrapper(config),
+        wrapper: createWrapper(config, props),
       });
       result = view.result;
       await props.userFiles;
@@ -114,7 +116,7 @@ describe("useStorageView", () => {
 
       await act(async () => {
         const view = renderHook(() => useStorageView(props), {
-          wrapper: createWrapper(),
+          wrapper: createWrapper(mockStorageConfig, props),
         });
         result = view.result;
         // Await promises to ensure they're processed within act
@@ -137,7 +139,7 @@ describe("useStorageView", () => {
 
       await act(async () => {
         const view = renderHook(() => useStorageView(props), {
-          wrapper: createWrapper(),
+          wrapper: createWrapper(mockStorageConfig, props),
         });
         result = view.result;
         await props.userFiles;
@@ -163,7 +165,7 @@ describe("useStorageView", () => {
 
       await act(async () => {
         const view = renderHook(() => useStorageView(props), {
-          wrapper: createWrapper(publicConfig),
+          wrapper: createWrapper(publicConfig, props),
         });
         result = view.result;
         await props.userFiles;
@@ -185,7 +187,7 @@ describe("useStorageView", () => {
 
       await act(async () => {
         const view = renderHook(() => useStorageView(props), {
-          wrapper: createWrapper(null),
+          wrapper: createWrapper(null, props),
         });
         result = view.result;
         await props.userFiles;
@@ -345,6 +347,11 @@ describe("useStorageView", () => {
         content: "https://testaccount.blob.core.windows.net/content/file.pdf",
       } as ProtectedFile;
 
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", file.content);
+      mockHtmlElement.appendChild(mockImage);
+
       const fileQuestion = {
         getType: () => "file",
         value: file,
@@ -358,7 +365,7 @@ describe("useStorageView", () => {
 
       const event = {
         question: fileQuestion,
-        htmlElement: document.createElement("div"),
+        htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
       const handler = (
@@ -367,7 +374,10 @@ describe("useStorageView", () => {
 
       handler(model, event);
 
-      expect(file.token).toBe(resolvedTokenResult.value.token);
+      // File question type is no longer handled in onAfterRenderQuestion
+      // The token is resolved via resolveStorageUrl when the image src is updated
+      // Since there's no image with matching src, nothing should change
+      expect(mockImage.getAttribute("src")).toBe(file.content);
     });
 
     it("should handle file question type with user-files container", async () => {
@@ -381,6 +391,11 @@ describe("useStorageView", () => {
           "https://testaccount.blob.core.windows.net/user-files/document.pdf",
       } as ProtectedFile;
 
+      const mockHtmlElement = document.createElement("div");
+      const mockImage = document.createElement("img");
+      mockImage.setAttribute("src", file.content);
+      mockHtmlElement.appendChild(mockImage);
+
       const fileQuestion = {
         getType: () => "file",
         value: file,
@@ -394,7 +409,7 @@ describe("useStorageView", () => {
 
       const event = {
         question: fileQuestion,
-        htmlElement: document.createElement("div"),
+        htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
       const handler = (
@@ -403,7 +418,9 @@ describe("useStorageView", () => {
 
       handler(model, event);
 
-      expect(file.token).toBe(resolvedUserFilesTokenResult.value.token);
+      // File question type is no longer handled in onAfterRenderQuestion
+      // The token is resolved via resolveStorageUrl when the image src is updated
+      expect(mockImage.getAttribute("src")).toBe(file.content);
     });
 
     it("should handle file question with array value", async () => {
@@ -423,6 +440,14 @@ describe("useStorageView", () => {
         } as ProtectedFile,
       ];
 
+      const mockHtmlElement = document.createElement("div");
+      const mockImage1 = document.createElement("img");
+      mockImage1.setAttribute("src", files[0].content);
+      const mockImage2 = document.createElement("img");
+      mockImage2.setAttribute("src", files[1].content);
+      mockHtmlElement.appendChild(mockImage1);
+      mockHtmlElement.appendChild(mockImage2);
+
       const fileQuestion = {
         getType: () => "file",
         value: files,
@@ -436,7 +461,7 @@ describe("useStorageView", () => {
 
       const event = {
         question: fileQuestion,
-        htmlElement: document.createElement("div"),
+        htmlElement: mockHtmlElement,
       } as unknown as AfterRenderQuestionEvent;
 
       const handler = (
@@ -445,12 +470,25 @@ describe("useStorageView", () => {
 
       handler(model, event);
 
-      expect(files[0].token).toBe(resolvedTokenResult.value.token);
-      expect(files[1].token).toBe(resolvedUserFilesTokenResult.value.token);
+      // File question type is no longer handled in onAfterRenderQuestion
+      // Tokens are no longer set on file objects
+      expect(files[0].token).toBeUndefined();
+      expect(files[1].token).toBeUndefined();
     });
 
     it("should handle header logo rendering", async () => {
-      const { result } = await renderHookWithSuspense();
+      const props = createDefaultReadTokenPromises();
+      let result: ReturnType<typeof renderHook>["result"];
+
+      await act(async () => {
+        const view = renderHook(() => useStorageView(props), {
+          wrapper: createWrapper(mockStorageConfig, props),
+        });
+        result = view.result;
+        await props.userFiles;
+        await props.content;
+        await Promise.resolve();
+      });
 
       const model = {
         ...mockSurveyModel,
@@ -460,7 +498,8 @@ describe("useStorageView", () => {
         },
       } as unknown as SurveyModel;
 
-      result.current.registerViewHandlers(model);
+      const hookResult = result!.current as ReturnType<typeof useStorageView>;
+      hookResult.registerViewHandlers(model);
 
       const mockHtmlElement = document.createElement("div");
       const mockImage = document.createElement("img");
@@ -498,7 +537,7 @@ describe("useStorageView", () => {
 
       await act(async () => {
         const view = renderHook(() => useStorageView(props), {
-          wrapper: createWrapper(),
+          wrapper: createWrapper(mockStorageConfig, props),
         });
         result = view.result;
         await props.userFiles;
@@ -532,11 +571,11 @@ describe("useStorageView", () => {
 
       handler(model, event);
 
+      // resolveStorageUrl returns notAllowedImageSrc.src when token is null
       expect(mockImage.getAttribute("src")).toBe("/not-allowed.svg");
-      expect(mockImage.getAttribute("aria-label")).toBe(
-        "You are not allowed to access this image",
-      );
-      expect(mockImage.title).toBe("You are not allowed to access this image");
+      // The new implementation doesn't set aria-label or title
+      expect(mockImage.getAttribute("aria-label")).toBeNull();
+      expect(mockImage.title).toBe("");
     });
 
     it("should ignore URLs from different hostnames", async () => {

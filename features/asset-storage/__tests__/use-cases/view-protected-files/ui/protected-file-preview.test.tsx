@@ -1,7 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
-import React from "react";
-import { QuestionFileModel } from "survey-core";
+import { renderSurveyJsComponent } from "@/__tests__/utils/test-utils";
 import {
   AssetStorageContext,
   AssetStorageContextValue,
@@ -9,25 +6,33 @@ import {
   StorageConfig,
 } from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
-import { renderSurveyJsComponent } from "@/__tests__/utils/test-utils";
+import { screen } from "@testing-library/react";
+import { QuestionFileModel } from "survey-core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock SurveyFilePreview
-const mockRenderElement = vi.fn(() => (
-  <div data-testid="default-preview">Default Preview</div>
-));
+// Mock SurveyFilePreview - must be before imports that use it
+const mockRenderElement = vi.fn(() => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require("react");
+  return React.createElement("div", { "data-testid": "default-preview" }, "Default Preview");
+});
 
-vi.mock("survey-react-ui", () => ({
-  SurveyFilePreview: class MockSurveyFilePreview extends React.Component {
-    protected renderElement() {
-      return mockRenderElement();
-    }
-  },
-  ReactElementFactory: {
-    Instance: {
-      registerElement: vi.fn(),
+vi.mock("survey-react-ui", async () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = await import("react");
+  return {
+    SurveyFilePreview: class MockSurveyFilePreview extends React.Component {
+      protected renderElement() {
+        return mockRenderElement();
+      }
     },
-  },
-}));
+    ReactElementFactory: {
+      Instance: {
+        registerElement: vi.fn(),
+      },
+    },
+  };
+});
 
 // Helper wrapper for ProtectedFilePreview
 const renderWithContext = (
@@ -104,6 +109,7 @@ describe("ProtectedFilePreview", () => {
       const disabledConfig: StorageConfig = {
         isEnabled: false,
         isPrivate: false,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -111,7 +117,7 @@ describe("ProtectedFilePreview", () => {
         },
       };
 
-      renderWithContext(mockQuestion, { config: disabledConfig });
+      renderWithContext(mockQuestion, { config: disabledConfig, resolveStorageUrl: vi.fn() });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -158,6 +164,7 @@ describe("ProtectedFilePreview", () => {
       const privateConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: true,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -165,12 +172,25 @@ describe("ProtectedFilePreview", () => {
         },
       };
 
-      renderWithContext(mockQuestion, { config: privateConfig });
+      const mockResolveStorageUrl = vi.fn((url: string) => {
+        if (url.includes("file1.pdf")) {
+          return `${url}?token-123`;
+        }
+        if (url.includes("file2.jpg")) {
+          return `${url}?token-456`;
+        }
+        return url;
+      });
+
+      renderWithContext(mockQuestion, {
+        config: privateConfig,
+        resolveStorageUrl: mockResolveStorageUrl,
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
 
-      // Verify items were modified with tokens
+      // Verify items were modified with tokens via resolveStorageUrl
       expect(mockQuestion.renderedPages[0].items[0].content).toBe(
         "https://testaccount.blob.core.windows.net/content/file1.pdf?token-123",
       );
@@ -183,6 +203,7 @@ describe("ProtectedFilePreview", () => {
       const privateConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: true,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -215,7 +236,13 @@ describe("ProtectedFilePreview", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithoutTokens, { config: privateConfig });
+      // resolveStorageUrl returns original URL when no token is available
+      const mockResolveStorageUrl = vi.fn((url: string) => url);
+
+      renderWithContext(questionWithoutTokens, {
+        config: privateConfig,
+        resolveStorageUrl: mockResolveStorageUrl,
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
 
@@ -229,6 +256,7 @@ describe("ProtectedFilePreview", () => {
       const privateConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: true,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -273,7 +301,18 @@ describe("ProtectedFilePreview", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithPartialTokens, { config: privateConfig });
+      const mockResolveStorageUrl = vi.fn((url: string) => {
+        if (url.includes("file1.pdf")) {
+          return `${url}?token-123`;
+        }
+        // Return original URL for file2 (no token)
+        return url;
+      });
+
+      renderWithContext(questionWithPartialTokens, {
+        config: privateConfig,
+        resolveStorageUrl: mockResolveStorageUrl,
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
 
@@ -290,6 +329,7 @@ describe("ProtectedFilePreview", () => {
       const privateConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: true,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -303,7 +343,7 @@ describe("ProtectedFilePreview", () => {
         indexToShow: 0,
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithEmptyPages, { config: privateConfig });
+      renderWithContext(questionWithEmptyPages, { config: privateConfig, resolveStorageUrl: vi.fn() });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -313,6 +353,7 @@ describe("ProtectedFilePreview", () => {
       const privateConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: true,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -325,7 +366,7 @@ describe("ProtectedFilePreview", () => {
         indexToShow: 999, // Invalid index
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithInvalidIndex, { config: privateConfig });
+      renderWithContext(questionWithInvalidIndex, { config: privateConfig, resolveStorageUrl: vi.fn() });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -348,7 +389,11 @@ describe("ProtectedFilePreview", () => {
 
   describe("when context config is null", () => {
     it("should render default preview without token injection", () => {
-      renderWithContext(mockQuestion, { config: null });
+      const mockResolveStorageUrl = vi.fn((url: string) => url);
+      renderWithContext(mockQuestion, {
+        config: null,
+        resolveStorageUrl: mockResolveStorageUrl,
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();

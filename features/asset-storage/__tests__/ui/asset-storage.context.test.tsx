@@ -1,23 +1,24 @@
-import { describe, it, expect, vi } from "vitest";
+import { Result } from "@/lib/result";
 import {
+  act,
   render,
   renderHook,
-  act,
   screen,
 } from "@testing-library/react";
-import React, { Suspense } from "react";
+import { Suspense } from "react";
+import { describe, expect, it, vi } from "vitest";
+import { StorageConfig } from "../../infrastructure/storage-config-client";
 import {
   AssetStorageClientProvider,
   useAssetStorage,
   type AssetStorageTokens,
 } from "../../ui/asset-storage.context";
-import { StorageConfig } from "../../infrastructure/storage-config-client";
-import { Result } from "@/lib/result";
 
 const mockStorageConfig: StorageConfig = {
   isEnabled: true,
   isPrivate: true,
   hostName: "testaccount.blob.core.windows.net",
+  protocol: "https",
   containerNames: {
     USER_FILES: "user-files",
     CONTENT: "content",
@@ -146,7 +147,7 @@ describe("AssetStorageContext", () => {
       consoleSpy.mockRestore();
     });
 
-    it("should return tokens when provided to provider", () => {
+    it("should return tokens when provided to provider", async () => {
       const mockTokens: AssetStorageTokens = {
         userFiles: Promise.resolve(
           Result.success({
@@ -166,15 +167,17 @@ describe("AssetStorageContext", () => {
         ),
       };
 
-      const { result } = renderHook(() => useAssetStorage(), {
-        wrapper: ({ children }) => (
-          <AssetStorageClientProvider
-            config={mockStorageConfig}
-            tokens={mockTokens}
-          >
-            {children}
-          </AssetStorageClientProvider>
-        ),
+      const { result } = await act(async () => {
+        return renderHook(() => useAssetStorage(), {
+          wrapper: ({ children }) => (
+            <AssetStorageClientProvider
+              config={mockStorageConfig}
+              tokens={mockTokens}
+            >
+              {children}
+            </AssetStorageClientProvider>
+          ),
+        })
       });
 
       expect(result.current.tokens).toEqual(mockTokens);
