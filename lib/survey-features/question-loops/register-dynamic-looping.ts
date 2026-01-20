@@ -1,11 +1,16 @@
-import { SurveyModel, ValueChangedEvent } from "survey-core";
+import { ItemValue, SurveyModel, ValueChangedEvent } from "survey-core";
 import { registerDynamicLoopingProperties } from "./register-dynamic-looping-properties";
+
+interface PanelItem {
+  item: string; // This will allow users to refer pipe the looped question's value by using {panel.item}
+  itemId: string;
+}      
 
 export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
   registerDynamicLoopingProperties();
 
-  const shuffleArray = (array: any[]) => {
+  const shuffleArray = (array: PanelItem[]) => {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
@@ -42,7 +47,7 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
     isUpdatingLoop = true;
 
     dynamicPanels.forEach((panelQuestion) => {
-      let combinedChoices: any[] = [];
+      const combinedChoices: ItemValue[] = [];
       const priorityIds = panelQuestion.priorityItems || [];
 
       panelQuestion.loopSource.forEach((sourceName: string) => {
@@ -59,10 +64,10 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
         let filtered = [];
         if (panelQuestion.choicePattern === "Selected Only") {
-          filtered = allChoices.filter((c: { value: any; }) => selectedValues.includes(c.value));
+          filtered = allChoices.filter((c: ItemValue) => selectedValues.includes(c.value));
         } else if (panelQuestion.choicePattern === "Unselected Only") {
           filtered = allChoices.filter(
-            (c: { value: any; }) => !selectedValues.includes(c.value)
+            (c: ItemValue) => !selectedValues.includes(c.value)
           );
         } else {
           filtered = allChoices;
@@ -71,12 +76,13 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
       });
 
       const seenValues = new Set();
-      let priorityBucket: { item: any; itemId: any; }[] = [];
-      let othersBucket: any[] = [];
+      const priorityBucket: PanelItem[] = [];
+      let othersBucket: PanelItem[] = [];
 
       combinedChoices.forEach((choice) => {
         if (!seenValues.has(choice.value)) {
           seenValues.add(choice.value);
+          
           const itemObj = {
             item: choice.text || choice.value,
             itemId: choice.value,

@@ -1,4 +1,4 @@
-import { Serializer } from "survey-core";
+import { ItemValue, Question, QuestionSelectBase, Serializer, SurveyModel } from "survey-core";
 
 export function registerDynamicLoopingProperties() {
 
@@ -7,7 +7,7 @@ export function registerDynamicLoopingProperties() {
     displayName: "Select source question",
     category: "questionLoops",
     type: "multiplevalues",
-    choices: function (obj: { survey: any; }, choicesCallback: (choices: any[]) => void) {
+    choices: function (obj: { survey: SurveyModel; }, choicesCallback: (choices: { value: string, text: string }[]) => void) {
       const survey = obj ? obj.survey : null;
 
       if (!survey || typeof choicesCallback !== "function") {
@@ -19,14 +19,12 @@ export function registerDynamicLoopingProperties() {
       const filteredChoices = [{ value: "", text: "None" }];
 
       questions
-        .filter((q: { getType: any; }) => q && q.getType && typeof q.getType === "function")
-        .filter((q: { getType: () => any; }) => {
+        .filter((q: Question): q is QuestionSelectBase => {
+
           const type = q.getType();
-          return (
-            type === "checkbox" || type === "tagbox" || type === "radiogroup"
-          );
+          return ["checkbox", "tagbox", "radiogroup"].includes(type);
         })
-        .forEach((q: { name: any; title: any; }) => {
+        .forEach((q) => {
           filteredChoices.push({
             value: q.name,
             text: q.name,
@@ -79,24 +77,31 @@ export function registerDynamicLoopingProperties() {
     displayName: "Pinned items",
     category: "questionLoops",
     type: "multiplevalues",
-    choices: function (obj: any, choicesCallback: (choices: any[]) => void) {
-      const survey = obj ? obj.survey : null;
-      if (!survey || !obj.loopSource) return choicesCallback([]);
+    choices: function (
+  obj: { survey: SurveyModel; loopSource: string[] }, 
+  choicesCallback: (choices: { value: string, text: string }[]) => void
+) {
+  const { survey, loopSource } = obj || {};
+  if (!survey || !loopSource) return choicesCallback([]);
 
-      const questions = obj.loopSource
-        .map((name: any) => survey.getQuestionByName(name))
-        .filter((q: any) => !!q);
+  const allChoices: { value: string, text: string }[] = [];
 
-      const allChoices: any[] = [];
-      questions.forEach((q: { choices: any; }) => {
-        (q.choices || []).forEach((c: { value: any; text: any; name: any; }) => {
-          if (!allChoices.find((existing) => existing.value === c.value)) {
-            allChoices.push({ value: c.value, text: c.name });
-          }
-        });
+  loopSource
+    .map(name => survey.getQuestionByName(name))
+    .filter((q): q is QuestionSelectBase => !!q && "choices" in q)
+    .forEach(q => {
+      q.choices.forEach((c: ItemValue) => {
+        if (!allChoices.some(existing => existing.value === c.value)) {
+          allChoices.push({ 
+            value: c.value, 
+            text: String(c.value) 
+          });
+        }
       });
-      choicesCallback(allChoices);
-    },
+    });
+
+  choicesCallback(allChoices);
+},
     visibleIf: (obj) =>
       Array.isArray(obj.loopSource) && obj.loopSource.length > 0,
   });
