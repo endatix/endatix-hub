@@ -15,12 +15,14 @@ export default defineConfig({
         "components/**/*.tsx",
         "lib/**/*.{ts,tsx}",
         "services/**/*.ts",
-        "types/**/*.ts"
+        "types/**/*.ts",
       ],
       exclude: [
         "node_modules/",
         "**/*.d.ts",
         "**/index.ts",
+        "**/server.ts",
+        "**/client.ts",
         "**/*__tests__/**",
         "components/ui/**/*.tsx",
       ],

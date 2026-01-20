@@ -1,26 +1,28 @@
+import { useAssetStorage } from "@/features/asset-storage/client";
 import { cn } from "@/lib/utils";
-import { QuestionSignaturePadModel } from "survey-core";
 import { Signature } from "lucide-react";
 import Image from "next/image";
+import { QuestionSignaturePadModel } from "survey-core";
 
 interface FileAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   question: QuestionSignaturePadModel;
 }
 
 const getSignatureContainerStyle = (
-  question: QuestionSignaturePadModel,
+  backgroundImageUrl?: string,
+  backgroundColor?: string,
 ): React.CSSProperties | undefined => {
-  if (question.backgroundImage) {
+  if (backgroundImageUrl) {
     return {
-      backgroundImage: `url(${question.backgroundImage})`,
+      backgroundImage: `url(${backgroundImageUrl})`,
       backgroundSize: "contain",
       backgroundRepeat: "no-repeat",
     };
   }
 
-  if (question.backgroundColor) {
+  if (backgroundColor) {
     return {
-      backgroundColor: question.backgroundColor,
+      backgroundColor: backgroundColor,
     };
   }
 
@@ -32,6 +34,8 @@ export function SignaturePadAnswer({
   className,
   ...props
 }: FileAnswerProps) {
+  const { resolveStorageUrl } = useAssetStorage();
+
   if (!question.value) {
     return (
       <div className={cn("col-span-3", className)} {...props}>
@@ -45,6 +49,8 @@ export function SignaturePadAnswer({
 
   const imageWidth = 350;
   const imageHeight = 450;
+  const signatureImageUrl = resolveStorageUrl(question.value);
+  const backgroundImageUrl = resolveStorageUrl(question.backgroundImage);
 
   return (
     <div className={cn("col-span-3", className)} {...props}>
@@ -54,10 +60,10 @@ export function SignaturePadAnswer({
       >
         <div
           className="absolute inset-0"
-          style={getSignatureContainerStyle(question)}
+          style={getSignatureContainerStyle(backgroundImageUrl, question.backgroundColor)}
         />
         <Image
-          src={question.value}
+          src={signatureImageUrl}
           alt={question.name || ""}
           width={imageWidth}
           height={imageHeight}

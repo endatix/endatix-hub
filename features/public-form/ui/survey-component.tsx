@@ -1,10 +1,10 @@
 "use client";
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
+import { useSurveyStorage } from '@/features/asset-storage/client';
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
-import { useBlobStorage } from "@/features/storage/hooks/use-blob-storage";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
@@ -67,7 +67,10 @@ export default function SurveyComponent({
     submission,
     customQuestions,
   );
-  const { enqueueSubmission, clearQueue } = useSubmissionQueue(formId, urlToken);
+  const { enqueueSubmission, clearQueue } = useSubmissionQueue(
+    formId,
+    urlToken,
+  );
   const [isSubmitting, startSubmitting] = useTransition();
   const [submissionId, setSubmissionId] = useState<string>(
     submission?.id ?? "",
@@ -80,12 +83,14 @@ export default function SurveyComponent({
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
 
-  useBlobStorage({
+  const { registerStorageHandlers, isStorageReady } = useSurveyStorage({
+    model: surveyModel,
     formId,
     submissionId,
-    surveyModel,
     onSubmissionIdChange: setSubmissionId,
   });
+
+  const isModelReady = surveyModel && isStorageReady;
 
   useEffect(() => {
     if (submission?.id) {
@@ -95,18 +100,22 @@ export default function SurveyComponent({
 
   const sendEmbedMessage = useCallback(
     (type: string, data?: Record<string, unknown>) => {
-      if (isEmbed && typeof window !== "undefined" && window.parent !== window) {
+      if (
+        isEmbed &&
+        globalThis.window !== undefined &&
+        window.parent !== globalThis.window
+      ) {
         window.parent.postMessage(
           {
             type: `endatix-${type}`,
             formId,
             ...data,
           },
-          "*"
+          "*",
         );
       }
     },
-    [isEmbed, formId]
+    [isEmbed, formId],
   );
 
   useEffect(() => {
@@ -178,7 +187,6 @@ export default function SurveyComponent({
         return;
       }
 
-
       // Set guard flag to prevent multiple submissions
       submissionUpdateGuard.current = true;
 
@@ -216,7 +224,7 @@ export default function SurveyComponent({
           submissionUpdateGuard.current = false;
           event.showSaveError(
             result.error.message ??
-              "Failed to submit form. Please try again and contact us if the problem persists.",
+            "Failed to submit form. Please try again and contact us if the problem persists.",
           );
           trackException("Form submission failed", {
             form_id: formId,
@@ -238,6 +246,7 @@ export default function SurveyComponent({
       requiresReCaptcha,
       sendEmbedMessage,
       surveyLocales.length,
+      urlToken,
     ],
   );
 
@@ -246,6 +255,7 @@ export default function SurveyComponent({
       return;
     }
 
+    const unregisterStorage = registerStorageHandlers(surveyModel);
     surveyModel.onComplete.add(submitForm);
     surveyModel.onValueChanged.add(updatePartial);
     surveyModel.onCurrentPageChanged.add(updatePartial);
@@ -253,15 +263,16 @@ export default function SurveyComponent({
     surveyModel.onMatrixCellValueChanged.add(updatePartial);
 
     return () => {
+      unregisterStorage();
       surveyModel.onComplete.remove(submitForm);
       surveyModel.onValueChanged.remove(updatePartial);
       surveyModel.onCurrentPageChanged.remove(updatePartial);
       surveyModel.onDynamicPanelValueChanged.remove(updatePartial);
       surveyModel.onMatrixCellValueChanged.remove(updatePartial);
     };
-  }, [surveyModel, submitForm, updatePartial]);
+  }, [surveyModel, submitForm, updatePartial, registerStorageHandlers]);
 
-  if (!surveyModel) {
+  if (!isModelReady) {
     return <div>Loading...</div>;
   }
 

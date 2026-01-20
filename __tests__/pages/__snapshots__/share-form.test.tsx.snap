@@ -14,16 +14,26 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
     }
   }
 >
-  <default
-    customQuestions={[]}
-    definition={
-      {
-        "title": "Test Form",
-      }
+  <React.Suspense
+    fallback={
+      <div>
+        Loading...
+      </div>
     }
-    formId="valid-id"
-    requiresReCaptcha={false}
-    theme={{}}
-  />
+  >
+    <AssetStorageProvider>
+      <default
+        customQuestions={[]}
+        definition={
+          {
+            "title": "Test Form",
+          }
+        }
+        formId="valid-id"
+        requiresReCaptcha={false}
+        theme={{}}
+      />
+    </AssetStorageProvider>
+  </React.Suspense>
 </div>
 `;

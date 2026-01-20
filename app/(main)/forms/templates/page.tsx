@@ -9,6 +9,7 @@ import { getFormTemplates } from "@/services/api";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 export default async function FormTemplatesPage() {
   const session = await auth();
@@ -43,9 +44,11 @@ async function FormsTabsContent() {
   const templates = await getFormTemplates();
 
   return (
-    <TabsContent value="all">
-      <FormTemplatesList templates={templates} />
-    </TabsContent>
+    <AssetStorageProvider>
+      <TabsContent value="all">
+        <FormTemplatesList templates={templates} />
+      </TabsContent>
+    </AssetStorageProvider>
   );
 }
 

@@ -9,6 +9,7 @@ import { Model } from "survey-core";
 import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Survey } from "survey-react-ui";
+import { useStorageView } from "@/features/asset-storage/client";
 
 interface SurveyPreviewComponentProps {
   template: FormTemplate;
@@ -22,6 +23,8 @@ export default function SurveyPreviewComponent({
   useRichText(model);
   useLoopAwareSummaryTable(model);
   useQuestionLoops(model);
+
+  const { setModelMetadata, registerViewHandlers } = useStorageView();
 
   useEffect(() => {
     if (template) {
@@ -40,15 +43,22 @@ export default function SurveyPreviewComponent({
         // Apply theme
         survey.applyTheme(SharpLightPanelless);
 
+        setModelMetadata(survey);
+        const unregisterView = registerViewHandlers(survey);
+
         setModel(survey);
         setError(null);
+
+        return () => {
+          unregisterView();
+        };
       } catch (error) {
         console.error("Error parsing survey JSON:", error);
         setError("Could not parse the form template data");
         setModel(null);
       }
     }
-  }, [template]);
+  }, [template, setModelMetadata, registerViewHandlers]);
 
   if (error) {
     return <div className="text-destructive text-center">{error}</div>;

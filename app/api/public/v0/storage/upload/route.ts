@@ -1,6 +1,6 @@
 
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
-import { uploadUserFilesUseCase } from "@/features/storage/use-cases/upload-user-files.use-case";
+import { uploadUserFilesUseCase } from "@/features/asset-storage/server";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { headers } from "next/headers";

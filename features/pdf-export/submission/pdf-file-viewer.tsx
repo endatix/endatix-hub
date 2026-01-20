@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { StyleSheet, Image, Link, Text, View } from "@react-pdf/renderer";
-import { File, FileType, getFileType } from "@/lib/questions/file/file-type";
+import { IFile, FileType, getFileType } from "@/lib/questions/file/file-type";
 import {
   DocumentFileIcon,
   UnknownFileIcon,
@@ -10,7 +10,7 @@ import {
 import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 
 interface FileViewerProps {
-  file: File;
+  file: IFile;
   width?: number;
   height?: number;
   aspectRatio?: "portrait" | "square";
@@ -43,7 +43,7 @@ export function PdfFileViewer({
   }
 }
 
-const FileDetails = ({ file, icon }: { file: File; icon: React.ReactNode }) => {
+const FileDetails = ({ file, icon }: { file: IFile; icon: React.ReactNode }) => {
   return (
     <View
       style={[

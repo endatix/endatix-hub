@@ -1,15 +1,17 @@
-import { Question, QuestionNonValue } from "survey-core";
-import { PdfQuestionLabel } from "./pdf-question-label";
-import PdfAnswerViewer from "./pdf-answer-viewer";
-import { View, Text, StyleSheet } from "@react-pdf/renderer";
-import { EyeOffIcon } from "./icons";
 import { getPanelTitle } from "@/lib/questions/question-utils";
+import { StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Question, QuestionNonValue } from "survey-core";
+import { EyeOffIcon } from "./icons";
+import PdfAnswerViewer from "./pdf-answer-viewer";
+import { PdfQuestionLabel } from "./pdf-question-label";
 
 interface PdfSubmissionAnswerProps {
   question: Question;
 }
 
-export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
+export const PdfSubmissionAnswer = ({
+  question,
+}: PdfSubmissionAnswerProps) => {
   // Helper to check if a question should render answer full width
   const isFullWidthAnswer = (question: Question) => {
     const type = question.getType();
@@ -53,7 +55,11 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
   if (isFullWidthAnswer(question)) {
     rows.push(
       <View key={question.id} style={styles.fullWidthAnswerRow}>
-        <PdfAnswerViewer forQuestion={question} hideTitle pageBreak={true} />
+        <PdfAnswerViewer
+          forQuestion={question}
+          hideTitle
+          pageBreak={true}
+        />
       </View>,
     );
     return rows;
@@ -86,7 +92,10 @@ export const PdfSubmissionAnswer = ({ question }: PdfSubmissionAnswerProps) => {
         <PdfQuestionLabel question={question} style={styles.questionLabel} />
       </View>
       <View style={styles.answerCol}>
-        <PdfAnswerViewer forQuestion={question} hideTitle pageBreak={true} />
+        <PdfAnswerViewer
+          forQuestion={question}
+          hideTitle pageBreak={true}
+        />
       </View>
     </View>,
   );

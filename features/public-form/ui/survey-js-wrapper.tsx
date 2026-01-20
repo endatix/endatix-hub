@@ -31,7 +31,7 @@ const SurveyJsWrapper = ({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
-  urlToken,
+  urlToken
 }: SurveyJsWrapperProps) => {
   return (
     <SurveyComponent

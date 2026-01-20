@@ -1,12 +1,12 @@
 import { SubmissionData } from "@/features/submissions/types";
-import { ApiResult } from "../shared/api-result";
-import type { EndatixApi } from "../endatix-api";
-import { ExportSubmissionsRequest, Submission } from "./types";
+import { Result } from "@/lib/result";
 import {
   validateEndatixId,
   validateHexToken,
 } from "@/lib/utils/type-validators";
-import { Result } from "@/lib/result";
+import type { EndatixApi } from "../endatix-api";
+import { ApiResult } from "../shared/api-result";
+import { ExportSubmissionsRequest, Submission } from "./types";
 
 class PublicSubmissions {
   constructor(private readonly endatix: EndatixApi) {}
@@ -73,6 +73,54 @@ class PublicSubmissions {
 
     return this.endatix.get<Submission>(
       `/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
+      { requireAuth: false },
+    );
+  }
+
+  /**
+   * Get a submission by access token (public API - no authentication required).
+   * Requires 'view' permission in the token.
+   */
+  async getByAccessToken(
+    formId: string,
+    token: string,
+  ): Promise<ApiResult<Submission>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    if (!token) {
+      return ApiResult.validationError("Access token is required");
+    }
+
+    return this.endatix.get<Submission>(
+      `/forms/${validateFormIdResult.value}/submissions/by-access-token/${token}`,
+      { requireAuth: false },
+    );
+  }
+
+  /**
+   * Update a submission by access token (public API - no authentication required).
+   * Requires 'edit' permission in the token.
+   */
+  async updateByAccessToken(
+    formId: string,
+    token: string,
+    submissionData: SubmissionData,
+  ): Promise<ApiResult<Submission>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    if (!token) {
+      return ApiResult.validationError("Access token is required");
+    }
+
+    return this.endatix.patch<Submission>(
+      `/forms/${validateFormIdResult.value}/submissions/by-access-token/${token}`,
+      submissionData,
       { requireAuth: false },
     );
   }

@@ -7,11 +7,16 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
-import { ApiResult, isNotFoundError, isValidationError } from "@/lib/endatix-api";
+import {
+  ApiResult,
+  isNotFoundError,
+  isValidationError,
+} from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 type EmbedSurveyPage = {
   params: Promise<{ formId: string }>;
@@ -29,7 +34,11 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
     getActiveDefinitionUseCase({ formId }),
   ]);
 
-  if ((isNotFoundError(submissionResult) || isValidationError(submissionResult)) && urlToken) {
+  if (
+    (isNotFoundError(submissionResult) ||
+      isValidationError(submissionResult)) &&
+    urlToken
+  ) {
     notFound();
   }
 
@@ -61,16 +70,18 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
 
       <EmbedHeightReporter />
 
-      <SurveyJsWrapper
-        formId={formId}
-        definition={activeDefinition.jsonData}
-        submission={submission}
-        theme={activeDefinition.themeModel}
-        customQuestions={activeDefinition.customQuestions}
-        requiresReCaptcha={activeDefinition.requiresReCaptcha}
-        isEmbed={true}
-        urlToken={urlToken}
-      />
+      <AssetStorageProvider>
+        <SurveyJsWrapper
+          formId={formId}
+          definition={activeDefinition.jsonData}
+          submission={submission}
+          theme={activeDefinition.themeModel}
+          customQuestions={activeDefinition.customQuestions}
+          requiresReCaptcha={activeDefinition.requiresReCaptcha}
+          isEmbed={true}
+          urlToken={urlToken}
+        />
+      </AssetStorageProvider>
     </div>
   );
 }

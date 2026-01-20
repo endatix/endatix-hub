@@ -24,23 +24,35 @@ Quick reference for organizing features using vertical slice architecture.
 
 ## Feature Structure
 
-```
+Vertical Slice Architecture: organize by business feature, then by use-case.
+
+```text
 features/
 ├── {feature-name}/
-│   ├── index.ts                              # Public API exports
+│   ├── client.ts                             # Client-side only exports
+│   ├── server.ts                             # Server-side only exports
+│   ├── index.ts                              # Shared exports (both client and server)
 │   ├── types.ts                              # Feature-specific types
-│   ├── __tests__/                            # Feature-level tests
 │   ├── use-cases/                            # Business logic by use case
-│   │   ├── {verb-noun}/                      # e.g., create-form, update-user
+│   │   ├── {verb-noun}/                      # e.g., create-form
 │   │   │   ├── {verb-noun}.use-case.ts       # Pure business logic
-│   │   │   ├── {verb-noun}.action.ts         # Next.js server action
-│   │   │   ├── {verb-noun}.hook.ts           # Client hook (optional)
+│   │   │   ├── {verb-noun}.action.ts         # Use case specific server action
+│   │   │   ├── use-{noun}.hook.ts            # Use-case specific hook
 │   │   │   └── ui/                           # Use-case specific components
-│   │   └── ...
-│   ├── infrastructure/                       # External adapters, providers
-│   ├── shared/                               # Cross use-case items
-│   └── ui/                                   # Feature-wide components
+│   ├── infrastructure/                       # External adapters, config
+│   ├── ui/                                   # Cross-use-case components & context
+│   │   ├── {feature-name}.context.tsx        # React Context & Client Provider
+│   │   └── {feature-name}.provider.tsx       # Server Component Context Provider Wrapper
+│   └── __tests__/                            # Feature-level tests
 ```
+
+### Entry Point Pattern (Idiomatic Next.js)
+
+To prevent server-side dependencies (like database clients or SDKs) from leaking into the client bundle, use explicit entry points:
+
+1.  **client.ts**: Exports for Client Components (hooks, providers, safe types). Mark with `"use client"`.
+2.  **server.ts**: Exports for Server Components and Server Actions. Mark with `"use server"`.
+3.  **index.ts**: Shared exports (primitive types, basic utilities) that are safe for both environments.
 
 ## Why Vertical Slice Architecture?
 
@@ -96,6 +108,82 @@ export async function createFormAction(
 - External adapters (auth providers, storage, APIs)
 - Framework-specific integrations
 - Configuration and setup
+
+### Data Fetching and State Management
+
+#### Data Fetching (Server to Client)
+For optimal performance and UX, prefer **streaming promises** from Server Components to Client Components. Use the React `use()` hook to unwrap these promises. This prevents blocking the initial render while data is being fetched.
+
+**Recommended Pattern:**
+1.  **Server Page/Component**: Initiate the fetch and pass the *promise* (not the awaited result).
+2.  **Context Provider (Client)**: Accept the promise as a prop and use `use(promise)` to resolve it.
+
+```tsx
+// features/my-feature/ui/my-feature.context.tsx (Client Component)
+'use client';
+import { createContext, use, useMemo } from 'react';
+
+export function MyFeatureClientProvider({ children, dataPromise }) {
+  const data = use(dataPromise); // Resolves via React Suspense
+  const value = useMemo(() => ({ data }), [data]);
+  return <MyContext value={value}>{children}</MyContext>;
+}
+
+// features/my-feature/ui/my-feature.provider.tsx (Server Component)
+import { MyFeatureClientProvider } from './my-feature.context';
+
+export function MyFeatureProvider({ children }) {
+  const dataPromise = getMyData(); // Start fetching locally on server
+  return (
+    <MyFeatureClientProvider dataPromise={dataPromise}>
+      {children}
+    </MyFeatureClientProvider>
+  );
+}
+
+// app/(main)/my-feature/page.tsx (Server Page)
+export default async function Page() {
+  return (
+    <MyFeatureProvider>
+      <MyFeatureComponent />
+    </MyFeatureProvider>
+  );
+}
+```
+
+#### State Management & Interactions
+Combine `use()` with `useReducer` and `useOptimistic` for features with complex interactions (like forms or AI assistants).
+
+```tsx
+// Example in FormAssistantProvider
+export function FeatureProvider({ children, initialDataPromise }) {
+  const initialData = initialDataPromise ? use(initialDataPromise) : defaultState;
+  const [state, dispatch] = useReducer(reducer, initialData);
+  const [optimisticState, setOptimisticState] = useOptimistic(state, (s, u) => ({ ...s, ...u }));
+
+  const handleAction = async (payload) => {
+    setOptimisticState({ isPending: true }); // Immediate UI feedback
+    const result = await myServerAction(payload); // Next.js Server Action
+    dispatch({ type: 'UPDATE', payload: result });
+  };
+  
+  const value = useMemo(() => ({ state: optimisticState, handleAction }), [optimisticState]);
+  return <MyContext value={value}>{children}</MyContext>;
+}
+```
+
+#### Best Practices
+- **Thin Providers**: Keep context providers focused on data sharing and state management.
+- **Custom Hooks**: Expose context via hooks (e.g., `useAssetStorage`) to provide a clean API.
+- **Server-Side Providers**: Use Server Component wrappers (like `AssetStorageProvider`) to orchestrate configuration and data fetching on the server.
+- **Zero-Latency Orchestration**: By using Server Components for providers, we can pass *unresolved* promises to the client. This allows the page to start streaming immediately while SAS tokens or other data are generated on the server, avoiding extra HTTP round-trips from the client.
+- **Reference Implementations**:
+  - `asset-storage.context.tsx`: Clean configuration streaming and client-side state.
+  - `asset-storage.provider.tsx`: Server Component orchestration.
+  - `form-assistant.context.tsx`: Complex state with optimistic updates and reducer.
+
+More on this in the [Next.js Data Fetching Documentation](https://nextjs.org/docs/app/getting-started/fetching-data#streaming-data-with-the-use-hook).
+
 
 ## Naming Conventions
 
