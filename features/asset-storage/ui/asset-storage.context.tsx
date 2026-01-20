@@ -1,6 +1,7 @@
 "use client";
 
-import { Result } from "@/lib/result";
+import { Result } from '@/lib/result';
+import notAllowedImageSrc from "@/public/assets/images/signs/not-allowed-image.svg";
 import React, { createContext, use, useCallback, useMemo } from "react";
 import { StorageConfig } from "../infrastructure/storage-config-client";
 import { ReadTokenResult } from "../types";
@@ -51,18 +52,21 @@ export function AssetStorageClientProvider({
         return url;
       }
 
-      // 2. Select the appropriate token based on container type
       const tokenResult =
         containerInfo.containerType === "USER_FILES"
           ? userFilesResult
           : contentResult;
 
-      // 3. Apply token if successful
-      if (tokenResult && Result.isSuccess(tokenResult)) {
-        return enhanceUrlWithToken(url, tokenResult.value.token);
+      if (!tokenResult || Result.isError(tokenResult)) {
+        return notAllowedImageSrc.src;
       }
 
-      return url;
+      const token = tokenResult.value.token;
+      if (!token?.length) {
+        return notAllowedImageSrc.src;
+      }
+
+      return enhanceUrlWithToken(url, token);
     },
     [resolvedConfig, userFilesResult, contentResult],
   );

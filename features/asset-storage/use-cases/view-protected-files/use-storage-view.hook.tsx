@@ -1,30 +1,24 @@
 "use client";
 
-import { IFile } from "@/lib/questions/file/file-type";
 import { Result } from "@/lib/result";
-import notAllowedImageSrc from "@/public/assets/images/signs/not-allowed-image.svg";
 import { use, useCallback, useEffect, useMemo } from "react";
 import {
   AfterRenderHeaderEvent,
   AfterRenderQuestionEvent,
   ChoiceItem,
-  QuestionFileModel,
   QuestionImageModel,
   QuestionImagePickerModel,
   QuestionSignaturePadModel,
-  SurveyModel,
+  SurveyModel
 } from "survey-core";
-import { StorageConfig } from "../../infrastructure/storage-config-client";
 import {
   ContainerReadToken,
-  ProtectedFile,
   ReadTokenResult,
   SurveyModelWithTokens
 } from "../../types";
 import {
   useAssetStorage,
 } from "../../ui/asset-storage.context";
-import { isUrlFromContainer, resolveContainerFromUrl } from "../../utils";
 import { registerProtectedFilePreview } from "./ui/protected-file-preview";
 
 /**
@@ -33,38 +27,21 @@ import { registerProtectedFilePreview } from "./ui/protected-file-preview";
 function updateImageSrc(
   htmlContainer: Element,
   imageSrc: string,
-  readToken: ContainerReadToken | null,
-  config: StorageConfig | null,
+  resolveStorageUrl: (url: string) => string,
 ): void {
-  if (!config?.isPrivate) return;
+  if (!imageSrc || !htmlContainer) return;
 
-  if (!readToken) return;
-
-  if (!isUrlFromContainer(imageSrc, readToken.containerName, config)) return;
-
-  if (!htmlContainer) return;
   const image = htmlContainer.querySelector(
     `img[src="${imageSrc}"]`,
   ) as HTMLImageElement;
   if (!image) return;
 
-  const hasToken = !!readToken.token;
-  const updatedImageSrc = hasToken
-    ? `${imageSrc}?${readToken.token}`
-    : notAllowedImageSrc.src;
-  image.setAttribute("src", updatedImageSrc);
+  const resolvedUrl = resolveStorageUrl(imageSrc);
 
-  if (!hasToken) {
-    image.setAttribute(
-      "aria-label",
-      "You are not allowed to access this image",
-    );
-    image.title = "You are not allowed to access this image";
+  if (resolvedUrl !== imageSrc) {
+    image.src = resolvedUrl;
   }
 }
-
-
-
 
 interface UseStorageViewProps {
   userFiles: Promise<ReadTokenResult>;
@@ -86,7 +63,7 @@ const defaultReadTokensPromise = Promise.resolve(defaultReadTokensResult);
  * @returns The isPrivate, setModelMetadata, and registerEventHandlers functions.
  */
 export function useStorageView(promises?: UseStorageViewProps) {
-  const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
+  const { config: storageConfig, tokens: contextTokens, resolveStorageUrl } = useAssetStorage();
 
   const userFilesResult = use(
     promises?.userFiles ??
@@ -143,8 +120,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
               updateImageSrc(
                 questionHtml,
                 choice.imageLink,
-                tokens.content,
-                storageConfig,
+                resolveStorageUrl,
               );
             });
             break;
@@ -154,8 +130,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
             updateImageSrc(
               questionHtml,
               imageQuestion.imageLink,
-              tokens.content,
-              storageConfig,
+              resolveStorageUrl,
             );
             break;
           }
@@ -164,43 +139,8 @@ export function useStorageView(promises?: UseStorageViewProps) {
             updateImageSrc(
               questionHtml,
               signatureQuestion.backgroundImage,
-              tokens.content,
-              storageConfig,
+              resolveStorageUrl,
             );
-            break;
-          }
-          case "file": {
-            const fileQuestion = question as QuestionFileModel;
-            const files = Array.isArray(fileQuestion.value)
-              ? fileQuestion.value
-              : [fileQuestion.value];
-            files.forEach((file: ProtectedFile) => {
-              if (file?.content) {
-                const fileContainer = resolveContainerFromUrl(
-                  file.content,
-                  storageConfig,
-                );
-                if (fileContainer?.containerType === "CONTENT") {
-                  file.token = tokens.content?.token ?? undefined;
-                }
-                if (fileContainer?.containerType === "USER_FILES") {
-                  file.token = tokens.userFiles?.token ?? undefined;
-                }
-              }
-            });
-            const currentShownPage =
-              fileQuestion.renderedPages[fileQuestion.indexToShow];
-            if (currentShownPage) {
-              currentShownPage.items.forEach((item: IFile) => {
-                updateImageSrc(
-                  questionHtml,
-                  item.content,
-                  tokens.userFiles,
-                  storageConfig,
-                );
-              });
-            }
-
             break;
           }
           default:
@@ -216,8 +156,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
         updateImageSrc(
           header,
           sender.locLogo.renderedHtml,
-          tokens.content,
-          storageConfig,
+          resolveStorageUrl,
         );
       };
 
@@ -229,7 +168,7 @@ export function useStorageView(promises?: UseStorageViewProps) {
         model.onAfterRenderHeader.remove(onAfterRenderHeader);
       };
     },
-    [tokens, storageConfig],
+    [storageConfig, resolveStorageUrl],
   );
 
   return {

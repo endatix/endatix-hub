@@ -28,19 +28,12 @@ class ProtectedFilePreview extends SurveyFilePreview {
           }
 
           const currentShownPage = question.renderedPages[question.indexToShow];
-          if (currentShownPage) {
-            currentShownPage.items = currentShownPage.items.map(
-              (item: IFile) => {
-                const shownFile = question.value?.find(
-                  (file: IFile) => file.content === item.content,
-                );
-                if (shownFile?.token) {
-                  const content = item.content;
-                  item.content = `${content}?${shownFile.token}`;
-                }
-                return item;
-              },
-            );
+          if (currentShownPage && contextValue?.resolveStorageUrl) {
+            currentShownPage.items.forEach((item: IFile) => {
+              if (item.content) {
+                item.content = contextValue.resolveStorageUrl(item.content);
+              }
+            });
           }
 
           return super.renderElement();
