@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useAssetStorage } from '@/features/asset-storage/client';
 import { IFile } from "@/lib/questions/file/file-type";
-import { Play, Pause, Download } from "lucide-react";
+import { Download, Pause, Play } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface AudioPlayerProps {
   file: IFile | IFile[] | undefined;
@@ -18,81 +19,87 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLInputElement>(null);
+  const { resolveStorageUrl } = useAssetStorage();
 
-  const getAudioSource = (file: IFile): string => {
-    if (!file.content) {
+  const isArray = Array.isArray(file);
+  const singleFile = !isArray ? file : undefined;
+
+  const audioSource = useMemo(() => {
+    if (!singleFile?.content) {
       return "";
     }
 
-    // If content starts with 'data:' or 'http', it's already a valid source
-    if (file.content.startsWith("data:") || file.content.startsWith("http")) {
-      return file.content;
+    if (singleFile.content.startsWith("http")) {
+      return resolveStorageUrl(singleFile.content);
+    }
+
+    if (singleFile.content.startsWith("data:")) {
+      return singleFile.content;
     }
 
     // If it's Base64 content without data URL prefix, add audio MIME type
-    const mimeType = file.type || "audio/wav";
-    return `data:${mimeType};base64,${file.content}`;
-  };
+    const mimeType = singleFile.type || "audio/wav";
+    return `data:${mimeType};base64,${singleFile.content}`;
+  }, [singleFile, resolveStorageUrl]);
 
-  const handleLoadStart = () => {
+  const handleLoadStart = useCallback(() => {
     setIsLoading(true);
     setHasError(false);
-  };
+  }, []);
 
-  const handleCanPlay = () => {
+  const handleCanPlay = useCallback(() => {
     setIsLoading(false);
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
     }
-  };
+  }, []);
 
-  const handleError = () => {
+  const handleError = useCallback(() => {
     setIsLoading(false);
     setHasError(true);
-  };
+  }, []);
 
-  const handleTimeUpdate = () => {
+  const handleTimeUpdate = useCallback(() => {
     if (audioRef.current) {
       setCurrentTime(audioRef.current.currentTime);
     }
-  };
+  }, []);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
         audioRef.current.play();
       }
-      setIsPlaying(!isPlaying);
+      setIsPlaying((prev) => !prev);
     }
-  };
+  }, [isPlaying]);
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);
     if (audioRef.current) {
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
     }
-  };
+  }, []);
 
-  const handleDownload = () => {
-    if (!file || Array.isArray(file) || !file.content) return;
+  const handleDownload = useCallback(() => {
+    if (!singleFile || !audioSource) return;
 
-    const audioSource = getAudioSource(file);
     const link = document.createElement("a");
     link.href = audioSource;
-    link.download = file.name || "audio-recording";
+    link.download = singleFile.name || "audio-recording";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [singleFile, audioSource]);
 
-  const formatTime = (time: number): string => {
+  const formatTime = useCallback((time: number): string => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -105,7 +112,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         audio.removeEventListener("ended", () => setIsPlaying(false));
       };
     }
-  }, []);
+  }, [handleTimeUpdate]);
 
   // Update progress bar fill CSS custom property on the specific element
   useEffect(() => {
@@ -119,11 +126,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     return null;
   }
 
-  const isArray = Array.isArray(file);
-
   if (isArray) {
     return (
-      <div>
+      <div className="endatix_audio_list">
         {file.map((f) => (
           <AudioPlayer key={f.name} file={f} isDisplayMode={isDisplayMode} />
         ))}
@@ -147,14 +152,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       <audio
         ref={audioRef}
+        key={audioSource} // Re-mount if source changes to ensure proper loading
         className="endatix_audio_element"
-        title={file.name || "Audio recording"}
+        title={singleFile?.name || "Audio recording"}
         onLoadStart={handleLoadStart}
         onCanPlay={handleCanPlay}
         onError={handleError}
         preload="metadata"
       >
-        <source src={getAudioSource(file)} type={file.type || "audio/wav"} />
+        <source src={audioSource} type={singleFile?.type || "audio/wav"} />
         Your browser does not support the audio element.
       </audio>
 
@@ -199,7 +205,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         </div>
       )}
 
-      {file.name && <div className="endatix_audio_filename">{file.name}</div>}
+      {singleFile?.name && <div className="endatix_audio_filename">{singleFile.name}</div>}
     </div>
   );
 };
