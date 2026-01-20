@@ -481,9 +481,8 @@ function FormEditor({
               ).iconName = "icon-question-loops";
               questionLoopsCategory.title = "Question Loops";
             }
-          }
         });
-
+      
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }
