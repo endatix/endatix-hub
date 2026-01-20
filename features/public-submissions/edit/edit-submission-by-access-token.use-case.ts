@@ -1,13 +1,13 @@
 import { EndatixApi, ApiResult } from "@/lib/endatix-api";
 import { SubmissionData } from "@/features/submissions/types";
 
-export const editSubmissionByTokenUseCase = async (
+export const editSubmissionByAccessTokenUseCase = async (
   formId: string,
   token: string,
   submissionData: SubmissionData,
 ) => {
   const endatixApi = new EndatixApi();
-  const result = await endatixApi.submissions.public.updateByToken(
+  const result = await endatixApi.submissions.public.updateByAccessToken(
     formId,
     token,
     submissionData,

@@ -1,13 +1,11 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { AssetStorageProvider } from '@/features/asset-storage/server';
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
-import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
+import ViewSubmission from "@/features/submissions/ui/view/view-submission";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
-import {
-  validateEndatixId,
-} from "@/lib/utils/type-validators";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import { getActiveFormDefinition } from "@/services/api";
 import { Suspense } from "react";
 
@@ -20,7 +18,7 @@ type Params = {
   }>;
 };
 
-export default async function PublicEditSubmissionPage({
+export default async function PublicViewSubmissionPage({
   params,
   searchParams,
 }: Params) {
@@ -44,18 +42,18 @@ export default async function PublicEditSubmissionPage({
       <NotFoundComponent
         notFoundTitle="Token Required"
         notFoundSubtitle="No access token provided"
-        notFoundMessage="You need a valid access token to edit this submission."
+        notFoundMessage="You need a valid access token to view this submission."
         titleSize="medium"
       />
     );
   }
 
-  if (!hasTokenPermission(token, TokenPermission.Write)) {
+  if (!hasTokenPermission(token, TokenPermission.Read)) {
     return (
       <NotFoundComponent
         notFoundTitle="Access Denied"
-        notFoundSubtitle="You don't have permission to edit this submission"
-        notFoundMessage="The access token does not include edit permissions."
+        notFoundSubtitle="You don't have permission to view this submission"
+        notFoundMessage="The access token does not include view permissions."
         titleSize="medium"
       />
     );
@@ -74,7 +72,7 @@ export default async function PublicEditSubmissionPage({
         <NotFoundComponent
           notFoundTitle="Token Expired"
           notFoundSubtitle="This link has expired"
-          notFoundMessage="Please request a new access link to edit this submission."
+          notFoundMessage="Please request a new access link to view this submission."
           titleSize="medium"
         />
       );
@@ -124,11 +122,7 @@ export default async function PublicEditSubmissionPage({
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
-        <EditSubmission
-          submission={submission}
-          formId={validateFormIdResult.value}
-          token={token}
-        />
+        <ViewSubmission submission={submission} />
       </AssetStorageProvider>
     </Suspense>
   );

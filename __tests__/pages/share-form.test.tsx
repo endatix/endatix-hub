@@ -1,17 +1,18 @@
 import ShareFormPage from "@/app/(public)/share/[formId]/page";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { Result } from "@/lib/result";
+import { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import {
   getPartialSubmissionUseCase,
   PartialSubmissionResult,
 } from "@/features/public-form/use-cases/get-partial-submission.use-case";
-import { notFound } from "next/navigation";
+import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
+import { ApiResult, Submission } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 import { ActiveDefinition } from "@/types";
-import { ApiResult } from "@/lib/endatix-api";
-import { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
+import { render, screen } from "@testing-library/react";
+import { notFound } from "next/navigation";
 import { ScriptProps } from "next/script";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Next.js modules
 vi.mock("next/server", () => ({}));
@@ -51,6 +52,13 @@ vi.mock(
   "@/features/public-form/use-cases/get-partial-submission.use-case",
   () => ({
     getPartialSubmissionUseCase: vi.fn(),
+  }),
+);
+
+vi.mock(
+  "@/features/public-submissions/edit/get-submission-by-access-token.use-case",
+  () => ({
+    getSubmissionByAccessTokenUseCase: vi.fn(),
   }),
 );
 
@@ -187,16 +195,18 @@ describe("ShareForm Page", () => {
       timestamp: "2024-01-01T00:00:00Z",
     };
 
+    const validAccessToken = "123.1705824000.rw.abc123def456";
+
     vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
       Result.success(mockDefinition as unknown as ActiveDefinition),
     );
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.success(mockSubmission) as unknown as PartialSubmissionResult,
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.success(mockSubmission as unknown as Submission),
     );
 
     const props = {
       params: Promise.resolve({ formId: "valid-id" }),
-      searchParams: Promise.resolve({ token: "test-token" }),
+      searchParams: Promise.resolve({ token: validAccessToken }),
     };
 
     const component = await ShareFormPage(props);
