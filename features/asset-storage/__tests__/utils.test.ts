@@ -393,12 +393,82 @@ describe("enhanceUrlWithToken", () => {
     expect(result).toBe(url);
   });
 
+  it("should return original URL when url is empty string", () => {
+    const token = "sv=2021-06-08&ss=b";
+    const result = enhanceUrlWithToken("", token);
+
+    expect(result).toBe("");
+  });
+
   it("should handle token with multiple query parameters", () => {
     const url = "https://testaccount.blob.core.windows.net/content/image.jpg";
     const token = "sv=2021-06-08&ss=b&srt=sco&sp=r&se=2024-12-31T23:59:59Z";
     const result = enhanceUrlWithToken(url, token);
 
     expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco&sp=r&se=2024-12-31T23:59:59Z");
+  });
+
+  it("should be idempotent - return original URL if token already exists in query string", () => {
+    const token = "sv=2021-06-08&ss=b&srt=sco";
+    const url = `https://testaccount.blob.core.windows.net/content/image.jpg?${token}`;
+    const result = enhanceUrlWithToken(url, token);
+
+    expect(result).toBe(url);
+  });
+
+  it("should be idempotent - return original URL if token already exists with other params", () => {
+    const token = "sv=2021-06-08&ss=b";
+    const url = `https://testaccount.blob.core.windows.net/content/image.jpg?existing=param&${token}`;
+    const result = enhanceUrlWithToken(url, token);
+
+    expect(result).toBe(url);
+  });
+
+  it("should add token if only partial match exists in query string", () => {
+    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08";
+    const token = "sv=2021-06-08&ss=b&srt=sco";
+    const result = enhanceUrlWithToken(url, token);
+
+    // Should add the token because the full token string is not present
+    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&sv=2021-06-08&ss=b&srt=sco");
+  });
+
+  it("should handle token that is substring of existing query params", () => {
+    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco&extra=value";
+    const token = "sv=2021-06-08&ss=b";
+    const result = enhanceUrlWithToken(url, token);
+
+    // Should detect that the token is already present
+    expect(result).toBe(url);
+  });
+
+  it("should handle multiple calls with same token (idempotent behavior)", () => {
+    const url = "https://testaccount.blob.core.windows.net/content/image.jpg";
+    const token = "sv=2021-06-08&ss=b&srt=sco";
+
+    const firstCall = enhanceUrlWithToken(url, token);
+    const secondCall = enhanceUrlWithToken(firstCall, token);
+    const thirdCall = enhanceUrlWithToken(secondCall, token);
+
+    expect(firstCall).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco");
+    expect(secondCall).toBe(firstCall);
+    expect(thirdCall).toBe(firstCall);
+  });
+
+  it("should handle URL with existing query params and add token if not present", () => {
+    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1";
+    const token = "sv=2021-06-08&ss=b";
+    const result = enhanceUrlWithToken(url, token);
+
+    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&sv=2021-06-08&ss=b");
+  });
+
+  it("should handle URL with multiple existing query params", () => {
+    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&param2=value2";
+    const token = "sv=2021-06-08&ss=b";
+    const result = enhanceUrlWithToken(url, token);
+
+    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&param2=value2&sv=2021-06-08&ss=b");
   });
 });
 

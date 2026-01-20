@@ -3,6 +3,10 @@ import { v4 as uuidv4 } from "uuid";
 import { StorageConfig } from './client';
 import { IContainerInfo } from './types';
 
+const QUERY_STRING_START_CHAR = "?";
+const QUERY_STRING_SEPARATOR = "&";
+const FORWARD_SLASH_CHAR = "/";
+
 /**
  * Generates a unique file name by appending a UUID to the file name.
  * @param fileName - The name of the file to generate a unique name for.
@@ -51,11 +55,11 @@ function resolveContainerFromUrl(
       return null;
     }
 
-    const pathParts = urlObj.pathname.split('/').filter((part) => part.length > 0);
+    const pathParts = urlObj.pathname.split(FORWARD_SLASH_CHAR).filter((part) => part.length > 0);
     if (pathParts.length < 1) return null;
 
     const containerName = pathParts[0].toLowerCase();
-    const blobName = pathParts.slice(1).join('/');
+    const blobName = pathParts.slice(1).join(FORWARD_SLASH_CHAR);
 
     if (containerName === storageConfig.containerNames.USER_FILES) {
       return {
@@ -100,19 +104,29 @@ function isUrlFromContainer(
 
 /**
  * Enhances a URL with a SAS token, safely merging query parameters.
+ * This function is idempotent to avoid adding the same token twice.
  * @param url - The base URL
  * @param token - The SAS token (optionally starting with ?)
  * @returns The enhanced URL
  */
 function enhanceUrlWithToken(url: string, token: string | null | undefined): string {
-  if (!token) return url;
+  if (!token || !url) return url;
 
-  // Remove leading ? from token if present
   const cleanToken = token.startsWith("?") ? token.slice(1) : token;
 
-  // Use & if URL already has query params, otherwise use ?
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}${cleanToken}`;
+  const urlParts = url.split(QUERY_STRING_START_CHAR);
+
+  if (urlParts.length === 1) {
+    return `${url}${QUERY_STRING_START_CHAR}${cleanToken}`;
+  }
+
+  const queryString = urlParts[1];
+  if (queryString.includes(cleanToken)) {
+    console.debug("Token already present, returning original URL", urlParts[0]);
+    return url;
+  }
+
+  return `${url}${QUERY_STRING_SEPARATOR}${cleanToken}`;
 }
 
 /**
