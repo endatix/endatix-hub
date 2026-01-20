@@ -21,7 +21,7 @@ const IMAGE_SERVICE_CONFIG: ImageServiceConfig = Object.freeze({
     if (!width) return DEFAULT_IMAGE_WIDTH;
     const parsedWidth = Number.parseInt(width, 10);
     if (Number.isNaN(parsedWidth)) {
-      throw new Error("RESIZE_IMAGES_WIDTH must be a valid number");
+      throw new TypeError("RESIZE_IMAGES_WIDTH must be a valid number");
     }
     return parsedWidth;
   })(),
@@ -72,4 +72,5 @@ async function optimizeImageSize(
   return optimizedImageBuffer;
 }
 
-export { optimizeImageSize, IMAGE_SERVICE_CONFIG };
+export { IMAGE_SERVICE_CONFIG, optimizeImageSize };
+

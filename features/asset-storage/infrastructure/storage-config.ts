@@ -115,7 +115,6 @@ export {
   getContainerUrl,
   getStorageConfig,
   type AzureStorageConfig,
-  type ContainerType,
   type IStorageConfig
 };
 

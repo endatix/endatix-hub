@@ -4,6 +4,11 @@ import { StorageConfig } from "../infrastructure/storage-config-client";
 import { generateReadTokensAction } from "../use-cases/view-protected-files/generate-read-tokens.action";
 import { AssetStorageClientProvider, AssetStorageTokens } from "./asset-storage.context";
 
+interface AssetStorageProviderProps {
+  children: React.ReactNode;
+  config?: StorageConfig;
+  tokens?: AssetStorageTokens;
+}
 /**
  * Server Component that orchestrates Asset Storage configuration and tokens.
  * It passes the promises to the client-side provider to enable streaming.
@@ -16,13 +21,9 @@ export function AssetStorageProvider({
   children,
   config: propsConfig,
   tokens: propsTokens,
-}: {
-  children: React.ReactNode;
-  config?: StorageConfig;
-  tokens?: AssetStorageTokens;
-}) {
+}: Readonly<AssetStorageProviderProps>) {
   const serverConfig = getStorageConfig();
-  
+
   const config = propsConfig ?? {
     isEnabled: serverConfig.isEnabled,
     isPrivate: serverConfig.isPrivate,

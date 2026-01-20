@@ -136,7 +136,14 @@ function enhanceUrlWithToken(url: string, token: string | null | undefined): str
  * @returns The escaped string safe for use in RegExp constructor
  */
 function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Use String.raw to avoid backslash escaping issues
+  // Build pattern by concatenating parts to avoid ${} template literal interpretation
+  const part1 = String.raw`.*+?^$`;
+  const part2 = String.raw`{}()|`;
+  const part3 = String.raw`[\]\\`;
+  const regexPattern = `[${part1}${part2}${part3}]`;
+  const regex = new RegExp(regexPattern, 'g');
+  return value.replaceAll(regex, String.raw`\$&`);
 }
 
 /**
@@ -154,7 +161,7 @@ function extractStorageUrls(content: string | null | undefined, hostName: string
 
   // Matches https://{hostName}/{container}/{blob...}
   // Avoids capturing quotes or query parameters that might already be there
-  const regex = new RegExp(`https://${escapedHostName}/[^"\\s?]+`, 'g');
+  const regex = new RegExp(String.raw`https://${escapedHostName}/[^"\s?]+`, 'g');
   const matches: string[] = [];
   let match: RegExpExecArray | null;
 

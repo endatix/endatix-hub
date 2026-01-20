@@ -44,7 +44,7 @@ function groupUrlsByContainerType(
 
   for (const url of urls) {
     const containerInfo = resolveContainerFromUrl(url, storageConfig);
-    if (!containerInfo || !containerInfo.blobName) continue;
+    if (!containerInfo?.blobName?.length) continue;
 
     data.allUrlsMap.set(url, {
       blobName: containerInfo.blobName,
