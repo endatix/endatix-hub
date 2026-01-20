@@ -2,7 +2,7 @@ import { ItemValue, SurveyModel, ValueChangedEvent } from "survey-core";
 import { registerDynamicLoopingProperties } from "./register-dynamic-looping-properties";
 
 interface PanelItem {
-  item: string; // This will allow users to refer pipe the looped question's value by using {panel.item}
+  item: string; // This will allow users to pipe the looped question's value by using {panel.item}
   itemId: string;
 }      
 
