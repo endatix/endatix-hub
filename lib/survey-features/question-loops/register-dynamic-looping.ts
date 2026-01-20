@@ -4,7 +4,7 @@ import { registerDynamicLoopingProperties } from "./register-dynamic-looping-pro
 interface PanelItem {
   item: string; // This will allow users to pipe the looped question's value by using {panel.item}
   itemId: string;
-}      
+}
 
 export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
@@ -12,7 +12,9 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
   const shuffleArray = (array: PanelItem[]) => {
     for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const rand = new Uint32Array(1);
+      crypto.getRandomValues(rand);
+      const j = rand[0] % (i + 1);
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
@@ -59,8 +61,8 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
         const selectedValues = Array.isArray(rawValue)
           ? rawValue
           : rawValue != null
-          ? [rawValue]
-          : [];
+            ? [rawValue]
+            : [];
 
         let filtered = [];
         if (panelQuestion.choicePattern === "Selected Only") {
@@ -82,7 +84,7 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
       combinedChoices.forEach((choice) => {
         if (!seenValues.has(choice.value)) {
           seenValues.add(choice.value);
-          
+
           const itemObj = {
             item: choice.text || choice.value,
             itemId: choice.value,
