@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuestionLoopsEditing } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useEffect, useState } from "react";
@@ -28,8 +29,8 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
- 
-
+  useQuestionLoopsEditing(creator);
+  
   useEffect(() => {
     if (creator) {
       if (model && Object.keys(model).length > 0) {

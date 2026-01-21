@@ -13,6 +13,7 @@ import {
 } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
+import { useQuestionLoopsEditing } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { CreateCustomQuestionRequest } from "@/services/api";
@@ -77,8 +78,10 @@ translations.pehelp.fileNamesPrefix =
   "<b>Note:</b> The expression is evaluated for each submission prior to donwloading the files provided by the respondent. The unique question's name, for which the file was uploaded is always added to the filename.<br/><br/>" +
   "For more information on how to write expression, see <a target='_blank' class='hover:underline' href='https://surveyjs.io/survey-creator/documentation/end-user-guide/expression-syntax'>Expression Syntax</a>.";
 
-const downloadSettingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-down-icon lucide-folder-down"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m15 13-3 3-3-3"/></svg>`;
+const downloadSettingsIcon = `<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round}</style></defs><path class="st0" d="M20 20c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-7.9c-.7 0-1.3-.3-1.7-.9l-.8-1.2c-.4-.6-1-.9-1.7-.9H4c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2zm-8-10v6"/><path class="st0" d="m15 13-3 3-3-3"/></svg>`;
 SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
+const questionLoopsIcon = '<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 32 32"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px}</style></defs><path class="st0" d="M3.3 18.3V28h25.4V9.7H9.6"/><path class="st0" d="M14.4 15.5 8.6 9.7 14.7 4"/></svg>';
+SvgRegistry.registerIcon("icon-question-loops", questionLoopsIcon);
 
 const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
@@ -151,7 +154,8 @@ function FormEditor({
   }, [onUnsavedChanges]);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
-
+  useQuestionLoopsEditing(creator);
+  
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
       const json = new JsonObject().toJsonObject(element);
@@ -469,9 +473,16 @@ function FormEditor({
                 downloadSettingsCategory.title = "Download Settings";
               }
             }
-          },
-        );
-
+            const questionLoopsCategory =
+              options.survey.getPageByName("questionLoops");
+            if (questionLoopsCategory) {
+              (
+                questionLoopsCategory as unknown as { iconName: string }
+              ).iconName = "icon-question-loops";
+              questionLoopsCategory.title = "Question Loops";
+            }
+        });
+      
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }

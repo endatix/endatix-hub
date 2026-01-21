@@ -7,6 +7,7 @@ import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import {
@@ -77,6 +78,7 @@ export default function SurveyComponent({
   useSurveyTheme(theme, surveyModel);
   useRichText(surveyModel);
   useLoopAwareSummaryTable(surveyModel);
+  useQuestionLoops(surveyModel);
   useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);

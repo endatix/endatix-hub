@@ -1,6 +1,6 @@
 import { PropertyGridEditorCollection } from "survey-creator-react";
-import { RICH_TEXT_EDITOR_TYPE } from "../../questions/rich-text-editor/rich-text-editor.model";
 import { registerRichTextEditorQuestion } from "../../questions/rich-text-editor/rich-text-editor.component";
+import { RICH_TEXT_EDITOR_TYPE } from "../../questions/rich-text-editor/rich-text-editor.model";
 
 let isInitialized = false;
 
@@ -27,7 +27,6 @@ export function registerRichTextEditor() {
     },
   });
 
-  console.log("Rich text editor registered");
   isInitialized = true;
 }
 
