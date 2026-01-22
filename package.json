@@ -67,7 +67,7 @@
     "@swc/helpers": "^0.5.15",
     "@tanstack/react-table": "^8.20.6",
     "@vercel/functions": "^1.5.2",
-    "babel-plugin-react-compiler": "0.0.0-experimental-6067d4e-20240919",
+    "babel-plugin-react-compiler": "1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
