@@ -5,9 +5,27 @@ export type {
   StorageConfigClient,
 } from "./infrastructure/storage-config-client";
 export {
-  registerProtectedFilePreview,
   ProtectedFilePreview,
+  registerProtectedFilePreview,
 } from "./use-cases/view-protected-files/ui/protected-file-preview";
+export {
+  ProtectedQuestionImage,
+  registerProtectedImages,
+} from "./use-cases/view-protected-files/ui/protected-image";
+export {
+  ProtectedLogoImage,
+  ProtectedLogoImageComponent,
+  registerProtectedLogoImage,
+} from "./use-cases/view-protected-files/ui/protected-logo-image";
+export {
+  ProtectedSignaturePad,
+  registerProtectedSignaturePad,
+} from "./use-cases/view-protected-files/ui/protected-singaturepad";
+export {
+  ProtectedSurveyQuestionImagePicker,
+  ProtectedImageItemValueAdorner,
+  registerProtectedImageItem,
+} from "./use-cases/view-protected-files/ui/protected-image-item";
 export {
   AssetStorageContext,
   AssetStorageClientProvider,

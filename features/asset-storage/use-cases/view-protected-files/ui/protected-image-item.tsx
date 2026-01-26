@@ -129,4 +129,8 @@ function registerProtectedImageItem() {
   isRegistered = true;
 }
 
-export { registerProtectedImageItem };
+export {
+  ProtectedSurveyQuestionImagePicker,
+  ProtectedImageItemValueAdorner,
+  registerProtectedImageItem,
+};

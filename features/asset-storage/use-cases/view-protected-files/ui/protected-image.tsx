@@ -38,4 +38,4 @@ function registerProtectedImages() {
   isRegistered = true;
 }
 
-export { registerProtectedImages };
+export { ProtectedQuestionImage, registerProtectedImages };

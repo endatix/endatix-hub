@@ -4,11 +4,13 @@ import { useCallback, useState, useEffect } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { useContentUpload } from "../../use-cases/upload-content-files/use-content-upload.hook";
 import { useAssetStorage, AssetStorageTokens } from "../asset-storage.context";
-import { registerProtectedFilePreview } from "../../use-cases/view-protected-files/ui/protected-file-preview";
-import { registerProtectedSignaturePad } from "../../use-cases/view-protected-files/ui/protected-singaturepad";
-import { registerProtectedImageItem } from "../../use-cases/view-protected-files/ui/protected-image-item";
-import { registerProtectedLogoImage } from "../../use-cases/view-protected-files/ui/protected-logo-image";
-import { registerProtectedImages } from "../../use-cases/view-protected-files/ui/protected-image";
+import {
+  registerProtectedFilePreview,
+  registerProtectedImageItem,
+  registerProtectedLogoImage,
+  registerProtectedSignaturePad,
+  registerProtectedImages,
+} from "../../client";
 
 interface UseStorageWithCreatorProps {
   itemId: string;

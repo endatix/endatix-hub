@@ -97,4 +97,8 @@ function registerProtectedLogoImage() {
   isRegistered = true;
 }
 
-export { registerProtectedLogoImage };
+export {
+  ProtectedLogoImage,
+  ProtectedLogoImageComponent,
+  registerProtectedLogoImage,
+};
