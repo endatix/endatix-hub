@@ -9,17 +9,7 @@ import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import { StorageConfig } from "@/features/asset-storage/client";
 
 // Mock the hooks
-const mockRegisterViewHandlers = vi.fn();
 const mockRegisterUploadHandlers = vi.fn();
-
-vi.mock(
-  "@/features/asset-storage/use-cases/view-protected-files/use-creator-view.hook",
-  () => ({
-    useCreatorView: () => ({
-      registerViewHandlers: mockRegisterViewHandlers,
-    }),
-  }),
-);
 
 vi.mock(
   "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook",
@@ -55,10 +45,9 @@ const createReadTokenPromises = () => {
   };
 };
 
-describe("useCreatorStorage", () => {
+describe("useStorageWithCreator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRegisterViewHandlers.mockReturnValue(() => { });
     mockRegisterUploadHandlers.mockReturnValue(() => { });
   });
 
@@ -102,6 +91,7 @@ describe("useCreatorStorage", () => {
       const disabledConfig: StorageConfig = {
         isEnabled: false,
         isPrivate: false,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -134,7 +124,6 @@ describe("useCreatorStorage", () => {
         unregister = result.current.registerStorageHandlers(creator);
       });
       expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
-      expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
       unregister();
     });
 
@@ -142,6 +131,7 @@ describe("useCreatorStorage", () => {
       const publicConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: false,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -172,7 +162,6 @@ describe("useCreatorStorage", () => {
         unregister = result.current.registerStorageHandlers(creator);
       });
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
-      expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
       unregister();
     });
 
@@ -180,6 +169,7 @@ describe("useCreatorStorage", () => {
       const privateConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: true,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -210,7 +200,6 @@ describe("useCreatorStorage", () => {
         unregister = result.current.registerStorageHandlers(creator);
       });
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
-      expect(mockRegisterViewHandlers).toHaveBeenCalledWith(creator);
       unregister();
     });
   });
