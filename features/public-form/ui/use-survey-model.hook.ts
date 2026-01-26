@@ -62,9 +62,9 @@ export function useSurveyModel(
   useEffect(() => {
     if (submission && surveyModel) {
       try {
+        setFromMetadata(submission.metadata);
         surveyModel.data = JSON.parse(submission.jsonData);
         surveyModel.currentPageNo = submission.currentPage ?? 0;
-        setFromMetadata(submission.metadata);
       } catch (error) {
         console.debug("Failed to parse submission data", error);
         setError("Failed to parse submission data");

@@ -10,6 +10,7 @@ interface UseSearchParamsVarsOptions {
   debugMode?: boolean;
 }
 
+const IGNORED_PARAMS = new Set(["token", "theme", "language", "lang"]);
 /**
  * React hook for processing search parameters as dynamic variables for a survey model.
  *
@@ -34,7 +35,7 @@ export const useSearchParamsVariables = (
   onSetVariables?: (vars: Record<string, DynamicVariable>) => void,
   options?: UseSearchParamsVarsOptions,
 ) => {
-  const { removeAfterProcessing = true, debugMode = false } = options ?? {};
+  const { removeAfterProcessing = false, debugMode = false } = options ?? {};
   const searchParams = useSearchParams();
   const router = useRouter();
   const { enqueueSubmission } = useSubmissionQueue(formId);
@@ -47,8 +48,7 @@ export const useSearchParamsVariables = (
     const searchParamsVars: Record<string, DynamicVariable> = {};
 
     searchParams.forEach((value, key) => {
-      // Skip 'token' parameter as it's used for submission prefill, not as a variable
-      if (key !== "token") {
+      if (key.length > 0 && !IGNORED_PARAMS.has(key)) {
         searchParamsVars[key] = value;
       }
     });
@@ -73,12 +73,11 @@ export const useSearchParamsVariables = (
     onSetVariables?.(searchParamsVars);
 
     const surveyVars: Record<string, DynamicVariable> = {};
-    
+
     model.getVariableNames().forEach((name) => {
       surveyVars[name] = model.getVariable(name);
     });
 
-    
     const submissionData: SubmissionData = {
       metadata: JSON.stringify({
         variables: surveyVars,
@@ -110,9 +109,9 @@ export const useSearchParamsVariables = (
       });
     }
   }, [
+    model,
     searchParams,
     onSetVariables,
-    model,
     enqueueSubmission,
     removeAfterProcessing,
     debugMode,
