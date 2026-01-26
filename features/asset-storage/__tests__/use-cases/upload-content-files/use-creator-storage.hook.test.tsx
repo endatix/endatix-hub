@@ -2,24 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { useCreatorStorage } from "@/features/asset-storage/client";
+import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import { StorageConfig } from "@/features/asset-storage/client";
 
 // Mock the hooks
-const mockRegisterViewHandlers = vi.fn();
 const mockRegisterUploadHandlers = vi.fn();
-
-vi.mock(
-  "@/features/asset-storage/use-cases/view-protected-files/use-creator-view.hook",
-  () => ({
-    useCreatorView: () => ({
-      registerViewHandlers: mockRegisterViewHandlers,
-    }),
-  }),
-);
 
 vi.mock(
   "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook",
@@ -55,10 +45,9 @@ const createReadTokenPromises = () => {
   };
 };
 
-describe("useCreatorStorage", () => {
+describe("useStorageWithCreator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRegisterViewHandlers.mockReturnValue(() => { });
     mockRegisterUploadHandlers.mockReturnValue(() => { });
   });
 
@@ -82,7 +71,7 @@ describe("useCreatorStorage", () => {
   it("should return registerStorageHandlers function", async () => {
     const { result } = renderHook(
       () =>
-        useCreatorStorage({
+        useStorageWithCreator({
           itemId: "test-item",
           itemType: "form",
         }),
@@ -102,6 +91,7 @@ describe("useCreatorStorage", () => {
       const disabledConfig: StorageConfig = {
         isEnabled: false,
         isPrivate: false,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -114,7 +104,7 @@ describe("useCreatorStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useCreatorStorage({
+            useStorageWithCreator({
               itemId: "test-item",
               itemType: "form",
               readTokenPromises,
@@ -134,7 +124,6 @@ describe("useCreatorStorage", () => {
         unregister = result.current.registerStorageHandlers(creator);
       });
       expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
-      expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
       unregister();
     });
 
@@ -142,6 +131,7 @@ describe("useCreatorStorage", () => {
       const publicConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: false,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -154,7 +144,7 @@ describe("useCreatorStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useCreatorStorage({
+            useStorageWithCreator({
               itemId: "test-item",
               itemType: "form",
               readTokenPromises,
@@ -172,7 +162,6 @@ describe("useCreatorStorage", () => {
         unregister = result.current.registerStorageHandlers(creator);
       });
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
-      expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
       unregister();
     });
 
@@ -180,6 +169,7 @@ describe("useCreatorStorage", () => {
       const privateConfig: StorageConfig = {
         isEnabled: true,
         isPrivate: true,
+        protocol: "https",
         hostName: "testaccount.blob.core.windows.net",
         containerNames: {
           USER_FILES: "user-files",
@@ -192,7 +182,7 @@ describe("useCreatorStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useCreatorStorage({
+            useStorageWithCreator({
               itemId: "test-item",
               itemType: "form",
               readTokenPromises,
@@ -210,7 +200,6 @@ describe("useCreatorStorage", () => {
         unregister = result.current.registerStorageHandlers(creator);
       });
       expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
-      expect(mockRegisterViewHandlers).toHaveBeenCalledWith(creator);
       unregister();
     });
   });

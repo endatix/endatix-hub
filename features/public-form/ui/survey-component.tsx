@@ -1,7 +1,7 @@
 "use client";
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import { useSurveyStorage } from '@/features/asset-storage/client';
+import { useStorageWithSurvey } from '@/features/asset-storage/client';
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
@@ -83,7 +83,7 @@ export default function SurveyComponent({
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
 
-  const { registerStorageHandlers, isStorageReady } = useSurveyStorage({
+  const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
     model: surveyModel,
     formId,
     submissionId,

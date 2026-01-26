@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyModel } from "survey-core";
-import { useSurveyStorage } from "@/features/asset-storage/client";
+import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
@@ -87,7 +87,7 @@ describe("useSurveyStorage", () => {
     const model = createMockSurveyModel();
     const { result } = renderHook(
       () =>
-        useSurveyStorage({
+        useStorageWithSurvey({
           model,
           formId: "test-form",
         }),
@@ -127,7 +127,7 @@ describe("useSurveyStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useSurveyStorage({
+            useStorageWithSurvey({
               model,
               formId: "test-form",
               readTokenPromises,
@@ -168,7 +168,7 @@ describe("useSurveyStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useSurveyStorage({
+            useStorageWithSurvey({
               model,
               formId: "test-form",
               readTokenPromises,
@@ -208,7 +208,7 @@ describe("useSurveyStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useSurveyStorage({
+            useStorageWithSurvey({
               model,
               formId: "test-form",
               readTokenPromises,
@@ -253,7 +253,7 @@ describe("useSurveyStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useSurveyStorage({
+            useStorageWithSurvey({
               model,
               formId: "test-form",
               readTokenPromises,

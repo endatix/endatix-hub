@@ -3,9 +3,10 @@ import { renderHook, act } from "@testing-library/react";
 import React from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import {
-  useContentUpload,
   AssetStorageClientProvider,
+  StorageConfig,
 } from "@/features/asset-storage/client";
+import { useContentUpload } from "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook";
 import { Result } from "@/lib/result";
 
 // Mock the action
@@ -34,7 +35,9 @@ describe("useContentUpload", () => {
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <AssetStorageClientProvider config={mockStorageConfig}>
+    <AssetStorageClientProvider
+      config={mockStorageConfig as unknown as StorageConfig}
+    >
       {children}
     </AssetStorageClientProvider>
   );

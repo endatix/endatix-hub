@@ -6,7 +6,7 @@ import {
   StorageConfig,
 } from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
-import { screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QuestionFileModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,10 +17,12 @@ const mockRenderElement = vi.fn(() => {
   return React.createElement("div", { "data-testid": "default-preview" }, "Default Preview");
 });
 
-vi.mock("survey-react-ui", async () => {
+vi.mock("survey-react-ui", async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = await import("react");
+  const actual = await importOriginal<typeof import("survey-react-ui")>();
   return {
+    ...actual,
     SurveyFilePreview: class MockSurveyFilePreview extends React.Component {
       protected renderElement() {
         return mockRenderElement();
@@ -42,13 +44,22 @@ const renderWithContext = (
   if (contextValue === undefined) {
     return renderSurveyJsComponent(ProtectedFilePreview, question);
   }
-  return renderSurveyJsComponent<AssetStorageContextValue>(
-    ProtectedFilePreview,
-    question,
-    {
-      ContextProvider: AssetStorageContext.Provider,
-      contextValue,
-    },
+  
+  // Create instance and manually set context since renderElement is called directly
+  const instance = new ProtectedFilePreview({ question });
+  if (contextValue) {
+    // Manually set the context on the instance
+    (instance as any).context = contextValue;
+  }
+  
+  // Call renderElement to trigger the modification logic
+  const view = instance.renderElement();
+  
+  // Render the result with context provider for any child components
+  return render(
+    <AssetStorageContext.Provider value={contextValue}>
+      {view}
+    </AssetStorageContext.Provider>,
   );
 };
 
@@ -190,6 +201,14 @@ describe("ProtectedFilePreview", () => {
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
 
+      // Verify resolveStorageUrl was called with the correct URLs
+      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
+        "https://testaccount.blob.core.windows.net/content/file1.pdf",
+      );
+      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
+        "https://testaccount.blob.core.windows.net/content/file2.jpg",
+      );
+
       // Verify items were modified with tokens via resolveStorageUrl
       expect(mockQuestion.renderedPages[0].items[0].content).toBe(
         "https://testaccount.blob.core.windows.net/content/file1.pdf?token-123",
@@ -315,6 +334,14 @@ describe("ProtectedFilePreview", () => {
       });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
+
+      // Verify resolveStorageUrl was called for both items
+      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
+        "https://testaccount.blob.core.windows.net/content/file1.pdf",
+      );
+      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
+        "https://testaccount.blob.core.windows.net/content/file2.jpg",
+      );
 
       // Verify only the item with token was modified
       expect(questionWithPartialTokens.renderedPages[0].items[0].content).toBe(

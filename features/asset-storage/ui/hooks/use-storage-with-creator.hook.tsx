@@ -2,40 +2,46 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { useContentUpload } from "./use-content-upload.hook";
-import { useCreatorView } from "../view-protected-files/use-creator-view.hook";
+import { useContentUpload } from "../../use-cases/upload-content-files/use-content-upload.hook";
+import { useAssetStorage, AssetStorageTokens } from "../asset-storage.context";
 import {
-  useAssetStorage,
-  AssetStorageTokens,
-} from "../../ui/asset-storage.context";
-import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
+  registerProtectedFilePreview,
+  registerProtectedImageItem,
+  registerProtectedLogoImage,
+  registerProtectedSignaturePad,
+  registerProtectedImages,
+} from "../../client";
 
-interface UseCreatorStorageProps {
+interface UseStorageWithCreatorProps {
   itemId: string;
   itemType: "form" | "template";
   readTokenPromises?: AssetStorageTokens;
 }
 
 /**
- * Hook to provide storage feature activation for SurveyJS Creator.
+ * Orchestrator hook for storage functionality with SurveyCreatorModel.
+ * Handles all storage-related event handlers (upload and view) for content type.
  * @returns {Object} { registerStorageHandlers, isStorageReady } - Function to register all storage event handlers and readiness flag.
  */
-export function useCreatorStorage({
+export function useStorageWithCreator({
   itemId,
   itemType,
-  readTokenPromises: propsReadTokenPromises,
-}: UseCreatorStorageProps) {
-  const { tokens: contextTokens, config: storageConfig } = useAssetStorage();
-  const readTokenPromises = propsReadTokenPromises ?? contextTokens;
+}: UseStorageWithCreatorProps) {
+  const { config: storageConfig } = useAssetStorage();
 
   const [isStorageReady, setIsStorageReady] = useState(false);
 
   const { registerUploadHandlers } = useContentUpload({ itemId, itemType });
-  const { registerViewHandlers } = useCreatorView({ readTokenPromises });
 
   useEffect(() => {
-    registerProtectedFilePreview();
-  }, []);
+    if (storageConfig?.isPrivate) {
+      registerProtectedFilePreview();
+      registerProtectedSignaturePad();
+      registerProtectedImageItem();
+      registerProtectedLogoImage();
+      registerProtectedImages();
+    }
+  }, [storageConfig?.isPrivate]);
 
   /**
    * Registers all storage-related handlers (upload and view) to the provided creator.
@@ -44,28 +50,20 @@ export function useCreatorStorage({
    */
   const registerStorageHandlers = useCallback(
     (creator: SurveyCreatorModel) => {
-      // If storage is disabled, we consider storage "ready" immediately
       if (!storageConfig?.isEnabled) {
         setIsStorageReady(true);
-        return () => { };
+        return () => {};
       }
 
       const unregisterUpload = registerUploadHandlers(creator);
-      let unregisterView = () => { };
-
-      if (storageConfig.isPrivate) {
-        unregisterView = registerViewHandlers(creator);
-      }
-
       setIsStorageReady(true);
 
       return () => {
         setIsStorageReady(false);
         unregisterUpload?.();
-        unregisterView?.();
       };
     },
-    [storageConfig?.isEnabled, storageConfig?.isPrivate, registerUploadHandlers, registerViewHandlers],
+    [storageConfig?.isEnabled, registerUploadHandlers],
   );
 
   return { registerStorageHandlers, isStorageReady };

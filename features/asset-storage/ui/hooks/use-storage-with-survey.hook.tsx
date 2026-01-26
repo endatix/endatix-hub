@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SurveyModel } from "survey-core";
-import { useStorageView } from "../view-protected-files/use-storage-view.hook";
-import { useStorageUpload } from "./use-storage-upload.hook";
-import {
-  useAssetStorage,
-  AssetStorageTokens,
-} from "../../ui/asset-storage.context";
-import { registerProtectedFilePreview } from "../view-protected-files/ui/protected-file-preview";
+import { useStorageView } from "../../use-cases/view-protected-files/use-storage-view.hook";
+import { useStorageUpload } from "../../use-cases/upload-user-files/use-storage-upload.hook";
+import { useAssetStorage, AssetStorageTokens } from "../asset-storage.context";
+import { registerProtectedFilePreview } from "../../use-cases/view-protected-files/ui/protected-file-preview";
 
 interface UseSurveyStorageProps {
   model: SurveyModel | null;
@@ -19,20 +16,20 @@ interface UseSurveyStorageProps {
 }
 
 /**
- * Hook to provide storage feature activation for a SurveyModel.
+ * Orchestrator hook to activate and configure storage functionality with SurveyModel
  * @returns {Object} { registerStorageHandlers, isStorageReady } - Function to register all storage event handlers and readiness flag.
  */
-export function useSurveyStorage({
+export function useStorageWithSurvey({
   model,
   formId,
   submissionId,
   onSubmissionIdChange,
   readTokenPromises: propsReadTokenPromises,
 }: UseSurveyStorageProps) {
+  const [isStorageReady, setIsStorageReady] = useState(false);
   const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
   const readTokenPromises = propsReadTokenPromises ?? contextTokens;
 
-  const [isStorageReady, setIsStorageReady] = useState(false);
   const { setModelMetadata, registerViewHandlers } =
     useStorageView(readTokenPromises);
   const { registerUploadHandlers } = useStorageUpload({
@@ -43,15 +40,15 @@ export function useSurveyStorage({
     readTokenPromises,
   });
 
-  useEffect(() => {
-    registerProtectedFilePreview();
-  }, []);
-
   useMemo(() => {
     if (model) {
       setModelMetadata(model);
     }
   }, [model, setModelMetadata]);
+
+  useEffect(() => {
+    registerProtectedFilePreview();
+  }, []);
 
   /**
    * Registers all storage-related handlers (upload and view) to the provided model.
@@ -60,13 +57,13 @@ export function useSurveyStorage({
    */
   const registerStorageHandlers = useCallback(
     (surveyModel: SurveyModel) => {
-      if (!readTokenPromises || !storageConfig?.isEnabled) {
+      if (!storageConfig?.isEnabled) {
         setIsStorageReady(true);
-        return () => { };
+        return () => {};
       }
 
       const unregisterUpload = registerUploadHandlers(surveyModel);
-      let unregisterView = () => { };
+      let unregisterView = () => {};
 
       if (storageConfig.isPrivate) {
         unregisterView = registerViewHandlers(surveyModel);
@@ -80,12 +77,7 @@ export function useSurveyStorage({
         unregisterView?.();
       };
     },
-    [
-      storageConfig,
-      readTokenPromises,
-      registerUploadHandlers,
-      registerViewHandlers,
-    ],
+    [storageConfig, registerUploadHandlers, registerViewHandlers],
   );
 
   return { registerStorageHandlers, isStorageReady };

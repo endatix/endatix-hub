@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SurveyComponent from "../survey-component";
 import { SurveyModel, CompleteEvent } from "survey-core";
@@ -49,15 +49,10 @@ vi.mock("@/features/analytics/posthog/client", () => ({
 }));
 
 vi.mock("@/features/asset-storage/client", () => ({
-  useSurveyStorage: vi.fn(() => ({
+  useStorageWithSurvey: vi.fn(() => ({
     registerStorageHandlers: vi.fn(() => () => {}),
     isStorageReady: true,
   })),
-  useAssetStorage: vi.fn(() => ({ config: null, tokens: undefined })),
-  AssetStorageClientProvider: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-  registerProtectedFilePreview: vi.fn(),
 }));
 
 vi.mock("./use-survey-theme.hook", () => ({
@@ -223,7 +218,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     expect(mockSubmitFormAction).toHaveBeenCalledTimes(1);
     expect(mockClearQueue).toHaveBeenCalledTimes(1);
     expect(completeEventMocks.showSaveInProgress).toHaveBeenCalled();
-    
+
     // Act: Any subsequent partial update should be blocked
     await act(async () => {
       firePartialUpdate();
@@ -232,7 +227,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     // Assert
     expect(mockEnqueueSubmission).not.toHaveBeenCalled();
     await expect(completeEventMocks.showSaveSuccess).toHaveBeenCalled();
-   
+
     // Act: firing another partial update
     await act(async () => {
       firePartialUpdate();

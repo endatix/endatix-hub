@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
-import {
-  useStorageUpload,
-  AssetStorageClientProvider,
-} from "@/features/asset-storage/client";
+import { AssetStorageClientProvider } from "@/features/asset-storage/client";
+import { useStorageUpload } from "@/features/asset-storage/use-cases/upload-user-files/use-storage-upload.hook";
 import {
   SurveyModel,
   UploadFilesEvent,

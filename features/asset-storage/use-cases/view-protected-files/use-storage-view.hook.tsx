@@ -58,7 +58,7 @@ const defaultReadTokensResult = Result.success<ContainerReadToken>({
 const defaultReadTokensPromise = Promise.resolve(defaultReadTokensResult);
 
 /**
- * Custom hook to handle viewing files from storage.
+ * Custom hook to handle viewing protected files from storage.
  * @param promises - The promises to use to get the read tokens. If not provided, it will try to get them from the StorageConfigContext.
  * @returns The isPrivate, setModelMetadata, and registerEventHandlers functions.
  */

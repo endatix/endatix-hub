@@ -1,13 +1,13 @@
 "use client";
 
-import { useSurveyStorage } from '@/features/asset-storage/client';
+import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
-import { useQuestionLoops } from '@/lib/survey-features/question-loops';
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichText } from "@/lib/survey-features/rich-text";
-import { useLoopAwareSummaryTable } from '@/lib/survey-features/summary-table';
+import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { useEffect } from "react";
 import {
   DynamicPanelItemValueChangedEvent,
@@ -40,16 +40,20 @@ function SubmissionSurvey({
   readOnly = false,
   onChange,
 }: Readonly<SubmissionSurveyProps>) {
-  const { model, isLoading } = useSurveyModel(submission, customQuestions, readOnly);
+  const { model, isLoading } = useSurveyModel(
+    submission,
+    customQuestions,
+    readOnly,
+  );
   const { setFromMetadata } = useDynamicVariables(model);
+  const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
+    model: model,
+    formId: submission.formId,
+    submissionId: submission.id,
+  });
   useRichText(model);
   useLoopAwareSummaryTable(model);
   useQuestionLoops(model);
-  const { registerStorageHandlers, isStorageReady } = useSurveyStorage({
-    model: model,
-    formId: submission.formId,
-    submissionId: submission.id
-  });
 
   useEffect(() => {
     if (!model) {
@@ -73,7 +77,14 @@ function SubmissionSurvey({
         model.onMatrixCellValueChanged.remove(onChange);
       };
     }
-  }, [model, onChange, setFromMetadata, submission.metadata, readOnly, registerStorageHandlers]);
+  }, [
+    model,
+    onChange,
+    setFromMetadata,
+    submission.metadata,
+    readOnly,
+    registerStorageHandlers,
+  ]);
 
   if (isLoading || !isStorageReady) {
     return (
