@@ -12,34 +12,31 @@ let isRegistered = false;
  * It will also add the token to the file content if the file is in private storage.
  */
 class ProtectedFilePreview extends SurveyFilePreview {
+  declare context: React.ContextType<typeof AssetStorageContext>;
+
   protected get question(): QuestionFileModel {
     return this.props.question;
   }
 
   protected renderElement(): React.JSX.Element | null {
     const question = this.question;
+    const config = this.context?.config;
+    if (!config?.isEnabled || !config?.isPrivate) {
+      return super.renderElement();
+    }
 
-    return (
-      <AssetStorageContext.Consumer>
-        {(contextValue) => {
-          const config = contextValue?.config;
-          if (!config?.isEnabled || !config?.isPrivate) {
-            return super.renderElement();
-          }
+    const resolveStorageUrl = this.context?.resolveStorageUrl;
 
-          const currentShownPage = question.renderedPages[question.indexToShow];
-          if (currentShownPage && contextValue?.resolveStorageUrl) {
-            currentShownPage.items.forEach((item: IFile) => {
-              if (item.content) {
-                item.content = contextValue.resolveStorageUrl(item.content);
-              }
-            });
-          }
+    const currentShownPage = question.renderedPages[question.indexToShow];
+    if (currentShownPage && resolveStorageUrl) {
+      currentShownPage.items.forEach((item: IFile) => {
+        if (item.content) {
+          item.content = resolveStorageUrl(item.content);
+        }
+      });
+    }
 
-          return super.renderElement();
-        }}
-      </AssetStorageContext.Consumer>
-    );
+    return super.renderElement();
   }
 }
 
@@ -49,9 +46,9 @@ function registerProtectedFilePreview() {
   ReactElementFactory.Instance.registerElement("sv-file-preview", (props) => {
     return React.createElement(ProtectedFilePreview, props);
   });
+  ProtectedFilePreview.contextType = AssetStorageContext;
 
   isRegistered = true;
 }
 
 export { ProtectedFilePreview, registerProtectedFilePreview };
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSurveyStorage } from '@/features/asset-storage/client';
+import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
@@ -38,13 +38,17 @@ function SubmissionSurvey({
   readOnly = false,
   onChange,
 }: Readonly<SubmissionSurveyProps>) {
-  const { model, isLoading } = useSurveyModel(submission, customQuestions, readOnly);
+  const { model, isLoading } = useSurveyModel(
+    submission,
+    customQuestions,
+    readOnly,
+  );
   const { setFromMetadata } = useDynamicVariables(model);
   useRichText(model);
-  const { registerStorageHandlers, isStorageReady } = useSurveyStorage({
+  const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
     model: model,
     formId: submission.formId,
-    submissionId: submission.id
+    submissionId: submission.id,
   });
 
   useEffect(() => {
@@ -69,7 +73,14 @@ function SubmissionSurvey({
         model.onMatrixCellValueChanged.remove(onChange);
       };
     }
-  }, [model, onChange, setFromMetadata, submission.metadata, readOnly, registerStorageHandlers]);
+  }, [
+    model,
+    onChange,
+    setFromMetadata,
+    submission.metadata,
+    readOnly,
+    registerStorageHandlers,
+  ]);
 
   if (isLoading || !isStorageReady) {
     return (

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
-import { useCreatorStorage } from "@/features/asset-storage/client";
+import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
@@ -82,7 +82,7 @@ describe("useCreatorStorage", () => {
   it("should return registerStorageHandlers function", async () => {
     const { result } = renderHook(
       () =>
-        useCreatorStorage({
+        useStorageWithCreator({
           itemId: "test-item",
           itemType: "form",
         }),
@@ -114,7 +114,7 @@ describe("useCreatorStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useCreatorStorage({
+            useStorageWithCreator({
               itemId: "test-item",
               itemType: "form",
               readTokenPromises,
@@ -154,7 +154,7 @@ describe("useCreatorStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useCreatorStorage({
+            useStorageWithCreator({
               itemId: "test-item",
               itemType: "form",
               readTokenPromises,
@@ -192,7 +192,7 @@ describe("useCreatorStorage", () => {
       await act(async () => {
         const view = renderHook(
           () =>
-            useCreatorStorage({
+            useStorageWithCreator({
               itemId: "test-item",
               itemType: "form",
               readTokenPromises,

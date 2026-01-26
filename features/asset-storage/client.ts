@@ -17,11 +17,10 @@ export {
 } from "./ui/asset-storage.context";
 
 // Hooks
+export { useStorageWithSurvey } from "./ui/hooks/use-storage-with-survey.hook";
 export { useStorageWithCreator } from "./ui/hooks/use-storage-with-creator.hook";
-export { useContentUpload } from "./use-cases/upload-content-files/use-content-upload.hook";
-export { useStorageUpload } from "./use-cases/upload-user-files/use-storage-upload.hook";
 export { useStorageView } from "./use-cases/view-protected-files/use-storage-view.hook";
-export { useSurveyStorage } from "./use-cases/upload-user-files/use-survey-storage.hook";
+
 export {
   enrichImageInJSX,
   enrichImagesInContainer,
