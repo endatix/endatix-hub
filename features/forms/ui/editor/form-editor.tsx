@@ -3,7 +3,7 @@
 import { endatixTheme } from "@/components/editors/endatix-theme";
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
-import { useCreatorStorage } from '@/features/asset-storage/client';
+import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -138,7 +138,7 @@ function FormEditor({
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { registerStorageHandlers } = useCreatorStorage({
+  const { registerStorageHandlers, isStorageReady } = useStorageWithCreator({
     itemId: formId,
     itemType: "form",
   });
@@ -173,11 +173,11 @@ function FormEditor({
           ...(element.getType() === "panel"
             ? { elementsJSON: json.elements }
             : {
-              questionJSON: {
-                ...json,
-                type: element.getType(),
-              },
-            }),
+                questionJSON: {
+                  ...json,
+                  type: element.getType(),
+                },
+              }),
         }),
       };
 
@@ -358,9 +358,11 @@ function FormEditor({
 
         const surveyDefinition = JSON.parse(
           `{"pages":[{"name":"page1","elements":[
-          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${element.name
+          {"type":"html","name":"description","html":"<p class='text-muted-foreground'>You are about to save <b>&quot;${
+            element.name
           }&quot;</b> as a custom question.</p>"},
-          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${isDefaultName ? "" : element.name
+          {"type":"text","name":"question_name","title":"Enter a unique name for the custom question","requiredIf":"true","requiredErrorText":"Question name is required","placeholder":"${
+            isDefaultName ? "" : element.name
           }","defaultValue":"${isDefaultName ? "" : element.name}"},
           {"type":"text","name":"question_title","title":"Enter the custom question title","requiredIf":"true","requiredErrorText":"Question title is required","placeholder":"${defaultTitle}","defaultValue":"${defaultTitle}"}
         ]}],"showNavigationButtons":false,"questionErrorLocation":"bottom","requiredText":"*"}`,
@@ -623,9 +625,11 @@ function FormEditor({
     creator.JSON = formJson;
   }, [creator, formJson]);
 
+  const isCreatorLoading = isLoading || !isStorageReady;
+
   return (
     <div id="creator">
-      {isLoading ? (
+      {isCreatorLoading ? (
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -642,4 +646,3 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
-
