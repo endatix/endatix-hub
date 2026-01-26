@@ -30,13 +30,11 @@ function enrichImageElement(
   let originalSrc: string;
   if (storedOriginal) {
     const previouslyResolved = resolveStorageUrl(storedOriginal);
-    // If the current src differs from what we previously resolved,
-    // it means the source URL has changed (e.g., SurveyJS updated it)
-    if (currentSrc !== previouslyResolved) {
+    if (currentSrc === previouslyResolved) {
+      originalSrc = storedOriginal;
+    } else {
       originalSrc = currentSrc;
       img.setAttribute(ORIGINAL_SRC_ATTRIBUTE, originalSrc);
-    } else {
-      originalSrc = storedOriginal;
     }
   } else {
     originalSrc = currentSrc;
@@ -115,8 +113,7 @@ function enrichElement(
   if (!urlResolverFn) return element;
 
   if (isImgElement(element)) {
-    const { src, [ORIGINAL_SRC_ATTRIBUTE]: storedOriginal } =
-      element.props as ImageElementProps;
+    const { src, [ORIGINAL_SRC_ATTRIBUTE]: storedOriginal } = element.props;
 
     if (!src || storedOriginal) {
       return element;

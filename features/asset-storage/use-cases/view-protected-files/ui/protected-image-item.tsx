@@ -4,9 +4,12 @@ import {
   enrichImagesInContainer,
 } from "@/features/asset-storage/client";
 import * as React from "react";
-import { ReactElementFactory, ReactQuestionFactory } from "survey-react-ui";
-import { SurveyQuestionImagePicker } from "survey-react-ui";
-import { ImageItemValue, SurveyModel } from "survey-core";
+import {
+  ReactElementFactory,
+  ReactQuestionFactory,
+  SurveyQuestionImagePicker,
+} from "survey-react-ui";
+import { ImageItemValue } from "survey-core";
 import { ImageItemValueAdornerComponent } from "survey-creator-react";
 
 let isRegistered = false;
@@ -43,7 +46,9 @@ class ProtectedSurveyQuestionImagePicker extends SurveyQuestionImagePicker {
       ctx?.config?.isEnabled && ctx.config.isPrivate && ctx.resolveStorageUrl;
 
     if (isPrivatedStorageEnabled && item.locImageLink.renderedHtml) {
-      const enrichedImageLink = ctx.resolveStorageUrl(item.locImageLink.renderedHtml);
+      const enrichedImageLink = ctx.resolveStorageUrl(
+        item.locImageLink.renderedHtml,
+      );
       if (enrichedImageLink === item.locImageLink.renderedHtml) {
         return super.renderItem(item, cssClasses);
       }
