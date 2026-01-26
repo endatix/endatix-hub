@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { FormTemplate } from "@/types";
@@ -21,6 +22,7 @@ export default function SurveyPreviewComponent({
   const [error, setError] = useState<string | null>(null);
   useRichText(model);
   useLoopAwareSummaryTable(model);
+  useQuestionLoops(model);
 
   const { setModelMetadata, registerViewHandlers } = useStorageView();
 
