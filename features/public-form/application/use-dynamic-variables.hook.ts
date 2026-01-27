@@ -4,8 +4,7 @@ import { SurveyModel } from "survey-react-ui";
 
 /**
  * Pure function to apply variables from metadata to a SurveyJS model.
- * Use this during atomic initialization (the "bake" phase) to ensure
- * variables are set before the model is exposed to React state.
+ * To be used during model initialization phase before the model is rendered
  *
  * @param model The SurveyModel instance to update.
  * @param metadata The JSON string containing metadata variables.
