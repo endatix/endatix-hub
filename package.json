@@ -112,7 +112,7 @@
     "@vitest/ui": "^3.2.4",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
-    "eslint-config-next": "16.1.5",
+    "eslint-config-next": "15.5.10",
     "eslint-plugin-testing-library": "^6.5.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
@@ -146,7 +146,7 @@
       "sharp",
       "unrs-resolver"
     ],
-    "comments": {
+      "comments": {
       "overrides": "[@types/react] & [@types/react-dom] are managed by Next.js. |  [glob] 10.5.0 bump is to address CVE-2025-64756. Remove once move to taiwind 4x | [vite] 7.1.11 bump is to address CVE-2025-62522. Remove once we move to vite 4x | [js-yaml] 4.1.1 bump is to address CVE-2025-64718. Remove once we upgrade eslint | [preact] 10.27.3 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump"
     }
   }
