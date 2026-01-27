@@ -41,6 +41,7 @@ const eslintConfig = [
       "**/examples/",
       "**/package.json",
       "**/tsconfig.json",
+      "next-env.d.ts",
     ],
   },
 
