@@ -1,27 +1,46 @@
-import { useState, useEffect } from "react";
-import {
-  Model,
-  SurveyModel,
-} from "survey-core";
+import { useState, useEffect, useRef } from "react";
+import { Model, SurveyModel } from "survey-core";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
-import { useDynamicVariables } from "../application/use-dynamic-variables.hook";
+import {
+  useDynamicVariables,
+  applyVariablesToModel,
+} from "../application/use-dynamic-variables.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions as customQuestionsList } from "@/customizations/questions/question-registry";
+import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
+import { setSubmissionData } from "@/lib/survey-features";
 
-export function useSurveyModel(
-  definition: string,
-  submission?: Submission,
-  customQuestions?: string[],
-) {
+interface UseSurveyModelProps {
+  formId: string;
+  definition: string;
+  submission?: Submission;
+  customQuestions?: string[];
+}
+
+/**
+ * React hook that provides a survey model and related functionality.
+ * @param formId - The form identifier.
+ * @param definition - The survey definition.
+ * @param submission - The submission data.
+ * @param customQuestions - The custom questions.
+ * @returns The survey model and related functionality.
+ */
+export function useSurveyModel({
+  formId,
+  definition,
+  submission,
+  customQuestions,
+}: UseSurveyModelProps) {
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
-  const { setFromMetadata } = useDynamicVariables(surveyModel);
+  const { variables } = useDynamicVariables(surveyModel);
+  const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
+  const isInitializedRef = useRef(false);
 
-  // Load custom questions before creating survey model
   useEffect(() => {
-    const loadQuestions = async () => {
+    const loadCustomQuestions = async () => {
       try {
         // Load built-in custom questions
         if (customQuestions?.length) {
@@ -46,34 +65,47 @@ export function useSurveyModel(
       }
     };
 
-    loadQuestions();
+    loadCustomQuestions();
   }, [customQuestions]);
 
   useEffect(() => {
-    let model: SurveyModel | undefined;
-    if (definition && !isLoadingQuestions) {
-      model = new SurveyModel(definition);
-      setSurveyModel(model);
-    } else if (!definition) {
-      setSurveyModel(null);
-    }
-  }, [definition, isLoadingQuestions]);
+    const shouldSkipInitialization =
+      !definition || isLoadingQuestions || isInitializedRef.current;
 
-  useEffect(() => {
-    if (submission && surveyModel) {
-      try {
-        setFromMetadata(submission.metadata);
-        surveyModel.data = JSON.parse(submission.jsonData);
-        surveyModel.currentPageNo = submission.currentPage ?? 0;
-      } catch (error) {
-        console.debug("Failed to parse submission data", error);
-        setError("Failed to parse submission data");
-      }
+    if (shouldSkipInitialization) {
+      return;
     }
-  }, [setFromMetadata, submission, surveyModel]);
+
+    const model = new SurveyModel(definition);
+
+    if (submission) {
+      setSubmissionData(model, submission.jsonData, (error) => {
+        setError(error);
+      });
+      model.currentPageNo = submission.currentPage ?? 0;
+      applyVariablesToModel(model, submission.metadata);
+    }
+    processSearchParams(model);
+
+    setSurveyModel(model);
+    isInitializedRef.current = true;
+
+    cleanupUrl();
+
+    return () => {
+      isInitializedRef.current = false;
+    };
+  }, [
+    definition,
+    isLoadingQuestions,
+    submission,
+    processSearchParams,
+    cleanupUrl,
+  ]);
 
   return {
     surveyModel,
+    variables,
     isLoading: !surveyModel || isLoadingQuestions,
     error,
   };

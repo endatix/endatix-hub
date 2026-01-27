@@ -1,7 +1,7 @@
 "use client";
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import { useStorageWithSurvey } from '@/features/asset-storage/client';
+import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
@@ -30,7 +30,6 @@ import "survey-core/survey-core.css";
 import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
-import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
 import { LanguageSelector } from "./language-selector";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
@@ -62,11 +61,12 @@ export default function SurveyComponent({
   isEmbed = false,
   urlToken,
 }: SurveyComponentProps) {
-  const { surveyModel } = useSurveyModel(
+  const { surveyModel } = useSurveyModel({
+    formId,
     definition,
     submission,
     customQuestions,
-  );
+  });
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(
     formId,
     urlToken,
@@ -79,7 +79,6 @@ export default function SurveyComponent({
   useRichText(surveyModel);
   useLoopAwareSummaryTable(surveyModel);
   useQuestionLoops(surveyModel);
-  useSearchParamsVariables(formId, surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
 
@@ -224,7 +223,7 @@ export default function SurveyComponent({
           submissionUpdateGuard.current = false;
           event.showSaveError(
             result.error.message ??
-            "Failed to submit form. Please try again and contact us if the problem persists.",
+              "Failed to submit form. Please try again and contact us if the problem persists.",
           );
           trackException("Form submission failed", {
             form_id: formId,
