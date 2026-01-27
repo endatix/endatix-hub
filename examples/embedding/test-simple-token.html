@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test: Access Token</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 0 20px;
+    }
+    h1 { color: #333; }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 Access Token Test</h1>
+
+  <div class="section">
+    <h2>Embed Snippet:</h2>
+    <pre><code>&lt;script src="http://localhost:3000/embed/v1/embed.js"
+        data-form-id="{formId}"
+        data-token="{accessToken}"&gt;&lt;/script&gt;</code></pre>
+
+    <h2>Result:</h2>
+    <p>Form with existing submission should appear below:</p>
+
+    <script src="http://localhost:3000/embed/v1/embed.js"
+            data-form-id="{formId}"
+            data-token="{accessToken}"></script>
+  </div>
+
+  <div class="section" style="background: #fffbef;">
+    <h3>Expected Results:</h3>
+    <ul>
+      <li>✅ Form loads with existing submission data</li>
+      <li>✅ Changes save to same submission</li>
+      <li>✅ Console should be clean (no errors)</li>
+    </ul>
+
+    <h3>Token Format:</h3>
+    <p><code>{submissionId}.{expiryUnix}.rw.{signature}</code></p>
+    <p>Example: <code>1448309533460922368.1738368000.rw.a3f8b2c1</code></p>
+  </div>
+</body>
+</html>

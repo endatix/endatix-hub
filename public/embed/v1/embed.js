@@ -129,7 +129,9 @@
         var src =
           embedProtocol + "//" + parsedUrl.host + "/embed/" + validatedFormId;
 
-        if (options.prefill) {
+        if (options.token) {
+          src += "?token=" + encodeURIComponent(options.token);
+        } else if (options.prefill) {
           src += "?" + options.prefill;
         }
 
@@ -205,6 +207,7 @@
         currentScript.getAttribute("data-base-url") ||
         window.EndatixEmbed.getDefaultBaseUrl(),
       prefill: currentScript.getAttribute("data-prefill") || "",
+      token: currentScript.getAttribute("data-token") || "",
     };
 
     if (document.readyState === "loading") {
