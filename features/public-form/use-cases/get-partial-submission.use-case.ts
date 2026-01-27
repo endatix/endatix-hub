@@ -36,7 +36,6 @@ export const getPartialSubmissionUseCase = async ({
   }
 
   const endatixApi = new EndatixApi();
-  // eslint-disable-next-line testing-library/no-await-sync-queries
   const submissionResult = await endatixApi.submissions.public.getByToken(
     formId,
     token,
