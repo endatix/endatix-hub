@@ -16,7 +16,7 @@ import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
-import { registerAudioQuestion } from '@/lib/questions/audio-recorder';
+import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 
 registerAudioQuestion();
 
@@ -35,14 +35,16 @@ interface SubmissionAnswersProps {
 export function SubmissionAnswers({
   formDefinition,
   submission,
+  formId,
   customQuestions,
 }: SubmissionAnswersProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const { surveyModel, error } = useSurveyModel(
-    formDefinition,
+  const { surveyModel, error } = useSurveyModel({
+    formId,
+    definition: formDefinition,
     submission,
-    customQuestions.map((q: CustomQuestion) => q.jsonData),
-  );
+    customQuestions: customQuestions.map((q: CustomQuestion) => q.jsonData),
+  });
   const customQuestionTypes = useMemo(
     () => customQuestions.map((q: CustomQuestion) => q.name),
     [customQuestions],
@@ -124,7 +126,10 @@ const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
   }
 
   return (
-    <div key={question.id} className="grid grid-cols-5 items-center align-middle gap-4 mb-6">
+    <div
+      key={question.id}
+      className="grid grid-cols-5 items-center align-middle gap-4 mb-6"
+    >
       <QuestionLabel forQuestion={question} title={question.title} />
       <AnswerViewer
         key={question.id}

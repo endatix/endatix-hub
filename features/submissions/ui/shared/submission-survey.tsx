@@ -1,7 +1,6 @@
 "use client";
 
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
-import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -45,7 +44,6 @@ function SubmissionSurvey({
     customQuestions,
     readOnly,
   );
-  const { setFromMetadata } = useDynamicVariables(model);
   const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
     model: model,
     formId: submission.formId,
@@ -61,7 +59,6 @@ function SubmissionSurvey({
     }
 
     const unregisterStorage = registerStorageHandlers(model);
-    setFromMetadata(submission.metadata);
 
     // Only register onChange handlers if NOT readOnly AND onChange is provided
     // This ensures read-only has a higher priority, even if onChange is passed
@@ -77,14 +74,7 @@ function SubmissionSurvey({
         model.onMatrixCellValueChanged.remove(onChange);
       };
     }
-  }, [
-    model,
-    onChange,
-    setFromMetadata,
-    submission.metadata,
-    readOnly,
-    registerStorageHandlers,
-  ]);
+  }, [model, onChange, submission.metadata, readOnly, registerStorageHandlers]);
 
   if (isLoading || !isStorageReady) {
     return (
