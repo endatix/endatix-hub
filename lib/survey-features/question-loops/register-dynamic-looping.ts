@@ -1,4 +1,5 @@
 import { ItemValue, SurveyModel, ValueChangedEvent } from "survey-core";
+import { handleLoopExits } from "./handle-loop-navigation";
 import { registerDynamicLoopingProperties } from "./register-dynamic-looping-properties";
 
 interface PanelItem {
@@ -9,7 +10,8 @@ interface PanelItem {
 export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
   registerDynamicLoopingProperties();
-
+  const cleanupExitHandlers = handleLoopExits(surveyModel);
+  
   const shuffleArray = (array: PanelItem[]) => {
     for (let i = array.length - 1; i > 0; i--) {
       const rand = new Uint32Array(1);
@@ -79,7 +81,7 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
       const seenValues = new Set();
       const priorityBucket: PanelItem[] = [];
-      let othersBucket: PanelItem[] = [];
+      const othersBucket: PanelItem[] = [];
 
       combinedChoices.forEach((choice) => {
         if (!seenValues.has(choice.value)) {
@@ -130,5 +132,6 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
   return () => {
     surveyModel.onValueChanged.remove(handler);
+    cleanupExitHandlers();
   };
 }
