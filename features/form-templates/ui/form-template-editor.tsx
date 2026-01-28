@@ -31,6 +31,9 @@ import "survey-core/i18n";
 import "survey-creator-core/i18n";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
+import "ace-builds/src-noconflict/ace";
+import "ace-builds/src-noconflict/ext-searchbox";
+import "ace-builds/src-noconflict/theme-github_light_default";
 
 const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
