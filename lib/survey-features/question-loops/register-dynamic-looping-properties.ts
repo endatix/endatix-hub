@@ -104,5 +104,25 @@ export function registerDynamicLoopingProperties() {
 },
     visibleIf: (obj) =>
       Array.isArray(obj.loopSource) && obj.loopSource.length > 0,
-  });
+});
+
+Serializer.addProperty("paneldynamic", {
+  name: "exitLoopCondition",
+  displayName: "Exit current loop if...",
+  category: "questionLoops",
+  type: "condition",
+    visibleIf: (obj) =>
+      Array.isArray(obj.loopSource) && obj.loopSource.length > 0,
+});
+
+Serializer.addProperty("paneldynamic", {
+  name: "exitAllLoopsCondition",
+  displayName: "Exit all loops if...",
+  category: "questionLoops",
+  type: "condition",
+    visibleIf: (obj) =>
+      Array.isArray(obj.loopSource) && obj.loopSource.length > 0,
+});
+
 }
+
