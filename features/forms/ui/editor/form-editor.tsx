@@ -29,6 +29,7 @@ import {
 } from "survey-core";
 import "survey-core/i18n";
 import "survey-core/survey-core.css";
+import "survey-creator-core/survey-creator-core.css";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
   getLocaleStrings,
@@ -39,13 +40,15 @@ import {
   TabJsonEditorTextareaPlugin,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
-import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
 import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
+import "ace-builds/src-noconflict/ace";
+import "ace-builds/src-noconflict/ext-searchbox";
+import "ace-builds/src-noconflict/theme-github_light_default";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -155,7 +158,7 @@ function FormEditor({
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
   useQuestionLoopsEditing(creator);
-  
+
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
       const json = new JsonObject().toJsonObject(element);
@@ -484,7 +487,7 @@ function FormEditor({
               questionLoopsCategory.title = "Question Loops";
             }
         });
-      
+
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }
