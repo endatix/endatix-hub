@@ -851,6 +851,52 @@ describe("htmlSanitizer", () => {
       });
     });
 
+    describe("pdf preset and toPlainText", () => {
+      it("should strip all HTML and return plain text", () => {
+        // Arrange
+        const input =
+          "<strong>Bold</strong> and <em>italic</em> with <a href='https://example.com'>link</a>";
+
+        // Act
+        const result = htmlSanitizer.toPlainText(input);
+
+        // Assert
+        expect(result).toBe("Bold and italic with link");
+        expect(result).not.toContain("<");
+        expect(result).not.toContain(">");
+      });
+
+      it("should remove script tags and leave text", () => {
+        // Arrange
+        const input = "<script>alert('XSS')</script>Hello";
+
+        // Act
+        const result = htmlSanitizer.toPlainText(input);
+
+        // Assert
+        expect(result).toContain("Hello");
+        expect(result).not.toContain("alert");
+        expect(result).not.toContain("<script");
+      });
+
+      it("should handle empty or null-like input", () => {
+        // Act & Assert
+        expect(htmlSanitizer.toPlainText("")).toBe("");
+        expect(htmlSanitizer.toPlainText("<p></p>")).toBe("");
+      });
+
+      it("should export pdf preset", () => {
+        // Arrange & Act
+        const result = htmlSanitizer.sanitize(
+          "<p>Text</p>",
+          htmlSanitizer.presets.pdf,
+        );
+
+        // Assert
+        expect(result).toBe("Text");
+      });
+    });
+
     it("should export presets", () => {
       // Arrange & Act
       const presets = htmlSanitizer.presets;
@@ -860,6 +906,7 @@ describe("htmlSanitizer", () => {
       expect(presets.strict).toBeDefined();
       expect(presets.inline).toBeDefined();
       expect(presets.moderate).toBeDefined();
+      expect(presets.pdf).toBeDefined();
     });
   });
 });

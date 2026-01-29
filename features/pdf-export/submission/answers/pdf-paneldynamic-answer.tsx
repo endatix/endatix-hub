@@ -1,6 +1,7 @@
 import { PanelModel, QuestionPanelDynamicModel } from "survey-core";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import PdfAnswerViewer, { VIEWER_STYLES } from "../pdf-answer-viewer";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 interface PanelDynamicAnswerProps {
   question: QuestionPanelDynamicModel;
@@ -30,7 +31,9 @@ const PdfPanelDynamicAnswer = ({ question }: PanelDynamicAnswerProps) => {
   if (!panels || panels.length === 0) {
     return (
       <View style={VIEWER_STYLES.answerContainer}>
-        <Text style={VIEWER_STYLES.questionLabel}>{question.title}:</Text>
+        <Text style={VIEWER_STYLES.questionLabel}>
+          {htmlSanitizer.toPlainText(question.title ?? "")}:
+        </Text>
         <Text style={styles.noPanelsText}>There are no panels filled</Text>
       </View>
     );

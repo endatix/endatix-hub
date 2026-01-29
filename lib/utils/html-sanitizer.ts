@@ -109,6 +109,18 @@ const strictSanitizationOptions: IOptions = {
 };
 
 /**
+ * PDF sanitization preset - strips all HTML and returns plain text only.
+ * Use for PDF export and any non-DOM context (e.g. @react-pdf/renderer Text) where only
+ * plain text is supported and HTML must not be rendered.
+ */
+const pdfSanitizationOptions: IOptions = {
+  allowedTags: [],
+  allowedAttributes: {},
+  allowProtocolRelative: false,
+  disallowedTagsMode: "discard",
+};
+
+/**
  * Inline sanitization preset - phrasing content only, safe inside <label> and inline contexts.
  * Use for question titles, labels, and any content that must not contain block-level elements.
  *
@@ -196,11 +208,13 @@ function sanitizeHtmlInline(dirtyHtml: string): string {
  * - `strict`: Minimal tags, maximum security (for untrusted input)
  * - `inline`: Phrasing content only, safe inside &lt;label&gt; (for titles, labels)
  * - `moderate`: Block + inline content (for descriptions, rich text)
+ * - `pdf`: No tags, plain text only (for PDF export and non-DOM contexts)
  */
 export const sanitizationPresets = {
   strict: strictSanitizationOptions,
   inline: inlineSanitizationOptions,
   moderate: moderateSanitizationOptions,
+  pdf: pdfSanitizationOptions,
 } as const;
 
 /**
@@ -219,6 +233,9 @@ export const sanitizationPresets = {
  *
  * // Use inline preset for titles/labels (no block elements)
  * const labelHtml = htmlSanitizer.sanitize(question.title, htmlSanitizer.presets.inline);
+ *
+ * // Use pdf preset for plain text (e.g. PDF export)
+ * const plainText = htmlSanitizer.toPlainText(question.title);
  * ```
  */
 export const htmlSanitizer = {
@@ -238,6 +255,17 @@ export const htmlSanitizer = {
    * @returns The sanitized HTML string safe for rendering
    */
   sanitizeInline: sanitizeHtmlInline,
+
+  /**
+   * Strips all HTML and returns plain text. Use for PDF export and non-DOM contexts
+   * (e.g. @react-pdf/renderer &lt;Text&gt;) where only plain text is supported.
+   *
+   * @param dirtyHtml - The potentially unsafe HTML string (or plain text)
+   * @returns Plain text with all tags removed
+   */
+  toPlainText(dirtyHtml: string): string {
+    return sanitizeHtml(dirtyHtml, pdfSanitizationOptions);
+  },
 
   /**
    * Default sanitization options (moderate preset).

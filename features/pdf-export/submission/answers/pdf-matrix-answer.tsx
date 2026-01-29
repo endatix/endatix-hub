@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 interface MatrixAnswerPdfProps {
   question: Partial<QuestionMatrixModel>;
@@ -44,7 +45,8 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
   return (
     <View style={PDF_TABLE_STYLES.container}>
       <Text style={PDF_TABLE_STYLES.caption}>
-        Answers for the &quot;{question.title}&quot; question
+        Answers for the &quot;{htmlSanitizer.toPlainText(question.title ?? "")}
+        &quot; question
       </Text>
       <View style={PDF_TABLE_STYLES.table}>
         <View
