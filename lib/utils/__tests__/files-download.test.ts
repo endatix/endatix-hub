@@ -23,40 +23,58 @@ describe("getFilenameFromContentDisposition", () => {
   }
 
   it("returns default filename if headers is undefined", () => {
-    expect(
-      getFilenameFromContentDisposition(
-        undefined as unknown as Headers,
-        "default.txt",
-      ),
-    ).toBe("default.txt");
+    // Act
+    const result = getFilenameFromContentDisposition(
+      undefined as unknown as Headers,
+      "default.txt",
+    );
+
+    // Assert
+    expect(result).toBe("default.txt");
   });
 
   it("returns default filename if content-disposition is missing", () => {
+    // Arrange
     const headers = makeHeaders();
-    expect(getFilenameFromContentDisposition(headers, "default.txt")).toBe(
-      "default.txt",
-    );
+
+    // Act
+    const result = getFilenameFromContentDisposition(headers, "default.txt");
+
+    // Assert
+    expect(result).toBe("default.txt");
   });
 
   it("extracts filename from content-disposition header", () => {
+    // Arrange
     const headers = makeHeaders('attachment; filename="test-file.pdf"');
-    expect(getFilenameFromContentDisposition(headers, "default.txt")).toBe(
-      "test-file.pdf",
-    );
+
+    // Act
+    const result = getFilenameFromContentDisposition(headers, "default.txt");
+
+    // Assert
+    expect(result).toBe("test-file.pdf");
   });
 
   it("extracts filename without quotes", () => {
+    // Arrange
     const headers = makeHeaders("attachment; filename=test-file.pdf");
-    expect(getFilenameFromContentDisposition(headers, "default.txt")).toBe(
-      "test-file.pdf",
-    );
+
+    // Act
+    const result = getFilenameFromContentDisposition(headers, "default.txt");
+
+    // Assert
+    expect(result).toBe("test-file.pdf");
   });
 
   it("returns default filename if filename is not present", () => {
+    // Arrange
     const headers = makeHeaders("attachment");
-    expect(getFilenameFromContentDisposition(headers, "default.txt")).toBe(
-      "default.txt",
-    );
+
+    // Act
+    const result = getFilenameFromContentDisposition(headers, "default.txt");
+
+    // Assert
+    expect(result).toBe("default.txt");
   });
 });
 
@@ -95,6 +113,7 @@ describe("initiateFileDownload", () => {
   });
 
   it("does nothing if blob or filename is missing", () => {
+    // Act & Assert
     expect(
       initiateFileDownload(undefined as unknown as Blob, "file.txt"),
     ).toBeUndefined();
@@ -102,8 +121,13 @@ describe("initiateFileDownload", () => {
   });
 
   it("creates a link, sets attributes, clicks, and cleans up", () => {
+    // Arrange
     const blob = new Blob(["test"], { type: "text/plain" });
+
+    // Act
     initiateFileDownload(blob, "file.txt");
+
+    // Assert
     expect(createObjectURLStub).toHaveBeenCalledWith(blob);
     expect(appendChildSpy).toHaveBeenCalled();
     expect(clickSpy).toHaveBeenCalled();
