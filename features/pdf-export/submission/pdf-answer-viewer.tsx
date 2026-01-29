@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import {
   MultipleTextItemModel,
   Question,
@@ -55,7 +56,9 @@ const PdfAnswerViewer = ({
     questionType = (forQuestion as Question).getType() ?? questionType;
   }
 
-  const questionTitle = forQuestion.processedTitle ?? forQuestion.title;
+  const questionTitle = htmlSanitizer.toPlainText(
+    forQuestion.processedTitle ?? forQuestion.title ?? "",
+  );
 
   const renderTitle = () => {
     if (hideTitle) return null;
@@ -91,7 +94,9 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {((forQuestion as QuestionRadiogroupModel).selectedItem?.text) || forQuestion.value || "No Answer"}
+        {(forQuestion as QuestionRadiogroupModel).selectedItem?.text ||
+          forQuestion.value ||
+          "No Answer"}
       </Text>
     </View>
   );
@@ -100,7 +105,9 @@ const PdfAnswerViewer = ({
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
       {renderTitle()}
       <Text style={VIEWER_STYLES.answerText}>
-        {((forQuestion as QuestionDropdownModel).selectedItem?.text) || forQuestion.value || "No Answer"}
+        {(forQuestion as QuestionDropdownModel).selectedItem?.text ||
+          forQuestion.value ||
+          "No Answer"}
       </Text>
     </View>
   );

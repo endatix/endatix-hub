@@ -9,9 +9,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Result } from "@/lib/result";
-import { useSubmissionDetailsViewOptions } from './submission-details-view-options-context';
-import { getPanelTitle } from '@/lib/questions/question-utils';
-import { extractReplacedTokens, Token } from '@/lib/questions/personalization/reverse-text-processor';
+import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import { getPanelTitle } from "@/lib/questions/question-utils";
+import {
+  extractReplacedTokens,
+  Token,
+} from "@/lib/questions/personalization/reverse-text-processor";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   forQuestion: Question;
@@ -49,7 +53,15 @@ export function QuestionLabel({
 }
 
 function TextLabel({ question }: { question: Question }) {
-  return <Label htmlFor={question.name}>{question.title}</Label>;
+  const title = question.title ?? "";
+  const sanitized = useMemo(() => htmlSanitizer.sanitizeInline(title), [title]);
+
+  return (
+    <Label
+      htmlFor={question.name}
+      dangerouslySetInnerHTML={{ __html: sanitized }}
+    />
+  );
 }
 
 function PersonalizedTextLabel({ question }: { question: Question }) {
@@ -67,9 +79,9 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
   return (
     <TooltipProvider>
       <Label htmlFor={question.name}>
-        {personalizedTokens.map((token: Token, index: number) =>
+        {personalizedTokens.map((token: Token) =>
           token.isVariable ? (
-            <Tooltip key={index}>
+            <Tooltip key={token.id}>
               <TooltipTrigger asChild>
                 <span
                   className="font-bold bg-primary/10 p-1.5 rounded-md"
@@ -91,8 +103,13 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
               </TooltipContent>
             </Tooltip>
           ) : (
-            <span key={index}>{token.value}</span>
-          )
+            <span
+              key={token.id}
+              dangerouslySetInnerHTML={{
+                __html: htmlSanitizer.sanitizeInline(token.value),
+              }}
+            />
+          ),
         )}
       </Label>
     </TooltipProvider>

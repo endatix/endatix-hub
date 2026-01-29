@@ -2,6 +2,7 @@ import { Text, View } from "@react-pdf/renderer";
 import { QuestionMatrixDropdownModel } from "survey-core";
 import PdfAnswerViewer, { VIEWER_STYLES } from "../pdf-answer-viewer";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 interface MatrixDropdownAnswerProps {
   question: QuestionMatrixDropdownModel;
@@ -19,7 +20,9 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
   if (!hasAnswers) {
     return (
       <View style={VIEWER_STYLES.answerContainer}>
-        <Text style={VIEWER_STYLES.questionLabel}>{question.title}:</Text>
+        <Text style={VIEWER_STYLES.questionLabel}>
+          {htmlSanitizer.toPlainText(question.title ?? "")}:
+        </Text>
         <Text style={VIEWER_STYLES.answerText}>No Answer</Text>
       </View>
     );
@@ -27,7 +30,9 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
 
   return (
     <View style={PDF_TABLE_STYLES.container}>
-      <Text style={VIEWER_STYLES.questionLabel}>{question.title}</Text>
+      <Text style={VIEWER_STYLES.questionLabel}>
+        {htmlSanitizer.toPlainText(question.title ?? "")}
+      </Text>
       <View style={PDF_TABLE_STYLES.table}>
         {/* Header Row */}
         <View
@@ -46,7 +51,11 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
                   flex: index === 0 ? 1 : 1.5,
                 }}
               >
-                <Text>{cell.hasTitle ? cell.locTitle?.textOrHtml : null}</Text>
+                <Text>
+                  {cell.hasTitle
+                    ? htmlSanitizer.toPlainText(cell.locTitle?.textOrHtml ?? "")
+                    : null}
+                </Text>
               </View>
             );
           })}
@@ -72,7 +81,11 @@ const PdfMatrixDropdownAnswer = ({ question }: MatrixDropdownAnswerProps) => {
 
               return (
                 <View key={cellIndex} style={cellStyle}>
-                  <Text>{cell.hasTitle ? cell.locTitle.textOrHtml : null}</Text>
+                  <Text>
+                    {cell.hasTitle
+                      ? htmlSanitizer.toPlainText(cell.locTitle.textOrHtml ?? "")
+                      : null}
+                  </Text>
                 </View>
               );
             })}
