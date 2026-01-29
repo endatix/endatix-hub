@@ -349,7 +349,35 @@ describe("registerDynamicLooping", () => {
     });
   });
 
-  it("should not randomize when randomizeLoop is false", () => {
+  describe("Randomization", () => {
+    it("should randomize non-priority items when randomizeLoop is true", () => {
+      cleanup = registerDynamicLooping(survey);
+      
+      const panel = survey.addNewPage().addNewQuestion("paneldynamic", "panel1");
+      panel.loopSource = ["q1"];
+      panel.randomizeLoop = true;
+      panel.priorityItems = ["1"]; // Keep first item fixed
+      
+      const checkbox = survey.addNewPage().addNewQuestion("checkbox", "q1");
+      checkbox.choices = [
+        { value: "1", text: "Option 1" },
+        { value: "2", text: "Option 2" },
+        { value: "3", text: "Option 3" },
+        { value: "4", text: "Option 4" },
+      ];
+      checkbox.value = ["1", "2", "3", "4"];
+      
+      const panelValue = panel.value as PanelItem[] | undefined;
+      expect(panelValue).toBeDefined();
+            
+      // Items should be present but order may vary
+      const otherItemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
+      expect(otherItemIds).toContain("2");
+      expect(otherItemIds).toContain("3");
+      expect(otherItemIds).toContain("4");
+    });
+
+    it("should not randomize when randomizeLoop is false", () => {
       cleanup = registerDynamicLooping(survey);
       
       const panel = survey.addNewPage().addNewQuestion("paneldynamic", "panel1");
