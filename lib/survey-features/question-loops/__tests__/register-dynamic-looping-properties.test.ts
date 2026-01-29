@@ -1,4 +1,4 @@
-import { ItemValue, JsonObjectProperty, Serializer, SurveyModel } from "survey-core";
+import { JsonObjectProperty, Serializer, SurveyModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerDynamicLoopingProperties } from "../register-dynamic-looping-properties";
 
@@ -107,7 +107,7 @@ describe("registerDynamicLoopingProperties", () => {
       
       expect(property).toBeDefined();
       expect(property?.name).toBe("priorityItems");
-      expect(property?.displayName).toBe("Pinned items");
+      expect(property?.displayName).toBe("Priority items");
       expect(property?.category).toBe("questionLoops");
       expect(property?.type).toBe("multiplevalues");
       expect(property?.dependsOn).toEqual(["loopSource"]);
