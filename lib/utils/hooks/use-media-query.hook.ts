@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+/**
+ * React hook to check if a media query matches.
+ * @param query - The media query to check.
+ * @returns True if the media query matches, false otherwise.
+ */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
   

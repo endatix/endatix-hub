@@ -2,7 +2,15 @@ import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
 } from "@/lib/utils/files-download";
-import { describe, expect, it, beforeEach, afterEach, vi, MockInstance } from "vitest";
+import {
+  describe,
+  expect,
+  it,
+  beforeEach,
+  afterEach,
+  vi,
+  MockInstance,
+} from "vitest";
 
 describe("getFilenameFromContentDisposition", () => {
   function makeHeaders(headerValue?: string): Headers {
@@ -78,7 +86,7 @@ describe("initiateFileDownload", () => {
         ({
           setAttribute: vi.fn(),
           click: clickSpy,
-        } as unknown as HTMLAnchorElement),
+        }) as unknown as HTMLAnchorElement,
     );
   });
 
