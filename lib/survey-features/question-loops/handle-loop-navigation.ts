@@ -42,8 +42,10 @@ export function handleLoopExits(survey: SurveyModel) {
                 // If shouldExitAllLoops is true -> hide them. 
                 // If shouldExitAllLoops is false -> show them (in case user changed their mind).
                 for(let i=currentIndex + 1; i < loopPanel.panels.length; i++) {
-                    loopPanel.panels[i].visible = !shouldExitAllLoops;
-                    shouldUpdateNavigation = true;
+                    if(loopPanel.panels[i].visible == shouldExitAllLoops) {
+                        shouldUpdateNavigation = true;
+                        loopPanel.panels[i].visible = !shouldExitAllLoops;
+                    }
                 }
             }
         }
@@ -70,8 +72,10 @@ export function handleLoopExits(survey: SurveyModel) {
             // If shouldExitCurrentLoop is true -> hide them. 
             // If shouldExitCurrentLoop is false -> show them (in case user changed their mind).
             for (let i = triggerIndex + 1; i < currentPanelQuestions.length; i++) {
-                currentPanelQuestions[i].visible = !shouldExitCurrentLoop;
-                shouldUpdateNavigation = true;
+                if(currentPanelQuestions[i].visible == shouldExitCurrentLoop) {
+                    shouldUpdateNavigation = true;
+                    currentPanelQuestions[i].visible = !shouldExitCurrentLoop;
+                }
             }
         }
 
