@@ -1,0 +1,308 @@
+{
+  "title": "<p>HTML Sanitization Security Test Suite</p>",
+  "description": "<p>Comprehensive test cases for XSS and security vulnerability detection</p>",
+  "elements": [
+    {
+      "type": "text",
+      "name": "test1_script_tag",
+      "title": "Test 1: Direct script tag injection",
+      "description": "<script>alert('XSS')</script><p>Should be removed</p>"
+    },
+    {
+      "type": "text",
+      "name": "test2_script_case_variations",
+      "title": "Test 2: Script tag case variations",
+      "description": "<SCRIPT>alert('XSS')</SCRIPT><ScRiPt>alert('XSS')</ScRiPt><p>Should be removed</p>"
+    },
+    {
+      "type": "text",
+      "name": "test3_event_handlers",
+      "title": "Test 3: Event handler attributes",
+      "description": "<span onclick=\"alert('XSS')\">Click me</span><img onerror=\"alert('XSS')\" src=\"invalid\" /><div onload=\"alert('XSS')\">Content</div><a onmouseover=\"alert('XSS')\">Hover</a>"
+    },
+    {
+      "type": "text",
+      "name": "test4_javascript_protocol_anchor",
+      "title": "Test 4: JavaScript protocol in anchor href",
+      "description": "<a href=\"javascript:alert('XSS')\">Click me</a><a href=\"JAVASCRIPT:alert('XSS')\">Case variation</a><a href=\"javascript&#58;alert('XSS')\">HTML entity</a>"
+    },
+    {
+      "type": "text",
+      "name": "test5_data_uri_anchor",
+      "title": "Test 5: Data URI protocol in anchor href",
+      "description": "<a href=\"data:text/html,<script>alert('XSS')</script>\">Data URI link</a><a href=\"data:text/html;base64,PHNjcmlwdD5hbGVydCgnWFNTJyk8L3NjcmlwdD4=\">Base64 data URI</a>"
+    },
+    {
+      "type": "text",
+      "name": "test6_vbscript_protocol",
+      "title": "Test 6: VBScript protocol",
+      "description": "<a href=\"vbscript:alert('XSS')\">VBScript link</a><img src=\"vbscript:msgbox('XSS')\" />"
+    },
+    {
+      "type": "text",
+      "name": "test7_css_expression",
+      "title": "Test 7: CSS expression() injection",
+      "description": "<span style=\"background:expression(alert('XSS'))\">CSS expression</span><div style=\"width:expression(alert('XSS'))\">IE expression</div>"
+    },
+    {
+      "type": "text",
+      "name": "test8_css_url_javascript",
+      "title": "Test 8: CSS url() with javascript",
+      "description": "<span style=\"background-image:url(javascript:alert('XSS'))\">CSS url js</span><div style=\"list-style-image:url('javascript:alert(1)')\">List style</div>"
+    },
+    {
+      "type": "text",
+      "name": "test9_iframe_injection",
+      "title": "Test 9: Iframe tag injection",
+      "description": "<iframe src=\"javascript:alert('XSS')\"></iframe><iframe src=\"data:text/html,<script>alert('XSS')</script>\"></iframe>"
+    },
+    {
+      "type": "text",
+      "name": "test10_object_embed",
+      "title": "Test 10: Object and embed tags",
+      "description": "<object data=\"javascript:alert('XSS')\"></object><embed src=\"javascript:alert('XSS')\" /><object><param name=\"src\" value=\"javascript:alert('XSS')\" /></object>"
+    },
+    {
+      "type": "text",
+      "name": "test11_form_input",
+      "title": "Test 11: Form and input tags",
+      "description": "<form><input type=\"submit\" onclick=\"alert('XSS')\" /></form><input type=\"button\" onfocus=\"alert('XSS')\" autofocus />"
+    },
+    {
+      "type": "text",
+      "name": "test12_svg_script",
+      "title": "Test 12: SVG with embedded script",
+      "description": "<svg><script>alert('XSS')</script></svg><svg onload=\"alert('XSS')\"><rect /></svg><svg><image onload=\"alert('XSS')\" /></svg>"
+    },
+    {
+      "type": "text",
+      "name": "test13_img_src_javascript",
+      "title": "Test 13: Image src with javascript protocol",
+      "description": "<img src=\"javascript:alert('XSS')\" /><img src=\"JAVASCRIPT:alert('XSS')\" /><img src=\"javascript&#58;alert('XSS')\" />"
+    },
+    {
+      "type": "text",
+      "name": "test14_img_src_data_html",
+      "title": "Test 14: Image src with data URI containing HTML",
+      "description": "<img src=\"data:text/html,<script>alert('XSS')</script>\" /><img src=\"data:text/html;base64,PHNjcmlwdD5hbGVydCgnWFNTJyk8L3NjcmlwdD4=\" />"
+    },
+    {
+      "type": "text",
+      "name": "test15_protocol_relative",
+      "title": "Test 15: Protocol-relative URLs",
+      "description": "<a href=\"//evil.com/script.js\">Protocol relative</a><img src=\"//evil.com/image.jpg\" onerror=\"alert('XSS')\" />"
+    },
+    {
+      "type": "text",
+      "name": "test16_base_tag",
+      "title": "Test 16: Base tag injection",
+      "description": "<base href=\"javascript://\" /><a href=\"alert('XSS')\">Base tag attack</a>"
+    },
+    {
+      "type": "text",
+      "name": "test17_meta_refresh",
+      "title": "Test 17: Meta refresh redirect",
+      "description": "<meta http-equiv=\"refresh\" content=\"0;url=javascript:alert('XSS')\" /><meta http-equiv=\"refresh\" content=\"0;url=data:text/html,<script>alert('XSS')</script>\" />"
+    },
+    {
+      "type": "text",
+      "name": "test18_link_tag",
+      "title": "Test 18: Link tag with dangerous href",
+      "description": "<link rel=\"stylesheet\" href=\"javascript:alert('XSS')\" /><link rel=\"import\" href=\"data:text/html,<script>alert('XSS')</script>\" />"
+    },
+    {
+      "type": "text",
+      "name": "test19_style_tag",
+      "title": "Test 19: Style tag injection",
+      "description": "<style>@import url('javascript:alert(\"XSS\")');</style><style>body { background: url('javascript:alert(1)'); }</style>"
+    },
+    {
+      "type": "text",
+      "name": "test20_nested_script",
+      "title": "Test 20: Nested script attempts",
+      "description": "<div><script>alert('XSS')</script></div><span><div><script>alert('XSS')</script></div></span>"
+    },
+    {
+      "type": "text",
+      "name": "test21_deep_nesting",
+      "title": "Test 21: Deep nesting (should respect limit)",
+      "description": "<div><div><div><div><div><script>alert('XSS')</script></div></div></div></div></div>"
+    },
+    {
+      "type": "text",
+      "name": "test22_html_entities",
+      "title": "Test 22: HTML entity encoding tricks",
+      "description": "<script&#32;type=\"text/javascript\">alert('XSS')</script><img&#32;src=x&#32;onerror=alert('XSS')>"
+    },
+    {
+      "type": "text",
+      "name": "test23_unicode_tricks",
+      "title": "Test 23: Unicode and encoding tricks",
+      "description": "<script>alert('XSS')</script><script>alert(String.fromCharCode(88,83,83))</script>"
+    },
+    {
+      "type": "text",
+      "name": "test24_template_tag",
+      "title": "Test 24: Template tag",
+      "description": "<template><script>alert('XSS')</script></template><template onload=\"alert('XSS')\">Content</template>"
+    },
+    {
+      "type": "text",
+      "name": "test25_details_summary",
+      "title": "Test 25: Details and summary tags",
+      "description": "<details open ontoggle=\"alert('XSS')\"><summary>Click</summary></details><details><summary onclick=\"alert('XSS')\">Summary</summary></details>"
+    },
+    {
+      "type": "text",
+      "name": "test26_marquee",
+      "title": "Test 26: Marquee tag",
+      "description": "<marquee onstart=\"alert('XSS')\">Scrolling</marquee><marquee><script>alert('XSS')</script></marquee>"
+    },
+    {
+      "type": "text",
+      "name": "test27_video_audio",
+      "title": "Test 27: Video and audio tags",
+      "description": "<video src=\"javascript:alert('XSS')\"></video><audio src=\"data:text/html,<script>alert('XSS')</script>\" onerror=\"alert('XSS')\"></audio>"
+    },
+    {
+      "type": "text",
+      "name": "test28_source_track",
+      "title": "Test 28: Source and track tags",
+      "description": "<source src=\"javascript:alert('XSS')\" /><track src=\"data:text/html,<script>alert('XSS')</script>\" onerror=\"alert('XSS')\" />"
+    },
+    {
+      "type": "text",
+      "name": "test29_input_image",
+      "title": "Test 29: Input type=image",
+      "description": "<input type=\"image\" src=\"javascript:alert('XSS')\" onclick=\"alert('XSS')\" />"
+    },
+    {
+      "type": "text",
+      "name": "test30_body_html",
+      "title": "Test 30: Body and html tags",
+      "description": "<body onload=\"alert('XSS')\">Content</body><html><script>alert('XSS')</script></html>"
+    },
+    {
+      "type": "text",
+      "name": "test31_frameset_frame",
+      "title": "Test 31: Frameset and frame tags",
+      "description": "<frameset><frame src=\"javascript:alert('XSS')\" /></frameset><frame onload=\"alert('XSS')\" />"
+    },
+    {
+      "type": "text",
+      "name": "test32_applet",
+      "title": "Test 32: Applet tag (deprecated)",
+      "description": "<applet code=\"malicious.class\"></applet><applet><param name=\"code\" value=\"javascript:alert('XSS')\" /></applet>"
+    },
+    {
+      "type": "text",
+      "name": "test33_mathml",
+      "title": "Test 33: MathML with script",
+      "description": "<math><script>alert('XSS')</script></math><math onerror=\"alert('XSS')\"><mi>x</mi></math>"
+    },
+    {
+      "type": "text",
+      "name": "test34_data_attributes",
+      "title": "Test 34: Data attributes (should be safe but test anyway)",
+      "description": "<div data-onclick=\"alert('XSS')\">Data attribute</div><span data-custom=\"<script>alert('XSS')</script>\">Custom data</span>"
+    },
+    {
+      "type": "text",
+      "name": "test35_style_attribute_advanced",
+      "title": "Test 35: Advanced style attribute attacks",
+      "description": "<div style=\"x:expression(alert('XSS'))\">IE expression</div><span style=\"background:url('javascript:alert(1)')\">Background url</span><div style=\"@import url('javascript:alert(1)')\">Import</div>"
+    },
+    {
+      "type": "text",
+      "name": "test36_mixed_case_attributes",
+      "title": "Test 36: Mixed case attributes",
+      "description": "<img OnError=\"alert('XSS')\" src=\"invalid\" /><a OnClick=\"alert('XSS')\">Click</a><div OnLoad=\"alert('XSS')\">Load</div>"
+    },
+    {
+      "type": "text",
+      "name": "test37_null_bytes",
+      "title": "Test 37: Null byte injection",
+      "description": "<img src=\"javascript&#000000;:alert('XSS')\" /><script&#000;>alert('XSS')</script>"
+    },
+    {
+      "type": "text",
+      "name": "test38_whitespace_tricks",
+      "title": "Test 38: Whitespace tricks",
+      "description": "<script >alert('XSS')</script ><img src =\"javascript:alert('XSS')\" /><a href = \"javascript:alert('XSS')\">Link</a>"
+    },
+    {
+      "type": "text",
+      "name": "test39_legitimate_html",
+      "title": "Test 39: Legitimate HTML (should be preserved)",
+      "description": "<p>This is <strong>bold</strong> and <em>italic</em> text</p><ul><li>Item 1</li><li>Item 2</li></ul><a href=\"https://example.com\">Safe link</a><img src=\"https://example.com/image.jpg\" alt=\"Safe image\" />"
+    },
+    {
+      "type": "text",
+      "name": "test40_style_allowed",
+      "title": "Test 40: Allowed style attributes",
+      "description": "<span style=\"color: red; background-color: yellow;\">Colored text</span><div style=\"font-size: 20px; font-weight: bold;\">Styled div</div>"
+    },
+    {
+      "type": "text",
+      "name": "test41_mailto_tel_links",
+      "title": "Test 41: Mailto and tel links (should be allowed)",
+      "description": "<a href=\"mailto:test@example.com\">Email</a><a href=\"tel:+1234567890\">Phone</a>"
+    },
+    {
+      "type": "text",
+      "name": "test42_complex_legitimate",
+      "title": "Test 42: Complex legitimate HTML",
+      "description": "<table><thead><tr><th>Header</th></tr></thead><tbody><tr><td>Data</td></tr></tbody></table><blockquote>Quote</blockquote><pre><code>Code</code></pre>"
+    },
+    {
+      "type": "text",
+      "name": "test43_combination_attack",
+      "title": "Test 43: Combination attack",
+      "description": "<a href=\"https://example.com\"><img src=\"javascript:alert('XSS')\" onerror=\"alert('XSS')\" /></a><div style=\"background:url('javascript:alert(1)')\"><script>alert('XSS')</script></div>"
+    },
+    {
+      "type": "text",
+      "name": "test44_svg_data_uri",
+      "title": "Test 44: SVG data URI",
+      "description": "<img src=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'></svg>\" /><img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIG9ubG9hZD0iYWxlcnQoMSkiPjwvc3ZnPg==\" />"
+    },
+    {
+      "type": "text",
+      "name": "test45_unicode_script",
+      "title": "Test 45: Unicode script tag",
+      "description": "<script>alert('XSS')</script><script>alert('XSS')</script>"
+    },
+    {
+      "type": "text",
+      "name": "test46_breaking_out",
+      "title": "Test 46: Breaking out of attributes",
+      "description": "<img src=\"x\" onerror=\"alert('XSS')\" /><div class=\"test\" onclick=\"alert('XSS')\">Content</div>"
+    },
+    {
+      "type": "text",
+      "name": "test47_double_encoding",
+      "title": "Test 47: Double encoding",
+      "description": "<script>alert('XSS')</script><a href=\"javascript&#58;&#97;lert('XSS')\">Double encoded</a>"
+    },
+    {
+      "type": "text",
+      "name": "test48_hex_encoding",
+      "title": "Test 48: Hex encoding",
+      "description": "<script>alert('XSS')</script><img src=\"javascript&#x3A;alert('XSS')\" />"
+    },
+    {
+      "type": "text",
+      "name": "test49_decimal_encoding",
+      "title": "Test 49: Decimal encoding",
+      "description": "<script>alert('XSS')</script><a href=\"javascript&#58;alert('XSS')\">Decimal encoded</a>"
+    },
+    {
+      "type": "text",
+      "name": "test50_final_comprehensive",
+      "title": "Test 50: Final comprehensive test",
+      "description": "<p>Mix of <strong>legitimate</strong> and <em>malicious</em> content: <script>alert('XSS')</script><a href=\"javascript:alert('XSS')\">Bad</a> but <a href=\"https://example.com\">good</a> links. <img src=\"https://example.com/image.jpg\" alt=\"Safe\" /> vs <img src=\"javascript:alert('XSS')\" onerror=\"alert('XSS')\" /></p>"
+    }
+  ],
+  "widthMode": "static",
+  "width": "800px"
+}

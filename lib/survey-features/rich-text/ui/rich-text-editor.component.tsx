@@ -6,6 +6,7 @@ import {
   ReactQuestionFactory,
 } from "survey-react-ui";
 import React from "react";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { RICH_TEXT_EDITOR_TYPE } from "./rich-text-editor.model";
 
 const modules = {
@@ -43,15 +44,8 @@ function normalizeHtmlValue(value: string): string {
   if (!value) {
     return "";
   }
-  const trimmed = value.trim();
-  if (
-    trimmed === "<p><br></p>" ||
-    trimmed === "<p><br /></p>" ||
-    /^<p>(&nbsp;|\s|<br\s*\/?>)*<\/p>$/i.test(trimmed)
-  ) {
-    return "";
-  }
-  return value;
+  
+  return htmlSanitizer.sanitize(value);
 }
 
 export class RichTextEditorComponent extends SurveyQuestionElementBase {

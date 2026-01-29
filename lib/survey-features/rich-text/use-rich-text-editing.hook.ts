@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { SurveyCreator } from "survey-creator-react";
 import { registerMarkdownRenderer } from "./register-markdown-renderer";
 import registerRichTextEditor from "@/lib/survey-features/rich-text/rich-text-editor";

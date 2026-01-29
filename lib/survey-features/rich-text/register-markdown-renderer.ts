@@ -1,10 +1,17 @@
 import { SurveyModel, TextMarkdownEvent } from "survey-core";
 import MarkdownIt from "markdown-it";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+
+const markdownIt = new MarkdownIt({
+  html: true,
+  linkify: true,
+});
 
 export function registerMarkdownRenderer(surveyModel: SurveyModel): () => void {
-  const converter = MarkdownIt({ html: true });
   const handler = (_sender: unknown, options: TextMarkdownEvent) => {
-    options.html = converter.renderInline(options.text);
+    const renderedString = markdownIt.renderInline(options.text);
+    const sanitizedString = htmlSanitizer.sanitize(renderedString);
+    options.html = sanitizedString;
   };
 
   surveyModel.onTextMarkdown.add(handler);
