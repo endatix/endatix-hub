@@ -109,9 +109,44 @@ const strictSanitizationOptions: IOptions = {
 };
 
 /**
- * Moderate sanitization preset - balanced security and functionality.
- * This is the default preset for rich text content in surveys.
- * 
+ * Inline sanitization preset - phrasing content only, safe inside <label> and inline contexts.
+ * Use for question titles, labels, and any content that must not contain block-level elements.
+ *
+ * Allows: strong, em, u, s, sub, sup, del, ins, code, span, a (no img, no block tags).
+ */
+const INLINE_ALLOWED_TAGS = [
+  "a",
+  "code",
+  "del",
+  "em",
+  "ins",
+  "s",
+  "span",
+  "strong",
+  "sub",
+  "sup",
+  "u",
+] as const;
+
+const inlineSanitizationOptions: IOptions = {
+  allowedTags: [...INLINE_ALLOWED_TAGS],
+  allowedAttributes: {
+    "*": ["style", "class", "role", "title"],
+    a: ["target", "href", "title", "rel"],
+  },
+  allowedSchemes: [...ALLOWED_SCHEMES],
+  allowProtocolRelative: false,
+  disallowedTagsMode: "discard",
+  nestingLimit: 2,
+  transformTags: {
+    a: enforceLinkSecurity,
+  },
+};
+
+/**
+ * Moderate (block) sanitization preset - balanced security and functionality.
+ * Use for question descriptions and rich text where block elements (headings, lists, tables) are allowed.
+ *
  * Security features:
  * - Blocks protocol-relative URLs (//evil.com)
  * - Only allows https, mailto, tel schemes
@@ -136,24 +171,10 @@ const moderateSanitizationOptions: IOptions = {
 
 /**
  * Default sanitization options - uses moderate preset.
- * 
  * @internal This configuration is security-critical. Changes should be reviewed carefully.
  */
 const defaultSanitizationOptions = moderateSanitizationOptions;
 
-/**
- * Sanitizes HTML content to prevent XSS attacks while preserving safe formatting.
- * 
- * @param dirtyHtml - The potentially unsafe HTML string to sanitize
- * @param sanitizeOptions - Optional custom sanitization options. Defaults to secure recommended options.
- * @returns The sanitized HTML string safe for rendering
- * 
- * @example
- * ```typescript
- * const safe = sanitizeHtml('<script>alert("XSS")</script><strong>Safe</strong>');
- * // Returns: '<strong>Safe</strong>'
- * ```
- */
 function sanitizeHtml(
   dirtyHtml: string,
   sanitizeOptions: IOptions = defaultSanitizationOptions,
@@ -165,41 +186,58 @@ function sanitizeHtml(
   return sanitize(dirtyHtml, sanitizeOptions);
 }
 
+function sanitizeHtmlInline(dirtyHtml: string): string {
+  return sanitizeHtml(dirtyHtml, inlineSanitizationOptions);
+}
+
 /**
  * Sanitization preset configuration.
- * 
+ *
  * - `strict`: Minimal tags, maximum security (for untrusted input)
- * - `moderate`: Balanced security and functionality (default, for rich text)
+ * - `inline`: Phrasing content only, safe inside &lt;label&gt; (for titles, labels)
+ * - `moderate`: Block + inline content (for descriptions, rich text)
  */
 export const sanitizationPresets = {
   strict: strictSanitizationOptions,
+  inline: inlineSanitizationOptions,
   moderate: moderateSanitizationOptions,
 } as const;
 
 /**
  * HTML sanitizer utility for secure rich text rendering.
- * 
+ *
  * Provides secure HTML sanitization with sensible defaults for survey content.
  * Automatically enforces security best practices like rel="noopener noreferrer" on external links.
- * 
+ *
  * @example
  * ```typescript
  * // Use default (moderate) preset
  * const safe = htmlSanitizer.sanitize('<script>alert("XSS")</script><strong>Safe</strong>');
- * 
+ *
  * // Use strict preset for untrusted input
  * const strict = htmlSanitizer.sanitize(userInput, htmlSanitizer.presets.strict);
+ *
+ * // Use inline preset for titles/labels (no block elements)
+ * const labelHtml = htmlSanitizer.sanitize(question.title, htmlSanitizer.presets.inline);
  * ```
  */
 export const htmlSanitizer = {
   /**
    * Sanitizes HTML content to prevent XSS attacks.
-   * 
+   *
    * @param dirtyHtml - The potentially unsafe HTML string to sanitize
    * @param sanitizeOptions - Optional custom sanitization options. Defaults to moderate preset.
    * @returns The sanitized HTML string safe for rendering
    */
   sanitize: sanitizeHtml,
+
+  /**
+   * Sanitizes HTML content to prevent XSS attacks while preserving safe formatting using the inline preset.
+   *
+   * @param dirtyHtml - The potentially unsafe HTML string to sanitize
+   * @returns The sanitized HTML string safe for rendering
+   */
+  sanitizeInline: sanitizeHtmlInline,
 
   /**
    * Default sanitization options (moderate preset).

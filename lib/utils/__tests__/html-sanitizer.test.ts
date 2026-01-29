@@ -745,6 +745,77 @@ describe("htmlSanitizer", () => {
       });
     });
 
+    describe("inline preset", () => {
+      it("should allow inline formatting but strip block elements", () => {
+        // Arrange
+        const input =
+          "<strong>Bold</strong><em>Italic</em><a href='https://example.com'>Link</a><p>Block</p><h1>Heading</h1>";
+
+        // Act
+        const result = htmlSanitizer.sanitize(
+          input,
+          htmlSanitizer.presets.inline,
+        );
+
+        // Assert
+        expect(result).toContain("<strong>Bold</strong>");
+        expect(result).toContain("<em>Italic</em>");
+        expect(result).toContain("<a");
+        expect(result).not.toContain("<p>");
+        expect(result).not.toContain("<h1>");
+        expect(result).toContain("Block");
+        expect(result).toContain("Heading");
+      });
+
+      it("should not allow images", () => {
+        // Arrange
+        const input = '<img src="https://example.com/image.jpg" />';
+
+        // Act
+        const result = htmlSanitizer.sanitize(
+          input,
+          htmlSanitizer.presets.inline,
+        );
+
+        // Assert
+        expect(result).not.toContain("<img");
+      });
+
+      it("should enforce security on external links", () => {
+        // Arrange
+        const input = '<a href="https://example.com">Link</a>';
+
+        // Act
+        const result = htmlSanitizer.sanitize(
+          input,
+          htmlSanitizer.presets.inline,
+        );
+
+        // Assert
+        expect(result).toContain('rel="noopener noreferrer"');
+        expect(result).toContain('target="_blank"');
+      });
+
+      it("should strip lists and tables", () => {
+        // Arrange
+        const input =
+          "<ul><li>Item</li></ul><table><tr><td>Cell</td></tr></table>";
+
+        // Act
+        const result = htmlSanitizer.sanitize(
+          input,
+          htmlSanitizer.presets.inline,
+        );
+
+        // Assert
+        expect(result).not.toContain("<ul>");
+        expect(result).not.toContain("<li>");
+        expect(result).not.toContain("<table>");
+        expect(result).toContain("Item");
+        expect(result).toContain("Cell");
+      });
+    });
+
     describe("moderate preset", () => {
       it("should allow rich formatting", () => {
         // Arrange
@@ -787,6 +858,7 @@ describe("htmlSanitizer", () => {
       // Assert
       expect(presets).toBeDefined();
       expect(presets.strict).toBeDefined();
+      expect(presets.inline).toBeDefined();
       expect(presets.moderate).toBeDefined();
     });
   });
