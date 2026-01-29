@@ -346,10 +346,13 @@ describe("validateHexToken", () => {
 
   describe("SSRF prevention - path traversal", () => {
     it("should reject path traversal with forward slash", () => {
+      // Act
       const result = validateHexToken(
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E/../admin",
         "token",
       );
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain(
@@ -359,10 +362,13 @@ describe("validateHexToken", () => {
     });
 
     it("should reject path traversal with backslash", () => {
+      // Act
       const result = validateHexToken(
         String.raw`39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E\..\admin`,
         "token",
       );
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain(
@@ -372,7 +378,10 @@ describe("validateHexToken", () => {
     });
 
     it("should reject parent directory references", () => {
+      // Act
       const result = validateHexToken("../../../internal", "token");
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain(
@@ -382,10 +391,13 @@ describe("validateHexToken", () => {
     });
 
     it("should reject URL-encoded forward slash", () => {
+      // Act
       const result = validateHexToken(
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E%2Fadmin",
         "token",
       );
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain(
@@ -395,10 +407,13 @@ describe("validateHexToken", () => {
     });
 
     it("should reject URL-encoded backslash", () => {
+      // Act
       const result = validateHexToken(
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E%5Cadmin",
         "token",
       );
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain(
@@ -408,7 +423,10 @@ describe("validateHexToken", () => {
     });
 
     it("should reject URL-encoded parent directory", () => {
+      // Act
       const result = validateHexToken("39ABB6CA%2E%2Eadmin", "token");
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain(
@@ -420,7 +438,10 @@ describe("validateHexToken", () => {
 
   describe("invalid inputs - non-hex characters", () => {
     it("should reject strings with non-hex characters", () => {
+      // Act
       const result = validateHexToken("39ABB6CA957E6DFG", "token");
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain("must be a valid hexadecimal string");
@@ -428,10 +449,13 @@ describe("validateHexToken", () => {
     });
 
     it("should reject strings with spaces", () => {
+      // Act
       const result = validateHexToken(
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E ",
         "token",
       );
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain("must be a valid hexadecimal string");
@@ -439,10 +463,13 @@ describe("validateHexToken", () => {
     });
 
     it("should reject strings with special characters", () => {
+      // Act
       const result = validateHexToken(
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E!",
         "token",
       );
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain("must be a valid hexadecimal string");
@@ -452,9 +479,14 @@ describe("validateHexToken", () => {
 
   describe("invalid inputs - length validation", () => {
     it("should reject token with incorrect length when length is specified", () => {
+      // Arrange
       const token =
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E";
+
+      // Act
       const result = validateHexToken(token, "token", 32);
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain("must be exactly 32 characters");
@@ -462,8 +494,13 @@ describe("validateHexToken", () => {
     });
 
     it("should reject token that is too short when length is specified", () => {
+      // Arrange
       const token = "ABC123";
+
+      // Act
       const result = validateHexToken(token, "token", 64);
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain("must be exactly 64 characters");
@@ -471,9 +508,14 @@ describe("validateHexToken", () => {
     });
 
     it("should reject token that is too long when length is specified", () => {
+      // Arrange
       const token =
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E00";
+
+      // Act
       const result = validateHexToken(token, "token", 64);
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain("must be exactly 64 characters");
@@ -483,7 +525,10 @@ describe("validateHexToken", () => {
 
   describe("error messages", () => {
     it("should include parameter name in error messages", () => {
+      // Act
       const result = validateHexToken("", "customToken");
+
+      // Assert
       expect(Result.isError(result)).toBe(true);
       if (Result.isError(result)) {
         expect(result.message).toContain("customToken");
@@ -493,9 +538,14 @@ describe("validateHexToken", () => {
 
   describe("real-world token validation", () => {
     it("should accept a real 64-character submission token", () => {
+      // Arrange
       const realToken =
         "39ABB6CA957E6DF91C98D7D7975B2DB082C13887DCA6E03DFE1CDB0D61AB6A2E";
+
+      // Act
       const result = validateHexToken(realToken, "token", 64);
+
+      // Assert
       expect(Result.isSuccess(result)).toBe(true);
       if (Result.isSuccess(result)) {
         expect(result.value).toBe(realToken);
