@@ -18,12 +18,17 @@ interface Token {
 function hashString(str: string): number {
   let h = 5381;
   for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) + h) ^ str.charCodeAt(i);
+    const codePoint = str.codePointAt(i) ?? 0;
+    h = ((h << 5) + h) ^ codePoint;
   }
   return h >>> 0;
 }
 
-function tokenId(tokensLength: number, value: string, isVariable: boolean): number {
+function tokenId(
+  tokensLength: number,
+  value: string,
+  isVariable: boolean,
+): number {
   return hashString(`${tokensLength}\x00${value}\x00${isVariable}`);
 }
 
