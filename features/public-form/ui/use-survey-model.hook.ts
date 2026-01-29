@@ -38,6 +38,11 @@ export function useSurveyModel({
   const { variables } = useDynamicVariables(surveyModel);
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
   const isInitializedRef = useRef(false);
+  const submissionRef = useRef(submission);
+
+  useEffect(() => {
+    submissionRef.current = submission;
+  }, [submission]);
 
   useEffect(() => {
     const loadCustomQuestions = async () => {
@@ -78,12 +83,13 @@ export function useSurveyModel({
 
     const model = new SurveyModel(definition);
 
-    if (submission) {
-      setSubmissionData(model, submission.jsonData, (error) => {
+    const initialSubmission = submissionRef.current;
+    if (initialSubmission) {
+      setSubmissionData(model, initialSubmission.jsonData, (error) => {
         setError(error);
       });
-      model.currentPageNo = submission.currentPage ?? 0;
-      applyVariablesToModel(model, submission.metadata);
+      model.currentPageNo = initialSubmission.currentPage ?? 0;
+      applyVariablesToModel(model, initialSubmission.metadata);
     }
     processSearchParams(model);
 
@@ -95,13 +101,7 @@ export function useSurveyModel({
     return () => {
       isInitializedRef.current = false;
     };
-  }, [
-    definition,
-    isLoadingQuestions,
-    submission,
-    processSearchParams,
-    cleanupUrl,
-  ]);
+  }, [definition, isLoadingQuestions, processSearchParams, cleanupUrl]);
 
   return {
     surveyModel,
