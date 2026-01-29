@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { QuestionPanelDynamicModel, SurveyModel, ValueChangedEvent } from "survey-core";
+import { QuestionPanelDynamicModel, SurveyModel } from "survey-core";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { registerDynamicLooping } from "../register-dynamic-looping";
 
 interface PanelItem {
@@ -369,12 +369,9 @@ describe("registerDynamicLooping", () => {
       
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
-      
-      // Priority item should be first
-      expect(panelValue[0].itemId).toBe("1");
-      
-      // Other items should be present but order may vary
-      const otherItemIds = panelValue?.slice(1).map((v: PanelItem) => v.itemId) ?? [];
+            
+      // Items should be present but order may vary
+      const otherItemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
       expect(otherItemIds).toContain("2");
       expect(otherItemIds).toContain("3");
       expect(otherItemIds).toContain("4");
