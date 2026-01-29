@@ -17,7 +17,10 @@ function getTokens(result: ResultType<Token[]>): Token[] | null {
 
 describe("extractReplacedTokens", () => {
   it("returns validation error if no variables", () => {
+    // Act
     const result = extractReplacedTokens("Hello world!", "Hello world!");
+
+    // Assert
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.message).toMatch(/no personalized tokens/i);
@@ -25,41 +28,58 @@ describe("extractReplacedTokens", () => {
   });
 
   it("extracts a single variable", () => {
+    // Act
     const result = extractReplacedTokens("Hello {name}!", "Hello John!");
+
+    // Assert
     expect(Result.isSuccess(result)).toBe(true);
     expect(getReplacedValues(result)).toEqual(["John"]);
   });
 
   it("extracts multiple variables", () => {
+    // Act
     const result = extractReplacedTokens(
       "Hi {first}, meet {second}.",
       "Hi Alice, meet Bob.",
     );
+
+    // Assert
     expect(Result.isSuccess(result)).toBe(true);
     expect(getReplacedValues(result)).toEqual(["Alice", "Bob"]);
   });
 
   it("extracts adjacent variables as a single merged variable", () => {
-    // With the new logic, adjacent variables are merged into one
+    // Act (adjacent variables are merged into one)
     const result = extractReplacedTokens("A{one}{two}B", "A12B");
+
+    // Assert
     expect(Result.isSuccess(result)).toBe(true);
     expect(getReplacedValues(result)).toEqual(["12"]);
   });
 
   it("extracts variable at start", () => {
+    // Act
     const result = extractReplacedTokens("{greeting}, world!", "Hello, world!");
+
+    // Assert
     expect(Result.isSuccess(result)).toBe(true);
     expect(getReplacedValues(result)).toEqual(["Hello"]);
   });
 
   it("extracts variable at end", () => {
+    // Act
     const result = extractReplacedTokens("Bye {name}", "Bye Sam");
+
+    // Assert
     expect(Result.isSuccess(result)).toBe(true);
     expect(getReplacedValues(result)).toEqual(["Sam"]);
   });
 
   it("returns error if static text does not match", () => {
+    // Act
     const result = extractReplacedTokens("Hello {name}!", "Hi John!");
+
+    // Assert
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.message).toMatch(/static text mismatch/i);
@@ -67,7 +87,10 @@ describe("extractReplacedTokens", () => {
   });
 
   it("returns error if next static text is missing", () => {
+    // Act
     const result = extractReplacedTokens("A{one}B{two}C", "A1B2X");
+
+    // Assert
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.message).toMatch(/cannot find next static text/i);
@@ -75,18 +98,24 @@ describe("extractReplacedTokens", () => {
   });
 
   it("handles empty variable value", () => {
+    // Act
     const result = extractReplacedTokens("Hello {name}!", "Hello !");
+
+    // Assert
     expect(Result.isSuccess(result)).toBe(true);
     expect(getReplacedValues(result)).toEqual([""]);
   });
 
   describe("token id", () => {
     it("assigns a numeric id to every token", () => {
+      // Act
       const result = extractReplacedTokens(
         "Hi {first}, meet {second}.",
         "Hi Alice, meet Bob.",
       );
       const tokens = getTokens(result);
+
+      // Assert
       expect(tokens).not.toBeNull();
       expect(tokens).toHaveLength(5); // "Hi ", "{first}", ", meet ", "{second}", "."
       tokens!.forEach((token) => {
@@ -98,9 +127,11 @@ describe("extractReplacedTokens", () => {
     });
 
     it("assigns different ids to tokens with the same value (position-based)", () => {
-      // Two static "A" and two variable tokens with same name "x" at different positions
+      // Act (two static "A" and two variable tokens with same name "x" at different positions)
       const result = extractReplacedTokens("A{x}A{x}A", "A1A2A");
       const tokens = getTokens(result);
+
+      // Assert
       expect(tokens).not.toBeNull();
       const ids = tokens!.map((t) => t.id);
       const uniqueIds = new Set(ids);
@@ -108,10 +139,13 @@ describe("extractReplacedTokens", () => {
     });
 
     it("assigns deterministic ids for the same extraction", () => {
+      // Act
       const result1 = extractReplacedTokens("Hello {name}!", "Hello John!");
       const result2 = extractReplacedTokens("Hello {name}!", "Hello John!");
       const tokens1 = getTokens(result1);
       const tokens2 = getTokens(result2);
+
+      // Assert
       expect(tokens1).not.toBeNull();
       expect(tokens2).not.toBeNull();
       expect(tokens1!.length).toBe(tokens2!.length);

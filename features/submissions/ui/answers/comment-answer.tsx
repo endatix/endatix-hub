@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { MessageSquareOff, MessageSquareText } from "lucide-react";
 import React, { useEffect, useRef, useMemo, useState } from "react";
 import { Question } from "survey-core";
-import { useDebouncedResize } from "@/lib/utils/hooks/use-debounced-resize";
+import { useDebouncedResize } from "@/lib/utils/hooks/use-debounced-resize.hook";
 
 interface CommentAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   question: Question;

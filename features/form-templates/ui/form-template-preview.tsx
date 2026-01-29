@@ -17,7 +17,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { useMediaQuery } from "@/lib/utils/hooks/use-media-query";
+import { useMediaQuery } from "@/lib/utils/hooks/use-media-query.hook";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import dynamic from "next/dynamic";
