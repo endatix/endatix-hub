@@ -6,9 +6,25 @@ interface TextPreProcessorItem {
 }
 
 interface Token {
+  id: number;
   value: string;
   isVariable: boolean;
   replacedValue?: string;
+}
+
+/**
+ * Simple 32-bit string hash (djb2) to generate a deterministic id for the token.
+ */
+function hashString(str: string): number {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) + h) ^ str.charCodeAt(i);
+  }
+  return h >>> 0;
+}
+
+function tokenId(tokensLength: number, value: string, isVariable: boolean): number {
+  return hashString(`${tokensLength}\x00${value}\x00${isVariable}`);
 }
 
 function isValidItemName(name: string): boolean {
@@ -59,7 +75,11 @@ function extractTokensFromOriginal(originalText: string): Token[] {
     if (i === 0) {
       const textBefore = originalText.substring(0, item.start);
       if (textBefore.length > 0) {
-        tokens.push({ value: textBefore, isVariable: false });
+        tokens.push({
+          id: tokenId(tokens.length, textBefore, false),
+          value: textBefore,
+          isVariable: false,
+        });
       }
     } else {
       const previousItem = replacedItems[i - 1];
@@ -68,7 +88,11 @@ function extractTokensFromOriginal(originalText: string): Token[] {
         item.start,
       );
       if (textBetween.length > 0) {
-        tokens.push({ value: textBetween, isVariable: false });
+        tokens.push({
+          id: tokenId(tokens.length, textBetween, false),
+          value: textBetween,
+          isVariable: false,
+        });
       } else {
         // Merge adjacent variables: extend the last token's value
         const lastToken = tokens[tokens.length - 1];
@@ -79,8 +103,10 @@ function extractTokensFromOriginal(originalText: string): Token[] {
       }
     }
     // Add the variable token
+    const variableValue = originalText.substring(item.start + 1, item.end);
     tokens.push({
-      value: originalText.substring(item.start + 1, item.end),
+      id: tokenId(tokens.length, variableValue, true),
+      value: variableValue,
       isVariable: true,
     });
   }
@@ -88,7 +114,11 @@ function extractTokensFromOriginal(originalText: string): Token[] {
     const lastItem = replacedItems[replacedItems.length - 1];
     const textAfter = originalText.substring(lastItem.end + 1);
     if (textAfter.length > 0) {
-      tokens.push({ value: textAfter, isVariable: false });
+      tokens.push({
+        id: tokenId(tokens.length, textAfter, false),
+        value: textAfter,
+        isVariable: false,
+      });
     }
   }
   return tokens;

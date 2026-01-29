@@ -67,7 +67,7 @@ function TextLabel({ question }: { question: Question }) {
 function PersonalizedTextLabel({ question }: { question: Question }) {
   const extractionTokensResult = useMemo(
     () => extractReplacedTokens(question.title, question.processedTitle),
-    [question.title, question.processedTitle],
+    [question.title, question.processedTitle]
   );
 
   if (Result.isError(extractionTokensResult)) {
@@ -79,9 +79,9 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
   return (
     <TooltipProvider>
       <Label htmlFor={question.name}>
-        {personalizedTokens.map((token: Token, index: number) =>
+        {personalizedTokens.map((token: Token) =>
           token.isVariable ? (
-            <Tooltip key={index}>
+            <Tooltip key={token.id}>
               <TooltipTrigger asChild>
                 <span
                   className="font-bold bg-primary/10 p-1.5 rounded-md"
@@ -104,7 +104,7 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
             </Tooltip>
           ) : (
             <span
-              key={index}
+              key={token.id}
               dangerouslySetInnerHTML={{
                 __html: htmlSanitizer.sanitizeInline(token.value),
               }}
