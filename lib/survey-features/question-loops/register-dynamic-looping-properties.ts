@@ -4,7 +4,7 @@ export function registerDynamicLoopingProperties() {
 
   Serializer.addProperty("paneldynamic", {
     name: "loopSource",
-    displayName: "Select source question",
+    displayName: "Select source question(s)",
     category: "questionLoops",
     type: "multiplevalues",
     choices: function (obj: { survey: SurveyModel; }, choicesCallback: (choices: { value: string, text: string }[]) => void) {
@@ -74,7 +74,7 @@ export function registerDynamicLoopingProperties() {
   Serializer.addProperty("paneldynamic", {
     name: "priorityItems",
     dependsOn: ["loopSource"],
-    displayName: "Pinned items",
+    displayName: "Priority items",
     category: "questionLoops",
     type: "multiplevalues",
     choices: function (
