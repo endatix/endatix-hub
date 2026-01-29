@@ -23,7 +23,7 @@ export default defineConfig({
         "**/index.ts",
         "**/server.ts",
         "**/client.ts",
-        "**/*__tests__/**",
+        "**/__tests__/**",
         "components/ui/**/*.tsx",
       ],
       enabled: true,
