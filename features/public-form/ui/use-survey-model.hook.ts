@@ -10,6 +10,7 @@ import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions as customQuestionsList } from "@/customizations/questions/question-registry";
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
 import { setSubmissionData } from "@/lib/survey-features";
+import { useInitOnly } from "@/lib/utils/hooks";
 
 interface UseSurveyModelProps {
   formId: string;
@@ -29,8 +30,8 @@ interface UseSurveyModelProps {
 export function useSurveyModel({
   formId,
   definition,
-  submission,
   customQuestions,
+  submission,
 }: UseSurveyModelProps) {
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
@@ -38,11 +39,7 @@ export function useSurveyModel({
   const { variables } = useDynamicVariables(surveyModel);
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
   const isInitializedRef = useRef(false);
-  const submissionRef = useRef(submission);
-
-  useEffect(() => {
-    submissionRef.current = submission;
-  }, [submission]);
+  const submissionRef = useInitOnly(submission);
 
   useEffect(() => {
     const loadCustomQuestions = async () => {
@@ -101,7 +98,13 @@ export function useSurveyModel({
     return () => {
       isInitializedRef.current = false;
     };
-  }, [definition, isLoadingQuestions, processSearchParams, cleanupUrl]);
+  }, [
+    definition,
+    isLoadingQuestions,
+    processSearchParams,
+    cleanupUrl,
+    submissionRef,
+  ]);
 
   return {
     surveyModel,
