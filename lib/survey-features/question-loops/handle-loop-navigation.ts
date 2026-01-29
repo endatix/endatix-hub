@@ -6,6 +6,15 @@ interface LoopingPanelModel extends QuestionPanelDynamicModel {
     exitAllLoopsCondition?: string;
 }
 
+function resolveCondition(condition: string, panelName: string, currentIndex: number) {
+    if (!condition) return "";
+
+    // Regex looks for "{panel." (case insensitive)
+    // and replaces it with "{PanelName[Index]."
+    const absolutePath = `{${panelName}[${currentIndex}].`;
+    return condition.replace(/\{panel\./gi, absolutePath);
+}
+
 export function handleLoopExits(survey: SurveyModel) {
     const handler = (sender: SurveyModel, options: DynamicPanelItemValueChangedEvent) => {
         const loopPanel = options.question as LoopingPanelModel;
@@ -20,19 +29,12 @@ export function handleLoopExits(survey: SurveyModel) {
         const currentIndex = options.panelIndex;
         if (currentIndex === undefined || currentIndex < 0) return;
 
-        const resolveCondition = (condition: string): string => {
-            if (!condition) return "";
-
-            // Regex looks for "{panel." (case insensitive)
-            // and replaces it with "{PanelName[Index]."
-            const absolutePath = `{${loopPanel.name}[${currentIndex}].`;
-            return condition.replace(/\{panel\./gi, absolutePath);
-        };
+        let shouldUpdateNavigation = false;
 
         // Logic for "Exit All Loops"
         if (typeof exitAllCond === "string" && exitAllCond.trim() !== "") {
             
-            const globalExpression = resolveCondition(exitAllCond);
+            const globalExpression = resolveCondition(exitAllCond, loopPanel.name, currentIndex);
             const shouldExitAllLoops = sender.runCondition(globalExpression);
 
             if(currentIndex < loopPanel.panels.length) {
@@ -41,15 +43,15 @@ export function handleLoopExits(survey: SurveyModel) {
                 // If shouldExitAllLoops is false -> show them (in case user changed their mind).
                 for(let i=currentIndex + 1; i < loopPanel.panels.length; i++) {
                     loopPanel.panels[i].visible = !shouldExitAllLoops;
+                    shouldUpdateNavigation = true;
                 }
             }
-            sender.updateNavigationElements();
         }
 
         // Logic for "Exit Current Loop"
         if (typeof exitLoopCond === "string" && exitLoopCond.trim() !== "") {
             
-            const globalExpression = resolveCondition(exitLoopCond);
+            const globalExpression = resolveCondition(exitLoopCond, loopPanel.name, currentIndex);
             const shouldExitCurrentLoop = sender.runCondition(globalExpression);
             const currentPanelQuestions = options.panel.questions;
 
@@ -69,7 +71,11 @@ export function handleLoopExits(survey: SurveyModel) {
             // If shouldExitCurrentLoop is false -> show them (in case user changed their mind).
             for (let i = triggerIndex + 1; i < currentPanelQuestions.length; i++) {
                 currentPanelQuestions[i].visible = !shouldExitCurrentLoop;
+                shouldUpdateNavigation = true;
             }
+        }
+
+        if(shouldUpdateNavigation ) {
             sender.updateNavigationElements();
         }
     };
