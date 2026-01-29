@@ -121,6 +121,7 @@ export function formatNumber(number: number, fallback: string = "-"): string {
 export const TokenPermission = {
   Read: "r",
   Write: "w",
+  Export: "x",
 } as const;
 
 export type TokenPermissionValue = typeof TokenPermission[keyof typeof TokenPermission];

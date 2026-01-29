@@ -1,6 +1,8 @@
 import { preparePdfModel } from "@/features/pdf-export/server";
 import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
+import { Result } from "@/lib/result";
+import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { parseBoolean } from "@/lib/utils/type-parsers";
 import { CustomQuestion, getActiveFormDefinition } from "@/services/api";
@@ -30,19 +32,38 @@ export async function GET(req: NextRequest, { params }: Params) {
     });
   }
 
-  const endatix = new EndatixApi();
-  const submissionResult = await endatix.submissions.public.getByToken(
-    formId,
-    token,
-  );
-
-  if (!ApiResult.isSuccess(submissionResult)) {
-    return apiResponses.notFound({
-      detail: "Invalid or expired token.",
+  if (!hasTokenPermission(token, TokenPermission.Export)) {
+    return apiResponses.forbidden({
+      detail: "Access token does not have export permissions.",
     });
   }
 
-  const submission = submissionResult.data;
+  const submissionResult = await getSubmissionByAccessTokenUseCase({
+    formId,
+    token,
+  });
+
+  if (Result.isError(submissionResult)) {
+    const errorMessage = submissionResult.message.toLowerCase();
+
+    if (errorMessage.includes("expired")) {
+      return apiResponses.unauthorized({
+        detail: "Access token has expired.",
+      });
+    }
+
+    if (errorMessage.includes("permission") || errorMessage.includes("forbidden")) {
+      return apiResponses.forbidden({
+        detail: "Access denied.",
+      });
+    }
+
+    return apiResponses.notFound({
+      detail: "Submission not found.",
+    });
+  }
+
+  const submission = submissionResult.value;
 
   let customQuestionsJsonData: string[] = [];
   try {
