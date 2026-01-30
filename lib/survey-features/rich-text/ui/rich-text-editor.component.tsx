@@ -95,7 +95,6 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
     return (
       <div
         ref={this.wrapperRef}
-        role="group"
         aria-label="Rich text editor"
         className={`relative border border-gray-300 rounded-md p-0 ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
       >
