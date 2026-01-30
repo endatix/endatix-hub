@@ -488,7 +488,7 @@ describe("registerDynamicLooping", () => {
       expect(panelValue[0]).toHaveProperty("itemValue");
       expect(panelValue[0]).toHaveProperty("loopSource");
       expect(panelValue[0].itemValue).toBe("1");
-      expect(panelValue[0].item).toBe("Option 1");
+      expect(panelValue[0].itemText).toBe("Option 1");
     });
 
     it("should use value as item when text is not available", () => {
