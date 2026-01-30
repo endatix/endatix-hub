@@ -8,6 +8,10 @@ import {
 import React from "react";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { RICH_TEXT_EDITOR_TYPE } from "./rich-text-editor.model";
+import {
+  hasActiveSelectionFromEditor,
+  hideTooltipFromEditor,
+} from "./rich-text-editor.utils";
 
 /**
  * Toolbar options for the rich text editor.
@@ -37,14 +41,10 @@ const modules = {
   toolbar: [FORMATTING_OPTIONS.basic],
 };
 
-function normalizeHtmlValue(value: string): string {
+/** Normalizes HTML value for the question (empty -> '', else sanitized). Exported for tests. */
+export function normalizeHtmlValue(value: string): string {
   if (!value) return "";
   return htmlSanitizer.sanitize(value);
-}
-
-/** Bubble theme adds tooltip with hide method */
-interface QuillBubbleTheme {
-  tooltip?: { hide?: () => void };
 }
 
 export class RichTextEditorComponent extends SurveyQuestionElementBase {
@@ -70,17 +70,11 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
   }
 
   hasActiveSelection(): boolean {
-    const quill = this.quillRef.current?.editor;
-    return Boolean(
-      quill?.selection?.savedRange && quill.selection.savedRange.length > 0,
-    );
+    return hasActiveSelectionFromEditor(this.quillRef.current?.editor);
   }
 
   hideTooltip(): void {
-    const theme = this.quillRef.current?.editor?.theme as
-      | QuillBubbleTheme
-      | undefined;
-    theme?.tooltip?.hide?.();
+    hideTooltipFromEditor(this.quillRef.current?.editor);
   }
 
   handleBlur = () => {
