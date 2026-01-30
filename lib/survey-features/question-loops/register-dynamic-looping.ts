@@ -2,7 +2,7 @@ import { ItemValue, SurveyModel, ValueChangedEvent } from "survey-core";
 import { handleLoopExits } from "./handle-loop-navigation";
 import { registerDynamicLoopingProperties } from "./register-dynamic-looping-properties";
 
-// This following properties will be injected into the value of each panel
+// Thе following properties will be injected into the value of each panel
 // Allowing users to use them for text piping, expressions, and see them in the survey results
 interface PanelItem {
   itemText: string; 
@@ -124,8 +124,8 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
       }
       
       finalValue = finalValue.map((obj, index) => ({
-        ...obj,             // <--- This copies 'item' and 'itemValue'
-        loopIndex: index    // <--- This adds the new property
+        ...obj,
+        loopIndex: index 
       }));
 
       if (JSON.stringify(panelQuestion.value) !== JSON.stringify(finalValue)) {
