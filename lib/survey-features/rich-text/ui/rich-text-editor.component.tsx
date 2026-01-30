@@ -9,50 +9,53 @@ import React from "react";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { RICH_TEXT_EDITOR_TYPE } from "./rich-text-editor.model";
 
-const modules = {
-  toolbar: [
-    // Group 1: Headings and Font
-    // [{ 'header': [1, 2, false] }],
-    // [{ 'font': [] }],
-
-    // Group 2: Basic Formatting
-    // ['bold', 'italic', 'underline', 'strike'], // toggled buttons
-    [
-      "bold",
-      "italic",
-      "underline",
-      "strike",
-      { color: [] },
-      { background: [] },
-      "image",
-    ],
-
-    // Group 3: Lists and Indentation
-    // [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    // [{ 'indent': '-1'}, { 'indent': '+1' }],
-
-    // Group 4: Links/Images and Alignment
-    // ['link', 'image'],
-    // [{ 'align': [] }],
-
-    // Group 5: Clear formatting
-    // ['clean']
+/**
+ * Toolbar options for the rich text editor.
+ */
+const FORMATTING_OPTIONS = {
+  headingsAndFont: [{ header: [1, 2, false] }, { font: [] }],
+  basic: [
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    { color: [] },
+    { background: [] },
+    "image",
   ],
+  listsAndIndentation: [
+    { list: "ordered" },
+    { list: "bullet" },
+    { indent: "-1" },
+    { indent: "+1" },
+  ],
+  linksAndImagesAndAlignment: ["link", "image", { align: [] }],
+  clearFormatting: ["clean"],
+};
+
+const modules = {
+  toolbar: [FORMATTING_OPTIONS.basic],
 };
 
 function normalizeHtmlValue(value: string): string {
-  if (!value) {
-    return "";
-  }
-  
+  if (!value) return "";
   return htmlSanitizer.sanitize(value);
 }
 
+/** Bubble theme adds tooltip with hide method */
+interface QuillBubbleTheme {
+  tooltip?: { hide?: () => void };
+}
+
 export class RichTextEditorComponent extends SurveyQuestionElementBase {
+  wrapperRef = React.createRef<HTMLDivElement>();
+  quillRef = React.createRef<ReactQuill>();
+
   constructor(props: unknown) {
     super(props);
     this.state = { value: this.question.value };
   }
+
   get question() {
     return this.questionBase;
   }
@@ -66,16 +69,50 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
     return { height: this.question.height };
   }
 
+  hasActiveSelection(): boolean {
+    const quill = this.quillRef.current?.editor;
+    return Boolean(
+      quill?.selection?.savedRange && quill.selection.savedRange.length > 0,
+    );
+  }
+
+  hideTooltip(): void {
+    const theme = this.quillRef.current?.editor?.theme as
+      | QuillBubbleTheme
+      | undefined;
+    theme?.tooltip?.hide?.();
+  }
+
+  handleBlur = () => {
+    if (this.hasActiveSelection()) {
+      this.hideTooltip();
+    }
+  };
+
+  handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && this.hasActiveSelection()) {
+      this.hideTooltip();
+    }
+  };
+
   renderQuill() {
     const isReadOnly = this.question.isReadOnly || this.question.isDesignMode;
+    const hasActiveSelection = this.hasActiveSelection();
     return (
-      <div className="relative border border-gray-300 rounded-md p-0">
+      <div
+        ref={this.wrapperRef}
+        className={`relative border border-gray-300 rounded-md p-0 ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
+        onBlur={this.handleBlur}
+        onKeyDown={this.handleKeyDown}
+      >
         <ReactQuill
+          ref={this.quillRef}
           theme="bubble"
           readOnly={isReadOnly}
           value={this.value}
           onChange={this.handleValueChange}
           modules={modules}
+          bounds={this.wrapperRef.current ?? undefined}
         />
       </div>
     );
@@ -92,8 +129,6 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
 export function registerRichTextEditorQuestion() {
   ReactQuestionFactory.Instance.registerQuestion(
     RICH_TEXT_EDITOR_TYPE,
-    (props) => {
-      return React.createElement(RichTextEditorComponent, props);
-    },
+    (props) => React.createElement(RichTextEditorComponent, props),
   );
 }
