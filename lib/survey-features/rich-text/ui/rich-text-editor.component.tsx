@@ -8,10 +8,6 @@ import {
 import React from "react";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { RICH_TEXT_EDITOR_TYPE } from "./rich-text-editor.model";
-import {
-  hasActiveSelectionFromEditor,
-  hideTooltipFromEditor,
-} from "./rich-text-editor.utils";
 
 /**
  * Toolbar options for the rich text editor.
@@ -95,6 +91,8 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
     return (
       <div
         ref={this.wrapperRef}
+        role="group"
+        aria-label="Rich text editor"
         className={`relative border border-gray-300 rounded-md p-0 ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
         onBlur={this.handleBlur}
         onKeyDown={this.handleKeyDown}
