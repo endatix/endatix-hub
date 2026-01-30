@@ -4,7 +4,8 @@ import { registerDynamicLooping } from "../register-dynamic-looping";
 
 interface PanelItem {
   item: string;
-  itemId: string;
+  itemValue: string;
+  loopIndex: number;
 }
 
 describe("registerDynamicLooping", () => {
@@ -154,9 +155,9 @@ describe("registerDynamicLooping", () => {
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
-      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("1");
-      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("2");
-      expect(panelValue?.map((v: PanelItem) => v.itemId)).not.toContain("3");
+      expect(panelValue?.map((v: PanelItem) => v.itemValue)).toContain("1");
+      expect(panelValue?.map((v: PanelItem) => v.itemValue)).toContain("2");
+      expect(panelValue?.map((v: PanelItem) => v.itemValue)).not.toContain("3");
     });
 
     it("should filter to unselected choices when choicePattern is 'Unselected Only'", () => {
@@ -179,9 +180,9 @@ describe("registerDynamicLooping", () => {
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
-      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("2");
-      expect(panelValue?.map((v: PanelItem) => v.itemId)).toContain("3");
-      expect(panelValue?.map((v: PanelItem) => v.itemId)).not.toContain("1");
+      expect(panelValue?.map((v: PanelItem) => v.itemValue)).toContain("2");
+      expect(panelValue?.map((v: PanelItem) => v.itemValue)).toContain("3");
+      expect(panelValue?.map((v: PanelItem) => v.itemValue)).not.toContain("1");
     });
 
     it("should include all choices when choicePattern is not set or invalid", () => {
@@ -225,7 +226,7 @@ describe("registerDynamicLooping", () => {
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(1);
-      expect(panelValue[0].itemId).toBe("1");
+      expect(panelValue[0].itemValue).toBe("1");
     });
   });
 
@@ -276,7 +277,7 @@ describe("registerDynamicLooping", () => {
       checkbox2.value = ["shared", "unique2"];
       
       const panelValue = panel.value as PanelItem[] | undefined;
-      const itemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
+      const itemIds = panelValue?.map((v: PanelItem) => v.itemValue) ?? [];
       expect(itemIds.filter((id: string) => id === "shared").length).toBe(1);
       expect(itemIds).toContain("shared");
       expect(itemIds).toContain("unique1");
@@ -319,7 +320,7 @@ describe("registerDynamicLooping", () => {
       
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
-      const itemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
+      const itemIds = panelValue?.map((v: PanelItem) => v.itemValue) ?? [];
       
       // Priority items should come first
       expect(itemIds[0]).toBe("2");
@@ -371,7 +372,7 @@ describe("registerDynamicLooping", () => {
       expect(panelValue).toBeDefined();
             
       // Items should be present but order may vary
-      const otherItemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
+      const otherItemIds = panelValue?.map((v: PanelItem) => v.itemValue) ?? [];
       expect(otherItemIds).toContain("2");
       expect(otherItemIds).toContain("3");
       expect(otherItemIds).toContain("4");
@@ -440,7 +441,7 @@ describe("registerDynamicLooping", () => {
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(2);
-      const itemIds = panelValue?.map((v: PanelItem) => v.itemId) ?? [];
+      const itemIds = panelValue?.map((v: PanelItem) => v.itemValue) ?? [];
       // Priority items should be included
       expect(itemIds).toContain("3");
       expect(itemIds).toContain("4");
@@ -485,7 +486,7 @@ describe("registerDynamicLooping", () => {
       expect(panelValue.length).toBe(1);
       expect(panelValue[0]).toHaveProperty("item");
       expect(panelValue[0]).toHaveProperty("itemId");
-      expect(panelValue[0].itemId).toBe("1");
+      expect(panelValue[0].itemValue).toBe("1");
       expect(panelValue[0].item).toBe("Option 1");
     });
 
@@ -504,7 +505,7 @@ describe("registerDynamicLooping", () => {
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue[0].item).toBe("1");
-      expect(panelValue[0].itemId).toBe("1");
+      expect(panelValue[0].itemValue).toBe("1");
     });
   });
 
