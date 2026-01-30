@@ -484,8 +484,9 @@ describe("registerDynamicLooping", () => {
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
       expect(panelValue.length).toBe(1);
-      expect(panelValue[0]).toHaveProperty("item");
-      expect(panelValue[0]).toHaveProperty("itemId");
+      expect(panelValue[0]).toHaveProperty("itemText");
+      expect(panelValue[0]).toHaveProperty("itemValue");
+      expect(panelValue[0]).toHaveProperty("loopSource");
       expect(panelValue[0].itemValue).toBe("1");
       expect(panelValue[0].item).toBe("Option 1");
     });
@@ -504,7 +505,7 @@ describe("registerDynamicLooping", () => {
       
       const panelValue = panel.value as PanelItem[] | undefined;
       expect(panelValue).toBeDefined();
-      expect(panelValue[0].item).toBe("1");
+      expect(panelValue[0].itemText).toBe("1");
       expect(panelValue[0].itemValue).toBe("1");
     });
   });
