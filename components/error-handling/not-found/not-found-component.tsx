@@ -58,6 +58,7 @@ const Sheep = () => {
         <div className="leg"></div>
         <div className="leg"></div>
         <div className="leg"></div>
+        <div className="leg"></div>
       </div>
     </div>
   );
