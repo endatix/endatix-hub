@@ -69,6 +69,7 @@ describe("uploadUserFilesUseCase", () => {
     vi.mocked(optimizeImageSize).mockResolvedValue(Buffer.from("optimized"));
     vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
       isEnabled: true,
+      protocol: "https",
       accountName: "mock-account-name",
       accountKey: "mock-account-key",
       hostName: "mock-host-name",
@@ -91,8 +92,12 @@ describe("uploadUserFilesUseCase", () => {
     expect(storageService.uploadToStorage).toHaveBeenCalledWith(
       expect.any(Buffer),
       "mock-unique-file-name",
-      expect.any(String),
+      "user-files",
       `s/${mockCommand.formId}/${mockCommand.submissionId}`,
+      expect.objectContaining({
+        contentType: "image/jpeg",
+        fileName: "test.jpg",
+      }),
     );
   });
 
@@ -103,6 +108,7 @@ describe("uploadUserFilesUseCase", () => {
     // Set storage config to disabled
     vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
       isEnabled: false,
+      protocol: "https",
       accountName: "",
       accountKey: "",
       hostName: "",
@@ -200,6 +206,7 @@ describe("uploadUserFilesUseCase", () => {
     );
     vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
       isEnabled: true,
+      protocol: "https",
       accountName: "mock-account-name",
       accountKey: "mock-account-key",
       hostName: "mock-host-name",

@@ -11,26 +11,24 @@ import {
   UploadUserFilesCommand,
   UploadUserFilesResult,
 } from "../../types";
+import { buildUseFileFolderPath } from "../../infrastructure/storage-utils";
 
 const uploadUserFilesUseCase = async ({
   formId,
   submissionId,
   files,
+  additionalMetadata,
 }: UploadUserFilesCommand): Promise<UploadUserFilesResult> => {
-  if (!formId) {
-    return Result.validationError("Form ID is required");
-  }
-
-  if (!submissionId) {
-    return Result.validationError("Submission ID is required");
+  const folderPathResult = buildUseFileFolderPath(formId, submissionId);
+  if (Result.isError(folderPathResult)) {
+    return Result.error(folderPathResult.message);
   }
 
   if (!files || files.length === 0) {
     return Result.validationError("Files are required");
   }
 
-  const folderPath = `s/${formId}/${submissionId}`;
-
+  const folderPath = folderPathResult.value;
   const containerNames = getContainerNames();
   const storageConfig = getStorageConfig();
   const containerName = containerNames.USER_FILES;
@@ -51,6 +49,11 @@ const uploadUserFilesUseCase = async ({
       }
 
       const fileName = initialFileNameResult.value;
+      const fileMetadata = {
+        ...additionalMetadata,
+        contentType: file.type,
+        fileName: file.name,
+      };
 
       if (storageConfig.isEnabled) {
         const fileUrl = await uploadToStorage(
@@ -58,6 +61,7 @@ const uploadUserFilesUseCase = async ({
           fileName,
           containerName,
           folderPath,
+          fileMetadata,
         );
         uploadedFiles.push({ name: name, url: fileUrl });
       } else {
