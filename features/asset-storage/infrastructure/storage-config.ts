@@ -1,4 +1,5 @@
-import { ContainerType } from '../types';
+import { ContainerType } from "../types";
+import { IMAGE_SERVICE_CONFIG } from "./image-service";
 import { StorageConfig, StorageConfigClient } from "./storage-config-client";
 
 interface IStorageConfig {
@@ -95,6 +96,7 @@ function createStorageConfigClient(): StorageConfigClient {
         USER_FILES: containerNames.USER_FILES,
         CONTENT: containerNames.CONTENT,
       },
+      imageConfig: IMAGE_SERVICE_CONFIG,
     },
   });
 }
@@ -105,7 +107,10 @@ function createStorageConfigClient(): StorageConfigClient {
  * @param config - The storage configuration
  * @returns The URL for the container
  */
-function getContainerUrl(containerName: string, config: AzureStorageConfig | StorageConfig): string {
+function getContainerUrl(
+  containerName: string,
+  config: AzureStorageConfig | StorageConfig,
+): string {
   return `${config.protocol}://${config.hostName}/${containerName}`;
 }
 
@@ -115,6 +120,5 @@ export {
   getContainerUrl,
   getStorageConfig,
   type AzureStorageConfig,
-  type IStorageConfig
+  type IStorageConfig,
 };
-

@@ -1,3 +1,4 @@
+import { ImageConfig } from "./image-service";
 import { AzureStorageConfig } from "./storage-config";
 
 /**
@@ -7,7 +8,9 @@ import { AzureStorageConfig } from "./storage-config";
 type StorageConfig = Omit<
   AzureStorageConfig,
   "accountKey" | "accountName" | "expiryMinutes" | "sasReadExpiryMinutes"
->;
+> & {
+  imageConfig: ImageConfig;
+};
 
 interface StorageConfigClient {
   config: StorageConfig;
