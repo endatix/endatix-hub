@@ -13,6 +13,7 @@ export interface IFile {
 export enum FileType {
   Image = "image", // Image files (jpg, png, etc)
   Video = "video", // Video files (mp4, etc)
+  Audio = "audio", // Audio files (mp3, wav, etc)
   Document = "document", // PDF documents
   Unknown = "unknown", // Unsupported file types
 }
@@ -30,21 +31,20 @@ export function getFileType(file: IFile): FileType {
 
   const mimeType = file.type.toLowerCase();
 
-  // Check for image MIME types (image/jpeg, image/png, etc)
-  if (mimeType.indexOf("image/") === 0) {
-    return FileType.Image;
+  const [mainMimeType, subMimeType] = mimeType.split("/");
+  switch (mainMimeType) {
+    case "image":
+      return FileType.Image;
+    case "video":
+      return FileType.Video;
+    case "audio":
+      return FileType.Audio;
+    case "application":
+      if (subMimeType === "pdf") {
+        return FileType.Document;
+      }
+      return FileType.Unknown;
+    default:
+      return FileType.Unknown;
   }
-
-  // Check for video MIME types (video/mp4, etc)
-  if (mimeType.indexOf("video/") === 0) {
-    return FileType.Video;
-  }
-
-  // Check for PDF documents
-  if (mimeType.indexOf("application/pdf") === 0) {
-    return FileType.Document;
-  }
-
-  // Return unknown for unsupported types
-  return FileType.Unknown;
 }
