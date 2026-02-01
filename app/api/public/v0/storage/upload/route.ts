@@ -19,6 +19,7 @@ export async function POST(request: Request) {
   const formId = requestHeaders.get("edx-form-id") as string;
   let submissionId = requestHeaders.get("edx-submission-id") as string;
   const formLang = requestHeaders.get("edx-form-lang") as string | null;
+  const questionId = requestHeaders.get("edx-question-id") as string | null;
   const formData = await request.formData();
 
   if (!formId) {
@@ -61,10 +62,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "No files provided" }, { status: 400 });
   }
 
+  const additionalMetadata = {
+    questionId: questionId,
+    formId: formId,
+    submissionId: submissionId,
+    language: formLang,
+  };
+
   const result = await uploadUserFilesUseCase({
     formId: formId,
     submissionId: submissionId,
     files: files,
+    additionalMetadata: additionalMetadata,
   });
 
   if (Result.isError(result)) {

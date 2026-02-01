@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { MoreHorizontal, FilePenLine, Trash2, LinkIcon } from "lucide-react";
+import { MoreHorizontal, FilePenLine, Trash2, LinkIcon, Files } from "lucide-react";
 import Link from "next/link";
 import { StatusDropdownMenuItem } from "@/features/submissions/use-cases/change-status";
 import { DownloadFilesDropdownItem } from "@/features/submissions/ui/download-files-dropdown-item";
@@ -48,6 +48,13 @@ export function SubmissionActionsDropdown({
           <Link href={`/share/${formId}`} target="_blank">
             <LinkIcon className="mr-2 h-4 w-4" />
             Share Link
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href={`/forms/${formId}/submissions/${submissionId}/files`}>
+            <Files className="w-4 h-4 mr-2" />
+            <span>View Files</span>
           </Link>
         </DropdownMenuItem>
 
