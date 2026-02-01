@@ -3,6 +3,27 @@ import { Result } from "@/lib/result";
 const USER_FILES_PREFIX = "s/";
 
 /**
+ * Builds the folder path for a submission file in the USER_FILES container.
+ * @param formId - The form ID
+ * @param submissionId - The submission ID
+ * @returns A Result containing the folder path or a validation error
+ */
+function buildUseFileFolderPath(
+  formId: string,
+  submissionId: string,
+): Result<string> {
+  if (!formId) {
+    return Result.validationError("Form ID is required");
+  }
+
+  if (!submissionId) {
+    return Result.validationError("Submission ID is required");
+  }
+
+  return Result.success(`${USER_FILES_PREFIX}${formId}/${submissionId}`);
+}
+
+/**
  * Builds the file path (Blob Name) for a submission file in the USER_FILES container.
  * Returns relative path similar to s/{formId}/{submissionId}/{fileName}.
  *
@@ -16,17 +37,18 @@ function buildUserFilePath(
   submissionId: string,
   fileName: string,
 ): Result<string> {
-  if (!formId) return Result.validationError("Form ID is required");
-
-  if (!submissionId) return Result.validationError("Submission ID is required");
-
   const fileNameTrimmed = fileName?.trim() ?? "";
 
   if (!fileNameTrimmed) return Result.validationError("File name is required");
 
-  return Result.success(
-    `${USER_FILES_PREFIX}${formId}/${submissionId}/${fileNameTrimmed}`,
-  );
+  const folderPathResult = buildUseFileFolderPath(formId, submissionId);
+  if (Result.isError(folderPathResult)) {
+    return folderPathResult;
+  }
+
+  const folderPath = folderPathResult.value;
+
+  return Result.success(`${folderPath}/${fileNameTrimmed}`);
 }
 
 /**
@@ -108,6 +130,7 @@ export {
   type StorageHeaderName,
   USER_FILES_PREFIX,
   buildUserFilePath,
+  buildUseFileFolderPath,
   buildUserFileMetadata,
   buildUserFileRequestHeaders,
 };
