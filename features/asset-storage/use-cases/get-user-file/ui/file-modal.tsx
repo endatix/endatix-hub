@@ -27,22 +27,18 @@ export function FileModal({
   const router = useRouter();
   const [open, setOpen] = useState(true);
 
-  const listPath = useMemo(
-    () => `/forms/${formId}/submissions/${submissionId}/files`,
-    [formId, submissionId],
-  );
-
   const close = useCallback(() => {
     setOpen(false);
-    router.push(listPath as Parameters<typeof router.push>[0]);
-  }, [router, listPath]);
+    router.push(`/forms/${formId}/submissions/${submissionId}/files`);
+  }, [router, formId, submissionId]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
       setOpen(next);
-      if (!next) router.push(listPath as Parameters<typeof router.push>[0]);
+      if (!next)
+        router.push(`/forms/${formId}/submissions/${submissionId}/files`);
     },
-    [router, listPath],
+    [router, formId, submissionId],
   );
 
   const handleEscapeKeyDown = useCallback(

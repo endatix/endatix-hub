@@ -16,23 +16,20 @@ type UploadUserFilesResult = {
 
 export async function POST(request: Request) {
   const requestHeaders = await headers();
-  const formId = requestHeaders.get(StorageHeaderNames.FORM_ID) as string;
-  let submissionId = requestHeaders.get(
-    StorageHeaderNames.SUBMISSION_ID,
-  ) as string;
+  const formId = requestHeaders.get(StorageHeaderNames.FORM_ID) ?? "";
+  let submissionId = requestHeaders.get(StorageHeaderNames.SUBMISSION_ID) ?? "";
   const formLang = requestHeaders.get(StorageHeaderNames.FORM_LANG) as
     | string
     | null;
   const questionId = requestHeaders.get(StorageHeaderNames.QUESTION_ID) as
     | string
     | null;
-  const formData = await request.formData();
 
-  if (!formId) {
+  if (!formId.trim()) {
     return Response.json({ error: "Form ID is required" }, { status: 400 });
   }
 
-  if (!submissionId) {
+  if (!submissionId.trim()) {
     const initialSubmissionResult = await createInitialSubmissionUseCase(
       formId,
       formLang,
@@ -49,6 +46,7 @@ export async function POST(request: Request) {
     submissionId = initialSubmissionResult.data.submissionId;
   }
 
+  const formData = await request.formData();
   const files: { name: string; file: File }[] = [];
   for (const [filename, file] of formData.entries()) {
     if (!file || typeof file === "string") {

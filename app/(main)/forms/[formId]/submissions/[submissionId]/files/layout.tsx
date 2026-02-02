@@ -9,13 +9,15 @@ type LayoutProps = {
   params: Promise<{ formId: string; submissionId: string }>;
 };
 
+interface FileModalLoadingFallbackProps {
+  formId: string;
+  submissionId: string;
+}
+
 function FileModalLoadingFallback({
   formId,
   submissionId,
-}: {
-  formId: string;
-  submissionId: string;
-}) {
+}: Readonly<FileModalLoadingFallbackProps>) {
   return (
     <FileModal formId={formId} submissionId={submissionId}>
       <div className="flex min-h-[200px] items-center justify-center py-12">

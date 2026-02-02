@@ -74,6 +74,9 @@ describe("POST /api/public/v0/storage/upload", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(headersModule.headers).mockResolvedValue(
+      new Headers() as Awaited<ReturnType<typeof headersModule.headers>>,
+    );
     vi.mocked(uploadUserFilesUseCase).mockResolvedValue(
       Result.success(mockUploadResult),
     );
