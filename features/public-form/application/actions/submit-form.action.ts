@@ -15,6 +15,18 @@ export type SubmissionOperation = {
 
 export type SubmissionOperationResult = ApiResult<SubmissionOperation>;
 
+function logExceptionPostHog<T>(
+  result: ApiResult<T>,
+  properties: Record<string, unknown>,
+): void {
+  if (ApiResult.isError(result)) {
+    const postHog = getPostHog();
+    if (postHog) {
+      postHog.captureException(result.error, "", properties);
+    }
+  }
+}
+
 /**
  * Handles form submission by either updating an existing submission or creating a new one.
  * Uses Next.js server side processing of cookies to securely track partial submissions across requests.
@@ -101,24 +113,13 @@ async function updateExistingSubmissionViaToken(
       );
 
       if (!ApiResult.isSuccess(recoveryResult)) {
-        const postHog = getPostHog();
-        if (postHog) {
-          postHog.captureException(recoveryResult.error, "", {
-            formId,
-          });
-        }
+        logExceptionPostHog(recoveryResult, { formId });
       }
 
       return recoveryResult;
     }
 
-    const postHog = getPostHog();
-    if (postHog) {
-      postHog.captureException(updateByTokenResult.error, "", {
-        formId,
-        token,
-      });
-    }
+    logExceptionPostHog(updateByTokenResult, { formId, token });
 
     return updateByTokenResult;
   }
@@ -137,6 +138,7 @@ async function recoverFromExpiredToken(
   );
 
   if (ApiResult.isError(createResult)) {
+    logExceptionPostHog(createResult, { formId });
     return createResult;
   }
 
@@ -177,12 +179,7 @@ async function createNewSubmission(
       tokenStore.deleteToken(formId);
     }
 
-    const postHog = getPostHog();
-    if (postHog) {
-      postHog.captureException(createSubmissionResult.error, "", {
-        formId,
-      });
-    }
+    logExceptionPostHog(createSubmissionResult, { formId });
 
     return createSubmissionResult;
   }
