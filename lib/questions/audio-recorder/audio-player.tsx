@@ -1,7 +1,15 @@
-import { useAssetStorage } from '@/features/asset-storage/client';
+"use client";
+
+import { useAssetStorage } from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
 import { Download, Pause, Play } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 interface AudioPlayerProps {
   file: IFile | IFile[] | undefined;
@@ -30,6 +38,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
 
     if (singleFile.content.startsWith("http")) {
+      // URL already enhanced with SAS token (has query) → use as-is
+      if (singleFile.content.includes("?")) {
+        return singleFile.content;
+      }
       return resolveStorageUrl(singleFile.content);
     }
 
@@ -205,7 +217,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         </div>
       )}
 
-      {singleFile?.name && <div className="endatix_audio_filename">{singleFile.name}</div>}
+      {singleFile?.name && (
+        <div className="endatix_audio_filename">{singleFile.name}</div>
+      )}
     </div>
   );
 };

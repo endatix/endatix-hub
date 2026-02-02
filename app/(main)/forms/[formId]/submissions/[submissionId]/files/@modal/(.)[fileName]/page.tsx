@@ -11,7 +11,7 @@ type Params = {
   }>;
 };
 
-export default async function FileModalPage({ params }: Params) {
+export default async function FileModalPage({ params }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

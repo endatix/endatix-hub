@@ -3,13 +3,12 @@
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { FileQuestion } from "lucide-react";
-import { FileTableRow } from "@/features/submissions/ui/files/file-table-row";
+import { FileTableRow } from "./file-table-row";
 import type { UserFileMetadata } from "@/features/asset-storage/types";
 
 interface SubmissionFilesTableProps {

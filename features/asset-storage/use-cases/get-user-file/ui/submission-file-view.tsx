@@ -2,7 +2,7 @@ import {
   FileContentView,
   type FileViewSize,
 } from "@/features/submissions/ui/answers/file-viewer";
-import { FileViewMeta } from "@/features/submissions/ui/files/file-view-meta";
+import { FileViewMeta } from "./file-view-meta";
 import Link from "next/link";
 import type { UserFileViewData } from "../get-use-file.use-case";
 import { UrlObject } from "url";
@@ -26,7 +26,7 @@ export function SubmissionFileView({
   submissionId,
   showBackLink = true,
   size = "large",
-}: SubmissionFileViewProps) {
+}: Readonly<SubmissionFileViewProps>) {
   const filesListHref: UrlObject = {
     pathname: `/forms/${formId}/submissions/${submissionId}/files`,
     query: {},
@@ -54,6 +54,7 @@ export function SubmissionFileView({
       <FileViewMeta
         originalFileName={file.originalFileName}
         questionName={file.questionName}
+        sizeInBytes={file.sizeInBytes}
         downloadApiUrl={downloadApiUrl}
         displayName={file.displayName}
       />

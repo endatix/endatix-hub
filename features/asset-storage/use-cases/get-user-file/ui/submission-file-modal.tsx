@@ -1,7 +1,7 @@
 "use client";
 
 import { Result } from "@/lib/result";
-import { FileModal } from "@/features/submissions/ui/files/file-modal";
+import { FileModal } from "./file-modal";
 import { SubmissionFileView } from "./submission-file-view";
 import type { UserFileViewData } from "../get-use-file.use-case";
 import type { FileViewSize } from "@/features/submissions/ui/answers/file-viewer";
@@ -25,7 +25,7 @@ export function SubmissionFileModal({
   formId,
   submissionId,
   size = "medium",
-}: SubmissionFileModalProps) {
+}: Readonly<SubmissionFileModalProps>) {
   if (Result.isError(fileResult)) {
     return (
       <FileModal>
