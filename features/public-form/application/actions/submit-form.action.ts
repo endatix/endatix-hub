@@ -15,6 +15,18 @@ export type SubmissionOperation = {
 
 export type SubmissionOperationResult = ApiResult<SubmissionOperation>;
 
+function logExceptionPostHog<T>(
+  result: ApiResult<T>,
+  properties: Record<string, unknown>,
+): void {
+  if (ApiResult.isError(result)) {
+    const postHog = getPostHog();
+    if (postHog) {
+      postHog.captureException(result.error, "", properties);
+    }
+  }
+}
+
 /**
  * Handles form submission by either updating an existing submission or creating a new one.
  * Uses Next.js server side processing of cookies to securely track partial submissions across requests.
@@ -90,21 +102,54 @@ async function updateExistingSubmissionViaToken(
     if (
       performCookieOperations &&
       updateByTokenResult.error.errorCode ===
-      ERROR_CODE.SUBMISSION_TOKEN_INVALID
+        ERROR_CODE.SUBMISSION_TOKEN_INVALID
     ) {
       tokenStore.deleteToken(formId);
+
+      const recoveryResult = await recoverFromExpiredToken(
+        formId,
+        submissionData,
+        tokenStore,
+      );
+
+      if (!ApiResult.isSuccess(recoveryResult)) {
+        logExceptionPostHog(recoveryResult, { formId });
+      }
+
+      return recoveryResult;
     }
 
-    const postHog = getPostHog();
-    if (postHog) {
-      postHog.captureException(updateByTokenResult.error, "", {
-        formId,
-        token,
-      });
-    }
+    logExceptionPostHog(updateByTokenResult, { formId, token });
 
     return updateByTokenResult;
   }
+}
+
+async function recoverFromExpiredToken(
+  formId: string,
+  submissionData: SubmissionData,
+  tokenStore: FormTokenCookieStore,
+): Promise<ApiResult<SubmissionOperation>> {
+  const session = await getSession();
+  const endatix = new EndatixApi(session);
+  const createResult = await endatix.submissions.public.create(
+    formId,
+    submissionData,
+  );
+
+  if (ApiResult.isError(createResult)) {
+    logExceptionPostHog(createResult, { formId });
+    return createResult;
+  }
+
+  if (!createResult.data.isComplete) {
+    tokenStore.setToken({
+      formId,
+      token: createResult.data.token,
+    });
+  }
+
+  return ApiResult.success({ submissionId: createResult.data.id });
 }
 
 async function createNewSubmission(
@@ -134,12 +179,7 @@ async function createNewSubmission(
       tokenStore.deleteToken(formId);
     }
 
-    const postHog = getPostHog();
-    if (postHog) {
-      postHog.captureException(createSubmissionResult.error, "", {
-        formId,
-      });
-    }
+    logExceptionPostHog(createSubmissionResult, { formId });
 
     return createSubmissionResult;
   }
