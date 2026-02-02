@@ -58,6 +58,26 @@ function createRequestWithFiles(
   });
 }
 
+/**
+ * Request-like that resolves formData() immediately with pre-built FormData.
+ * Avoids consuming the real Request body stream in Node, which can hang in tests.
+ */
+function createRequestWithFormDataResolved(
+  files: { name: string; content: string; filename?: string }[],
+): Request {
+  const formData = new FormData();
+  for (const f of files) {
+    formData.append(
+      f.name,
+      new Blob([f.content], { type: "application/octet-stream" }),
+      f.filename ?? f.name,
+    );
+  }
+  return {
+    formData: () => Promise.resolve(formData),
+  } as unknown as Request;
+}
+
 function createRequestWithEmptyFormData(): Request {
   return new Request("http://localhost/api/public/v0/storage/upload", {
     method: "POST",
@@ -103,7 +123,7 @@ describe("POST /api/public/v0/storage/upload", () => {
       >,
     );
     setHeaders({ formId, formLang: "en" });
-    const req = createRequestWithFiles([
+    const req = createRequestWithFormDataResolved([
       { name: "doc", content: "x", filename: "doc.pdf" },
     ]);
 
@@ -126,7 +146,7 @@ describe("POST /api/public/v0/storage/upload", () => {
       >,
     );
     setHeaders({ formId });
-    const req = createRequestWithFiles([
+    const req = createRequestWithFormDataResolved([
       { name: "doc", content: "x", filename: "doc.pdf" },
     ]);
 
@@ -152,7 +172,7 @@ describe("POST /api/public/v0/storage/upload", () => {
 
   it("returns 200 and upload result when formId, submissionId, and files provided", async () => {
     setHeaders({ formId, submissionId, questionId: "q1", formLang: "en" });
-    const req = createRequestWithFiles([
+    const req = createRequestWithFormDataResolved([
       { name: "doc", content: "content", filename: "doc.pdf" },
     ]);
 
@@ -183,7 +203,7 @@ describe("POST /api/public/v0/storage/upload", () => {
       Result.error("Storage is not enabled"),
     );
     setHeaders({ formId, submissionId });
-    const req = createRequestWithFiles([
+    const req = createRequestWithFormDataResolved([
       { name: "doc", content: "x", filename: "doc.pdf" },
     ]);
 
