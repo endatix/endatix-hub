@@ -10,7 +10,7 @@ const USER_FILES_PREFIX = "s/";
  */
 function buildUseFileFolderPath(
   formId: string,
-  submissionId: string,
+  submissionId: string | undefined,
 ): Result<string> {
   if (!formId) {
     return Result.validationError("Form ID is required");

@@ -1,10 +1,11 @@
 import { ContainerType } from "../types";
-import { IMAGE_SERVICE_CONFIG } from "./image-service";
+import { IMAGE_SERVICE_CONFIG, ImageConfig } from "./image-service";
 import { StorageConfig, StorageConfigClient } from "./storage-config-client";
 
 interface IStorageConfig {
   isEnabled: boolean;
   isPrivate: boolean;
+  imageConfig: ImageConfig;
 }
 
 type AzureStorageConfig = IStorageConfig & {
@@ -56,6 +57,7 @@ function getStorageConfig(): AzureStorageConfig {
     protocol: "https",
     sasReadExpiryMinutes,
     containerNames: getContainerNames(),
+    imageConfig: IMAGE_SERVICE_CONFIG,
   });
 }
 
