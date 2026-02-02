@@ -21,7 +21,7 @@ export function SubmissionFilesTable({
   files,
   formId,
   submissionId,
-}: SubmissionFilesTableProps) {
+}: Readonly<SubmissionFilesTableProps>) {
   if (files.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-12 text-center">

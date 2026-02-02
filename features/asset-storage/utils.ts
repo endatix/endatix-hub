@@ -37,9 +37,16 @@ function generateUniqueFileName(fileName: string): Result<string> {
  * @returns The last segment of the URL path.
  */
 function getLastSegmentFromUrlPath(blobName: string): string {
-  if (!blobName) return "";
+  if (!blobName) {
+    return "";
+  }
+
   const segments = blobName.split("/").filter(Boolean);
-  return segments.length > 0 ? segments[segments.length - 1] : blobName;
+  if (segments.length === 0) {
+    return blobName;
+  }
+
+  return segments.at(-1) ?? "";
 }
 
 /**
