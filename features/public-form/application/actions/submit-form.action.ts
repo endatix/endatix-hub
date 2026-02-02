@@ -90,9 +90,26 @@ async function updateExistingSubmissionViaToken(
     if (
       performCookieOperations &&
       updateByTokenResult.error.errorCode ===
-      ERROR_CODE.SUBMISSION_TOKEN_INVALID
+        ERROR_CODE.SUBMISSION_TOKEN_INVALID
     ) {
       tokenStore.deleteToken(formId);
+
+      const recoveryResult = await recoverFromExpiredToken(
+        formId,
+        submissionData,
+        tokenStore,
+      );
+
+      if (!ApiResult.isSuccess(recoveryResult)) {
+        const postHog = getPostHog();
+        if (postHog) {
+          postHog.captureException(recoveryResult.error, "", {
+            formId,
+          });
+        }
+      }
+
+      return recoveryResult;
     }
 
     const postHog = getPostHog();
@@ -105,6 +122,32 @@ async function updateExistingSubmissionViaToken(
 
     return updateByTokenResult;
   }
+}
+
+async function recoverFromExpiredToken(
+  formId: string,
+  submissionData: SubmissionData,
+  tokenStore: FormTokenCookieStore,
+): Promise<ApiResult<SubmissionOperation>> {
+  const session = await getSession();
+  const endatix = new EndatixApi(session);
+  const createResult = await endatix.submissions.public.create(
+    formId,
+    submissionData,
+  );
+
+  if (ApiResult.isError(createResult)) {
+    return createResult;
+  }
+
+  if (!createResult.data.isComplete) {
+    tokenStore.setToken({
+      formId,
+      token: createResult.data.token,
+    });
+  }
+
+  return ApiResult.success({ submissionId: createResult.data.id });
 }
 
 async function createNewSubmission(
