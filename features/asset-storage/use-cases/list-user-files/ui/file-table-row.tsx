@@ -24,11 +24,13 @@ export function FileTableRow({
   originalFileName,
   questionName,
   contentType,
-}: FileTableRowProps) {
+}: Readonly<FileTableRowProps>) {
   const router = useRouter();
 
   const handleRowClick = () => {
-    router.push(fileHref as Parameters<typeof router.push>[0]);
+    router.push(
+      fileHref as Parameters<typeof router.push>[0],
+    );
   };
 
   return (
