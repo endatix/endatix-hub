@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import {
-  parseUserFileMetadata,
-  parseUserFileMetadataFromProperties,
-} from "../azure-blob-storage-utils";
+import { blobMetadataParser } from "../blob-metadata-parser";
 import type { BlobItem } from "@azure/storage-blob";
 
-describe("parseUserFileMetadataFromProperties", () => {
+describe("blobMetadataParser.parseFromProperties", () => {
   it("returns displayName as last segment of blobName", () => {
     // Arrange
     const properties = {
@@ -15,7 +12,7 @@ describe("parseUserFileMetadataFromProperties", () => {
     };
 
     // Act
-    const result = parseUserFileMetadataFromProperties(
+    const result = blobMetadataParser.parseFromProperties(
       properties,
       "s/form-1/sub-1/document.pdf",
     );
@@ -36,7 +33,7 @@ describe("parseUserFileMetadataFromProperties", () => {
     };
 
     // Act
-    const result = parseUserFileMetadataFromProperties(
+    const result = blobMetadataParser.parseFromProperties(
       properties,
       "s/f1/s1/photo.jpg",
     );
@@ -56,7 +53,7 @@ describe("parseUserFileMetadataFromProperties", () => {
     };
 
     // Act
-    const result = parseUserFileMetadataFromProperties(
+    const result = blobMetadataParser.parseFromProperties(
       properties,
       "s/f1/s1/file.bin",
     );
@@ -77,7 +74,7 @@ describe("parseUserFileMetadataFromProperties", () => {
     };
 
     // Act
-    const result = parseUserFileMetadataFromProperties(
+    const result = blobMetadataParser.parseFromProperties(
       properties,
       "s/f1/s1/doc.pdf",
     );
@@ -96,7 +93,7 @@ describe("parseUserFileMetadataFromProperties", () => {
     };
 
     // Act
-    const result = parseUserFileMetadataFromProperties(
+    const result = blobMetadataParser.parseFromProperties(
       properties,
       "s/f1/s1/unnamed.txt",
     );
@@ -107,7 +104,7 @@ describe("parseUserFileMetadataFromProperties", () => {
   });
 });
 
-describe("parseUserFileMetadata", () => {
+describe("blobMetadataParser.parseFromBlob", () => {
   it("returns displayName as last segment of blob.name", () => {
     // Arrange
     const blob = {
@@ -117,7 +114,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert
     expect(result.displayName).toBe("report.pdf");
@@ -132,7 +129,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert
     expect(result.contentType).toBe("application/pdf");
@@ -147,7 +144,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert
     expect(result.contentType).toBe("application/custom");
@@ -162,7 +159,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert
     expect(result.contentType).toBe("—");
@@ -177,7 +174,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert
     expect(result.sizeInBytes).toBe(2048);
@@ -192,7 +189,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert
     expect(result.sizeInBytes).toBe(0);
@@ -210,7 +207,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert
     expect(result.originalFileName).toBe("original.pdf");
@@ -231,7 +228,7 @@ describe("parseUserFileMetadata", () => {
     } as unknown as BlobItem;
 
     // Act
-    const result = parseUserFileMetadata(blob);
+    const result = blobMetadataParser.parseFromBlob(blob);
 
     // Assert - filename/fileName: first wins (filename)
     expect(result.originalFileName).toBe("from-lowercase");

@@ -80,3 +80,12 @@ export type UploadContentFileCommand = {
 };
 
 export type UploadContentFileResult = Result<UploadFileResult>;
+
+/** Metadata for a user file uploaded as part of submission */
+export interface UserFileMetadata {
+  displayName: string;
+  contentType: string;
+  sizeInBytes: number;
+  originalFileName?: string;
+  questionName?: string;
+}
