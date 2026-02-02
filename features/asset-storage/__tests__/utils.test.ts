@@ -6,14 +6,49 @@ import {
   escapeRegex,
   extractStorageUrls,
   generateUniqueFileName,
+  getLastSegmentFromUrlPath,
   isUrlFromContainer,
-  resolveContainerFromUrl
+  resolveContainerFromUrl,
 } from "../utils";
 
 // Mock uuid
 vi.mock("uuid", () => ({
   v4: vi.fn().mockReturnValue("mock-uuid-123"),
 }));
+
+describe("getLastSegmentFromUrlPath", () => {
+  it("returns the last segment for a multi-segment path", () => {
+    expect(getLastSegmentFromUrlPath("s/form-123/sub-123/file.pdf")).toBe(
+      "file.pdf",
+    );
+  });
+
+  it("returns the only segment when path has one segment", () => {
+    expect(getLastSegmentFromUrlPath("file.pdf")).toBe("file.pdf");
+  });
+
+  it("returns the last segment when path has leading slash", () => {
+    expect(getLastSegmentFromUrlPath("/container/file.pdf")).toBe("file.pdf");
+  });
+
+  it("returns the last segment when path has trailing slash", () => {
+    expect(getLastSegmentFromUrlPath("s/form/sub/file.pdf/")).toBe("file.pdf");
+  });
+
+  it("returns empty string when blobName is empty", () => {
+    expect(getLastSegmentFromUrlPath("")).toBe("");
+  });
+
+  it("returns blobName when path has only slashes (no segments)", () => {
+    expect(getLastSegmentFromUrlPath("///")).toBe("///");
+  });
+
+  it("handles blob-style path with form and submission ids", () => {
+    expect(
+      getLastSegmentFromUrlPath("s/formId/submissionId/document.pdf"),
+    ).toBe("document.pdf");
+  });
+});
 
 describe("generateUniqueFileName", () => {
   it("should generate unique filename with extension", () => {
@@ -198,7 +233,8 @@ describe("resolveContainerFromUrl", () => {
   };
 
   it("should resolve USER_FILES container from URL", () => {
-    const url = "https://testaccount.blob.core.windows.net/user-files/document.pdf";
+    const url =
+      "https://testaccount.blob.core.windows.net/user-files/document.pdf";
     const result = resolveContainerFromUrl(url, mockStorageConfig);
 
     expect(result).not.toBeNull();
@@ -243,14 +279,16 @@ describe("resolveContainerFromUrl", () => {
   });
 
   it("should return null for unknown container", () => {
-    const url = "https://testaccount.blob.core.windows.net/unknown-container/file.pdf";
+    const url =
+      "https://testaccount.blob.core.windows.net/unknown-container/file.pdf";
     const result = resolveContainerFromUrl(url, mockStorageConfig);
 
     expect(result).toBeNull();
   });
 
   it("should return null for data URLs", () => {
-    const url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const url =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     const result = resolveContainerFromUrl(url, mockStorageConfig);
 
     expect(result).toBeNull();
@@ -276,7 +314,8 @@ describe("resolveContainerFromUrl", () => {
   });
 
   it("should handle URLs with query parameters", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco";
+    const url =
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco";
     const result = resolveContainerFromUrl(url, mockStorageConfig);
 
     expect(result).not.toBeNull();
@@ -284,7 +323,8 @@ describe("resolveContainerFromUrl", () => {
   });
 
   it("should handle URLs with nested paths", () => {
-    const url = "https://testaccount.blob.core.windows.net/user-files/folder/subfolder/file.pdf";
+    const url =
+      "https://testaccount.blob.core.windows.net/user-files/folder/subfolder/file.pdf";
     const result = resolveContainerFromUrl(url, mockStorageConfig);
 
     expect(result).not.toBeNull();
@@ -319,7 +359,8 @@ describe("isUrlFromContainer", () => {
   });
 
   it("should return false for URL from different container", () => {
-    const url = "https://testaccount.blob.core.windows.net/user-files/document.pdf";
+    const url =
+      "https://testaccount.blob.core.windows.net/user-files/document.pdf";
     const result = isUrlFromContainer(url, "content", mockStorageConfig);
 
     expect(result).toBe(false);
@@ -353,15 +394,20 @@ describe("enhanceUrlWithToken", () => {
     const token = "sv=2021-06-08&ss=b&srt=sco";
     const result = enhanceUrlWithToken(url, token);
 
-    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco");
+    expect(result).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco",
+    );
   });
 
   it("should append token to URL with existing query parameters", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?existing=param";
+    const url =
+      "https://testaccount.blob.core.windows.net/content/image.jpg?existing=param";
     const token = "sv=2021-06-08&ss=b";
     const result = enhanceUrlWithToken(url, token);
 
-    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?existing=param&sv=2021-06-08&ss=b");
+    expect(result).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?existing=param&sv=2021-06-08&ss=b",
+    );
   });
 
   it("should remove leading ? from token", () => {
@@ -369,7 +415,9 @@ describe("enhanceUrlWithToken", () => {
     const token = "?sv=2021-06-08&ss=b";
     const result = enhanceUrlWithToken(url, token);
 
-    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b");
+    expect(result).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b",
+    );
   });
 
   it("should return original URL when token is null", () => {
@@ -405,7 +453,9 @@ describe("enhanceUrlWithToken", () => {
     const token = "sv=2021-06-08&ss=b&srt=sco&sp=r&se=2024-12-31T23:59:59Z";
     const result = enhanceUrlWithToken(url, token);
 
-    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco&sp=r&se=2024-12-31T23:59:59Z");
+    expect(result).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco&sp=r&se=2024-12-31T23:59:59Z",
+    );
   });
 
   it("should be idempotent - return original URL if token already exists in query string", () => {
@@ -425,16 +475,20 @@ describe("enhanceUrlWithToken", () => {
   });
 
   it("should add token if only partial match exists in query string", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08";
+    const url =
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08";
     const token = "sv=2021-06-08&ss=b&srt=sco";
     const result = enhanceUrlWithToken(url, token);
 
     // Should add the token because the full token string is not present
-    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&sv=2021-06-08&ss=b&srt=sco");
+    expect(result).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&sv=2021-06-08&ss=b&srt=sco",
+    );
   });
 
   it("should handle token that is substring of existing query params", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco&extra=value";
+    const url =
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco&extra=value";
     const token = "sv=2021-06-08&ss=b";
     const result = enhanceUrlWithToken(url, token);
 
@@ -450,25 +504,33 @@ describe("enhanceUrlWithToken", () => {
     const secondCall = enhanceUrlWithToken(firstCall, token);
     const thirdCall = enhanceUrlWithToken(secondCall, token);
 
-    expect(firstCall).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco");
+    expect(firstCall).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?sv=2021-06-08&ss=b&srt=sco",
+    );
     expect(secondCall).toBe(firstCall);
     expect(thirdCall).toBe(firstCall);
   });
 
   it("should handle URL with existing query params and add token if not present", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1";
+    const url =
+      "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1";
     const token = "sv=2021-06-08&ss=b";
     const result = enhanceUrlWithToken(url, token);
 
-    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&sv=2021-06-08&ss=b");
+    expect(result).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&sv=2021-06-08&ss=b",
+    );
   });
 
   it("should handle URL with multiple existing query params", () => {
-    const url = "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&param2=value2";
+    const url =
+      "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&param2=value2";
     const token = "sv=2021-06-08&ss=b";
     const result = enhanceUrlWithToken(url, token);
 
-    expect(result).toBe("https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&param2=value2&sv=2021-06-08&ss=b");
+    expect(result).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg?param1=value1&param2=value2&sv=2021-06-08&ss=b",
+    );
   });
 });
 
@@ -574,7 +636,8 @@ describe("extractStorageUrls", () => {
   const hostName = "testaccount.blob.core.windows.net";
 
   it("should extract single storage URL from string", () => {
-    const content = '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
+    const content =
+      '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
     const result = extractStorageUrls(content, hostName);
 
     expect(result).toEqual([
@@ -583,7 +646,8 @@ describe("extractStorageUrls", () => {
   });
 
   it("should extract multiple storage URLs from string", () => {
-    const content = '{"images": ["https://testaccount.blob.core.windows.net/content/img1.jpg", "https://testaccount.blob.core.windows.net/user-files/doc.pdf"]}';
+    const content =
+      '{"images": ["https://testaccount.blob.core.windows.net/content/img1.jpg", "https://testaccount.blob.core.windows.net/user-files/doc.pdf"]}';
     const result = extractStorageUrls(content, hostName);
 
     expect(result).toEqual([
@@ -593,7 +657,8 @@ describe("extractStorageUrls", () => {
   });
 
   it("should return unique URLs only", () => {
-    const content = '{"image1": "https://testaccount.blob.core.windows.net/content/image.jpg", "image2": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
+    const content =
+      '{"image1": "https://testaccount.blob.core.windows.net/content/image.jpg", "image2": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
     const result = extractStorageUrls(content, hostName);
 
     expect(result).toEqual([
@@ -602,14 +667,16 @@ describe("extractStorageUrls", () => {
   });
 
   it("should ignore URLs from different hostnames", () => {
-    const content = '{"image": "https://other-account.blob.core.windows.net/content/image.jpg"}';
+    const content =
+      '{"image": "https://other-account.blob.core.windows.net/content/image.jpg"}';
     const result = extractStorageUrls(content, hostName);
 
     expect(result).toEqual([]);
   });
 
   it("should stop at query parameters (by design)", () => {
-    const content = '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg?existing=param"}';
+    const content =
+      '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg?existing=param"}';
     const result = extractStorageUrls(content, hostName);
 
     // The regex intentionally stops at ? to avoid capturing query parameters
@@ -619,17 +686,23 @@ describe("extractStorageUrls", () => {
   });
 
   it("should stop at quotes in URL", () => {
-    const content = '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
+    const content =
+      '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
     const result = extractStorageUrls(content, hostName);
 
-    expect(result[0]).toBe("https://testaccount.blob.core.windows.net/content/image.jpg");
+    expect(result[0]).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg",
+    );
   });
 
   it("should stop at whitespace in URL", () => {
-    const content = '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg other text"}';
+    const content =
+      '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg other text"}';
     const result = extractStorageUrls(content, hostName);
 
-    expect(result[0]).toBe("https://testaccount.blob.core.windows.net/content/image.jpg");
+    expect(result[0]).toBe(
+      "https://testaccount.blob.core.windows.net/content/image.jpg",
+    );
   });
 
   it("should return empty array for null content", () => {
@@ -643,7 +716,8 @@ describe("extractStorageUrls", () => {
   });
 
   it("should return empty array for empty hostName", () => {
-    const content = '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
+    const content =
+      '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
     const result = extractStorageUrls(content, "");
 
     expect(result).toEqual([]);
@@ -651,7 +725,8 @@ describe("extractStorageUrls", () => {
 
   it("should handle hostName with special regex characters", () => {
     const specialHostName = "test.account.blob.core.windows.net";
-    const content = '{"image": "https://test.account.blob.core.windows.net/content/image.jpg"}';
+    const content =
+      '{"image": "https://test.account.blob.core.windows.net/content/image.jpg"}';
     const result = extractStorageUrls(content, specialHostName);
 
     expect(result).toEqual([
@@ -661,7 +736,8 @@ describe("extractStorageUrls", () => {
 
   it("should handle hostName with backslashes (security test)", () => {
     const maliciousHostName = "test\\account.blob.core.windows.net";
-    const content = '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
+    const content =
+      '{"image": "https://testaccount.blob.core.windows.net/content/image.jpg"}';
     const result = extractStorageUrls(content, maliciousHostName);
 
     // Should not match because hostname doesn't actually match
@@ -677,12 +753,17 @@ describe("extractStorageUrls", () => {
     const result = extractStorageUrls(largeJson, hostName);
 
     expect(result.length).toBe(100);
-    expect(result[0]).toBe("https://testaccount.blob.core.windows.net/content/image0.jpg");
-    expect(result[99]).toBe("https://testaccount.blob.core.windows.net/content/image99.jpg");
+    expect(result[0]).toBe(
+      "https://testaccount.blob.core.windows.net/content/image0.jpg",
+    );
+    expect(result[99]).toBe(
+      "https://testaccount.blob.core.windows.net/content/image99.jpg",
+    );
   });
 
   it("should handle nested paths in URLs", () => {
-    const content = '{"file": "https://testaccount.blob.core.windows.net/user-files/folder/subfolder/document.pdf"}';
+    const content =
+      '{"file": "https://testaccount.blob.core.windows.net/user-files/folder/subfolder/document.pdf"}';
     const result = extractStorageUrls(content, hostName);
 
     expect(result).toEqual([
