@@ -6,43 +6,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
 interface FileModalProps {
+  formId: string;
+  submissionId: string;
   children: React.ReactNode;
 }
 
 /**
  * Renders the intercepting-route content inside a Dialog.
+ * Close navigates to the files list for the given form and submission.
  */
-export function FileModal({ children }: Readonly<FileModalProps>) {
+export function FileModal({
+  formId,
+  submissionId,
+  children,
+}: Readonly<FileModalProps>) {
   const router = useRouter();
-  const pathname = usePathname();
   const [open, setOpen] = useState(true);
 
-  const listPath = useMemo(() => {
-    if (!pathname) {
-      return null;
-    }
-
-    const segments = pathname.split("/").filter(Boolean);
-    const filesIndex = segments.indexOf("files");
-    return filesIndex === -1
-      ? null
-      : "/" + segments.slice(0, filesIndex + 1).join("/");
-  }, [pathname]);
+  const listPath = useMemo(
+    () => `/forms/${formId}/submissions/${submissionId}/files`,
+    [formId, submissionId],
+  );
 
   const close = useCallback(() => {
     setOpen(false);
-    if (listPath) router.push(listPath as Parameters<typeof router.push>[0]);
+    router.push(listPath as Parameters<typeof router.push>[0]);
   }, [router, listPath]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
       setOpen(next);
-      if (!next && listPath)
-        router.push(listPath as Parameters<typeof router.push>[0]);
+      if (!next) router.push(listPath as Parameters<typeof router.push>[0]);
     },
     [router, listPath],
   );

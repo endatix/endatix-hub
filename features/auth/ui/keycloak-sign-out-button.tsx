@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { UrlObject } from "url";
+import { UrlObject } from "node:url";
 
 interface SignOutProps {
   readonly name: string;

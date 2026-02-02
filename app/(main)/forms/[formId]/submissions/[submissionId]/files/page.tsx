@@ -38,7 +38,7 @@ async function SubmissionFilesContent({
   filesResultPromise,
   formId,
   submissionId,
-}: SubmissionFilesContentProps) {
+}: Readonly<SubmissionFilesContentProps>) {
   const filesResult = await filesResultPromise;
 
   if (Result.isError(filesResult)) {
@@ -54,7 +54,7 @@ async function SubmissionFilesContent({
   );
 }
 
-export default async function FilesPage({ params }: Params) {
+export default async function FilesPage({ params }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

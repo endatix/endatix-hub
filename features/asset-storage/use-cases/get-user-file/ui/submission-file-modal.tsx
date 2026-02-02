@@ -28,7 +28,7 @@ export function SubmissionFileModal({
 }: Readonly<SubmissionFileModalProps>) {
   if (Result.isError(fileResult)) {
     return (
-      <FileModal>
+      <FileModal formId={formId} submissionId={submissionId}>
         <div className="py-4 text-center text-sm text-muted-foreground">
           {fileResult.message || DEFAULT_ERROR_MESSAGE}
         </div>
@@ -37,7 +37,7 @@ export function SubmissionFileModal({
   }
 
   return (
-    <FileModal>
+    <FileModal formId={formId} submissionId={submissionId}>
       <SubmissionFileView
         file={fileResult.value}
         formId={formId}

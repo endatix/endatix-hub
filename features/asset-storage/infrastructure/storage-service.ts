@@ -327,7 +327,7 @@ async function listBlobs(folderOptions: FolderOptions): Promise<BlobItem[]> {
     folderOptions.submissionId,
   );
   if (Result.isError(folderPathResult)) {
-    throw new Error(folderPathResult.message);
+    throw new TypeError(folderPathResult.message);
   }
 
   const blobServiceClient = getBlobServiceClient();

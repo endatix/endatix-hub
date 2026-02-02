@@ -30,7 +30,7 @@ export function FileViewMeta({
   sizeInBytes,
   downloadApiUrl,
   displayName,
-}: FileViewMetaProps) {
+}: Readonly<FileViewMetaProps>) {
   const showOriginalName = hasShowableString(originalFileName);
   const showQuestionName = hasShowableString(questionName);
   const showSize = hasShowableSize(sizeInBytes);

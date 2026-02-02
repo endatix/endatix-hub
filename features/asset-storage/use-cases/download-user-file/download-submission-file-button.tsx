@@ -32,7 +32,7 @@ export function DownloadSubmissionFileButton({
   variant = "outline",
   size = "sm",
   className,
-}: DownloadSubmissionFileButtonProps) {
+}: Readonly<DownloadSubmissionFileButtonProps>) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = useCallback(async () => {
