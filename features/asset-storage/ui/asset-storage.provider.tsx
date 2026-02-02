@@ -30,6 +30,7 @@ export function AssetStorageProvider({
     hostName: serverConfig.hostName,
     protocol: serverConfig.protocol,
     containerNames: serverConfig.containerNames,
+    imageConfig: serverConfig.imageConfig,
   };
 
   const tokens: AssetStorageTokens = propsTokens ?? {

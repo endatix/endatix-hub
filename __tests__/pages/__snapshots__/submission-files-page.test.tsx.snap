@@ -1,0 +1,62 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Submission files page > matches snapshot 1`] = `
+<div
+  class="space-y-6"
+>
+  <div
+    class="flex items-center gap-4"
+  >
+    <a
+      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 gap-2"
+      href="/forms/f1/submissions/s1"
+    >
+      ← Back to submission
+    </a>
+  </div>
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm"
+  >
+    <div
+      class="flex flex-col space-y-1.5 p-6"
+    >
+      <h3
+        class="text-2xl font-semibold leading-none tracking-tight"
+      >
+        Submission files
+      </h3>
+      <p
+        class="text-sm text-muted-foreground"
+      >
+        Form 
+        f1
+         · Submission 
+        s1
+      </p>
+    </div>
+    <div
+      class="p-6 pt-0"
+    >
+      <div
+        data-testid="submission-files-table"
+      >
+        <span
+          data-testid="form-id"
+        >
+          f1
+        </span>
+        <span
+          data-testid="submission-id"
+        >
+          s1
+        </span>
+        <span
+          data-testid="file-count"
+        >
+          1
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;
