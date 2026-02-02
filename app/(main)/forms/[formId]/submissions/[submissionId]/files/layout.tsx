@@ -1,7 +1,7 @@
-import { AssetStorageProvider } from '@/features/asset-storage/server';
-import { FileModal } from '@/features/submissions/ui/files/file-modal';
-import { Spinner } from '@/components/loaders/spinner';
-import { Suspense } from 'react';
+import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { FileModal } from "@/features/asset-storage/use-cases/get-user-file/ui";
+import { Spinner } from "@/components/loaders/spinner";
+import { Suspense } from "react";
 
 type LayoutProps = {
   children: React.ReactNode;
