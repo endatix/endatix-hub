@@ -8,7 +8,10 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const SKELETON_ROW_COUNT = 5;
+
 export function SubmissionFilesTableSkeleton() {
+  const rows = Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => i + 1);
   return (
     <Table>
       <TableHeader>
@@ -21,8 +24,8 @@ export function SubmissionFilesTableSkeleton() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <TableRow key={i}>
+        {rows.map((row) => (
+          <TableRow key={row}>
             <TableCell>
               <Skeleton className="h-5 w-48" />
             </TableCell>
