@@ -788,7 +788,227 @@ describe("StorageService", () => {
     });
   });
 
+  describe("listBlobs", () => {
+    const mockFormId = "form-1";
+    const mockSubmissionId = "sub-1";
+    let mockContainerClient: ContainerClient;
+    let mockBlobServiceClient: BlobServiceClient;
+
+    beforeEach(() => {
+      const mockBlobItem = {
+        name: "s/form-1/sub-1/file.pdf",
+        metadata: {},
+        properties: { contentType: "application/pdf", contentLength: 1024 },
+      };
+      const asyncIterable = {
+        [Symbol.asyncIterator]: async function* () {
+          yield mockBlobItem;
+        },
+      };
+      mockContainerClient = {
+        listBlobsFlat: vi.fn().mockReturnValue(asyncIterable),
+      } as unknown as ContainerClient;
+
+      mockBlobServiceClient = {
+        getContainerClient: vi.fn().mockReturnValue(mockContainerClient),
+      } as unknown as BlobServiceClient;
+
+      vi.mocked(BlobServiceClient).mockImplementation(
+        () => mockBlobServiceClient,
+      );
+      vi.mocked(StorageSharedKeyCredential).mockImplementation(
+        () => ({}) as StorageSharedKeyCredential,
+      );
+    });
+
+    it("should return blobs when folder path is valid", async () => {
+      // Arrange
+      const { listBlobs } =
+        await import("../../infrastructure/storage-service");
+      const folderOptions = {
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: mockSubmissionId,
+      };
+
+      // Act
+      const result = await listBlobs(folderOptions);
+
+      // Assert
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("s/form-1/sub-1/file.pdf");
+      expect(mockContainerClient.listBlobsFlat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prefix: "s/form-1/sub-1",
+          includeDeleted: false,
+          includeMetadata: true,
+        }),
+      );
+    });
+
+    it("should throw when formId is empty", async () => {
+      // Arrange
+      const { listBlobs } =
+        await import("../../infrastructure/storage-service");
+      const folderOptions = {
+        containerName: "user-files",
+        formId: "",
+        submissionId: mockSubmissionId,
+      };
+
+      // Act & Assert
+      await expect(listBlobs(folderOptions)).rejects.toThrow(
+        "Form ID is required",
+      );
+    });
+
+    it("should throw when submissionId is empty", async () => {
+      // Arrange
+      const { listBlobs } =
+        await import("../../infrastructure/storage-service");
+      const folderOptions = {
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: "",
+      };
+
+      // Act & Assert
+      await expect(listBlobs(folderOptions)).rejects.toThrow(
+        "Submission ID is required",
+      );
+    });
+  });
+
+  describe("getBlobProperties", () => {
+    const mockBlobName = "s/form-1/sub-1/file.pdf";
+    let mockBlobClient: BlockBlobClient;
+    let mockContainerClient: ContainerClient;
+    let mockBlobServiceClient: BlobServiceClient;
+
+    beforeEach(() => {
+      mockBlobClient = {
+        getProperties: vi.fn().mockResolvedValue({
+          contentType: "application/pdf",
+          contentLength: 2048,
+          metadata: { filename: "doc.pdf", questionId: "q1" },
+        }),
+      } as unknown as BlockBlobClient;
+
+      mockContainerClient = {
+        getBlockBlobClient: vi.fn().mockReturnValue(mockBlobClient),
+      } as unknown as ContainerClient;
+
+      mockBlobServiceClient = {
+        getContainerClient: vi.fn().mockReturnValue(mockContainerClient),
+      } as unknown as BlobServiceClient;
+
+      vi.mocked(BlobServiceClient).mockImplementation(
+        () => mockBlobServiceClient,
+      );
+      vi.mocked(StorageSharedKeyCredential).mockImplementation(
+        () => ({}) as StorageSharedKeyCredential,
+      );
+    });
+
+    it("should return properties when blob exists", async () => {
+      // Arrange
+      const { getBlobProperties } =
+        await import("../../infrastructure/storage-service");
+
+      // Act
+      const result = await getBlobProperties(mockContainerName, mockBlobName);
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result?.contentType).toBe("application/pdf");
+      expect(result?.sizeInBytes).toBe(2048);
+      expect(result?.metadata).toEqual({
+        filename: "doc.pdf",
+        questionId: "q1",
+      });
+      expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
+        mockBlobName,
+      );
+      expect(mockBlobClient.getProperties).toHaveBeenCalledTimes(1);
+    });
+
+    it("should return null when storage is not enabled", async () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
+      const { getBlobProperties } =
+        await import("../../infrastructure/storage-service");
+
+      // Act
+      const result = await getBlobProperties(mockContainerName, mockBlobName);
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it("should return null when containerName is empty", async () => {
+      // Arrange
+      const { getBlobProperties } =
+        await import("../../infrastructure/storage-service");
+
+      // Act
+      const result = await getBlobProperties("", mockBlobName);
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it("should return null when blobName is empty", async () => {
+      // Arrange
+      const { getBlobProperties } =
+        await import("../../infrastructure/storage-service");
+
+      // Act
+      const result = await getBlobProperties(mockContainerName, "");
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it("should return null when getProperties throws", async () => {
+      // Arrange
+      mockBlobClient.getProperties = vi
+        .fn()
+        .mockRejectedValue(new Error("Blob not found"));
+      const { getBlobProperties } =
+        await import("../../infrastructure/storage-service");
+
+      // Act
+      const result = await getBlobProperties(mockContainerName, mockBlobName);
+
+      // Assert
+      expect(result).toBeNull();
+    });
+  });
+
   describe("resetBlobServiceClient", () => {
+    let mockBlobClient: BlockBlobClient;
+    let mockContainerClient: ContainerClient;
+    let mockBlobServiceClient: BlobServiceClient;
+
+    beforeEach(() => {
+      mockBlobClient = {
+        uploadData: vi.fn().mockResolvedValue(undefined),
+        url: "https://test.blob.core.windows.net/test",
+      } as unknown as BlockBlobClient;
+      mockContainerClient = {
+        getBlockBlobClient: vi.fn().mockReturnValue(mockBlobClient),
+      } as unknown as ContainerClient;
+      mockBlobServiceClient = {
+        getContainerClient: vi.fn().mockReturnValue(mockContainerClient),
+      } as unknown as BlobServiceClient;
+      vi.mocked(BlobServiceClient).mockImplementation(
+        () => mockBlobServiceClient,
+      );
+      vi.mocked(StorageSharedKeyCredential).mockImplementation(
+        () => ({}) as StorageSharedKeyCredential,
+      );
+    });
+
     it("should reset the singleton client", async () => {
       const { resetBlobServiceClient, uploadToStorage } =
         await import("../../infrastructure/storage-service");
