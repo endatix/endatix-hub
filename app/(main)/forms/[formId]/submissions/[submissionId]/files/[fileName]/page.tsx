@@ -51,7 +51,7 @@ export default async function FilePage({ params }: Params) {
       formId={formId}
       submissionId={submissionId}
       showBackLink
-      aspectRatio="square"
+      size="large"
     />
   );
 }

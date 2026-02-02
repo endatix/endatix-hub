@@ -1,4 +1,7 @@
-import { FileContentView } from "@/features/submissions/ui/answers/file-viewer";
+import {
+  FileContentView,
+  type FileViewSize,
+} from "@/features/submissions/ui/answers/file-viewer";
 import { FileViewMeta } from "@/features/submissions/ui/files/file-view-meta";
 import Link from "next/link";
 import type { UserFileViewData } from "../get-use-file.use-case";
@@ -8,18 +11,21 @@ export interface SubmissionFileViewProps {
   file: UserFileViewData;
   formId: string;
   submissionId: string;
-  /** Show "Back to files" link. Default true for full page, false for modal. */
   showBackLink?: boolean;
-  /** Aspect ratio for image/video. Default "square". */
-  aspectRatio?: "portrait" | "square";
+  size?: FileViewSize;
 }
 
+/**
+ * Renders the file view for a single submission file.
+ * Shows the file content and metadata.
+ * @param size - Size variant for the file view. Default: large (optimized for full page).
+ */
 export function SubmissionFileView({
   file,
   formId,
   submissionId,
   showBackLink = true,
-  aspectRatio = "square",
+  size = "large",
 }: SubmissionFileViewProps) {
   const filesListHref: UrlObject = {
     pathname: `/forms/${formId}/submissions/${submissionId}/files`,
@@ -43,7 +49,7 @@ export function SubmissionFileView({
         src={file.url}
         contentType={file.contentType}
         name={file.displayName}
-        aspectRatio={aspectRatio}
+        size={size}
       />
       <FileViewMeta
         originalFileName={file.originalFileName}

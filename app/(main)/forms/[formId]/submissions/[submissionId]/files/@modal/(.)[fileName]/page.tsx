@@ -29,7 +29,7 @@ export default async function FileModalPage({ params }: Params) {
       fileResult={fileResult}
       formId={formId}
       submissionId={submissionId}
-      aspectRatio="square"
+      size="medium"
     />
   );
 }

@@ -4,14 +4,13 @@ import { Result } from "@/lib/result";
 import { FileModal } from "@/features/submissions/ui/files/file-modal";
 import { SubmissionFileView } from "./submission-file-view";
 import type { UserFileViewData } from "../get-use-file.use-case";
+import type { FileViewSize } from "@/features/submissions/ui/answers/file-viewer";
 
 export interface SubmissionFileModalProps {
-  /** Result from getUserFile(formId, submissionId, fileName). */
   fileResult: Result<UserFileViewData>;
   formId: string;
   submissionId: string;
-  /** Aspect ratio for image/video. Default "square". */
-  aspectRatio?: "portrait" | "square";
+  size?: FileViewSize;
 }
 
 const DEFAULT_ERROR_MESSAGE = "File could not be loaded.";
@@ -19,12 +18,13 @@ const DEFAULT_ERROR_MESSAGE = "File could not be loaded.";
 /**
  * Renders the intercepting-route modal for a single submission file.
  * Shows error message or SubmissionFileView inside FileModal.
+ * @param size - Size variant for the file view. Default: medium (optimized for modal).
  */
 export function SubmissionFileModal({
   fileResult,
   formId,
   submissionId,
-  aspectRatio = "square",
+  size = "medium",
 }: SubmissionFileModalProps) {
   if (Result.isError(fileResult)) {
     return (
@@ -43,7 +43,7 @@ export function SubmissionFileModal({
         formId={formId}
         submissionId={submissionId}
         showBackLink={false}
-        aspectRatio={aspectRatio}
+        size={size}
       />
     </FileModal>
   );
