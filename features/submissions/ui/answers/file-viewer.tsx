@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { FileText, FileX2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 
 export type FileViewSize = "small" | "medium" | "large";
 
@@ -57,7 +58,7 @@ export function FileContentView({
   size = "large",
   className,
   ...props
-}: FileContentViewProps) {
+}: Readonly<FileContentViewProps>) {
   const fileType = getFileType({
     content: src,
     type: contentType,
@@ -66,6 +67,18 @@ export function FileContentView({
 
   const config = SIZE_CONFIG[size];
   const showPdfObject = size === "medium" || size === "large";
+  const sizes = useMemo(() => {
+    switch (size) {
+      case "small":
+        return "200px";
+      case "medium":
+        return "(max-width: 768px) 100vw, 672px";
+      case "large":
+        return "(max-width: 768px) 100vw, 896px";
+      default:
+        return "(max-width: 768px) 100vw, 896px";
+    }
+  }, [size]);
 
   return (
     <div className={cn("space-y-3", config.container, className)} {...props}>
@@ -76,13 +89,7 @@ export function FileContentView({
               src={src}
               alt={name ?? ""}
               fill
-              sizes={
-                size === "small"
-                  ? "200px"
-                  : size === "medium"
-                    ? "(max-width: 768px) 100vw, 672px"
-                    : "(max-width: 768px) 100vw, 896px"
-              }
+              sizes={sizes}
               className={cn(
                 "object-cover transition-all hover:scale-105",
                 config.imageAspect,
