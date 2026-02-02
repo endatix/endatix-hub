@@ -1,9 +1,9 @@
-
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import { uploadUserFilesUseCase } from "@/features/asset-storage/server";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { headers } from "next/headers";
+import { StorageHeaderNames } from "@/features/asset-storage/infrastructure/storage-utils";
 
 type UploadUserFilesResult = {
   success: boolean;
@@ -16,10 +16,16 @@ type UploadUserFilesResult = {
 
 export async function POST(request: Request) {
   const requestHeaders = await headers();
-  const formId = requestHeaders.get("edx-form-id") as string;
-  let submissionId = requestHeaders.get("edx-submission-id") as string;
-  const formLang = requestHeaders.get("edx-form-lang") as string | null;
-  const questionId = requestHeaders.get("edx-question-id") as string | null;
+  const formId = requestHeaders.get(StorageHeaderNames.FORM_ID) as string;
+  let submissionId = requestHeaders.get(
+    StorageHeaderNames.SUBMISSION_ID,
+  ) as string;
+  const formLang = requestHeaders.get(StorageHeaderNames.FORM_LANG) as
+    | string
+    | null;
+  const questionId = requestHeaders.get(StorageHeaderNames.QUESTION_ID) as
+    | string
+    | null;
   const formData = await request.formData();
 
   if (!formId) {
