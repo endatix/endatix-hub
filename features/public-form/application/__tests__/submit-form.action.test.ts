@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
+import { ANONYMOUS_SESSION, getSession } from "@/features/auth";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { fail } from "assert";
-import { ANONYMOUS_SESSION, getSession } from "@/features/auth";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 interface GlobalTestMocks {
   endatixApiConstructorArgs: unknown[][];
@@ -237,7 +237,7 @@ describe("submitFormAction", () => {
     expect(ApiResult.isSuccess(actionResult)).toBe(true);
   });
 
-  it("should delete token when update fails due to expired submission token", async () => {
+  it("should automatically recover when update fails due to expired submission token", async () => {
     // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
@@ -261,6 +261,18 @@ describe("submitFormAction", () => {
       ),
     );
 
+    const mockCreateResponse = {
+      id: "submission-new",
+      token: "new-token-456",
+      isComplete: false,
+    };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.create.mockResolvedValue(
+      ApiResult.success(mockCreateResponse),
+    );
+
     // Act
     const actionResult = await submitFormAction("form-1", {
       jsonData: '{"test": true}',
@@ -269,14 +281,25 @@ describe("submitFormAction", () => {
 
     // Assert
     expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
-    expect(ApiResult.isError(actionResult)).toBe(true);
 
-    if (ApiResult.isSuccess(actionResult)) {
-      fail("Expected error but got success");
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions.public.create
+    ).toHaveBeenCalledWith("form-1", {
+      jsonData: '{"test": true}',
+      isComplete: false,
+    });
+
+    expect(mockTokenStore.setToken).toHaveBeenCalledWith({
+      formId: "form-1",
+      token: "new-token-456",
+    });
+
+    expect(ApiResult.isSuccess(actionResult)).toBe(true);
+
+    if (ApiResult.isError(actionResult)) {
+      fail("Expected success but got error");
     }
-    expect(actionResult.error.errorCode).toBe(
-      ERROR_CODE.SUBMISSION_TOKEN_INVALID,
-    );
+    expect(actionResult.data.submissionId).toBe("submission-new");
   });
 
   it("should NOT delete token when update fails for ReCaptcha error", async () => {
