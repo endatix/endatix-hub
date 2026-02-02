@@ -34,6 +34,17 @@ describe("Image Service", () => {
       expect(imageModule.IMAGE_SERVICE_CONFIG.isResizeEnabled).toBe(true);
     });
 
+    it("should set isResizeEnabled to false when RESIZE_IMAGES is unset or empty", async () => {
+      // Arrange
+      delete process.env.RESIZE_IMAGES;
+
+      // Act
+      const imageModule = await import("../../infrastructure/image-service");
+
+      // Assert
+      expect(imageModule.IMAGE_SERVICE_CONFIG.isResizeEnabled).toBe(false);
+    });
+
     it('should set isResizeEnabled to false when RESIZE_IMAGES is "false"', async () => {
       // Arrange
       process.env.RESIZE_IMAGES = "false";
@@ -45,14 +56,26 @@ describe("Image Service", () => {
       expect(imageModule.IMAGE_SERVICE_CONFIG.isResizeEnabled).toBe(false);
     });
 
-    it("should throw error when RESIZE_IMAGES is invalid", async () => {
+    it("should set isResizeEnabled to false when RESIZE_IMAGES is not 'true' (e.g. 'invalid')", async () => {
       // Arrange
       process.env.RESIZE_IMAGES = "invalid";
 
-      // Act & Assert
-      await expect(async () => {
-        await import("../../infrastructure/image-service");
-      }).rejects.toThrow("RESIZE_IMAGES must be 'true' or 'false'");
+      // Act
+      const imageModule = await import("../../infrastructure/image-service");
+
+      // Assert
+      expect(imageModule.IMAGE_SERVICE_CONFIG.isResizeEnabled).toBe(false);
+    });
+
+    it("should set isResizeEnabled to true when RESIZE_IMAGES is 'true' case-insensitive", async () => {
+      // Arrange
+      process.env.RESIZE_IMAGES = "True";
+
+      // Act
+      const imageModule = await import("../../infrastructure/image-service");
+
+      // Assert
+      expect(imageModule.IMAGE_SERVICE_CONFIG.isResizeEnabled).toBe(true);
     });
 
     it("should use default width when RESIZE_IMAGES_WIDTH is not set", async () => {
@@ -92,18 +115,19 @@ describe("Image Service", () => {
   });
 
   describe("optimizeImageSize", () => {
-    beforeEach(() => {
-      process.env.RESIZE_IMAGES = "true";
-      process.env.RESIZE_IMAGES_WIDTH = "800";
-    });
-
     it("should optimize image when RESIZE_IMAGES is true", async () => {
       // Arrange
+      process.env.RESIZE_IMAGES = "true";
+      process.env.RESIZE_IMAGES_WIDTH = "800";
+      const imageModule = await import("../../infrastructure/image-service");
       const mockOptimizedBuffer = Buffer.from("optimized");
       vi.mocked(optimizeImage).mockResolvedValue(mockOptimizedBuffer);
 
       // Act
-      const result = await optimizeImageSize(mockBuffer, "image/jpeg");
+      const result = await imageModule.optimizeImageSize(
+        mockBuffer,
+        "image/jpeg",
+      );
 
       // Assert
       expect(optimizeImage).toHaveBeenCalledWith({
@@ -115,11 +139,9 @@ describe("Image Service", () => {
       expect(result).toBe(mockOptimizedBuffer);
     });
 
-    it("should return original buffer when RESIZE_IMAGES is false", async () => {
+    it("should return original buffer when RESIZE_IMAGES is unset", async () => {
       // Arrange
-      process.env.RESIZE_IMAGES = "false";
-
-      // We need to re-import to get the updated config
+      delete process.env.RESIZE_IMAGES;
       const imageModule = await import("../../infrastructure/image-service");
 
       // Act
@@ -148,8 +170,16 @@ describe("Image Service", () => {
     });
 
     it("should not optimize non-image content types", async () => {
+      // Arrange
+      process.env.RESIZE_IMAGES = "true";
+      process.env.RESIZE_IMAGES_WIDTH = "800";
+      const imageModule = await import("../../infrastructure/image-service");
+
       // Act
-      const result = await optimizeImageSize(mockBuffer, "application/pdf");
+      const result = await imageModule.optimizeImageSize(
+        mockBuffer,
+        "application/pdf",
+      );
 
       // Assert
       expect(optimizeImage).not.toHaveBeenCalled();
@@ -158,11 +188,14 @@ describe("Image Service", () => {
 
     it("should use default quality when not specified", async () => {
       // Arrange
+      process.env.RESIZE_IMAGES = "true";
+      process.env.RESIZE_IMAGES_WIDTH = "800";
+      const imageModule = await import("../../infrastructure/image-service");
       const mockOptimizedBuffer = Buffer.from("optimized");
       vi.mocked(optimizeImage).mockResolvedValue(mockOptimizedBuffer);
 
       // Act
-      await optimizeImageSize(mockBuffer, "image/jpeg");
+      await imageModule.optimizeImageSize(mockBuffer, "image/jpeg");
 
       // Assert
       expect(optimizeImage).toHaveBeenCalledWith(
@@ -174,12 +207,19 @@ describe("Image Service", () => {
 
     it("should use specified quality when provided", async () => {
       // Arrange
+      process.env.RESIZE_IMAGES = "true";
+      process.env.RESIZE_IMAGES_WIDTH = "800";
+      const imageModule = await import("../../infrastructure/image-service");
       const mockOptimizedBuffer = Buffer.from("optimized");
       vi.mocked(optimizeImage).mockResolvedValue(mockOptimizedBuffer);
       const customQuality = 60;
 
       // Act
-      await optimizeImageSize(mockBuffer, "image/jpeg", customQuality);
+      await imageModule.optimizeImageSize(
+        mockBuffer,
+        "image/jpeg",
+        customQuality,
+      );
 
       // Assert
       expect(optimizeImage).toHaveBeenCalledWith(
@@ -191,12 +231,20 @@ describe("Image Service", () => {
 
     it("should use specified width when provided", async () => {
       // Arrange
+      process.env.RESIZE_IMAGES = "true";
+      process.env.RESIZE_IMAGES_WIDTH = "800";
+      const imageModule = await import("../../infrastructure/image-service");
       const mockOptimizedBuffer = Buffer.from("optimized");
       vi.mocked(optimizeImage).mockResolvedValue(mockOptimizedBuffer);
       const customWidth = 1200;
 
       // Act
-      await optimizeImageSize(mockBuffer, "image/jpeg", 80, customWidth);
+      await imageModule.optimizeImageSize(
+        mockBuffer,
+        "image/jpeg",
+        80,
+        customWidth,
+      );
 
       // Assert
       expect(optimizeImage).toHaveBeenCalledWith(
@@ -208,11 +256,14 @@ describe("Image Service", () => {
 
     it("should use default width when not specified", async () => {
       // Arrange
+      process.env.RESIZE_IMAGES = "true";
+      process.env.RESIZE_IMAGES_WIDTH = "800";
+      const imageModule = await import("../../infrastructure/image-service");
       const mockOptimizedBuffer = Buffer.from("optimized");
       vi.mocked(optimizeImage).mockResolvedValue(mockOptimizedBuffer);
 
       // Act
-      await optimizeImageSize(mockBuffer, "image/jpeg");
+      await imageModule.optimizeImageSize(mockBuffer, "image/jpeg");
 
       // Assert
       expect(optimizeImage).toHaveBeenCalledWith(

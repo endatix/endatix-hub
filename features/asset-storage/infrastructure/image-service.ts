@@ -2,13 +2,21 @@ import { optimizeImage } from "next/dist/server/image-optimizer";
 
 const DEFAULT_IMAGE_WIDTH = 800;
 
+/**
+ * Parses a boolean env var: only "true" (case-insensitive) is true; everything else is false.
+ */
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (value === undefined || value === "") return false;
+  return value.trim().toLowerCase() === "true";
+}
+
 type ImageConfig = {
   isResizeEnabled: boolean;
   defaultResizeWidth: number;
 };
 
 const IMAGE_SERVICE_CONFIG: ImageConfig = Object.freeze({
-  isResizeEnabled: !!process.env.RESIZE_IMAGES,
+  isResizeEnabled: parseBooleanEnv(process.env.RESIZE_IMAGES),
   defaultResizeWidth: (() => {
     const width = process.env.RESIZE_IMAGES_WIDTH;
     if (!width) return DEFAULT_IMAGE_WIDTH;
