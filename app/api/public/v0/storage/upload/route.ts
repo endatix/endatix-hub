@@ -1,9 +1,9 @@
-
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import { uploadUserFilesUseCase } from "@/features/asset-storage/server";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { headers } from "next/headers";
+import { StorageHeaderNames } from "@/features/asset-storage/infrastructure/storage-utils";
 
 type UploadUserFilesResult = {
   success: boolean;
@@ -16,16 +16,20 @@ type UploadUserFilesResult = {
 
 export async function POST(request: Request) {
   const requestHeaders = await headers();
-  const formId = requestHeaders.get("edx-form-id") as string;
-  let submissionId = requestHeaders.get("edx-submission-id") as string;
-  const formLang = requestHeaders.get("edx-form-lang") as string | null;
-  const formData = await request.formData();
+  const formId = requestHeaders.get(StorageHeaderNames.FORM_ID) ?? "";
+  let submissionId = requestHeaders.get(StorageHeaderNames.SUBMISSION_ID) ?? "";
+  const formLang = requestHeaders.get(StorageHeaderNames.FORM_LANG) as
+    | string
+    | null;
+  const questionId = requestHeaders.get(StorageHeaderNames.QUESTION_ID) as
+    | string
+    | null;
 
-  if (!formId) {
+  if (!formId.trim()) {
     return Response.json({ error: "Form ID is required" }, { status: 400 });
   }
 
-  if (!submissionId) {
+  if (!submissionId.trim()) {
     const initialSubmissionResult = await createInitialSubmissionUseCase(
       formId,
       formLang,
@@ -42,6 +46,7 @@ export async function POST(request: Request) {
     submissionId = initialSubmissionResult.data.submissionId;
   }
 
+  const formData = await request.formData();
   const files: { name: string; file: File }[] = [];
   for (const [filename, file] of formData.entries()) {
     if (!file || typeof file === "string") {
@@ -61,10 +66,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "No files provided" }, { status: 400 });
   }
 
+  const additionalMetadata = {
+    questionId: questionId,
+    formId: formId,
+    submissionId: submissionId,
+    language: formLang,
+  };
+
   const result = await uploadUserFilesUseCase({
     formId: formId,
     submissionId: submissionId,
     files: files,
+    additionalMetadata: additionalMetadata,
   });
 
   if (Result.isError(result)) {

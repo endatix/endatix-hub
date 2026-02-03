@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Submission file modal page (@modal/(.)[fileName]) > matches snapshot 1`] = `
+<div
+  data-testid="submission-file-modal"
+>
+  <span
+    data-testid="modal-form-id"
+  >
+    f1
+  </span>
+  <span
+    data-testid="modal-submission-id"
+  >
+    s1
+  </span>
+  <span
+    data-testid="modal-file-display-name"
+  >
+    doc.pdf
+  </span>
+  <span
+    data-testid="modal-file-url"
+  >
+    https://account.blob.core.windows.net/user-files/s/f1/s1/doc.pdf?sig=abc
+  </span>
+</div>
+`;

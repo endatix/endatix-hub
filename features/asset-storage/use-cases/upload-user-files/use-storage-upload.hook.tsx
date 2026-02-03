@@ -10,6 +10,10 @@ import {
 import { BlockBlobClient } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
 import {
+  buildUserFileMetadata,
+  buildUserFileRequestHeaders,
+} from "../../infrastructure/storage-utils";
+import {
   AssetStorageTokens,
   useAssetStorage,
 } from "../../ui/asset-storage.context";
@@ -29,6 +33,7 @@ interface UploadFilesToBlobProps extends UseStorageUploadProps {
 
 interface UploadFilesToServerProps extends UseStorageUploadProps {
   files: File[];
+  options: UploadFilesEvent;
 }
 
 interface UploadedFile {
@@ -80,8 +85,14 @@ const DEFAULT_READ_TOKEN_PROMISE = Promise.resolve(DEFAULT_READ_TOKEN_RESULT);
 const uploadToBlob = async (
   props: UploadFilesToBlobProps,
 ): Promise<UploadResult> => {
-  const { files, formId, submissionId, surveyModel, onSubmissionIdChange } =
-    props;
+  const {
+    files,
+    formId,
+    submissionId,
+    surveyModel,
+    onSubmissionIdChange,
+    options,
+  } = props;
 
   if (files.length === 0) {
     return UploadResult.empty();
@@ -119,6 +130,19 @@ const uploadToBlob = async (
 
       try {
         const blockBlobClient = new BlockBlobClient(sasResult.url);
+        const metadataOptions = buildUserFileMetadata({
+          formId,
+          submissionId,
+          questionId: options.question?.name ?? "",
+          formLang: surveyModel?.locale ?? "",
+          fileName: file.name,
+          fileType: file.type,
+        });
+        const headerOptions = {
+          blobContentType: metadataOptions.fileType,
+          blobContentLanguage: metadataOptions.formLang,
+          blobContentDisposition: metadataOptions.fileContentDisposition,
+        };
         await blockBlobClient.uploadData(await file.arrayBuffer(), {
           onProgress: (progress) => {
             if (!progress?.loadedBytes || !file.size) {
@@ -129,6 +153,10 @@ const uploadToBlob = async (
             );
             console.debug(`progress ${file.name}: ${uploadProgress}%`);
           },
+          metadata: {
+            ...metadataOptions,
+          },
+          blobHTTPHeaders: headerOptions,
         });
 
         const [url] = sasResult.url.split("?");
@@ -171,8 +199,14 @@ const uploadToBlob = async (
 const uploadToServer = async (
   props: UploadFilesToServerProps,
 ): Promise<UploadResult> => {
-  const { files, formId, submissionId, surveyModel, onSubmissionIdChange } =
-    props;
+  const {
+    files,
+    formId,
+    submissionId,
+    surveyModel,
+    onSubmissionIdChange,
+    options,
+  } = props;
 
   if (files.length === 0) {
     return UploadResult.empty();
@@ -184,14 +218,16 @@ const uploadToServer = async (
   });
 
   try {
+    const uploadContext = {
+      formId,
+      submissionId,
+      questionId: options.question?.name ?? "",
+      formLang: surveyModel?.locale ?? "",
+    };
     const response = await fetch("/api/public/v0/storage/upload", {
       method: "POST",
       body: formData,
-      headers: {
-        "edx-form-id": formId,
-        "edx-submission-id": submissionId,
-        "edx-form-lang": surveyModel?.locale ?? "",
-      } as HeadersInit,
+      headers: buildUserFileRequestHeaders(uploadContext) as HeadersInit,
     });
 
     const data = await response.json();
@@ -199,7 +235,7 @@ const uploadToServer = async (
     if (!response.ok) {
       throw new Error(
         data?.error ??
-        "Failed to upload files. Please refresh your page and try again.",
+          "Failed to upload files. Please refresh your page and try again.",
       );
     }
 
@@ -242,7 +278,7 @@ export function useStorageUpload({
   surveyModel,
   readTokenPromises: propsReadTokenPromises,
 }: UseStorageUploadProps) {
-  const { tokens: contextTokens } = useAssetStorage();
+  const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
   const readTokenPromises = propsReadTokenPromises ?? contextTokens;
 
   const userFilesTokenResult = use(
@@ -259,6 +295,13 @@ export function useStorageUpload({
   const groupFilesByUploadStrategy = useMemo(
     () =>
       (files: File[]): { filesForUpload: File[]; filesForResize: File[] } => {
+        if (!storageConfig?.imageConfig?.isResizeEnabled) {
+          return {
+            filesForUpload: files,
+            filesForResize: [],
+          };
+        }
+
         return files.reduce(
           (acc, file) => {
             if (
@@ -274,7 +317,7 @@ export function useStorageUpload({
           { filesForUpload: [] as File[], filesForResize: [] as File[] },
         );
       },
-    [],
+    [storageConfig],
   );
 
   const onUploadFiles = useCallback(
@@ -304,6 +347,7 @@ export function useStorageUpload({
           submissionId,
           surveyModel,
           onSubmissionIdChange,
+          options,
         });
         allResults.push(...serverResults.data);
         allErrors.push(...serverResults.errors);

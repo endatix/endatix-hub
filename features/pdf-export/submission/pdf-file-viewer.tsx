@@ -8,6 +8,7 @@ import {
   VideoFileIcon,
 } from "@/features/pdf-export/submission/icons";
 import { PDF_STYLES } from "@/features/pdf-export/submission/pdf-styles";
+import AudioFileIcon from "./icons/audio-file-icon";
 
 interface FileViewerProps {
   file: IFile;
@@ -35,6 +36,8 @@ export function PdfFileViewer({
       );
     case FileType.Video:
       return <FileDetails file={file} icon={<VideoFileIcon />} />;
+    case FileType.Audio:
+      return <FileDetails file={file} icon={<AudioFileIcon />} />;
     case FileType.Document:
       return <FileDetails file={file} icon={<DocumentFileIcon />} />;
     case FileType.Unknown:

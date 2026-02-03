@@ -1,73 +1,203 @@
 import { useAssetStorage } from "@/features/asset-storage/client";
 import { FileType, getFileType, IFile } from "@/lib/questions/file/file-type";
+import { AudioPlayer } from "@/lib/questions/audio-recorder/audio-player";
 import { cn } from "@/lib/utils";
 import { FileText, FileX2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 
-interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
-  file: IFile;
-  width?: number;
-  height?: number;
-  aspectRatio?: "portrait" | "square";
+export type FileViewSize = "small" | "medium" | "large";
+
+export interface FileContentViewProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** For private files, use the resolved URL (with token). */
+  src: string;
+  contentType?: string;
+  name?: string;
+  /** Size variant: small (submission details), medium (modal), large (file page). Default: large. */
+  size?: FileViewSize;
 }
 
-export function FileViewer({
-  file,
-  width,
-  height,
+const SIZE_CONFIG = {
+  small: {
+    container: "w-[200px]",
+    imageContainer: "relative w-[200px] h-[266px]",
+    imageAspect: "aspect-[3/4]",
+    video: "h-[150px] w-auto",
+    pdfIcon: "h-8 w-8",
+    unknownIcon: "h-8 w-8",
+  },
+  medium: {
+    container: "w-full max-w-2xl mx-auto",
+    imageContainer: "relative w-full aspect-square",
+    imageAspect: "aspect-square",
+    video: "h-[400px] w-auto",
+    pdfIcon: "h-10 w-10",
+    unknownIcon: "h-10 w-10",
+  },
+  large: {
+    container: "w-full max-w-4xl mx-auto",
+    imageContainer: "relative w-full aspect-square",
+    imageAspect: "aspect-square",
+    video: "h-[500px] w-auto",
+    pdfIcon: "h-10 w-10",
+    unknownIcon: "h-10 w-10",
+  },
+} as const;
+
+/**
+ * Presentational file viewer for image, video, audio, PDF, and unknown types.
+ * Does not use AssetStorage context; pass a fully resolved URL as src.
+ *
+ * @param size - small (submission details), medium (modal), large (file page)
+ */
+export function FileContentView({
+  src,
+  contentType,
+  name,
+  size = "large",
   className,
-  aspectRatio = "portrait",
   ...props
-}: FileViewerProps) {
-  const { resolveStorageUrl } = useAssetStorage();
-  const enhancedFileContent = resolveStorageUrl(file.content);
-  const fileType = getFileType(file);
+}: Readonly<FileContentViewProps>) {
+  const fileType = getFileType({
+    content: src,
+    type: contentType,
+    name,
+  });
+
+  const config = SIZE_CONFIG[size];
+  const showPdfObject = size === "medium" || size === "large";
+  const sizes = useMemo(() => {
+    switch (size) {
+      case "small":
+        return "200px";
+      case "medium":
+        return "(max-width: 768px) 100vw, 672px";
+      case "large":
+        return "(max-width: 768px) 100vw, 896px";
+      default:
+        return "(max-width: 768px) 100vw, 896px";
+    }
+  }, [size]);
 
   return (
-    <div className={cn("space-y-3", className)} {...props}>
+    <div className={cn("space-y-3", config.container, className)} {...props}>
       <div className="overflow-hidden rounded-md">
         {fileType === FileType.Image && (
-          <Image
-            src={enhancedFileContent}
-            alt={file.name || ""}
-            width={width}
-            height={height}
-            className={cn(
-              "h-auto w-auto object-cover transition-all hover:scale-105",
-              aspectRatio === "portrait" ? "aspect-[3/4]" : "aspect-square",
-            )}
-          />
+          <div className={config.imageContainer}>
+            <Image
+              src={src}
+              alt={name ?? ""}
+              fill
+              sizes={sizes}
+              className={cn(
+                "object-cover transition-all hover:scale-105",
+                config.imageAspect,
+              )}
+            />
+          </div>
         )}
         {fileType === FileType.Video && (
           <video
-            src={enhancedFileContent}
+            src={src}
             controls
-            className="h-[230px] w-auto object-cover transition-all"
+            className={cn(config.video, "object-cover transition-all")}
           >
-            <source src={enhancedFileContent} type={file.type} />
+            <source src={src} type={contentType} />
             <track kind="captions" />
           </video>
         )}
-        {fileType === FileType.Document && (
-          <div className="flex h-[230px] w-[150px] items-center justify-center bg-muted">
-            <FileText className="h-10 w-10" />
-            <Link href={{ pathname: enhancedFileContent }}>Link to file</Link>
+        {fileType === FileType.Audio && (
+          <AudioPlayer
+            file={{ content: src, name, type: contentType }}
+            isDisplayMode
+          />
+        )}
+        {fileType === FileType.Document && showPdfObject && (
+          <div className="flex min-h-[400px] w-full flex-col gap-2">
+            <object
+              data={src}
+              type={contentType ?? "application/pdf"}
+              className="min-h-[400px] w-full rounded border"
+              aria-label={name ?? "PDF document"}
+            >
+              <div className="flex h-[230px] items-center justify-center gap-2 bg-muted">
+                <FileText className={config.pdfIcon} />
+                <Link
+                  href={{ pathname: src }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Open PDF
+                </Link>
+              </div>
+            </object>
+          </div>
+        )}
+        {fileType === FileType.Document && !showPdfObject && (
+          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded border bg-muted">
+            <FileText className={config.pdfIcon} />
+            <Link
+              href={{ pathname: src }}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline"
+            >
+              {name ?? "Open PDF"}
+            </Link>
           </div>
         )}
         {fileType === FileType.Unknown && (
-          <div className="flex h-[230px] w-[150px] items-center justify-center bg-muted">
-            <FileX2 className="h-10 w-10" />
-            <Link href={{ pathname: enhancedFileContent }}>Link to file</Link>
+          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded border bg-muted">
+            <FileX2 className={config.unknownIcon} />
+            <Link
+              href={{ pathname: src }}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline"
+            >
+              Download file
+            </Link>
           </div>
         )}
       </div>
-      <div className="space-y-1 text-sm">
-        <h3 className="font-medium leading-none">{file.name}</h3>
-        {file.type && (
-          <p className="text-xs text-muted-foreground">{file.type}</p>
-        )}
-      </div>
+      {(name || contentType) && (
+        <div className="space-y-1 text-sm">
+          {name && <h3 className="font-medium leading-none">{name}</h3>}
+          {contentType && (
+            <p className="text-xs text-muted-foreground">{contentType}</p>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
+  file: IFile;
+  /** Size variant: small (submission details), medium (modal), large (file page). Default: large. */
+  size?: FileViewSize;
+}
+
+/** File viewer that resolves storage URLs via AssetStorage context (for survey answers). */
+export function FileViewer({
+  file,
+  size = "large",
+  className,
+  ...props
+}: FileViewerProps) {
+  const { resolveStorageUrl } = useAssetStorage();
+  const src = resolveStorageUrl(file.content);
+
+  return (
+    <FileContentView
+      src={src}
+      contentType={file.type}
+      name={file.name}
+      size={size}
+      className={className}
+      {...props}
+    />
   );
 }

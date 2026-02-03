@@ -1,18 +1,32 @@
 import { Result } from "@/lib/result";
 import {
+  BlobItem,
   BlobSASPermissions,
   BlobServiceClient,
   SASProtocol,
   StorageSharedKeyCredential,
   generateBlobSASQueryParameters,
 } from "@azure/storage-blob";
-import { ReadTokensResult as BulkReadTokensResult } from '../types';
+import { ReadTokensResult as BulkReadTokensResult } from "../types";
 import { getStorageConfig } from "./storage-config";
+import { buildUseFileFolderPath } from "./storage-utils";
 
 interface FileOptions {
   fileName: string;
   containerName: string;
   folderPath?: string;
+}
+
+interface FolderOptions {
+  containerName: string;
+  formId: string;
+  submissionId: string;
+}
+
+interface BlobPropertiesResult {
+  sizeInBytes: number;
+  contentType?: string;
+  metadata?: Record<string, string>;
 }
 
 const READ_ONLY_PERMISSIONS = BlobSASPermissions.parse("r");
@@ -43,6 +57,7 @@ async function uploadToStorage(
   fileName: string,
   containerName: string,
   folderPath?: string,
+  metadata?: Record<string, string>,
 ): Promise<string> {
   const config = getStorageConfig();
   if (!config.isEnabled) {
@@ -69,7 +84,14 @@ async function uploadToStorage(
   try {
     const blobName = folderPath ? `${folderPath}/${fileName}` : fileName;
     const blobClient = containerClient.getBlockBlobClient(blobName);
-    await blobClient.uploadData(fileBuffer);
+    await blobClient.uploadData(fileBuffer, {
+      blobHTTPHeaders: {
+        blobContentType: metadata?.contentType ?? "",
+        blobContentLanguage: metadata?.language ?? "",
+        blobContentDisposition: "inline",
+      },
+      metadata: metadata,
+    });
 
     const STEP_UPLOAD_END = performance.now();
     console.log(
@@ -294,6 +316,74 @@ async function deleteBlob(fileOptions: FileOptions): Promise<void> {
   }
 }
 
+/**
+ * Lists blobs (files) under the submission folder with metadata.
+ * Returns a Promise of BlobItem[]; throws when folder path is invalid (consistent with other service methods).
+ * Suitable for React use() streaming: pass the promise to a child and use use(promise).
+ */
+async function listBlobs(folderOptions: FolderOptions): Promise<BlobItem[]> {
+  const folderPathResult = buildUseFileFolderPath(
+    folderOptions.formId,
+    folderOptions.submissionId,
+  );
+  if (Result.isError(folderPathResult)) {
+    throw new TypeError(folderPathResult.message);
+  }
+
+  const blobServiceClient = getBlobServiceClient();
+  const containerClient = blobServiceClient.getContainerClient(
+    getStorageConfig().containerNames.USER_FILES,
+  );
+
+  const iter = containerClient.listBlobsFlat({
+    prefix: folderPathResult.value,
+    includeDeleted: false,
+    includeMetadata: true,
+  });
+
+  const filesResult: BlobItem[] = [];
+  for await (const blob of iter) {
+    filesResult.push(blob);
+  }
+  return filesResult;
+}
+
+/**
+ * Gets the properties of a blob. Doesn't return the blob content.
+ * @param containerName - The name of the container
+ * @param blobName - The name of the blob
+ * @returns A Promise resolving to the properties of the blob
+ */
+async function getBlobProperties(
+  containerName: string,
+  blobName: string,
+): Promise<BlobPropertiesResult | null> {
+  const config = getStorageConfig();
+  if (!config.isEnabled || !containerName || !blobName) {
+    return null;
+  }
+
+  try {
+    const blobServiceClient = getBlobServiceClient();
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blobClient = containerClient.getBlockBlobClient(blobName);
+    const response = await blobClient.getProperties();
+
+    const contentType =
+      response.metadata?.["content-type"] ?? response.contentType;
+
+    const sizeInBytes = response.contentLength ?? 0;
+
+    return {
+      contentType,
+      sizeInBytes,
+      metadata: response.metadata as Record<string, string> | undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Reset function for testing or when you need to recreate the client
 function resetBlobServiceClient(): void {
   if (_blobServiceClient) {
@@ -307,8 +397,11 @@ export {
   bulkGenerateReadTokens,
   deleteBlob,
   generateUploadUrl,
+  getBlobProperties,
   resetBlobServiceClient,
-  uploadToStorage, type BulkReadUrlsOptions,
-  type FileOptions
+  uploadToStorage,
+  listBlobs,
+  type BulkReadUrlsOptions,
+  type FileOptions,
+  type BlobPropertiesResult,
 };
-

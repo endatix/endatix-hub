@@ -9,6 +9,7 @@ import {
   ClearFilesEvent,
   DownloadFileEvent,
 } from "survey-core";
+import { StorageHeaderNames } from "@/features/asset-storage/infrastructure/storage-utils";
 import { BlockBlobClient } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
 
@@ -48,10 +49,12 @@ const mockStorageConfig = {
   isEnabled: true,
   isPrivate: true,
   hostName: "test.blob.core.windows.net",
+  protocol: "https" as const,
   containerNames: {
     USER_FILES: "user-files",
     CONTENT: "content",
   },
+  imageConfig: { isResizeEnabled: true, defaultResizeWidth: 800 },
 };
 
 describe("useStorageUpload", () => {
@@ -191,7 +194,7 @@ describe("useStorageUpload", () => {
         wrapper: createWrapper(),
       });
 
-      let unregister: () => void = () => { };
+      let unregister: () => void = () => {};
       await act(async () => {
         unregister = result.current.registerUploadHandlers(mockSurveyModel);
       });
@@ -245,20 +248,27 @@ describe("useStorageUpload", () => {
         },
       );
 
+      // Flush suspense so hook resolves (use() with readTokenPromises)
       await act(async () => {
-        await result.current.uploadFiles(mockSurveyModel, mockUploadOptions);
+        await Promise.resolve();
+      });
+      expect(result.current).not.toBeNull();
+
+      await act(async () => {
+        await result.current!.uploadFiles(mockSurveyModel, mockUploadOptions);
       });
 
-      // Should call server upload endpoint for small images
+      // Should call server upload endpoint for small images (headers from buildUserFileRequestHeaders)
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/public/v0/storage/upload",
         expect.objectContaining({
           method: "POST",
           body: expect.any(FormData),
           headers: expect.objectContaining({
-            "edx-form-id": mockFormId,
-            "edx-submission-id": mockSubmissionId,
-            "edx-form-lang": "en",
+            [StorageHeaderNames.FORM_ID]: mockFormId,
+            [StorageHeaderNames.SUBMISSION_ID]: mockSubmissionId,
+            [StorageHeaderNames.FORM_LANG]: "en",
+            [StorageHeaderNames.QUESTION_ID]: "",
           }),
         }),
       );
@@ -935,6 +945,8 @@ describe("useStorageUpload", () => {
       const tokenResult = Result.success({
         token: "test-token-123",
         containerName: "user-files",
+        isPrivate: false,
+        hostName: "test.blob.core.windows.net",
         expiresOn: new Date(),
         generatedAt: new Date(),
       });
@@ -961,7 +973,9 @@ describe("useStorageUpload", () => {
       });
 
       await act(async () => {
-        result.current.registerUploadHandlers(mockSurveyModel);
+        (
+          result.current as ReturnType<typeof useStorageUpload>
+        ).registerUploadHandlers(mockSurveyModel);
         const downloadHandler = (
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];

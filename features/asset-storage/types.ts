@@ -36,7 +36,6 @@ export interface ContainerReadToken extends IReadToken {
 
 export type ReadTokenResult = Result<ContainerReadToken>;
 
-
 interface ReadTokensResponse {
   /**
    * A record of requested resource names and the corresponding tokens generated for read access
@@ -58,10 +57,11 @@ export type UploadUserFilesCommand = {
   formId: string;
   submissionId?: string;
   files: { name: string; file: File }[];
+  additionalMetadata?: Record<string, string | null>;
 };
 
 /**
- * A map of storage tokens used for granular read access 
+ * A map of storage tokens used for granular read access
  * @type {Record<string, string>}
  */
 export type StorageTokenMap = Record<string, string>;
@@ -80,3 +80,12 @@ export type UploadContentFileCommand = {
 };
 
 export type UploadContentFileResult = Result<UploadFileResult>;
+
+/** Metadata for a user file uploaded as part of submission */
+export interface UserFileMetadata {
+  displayName: string;
+  contentType: string;
+  sizeInBytes: number;
+  originalFileName?: string;
+  questionName?: string;
+}

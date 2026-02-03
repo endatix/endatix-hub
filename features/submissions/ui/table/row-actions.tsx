@@ -11,6 +11,7 @@ import { Row } from "@tanstack/react-table";
 import {
   FileDown,
   FilePenLine,
+  Files,
   LinkIcon,
   MoreHorizontal,
   Trash2,
@@ -63,6 +64,12 @@ export function RowActions<TData>({ row }: RowActionsProps<TData>) {
           <Link href="#">
             <LinkIcon className="w-4 h-4 mr-2" />
             <span>Share Links</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href={`/forms/${item.formId}/submissions/${item.id}/files`}>
+            <Files className="w-4 h-4 mr-2" />
+            <span>View Files</span>
           </Link>
         </DropdownMenuItem>
         <DownloadFilesDropdownItem

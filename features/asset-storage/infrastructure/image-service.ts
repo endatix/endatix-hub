@@ -1,21 +1,22 @@
-import { parseBoolean } from "@/lib/utils/type-parsers";
 import { optimizeImage } from "next/dist/server/image-optimizer";
 
 const DEFAULT_IMAGE_WIDTH = 800;
 
-type ImageServiceConfig = {
+/**
+ * Parses a boolean env var: only "true" (case-insensitive) is true; everything else is false.
+ */
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (value === undefined || value === "") return false;
+  return value.trim().toLowerCase() === "true";
+}
+
+type ImageConfig = {
   isResizeEnabled: boolean;
   defaultResizeWidth: number;
 };
 
-const IMAGE_SERVICE_CONFIG: ImageServiceConfig = Object.freeze({
-  isResizeEnabled: (() => {
-    const raw = process.env.RESIZE_IMAGES ?? "true";
-    if (!["true", "false"].includes(raw.toLowerCase())) {
-      throw new Error("RESIZE_IMAGES must be 'true' or 'false'");
-    }
-    return parseBoolean(raw);
-  })(),
+const IMAGE_SERVICE_CONFIG: ImageConfig = Object.freeze({
+  isResizeEnabled: parseBooleanEnv(process.env.RESIZE_IMAGES),
   defaultResizeWidth: (() => {
     const width = process.env.RESIZE_IMAGES_WIDTH;
     if (!width) return DEFAULT_IMAGE_WIDTH;
@@ -72,5 +73,4 @@ async function optimizeImageSize(
   return optimizedImageBuffer;
 }
 
-export { IMAGE_SERVICE_CONFIG, optimizeImageSize };
-
+export { IMAGE_SERVICE_CONFIG, optimizeImageSize, type ImageConfig };

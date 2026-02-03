@@ -1,7 +1,7 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
-import { StorageConfig } from './client';
-import { IContainerInfo } from './types';
+import { StorageConfig } from "./client";
+import { IContainerInfo } from "./types";
 
 const QUERY_STRING_START_CHAR = "?";
 const QUERY_STRING_SEPARATOR = "&";
@@ -32,6 +32,24 @@ function generateUniqueFileName(fileName: string): Result<string> {
 }
 
 /**
+ * Extracts the last segment from a URL path.
+ * @param blobName - The URL path to extract the last segment from.
+ * @returns The last segment of the URL path.
+ */
+function getLastSegmentFromUrlPath(blobName: string): string {
+  if (!blobName) {
+    return "";
+  }
+
+  const segments = blobName.split("/").filter(Boolean);
+  if (segments.length === 0) {
+    return blobName;
+  }
+
+  return segments.at(-1) ?? "";
+}
+
+/**
  * Resolves the container information for a given URL.
  * @param url - The URL to resolve
  * @param storageConfig - The storage configuration
@@ -43,7 +61,7 @@ function resolveContainerFromUrl(
 ): IContainerInfo | null {
   if (!url) return null;
 
-  if (url.startsWith('data:')) return null;
+  if (url.startsWith("data:")) return null;
 
   if (!storageConfig) return null;
 
@@ -55,7 +73,9 @@ function resolveContainerFromUrl(
       return null;
     }
 
-    const pathParts = urlObj.pathname.split(FORWARD_SLASH_CHAR).filter((part) => part.length > 0);
+    const pathParts = urlObj.pathname
+      .split(FORWARD_SLASH_CHAR)
+      .filter((part) => part.length > 0);
     if (pathParts.length < 1) return null;
 
     const containerName = pathParts[0].toLowerCase();
@@ -63,7 +83,7 @@ function resolveContainerFromUrl(
 
     if (containerName === storageConfig.containerNames.USER_FILES) {
       return {
-        containerType: 'USER_FILES',
+        containerType: "USER_FILES",
         containerName: containerName,
         hostName: hostname,
         isPrivate: true,
@@ -72,7 +92,7 @@ function resolveContainerFromUrl(
     }
     if (containerName === storageConfig.containerNames.CONTENT) {
       return {
-        containerType: 'CONTENT',
+        containerType: "CONTENT",
         containerName: containerName,
         hostName: hostname,
         isPrivate: true,
@@ -109,7 +129,10 @@ function isUrlFromContainer(
  * @param token - The SAS token (optionally starting with ?)
  * @returns The enhanced URL
  */
-function enhanceUrlWithToken(url: string, token: string | null | undefined): string {
+function enhanceUrlWithToken(
+  url: string,
+  token: string | null | undefined,
+): string {
   if (!token || !url) return url;
 
   const cleanToken = token.startsWith("?") ? token.slice(1) : token;
@@ -142,7 +165,7 @@ function escapeRegex(value: string): string {
   const part2 = String.raw`{}()|`;
   const part3 = String.raw`[\]\\`;
   const regexPattern = `[${part1}${part2}${part3}]`;
-  const regex = new RegExp(regexPattern, 'g');
+  const regex = new RegExp(regexPattern, "g");
   return value.replaceAll(regex, String.raw`\$&`);
 }
 
@@ -153,7 +176,10 @@ function escapeRegex(value: string): string {
  * @param hostName - The storage host name to match (will be escaped for regex safety)
  * @returns An array of unique storage URLs
  */
-function extractStorageUrls(content: string | null | undefined, hostName: string): string[] {
+function extractStorageUrls(
+  content: string | null | undefined,
+  hostName: string,
+): string[] {
   if (!content || !hostName) return [];
 
   // Escape hostName to prevent regex injection attacks
@@ -161,7 +187,10 @@ function extractStorageUrls(content: string | null | undefined, hostName: string
 
   // Matches https://{hostName}/{container}/{blob...}
   // Avoids capturing quotes or query parameters that might already be there
-  const regex = new RegExp(String.raw`https://${escapedHostName}/[^"\s?]+`, 'g');
+  const regex = new RegExp(
+    String.raw`https://${escapedHostName}/[^"\s?]+`,
+    "g",
+  );
   const matches: string[] = [];
   let match: RegExpExecArray | null;
 
@@ -179,7 +208,7 @@ export {
   escapeRegex,
   extractStorageUrls,
   generateUniqueFileName,
+  getLastSegmentFromUrlPath,
   isUrlFromContainer,
-  resolveContainerFromUrl
+  resolveContainerFromUrl,
 };
-

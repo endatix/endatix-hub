@@ -33,15 +33,8 @@ export function FileAnswer({ question, className, ...props }: FileAnswerProps) {
       <ScrollArea>
         <div className="flex items-center justify-start text-sm space-x-4 pb-1">
           {files &&
-            files.map((file, index) => (
-              <FileViewer
-                key={index}
-                file={file}
-                className="w-max-[250px]"
-                aspectRatio="portrait"
-                width={250}
-                height={330}
-              />
+            files.map((file) => (
+              <FileViewer key={file.name} file={file} size="small" />
             ))}
         </div>
         {question?.supportComment() && question.hasComment && (
