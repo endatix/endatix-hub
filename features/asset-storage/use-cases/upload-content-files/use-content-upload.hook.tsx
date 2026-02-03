@@ -6,6 +6,7 @@ import { BlockBlobClient } from "@azure/storage-blob";
 import { buildContentFileMetadata } from "../../infrastructure/storage-utils";
 import { ContentItemType } from "../../types";
 import { useAssetStorage } from "../../ui/asset-storage.context";
+import { Base } from "survey-core";
 
 interface UseContentUploadProps {
   itemId: string;
@@ -27,6 +28,16 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
         return;
       }
 
+      let questionId: string = "N/A";
+      const element = options.element;
+      if (
+        element &&
+        element instanceof Base &&
+        typeof element.getPropertyValue === "function"
+      ) {
+        questionId = element.getPropertyValue("name") ?? element.uniqueId;
+      }
+
       try {
         const sasResponse = await fetch(
           "/api/hub/v0/storage/content/sas-token",
@@ -37,6 +48,7 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
               itemId,
               itemType,
               fileNames: files.map((f: File) => f.name),
+              questionId,
             }),
           },
         );
@@ -55,6 +67,7 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
           userId: "",
           itemId,
           contentItemType: itemType,
+          questionId: questionId,
         };
         let firstUploadedUrl: string | null = null;
 
@@ -68,17 +81,10 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
             return;
           }
 
-          const contentMetadata = buildContentFileMetadata({
-            userId: uploadMetadata.userId,
-            itemId: uploadMetadata.itemId,
-            contentItemType: uploadMetadata.contentItemType as ContentItemType,
-            fileName: file.name,
-            fileType: file.type || undefined,
-          });
-
           const sasUrl = sasResult.url;
           let dataToUpload: ArrayBuffer = await file.arrayBuffer();
           let contentType = file.type || "application/octet-stream";
+          let fileState: "original" | "optimized" = "original";
 
           if (
             file.type.startsWith("image/") &&
@@ -95,11 +101,22 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
                 dataToUpload = await resizeResponse.arrayBuffer();
                 contentType =
                   resizeResponse.headers.get("Content-Type") ?? file.type;
+                fileState = "optimized";
               }
             } catch {
               // On resize failure, upload original image (graceful fallback)
             }
           }
+
+          const contentMetadata = buildContentFileMetadata({
+            userId: uploadMetadata.userId,
+            itemId: uploadMetadata.itemId,
+            contentItemType: uploadMetadata.contentItemType as ContentItemType,
+            fileName: file.name,
+            fileType: contentType,
+            questionId: uploadMetadata.questionId,
+            fileState,
+          });
 
           const blockBlobClient = new BlockBlobClient(sasUrl);
           await blockBlobClient.uploadData(dataToUpload, {

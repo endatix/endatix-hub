@@ -1,5 +1,8 @@
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { optimizeImageSize } from "../../infrastructure/image-service";
+import {
+  optimizeImageSize,
+  IMAGE_SERVICE_CONFIG,
+} from "../../infrastructure/image-service";
 
 /**
  * Handles POST request with a single image file in multipart form data.
@@ -8,6 +11,12 @@ import { optimizeImageSize } from "../../infrastructure/image-service";
 export async function handleResizeImageRequest(
   request: Request,
 ): Promise<Response> {
+  if (!IMAGE_SERVICE_CONFIG.isResizeEnabled) {
+    return apiResponses.badRequest({
+      detail: "Image resize is not enabled.",
+    });
+  }
+
   const formData = await request.formData();
   const file = formData.get("file");
 

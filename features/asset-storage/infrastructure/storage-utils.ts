@@ -1,5 +1,12 @@
 import { Result } from "@/lib/result";
-import type { ContentItemType } from "../types";
+import type {
+  ContentFileMetadata,
+  ContentFileMetadataProps,
+  ContentItemType,
+  UserFileBlobMetadata,
+  UserFileContext,
+  UserFileMetadataProps,
+} from "../types";
 
 const USER_FILES_PREFIX = "s/";
 
@@ -88,30 +95,6 @@ const StorageHeaderNames = Object.freeze({
 /** Union of header name keys (e.g. for typing a key variable). */
 type StorageHeaderName = keyof typeof StorageHeaderNames;
 
-/** Base user file context */
-export interface UserFileContext {
-  formId: string;
-  submissionId?: string;
-  questionId: string;
-  formLang?: string;
-}
-
-interface UserFileMetadataProps extends UserFileContext {
-  fileName: string;
-  fileType?: string;
-  fileContentDisposition?: string;
-}
-
-interface UserFileMetadata {
-  formId: string;
-  submissionId: string;
-  fileName: string;
-  fileType: string;
-  questionId: string;
-  formLang?: string;
-  fileContentDisposition?: string;
-}
-
 /** Headers object for the upload request (edx-form-id, edx-submission-id, etc.). */
 export type UserFileRequestHeaders = Record<
   (typeof StorageHeaderNames)[keyof typeof StorageHeaderNames],
@@ -137,8 +120,10 @@ function buildUserFileRequestHeaders(
  * Builds blob metadata for a user file. Use the same context as buildUserFileRequestHeaders
  * (plus fileName and fileType) so headers and metadata stay in sync.
  */
-function buildUserFileMetadata(props: UserFileMetadataProps): UserFileMetadata {
-  return {
+function buildUserFileMetadata(
+  props: UserFileMetadataProps,
+): UserFileBlobMetadata {
+  const metadata: UserFileBlobMetadata = {
     formId: props.formId,
     fileName: props.fileName,
     submissionId: props.submissionId ?? "no submission id",
@@ -147,24 +132,10 @@ function buildUserFileMetadata(props: UserFileMetadataProps): UserFileMetadata {
     formLang: props.formLang ?? "",
     fileContentDisposition: props.fileContentDisposition ?? "inline",
   };
-}
-
-/** Context for content file blob metadata (server-provided + client file info). */
-export interface ContentFileMetadataProps {
-  userId: string;
-  itemId: string;
-  contentItemType: ContentItemType;
-  fileName: string;
-  fileType?: string;
-}
-
-/** Blob metadata and HTTP headers for a content file upload. */
-export interface ContentFileMetadata {
-  metadata: Record<string, string>;
-  blobHTTPHeaders: {
-    blobContentType: string;
-    blobContentDisposition?: string;
-  };
+  if (props.fileState !== undefined) {
+    metadata.fileState = props.fileState;
+  }
+  return metadata;
 }
 
 /**
@@ -174,13 +145,20 @@ function buildContentFileMetadata(
   props: ContentFileMetadataProps,
 ): ContentFileMetadata {
   const fileType = props.fileType ?? "application/octet-stream";
+  const metadata: Record<string, string> = {
+    userId: props.userId,
+    itemId: props.itemId,
+    contentItemType: props.contentItemType,
+    fileName: props.fileName,
+  };
+  if (props.questionId !== undefined) {
+    metadata.questionId = props.questionId;
+  }
+  if (props.fileState !== undefined) {
+    metadata.fileState = props.fileState;
+  }
   return {
-    metadata: {
-      userId: props.userId,
-      itemId: props.itemId,
-      contentItemType: props.contentItemType,
-      fileName: props.fileName,
-    },
+    metadata,
     blobHTTPHeaders: {
       blobContentType: fileType,
       blobContentDisposition: "inline",
@@ -199,3 +177,4 @@ export {
   buildUserFileRequestHeaders,
   buildContentFileMetadata,
 };
+export type { UserFileContext, ContentFileMetadataProps, ContentFileMetadata };

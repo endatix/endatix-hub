@@ -147,6 +147,7 @@ const uploadToBlob = async (
           formLang: surveyModel?.locale ?? "",
           fileName: file.name,
           fileType: file.type,
+          fileState: "original",
         });
         const headerOptions = {
           blobContentType: metadataOptions.fileType,
@@ -268,6 +269,7 @@ const uploadResizedToBlob = async (
         formLang: surveyModel?.locale ?? "",
         fileName: file.name,
         fileType: contentType,
+        fileState: "optimized",
       });
       const resizeSasUrl = sasResult.url;
       if (!resizeSasUrl) {
@@ -278,17 +280,21 @@ const uploadResizedToBlob = async (
       }
 
       const blockBlobClient = new BlockBlobClient(resizeSasUrl);
+      const uploadMetadata: Record<string, string> = {
+        formId: metadataOptions.formId,
+        submissionId: metadataOptions.submissionId,
+        fileName: metadataOptions.fileName,
+        fileType: metadataOptions.fileType,
+        questionId: metadataOptions.questionId,
+        formLang: metadataOptions.formLang ?? "",
+        fileContentDisposition:
+          metadataOptions.fileContentDisposition ?? "inline",
+      };
+      if (metadataOptions.fileState !== undefined) {
+        uploadMetadata.fileState = metadataOptions.fileState;
+      }
       await blockBlobClient.uploadData(resizedBuffer, {
-        metadata: {
-          formId: metadataOptions.formId,
-          submissionId: metadataOptions.submissionId,
-          fileName: metadataOptions.fileName,
-          fileType: metadataOptions.fileType,
-          questionId: metadataOptions.questionId,
-          formLang: metadataOptions.formLang ?? "",
-          fileContentDisposition:
-            metadataOptions.fileContentDisposition ?? "inline",
-        },
+        metadata: uploadMetadata,
         blobHTTPHeaders: {
           blobContentType: metadataOptions.fileType,
           blobContentLanguage: metadataOptions.formLang ?? "",
@@ -319,19 +325,24 @@ const uploadResizedToBlob = async (
           formLang: surveyModel?.locale ?? "",
           fileName: file.name,
           fileType: file.type,
+          fileState: "original",
         });
         const blockBlobClient = new BlockBlobClient(fallbackSasUrl);
+        const fallbackMetadata: Record<string, string> = {
+          formId: metadataOptions.formId,
+          submissionId: metadataOptions.submissionId,
+          fileName: metadataOptions.fileName,
+          fileType: metadataOptions.fileType,
+          questionId: metadataOptions.questionId,
+          formLang: metadataOptions.formLang ?? "",
+          fileContentDisposition:
+            metadataOptions.fileContentDisposition ?? "inline",
+        };
+        if (metadataOptions.fileState !== undefined) {
+          fallbackMetadata.fileState = metadataOptions.fileState as string;
+        }
         await blockBlobClient.uploadData(await file.arrayBuffer(), {
-          metadata: {
-            formId: metadataOptions.formId,
-            submissionId: metadataOptions.submissionId,
-            fileName: metadataOptions.fileName,
-            fileType: metadataOptions.fileType,
-            questionId: metadataOptions.questionId,
-            formLang: metadataOptions.formLang ?? "",
-            fileContentDisposition:
-              metadataOptions.fileContentDisposition ?? "inline",
-          },
+          metadata: fallbackMetadata,
           blobHTTPHeaders: {
             blobContentType: metadataOptions.fileType,
             blobContentLanguage: metadataOptions.formLang ?? "",

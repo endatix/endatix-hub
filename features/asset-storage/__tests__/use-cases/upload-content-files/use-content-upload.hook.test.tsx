@@ -14,6 +14,20 @@ vi.mock("@azure/storage-blob", () => ({
   })),
 }));
 
+/** Mock Base so upload event element passes instanceof Base and exposes getPropertyValue/uniqueId. */
+vi.mock("survey-core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("survey-core")>();
+  class MockBase extends actual.Base {
+    getPropertyValue(name: string): unknown {
+      return name === "name" ? "question1" : undefined;
+    }
+    override get uniqueId(): number {
+      return 1;
+    }
+  }
+  return { ...actual, Base: MockBase };
+});
+
 const mockStorageConfig = {
   isEnabled: true,
   isPrivate: true,
@@ -95,16 +109,17 @@ describe("useContentUpload", () => {
     });
 
     const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
-    if (
-      typeof (mockFile as File & { arrayBuffer? }).arrayBuffer !== "function"
-    ) {
+    if (typeof mockFile.arrayBuffer !== "function") {
       (
         mockFile as File & { arrayBuffer: () => Promise<ArrayBuffer> }
       ).arrayBuffer = () => Promise.resolve(new ArrayBuffer(0));
     }
+    const { Base } = await import("survey-core");
+    const element = new Base();
     const options = {
       files: [mockFile],
       callback: vi.fn(),
+      element,
     };
 
     global.fetch = vi.fn().mockResolvedValueOnce({
@@ -121,6 +136,7 @@ describe("useContentUpload", () => {
             userId: "user-1",
             itemId: "test-item",
             contentItemType: "form",
+            questionId: "question1",
           },
         }),
     });
@@ -137,6 +153,7 @@ describe("useContentUpload", () => {
           itemId: "test-item",
           itemType: "form",
           fileNames: ["test.jpg"],
+          questionId: "question1",
         }),
       }),
     );

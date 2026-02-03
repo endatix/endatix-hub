@@ -81,11 +81,64 @@ export type UploadContentFileCommand = {
 
 export type UploadContentFileResult = Result<UploadFileResult>;
 
-/** Metadata for a user file uploaded as part of submission */
-export interface UserFileMetadata {
+// ─── Storage metadata ─────────────────────────────────────────
+export type ProcessedState = "original" | "optimized";
+export interface IOptimizable {
+  fileState?: ProcessedState;
+}
+
+/** Files uploaded by users */
+export interface UserFileMetadata extends IOptimizable {
   displayName: string;
   contentType: string;
   sizeInBytes: number;
   originalFileName?: string;
   questionName?: string;
+}
+
+/** Context for user file upload (form/submission/question). */
+export interface UserFileContext {
+  formId: string;
+  submissionId?: string;
+  questionId: string;
+  formLang?: string;
+}
+
+/** Blob metadata shape for user file upload (written to Azure). */
+export interface UserFileBlobMetadata extends IOptimizable {
+  formId: string;
+  submissionId: string;
+  fileName: string;
+  fileType: string;
+  questionId: string;
+  formLang?: string;
+  fileContentDisposition?: string;
+}
+
+/** Props to build user file blob metadata. */
+export interface UserFileMetadataProps extends UserFileContext {
+  fileName: string;
+  fileType?: string;
+  fileContentDisposition?: string;
+  fileState?: ProcessedState;
+}
+
+/** Props to build content file blob metadata. */
+export interface ContentFileMetadataProps {
+  userId: string;
+  itemId: string;
+  contentItemType: ContentItemType;
+  fileName: string;
+  fileType?: string;
+  questionId?: string;
+  fileState?: ProcessedState;
+}
+
+/** Blob metadata and HTTP headers for a content file upload. */
+export interface ContentFileMetadata {
+  metadata: Record<string, string>;
+  blobHTTPHeaders: {
+    blobContentType: string;
+    blobContentDisposition?: string;
+  };
 }

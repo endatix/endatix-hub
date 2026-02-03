@@ -4,7 +4,7 @@
  */
 
 import type { BlobItem } from "@azure/storage-blob";
-import type { UserFileMetadata } from "../types";
+import type { ProcessedState, UserFileMetadata } from "../types";
 import { getLastSegmentFromUrlPath } from "../utils";
 import type { BlobPropertiesResult } from "./storage-service";
 
@@ -12,13 +12,21 @@ const DEFAULT_CONTENT_TYPE = "application/octet-stream";
 /** Placeholder when content type is missing in list views (e.g. table "—"). */
 const LIST_CONTENT_TYPE_PLACEHOLDER = "—";
 
+function parseFileState(value: string | undefined): ProcessedState | undefined {
+  if (value === "original" || value === "optimized") return value;
+  return undefined;
+}
+
 /** Azure lowercases custom metadata keys; we support both. */
 function parseMetadataFields(
   metadata: Record<string, string>,
-): Pick<UserFileMetadata, "originalFileName" | "questionName"> {
+): Pick<UserFileMetadata, "originalFileName" | "questionName" | "fileState"> {
+  const fileStateValue =
+    metadata["filestate"] ?? metadata["fileState"] ?? undefined;
   return {
     originalFileName: metadata["filename"] ?? metadata["fileName"] ?? undefined,
     questionName: metadata["questionid"] ?? metadata["questionId"] ?? undefined,
+    fileState: parseFileState(fileStateValue),
   };
 }
 

@@ -14,6 +14,7 @@ interface ContentSASTokenRequest {
   itemId: string;
   itemType: ContentItemType;
   fileNames: string[];
+  questionId?: string;
 }
 
 interface SASOperationResult {
@@ -27,6 +28,7 @@ interface ContentUploadMetadata {
   userId: string;
   itemId: string;
   contentItemType: string;
+  questionId: string;
 }
 
 interface ContentSASTokenResponse {
@@ -46,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
     return apiResponses.badRequest({ detail: "Invalid JSON body" });
   }
 
-  const { itemId, itemType, fileNames } = data;
+  const { itemId, itemType, fileNames, questionId } = data;
 
   if (!itemId?.trim()) {
     return apiResponses.badRequest({ detail: "Item ID is required" });
@@ -99,6 +101,7 @@ export async function POST(request: Request): Promise<Response> {
     userId: session!.user?.id ?? "",
     itemId: itemId.trim(),
     contentItemType: itemType,
+    questionId: questionId ?? "",
   };
 
   const body: ContentSASTokenResponse = { sasTokens, uploadMetadata };
