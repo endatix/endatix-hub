@@ -15,7 +15,6 @@ export interface UserFileViewData extends UserFileMetadata {
   url: string;
 }
 
-
 /**
  * Returns view data (URL with token if private, contentType, displayName) for a submission file.
  * Returns Result.error when storage is disabled, blob not found, or token generation fails.

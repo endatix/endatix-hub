@@ -13,7 +13,9 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   reactStrictMode: true,
   turbopack: {
-    resolveAlias: {},
+    resolveAlias: {
+      "@": __dirname,
+    },
   },
   experimental: {
     serverActions: {

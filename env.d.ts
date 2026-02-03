@@ -40,6 +40,7 @@ declare namespace NodeJS {
     // Storage:Azure
     AZURE_STORAGE_ACCOUNT_NAME?: string;
     AZURE_STORAGE_ACCOUNT_KEY?: string;
+    AZURE_STORAGE_CUSTOM_DOMAIN?: string;
     AZURE_STORAGE_IS_PRIVATE?: string;
     AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES?: string;
 
@@ -52,7 +53,7 @@ declare namespace NodeJS {
     NEXT_PUBLIC_NAME?: string;
 
     // Telemetry
-    OTEL_LOG_LEVEL?: boolean;
+    OTEL_LOG_LEVEL?: string;
     APPLICATIONINSIGHTS_CONNECTION_STRING?: string;
 
     // PostHog

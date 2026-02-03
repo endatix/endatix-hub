@@ -159,6 +159,7 @@ describe("StorageConfig", () => {
         // Arrange
         process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
         // Act
         const config = getStorageConfig();
@@ -171,6 +172,151 @@ describe("StorageConfig", () => {
         // Arrange
         process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("");
+      });
+
+      it("should use custom domain when AZURE_STORAGE_CUSTOM_DOMAIN is set", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "cdn.example.com";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("cdn.example.com");
+      });
+
+      it("should fallback to default Azure hostname when custom domain is empty string", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
+      });
+
+      it("should fallback to default Azure hostname when custom domain is unset", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
+      });
+
+      it("should trim whitespace from custom domain", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "  cdn.example.com  ";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("cdn.example.com");
+      });
+
+      it("should extract hostname when custom domain includes https:// protocol", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://cdn.example.com";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("cdn.example.com");
+      });
+
+      it("should extract hostname when custom domain includes http:// protocol", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "http://cdn.example.com";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("cdn.example.com");
+      });
+
+      it("should extract hostname when custom domain includes protocol with path", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN =
+          "https://cdn.example.com/path";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("cdn.example.com");
+      });
+
+      it("should extract hostname when custom domain includes protocol with port", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://cdn.example.com:443";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("cdn.example.com");
+      });
+
+      it("should fallback to default Azure hostname when custom domain is invalid", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://invalid url";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert - should fallback to default Azure hostname when URL parsing fails
+        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
+      });
+
+      it("should fallback to default Azure hostname when custom domain is malformed", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "not a valid url://";
+
+        // Act
+        const config = getStorageConfig();
+
+        // Assert
+        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
+      });
+
+      it("should return empty string when custom domain is invalid and account name is not set", () => {
+        // Arrange
+        process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
+        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://invalid url";
 
         // Act
         const config = getStorageConfig();
@@ -459,6 +605,7 @@ describe("StorageConfig", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       process.env.USER_FILES_STORAGE_CONTAINER_NAME = "custom-user-files";
       process.env.CONTENT_STORAGE_CONTAINER_NAME = "custom-content";
+      delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
       // Act
       const clientConfig = createStorageConfigClient();
@@ -483,6 +630,19 @@ describe("StorageConfig", () => {
       expect(
         (clientConfig.config as unknown as AzureStorageConfig).accountName,
       ).toBeUndefined();
+    });
+
+    it("should use custom domain hostname when AZURE_STORAGE_CUSTOM_DOMAIN is set", () => {
+      // Arrange
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "cdn.example.com";
+
+      // Act
+      const clientConfig = createStorageConfigClient();
+
+      // Assert
+      expect(clientConfig.config.hostName).toBe("cdn.example.com");
     });
 
     it("should return a frozen object", () => {
@@ -562,7 +722,9 @@ describe("StorageConfig", () => {
         const url = getContainerUrl("my-container-123", config);
 
         // Assert
-        expect(url).toBe("https://testaccount.blob.core.windows.net/my-container-123");
+        expect(url).toBe(
+          "https://testaccount.blob.core.windows.net/my-container-123",
+        );
       });
 
       it("should handle empty container name", () => {
@@ -623,7 +785,9 @@ describe("StorageConfig", () => {
         const url = getContainerUrl("content", clientConfig.config);
 
         // Assert
-        expect(url).toBe(`https://${mockAccountName}.blob.core.windows.net/content`);
+        expect(url).toBe(
+          `https://${mockAccountName}.blob.core.windows.net/content`,
+        );
       });
 
       it("should work with both container types from client config", () => {
@@ -633,12 +797,22 @@ describe("StorageConfig", () => {
         const clientConfig = createStorageConfigClient();
 
         // Act
-        const contentUrl = getContainerUrl(clientConfig.config.containerNames.CONTENT, clientConfig.config);
-        const userFilesUrl = getContainerUrl(clientConfig.config.containerNames.USER_FILES, clientConfig.config);
+        const contentUrl = getContainerUrl(
+          clientConfig.config.containerNames.CONTENT,
+          clientConfig.config,
+        );
+        const userFilesUrl = getContainerUrl(
+          clientConfig.config.containerNames.USER_FILES,
+          clientConfig.config,
+        );
 
         // Assert
-        expect(contentUrl).toBe(`https://${mockAccountName}.blob.core.windows.net/content`);
-        expect(userFilesUrl).toBe(`https://${mockAccountName}.blob.core.windows.net/user-files`);
+        expect(contentUrl).toBe(
+          `https://${mockAccountName}.blob.core.windows.net/content`,
+        );
+        expect(userFilesUrl).toBe(
+          `https://${mockAccountName}.blob.core.windows.net/user-files`,
+        );
       });
 
       it("should use protocol from client config", () => {
@@ -677,7 +851,9 @@ describe("StorageConfig", () => {
         const url = getContainerUrl("MY-CONTAINER", config);
 
         // Assert
-        expect(url).toBe("https://testaccount.blob.core.windows.net/MY-CONTAINER");
+        expect(url).toBe(
+          "https://testaccount.blob.core.windows.net/MY-CONTAINER",
+        );
       });
 
       it("should handle container names with underscores", () => {
@@ -700,7 +876,9 @@ describe("StorageConfig", () => {
         const url = getContainerUrl("my_container_name", config);
 
         // Assert
-        expect(url).toBe("https://testaccount.blob.core.windows.net/my_container_name");
+        expect(url).toBe(
+          "https://testaccount.blob.core.windows.net/my_container_name",
+        );
       });
 
       it("should handle very long container names", () => {
@@ -724,7 +902,9 @@ describe("StorageConfig", () => {
         const url = getContainerUrl(longContainerName, config);
 
         // Assert
-        expect(url).toBe(`https://testaccount.blob.core.windows.net/${longContainerName}`);
+        expect(url).toBe(
+          `https://testaccount.blob.core.windows.net/${longContainerName}`,
+        );
       });
     });
   });
