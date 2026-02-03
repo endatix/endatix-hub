@@ -21,60 +21,59 @@ export function handleLoopExits(survey: SurveyModel) {
 
         if (!loopPanel || !loopPanel.loopSource) return;
 
+        // Evaluate "Exit All Loops"
+        let shouldExitAllLoops = false;
         const exitAllCond = loopPanel.exitAllLoopsCondition;
+        if (typeof exitAllCond === "string" && exitAllCond.trim() !== "") {
+            const expr = resolveCondition(exitAllCond, loopPanel.name, options.panelIndex);
+            shouldExitAllLoops = sender.runCondition(expr);
+        }
+
+        // Evaluate "Exit Current Loop"
+        let shouldExitCurrentLoop = false;
         const exitLoopCond = loopPanel.exitLoopCondition;
-
-        if (!exitAllCond && !exitLoopCond) return;
-
-        const currentIndex = options.panelIndex;
-        if (currentIndex === undefined || currentIndex < 0) return;
+        if (typeof exitLoopCond === "string" && exitLoopCond.trim() !== "") {
+            const expr = resolveCondition(exitLoopCond, loopPanel.name, options.panelIndex);
+            shouldExitCurrentLoop = sender.runCondition(expr);
+        }
 
         let shouldUpdateNavigation = false;
 
-        // Logic for "Exit All Loops"
-        if (typeof exitAllCond === "string" && exitAllCond.trim() !== "") {
-            
-            const globalExpression = resolveCondition(exitAllCond, loopPanel.name, currentIndex);
-            const shouldExitAllLoops = sender.runCondition(globalExpression);
-
-            if(currentIndex < loopPanel.panels.length) {
+        // Hide Future Panels (Exit all)
+        if (options.panelIndex < loopPanel.panels.length) {
+            for (let i = options.panelIndex + 1; i < loopPanel.panels.length; i++) {
                 // Toggle visibility for all SUBSEQUENT panels
                 // If shouldExitAllLoops is true -> hide them. 
                 // If shouldExitAllLoops is false -> show them (in case user changed their mind).
-                for(let i=currentIndex + 1; i < loopPanel.panels.length; i++) {
-                    if(loopPanel.panels[i].visible == shouldExitAllLoops) {
-                        shouldUpdateNavigation = true;
-                        loopPanel.panels[i].visible = !shouldExitAllLoops;
-                    }
+                if (loopPanel.panels[i].visible === shouldExitAllLoops) {
+                    shouldUpdateNavigation = true;
+                    loopPanel.panels[i].visible = !shouldExitAllLoops;
                 }
             }
         }
 
-        // Logic for "Exit Current Loop"
-        if (typeof exitLoopCond === "string" && exitLoopCond.trim() !== "") {
-            
-            const globalExpression = resolveCondition(exitLoopCond, loopPanel.name, currentIndex);
-            const shouldExitCurrentLoop = sender.runCondition(globalExpression);
-            const currentPanelQuestions = options.panel.questions;
+        // Hide Remaining Questions in Current Panel (Exit current)
+        const shouldHideRestOfPanel = shouldExitAllLoops || shouldExitCurrentLoop;
+        
+        const currentPanelQuestions = options.panel.questions;
+        let triggerIndex = -1;
 
-            let triggerIndex = -1;
-
-            for (let i = 0; i < currentPanelQuestions.length; i++) {
-                if (currentPanelQuestions[i].name === options.name) {
-                    triggerIndex = i;
-                    break;
-                }
+        // Find the question that triggered this event
+        for (let i = 0; i < currentPanelQuestions.length; i++) {
+            if (currentPanelQuestions[i].name === options.name) {
+                triggerIndex = i;
+                break;
             }
+        }
 
-            if (triggerIndex === -1) return;
-
+        if (triggerIndex !== -1) {
             // Toggle visibility for all SUBSEQUENT questions
             // If shouldExitCurrentLoop is true -> hide them. 
             // If shouldExitCurrentLoop is false -> show them (in case user changed their mind).
             for (let i = triggerIndex + 1; i < currentPanelQuestions.length; i++) {
-                if(currentPanelQuestions[i].visible == shouldExitCurrentLoop) {
+                if (currentPanelQuestions[i].visible === shouldHideRestOfPanel) {
                     shouldUpdateNavigation = true;
-                    currentPanelQuestions[i].visible = !shouldExitCurrentLoop;
+                    currentPanelQuestions[i].visible = !shouldHideRestOfPanel;
                 }
             }
         }
