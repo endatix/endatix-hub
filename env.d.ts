@@ -53,7 +53,7 @@ declare namespace NodeJS {
     NEXT_PUBLIC_NAME?: string;
 
     // Telemetry
-    OTEL_LOG_LEVEL?: boolean;
+    OTEL_LOG_LEVEL?: string;
     APPLICATIONINSIGHTS_CONNECTION_STRING?: string;
 
     // PostHog
