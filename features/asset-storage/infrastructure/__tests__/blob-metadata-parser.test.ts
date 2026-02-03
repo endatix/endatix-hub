@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { blobMetadataParser } from "../blob-metadata-parser";
+import {
+  blobMetadataParser,
+  toBlobUploadOptions,
+} from "../blob-metadata-parser";
 import type { BlobItem } from "@azure/storage-blob";
 
 describe("blobMetadataParser.parseFromProperties", () => {
@@ -18,7 +21,9 @@ describe("blobMetadataParser.parseFromProperties", () => {
     );
 
     // Assert
+    expect(result.kind).toBe("user");
     expect(result.displayName).toBe("document.pdf");
+    expect(result.uploadedBy).toBe("anonymous");
   });
 
   it("returns contentType, sizeInBytes, and metadata fields when provided", () => {
@@ -28,7 +33,7 @@ describe("blobMetadataParser.parseFromProperties", () => {
       sizeInBytes: 2048,
       metadata: {
         filename: "photo.jpg",
-        questionId: "q1",
+        questionName: "q1",
       },
     };
 
@@ -43,6 +48,7 @@ describe("blobMetadataParser.parseFromProperties", () => {
     expect(result.sizeInBytes).toBe(2048);
     expect(result.originalFileName).toBe("photo.jpg");
     expect(result.questionName).toBe("q1");
+    expect(result.uploadedBy).toBe("anonymous");
   });
 
   it("uses default contentType when properties.contentType is empty", () => {
@@ -62,14 +68,14 @@ describe("blobMetadataParser.parseFromProperties", () => {
     expect(result.contentType).toBe("application/octet-stream");
   });
 
-  it("supports Azure lowercased metadata keys (filename, questionid)", () => {
+  it("supports Azure lowercased metadata keys (filename, questionname)", () => {
     // Arrange
     const properties = {
       contentType: "application/pdf",
       sizeInBytes: 100,
       metadata: {
         filename: "doc.pdf",
-        questionid: "question-1",
+        questionname: "question-1",
       },
     };
 
@@ -101,6 +107,29 @@ describe("blobMetadataParser.parseFromProperties", () => {
     // Assert
     expect(result.originalFileName).toBeUndefined();
     expect(result.questionName).toBeUndefined();
+    expect(result.uploadedBy).toBe("anonymous");
+  });
+
+  it("returns uploadedBy from metadata when present, otherwise anonymous", () => {
+    const withUploadedBy = blobMetadataParser.parseFromProperties(
+      {
+        contentType: "application/pdf",
+        sizeInBytes: 0,
+        metadata: { uploadedBy: "usr-123" },
+      },
+      "s/f1/s1/doc.pdf",
+    );
+    expect(withUploadedBy.uploadedBy).toBe("usr-123");
+
+    const lowercased = blobMetadataParser.parseFromProperties(
+      {
+        contentType: "application/pdf",
+        sizeInBytes: 0,
+        metadata: { uploadedby: "usr-456" },
+      },
+      "s/f1/s1/doc.pdf",
+    );
+    expect(lowercased.uploadedBy).toBe("usr-456");
   });
 });
 
@@ -195,13 +224,13 @@ describe("blobMetadataParser.parseFromBlob", () => {
     expect(result.sizeInBytes).toBe(0);
   });
 
-  it("returns originalFileName and questionName from metadata (filename/fileName, questionid/questionId)", () => {
+  it("returns originalFileName and questionName from metadata (filename/fileName, questionname/questionName)", () => {
     // Arrange
     const blob = {
       name: "s/f1/s1/upload.pdf",
       metadata: {
         fileName: "original.pdf",
-        questionId: "q2",
+        questionName: "q2",
       },
       properties: { contentType: "application/pdf", contentLength: 100 },
     } as unknown as BlobItem;
@@ -212,6 +241,7 @@ describe("blobMetadataParser.parseFromBlob", () => {
     // Assert
     expect(result.originalFileName).toBe("original.pdf");
     expect(result.questionName).toBe("q2");
+    expect(result.uploadedBy).toBe("anonymous");
   });
 
   it("prefers lowercase metadata keys when both present (Azure behavior)", () => {
@@ -221,8 +251,8 @@ describe("blobMetadataParser.parseFromBlob", () => {
       metadata: {
         filename: "from-lowercase",
         fileName: "from-camel",
-        questionid: "q-lower",
-        questionId: "q-camel",
+        questionname: "q-lower",
+        questionName: "q-camel",
       },
       properties: { contentType: "application/octet-stream", contentLength: 0 },
     } as unknown as BlobItem;
@@ -230,8 +260,75 @@ describe("blobMetadataParser.parseFromBlob", () => {
     // Act
     const result = blobMetadataParser.parseFromBlob(blob);
 
-    // Assert - filename/fileName: first wins (filename)
+    // Assert - filename/fileName: first wins (filename); questionname/questionName: first wins (questionname)
+    expect(result.kind).toBe("user");
     expect(result.originalFileName).toBe("from-lowercase");
     expect(result.questionName).toBe("q-lower");
+  });
+});
+
+describe("toBlobUploadOptions", () => {
+  it("builds user blob options with base + form fields and blobContentLanguage", () => {
+    const meta = {
+      kind: "user" as const,
+      displayName: "doc.pdf",
+      contentType: "application/pdf",
+      uploadedBy: "usr-1",
+      formId: "f1",
+      submissionId: "s1",
+      formLang: "en",
+    };
+    const result = toBlobUploadOptions(meta);
+    expect(result.metadata).toMatchObject({
+      uploadedBy: "usr-1",
+      fileName: "doc.pdf",
+      fileType: "application/pdf",
+      formId: "f1",
+      submissionId: "s1",
+      formLang: "en",
+    });
+    expect(result.blobHTTPHeaders).toMatchObject({
+      blobContentType: "application/pdf",
+      blobContentLanguage: "en",
+      blobContentDisposition: "inline",
+    });
+  });
+
+  it("builds content blob options with base + item fields, no blobContentLanguage", () => {
+    const meta = {
+      kind: "content" as const,
+      displayName: "image.png",
+      contentType: "image/png",
+      uploadedBy: "usr-1",
+      itemId: "item-1",
+      contentItemType: "form" as const,
+    };
+    const result = toBlobUploadOptions(meta);
+    expect(result.metadata).toMatchObject({
+      uploadedBy: "usr-1",
+      fileName: "image.png",
+      fileType: "image/png",
+      itemId: "item-1",
+      contentItemType: "form",
+    });
+    expect(result.blobHTTPHeaders.blobContentLanguage).toBeUndefined();
+    expect(result.blobHTTPHeaders.blobContentType).toBe("image/png");
+  });
+
+  it("includes fileState and questionName when present", () => {
+    const userMeta = {
+      kind: "user" as const,
+      displayName: "x",
+      contentType: "application/octet-stream",
+      uploadedBy: "usr-1",
+      formId: "f1",
+      submissionId: "s1",
+      formLang: "",
+      fileState: "optimized" as const,
+      questionName: "q1",
+    };
+    const result = toBlobUploadOptions(userMeta);
+    expect(result.metadata.fileState).toBe("optimized");
+    expect(result.metadata.questionName).toBe("q1");
   });
 });

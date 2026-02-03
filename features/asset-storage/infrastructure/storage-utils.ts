@@ -1,11 +1,8 @@
 import { Result } from "@/lib/result";
 import type {
-  ContentFileMetadata,
-  ContentFileMetadataProps,
   ContentItemType,
-  UserFileBlobMetadata,
-  UserFileContext,
-  UserFileMetadataProps,
+  UserFileMetadata,
+  UserFileRequestContext,
 } from "../types";
 
 const USER_FILES_PREFIX = "s/";
@@ -89,7 +86,7 @@ const StorageHeaderNames = Object.freeze({
   FORM_ID: "edx-form-id",
   SUBMISSION_ID: "edx-submission-id",
   FORM_LANG: "edx-form-lang",
-  QUESTION_ID: "edx-question-id",
+  QUESTION_NAME: "edx-question-name",
 } as const);
 
 /** Union of header name keys (e.g. for typing a key variable). */
@@ -102,68 +99,39 @@ export type UserFileRequestHeaders = Record<
 >;
 
 /**
- * Builds request headers for the user file upload API from the same context used for metadata.
+ * Builds request headers for the user file upload API from context.
  * Use with buildUserFileMetadata so headers and blob metadata stay in sync.
  */
 function buildUserFileRequestHeaders(
-  context: UserFileContext,
+  context: UserFileRequestContext,
 ): UserFileRequestHeaders {
   return {
-    [StorageHeaderNames.FORM_ID]: context.formId,
+    [StorageHeaderNames.FORM_ID]: context.formId ?? "",
     [StorageHeaderNames.SUBMISSION_ID]: context.submissionId ?? "",
     [StorageHeaderNames.FORM_LANG]: context.formLang ?? "",
-    [StorageHeaderNames.QUESTION_ID]: context.questionId,
+    [StorageHeaderNames.QUESTION_NAME]: context.questionName ?? "",
   };
 }
 
 /**
- * Builds blob metadata for a user file. Use the same context as buildUserFileRequestHeaders
- * (plus fileName and fileType) so headers and metadata stay in sync.
+ * Applies defaults to user file metadata. Use with toBlobUploadOptions.
  */
-function buildUserFileMetadata(
-  props: UserFileMetadataProps,
-): UserFileBlobMetadata {
-  const metadata: UserFileBlobMetadata = {
-    formId: props.formId,
-    fileName: props.fileName,
-    submissionId: props.submissionId ?? "no submission id",
-    fileType: props.fileType ?? "application/octet-stream",
-    questionId: props.questionId,
-    formLang: props.formLang ?? "",
-    fileContentDisposition: props.fileContentDisposition ?? "inline",
+function buildUserFileMetadata(meta: UserFileMetadata): UserFileMetadata {
+  const result: UserFileMetadata = {
+    kind: "user",
+    uploadedBy: meta.uploadedBy,
+    displayName: meta.displayName,
+    contentType: meta.contentType ?? "application/octet-stream",
+    formId: meta.formId,
+    submissionId: meta.submissionId ?? "no submission id",
+    formLang: meta.formLang ?? "",
+    fileState: meta.fileState,
+    questionName: meta.questionName,
   };
-  if (props.fileState !== undefined) {
-    metadata.fileState = props.fileState;
-  }
-  return metadata;
-}
-
-/**
- * Builds blob metadata and HTTP headers for a content file.
- */
-function buildContentFileMetadata(
-  props: ContentFileMetadataProps,
-): ContentFileMetadata {
-  const fileType = props.fileType ?? "application/octet-stream";
-  const metadata: Record<string, string> = {
-    userId: props.userId,
-    itemId: props.itemId,
-    contentItemType: props.contentItemType,
-    fileName: props.fileName,
-  };
-  if (props.questionId !== undefined) {
-    metadata.questionId = props.questionId;
-  }
-  if (props.fileState !== undefined) {
-    metadata.fileState = props.fileState;
-  }
-  return {
-    metadata,
-    blobHTTPHeaders: {
-      blobContentType: fileType,
-      blobContentDisposition: "inline",
-    },
-  };
+  if (meta.sizeInBytes !== undefined) result.sizeInBytes = meta.sizeInBytes;
+  if (meta.originalFileName !== undefined)
+    result.originalFileName = meta.originalFileName;
+  return result;
 }
 
 export {
@@ -175,5 +143,4 @@ export {
   buildContentFolderPath,
   buildUserFileMetadata,
   buildUserFileRequestHeaders,
-  buildContentFileMetadata,
 };

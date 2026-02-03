@@ -84,20 +84,20 @@ describe("buildUserFileRequestHeaders", () => {
     const context = {
       formId: "form-1",
       submissionId: "sub-1",
-      questionId: "q1",
+      questionName: "q1",
       formLang: "en",
     };
     const headers = buildUserFileRequestHeaders(context);
     expect(headers[StorageHeaderNames.FORM_ID]).toBe("form-1");
     expect(headers[StorageHeaderNames.SUBMISSION_ID]).toBe("sub-1");
     expect(headers[StorageHeaderNames.FORM_LANG]).toBe("en");
-    expect(headers[StorageHeaderNames.QUESTION_ID]).toBe("q1");
+    expect(headers[StorageHeaderNames.QUESTION_NAME]).toBe("q1");
   });
 
   it("uses empty string when submissionId is undefined", () => {
     const context = {
       formId: "f1",
-      questionId: "q1",
+      questionName: "q1",
     };
     const headers = buildUserFileRequestHeaders(context);
     expect(headers[StorageHeaderNames.SUBMISSION_ID]).toBe("");
@@ -107,7 +107,7 @@ describe("buildUserFileRequestHeaders", () => {
     const context = {
       formId: "f1",
       submissionId: "s1",
-      questionId: "q1",
+      questionName: "q1",
     };
     const headers = buildUserFileRequestHeaders(context);
     expect(headers[StorageHeaderNames.FORM_LANG]).toBe("");
@@ -117,51 +117,62 @@ describe("buildUserFileRequestHeaders", () => {
 describe("buildUserFileMetadata", () => {
   it("returns metadata with all props and defaults", () => {
     const props = {
+      kind: "user" as const,
+      uploadedBy: "user-1",
       formId: "f1",
       submissionId: "s1",
-      questionId: "q1",
-      fileName: "doc.pdf",
-      fileType: "application/pdf",
+      questionName: "q1",
+      displayName: "doc.pdf",
+      contentType: "application/pdf",
       formLang: "en",
     };
     const meta = buildUserFileMetadata(props);
+    expect(meta.kind).toBe("user");
+    expect(meta.uploadedBy).toBe("user-1");
     expect(meta.formId).toBe("f1");
     expect(meta.submissionId).toBe("s1");
-    expect(meta.fileName).toBe("doc.pdf");
-    expect(meta.fileType).toBe("application/pdf");
-    expect(meta.questionId).toBe("q1");
+    expect(meta.displayName).toBe("doc.pdf");
+    expect(meta.contentType).toBe("application/pdf");
+    expect(meta.questionName).toBe("q1");
     expect(meta.formLang).toBe("en");
-    expect(meta.fileContentDisposition).toBe("inline");
   });
 
   it("uses default submissionId when undefined", () => {
     const meta = buildUserFileMetadata({
+      kind: "user" as const,
+      uploadedBy: "user-1",
       formId: "f1",
-      questionId: "q1",
-      fileName: "x",
+      questionName: "q1",
+      displayName: "x",
+      contentType: "application/octet-stream",
     });
     expect(meta.submissionId).toBe("no submission id");
   });
 
-  it("uses default fileType when undefined", () => {
+  it("uses default contentType when undefined", () => {
     const meta = buildUserFileMetadata({
+      kind: "user" as const,
+      uploadedBy: "user-1",
       formId: "f1",
       submissionId: "s1",
-      questionId: "q1",
-      fileName: "x",
-    });
-    expect(meta.fileType).toBe("application/octet-stream");
+      questionName: "q1",
+      displayName: "x",
+      contentType: undefined,
+    } as unknown as Parameters<typeof buildUserFileMetadata>[0]);
+    expect(meta.contentType).toBe("application/octet-stream");
   });
 
-  it("uses default formLang and fileContentDisposition when undefined", () => {
+  it("uses default formLang when undefined", () => {
     const meta = buildUserFileMetadata({
+      kind: "user" as const,
+      uploadedBy: "user-1",
       formId: "f1",
       submissionId: "s1",
-      questionId: "q1",
-      fileName: "x",
+      questionName: "q1",
+      displayName: "x",
+      contentType: "application/octet-stream",
     });
     expect(meta.formLang).toBe("");
-    expect(meta.fileContentDisposition).toBe("inline");
   });
 });
 

@@ -1,10 +1,17 @@
 /**
- * Azure Blob Storage–specific metadata parsing.
- * Encapsulated parser with parseFromBlob and parseFromProperties.
+ * Azure Blob Storage–specific metadata parsing and upload options.
+ * Parsing: parseFromBlob, parseFromProperties.
+ * Upload: toBlobUploadOptions (supports both user and content file uploads).
  */
 
 import type { BlobItem } from "@azure/storage-blob";
-import type { ProcessedState, UserFileMetadata } from "../types";
+import type {
+  BlobUploadOptions,
+  ContentFileMetadata,
+  FileMetadata,
+  ProcessedState,
+  UserFileMetadata,
+} from "../types";
 import { getLastSegmentFromUrlPath } from "../utils";
 import type { BlobPropertiesResult } from "./storage-service";
 
@@ -20,13 +27,18 @@ function parseFileState(value: string | undefined): ProcessedState | undefined {
 /** Azure lowercases custom metadata keys; we support both. */
 function parseMetadataFields(
   metadata: Record<string, string>,
-): Pick<UserFileMetadata, "originalFileName" | "questionName" | "fileState"> {
+): Pick<
+  UserFileMetadata,
+  "originalFileName" | "questionName" | "fileState" | "uploadedBy"
+> {
   const fileStateValue =
     metadata["filestate"] ?? metadata["fileState"] ?? undefined;
   return {
     originalFileName: metadata["filename"] ?? metadata["fileName"] ?? undefined,
-    questionName: metadata["questionid"] ?? metadata["questionId"] ?? undefined,
+    questionName:
+      metadata["questionname"] ?? metadata["questionName"] ?? undefined,
     fileState: parseFileState(fileStateValue),
+    uploadedBy: metadata["uploadedby"] ?? metadata["uploadedBy"] ?? "anonymous",
   };
 }
 
@@ -49,6 +61,7 @@ export const blobMetadataParser = {
     const fields = parseMetadataFields(metadata);
 
     return {
+      kind: "user" as const,
       displayName,
       contentType,
       sizeInBytes: blob.properties?.contentLength ?? 0,
@@ -70,6 +83,7 @@ export const blobMetadataParser = {
     const fields = parseMetadataFields(metadata);
 
     return {
+      kind: "user" as const,
       displayName,
       contentType,
       sizeInBytes: properties.sizeInBytes,
@@ -77,3 +91,75 @@ export const blobMetadataParser = {
     };
   },
 };
+
+/**
+ * Builds BlobUploadOptions for upload primitives.
+ * Single method for both user and content file uploads; applies defaults for optional fields.
+ *
+ * @param meta - User or content file upload metadata
+ * @returns BlobUploadOptions (metadata + blobHTTPHeaders) for BlockBlobClient.uploadData
+ */
+export function toBlobUploadOptions(meta: FileMetadata): BlobUploadOptions {
+  const contentType = meta.contentType ?? DEFAULT_CONTENT_TYPE;
+
+  const baseMetadata: Record<string, string> = {
+    uploadedBy: meta.uploadedBy,
+    fileName: meta.displayName,
+    fileType: contentType,
+  };
+
+  if (meta.fileState !== undefined) {
+    baseMetadata.fileState = meta.fileState;
+  }
+
+  if (meta.questionName) {
+    baseMetadata.questionName = meta.questionName;
+  }
+
+  const blobHTTPHeaders: Record<string, string> = {
+    blobContentType: contentType,
+    blobContentDisposition: "inline",
+  };
+
+  let specificMetadata: Record<string, string>;
+
+  switch (meta.kind) {
+    case "user": {
+      specificMetadata = buildUserFileMetadata(meta);
+      blobHTTPHeaders.blobContentLanguage = meta.formLang ?? "";
+      break;
+    }
+    case "content": {
+      specificMetadata = buildContentFileMetadata(meta);
+      break;
+    }
+  }
+
+  return {
+    metadata: { ...baseMetadata, ...specificMetadata },
+    blobHTTPHeaders,
+  };
+}
+
+function buildUserFileMetadata(
+  fileMetadata: UserFileMetadata,
+): Record<string, string> {
+  const metadata: Record<string, string> = {
+    formId: fileMetadata.formId ?? "",
+    submissionId: fileMetadata.submissionId ?? "",
+    formLang: fileMetadata.formLang ?? "",
+  };
+
+  return metadata;
+}
+
+function buildContentFileMetadata(
+  fileMetadata: ContentFileMetadata,
+): Record<string, string> {
+  const metadata: Record<string, string> = {
+    itemId: fileMetadata.itemId,
+    contentItemType: fileMetadata.contentItemType,
+  };
+
+  return metadata;
+}

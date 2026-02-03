@@ -81,64 +81,45 @@ export type UploadContentFileCommand = {
 
 export type UploadContentFileResult = Result<UploadFileResult>;
 
-// ─── Storage metadata ─────────────────────────────────────────
+// ─── Storage file metadata  ───────────────
 export type ProcessedState = "original" | "optimized";
-export interface IOptimizable {
-  fileState?: ProcessedState;
-}
 
-/** Files uploaded by users */
-export interface UserFileMetadata extends IOptimizable {
+export interface FileMetadataBase {
   displayName: string;
   contentType: string;
-  sizeInBytes: number;
+  sizeInBytes?: number;
   originalFileName?: string;
+  uploadedBy: string;
   questionName?: string;
-}
-
-/** Context for user file upload (form/submission/question). */
-export interface UserFileContext {
-  formId: string;
-  submissionId?: string;
-  questionId: string;
-  formLang?: string;
-}
-
-/** Blob metadata shape for user file upload (written to Azure). */
-export interface UserFileBlobMetadata extends IOptimizable {
-  formId: string;
-  submissionId: string;
-  fileName: string;
-  fileType: string;
-  questionId: string;
-  formLang?: string;
-  fileContentDisposition?: string;
-}
-
-/** Props to build user file blob metadata. */
-export interface UserFileMetadataProps extends UserFileContext {
-  fileName: string;
-  fileType?: string;
-  fileContentDisposition?: string;
   fileState?: ProcessedState;
 }
 
-/** Props to build content file blob metadata. */
-export interface ContentFileMetadataProps {
-  userId: string;
+/* User (submission uploaded) file metadata. */
+export interface UserFileMetadata extends FileMetadataBase {
+  readonly kind: "user";
+  formId?: string;
+  submissionId?: string;
+  formLang?: string;
+}
+
+/* Content (creator uploaded) file metadata. */
+export interface ContentFileMetadata extends FileMetadataBase {
+  readonly kind: "content";
   itemId: string;
   contentItemType: ContentItemType;
-  fileName: string;
-  fileType?: string;
-  questionId?: string;
-  fileState?: ProcessedState;
 }
 
-/** Blob metadata and HTTP headers for a content file upload. */
-export interface ContentFileMetadata {
+/** Exported discriminated union type for file metadata. */
+export type FileMetadata = UserFileMetadata | ContentFileMetadata;
+
+/** Context for user file request headers. */
+export type UserFileRequestContext = Pick<
+  UserFileMetadata,
+  "formId" | "submissionId" | "questionName" | "formLang"
+>;
+
+/** Metadata + blobHTTPHeaders for BlockBlobClient.uploadData. */
+export interface BlobUploadOptions {
   metadata: Record<string, string>;
-  blobHTTPHeaders: {
-    blobContentType: string;
-    blobContentDisposition?: string;
-  };
+  blobHTTPHeaders: Record<string, string>;
 }
