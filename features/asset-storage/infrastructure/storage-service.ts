@@ -9,7 +9,7 @@ import {
 } from "@azure/storage-blob";
 import { ReadTokensResult as BulkReadTokensResult } from "../types";
 import { getStorageConfig } from "./storage-config";
-import { buildUseFileFolderPath } from "./storage-utils";
+import { buildUserFileFolderPath } from "./storage-utils";
 
 interface FileOptions {
   fileName: string;
@@ -322,7 +322,7 @@ async function deleteBlob(fileOptions: FileOptions): Promise<void> {
  * Suitable for React use() streaming: pass the promise to a child and use use(promise).
  */
 async function listBlobs(folderOptions: FolderOptions): Promise<BlobItem[]> {
-  const folderPathResult = buildUseFileFolderPath(
+  const folderPathResult = buildUserFileFolderPath(
     folderOptions.formId,
     folderOptions.submissionId,
   );

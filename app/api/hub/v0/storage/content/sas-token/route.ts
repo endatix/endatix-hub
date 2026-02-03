@@ -22,8 +22,16 @@ interface SASOperationResult {
   url?: string;
 }
 
+/** Server-provided metadata for the client to set on each blob upload. */
+interface ContentUploadMetadata {
+  userId: string;
+  itemId: string;
+  contentItemType: string;
+}
+
 interface ContentSASTokenResponse {
   sasTokens: Record<string, SASOperationResult>;
+  uploadMetadata: ContentUploadMetadata;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -87,6 +95,12 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
-  const body: ContentSASTokenResponse = { sasTokens };
+  const uploadMetadata: ContentUploadMetadata = {
+    userId: session!.user?.id ?? "",
+    itemId: itemId.trim(),
+    contentItemType: itemType,
+  };
+
+  const body: ContentSASTokenResponse = { sasTokens, uploadMetadata };
   return Response.json(body);
 }

@@ -13,7 +13,7 @@ const CONTENT_ROOT_TEMPLATE = "t";
  * @param submissionId - The submission ID
  * @returns A Result containing the folder path or a validation error
  */
-function buildUseFileFolderPath(
+function buildUserFileFolderPath(
   formId: string,
   submissionId: string | undefined,
 ): Result<string> {
@@ -46,7 +46,7 @@ function buildUserFilePath(
 
   if (!fileNameTrimmed) return Result.validationError("File name is required");
 
-  const folderPathResult = buildUseFileFolderPath(formId, submissionId);
+  const folderPathResult = buildUserFileFolderPath(formId, submissionId);
   if (Result.isError(folderPathResult)) {
     return folderPathResult;
   }
@@ -149,13 +149,53 @@ function buildUserFileMetadata(props: UserFileMetadataProps): UserFileMetadata {
   };
 }
 
+/** Context for content file blob metadata (server-provided + client file info). */
+export interface ContentFileMetadataProps {
+  userId: string;
+  itemId: string;
+  contentItemType: ContentItemType;
+  fileName: string;
+  fileType?: string;
+}
+
+/** Blob metadata and HTTP headers for a content file upload. */
+export interface ContentFileMetadata {
+  metadata: Record<string, string>;
+  blobHTTPHeaders: {
+    blobContentType: string;
+    blobContentDisposition?: string;
+  };
+}
+
+/**
+ * Builds blob metadata and HTTP headers for a content file.
+ */
+function buildContentFileMetadata(
+  props: ContentFileMetadataProps,
+): ContentFileMetadata {
+  const fileType = props.fileType ?? "application/octet-stream";
+  return {
+    metadata: {
+      userId: props.userId,
+      itemId: props.itemId,
+      contentItemType: props.contentItemType,
+      fileName: props.fileName,
+    },
+    blobHTTPHeaders: {
+      blobContentType: fileType,
+      blobContentDisposition: "inline",
+    },
+  };
+}
+
 export {
   StorageHeaderNames,
   type StorageHeaderName,
   USER_FILES_PREFIX,
   buildUserFilePath,
-  buildUseFileFolderPath,
+  buildUserFileFolderPath,
   buildContentFolderPath,
   buildUserFileMetadata,
   buildUserFileRequestHeaders,
+  buildContentFileMetadata,
 };

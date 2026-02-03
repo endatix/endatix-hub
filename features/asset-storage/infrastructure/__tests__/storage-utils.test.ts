@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Result } from "@/lib/result";
 import {
   USER_FILES_PREFIX,
-  buildUseFileFolderPath,
+  buildUserFileFolderPath,
   buildUserFilePath,
   buildUserFileMetadata,
   buildUserFileRequestHeaders,
@@ -11,7 +11,7 @@ import {
 
 describe("buildUseFileFolderPath", () => {
   it("returns success with s/{formId}/{submissionId} when both ids valid", () => {
-    const result = buildUseFileFolderPath("f1", "s1");
+    const result = buildUserFileFolderPath("f1", "s1");
     expect(Result.isSuccess(result)).toBe(true);
     if (Result.isSuccess(result)) {
       expect(result.value).toBe("s/f1/s1");
@@ -19,7 +19,7 @@ describe("buildUseFileFolderPath", () => {
   });
 
   it("returns validation error when formId is empty", () => {
-    const result = buildUseFileFolderPath("", "s1");
+    const result = buildUserFileFolderPath("", "s1");
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.message).toBe("Form ID is required");
@@ -27,7 +27,7 @@ describe("buildUseFileFolderPath", () => {
   });
 
   it("returns validation error when submissionId is empty", () => {
-    const result = buildUseFileFolderPath("f1", "");
+    const result = buildUserFileFolderPath("f1", "");
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.message).toBe("Submission ID is required");

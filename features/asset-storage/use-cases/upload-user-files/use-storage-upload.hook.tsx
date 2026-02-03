@@ -9,10 +9,7 @@ import {
 } from "survey-core";
 import { BlockBlobClient } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
-import {
-  buildUserFileMetadata,
-  buildUserFileRequestHeaders,
-} from "../../infrastructure/storage-utils";
+import { buildUserFileMetadata } from "../../infrastructure/storage-utils";
 import {
   AssetStorageTokens,
   useAssetStorage,
@@ -31,9 +28,15 @@ interface UploadFilesToBlobProps extends UseStorageUploadProps {
   options: UploadFilesEvent;
 }
 
-interface UploadFilesToServerProps extends UseStorageUploadProps {
-  files: File[];
-  options: UploadFilesEvent;
+/** Pre-fetched SAS response from POST /api/public/v0/storage/sas-token (or error body). */
+interface SasTokenData {
+  sasTokens: Record<
+    string,
+    { success: boolean; url?: string; message?: string }
+  >;
+  submissionId?: string;
+  error?: string;
+  detail?: string;
 }
 
 interface UploadedFile {
@@ -84,6 +87,7 @@ const DEFAULT_READ_TOKEN_PROMISE = Promise.resolve(DEFAULT_READ_TOKEN_RESULT);
 
 const uploadToBlob = async (
   props: UploadFilesToBlobProps,
+  preFetchedSas?: SasTokenData,
 ): Promise<UploadResult> => {
   const {
     files,
@@ -99,40 +103,46 @@ const uploadToBlob = async (
   }
 
   try {
-    const sasResponse = await fetch("/api/public/v0/storage/sas-token", {
-      method: "POST",
-      body: JSON.stringify({
-        fileNames: files.map((f) => f.name),
-        submissionId,
-        formId,
-        formLocale: surveyModel?.locale ?? "",
-      }),
-    });
-
-    const sasData = await sasResponse.json();
-    if (!sasResponse.ok) {
-      throw new Error(sasData.error || "Failed to generate upload URLs");
-    }
-
-    if (sasData.submissionId && sasData.submissionId !== submissionId) {
-      onSubmissionIdChange?.(sasData.submissionId);
+    let sasData: SasTokenData;
+    if (preFetchedSas) {
+      sasData = preFetchedSas;
+    } else {
+      const sasResponse = await fetch("/api/public/v0/storage/sas-token", {
+        method: "POST",
+        body: JSON.stringify({
+          fileNames: files.map((f) => f.name),
+          submissionId,
+          formId,
+          formLocale: surveyModel?.locale ?? "",
+        }),
+      });
+      sasData = await sasResponse.json();
+      if (!sasResponse.ok) {
+        throw new Error(
+          sasData.error ?? sasData.detail ?? "Failed to generate upload URLs",
+        );
+      }
+      if (sasData.submissionId && sasData.submissionId !== submissionId) {
+        onSubmissionIdChange?.(sasData.submissionId);
+      }
     }
 
     const uploadPromises = files.map(async (file) => {
       const sasResult = sasData.sasTokens[file.name];
 
-      if (!sasResult?.success) {
+      if (!sasResult?.success || !sasResult?.url) {
         return {
           success: false,
-          error: sasResult?.message || `No upload URL for file: ${file.name}`,
+          error: sasResult?.message ?? `No upload URL for file: ${file.name}`,
         };
       }
 
+      const sasUrl = sasResult.url;
       try {
-        const blockBlobClient = new BlockBlobClient(sasResult.url);
+        const blockBlobClient = new BlockBlobClient(sasUrl);
         const metadataOptions = buildUserFileMetadata({
           formId,
-          submissionId,
+          submissionId: submissionId ?? "",
           questionId: options.question?.name ?? "",
           formLang: surveyModel?.locale ?? "",
           fileName: file.name,
@@ -159,7 +169,7 @@ const uploadToBlob = async (
           blobHTTPHeaders: headerOptions,
         });
 
-        const [url] = sasResult.url.split("?");
+        const [url] = sasUrl.split("?");
 
         return {
           success: true,
@@ -183,7 +193,7 @@ const uploadToBlob = async (
       if (curr.success) {
         groupResults.data.push(curr.data);
       } else {
-        groupResults.errors.push(curr.error);
+        groupResults.errors.push(curr.error ?? "Upload failed");
       }
       return groupResults;
     }, UploadResult.empty());
@@ -196,8 +206,15 @@ const uploadToBlob = async (
   }
 };
 
-const uploadToServer = async (
-  props: UploadFilesToServerProps,
+interface UploadResizedToBlobProps extends UseStorageUploadProps {
+  files: File[];
+  options: UploadFilesEvent;
+  sasData: SasTokenData;
+}
+
+/** Resize images via dedicated route, then upload resized bytes to SAS URL (browser-to-storage). */
+const uploadResizedToBlob = async (
+  props: UploadResizedToBlobProps,
 ): Promise<UploadResult> => {
   const {
     files,
@@ -206,60 +223,149 @@ const uploadToServer = async (
     surveyModel,
     onSubmissionIdChange,
     options,
+    sasData,
   } = props;
 
   if (files.length === 0) {
     return UploadResult.empty();
   }
 
-  const formData = new FormData();
-  files.forEach((file) => {
-    formData.append(file.name, file);
+  if (sasData.submissionId && sasData.submissionId !== (submissionId ?? "")) {
+    onSubmissionIdChange?.(sasData.submissionId);
+  }
+
+  const uploadPromises = files.map(async (file) => {
+    const sasResult = sasData.sasTokens[file.name];
+    if (!sasResult?.success) {
+      return {
+        success: false as const,
+        error: sasResult?.message ?? `No upload URL for file: ${file.name}`,
+      };
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const resizeResponse = await fetch(
+        "/api/public/v0/storage/resize-image",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+      if (!resizeResponse.ok) {
+        const errData = await resizeResponse.json().catch(() => ({}));
+        throw new Error(errData.error ?? "Resize failed");
+      }
+      const resizedBuffer = await resizeResponse.arrayBuffer();
+      const contentType =
+        resizeResponse.headers.get("Content-Type") ?? file.type;
+
+      const metadataOptions = buildUserFileMetadata({
+        formId,
+        submissionId: sasData.submissionId ?? submissionId ?? "",
+        questionId: options.question?.name ?? "",
+        formLang: surveyModel?.locale ?? "",
+        fileName: file.name,
+        fileType: contentType,
+      });
+      const resizeSasUrl = sasResult.url;
+      if (!resizeSasUrl) {
+        return {
+          success: false as const,
+          error: `No upload URL for file: ${file.name}`,
+        };
+      }
+
+      const blockBlobClient = new BlockBlobClient(resizeSasUrl);
+      await blockBlobClient.uploadData(resizedBuffer, {
+        metadata: {
+          formId: metadataOptions.formId,
+          submissionId: metadataOptions.submissionId,
+          fileName: metadataOptions.fileName,
+          fileType: metadataOptions.fileType,
+          questionId: metadataOptions.questionId,
+          formLang: metadataOptions.formLang ?? "",
+          fileContentDisposition:
+            metadataOptions.fileContentDisposition ?? "inline",
+        },
+        blobHTTPHeaders: {
+          blobContentType: metadataOptions.fileType,
+          blobContentLanguage: metadataOptions.formLang ?? "",
+          blobContentDisposition:
+            metadataOptions.fileContentDisposition ?? "inline",
+        },
+      });
+
+      const [url] = resizeSasUrl.split("?");
+      return {
+        success: true as const,
+        data: { file, content: url },
+      };
+    } catch {
+      // On resize failure, upload original image to the same SAS URL (graceful fallback)
+      const fallbackSasUrl = sasResult.url;
+      if (!fallbackSasUrl) {
+        return {
+          success: false as const,
+          error: `No upload URL for file: ${file.name}`,
+        };
+      }
+      try {
+        const metadataOptions = buildUserFileMetadata({
+          formId,
+          submissionId: sasData.submissionId ?? submissionId ?? "",
+          questionId: options.question?.name ?? "",
+          formLang: surveyModel?.locale ?? "",
+          fileName: file.name,
+          fileType: file.type,
+        });
+        const blockBlobClient = new BlockBlobClient(fallbackSasUrl);
+        await blockBlobClient.uploadData(await file.arrayBuffer(), {
+          metadata: {
+            formId: metadataOptions.formId,
+            submissionId: metadataOptions.submissionId,
+            fileName: metadataOptions.fileName,
+            fileType: metadataOptions.fileType,
+            questionId: metadataOptions.questionId,
+            formLang: metadataOptions.formLang ?? "",
+            fileContentDisposition:
+              metadataOptions.fileContentDisposition ?? "inline",
+          },
+          blobHTTPHeaders: {
+            blobContentType: metadataOptions.fileType,
+            blobContentLanguage: metadataOptions.formLang ?? "",
+            blobContentDisposition:
+              metadataOptions.fileContentDisposition ?? "inline",
+          },
+        });
+        const [url] = fallbackSasUrl.split("?");
+        return {
+          success: true as const,
+          data: { file, content: url },
+        };
+      } catch (fallbackError) {
+        const errorMessage =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : "Upload failed";
+        return {
+          success: false as const,
+          error: `Could not upload file: ${file.name}. ${errorMessage}`,
+        };
+      }
+    }
   });
 
-  try {
-    const uploadContext = {
-      formId,
-      submissionId,
-      questionId: options.question?.name ?? "",
-      formLang: surveyModel?.locale ?? "",
-    };
-    const response = await fetch("/api/public/v0/storage/upload", {
-      method: "POST",
-      body: formData,
-      headers: buildUserFileRequestHeaders(uploadContext) as HeadersInit,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.error ??
-          "Failed to upload files. Please refresh your page and try again.",
-      );
+  const uploadResults = await Promise.all(uploadPromises);
+  return uploadResults.reduce((acc, curr) => {
+    if (curr.success) {
+      acc.data.push(curr.data);
+    } else {
+      acc.errors.push(curr.error);
     }
-
-    if (data.submissionId && data.submissionId !== submissionId) {
-      onSubmissionIdChange?.(data.submissionId);
-    }
-
-    const uploadedFiles = files.map((file) => {
-      const remoteFile = data.files?.find(
-        (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
-      );
-      return {
-        file: file,
-        content: remoteFile?.url,
-        token: remoteFile?.token,
-      };
-    });
-
-    return UploadResult.success(uploadedFiles);
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Upload failed";
-    return UploadResult.error(errorMessage);
-  }
+    return acc;
+  }, UploadResult.empty());
 };
 
 /**
@@ -321,42 +427,68 @@ export function useStorageUpload({
   );
 
   const onUploadFiles = useCallback(
-    async (sender: SurveyModel, options: UploadFilesEvent) => {
+    async (_sender: SurveyModel, options: UploadFilesEvent) => {
       try {
         const { filesForUpload, filesForResize } = groupFilesByUploadStrategy(
           options.files,
         );
 
-        const allResults = [];
-        const allErrors = [];
+        const allFileNames = options.files.map((f) => f.name);
+        if (allFileNames.length === 0) {
+          options.callback([], []);
+          return;
+        }
 
-        const blobResults = await uploadToBlob({
-          files: filesForUpload,
-          options,
+        const sasResponse = await fetch("/api/public/v0/storage/sas-token", {
+          method: "POST",
+          body: JSON.stringify({
+            fileNames: allFileNames,
+            submissionId,
+            formId,
+            formLocale: surveyModel?.locale ?? "",
+          }),
+        });
+        const sasData: SasTokenData = await sasResponse.json();
+        if (!sasResponse.ok) {
+          options.callback(
+            [],
+            [
+              sasData.error ??
+                sasData.detail ??
+                "Failed to generate upload URLs",
+            ],
+          );
+          return;
+        }
+        if (sasData.submissionId && sasData.submissionId !== submissionId) {
+          onSubmissionIdChange?.(sasData.submissionId);
+        }
+
+        const blobProps = {
           formId,
           submissionId,
           surveyModel,
           onSubmissionIdChange,
-        });
-        allResults.push(...blobResults.data);
-        allErrors.push(...blobResults.errors);
-
-        const serverResults = await uploadToServer({
+          options,
+        };
+        const blobResults = await uploadToBlob(
+          { ...blobProps, files: filesForUpload },
+          sasData,
+        );
+        const resizeResults = await uploadResizedToBlob({
+          ...blobProps,
           files: filesForResize,
-          formId,
-          submissionId,
-          surveyModel,
-          onSubmissionIdChange,
-          options,
+          sasData,
         });
-        allResults.push(...serverResults.data);
-        allErrors.push(...serverResults.errors);
 
-        options.callback(allResults, allErrors);
+        options.callback(
+          [...blobResults.data, ...resizeResults.data],
+          [...blobResults.errors, ...resizeResults.errors],
+        );
       } catch (error) {
-        const errors =
+        const errors: string[] =
           error instanceof Error ? [error.message] : ["Upload failed"];
-        options.callback(UploadResult.error(errors));
+        options.callback([], errors);
       }
     },
     [

@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import { BlockBlobClient } from "@azure/storage-blob";
+import { buildContentFileMetadata } from "../../infrastructure/storage-utils";
 import { ContentItemType } from "../../types";
 import { useAssetStorage } from "../../ui/asset-storage.context";
 
@@ -12,8 +13,7 @@ interface UseContentUploadProps {
 }
 
 /**
- * Hook to handle content file uploads in SurveyJS Creator.
- * Uploads via SAS URLs (browser-to-storage). Enabled only if storage is enabled.
+ * Hook to handle content file uploads in SurveyJS Creator. Enabled only if storage is enabled.
  */
 export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
   const [isStorageReady, setIsStorageReady] = useState(false);
@@ -51,6 +51,11 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
         }
 
         const sasTokens = sasData.sasTokens ?? {};
+        const uploadMetadata = sasData.uploadMetadata ?? {
+          userId: "",
+          itemId,
+          contentItemType: itemType,
+        };
         let firstUploadedUrl: string | null = null;
 
         for (const file of files) {
@@ -63,14 +68,49 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
             return;
           }
 
-          const blockBlobClient = new BlockBlobClient(sasResult.url);
-          await blockBlobClient.uploadData(await file.arrayBuffer(), {
+          const contentMetadata = buildContentFileMetadata({
+            userId: uploadMetadata.userId,
+            itemId: uploadMetadata.itemId,
+            contentItemType: uploadMetadata.contentItemType as ContentItemType,
+            fileName: file.name,
+            fileType: file.type || undefined,
+          });
+
+          const sasUrl = sasResult.url;
+          let dataToUpload: ArrayBuffer = await file.arrayBuffer();
+          let contentType = file.type || "application/octet-stream";
+
+          if (
+            file.type.startsWith("image/") &&
+            storageConfig?.imageConfig?.isResizeEnabled
+          ) {
+            try {
+              const formData = new FormData();
+              formData.append("file", file);
+              const resizeResponse = await fetch(
+                "/api/hub/v0/storage/resize-image",
+                { method: "POST", body: formData },
+              );
+              if (resizeResponse.ok) {
+                dataToUpload = await resizeResponse.arrayBuffer();
+                contentType =
+                  resizeResponse.headers.get("Content-Type") ?? file.type;
+              }
+            } catch {
+              // On resize failure, upload original image (graceful fallback)
+            }
+          }
+
+          const blockBlobClient = new BlockBlobClient(sasUrl);
+          await blockBlobClient.uploadData(dataToUpload, {
+            metadata: contentMetadata.metadata,
             blobHTTPHeaders: {
-              blobContentType: file.type || "application/octet-stream",
+              ...contentMetadata.blobHTTPHeaders,
+              blobContentType: contentType,
             },
           });
 
-          const [baseUrl] = sasResult.url.split("?");
+          const [baseUrl] = sasUrl.split("?");
           if (firstUploadedUrl === null) {
             firstUploadedUrl = baseUrl;
           }
@@ -85,7 +125,7 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
         );
       }
     },
-    [itemId, itemType],
+    [itemId, itemType, storageConfig?.imageConfig?.isResizeEnabled],
   );
 
   /**
