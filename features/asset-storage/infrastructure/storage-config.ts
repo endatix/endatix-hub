@@ -1,6 +1,8 @@
+import { extractHostname } from "../../../lib/utils/url-utils";
 import { ContainerType } from "../types";
 import { IMAGE_SERVICE_CONFIG, ImageConfig } from "./image-service";
 import { StorageConfig, StorageConfigClient } from "./storage-config-client";
+import { Result } from "../../../lib/result";
 
 interface IStorageConfig {
   isEnabled: boolean;
@@ -20,6 +22,9 @@ type AzureStorageConfig = IStorageConfig & {
 const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
 const DEFAULT_USER_FILES_CONTAINER_NAME = "user-files";
 const DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME = "content";
+const getDefaultAzureBlobHostname = (accountName: string): string => {
+  return accountName ? `${accountName}.blob.core.windows.net` : "";
+};
 
 /**
  * Gets the Azure Storage configuration from environment variables
@@ -31,7 +36,20 @@ function getStorageConfig(): AzureStorageConfig {
 
   const isEnabled = !!AZURE_STORAGE_ACCOUNT_NAME && !!AZURE_STORAGE_ACCOUNT_KEY;
   const accountName = AZURE_STORAGE_ACCOUNT_NAME || "";
-  const hostName = accountName ? `${accountName}.blob.core.windows.net` : "";
+
+  const customDomain = process.env.AZURE_STORAGE_CUSTOM_DOMAIN?.trim();
+  const hostName = (() => {
+    if (!customDomain) {
+      return getDefaultAzureBlobHostname(accountName);
+    }
+
+    const hostnameResult = extractHostname(customDomain);
+    if (Result.isSuccess(hostnameResult)) {
+      return hostnameResult.value;
+    }
+
+    return getDefaultAzureBlobHostname(accountName);
+  })();
 
   const sasReadExpiryMinutes = (() => {
     const { AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES } = process.env;

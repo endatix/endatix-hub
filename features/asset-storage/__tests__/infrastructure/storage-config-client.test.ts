@@ -4,6 +4,7 @@ import type {
   StorageConfigClient,
 } from "@/features/asset-storage/client";
 import type { AzureStorageConfig } from "@/features/asset-storage/server";
+import { IMAGE_SERVICE_CONFIG } from "@/features/asset-storage/infrastructure/image-service";
 
 describe("storage-config-client", () => {
   describe("StorageConfig type", () => {
@@ -12,10 +13,12 @@ describe("storage-config-client", () => {
         isEnabled: true,
         isPrivate: true,
         hostName: "testaccount.blob.core.windows.net",
+        protocol: "https",
         containerNames: {
           USER_FILES: "user-files",
           CONTENT: "content",
         },
+        imageConfig: IMAGE_SERVICE_CONFIG,
       };
 
       expect(config.isEnabled).toBe(true);
@@ -32,10 +35,12 @@ describe("storage-config-client", () => {
         isEnabled: true,
         isPrivate: false,
         hostName: "testaccount.blob.core.windows.net",
+        protocol: "https",
         containerNames: {
           USER_FILES: "user-files",
           CONTENT: "content",
         },
+        imageConfig: IMAGE_SERVICE_CONFIG,
       };
 
       // Verify that accountKey, accountName, expiryMinutes, and sasReadExpiryMinutes
@@ -59,11 +64,13 @@ describe("storage-config-client", () => {
         accountName: "testaccount",
         accountKey: "secret-key",
         hostName: "testaccount.blob.core.windows.net",
+        protocol: "https",
         sasReadExpiryMinutes: 15,
         containerNames: {
           USER_FILES: "user-files",
           CONTENT: "content",
         },
+        imageConfig: IMAGE_SERVICE_CONFIG,
       };
 
       // StorageConfig should be assignable from AzureStorageConfig (minus server props)
@@ -71,13 +78,32 @@ describe("storage-config-client", () => {
         isEnabled: azureConfig.isEnabled,
         isPrivate: azureConfig.isPrivate,
         hostName: azureConfig.hostName,
+        protocol: azureConfig.protocol,
         containerNames: azureConfig.containerNames,
+        imageConfig: azureConfig.imageConfig,
       };
 
       expect(clientConfig.isEnabled).toBe(azureConfig.isEnabled);
       expect(clientConfig.isPrivate).toBe(azureConfig.isPrivate);
       expect(clientConfig.hostName).toBe(azureConfig.hostName);
       expect(clientConfig.containerNames).toEqual(azureConfig.containerNames);
+    });
+
+    it("should support custom domain hostnames", () => {
+      // This test documents that StorageConfig supports custom domain/CDN hostnames
+      const config: StorageConfig = {
+        isEnabled: true,
+        isPrivate: false,
+        hostName: "cdn.example.com",
+        protocol: "https",
+        containerNames: {
+          USER_FILES: "user-files",
+          CONTENT: "content",
+        },
+        imageConfig: IMAGE_SERVICE_CONFIG,
+      };
+
+      expect(config.hostName).toBe("cdn.example.com");
     });
   });
 
@@ -88,10 +114,12 @@ describe("storage-config-client", () => {
           isEnabled: true,
           isPrivate: true,
           hostName: "testaccount.blob.core.windows.net",
+          protocol: "https",
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
           },
+          imageConfig: IMAGE_SERVICE_CONFIG,
         },
       };
 
@@ -108,10 +136,12 @@ describe("storage-config-client", () => {
           isEnabled: false,
           isPrivate: false,
           hostName: "",
+          protocol: "https",
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
           },
+          imageConfig: IMAGE_SERVICE_CONFIG,
         },
       };
 

@@ -40,6 +40,7 @@ declare namespace NodeJS {
     // Storage:Azure
     AZURE_STORAGE_ACCOUNT_NAME?: string;
     AZURE_STORAGE_ACCOUNT_KEY?: string;
+    AZURE_STORAGE_CUSTOM_DOMAIN?: string;
     AZURE_STORAGE_IS_PRIVATE?: string;
     AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES?: string;
 
