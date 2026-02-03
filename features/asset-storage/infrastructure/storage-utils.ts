@@ -177,4 +177,3 @@ export {
   buildUserFileRequestHeaders,
   buildContentFileMetadata,
 };
-export type { UserFileContext, ContentFileMetadataProps, ContentFileMetadata };

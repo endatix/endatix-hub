@@ -20,27 +20,26 @@ export async function handleResizeImageRequest(
   const formData = await request.formData();
   const file = formData.get("file");
 
-  if (!file || typeof file === "string") {
+  if (!file || typeof file === "string" || !(file instanceof File)) {
     return apiResponses.badRequest({
       detail:
         "Invalid or missing file. Send one image as multipart field 'file'.",
     });
   }
 
-  const typedFile = file as File;
-  if (!typedFile.type.startsWith("image/")) {
+  if (!file.type.startsWith("image/")) {
     return apiResponses.badRequest({
       detail: "File must be an image.",
     });
   }
 
-  const buffer = Buffer.from(await typedFile.arrayBuffer());
-  const optimizedBuffer = await optimizeImageSize(buffer, typedFile.type);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const optimizedBuffer = await optimizeImageSize(buffer, file.type);
 
   return new Response(optimizedBuffer as unknown as BodyInit, {
     status: 200,
     headers: {
-      "Content-Type": typedFile.type,
+      "Content-Type": file.type,
       "Content-Length": String(optimizedBuffer.length),
     },
   });

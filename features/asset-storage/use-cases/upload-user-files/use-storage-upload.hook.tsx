@@ -482,6 +482,7 @@ export function useStorageUpload({
           onSubmissionIdChange,
           options,
         };
+
         const blobResults = await uploadToBlob(
           { ...blobProps, files: filesForUpload },
           sasData,
@@ -512,7 +513,7 @@ export function useStorageUpload({
   );
 
   const onClearFiles = useCallback(
-    async (sender: SurveyModel, options: ClearFilesEvent) => {
+    async (_: SurveyModel, options: ClearFilesEvent) => {
       try {
         if (options.question?.storeDataAsText) {
           return options.callback("success");
@@ -535,7 +536,7 @@ export function useStorageUpload({
           (file: { content: string }) => file.content,
         );
 
-        console.log(`Deleting ${fileUrls.length} files:`, fileUrls);
+        console.debug(`Deleting ${fileUrls.length} files:`, fileUrls);
 
         const deleteResponse = await fetch("/api/public/v0/storage/delete", {
           method: "DELETE",

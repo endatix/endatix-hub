@@ -128,9 +128,7 @@ export function useContentUpload({ itemId, itemType }: UseContentUploadProps) {
           });
 
           const [baseUrl] = sasUrl.split("?");
-          if (firstUploadedUrl === null) {
-            firstUploadedUrl = baseUrl;
-          }
+          firstUploadedUrl ??= baseUrl;
         }
 
         options.callback("success", firstUploadedUrl ?? "");
