@@ -1,17 +1,18 @@
-import { getSession } from "@/features/auth";
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth";
 import { headers } from "next/headers";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { ContentItemType, UploadContentFileCommand } from "@/features/asset-storage";
+import {
+  ContentItemType,
+  UploadContentFileCommand,
+} from "@/features/asset-storage";
 import { uploadContentFileUseCase } from "@/features/asset-storage/server";
 
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session.isLoggedIn) {
-    return apiResponses.unauthorized({
-      detail: "You must be authenticated to upload a content file",
-    });
-  }
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
+  await requireHubAccess();
 
   const requestHeaders = await headers();
   const itemId = requestHeaders.get("edx-item-id") as string;

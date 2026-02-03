@@ -1,6 +1,11 @@
 import { Result } from "@/lib/result";
+import type { ContentItemType } from "../types";
 
 const USER_FILES_PREFIX = "s/";
+
+/** Prefix for content folder paths: "f" (form) or "t" (template). */
+const CONTENT_ROOT_FORM = "f";
+const CONTENT_ROOT_TEMPLATE = "t";
 
 /**
  * Builds the folder path for a submission file in the USER_FILES container.
@@ -49,6 +54,25 @@ function buildUserFilePath(
   const folderPath = folderPathResult.value;
 
   return Result.success(`${folderPath}/${fileNameTrimmed}`);
+}
+
+/**
+ * Builds the folder path for a content file in the CONTENT container.
+ * Convention: f/{itemId} for form, t/{itemId} for template.
+ *
+ * @param itemType - "form" or "template"
+ * @param itemId - The form or template ID
+ * @returns A Result containing the folder path or a validation error
+ */
+function buildContentFolderPath(
+  itemType: ContentItemType,
+  itemId: string,
+): Result<string> {
+  if (!itemId?.trim()) {
+    return Result.validationError("Item ID is required");
+  }
+  const root = itemType === "form" ? CONTENT_ROOT_FORM : CONTENT_ROOT_TEMPLATE;
+  return Result.success(`${root}/${itemId.trim()}`);
 }
 
 /**
@@ -131,6 +155,7 @@ export {
   USER_FILES_PREFIX,
   buildUserFilePath,
   buildUseFileFolderPath,
+  buildContentFolderPath,
   buildUserFileMetadata,
   buildUserFileRequestHeaders,
 };
