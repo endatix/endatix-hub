@@ -1114,7 +1114,7 @@ describe("StorageService", () => {
         getProperties: vi.fn().mockResolvedValue({
           contentType: "application/pdf",
           contentLength: 2048,
-          metadata: { filename: "doc.pdf", questionId: "q1" },
+          metadata: { filename: "doc.pdf", questionName: "q1" },
         }),
       } as unknown as BlockBlobClient;
 
@@ -1149,7 +1149,7 @@ describe("StorageService", () => {
       expect(result?.sizeInBytes).toBe(2048);
       expect(result?.metadata).toEqual({
         filename: "doc.pdf",
-        questionId: "q1",
+        questionName: "q1",
       });
       expect(mockContainerClient.getBlockBlobClient).toHaveBeenCalledWith(
         mockBlobName,

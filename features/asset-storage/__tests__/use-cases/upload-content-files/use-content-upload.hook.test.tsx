@@ -7,17 +7,26 @@ import {
   StorageConfig,
 } from "@/features/asset-storage/client";
 import { useContentUpload } from "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook";
-import { Result } from "@/lib/result";
 
-// Mock the action
-const mockUploadContentFileAction = vi.fn();
-vi.mock(
-  "@/features/asset-storage/use-cases/upload-content-files/upload-content-file.action",
-  () => ({
-    uploadContentFileAction: (formData: FormData) =>
-      mockUploadContentFileAction(formData),
-  }),
-);
+vi.mock("@azure/storage-blob", () => ({
+  BlockBlobClient: vi.fn().mockImplementation(() => ({
+    uploadData: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+/** Mock Base so upload event element passes instanceof Base and exposes getPropertyValue/uniqueId. */
+vi.mock("survey-core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("survey-core")>();
+  class MockBase extends actual.Base {
+    getPropertyValue(name: string): unknown {
+      return name === "name" ? "question1" : undefined;
+    }
+    override get uniqueId(): number {
+      return 1;
+    }
+  }
+  return { ...actual, Base: MockBase };
+});
 
 const mockStorageConfig = {
   isEnabled: true,
@@ -43,16 +52,19 @@ describe("useContentUpload", () => {
   );
 
   const createMockCreatorModel = () => {
-    const handlers: Record<string, (sender: any, options: any) => void> = {};
+    const handlers: Record<
+      string,
+      (sender: unknown, options: unknown) => void
+    > = {};
     return {
       onUploadFile: {
-        add: vi.fn((handler) => {
+        add: vi.fn((handler: (sender: unknown, options: unknown) => void) => {
           handlers.onUploadFile = handler;
         }),
         remove: vi.fn(),
       },
       _handlers: handlers,
-    } as unknown as SurveyCreatorModel & { _handlers: any };
+    } as unknown as SurveyCreatorModel & { _handlers: typeof handlers };
   };
 
   it("should return registerUploadHandlers function", () => {
@@ -71,7 +83,7 @@ describe("useContentUpload", () => {
       { wrapper },
     );
 
-    let unregister: any;
+    let unregister: () => void;
     act(() => {
       unregister = result.current.registerUploadHandlers(creator);
     });
@@ -85,7 +97,7 @@ describe("useContentUpload", () => {
     expect(creator.onUploadFile.remove).toHaveBeenCalled();
   });
 
-  it("should handle file upload", async () => {
+  it("should handle file upload via SAS", async () => {
     const creator = createMockCreatorModel();
     const { result } = renderHook(
       () => useContentUpload({ itemId: "test-item", itemType: "form" }),
@@ -97,27 +109,61 @@ describe("useContentUpload", () => {
     });
 
     const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
+    if (typeof mockFile.arrayBuffer !== "function") {
+      (
+        mockFile as File & { arrayBuffer: () => Promise<ArrayBuffer> }
+      ).arrayBuffer = () => Promise.resolve(new ArrayBuffer(0));
+    }
+    const { Base } = await import("survey-core");
+    const element = new Base();
     const options = {
       files: [mockFile],
       callback: vi.fn(),
+      element,
     };
 
-    mockUploadContentFileAction.mockResolvedValueOnce(
-      Result.success({ url: "https://test.com/test.jpg" }),
-    );
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          sasTokens: {
+            "test.jpg": {
+              success: true,
+              url: "https://account.blob.core.windows.net/content/f/test-item/unique.jpg?sas=token",
+            },
+          },
+          uploadMetadata: {
+            userId: "user-1",
+            itemId: "test-item",
+            contentItemType: "form",
+            questionName: "question1",
+          },
+        }),
+    });
 
     await act(async () => {
       await creator._handlers.onUploadFile(creator, options);
     });
 
-    expect(mockUploadContentFileAction).toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/hub/v0/storage/content/sas-token",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          itemId: "test-item",
+          itemType: "form",
+          fileNames: ["test.jpg"],
+          questionName: "question1",
+        }),
+      }),
+    );
     expect(options.callback).toHaveBeenCalledWith(
       "success",
-      "https://test.com/test.jpg",
+      "https://account.blob.core.windows.net/content/f/test-item/unique.jpg",
     );
   });
 
-  it("should handle upload failure", async () => {
+  it("should handle upload failure when SAS request fails", async () => {
     const creator = createMockCreatorModel();
     const { result } = renderHook(
       () => useContentUpload({ itemId: "test-item", itemType: "form" }),
@@ -134,14 +180,18 @@ describe("useContentUpload", () => {
       callback: vi.fn(),
     };
 
-    mockUploadContentFileAction.mockResolvedValueOnce(
-      Result.error("API Error"),
-    );
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ detail: "Unauthorized" }),
+    });
 
     await act(async () => {
       await creator._handlers.onUploadFile(creator, options);
     });
 
-    expect(options.callback).toHaveBeenCalledWith("error", "API Error");
+    expect(options.callback).toHaveBeenCalledWith(
+      "error",
+      expect.stringContaining("Unauthorized"),
+    );
   });
 });

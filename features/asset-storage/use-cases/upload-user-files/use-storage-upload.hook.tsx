@@ -1,22 +1,13 @@
 "use client";
 
 import { use, useCallback, useMemo } from "react";
-import {
-  ClearFilesEvent,
-  DownloadFileEvent,
-  SurveyModel,
-  UploadFilesEvent,
-} from "survey-core";
-import { BlockBlobClient } from "@azure/storage-blob";
+import { ClearFilesEvent, DownloadFileEvent, SurveyModel } from "survey-core";
 import { Result } from "@/lib/result";
-import {
-  buildUserFileMetadata,
-  buildUserFileRequestHeaders,
-} from "../../infrastructure/storage-utils";
 import {
   AssetStorageTokens,
   useAssetStorage,
 } from "../../ui/asset-storage.context";
+import { createUserUpload } from "../upload/upload-handler.factory";
 
 interface UseStorageUploadProps {
   formId: string;
@@ -25,51 +16,6 @@ interface UseStorageUploadProps {
   onSubmissionIdChange?: (newSubmissionId: string) => void;
   readTokenPromises?: AssetStorageTokens;
 }
-
-interface UploadFilesToBlobProps extends UseStorageUploadProps {
-  files: File[];
-  options: UploadFilesEvent;
-}
-
-interface UploadFilesToServerProps extends UseStorageUploadProps {
-  files: File[];
-  options: UploadFilesEvent;
-}
-
-interface UploadedFile {
-  name: string;
-  url: string;
-}
-
-interface UploadResult {
-  data: Array<unknown>;
-  errors: Array<string>;
-}
-
-const UploadResult = {
-  empty(): UploadResult {
-    return {
-      data: [],
-      errors: [],
-    };
-  },
-
-  error(errors: string | string[]): UploadResult {
-    return {
-      data: [],
-      errors: Array.isArray(errors) ? errors : [errors],
-    };
-  },
-
-  success(data: Array<unknown>): UploadResult {
-    return {
-      data: data,
-      errors: [],
-    };
-  },
-};
-
-const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const DEFAULT_READ_TOKEN_RESULT = Result.success({
   token: null,
@@ -82,194 +28,9 @@ const DEFAULT_READ_TOKEN_RESULT = Result.success({
 
 const DEFAULT_READ_TOKEN_PROMISE = Promise.resolve(DEFAULT_READ_TOKEN_RESULT);
 
-const uploadToBlob = async (
-  props: UploadFilesToBlobProps,
-): Promise<UploadResult> => {
-  const {
-    files,
-    formId,
-    submissionId,
-    surveyModel,
-    onSubmissionIdChange,
-    options,
-  } = props;
-
-  if (files.length === 0) {
-    return UploadResult.empty();
-  }
-
-  try {
-    const sasResponse = await fetch("/api/public/v0/storage/sas-token", {
-      method: "POST",
-      body: JSON.stringify({
-        fileNames: files.map((f) => f.name),
-        submissionId,
-        formId,
-        formLocale: surveyModel?.locale ?? "",
-      }),
-    });
-
-    const sasData = await sasResponse.json();
-    if (!sasResponse.ok) {
-      throw new Error(sasData.error || "Failed to generate upload URLs");
-    }
-
-    if (sasData.submissionId && sasData.submissionId !== submissionId) {
-      onSubmissionIdChange?.(sasData.submissionId);
-    }
-
-    const uploadPromises = files.map(async (file) => {
-      const sasResult = sasData.sasTokens[file.name];
-
-      if (!sasResult?.success) {
-        return {
-          success: false,
-          error: sasResult?.message || `No upload URL for file: ${file.name}`,
-        };
-      }
-
-      try {
-        const blockBlobClient = new BlockBlobClient(sasResult.url);
-        const metadataOptions = buildUserFileMetadata({
-          formId,
-          submissionId,
-          questionId: options.question?.name ?? "",
-          formLang: surveyModel?.locale ?? "",
-          fileName: file.name,
-          fileType: file.type,
-        });
-        const headerOptions = {
-          blobContentType: metadataOptions.fileType,
-          blobContentLanguage: metadataOptions.formLang,
-          blobContentDisposition: metadataOptions.fileContentDisposition,
-        };
-        await blockBlobClient.uploadData(await file.arrayBuffer(), {
-          onProgress: (progress) => {
-            if (!progress?.loadedBytes || !file.size) {
-              return;
-            }
-            const uploadProgress = Math.round(
-              (progress.loadedBytes / file.size) * 100,
-            );
-            console.debug(`progress ${file.name}: ${uploadProgress}%`);
-          },
-          metadata: {
-            ...metadataOptions,
-          },
-          blobHTTPHeaders: headerOptions,
-        });
-
-        const [url] = sasResult.url.split("?");
-
-        return {
-          success: true,
-          data: {
-            file: file,
-            content: url,
-          },
-        };
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Upload failed";
-        return {
-          success: false,
-          error: `Could not upload file: ${file.name}. ${errorMessage}`,
-        };
-      }
-    });
-
-    const uploadResults = await Promise.all(uploadPromises);
-    const results = uploadResults.reduce((groupResults, curr) => {
-      if (curr.success) {
-        groupResults.data.push(curr.data);
-      } else {
-        groupResults.errors.push(curr.error);
-      }
-      return groupResults;
-    }, UploadResult.empty());
-
-    return results;
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Upload failed";
-    return UploadResult.error(errorMessage);
-  }
-};
-
-const uploadToServer = async (
-  props: UploadFilesToServerProps,
-): Promise<UploadResult> => {
-  const {
-    files,
-    formId,
-    submissionId,
-    surveyModel,
-    onSubmissionIdChange,
-    options,
-  } = props;
-
-  if (files.length === 0) {
-    return UploadResult.empty();
-  }
-
-  const formData = new FormData();
-  files.forEach((file) => {
-    formData.append(file.name, file);
-  });
-
-  try {
-    const uploadContext = {
-      formId,
-      submissionId,
-      questionId: options.question?.name ?? "",
-      formLang: surveyModel?.locale ?? "",
-    };
-    const response = await fetch("/api/public/v0/storage/upload", {
-      method: "POST",
-      body: formData,
-      headers: buildUserFileRequestHeaders(uploadContext) as HeadersInit,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.error ??
-          "Failed to upload files. Please refresh your page and try again.",
-      );
-    }
-
-    if (data.submissionId && data.submissionId !== submissionId) {
-      onSubmissionIdChange?.(data.submissionId);
-    }
-
-    const uploadedFiles = files.map((file) => {
-      const remoteFile = data.files?.find(
-        (uploadedFile: UploadedFile) => uploadedFile.name === file.name,
-      );
-      return {
-        file: file,
-        content: remoteFile?.url,
-        token: remoteFile?.token,
-      };
-    });
-
-    return UploadResult.success(uploadedFiles);
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Upload failed";
-    return UploadResult.error(errorMessage);
-  }
-};
-
 /**
  * Hook to upload files to storage.
- * @param formId - The form ID.
- * @param submissionId - The submission ID.
- * @param onSubmissionIdChange - The function to call when the submission ID changes.
- * @param surveyModel - The survey model.
- * @param readTokenPromises - The read token promises.
- * @returns The registerStorageHandlers function.
+ * Uses upload-handler factory for SAS/resize URLs and upload flow.
  */
 export function useStorageUpload({
   formId,
@@ -284,92 +45,25 @@ export function useStorageUpload({
   const userFilesTokenResult = use(
     readTokenPromises?.userFiles ?? DEFAULT_READ_TOKEN_PROMISE,
   );
-  /**
-   * Groups files by upload strategy.
-   * Images below LARGE_FILE_THRESHOLD are flagged for resize;
-   * all others are for direct upload.
-   *
-   * @param files Array of files to categorize
-   * @returns Object with filesForUpload and filesForResize arrays
-   */
-  const groupFilesByUploadStrategy = useMemo(
-    () =>
-      (files: File[]): { filesForUpload: File[]; filesForResize: File[] } => {
-        if (!storageConfig?.imageConfig?.isResizeEnabled) {
-          return {
-            filesForUpload: files,
-            filesForResize: [],
-          };
-        }
 
-        return files.reduce(
-          (acc, file) => {
-            if (
-              file.type.startsWith("image/") &&
-              file.size < LARGE_FILE_THRESHOLD
-            ) {
-              acc.filesForResize.push(file);
-            } else {
-              acc.filesForUpload.push(file);
-            }
-            return acc;
-          },
-          { filesForUpload: [] as File[], filesForResize: [] as File[] },
-        );
-      },
-    [storageConfig],
-  );
-
-  const onUploadFiles = useCallback(
-    async (sender: SurveyModel, options: UploadFilesEvent) => {
-      try {
-        const { filesForUpload, filesForResize } = groupFilesByUploadStrategy(
-          options.files,
-        );
-
-        const allResults = [];
-        const allErrors = [];
-
-        const blobResults = await uploadToBlob({
-          files: filesForUpload,
-          options,
-          formId,
-          submissionId,
-          surveyModel,
-          onSubmissionIdChange,
-        });
-        allResults.push(...blobResults.data);
-        allErrors.push(...blobResults.errors);
-
-        const serverResults = await uploadToServer({
-          files: filesForResize,
-          formId,
-          submissionId,
-          surveyModel,
-          onSubmissionIdChange,
-          options,
-        });
-        allResults.push(...serverResults.data);
-        allErrors.push(...serverResults.errors);
-
-        options.callback(allResults, allErrors);
-      } catch (error) {
-        const errors =
-          error instanceof Error ? [error.message] : ["Upload failed"];
-        options.callback(UploadResult.error(errors));
-      }
-    },
-    [
+  const onUploadFiles = useMemo(() => {
+    return createUserUpload({
       formId,
-      groupFilesByUploadStrategy,
-      onSubmissionIdChange,
       submissionId,
       surveyModel,
-    ],
-  );
+      onSubmissionIdChange,
+      isResizeEnabled: Boolean(storageConfig?.imageConfig?.isResizeEnabled),
+    });
+  }, [
+    formId,
+    submissionId,
+    surveyModel,
+    onSubmissionIdChange,
+    storageConfig?.imageConfig?.isResizeEnabled,
+  ]);
 
   const onClearFiles = useCallback(
-    async (sender: SurveyModel, options: ClearFilesEvent) => {
+    async (_: SurveyModel, options: ClearFilesEvent) => {
       try {
         if (options.question?.storeDataAsText) {
           return options.callback("success");
@@ -392,7 +86,7 @@ export function useStorageUpload({
           (file: { content: string }) => file.content,
         );
 
-        console.log(`Deleting ${fileUrls.length} files:`, fileUrls);
+        console.debug(`Deleting ${fileUrls.length} files:`, fileUrls);
 
         const deleteResponse = await fetch("/api/public/v0/storage/delete", {
           method: "DELETE",
@@ -439,7 +133,7 @@ export function useStorageUpload({
         }
       } catch (error) {
         console.error("Error in deleteFiles:", error);
-        return options.callback("error");
+        options.callback("error");
       }
     },
     [formId, submissionId],

@@ -23,12 +23,10 @@ export {
 export * from "./types";
 export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export {
-  uploadContentFileUseCase,
-  uploadUserFilesUseCase,
   addViewTokensToModelUseCase,
   generateGranularReadTokensUseCase,
   generateReadTokensAction,
-  uploadContentFileAction,
   listUserFiles,
   getUserFile,
+  handleResizeImageRequest,
 } from "./use-cases";

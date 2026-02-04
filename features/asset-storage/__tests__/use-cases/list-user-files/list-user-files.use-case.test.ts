@@ -35,14 +35,18 @@ function createMockBlobItem(name: string): BlobItem {
 }
 
 const mockMetadata1 = {
+  kind: "user" as const,
   displayName: "doc.pdf",
   contentType: "application/pdf",
   sizeInBytes: 100,
+  uploadedBy: "user-1",
 };
 const mockMetadata2 = {
+  kind: "user" as const,
   displayName: "image.jpg",
   contentType: "image/jpeg",
   sizeInBytes: 200,
+  uploadedBy: "user-1",
 };
 
 describe("listUserFiles", () => {

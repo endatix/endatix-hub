@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import {
   getContainerNames,
@@ -23,9 +24,13 @@ interface SASOperationResult {
 interface SASTokenResponse {
   sasTokens: Record<string, SASOperationResult>;
   submissionId: string;
+  userId: string;
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const session = await auth();
+  const userId = session?.user?.id ?? "anonymous";
+
   const data: SASTokenRequest = await request.json();
   const { formId, fileNames, formLocale } = data;
   let submissionId = data.submissionId;
@@ -90,6 +95,7 @@ export async function POST(request: Request): Promise<Response> {
   const sasTokenResponse: SASTokenResponse = {
     sasTokens,
     submissionId,
+    userId,
   };
   return Response.json(sasTokenResponse);
 }
