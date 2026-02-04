@@ -202,8 +202,8 @@ importers:
         specifier: ^7.54.2
         version: 7.62.0(react@19.2.4)
       react-quill-new:
-        specifier: ^3.7.0
-        version: 3.7.0(quill-delta@5.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^3.8.3
+        version: 3.8.3(quill-delta@5.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react-resizable-panels:
         specifier: ^2.1.7
         version: 2.1.9(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -4150,8 +4150,8 @@ packages:
   react-is@17.0.2:
     resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
 
-  react-quill-new@3.7.0:
-    resolution: {integrity: sha512-i5qz1WukIR84ktJrA2VMcZdkRrfOl/4TAK6ygMTX1/9Grcrgj0NW+LnoanBhuIbHaHJZwcvcWMBvSjUFsxQIQA==}
+  react-quill-new@3.8.3:
+    resolution: {integrity: sha512-c96PYqFTo0pI4R3e79B3rH9LUIce1kIQbmTBu/imJQZk8305ogyLyBqKKjG2UoInDlquXqePSzmBo2aVia3ttw==}
     peerDependencies:
       quill-delta: ^5.1.0
       react: ^16 || ^17 || ^18 || ^19
@@ -9017,7 +9017,7 @@ snapshots:
 
   react-is@17.0.2: {}
 
-  react-quill-new@3.7.0(quill-delta@5.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+  react-quill-new@3.8.3(quill-delta@5.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
       lodash-es: 4.17.21
       quill: 2.0.3

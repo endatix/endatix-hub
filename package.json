@@ -84,7 +84,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.54.2",
-    "react-quill-new": "^3.7.0",
+    "react-quill-new": "^3.8.3",
     "react-resizable-panels": "^2.1.7",
     "sanitize-html": "^2.17.0",
     "semver": "^7.6.3",
@@ -139,7 +139,8 @@
       "js-yaml": "^4.1.1",
       "preact": "10.27.3",
       "fast-xml-parser": "^5.3.4",
-      "lodash": "^4.17.23"
+      "lodash": "^4.17.23",
+      "lodash-es": "^4.17.23" 
     },
     "ignoredBuiltDependencies": [
       "sharp"
@@ -153,7 +154,7 @@
       "unrs-resolver"
     ],
     "comments": {
-      "overrides": "[@types/react] & [@types/react-dom] are managed by Next.js. |  [glob] 10.5.0 bump is to address CVE-2025-64756. Remove once move to taiwind 4x | [vite] 7.1.11 bump is to address CVE-2025-62522. Remove once we move to vite 4x | [js-yaml] 4.1.1 bump is to address CVE-2025-64718. Remove once we upgrade eslint | [preact] 10.27.3 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump | [fast-xml-parser] 5.3.4 bump is to address CVE-2026-25128. Remove once we upgrade @azure/storage-blob | [lodash] 4.17.23 bump is to address CVE-2025-13465. Multiple peer dependenices hold outdated versions"
+      "overrides": "[@types/react] & [@types/react-dom] are managed by Next.js. |  [glob] 10.5.0 bump is to address CVE-2025-64756. Remove once move to taiwind 4x | [vite] 7.1.11 bump is to address CVE-2025-62522. Remove once we move to vite 4x | [js-yaml] 4.1.1 bump is to address CVE-2025-64718. Remove once we upgrade eslint | [preact] 10.27.3 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump | [fast-xml-parser] 5.3.4 bump is to address CVE-2026-25128. Remove once we upgrade @azure/storage-blob | [lodash] 4.17.23 bump is to address CVE-2025-13465. Multiple peer dependenices hold outdated versions | [lodash-es] 4.17.23 bump is to address CVE-2025-13465. Fix with quill & react-quill-new bump"
     }
   }
 }
