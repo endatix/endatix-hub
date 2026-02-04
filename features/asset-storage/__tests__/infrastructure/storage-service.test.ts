@@ -62,7 +62,7 @@ describe("StorageService", () => {
         () => mockBlobServiceClient,
       );
       vi.mocked(StorageSharedKeyCredential).mockImplementation(
-        () => ({}) as StorageSharedKeyCredential,
+        () => ({} as StorageSharedKeyCredential),
       );
     });
 
@@ -193,8 +193,9 @@ describe("StorageService", () => {
     });
 
     it("should throw error when fileName is not provided", async () => {
-      const { uploadToStorage } =
-        await import("../../infrastructure/storage-service");
+      const { uploadToStorage } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act & Assert
       await expect(
@@ -203,8 +204,9 @@ describe("StorageService", () => {
     });
 
     it("should throw error when containerName is not provided", async () => {
-      const { uploadToStorage } =
-        await import("../../infrastructure/storage-service");
+      const { uploadToStorage } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act & Assert
       await expect(
@@ -236,14 +238,15 @@ describe("StorageService", () => {
         () => mockBlobServiceClient,
       );
       vi.mocked(StorageSharedKeyCredential).mockImplementation(
-        () => ({}) as StorageSharedKeyCredential,
+        () => ({} as StorageSharedKeyCredential),
       );
     });
 
     it("should throw error when storage is not enabled", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      const { generateUploadUrl } =
-        await import("../../infrastructure/storage-service");
+      const { generateUploadUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -258,8 +261,9 @@ describe("StorageService", () => {
     });
 
     it("should successfully generate SAS URL", async () => {
-      const { generateUploadUrl } =
-        await import("../../infrastructure/storage-service");
+      const { generateUploadUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -287,8 +291,9 @@ describe("StorageService", () => {
     });
 
     it("should throw error when fileName is not provided", async () => {
-      const { generateUploadUrl } =
-        await import("../../infrastructure/storage-service");
+      const { generateUploadUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: "",
@@ -303,8 +308,9 @@ describe("StorageService", () => {
     });
 
     it("should throw error when folderPath is not provided", async () => {
-      const { generateUploadUrl } =
-        await import("../../infrastructure/storage-service");
+      const { generateUploadUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -319,8 +325,9 @@ describe("StorageService", () => {
     });
 
     it("should throw error when containerName is not provided", async () => {
-      const { generateUploadUrl } =
-        await import("../../infrastructure/storage-service");
+      const { generateUploadUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -335,8 +342,9 @@ describe("StorageService", () => {
     });
 
     it("should handle errors gracefully when generateSasUrl fails", async () => {
-      const { generateUploadUrl } =
-        await import("../../infrastructure/storage-service");
+      const { generateUploadUrl } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       mockBlobClient.generateSasUrl = vi.fn().mockImplementation(() => {
         throw new Error("SAS generation failed");
@@ -372,8 +380,9 @@ describe("StorageService", () => {
 
     it("should return error when storage is not enabled", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const result = await generateReadTokens({
         containerName: mockContainerName,
@@ -393,8 +402,9 @@ describe("StorageService", () => {
       delete process.env.AZURE_STORAGE_IS_PRIVATE;
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const result = await generateReadTokens({
         containerName: mockContainerName,
@@ -412,8 +422,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const result = await generateReadTokens({
         containerName: "",
@@ -431,8 +442,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const result = await generateReadTokens({
         containerName: mockContainerName,
@@ -450,8 +462,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const result = await generateReadTokens({
         containerName: mockContainerName,
@@ -471,8 +484,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const result = await generateReadTokens({
         containerName: mockContainerName,
@@ -504,8 +518,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const resourceNames = ["file1.jpg", "file2.png", "file3.pdf"];
       const result = await generateReadTokens({
@@ -544,8 +559,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const customExpiryMinutes = 60;
       const beforeCall = Date.now();
@@ -572,8 +588,9 @@ describe("StorageService", () => {
       process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
       vi.resetModules();
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const beforeCall = Date.now();
       const result = await generateReadTokens({
@@ -600,8 +617,9 @@ describe("StorageService", () => {
         throw error;
       });
 
-      const { bulkGenerateReadTokens: generateReadTokens } =
-        await import("../../infrastructure/storage-service");
+      const { bulkGenerateReadTokens: generateReadTokens } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const result = await generateReadTokens({
         containerName: mockContainerName,
@@ -638,14 +656,15 @@ describe("StorageService", () => {
         () => mockBlobServiceClient,
       );
       vi.mocked(StorageSharedKeyCredential).mockImplementation(
-        () => ({}) as StorageSharedKeyCredential,
+        () => ({} as StorageSharedKeyCredential),
       );
     });
 
     it("should throw error when storage is not enabled", async () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      const { deleteBlob } =
-        await import("../../infrastructure/storage-service");
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -660,8 +679,9 @@ describe("StorageService", () => {
     });
 
     it("should successfully delete blob with folder path", async () => {
-      const { deleteBlob } =
-        await import("../../infrastructure/storage-service");
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -684,8 +704,9 @@ describe("StorageService", () => {
     });
 
     it("should successfully delete blob without folder path", async () => {
-      const { deleteBlob } =
-        await import("../../infrastructure/storage-service");
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -707,8 +728,9 @@ describe("StorageService", () => {
     });
 
     it("should throw error when fileName is not provided", async () => {
-      const { deleteBlob } =
-        await import("../../infrastructure/storage-service");
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: "",
@@ -723,8 +745,9 @@ describe("StorageService", () => {
     });
 
     it("should throw error when containerName is not provided", async () => {
-      const { deleteBlob } =
-        await import("../../infrastructure/storage-service");
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -739,8 +762,9 @@ describe("StorageService", () => {
     });
 
     it("should handle delete errors gracefully", async () => {
-      const { deleteBlob } =
-        await import("../../infrastructure/storage-service");
+      const { deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const deleteError = new Error("Blob not found");
       mockBlobClient.delete = vi.fn().mockRejectedValue(deleteError);
@@ -759,8 +783,9 @@ describe("StorageService", () => {
     });
 
     it("should use singleton BlobServiceClient", async () => {
-      const { deleteBlob, uploadToStorage } =
-        await import("../../infrastructure/storage-service");
+      const { deleteBlob, uploadToStorage } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Setup mock for uploadToStorage as well
       Object.assign(mockBlobClient, {
@@ -817,14 +842,15 @@ describe("StorageService", () => {
         () => mockBlobServiceClient,
       );
       vi.mocked(StorageSharedKeyCredential).mockImplementation(
-        () => ({}) as StorageSharedKeyCredential,
+        () => ({} as StorageSharedKeyCredential),
       );
     });
 
     it("should return blobs when folder path is valid", async () => {
       // Arrange
-      const { listBlobs } =
-        await import("../../infrastructure/storage-service");
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
       const folderOptions = {
         containerName: "user-files",
         formId: mockFormId,
@@ -848,8 +874,9 @@ describe("StorageService", () => {
 
     it("should throw when formId is empty", async () => {
       // Arrange
-      const { listBlobs } =
-        await import("../../infrastructure/storage-service");
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
       const folderOptions = {
         containerName: "user-files",
         formId: "",
@@ -864,8 +891,9 @@ describe("StorageService", () => {
 
     it("should throw when submissionId is empty", async () => {
       // Arrange
-      const { listBlobs } =
-        await import("../../infrastructure/storage-service");
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
       const folderOptions = {
         containerName: "user-files",
         formId: mockFormId,
@@ -876,6 +904,202 @@ describe("StorageService", () => {
       await expect(listBlobs(folderOptions)).rejects.toThrow(
         "Submission ID is required",
       );
+    });
+
+    it("should exclude blobs with contentLength 0 (folder placeholders)", async () => {
+      const asyncIterable = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            name: "s/form-1/sub-1/",
+            metadata: {},
+            properties: {
+              contentType: "application/octet-stream",
+              contentLength: 0,
+            },
+          };
+        },
+      };
+      vi.mocked(mockContainerClient.listBlobsFlat).mockReturnValue(
+        asyncIterable as unknown as ReturnType<
+          ContainerClient["listBlobsFlat"]
+        >,
+      );
+
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
+      const result = await listBlobs({
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: mockSubmissionId,
+      });
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("should exclude blobs with empty contentType", async () => {
+      const asyncIterable = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            name: "s/form-1/sub-1/weird.pdf",
+            metadata: {},
+            properties: { contentType: "", contentLength: 1024 },
+          };
+        },
+      };
+      vi.mocked(mockContainerClient.listBlobsFlat).mockReturnValue(
+        asyncIterable as unknown as ReturnType<
+          ContainerClient["listBlobsFlat"]
+        >,
+      );
+
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
+      const result = await listBlobs({
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: mockSubmissionId,
+      });
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("should exclude blobs when properties is undefined (no throw)", async () => {
+      const asyncIterable = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            name: "s/form-1/sub-1/legacy",
+            metadata: {},
+            properties: undefined,
+          };
+        },
+      };
+      vi.mocked(mockContainerClient.listBlobsFlat).mockReturnValue(
+        asyncIterable as unknown as ReturnType<
+          ContainerClient["listBlobsFlat"]
+        >,
+      );
+
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
+      const result = await listBlobs({
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: mockSubmissionId,
+      });
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("should exclude blobs when contentLength is undefined", async () => {
+      const asyncIterable = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            name: "s/form-1/sub-1/incomplete",
+            metadata: {},
+            properties: {
+              contentType: "application/pdf",
+              contentLength: undefined,
+            },
+          };
+        },
+      };
+      vi.mocked(mockContainerClient.listBlobsFlat).mockReturnValue(
+        asyncIterable as unknown as ReturnType<
+          ContainerClient["listBlobsFlat"]
+        >,
+      );
+
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
+      const result = await listBlobs({
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: mockSubmissionId,
+      });
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("should exclude blobs when contentType is undefined", async () => {
+      const asyncIterable = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            name: "s/form-1/sub-1/raw",
+            metadata: {},
+            properties: { contentType: undefined, contentLength: 100 },
+          };
+        },
+      };
+      vi.mocked(mockContainerClient.listBlobsFlat).mockReturnValue(
+        asyncIterable as unknown as ReturnType<
+          ContainerClient["listBlobsFlat"]
+        >,
+      );
+
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
+      const result = await listBlobs({
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: mockSubmissionId,
+      });
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("should return only blobs that pass the file type check (contentLength > 0 and contentType non-empty)", async () => {
+      const asyncIterable = {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            name: "s/form-1/sub-1/folder/",
+            metadata: {},
+            properties: {
+              contentType: "application/octet-stream",
+              contentLength: 0,
+            },
+          };
+          yield {
+            name: "s/form-1/sub-1/doc.pdf",
+            metadata: {},
+            properties: { contentType: "application/pdf", contentLength: 2048 },
+          };
+          yield {
+            name: "s/form-1/sub-1/empty-type.jpg",
+            metadata: {},
+            properties: { contentType: "", contentLength: 100 },
+          };
+          yield {
+            name: "s/form-1/sub-1/image.png",
+            metadata: {},
+            properties: { contentType: "image/png", contentLength: 512 },
+          };
+        },
+      };
+      vi.mocked(mockContainerClient.listBlobsFlat).mockReturnValue(
+        asyncIterable as unknown as ReturnType<
+          ContainerClient["listBlobsFlat"]
+        >,
+      );
+
+      const { listBlobs } = await import(
+        "../../infrastructure/storage-service"
+      );
+      const result = await listBlobs({
+        containerName: "user-files",
+        formId: mockFormId,
+        submissionId: mockSubmissionId,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((b) => b.name)).toEqual([
+        "s/form-1/sub-1/doc.pdf",
+        "s/form-1/sub-1/image.png",
+      ]);
     });
   });
 
@@ -906,14 +1130,15 @@ describe("StorageService", () => {
         () => mockBlobServiceClient,
       );
       vi.mocked(StorageSharedKeyCredential).mockImplementation(
-        () => ({}) as StorageSharedKeyCredential,
+        () => ({} as StorageSharedKeyCredential),
       );
     });
 
     it("should return properties when blob exists", async () => {
       // Arrange
-      const { getBlobProperties } =
-        await import("../../infrastructure/storage-service");
+      const { getBlobProperties } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act
       const result = await getBlobProperties(mockContainerName, mockBlobName);
@@ -935,8 +1160,9 @@ describe("StorageService", () => {
     it("should return null when storage is not enabled", async () => {
       // Arrange
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-      const { getBlobProperties } =
-        await import("../../infrastructure/storage-service");
+      const { getBlobProperties } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act
       const result = await getBlobProperties(mockContainerName, mockBlobName);
@@ -947,8 +1173,9 @@ describe("StorageService", () => {
 
     it("should return null when containerName is empty", async () => {
       // Arrange
-      const { getBlobProperties } =
-        await import("../../infrastructure/storage-service");
+      const { getBlobProperties } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act
       const result = await getBlobProperties("", mockBlobName);
@@ -959,8 +1186,9 @@ describe("StorageService", () => {
 
     it("should return null when blobName is empty", async () => {
       // Arrange
-      const { getBlobProperties } =
-        await import("../../infrastructure/storage-service");
+      const { getBlobProperties } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act
       const result = await getBlobProperties(mockContainerName, "");
@@ -974,8 +1202,9 @@ describe("StorageService", () => {
       mockBlobClient.getProperties = vi
         .fn()
         .mockRejectedValue(new Error("Blob not found"));
-      const { getBlobProperties } =
-        await import("../../infrastructure/storage-service");
+      const { getBlobProperties } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // Act
       const result = await getBlobProperties(mockContainerName, mockBlobName);
@@ -1005,13 +1234,14 @@ describe("StorageService", () => {
         () => mockBlobServiceClient,
       );
       vi.mocked(StorageSharedKeyCredential).mockImplementation(
-        () => ({}) as StorageSharedKeyCredential,
+        () => ({} as StorageSharedKeyCredential),
       );
     });
 
     it("should reset the singleton client", async () => {
-      const { resetBlobServiceClient, uploadToStorage } =
-        await import("../../infrastructure/storage-service");
+      const { resetBlobServiceClient, uploadToStorage } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       // 1. Instantiate the client by calling a function
       await uploadToStorage(
@@ -1060,11 +1290,12 @@ describe("StorageService", () => {
         () => mockBlobServiceClient,
       );
       vi.mocked(StorageSharedKeyCredential).mockImplementation(
-        () => ({}) as StorageSharedKeyCredential,
+        () => ({} as StorageSharedKeyCredential),
       );
 
-      const { uploadToStorage, generateUploadUrl, deleteBlob } =
-        await import("../../infrastructure/storage-service");
+      const { uploadToStorage, generateUploadUrl, deleteBlob } = await import(
+        "../../infrastructure/storage-service"
+      );
 
       const fileOptions = {
         fileName: mockFileName,
@@ -1089,7 +1320,8 @@ describe("StorageService", () => {
 });
 
 const resolveUploadToStorage = async () => {
-  const { uploadToStorage } =
-    await import("../../infrastructure/storage-service");
+  const { uploadToStorage } = await import(
+    "../../infrastructure/storage-service"
+  );
   return uploadToStorage;
 };

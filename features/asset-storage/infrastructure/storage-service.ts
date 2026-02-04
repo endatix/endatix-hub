@@ -335,15 +335,20 @@ async function listBlobs(folderOptions: FolderOptions): Promise<BlobItem[]> {
     getStorageConfig().containerNames.USER_FILES,
   );
 
-  const iter = containerClient.listBlobsFlat({
+  const blobsIterator = containerClient.listBlobsFlat({
     prefix: folderPathResult.value,
     includeDeleted: false,
     includeMetadata: true,
   });
 
   const filesResult: BlobItem[] = [];
-  for await (const blob of iter) {
-    filesResult.push(blob);
+  for await (const blob of blobsIterator) {
+    const contentLength = Number(blob.properties?.contentLength ?? 0);
+    const contentType = blob.properties?.contentType ?? "";
+    const isFile = contentLength > 0 && contentType.length > 0;
+    if (isFile) {
+      filesResult.push(blob);
+    }
   }
   return filesResult;
 }
