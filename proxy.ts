@@ -8,9 +8,9 @@ import {
   HUB_PATHS,
 } from "@/features/auth/infrastructure/auth-constants";
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const session = await auth();
-  const path = req.nextUrl.pathname;
+  const path = request.nextUrl.pathname;
 
   if (AUTH_ROUTES.includes(path)) {
     return NextResponse.next();
@@ -21,7 +21,7 @@ export default async function middleware(req: NextRequest) {
     const isLoggedIn = !!session;
     const hasSessionError = session?.error !== undefined;
     if (!isLoggedIn || hasSessionError) {
-      return redirectToLogin(req);
+      return redirectToLogin(request);
     }
   }
 
