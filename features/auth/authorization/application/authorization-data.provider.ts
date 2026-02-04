@@ -128,16 +128,16 @@ export function invalidateUserAuthorizationCache(options: {
   const { userId, userIds, allUsers } = options;
 
   if (userId) {
-    revalidateTag(getUserPermissionsCacheKey(userId));
+    revalidateTag(getUserPermissionsCacheKey(userId), "max");
   }
 
   if (userIds) {
     for (const userId of userIds) {
-      revalidateTag(getUserPermissionsCacheKey(userId));
+      revalidateTag(getUserPermissionsCacheKey(userId), "max");
     }
   }
 
   if (allUsers) {
-    revalidateTag(ALL_USER_PERMISSIONS_CACHE_TAG);
+    revalidateTag(ALL_USER_PERMISSIONS_CACHE_TAG, "max");
   }
 }
