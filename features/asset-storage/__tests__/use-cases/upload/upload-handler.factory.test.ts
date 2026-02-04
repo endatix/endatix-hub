@@ -151,7 +151,7 @@ describe("createUserUpload", () => {
         files: [file],
         callback,
         question: { name: "q1" },
-      } as Parameters<typeof handler>[1],
+      } as unknown as UploadFilesEvent,
     );
 
     expect(callback).toHaveBeenCalledWith(
