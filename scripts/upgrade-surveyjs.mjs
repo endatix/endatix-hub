@@ -10,14 +10,19 @@
  * - spawnSync(..., { shell: false }) avoids command injection: args are passed
  *   as an array, so the shell never interprets user input. See CWE-78, OWASP
  *   "Command Injection".
- * - Version spec is validated (semver-like or "latest") so we never pass
+ * - Version spec is validated (semver or "latest") so we never pass
  *   shell metacharacters into the child process.
+ * - Version parsing/validation uses the semver package (no custom regexes),
+ *   avoiding ReDoS (S5852) and matching npm semver behavior.
+ * - Executable is resolved to a fixed path (hub node_modules/.bin/pnpm) so
+ *   we do not rely on PATH, which may contain user-writable directories.
  */
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import semver from "semver";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,22 +35,20 @@ const SURVEY_PACKAGES = [
   "survey-react-ui",
 ];
 
-// Extract semver from a range (e.g. "^2.5.9" -> "2.5.9")
+// Extract a valid semver string from a range or tag (e.g. "^2.5.9" or "v2.5.9" -> "2.5.9"). Uses semver package to avoid ReDoS.
 function parseVersion(versionStr) {
   if (!versionStr || typeof versionStr !== "string") return null;
-  const match = String(versionStr).match(/(\d+\.\d+\.\d+)/);
-  return match ? match[1] : null;
+  const coerced = semver.coerce(versionStr);
+  return coerced ? semver.valid(coerced) : null;
 }
 
-// Allow only "latest" or semver-like (e.g. 2.5.9, 1.0.0-beta) for security
-const SEMVER_LIKE = /^[\d.]+(-[\w.]+)?$/;
+// Allow only "latest" or a valid semver string; otherwise default to "latest".
 function toValidSpec(versionArg) {
   const raw = versionArg ? parseVersion(versionArg) || versionArg : "latest";
-  if (raw === "latest" || SEMVER_LIKE.test(raw)) {
+  if (raw === "latest") {
     return raw;
   }
-
-  return "latest";
+  return semver.valid(raw) ? raw : "latest";
 }
 
 function getInstalledVersion(hubDir) {
@@ -59,9 +62,25 @@ function getInstalledVersion(hubDir) {
   }
 }
 
+// Fixed path to pnpm so we do not rely on PATH (may contain user-writable dirs).
+// Try: hub node_modules, parent node_modules, then same directory as Node (corepack/global).
+function getPnpmPath(hubDir) {
+  const name = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const inHub = path.join(hubDir, "node_modules", ".bin", name);
+  if (existsSync(inHub)) return inHub;
+  const inParent = path.join(hubDir, "..", "node_modules", ".bin", name);
+  if (existsSync(inParent)) return inParent;
+  const nextToNode = path.join(path.dirname(process.execPath), name);
+  if (existsSync(nextToNode)) return nextToNode;
+  return nextToNode;
+}
+
 console.log("🚀 Upgrading Survey.js packages...\n");
 
-const hubDir = path.join(__dirname, "..");
+const PROJECT_ROOT = process.cwd();
+const hubDir = existsSync(path.join(PROJECT_ROOT, "package.json"))
+  ? PROJECT_ROOT
+  : path.resolve(__dirname, "..");
 process.chdir(hubDir);
 
 const versionArg = process.argv[2]?.trim();
@@ -69,12 +88,23 @@ const spec = toValidSpec(versionArg);
 // Build args as array (no shell) so static tools don't flag command injection
 const args = ["add", ...SURVEY_PACKAGES.map((p) => `${p}@${spec}`)];
 
+const pnpmPath = getPnpmPath(hubDir);
+if (!existsSync(pnpmPath)) {
+  console.error(
+    `\n❌ pnpm not found. Tried: hub/node_modules/.bin, parent node_modules/.bin, and Node bin dir (${path.dirname(
+      process.execPath,
+    )}).\n` +
+      `  Run "pnpm install" from the hub directory, or enable corepack: corepack enable\n`,
+  );
+  process.exit(1);
+}
+
 try {
   console.log(`📦 Packages: ${SURVEY_PACKAGES.join(", ")}`);
   console.log(`📌 Specifier: ${spec}\n`);
   console.log(`⚡ Running: pnpm ${args.join(" ")}\n`);
 
-  const result = spawnSync("pnpm", args, {
+  const result = spawnSync(pnpmPath, args, {
     stdio: "inherit",
     cwd: hubDir,
     shell: false,
@@ -90,7 +120,7 @@ try {
     } else {
       msg = `pnpm exited with code ${result.status}`;
     }
-    
+
     throw new Error(msg);
   }
 

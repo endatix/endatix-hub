@@ -20,7 +20,8 @@
     "test:e2e:smoke": "playwright test --project=smoke",
     "test:e2e:debug": "playwright test --debug",
     "discover-questions": "node scripts/discover-questions.mjs",
-    "pnpm:comments": "node scripts/echo-pnpm-comments.mjs"
+    "pnpm:comments": "node scripts/echo-pnpm-comments.mjs",
+    "tools:upgrade-surveyjs": "node scripts/upgrade-surveyjs.mjs"
   },
   "dependencies": {
     "@azure/monitor-opentelemetry-exporter": "1.0.0-beta.32",
