@@ -1,6 +1,5 @@
-import type { UploadFilesEvent } from "survey-core";
+import type { SurveyModel, UploadFilesEvent } from "survey-core";
 import type { UploadFileEvent } from "survey-creator-core";
-import type { SurveyModel } from "survey-core";
 import { Result, type ResultType } from "@/lib/result";
 import type { ContentItemType, FileMetadata } from "../../types";
 import { buildUserFileMetadata } from "../../infrastructure/storage-utils";
@@ -59,38 +58,37 @@ export function createUserUpload(config: UserUploadConfig) {
 
     const sasData: UploadUrlsData = sasResult.value;
 
-    if (
-      sasData.submissionId &&
-      sasData.submissionId !== (submissionId ?? "")
-    ) {
+    if (sasData.submissionId && sasData.submissionId !== (submissionId ?? "")) {
       onSubmissionIdChange?.(sasData.submissionId);
     }
 
     const uploadResults = await Promise.all(
-      options.files.map(async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
-        const token = sasData.sasTokens[file.name];
-        if (!token?.success || !token?.url) {
-          return Result.error(token?.message ?? `No URL for ${file.name}`);
-        }
+      options.files.map(
+        async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
+          const token = sasData.sasTokens[file.name];
+          if (!token?.success || !token?.url) {
+            return Result.error(token?.message ?? `No URL for ${file.name}`);
+          }
 
-        const metadata: FileMetadata = buildUserFileMetadata({
-          kind: "user",
-          uploadedBy: sasData.userId ?? "anonymous",
-          formId,
-          submissionId: sasData.submissionId ?? submissionId ?? "",
-          questionName: options.question?.name ?? "",
-          formLang: surveyModel?.locale ?? "",
-          displayName: file.name,
-          contentType: file.type,
-        });
+          const metadata: FileMetadata = buildUserFileMetadata({
+            kind: "user",
+            uploadedBy: sasData.userId ?? "anonymous",
+            formId,
+            submissionId: sasData.submissionId ?? submissionId ?? "",
+            questionName: options.question?.name ?? "",
+            formLang: surveyModel?.locale ?? "",
+            displayName: file.name,
+            contentType: file.type,
+          });
 
-        return processAndUploadFile(
-          file,
-          token.url,
-          metadata,
-          isResizeEnabled ? USER_RESIZE_URL : undefined,
-        );
-      }),
+          return processAndUploadFile(
+            file,
+            token.url,
+            metadata,
+            isResizeEnabled ? USER_RESIZE_URL : undefined,
+          );
+        },
+      ),
     );
 
     const successes = uploadResults
