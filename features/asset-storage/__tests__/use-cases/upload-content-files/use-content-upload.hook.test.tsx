@@ -136,7 +136,7 @@ describe("useContentUpload", () => {
             userId: "user-1",
             itemId: "test-item",
             contentItemType: "form",
-            questionId: "question1",
+            questionName: "question1",
           },
         }),
     });
@@ -153,7 +153,7 @@ describe("useContentUpload", () => {
           itemId: "test-item",
           itemType: "form",
           fileNames: ["test.jpg"],
-          questionId: "question1",
+          questionName: "question1",
         }),
       }),
     );

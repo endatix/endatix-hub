@@ -35,11 +35,9 @@ describe("handleResizeImageRequest", () => {
   });
 
   it("returns 400 when form data has no 'file' field", async () => {
-    const formData = new FormData();
-    const request = new Request("http://test/resize", {
-      method: "POST",
-      body: formData,
-    });
+    const request = {
+      formData: () => Promise.resolve({ get: (_key: string) => null }),
+    } as unknown as Request;
 
     const response = await handleResizeImageRequest(request);
 
@@ -52,12 +50,12 @@ describe("handleResizeImageRequest", () => {
   });
 
   it("returns 400 when 'file' field is a string (e.g. text input)", async () => {
-    const formData = new FormData();
-    formData.append("file", "not-a-file");
-    const request = new Request("http://test/resize", {
-      method: "POST",
-      body: formData,
-    });
+    const request = {
+      formData: () =>
+        Promise.resolve({
+          get: (key: string) => (key === "file" ? "not-a-file" : null),
+        }),
+    } as unknown as Request;
 
     const response = await handleResizeImageRequest(request);
 
@@ -73,12 +71,12 @@ describe("handleResizeImageRequest", () => {
     const file = new File(["content"], "doc.pdf", {
       type: "application/pdf",
     });
-    const formData = new FormData();
-    formData.append("file", file);
-    const request = new Request("http://test/resize", {
-      method: "POST",
-      body: formData,
-    });
+    const request = {
+      formData: () =>
+        Promise.resolve({
+          get: (key: string) => (key === "file" ? file : null),
+        }),
+    } as unknown as Request;
 
     const response = await handleResizeImageRequest(request);
 
@@ -89,15 +87,17 @@ describe("handleResizeImageRequest", () => {
   });
 
   it("returns 200 with optimized buffer and correct headers for a valid image", async () => {
-    const file = new File([Buffer.from("image-bytes")], "photo.png", {
+    const fileLike = {
       type: "image/png",
-    });
-    const formData = new FormData();
-    formData.append("file", file);
-    const request = new Request("http://test/resize", {
-      method: "POST",
-      body: formData,
-    });
+      arrayBuffer: () =>
+        Promise.resolve(Buffer.from("image-bytes").buffer as ArrayBuffer),
+    };
+    const request = {
+      formData: () =>
+        Promise.resolve({
+          get: (key: string) => (key === "file" ? fileLike : null),
+        }),
+    } as unknown as Request;
 
     const response = await handleResizeImageRequest(request);
 
@@ -116,15 +116,17 @@ describe("handleResizeImageRequest", () => {
   });
 
   it("passes image buffer and content type to optimizeImageSize", async () => {
-    const file = new File([Buffer.from("jpeg-data")], "photo.jpg", {
+    const fileLike = {
       type: "image/jpeg",
-    });
-    const formData = new FormData();
-    formData.append("file", file);
-    const request = new Request("http://test/resize", {
-      method: "POST",
-      body: formData,
-    });
+      arrayBuffer: () =>
+        Promise.resolve(new Uint8Array([1, 2, 3]).buffer as ArrayBuffer),
+    };
+    const request = {
+      formData: () =>
+        Promise.resolve({
+          get: (key: string) => (key === "file" ? fileLike : null),
+        }),
+    } as unknown as Request;
 
     await handleResizeImageRequest(request);
 
@@ -137,20 +139,19 @@ describe("handleResizeImageRequest", () => {
   });
 
   it("returns 400 when image resize is disabled", async () => {
-    // Mock resize as disabled
     (
       imageService.IMAGE_SERVICE_CONFIG as { isResizeEnabled: boolean }
     ).isResizeEnabled = false;
 
-    const file = new File([Buffer.from("image-bytes")], "photo.png", {
+    const file = new File([new Uint8Array([1, 2, 3])], "photo.png", {
       type: "image/png",
     });
-    const formData = new FormData();
-    formData.append("file", file);
-    const request = new Request("http://test/resize", {
-      method: "POST",
-      body: formData,
-    });
+    const request = {
+      formData: () =>
+        Promise.resolve({
+          get: (key: string) => (key === "file" ? file : null),
+        }),
+    } as unknown as Request;
 
     const response = await handleResizeImageRequest(request);
 

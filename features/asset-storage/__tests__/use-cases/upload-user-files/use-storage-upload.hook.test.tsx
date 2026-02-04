@@ -843,19 +843,26 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            submissionId: "new-submission-id",
-            files: [
-              {
-                name: "test.jpg",
-                url: "https://test.blob.core.windows.net/test",
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              submissionId: "new-submission-id",
+              userId: "user-1",
+              sasTokens: {
+                "test.jpg": {
+                  success: true,
+                  url: "https://test.blob.core.windows.net/test?sas-token",
+                },
               },
-            ],
-          }),
-      });
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        });
 
       const { result } = renderHook(
         () =>
@@ -885,19 +892,26 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            submissionId: mockSubmissionId, // Same as current
-            files: [
-              {
-                name: "test.jpg",
-                url: "https://test.blob.core.windows.net/test",
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              submissionId: mockSubmissionId, // Same as current
+              userId: "user-1",
+              sasTokens: {
+                "test.jpg": {
+                  success: true,
+                  url: "https://test.blob.core.windows.net/test?sas-token",
+                },
               },
-            ],
-          }),
-      });
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "video/mp4" }),
+        });
 
       const { result } = renderHook(
         () =>

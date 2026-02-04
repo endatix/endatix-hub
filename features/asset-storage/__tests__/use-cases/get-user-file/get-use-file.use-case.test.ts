@@ -41,14 +41,16 @@ const mockPrivateConfig = {
 const mockProperties = {
   contentType: "application/pdf",
   sizeInBytes: 1024,
-  metadata: { filename: "doc.pdf", questionId: "q1" },
+  metadata: { filename: "doc.pdf", questionName: "q1" },
 };
 const mockMetadata = {
+  kind: "user" as const,
   displayName: "doc.pdf",
   contentType: "application/pdf",
   sizeInBytes: 1024,
   originalFileName: "doc.pdf",
   questionName: "q1",
+  uploadedBy: "user-1",
 };
 
 describe("getUserFile", () => {

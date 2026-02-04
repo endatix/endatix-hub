@@ -20,26 +20,37 @@ export async function handleResizeImageRequest(
   const formData = await request.formData();
   const file = formData.get("file");
 
-  if (!file || typeof file === "string" || !(file instanceof File)) {
+  if (file == null || typeof file === "string") {
     return apiResponses.badRequest({
       detail:
         "Invalid or missing file. Send one image as multipart field 'file'.",
     });
   }
 
-  if (!file.type.startsWith("image/")) {
+  const blobLike = file as Blob;
+  const contentType = blobLike.type ?? "";
+  if (!contentType.startsWith("image/")) {
     return apiResponses.badRequest({
       detail: "File must be an image.",
     });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const optimizedBuffer = await optimizeImageSize(buffer, file.type);
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(await blobLike.arrayBuffer());
+  } catch {
+    return apiResponses.badRequest({
+      detail:
+        "Invalid or missing file. Send one image as multipart field 'file'.",
+    });
+  }
+
+  const optimizedBuffer = await optimizeImageSize(buffer, contentType);
 
   return new Response(optimizedBuffer as unknown as BodyInit, {
     status: 200,
     headers: {
-      "Content-Type": file.type,
+      "Content-Type": contentType,
       "Content-Length": String(optimizedBuffer.length),
     },
   });
