@@ -14,10 +14,10 @@
  *   shell metacharacters into the child process.
  */
 
-import { spawnSync } from "child_process";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import path from "path";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +37,17 @@ function parseVersion(versionStr) {
   return match ? match[1] : null;
 }
 
+// Allow only "latest" or semver-like (e.g. 2.5.9, 1.0.0-beta) for security
+const SEMVER_LIKE = /^[\d.]+(-[\w.]+)?$/;
+function toValidSpec(versionArg) {
+  const raw = versionArg ? parseVersion(versionArg) || versionArg : "latest";
+  if (raw === "latest" || SEMVER_LIKE.test(raw)) {
+    return raw;
+  }
+
+  return "latest";
+}
+
 function getInstalledVersion(hubDir) {
   try {
     const pkgPath = path.join(hubDir, "package.json");
@@ -54,12 +65,7 @@ const hubDir = path.join(__dirname, "..");
 process.chdir(hubDir);
 
 const versionArg = process.argv[2]?.trim();
-// Use @version if provided, otherwise @latest; same code path. Restrict to semver-like or "latest" to satisfy static security checks.
-const rawSpec = versionArg ? parseVersion(versionArg) || versionArg : "latest";
-const spec =
-  rawSpec === "latest" || /^[\d.]+(-[\w.]+)?$/.test(rawSpec)
-    ? rawSpec
-    : "latest";
+const spec = toValidSpec(versionArg);
 // Build args as array (no shell) so static tools don't flag command injection
 const args = ["add", ...SURVEY_PACKAGES.map((p) => `${p}@${spec}`)];
 
@@ -76,11 +82,15 @@ try {
 
   // status is null when the process was killed by a signal (e.g. SIGINT)
   if (result.status !== 0 || result.signal) {
-    const msg = result.error
-      ? result.error.message
-      : result.signal
-      ? `pnpm was killed by signal ${result.signal}`
-      : `pnpm exited with code ${result.status}`;
+    let msg;
+    if (result.error) {
+      msg = result.error.message;
+    } else if (result.signal) {
+      msg = `pnpm was killed by signal ${result.signal}`;
+    } else {
+      msg = `pnpm exited with code ${result.status}`;
+    }
+    
     throw new Error(msg);
   }
 
