@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { toSafeRelativeUrl } from "@/lib/utils/url-utils";
 import { NextRequest, NextResponse } from "next/server";
 import {
   AUTH_ROUTES,
@@ -8,21 +9,34 @@ import {
   HUB_PATHS,
 } from "@/features/auth/infrastructure/auth-constants";
 
+/** Session shape needed for redirect decision; exported for testing. */
+export type ProxySession = { error?: unknown } | null;
+
+/**
+ * Pure: decides if the request should redirect to login. Exported for unit tests.
+ */
+export function shouldRedirectToLogin(
+  pathname: string,
+  session: ProxySession,
+): boolean {
+  if (AUTH_ROUTES.includes(pathname)) {
+    return false;
+  }
+  const isHubPath = HUB_PATHS.some((p) => pathname.startsWith(p));
+  if (!isHubPath) {
+    return false;
+  }
+  const isLoggedIn = !!session;
+  const hasSessionError = session?.error !== undefined;
+  return !isLoggedIn || hasSessionError;
+}
+
 export default async function proxy(request: NextRequest) {
   const session = await auth();
-  const path = request.nextUrl.pathname;
+  const pathname = request.nextUrl.pathname;
 
-  if (AUTH_ROUTES.includes(path)) {
-    return NextResponse.next();
-  }
-
-  const isHubPath = HUB_PATHS.some((p) => path.startsWith(p));
-  if (isHubPath) {
-    const isLoggedIn = !!session;
-    const hasSessionError = session?.error !== undefined;
-    if (!isLoggedIn || hasSessionError) {
-      return redirectToLogin(request);
-    }
+  if (shouldRedirectToLogin(pathname, session)) {
+    return redirectToLogin(request);
   }
 
   return NextResponse.next();
@@ -52,21 +66,15 @@ export const config = {
 };
 
 function redirectToLogin(req: NextRequest): NextResponse<unknown> {
-  let returnUrl = req.nextUrl.pathname || DEFAULT_RETURN_URL;
-  if (returnUrl === "/") {
-    returnUrl = DEFAULT_RETURN_URL;
-  }
-
-  if (req.nextUrl.search) {
-    returnUrl += req.nextUrl.search;
-  }
-
-  const encodedReturnUrl = encodeURIComponent(returnUrl);
-
+  const returnUrl = toSafeRelativeUrl(
+    req.nextUrl.pathname,
+    req.nextUrl.search,
+    req.nextUrl.origin,
+    DEFAULT_RETURN_URL,
+  );
   const loginUrl = new URL(
-    `${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodedReturnUrl}`,
+    `${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodeURIComponent(returnUrl)}`,
     req.nextUrl.origin,
   );
-
   return NextResponse.redirect(loginUrl);
 }
