@@ -51,13 +51,14 @@ function toSafeRelativeUrl(
 ): string {
   const path = pathname || defaultPath;
   const pathNorm = path === DEFAULT_RELATIVE_PATH ? defaultPath : path;
-  const searchPart = search
-    ? search.startsWith("?")
-      ? search
-      : `?${search}`
-    : "";
+
+  let queryParams = "";
+  if (search && search.length > 0) {
+    queryParams = search.startsWith("?") ? search : `?${search}`;
+  }
+
   try {
-    const url = new URL(pathNorm + searchPart, baseOrigin);
+    const url = new URL(pathNorm + queryParams, baseOrigin);
     if (url.origin !== baseOrigin) {
       return defaultPath;
     }
