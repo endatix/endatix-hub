@@ -1,3 +1,5 @@
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FlatCompat } from "@eslint/eslintrc";
@@ -18,10 +20,17 @@ const testFiles = [
   "**/?(*.)+(spec|test).[jt]s?(x)",
 ];
 
-const tempRuleOverrides =  {
+const tempRuleOverrides = {
   "no-console": "off",
   "@typescript-eslint/no-unused-vars": "off",
   "@typescript-eslint/no-explicit-any": "off",
+  "react-hooks/set-state-in-effect": "off",
+  "react-hooks/incompatible-library": "off",
+  "react-hooks/immutability": "off",
+  "react-hooks/static-components": "off",
+  "react-hooks/purity": "off",
+  "react-hooks/globals": "off",
+  "react-hooks/refs": "off",
 };
 
 /** @type {import('eslint').Linter.Config[]} */
@@ -44,13 +53,8 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
-
-  // 2. Next.js & TypeScript recommended rules (following Next.js 15 docs)
-  ...compat.config({
-    extends: ["next/core-web-vitals", "next/typescript"],
-  }),
-
-  // 3. Global rules & overrides
+  ...nextCoreWebVitals,
+  ...nextTypescript, // 3. Global rules & overrides
   {
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
@@ -63,9 +67,7 @@ const eslintConfig = [
       "no-console": ["warn", { allow: ["warn", "error", "debug"] }],
       ...tempRuleOverrides,
     },
-  },
-
-  // 4. Testing Library rules for test files only
+  }, // 4. Testing Library rules for test files only
   {
     files: testFiles,
     ...compat.config({
@@ -75,9 +77,7 @@ const eslintConfig = [
       "@typescript-eslint/no-explicit-any": "off",
       "testing-library/no-unnecessary-act": "off",
     },
-  },
-
-  // 5. E2E specific overrides (preserving existing logic)
+  }, // 5. E2E specific overrides (preserving existing logic)
   {
     files: ["e2e/**/*.ts", "e2e/**/*.tsx"],
     languageOptions: {
@@ -90,8 +90,6 @@ const eslintConfig = [
       "@typescript-eslint/no-floating-promises": "error",
     },
   },
-
-  // 6. Prettier integration (Must be last to override other formatting rules)
   ...compat.config({
     extends: ["prettier"],
   }),
