@@ -154,9 +154,6 @@ importers:
       ace-builds:
         specifier: ^1.43.6
         version: 1.43.6
-      babel-plugin-react-compiler:
-        specifier: 0.0.0-experimental-6067d4e-20240919
-        version: 0.0.0-experimental-6067d4e-20240919
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -284,6 +281,9 @@ importers:
       '@vitest/ui':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4)
+      babel-plugin-react-compiler:
+        specifier: 0.0.0-experimental-6067d4e-20240919
+        version: 0.0.0-experimental-6067d4e-20240919
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
