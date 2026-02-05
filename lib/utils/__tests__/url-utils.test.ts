@@ -1,6 +1,76 @@
 import { describe, it, expect } from "vitest";
-import { extractHostname } from "../url-utils";
+import { extractHostname, toSafeRelativeUrl } from "../url-utils";
 import { Result } from "../../result";
+
+const BASE_ORIGIN = "https://example.com";
+const DEFAULT_RETURN_PATH = "/forms";
+
+describe("toSafeRelativeUrl", () => {
+  it("returns path + search for normal paths", () => {
+    expect(
+      toSafeRelativeUrl("/forms", "", BASE_ORIGIN, DEFAULT_RETURN_PATH),
+    ).toBe("/forms");
+    expect(
+      toSafeRelativeUrl(
+        "/forms",
+        "tab=submissions",
+        BASE_ORIGIN,
+        DEFAULT_RETURN_PATH,
+      ),
+    ).toBe("/forms?tab=submissions");
+    expect(
+      toSafeRelativeUrl("/settings", "?a=1", BASE_ORIGIN, DEFAULT_RETURN_PATH),
+    ).toBe("/settings?a=1");
+  });
+
+  it("returns defaultPath when pathname is / or empty", () => {
+    expect(toSafeRelativeUrl("/", "", BASE_ORIGIN, DEFAULT_RETURN_PATH)).toBe(
+      DEFAULT_RETURN_PATH,
+    );
+    expect(toSafeRelativeUrl("", "", BASE_ORIGIN, DEFAULT_RETURN_PATH)).toBe(
+      DEFAULT_RETURN_PATH,
+    );
+  });
+
+  it("returns defaultPath for protocol-relative (//) to prevent open redirect", () => {
+    expect(
+      toSafeRelativeUrl("//evil.com", "", BASE_ORIGIN, DEFAULT_RETURN_PATH),
+    ).toBe(DEFAULT_RETURN_PATH);
+    expect(
+      toSafeRelativeUrl(
+        "//evil.com/path",
+        "",
+        BASE_ORIGIN,
+        DEFAULT_RETURN_PATH,
+      ),
+    ).toBe(DEFAULT_RETURN_PATH);
+  });
+
+  it("returns defaultPath when path or search contains //", () => {
+    expect(
+      toSafeRelativeUrl("/forms//foo", "", BASE_ORIGIN, DEFAULT_RETURN_PATH),
+    ).toBe(DEFAULT_RETURN_PATH);
+    expect(
+      toSafeRelativeUrl(
+        "/forms",
+        "x=//evil.com",
+        BASE_ORIGIN,
+        DEFAULT_RETURN_PATH,
+      ),
+    ).toBe(DEFAULT_RETURN_PATH);
+  });
+
+  it("returns path when path has encoded segments", () => {
+    expect(
+      toSafeRelativeUrl(
+        "/forms/abc%2F123",
+        "",
+        BASE_ORIGIN,
+        DEFAULT_RETURN_PATH,
+      ),
+    ).toBe("/forms/abc%2F123");
+  });
+});
 
 describe("extractHostname", () => {
   describe("successful extraction", () => {

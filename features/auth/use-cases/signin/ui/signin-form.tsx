@@ -1,5 +1,3 @@
-"use server";
-
 import { FC } from "react";
 import { AuthPresentation } from "@/features/auth/infrastructure/types";
 import EndatixSignInForm from "./endatix-sign-in-form";

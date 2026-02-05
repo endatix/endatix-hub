@@ -277,7 +277,7 @@ describe("invalidateUserAuthorizationCache", () => {
 
     invalidateUserAuthorizationCache({ userId: "user-123" });
 
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
   });
 
   it("should invalidate cache for multiple userIds", async () => {
@@ -288,9 +288,9 @@ describe("invalidateUserAuthorizationCache", () => {
     });
 
     expect(revalidateTag).toHaveBeenCalledTimes(3);
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-1");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-2");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-3");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-1", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-2", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-3", "max");
   });
 
   it("should invalidate all user caches when allUsers is true", async () => {
@@ -298,7 +298,7 @@ describe("invalidateUserAuthorizationCache", () => {
 
     invalidateUserAuthorizationCache({ allUsers: true });
 
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
   });
 
   it("should handle multiple invalidation options", async () => {
@@ -310,10 +310,10 @@ describe("invalidateUserAuthorizationCache", () => {
       allUsers: true,
     });
 
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-456");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-789");
-    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-123", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-456", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms:user-789", "max");
+    expect(revalidateTag).toHaveBeenCalledWith("usr_prms_all", "max");
   });
 
   it("should handle empty options", async () => {
