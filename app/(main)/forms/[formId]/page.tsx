@@ -41,5 +41,5 @@ export default async function FormOverviewPage({ params }: Params) {
     );
   }
 
-  return <FormDetails form={form} showHeader={true} />;
+  return <FormDetails form={form} showHeader={true} enableEditing={true} />;
 }

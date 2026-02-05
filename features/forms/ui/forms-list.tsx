@@ -69,6 +69,7 @@ const FormsList = ({ forms }: FormDataProps) => {
         open={isSheetOpen}
         onOpenChange={handleOnOpenChange}
         selectedForm={selectedForm ?? null}
+        enableEditing={true}
       />
       
       {saveAsTemplateForm && (
