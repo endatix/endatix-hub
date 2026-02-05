@@ -80,6 +80,14 @@ interface CompositeExtension extends EndatixExtension {
   onCreatorCreated?: CreatorExtension["onCreatorCreated"];
 }
 
+/** Discriminated union type for all extension types */
+type Extension =
+  | QuestionExtension
+  | InitExtension
+  | ModelExtension
+  | CreatorExtension
+  | CompositeExtension;
+
 export type {
   EndatixExtension,
   QuestionExtension,
@@ -87,4 +95,5 @@ export type {
   ModelExtension,
   CreatorExtension,
   CompositeExtension,
+  Extension,
 };
