@@ -1,99 +1,92 @@
 import type { ComponentType } from "react";
-import type { ICustomQuestionTypeConfiguration } from "survey-core";
-import { SurveyCreator } from "survey-creator-react";
-import { Survey } from "survey-react-ui";
+import type { ICustomQuestionTypeConfiguration, Model } from "survey-core";
+import type { SurveyCreator } from "survey-creator-react";
 
-/** Base interface for all Endatix survey extensions. */
-interface EndatixExtension {
+/**
+ * Extension lifecycle phases
+ */
+export type ExtensionLifecycle = "init" | "runner" | "creator";
+
+/**
+ * Complete extension definition
+ *
+ * This is the recommended format for all extensions.
+ * Supports smart detection, lazy loading, and lifecycle hooks.
+ */
+export interface ExtensionDefinition {
   /**
-   * A unique identifier for the extension (e.g. "audio-recorder")
+   * Unique identifier for the extension (e.g. "audio-recorder", "camera-fix")
    */
   id: string;
 
   /**
-   * A human-readable name for the extension (e.g. "Audio Recorder")
+   * Human-readable name (e.g. "Audio Recorder", "Camera Facing Mode Fix")
    */
   name: string;
 
   /**
-   * The type of extension.
-   */
-  type: "question" | "init" | "model" | "creator" | "composite";
-
-  /**
-   * Optional description of the extension.
+   * Optional description of what this extension does
    */
   description?: string;
-}
-
-interface QuestionExtension extends EndatixExtension {
-  type: "question";
 
   /**
-   * The configuration for the question.
+   * Server-side detection function.
+   * Analyzes form JSON to determine if this extension is needed.
+   * Used for smart preloading optimization.
+   *
+   * @param formJson - The form definition JSON
+   * @returns true if this extension is required for the form
+   *
+   * @example
+   * // Always include (for global patches)
+   * detect: () => true
+   *
+   * @example
+   * // Include only if form uses specific question type
+   * detect: (json) => formUsesQuestionType(json, 'audio-recorder')
    */
-  config: ICustomQuestionTypeConfiguration;
-
-  // React component for rendering
-  component?: ComponentType<any>;
-
-  /** Customize the Survey Creator toolbox for this question. */
-  customizeEditor?: (creator: SurveyCreator) => void;
-}
-
-/**
- * An extension that is executed before the survey model is created. Runs once. Useful for modyfying factory functions, serializers, etc.
- */
-interface InitExtension extends EndatixExtension {
-  type: "init";
-  onInit: () => void;
-}
-
-/**
- * An extension that is executed after the survey model is created. Runs once. Useful for modifying the model after it is created.
- */
-interface ModelExtension extends EndatixExtension {
-  type: "model";
+  detect?: (formJson: any) => boolean;
 
   /**
-   * A function that is executed after the survey model is created. Runs once for the survey instance.
-   * Useful for attaching event handlers to the model.
-   * @param model - The survey model.
+   * Dynamic import function for lazy loading.
+   * Used for preloading the extension chunk before rendering.
+   *
+   * @returns Promise resolving to the extension module
+   *
+   * @example
+   * loader: () => import('./my-extension-logic')
    */
-  onModelCreated: (model: Survey) => void;
+  loader?: () => Promise<any>;
+
+  /**
+   * React component for rendering (question extensions only).
+   * Supports both static imports and next/dynamic for lazy loading.
+   */
+  Component?: ComponentType<any>;
+
+
+  /**
+   * Lifecycle hooks
+   */
+  hooks?: {
+    /**
+     * Global app initialization (runs once at startup).
+     * Use for: Prototype patching, global SurveyJS settings
+     */
+    onInit?: () => void | Promise<void>;
+
+    /**
+     * Form runner initialization (runs per survey instance).
+     * Use for: Event handlers, analytics tracking, custom validation
+     */
+    onModelCreated?: (model: Model) => void;
+
+    /**
+     * Form creator initialization (runs per creator instance).
+     * Use for: Toolbox customization, property grid setup, editor plugins
+     */
+    onCreatorCreated?: (creator: SurveyCreator) => void;
+  };
 }
 
-/** Extension for creator lifecycle (runs per creator instance) */
-interface CreatorExtension extends EndatixExtension {
-  type: "creator";
-
-  /** Runs when Survey Creator is initialized */
-  onCreatorCreated: (creator: SurveyCreator) => void;
-}
-
-/** Composite extension supporting installin multiple extensions at once */
-interface CompositeExtension extends EndatixExtension {
-  type: "composite";
-  questions?: QuestionExtension["config"][];
-  onInit?: InitExtension["onInit"];
-  onModelCreated?: ModelExtension["onModelCreated"];
-  onCreatorCreated?: CreatorExtension["onCreatorCreated"];
-}
-
-/** Discriminated union type for all extension types */
-type Extension =
-  | QuestionExtension
-  | InitExtension
-  | ModelExtension
-  | CreatorExtension
-  | CompositeExtension;
-
-export type {
-  EndatixExtension,
-  QuestionExtension,
-  InitExtension,
-  ModelExtension,
-  CreatorExtension,
-  CompositeExtension,
-  Extension,
-};
+export type { ExtensionDefinition as Extension };

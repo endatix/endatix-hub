@@ -1,17 +1,20 @@
+import React from "react";
 import { ComponentCollection } from "survey-core";
-import { ReactElementFactory, Survey } from "survey-react-ui";
+import { ReactElementFactory } from "survey-react-ui";
 import type { Model } from "survey-core";
 import type { SurveyCreator } from "survey-creator-react";
-import type { Extension, QuestionExtension } from "../types";
+import type { ExtensionDefinition } from "../types";
+import { CustomQuestionConfig } from "@/lib/questions";
 
 class ExtensionRegistry {
-  private readonly extensions = new Map<string, Extension>();
+  private readonly extensions = new Map<string, ExtensionDefinition>();
   private initialized = false;
 
   /**
    * Register multiple extensions.
+   * Silently skips duplicates to support HMR.
    */
-  registerAll(extensions: Extension[]): void {
+  registerAll(extensions: ExtensionDefinition[]): void {
     extensions.forEach((extension) => {
       if (!this.extensions.has(extension.id)) {
         this.extensions.set(extension.id, extension);
@@ -19,30 +22,34 @@ class ExtensionRegistry {
     });
   }
 
-  getAll(): Extension[] {
+  /**
+   * Get all registered extensions
+   */
+  getAll(): ExtensionDefinition[] {
     return Array.from(this.extensions.values());
   }
 
-  getByType<T extends Extension["type"]>(type: T): Extension[] {
-    return Array.from(this.extensions.values()).filter(
-      (extension) => extension.type === type || extension.type === "composite",
-    );
-  }
-
-  getById(id: string): Extension | undefined {
+  /**
+   * Get extension by ID
+   */
+  getById(id: string): ExtensionDefinition | undefined {
     return this.extensions.get(id);
   }
 
+  /**
+   * Global initialization
+   * Runs init hooks (for prototype patches, etc)
+   */
   initializeExtensions(): void {
     if (this.initialized) {
       return;
     }
 
     this.extensions.forEach((extension) => {
-      if (extension.type === "init") {
+      if (extension.hooks?.onInit) {
         try {
-          console.debug(`[Endatix] Initializing extension: ${extension.name}`);
-          extension.onInit();
+          console.log(`[Endatix] Initializing extension: ${extension.name}`);
+          extension.hooks.onInit();
         } catch (error) {
           console.error(
             `[Endatix] Failed to init extension ${extension.id}:`,
@@ -50,45 +57,21 @@ class ExtensionRegistry {
           );
         }
       }
-
-      if (extension.type === "composite" && extension.onInit) {
-        try {
-          console.debug(
-            `[Endatix] Initializing composite extension: ${extension.name}`,
-          );
-          extension.onInit();
-        } catch (error) {
-          console.error(
-            `[Endatix] Failed to init composite ${extension.id}:`,
-            error,
-          );
-        }
-      }
-
-      if (extension.type === "question") {
-        this.registerQuestion(extension);
-      }
-
-      if (extension.type === "composite" && extension.questions) {
-        extension.questions.forEach((config) =>
-          this.registerQuestion({
-            ...extension,
-            type: "question",
-            config,
-          } as QuestionExtension),
-        );
-      }
     });
 
     this.initialized = true;
   }
 
   /**
-   * Register a custom question with SurveyJS
+   * WIP:Register a custom question with SurveyJS. Not used yet.
    */
-  private registerQuestion(ext: QuestionExtension): void {
+  private registerQuestion(ext: ExtensionDefinition): void {
     try {
-      const { config, component } = ext;
+      const { Component } = ext;
+      const config: CustomQuestionConfig = {
+        name: "test",
+        title: "Test Question",
+      };
 
       if (ComponentCollection.Instance.getCustomQuestionByName(config.name)) {
         console.warn(
@@ -99,10 +82,9 @@ class ExtensionRegistry {
 
       ComponentCollection.Instance.add(config);
 
-      if (component) {
+      if (Component) {
         ReactElementFactory.Instance.registerElement(config.name, (props) =>
-          // @ts-expect-error - React.createElement is compatible with ComponentType
-          React.createElement(component, props),
+          React.createElement(Component, props),
         );
       }
 
@@ -113,27 +95,17 @@ class ExtensionRegistry {
   }
 
   /**
-   * Survey model extensions: called when a new Survey Model is instantiated
+   * Apply model extensions
+   * Called when a new Survey Model is instantiated
    */
   applyModelExtensions(model: Model): void {
     this.extensions.forEach((ext) => {
-      if (ext.type === "model" && ext.onModelCreated) {
+      if (typeof ext.hooks?.onModelCreated === "function") {
         try {
-          ext.onModelCreated(model as unknown as Survey);
+          ext.hooks.onModelCreated(model);
         } catch (error) {
           console.error(
             `[Endatix] Extension ${ext.id} failed in onModelCreated:`,
-            error,
-          );
-        }
-      }
-
-      if (ext.type === "composite" && ext.onModelCreated) {
-        try {
-          ext.onModelCreated(model as unknown as Survey);
-        } catch (error) {
-          console.error(
-            `[Endatix] Composite ${ext.id} failed in onModelCreated:`,
             error,
           );
         }
@@ -142,39 +114,18 @@ class ExtensionRegistry {
   }
 
   /**
-   * Survey creator lifecycle extensions: called when Survey Creator is initialized
+   * Apply creator extensions
+   * Called when Survey Creator is initialized
    */
   applyCreatorExtensions(creator: SurveyCreator): void {
     this.extensions.forEach((ext) => {
-      if (ext.type === "creator" && ext.onCreatorCreated) {
+      // Handle Creator Extensions
+      if (typeof ext.hooks?.onCreatorCreated === "function") {
         try {
-          ext.onCreatorCreated(creator);
+          ext.hooks.onCreatorCreated(creator);
         } catch (error) {
           console.error(
             `[Endatix] Extension ${ext.id} failed in onCreatorCreated:`,
-            error,
-          );
-        }
-      }
-
-      if (ext.type === "composite" && ext.onCreatorCreated) {
-        try {
-          ext.onCreatorCreated(creator);
-        } catch (error) {
-          console.error(
-            `[Endatix] Composite ${ext.id} failed in onCreatorCreated:`,
-            error,
-          );
-        }
-      }
-
-      // Customize editor for questions
-      if (ext.type === "question" && ext.customizeEditor) {
-        try {
-          ext.customizeEditor(creator);
-        } catch (error) {
-          console.error(
-            `[Endatix] Question ${ext.id} failed to customize editor:`,
             error,
           );
         }

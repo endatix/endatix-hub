@@ -6,19 +6,31 @@
  */
 
 // Core types
-export type {
-  EndatixExtension,
-  QuestionExtension,
-  InitExtension,
-  ModelExtension,
-  CreatorExtension,
-  CompositeExtension,
-  Extension,
-} from "./types";
+export type { ExtensionDefinition, ExtensionLifecycle } from "./types";
 
 // Infrastructure
 export { extensionRegistry } from "./infrastructure/extension-registry";
 export type { ExtensionRegistry } from "./infrastructure/extension-registry";
 
-// React integration
-export { ExtensionProvider, useExtensions } from "./ui/extension-provider";
+// React integration (hooks and provider)
+export {
+  ExtensionProvider,
+  useExtensions,
+  useSurveyExtensions,
+  useCreatorExtensions,
+  useExtensionContext,
+} from "./ui/extension-provider";
+
+// Server-side utilities
+export {
+  getRequiredExtensionIds,
+  formUsesQuestionType,
+  extractQuestionTypes,
+} from "./server/analyzer";
+
+// Core and user registries
+export {
+  coreExtensions,
+  getCoreExtensionById,
+  getAllCoreExtensions,
+} from "./core-registry";

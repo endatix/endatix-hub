@@ -108,6 +108,7 @@ export function useSurveyModel({
     processSearchParams,
     cleanupUrl,
     submissionRef,
+    registry,
   ]);
 
   return {
