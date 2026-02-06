@@ -3,6 +3,7 @@ export interface FeatureFlagConfig {
   experimentalFeatures: boolean;
   advancedAnalytics: boolean;
   aiFeatures: boolean;
+  formAnalytics: boolean;
 }
 
 export interface AIFeatures {
