@@ -12,14 +12,20 @@ import type { ExtensionDefinition } from "./types";
 
 /**
  * Core extensions maintained by Endatix
+ * These are merged with user extensions at runtime in <SurveyExtensions> component.
+ * Add new core extensions here as they're developed.
  *
- * These are merged with user extensions at runtime in SurveyExtensions component.
+ * @example
+ * {
+ *   id: 'audio-recorder',
+ *   name: 'Audio Recorder',
+ *   scopes: ['form', 'editor'],
+ *   shouldActivate: (json) => formUsesQuestionType(json, 'audio-recorder'),
+ *   loader: () => import('@/lib/questions/audio-recorder').then((m) => m.default),
+ * },
  */
 export const coreExtensions: ExtensionDefinition[] = [
   // Core extensions will be added here as they're migrated
-  // Example:
-  // audioRecorderExtension,
-  // Built-in question types, etc.
 ];
 
 /**

@@ -33,7 +33,7 @@ export default async function ShareLayout({
       </head>
       <body>
         <AppProvider options={AppOptions.NoTheme} session={session}>
-          <SurveyExtensions>{children}</SurveyExtensions>
+          <SurveyExtensions scope="form">{children}</SurveyExtensions>
         </AppProvider>
       </body>
     </html>

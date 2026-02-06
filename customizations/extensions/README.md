@@ -8,18 +8,34 @@ Extensions allow you to customize SurveyJS behavior without modifying core code.
 
 - **Custom Questions**: Add new question types (barcode scanners, signature pads, etc.)
 - **Global Patches**: Modify SurveyJS prototypes and defaults (like the camera-fix)
-- **Model Hooks**: Run code when survey instances are created (analytics, validation)
+- **Event Handlers**: Run code when survey instances are created (analytics, validation)
 - **Creator Customization**: Customize the form editor experience (toolbox, tabs)
 
-## Extension Types
+## Core Concepts
 
-| Type        | When it Runs        | Use Cases                          |
-| ----------- | ------------------- | ---------------------------------- |
-| `init`      | Once at app startup | Prototype patches, global settings |
-| `question`  | At registration     | Custom question types              |
-| `model`     | Per survey instance | Event handlers, analytics          |
-| `creator`   | Per editor instance | Toolbox customization, tabs        |
-| `composite` | Multiple phases     | All-in-one extensions              |
+### Extension Definition vs Implementation
+
+The new architecture separates **metadata** from **code**:
+
+- **`ExtensionDefinition`**: Metadata about the extension (ID, name, where it runs, when to load)
+- **`ExtensionImplementation`**: The actual code (React components, lifecycle hooks)
+
+This separation enables:
+
+- ✅ **Smart Preloading**: Server decides what to load before the page renders
+- ✅ **Optimized TTI**: Only necessary JS chunks are downloaded
+- ✅ **Code Splitting**: Large extensions don't bloat the main bundle
+
+### Extension Scopes
+
+Extensions run in specific contexts:
+
+| Scope    | Where                 | Use Cases                                              |
+| -------- | --------------------- | ------------------------------------------------------ |
+| `form`   | Public survey forms   | Analytics, custom validation, event tracking           |
+| `editor` | Form designer/creator | Toolbox customization, property panels, editor plugins |
+
+You can target both scopes: `scopes: ['form', 'editor']`
 
 ## Quick Start: Adding Your First Extension
 
@@ -29,7 +45,7 @@ Extensions allow you to customize SurveyJS behavior without modifying core code.
 mkdir -p customizations/extensions/my-extension
 ```
 
-### Step 2: Define Your Extension
+### Step 2: Create the Definition
 
 Create `customizations/extensions/my-extension/index.ts`:
 
@@ -39,25 +55,36 @@ import type { ExtensionDefinition } from "@/lib/survey-extensions";
 export const myExtension: ExtensionDefinition = {
   id: "my-extension",
   name: "My Extension",
-  type: "init",
   description: "What this extension does",
 
-  // Server-side detection (for smart loading)
-  detect: () => true,
+  // Where should this run?
+  scopes: ["form"], // or ['editor'] or ['form', 'editor']
 
-  // Lazy loading (optional, for heavy modules)
-  loader: () => import("./my-extension-logic"),
+  // When should this load?
+  shouldActivate: () => true, // Always, or check form JSON
 
-  // Lifecycle hooks
-  hooks: {
-    onInit: () => {
-      console.log("Extension initialized!");
-    },
-  },
+  // How to load the implementation?
+  loader: () => import("./implementation"),
 };
 ```
 
-### Step 3: Register in User Extensions
+### Step 3: Create the Implementation
+
+Create `customizations/extensions/my-extension/implementation.ts`:
+
+```typescript
+import type { ExtensionImplementation } from "@/lib/survey-extensions";
+
+const implementation: ExtensionImplementation = {
+  onInit: () => {
+    console.log("Extension initialized!");
+  },
+};
+
+export default implementation;
+```
+
+### Step 4: Register in User Extensions
 
 Add to `customizations/extensions/user-extensions.ts`:
 
@@ -74,154 +101,170 @@ export const userExtensions: ExtensionDefinition[] = [
 
 ## Extension Examples
 
-### Init Extension (Global Patch)
+### Global Patch Extension
 
 Perfect for modifying SurveyJS prototypes or global settings:
 
 ```typescript
+// Definition: customizations/extensions/my-patch/index.ts
 import type { ExtensionDefinition } from "@/lib/survey-extensions";
 
 export const myPatchExtension: ExtensionDefinition = {
   id: "my-patch",
   name: "My Patch",
-  type: "init",
   description: "Patches SurveyJS behavior",
+  scopes: ["form", "editor"], // Global patches need both
 
-  detect: () => true, // Always include
-  loader: () => import("./patch-logic"),
+  shouldActivate: () => true, // Always include
+  loader: () => import("./patch"),
+};
 
-  hooks: {
-    onInit: async () => {
-      const { applyPatch } = await import("./patch-logic");
-      applyPatch();
-    },
+// Implementation: customizations/extensions/my-patch/patch.ts
+import type { ExtensionImplementation } from "@/lib/survey-extensions";
+
+const implementation: ExtensionImplementation = {
+  onInit: () => {
+    // Your patch logic here
+    console.log("Patching SurveyJS...");
   },
 };
+
+export default implementation;
 ```
 
-### Question Extension
+### Custom Question Extension
 
 Add custom question types with React components:
 
 ```typescript
-import dynamic from "next/dynamic";
-import type { ExtensionDefinition } from "@/lib/survey-extensions";
-import { formUsesQuestionType } from "@/lib/survey-extensions";
-
-// Lazy load component for better performance
-const MyQuestionComponent = dynamic(
-  () => import("./component").then((m) => ({ default: m.MyQuestion })),
-  { ssr: false },
-);
+// Definition: customizations/extensions/my-question/index.ts
+import type { ExtensionDefinition } from '@/lib/survey-extensions';
+import { formUsesQuestionType } from '@/lib/survey-extensions';
 
 export const myQuestionExtension: ExtensionDefinition = {
-  id: "my-question",
-  name: "My Custom Question",
-  type: "question",
-  description: "A custom question type",
+  id: 'my-question',
+  name: 'My Custom Question',
+  description: 'A custom question type',
+  scopes: ['form', 'editor'],
 
-  // Only load if form actually uses this question
-  detect: (json) => formUsesQuestionType(json, "myquestion"),
+  // Smart detection: only load if form actually uses this question
+  shouldActivate: (json) => formUsesQuestionType(json, 'myquestion'),
 
-  loader: () => import("./component"),
+  loader: () => import('./implementation'),
+};
 
+// Implementation: customizations/extensions/my-question/implementation.ts
+import React from 'react';
+import type { ExtensionImplementation } from '@/lib/survey-extensions';
+
+function MyQuestionComponent(props: any) {
+  return <div>My custom question: {props.question.name}</div>;
+}
+
+const implementation: ExtensionImplementation = {
   Component: MyQuestionComponent,
 
-  config: {
-    name: "myquestion",
-    title: "My Question Type",
-    iconName: "icon-custom",
-    questionJSON: { type: "text" }, // Base structure
-  },
-
-  hooks: {
-    onCreatorCreated: (creator) => {
-      // Customize the form editor
-      creator.toolbox.changeCategory("myquestion", "custom");
-    },
+  onCreatorCreated: (creator) => {
+    // Customize the form editor
+    creator.toolbox.addItem({
+      name: 'myquestion',
+      title: 'My Question',
+      json: { type: 'text' },
+    });
   },
 };
+
+export default implementation;
 ```
 
-### Model Extension (Event Handlers)
+### Event Handler Extension
 
 Add behavior to survey instances:
 
 ```typescript
+// Definition: customizations/extensions/analytics/index.ts
 import type { ExtensionDefinition } from "@/lib/survey-extensions";
 
 export const analyticsExtension: ExtensionDefinition = {
   id: "analytics",
   name: "Analytics Tracking",
-  type: "model",
   description: "Tracks survey interactions",
+  scopes: ["form"], // Only needed in forms
 
-  detect: () => true, // Include on all forms
+  shouldActivate: () => true, // Include on all forms
+  loader: () => import("./tracker"),
+};
 
-  hooks: {
-    onModelCreated: (model) => {
-      // Attach event handlers to this survey instance
-      model.onComplete.add((sender) => {
-        console.log("Survey completed!", sender.data);
-      });
+// Implementation: customizations/extensions/analytics/tracker.ts
+import type { ExtensionImplementation } from "@/lib/survey-extensions";
 
-      model.onValueChanged.add((sender, options) => {
-        console.log("Answer changed:", options.name, options.value);
-      });
-    },
+const implementation: ExtensionImplementation = {
+  onModelCreated: (model) => {
+    // Attach event handlers to this survey instance
+    model.onComplete.add((sender) => {
+      console.log("Survey completed!", sender.data);
+      // Send to analytics service
+    });
+
+    model.onValueChanged.add((sender, options) => {
+      console.log("Answer changed:", options.name, options.value);
+    });
   },
 };
+
+export default implementation;
 ```
 
-### Composite Extension
+### Multi-Scope Extension
 
-Combine multiple lifecycle hooks in one extension:
+Handle both form and editor in one extension:
 
 ```typescript
-import type { ExtensionDefinition } from "@/lib/survey-extensions";
-
+// Definition
 export const comprehensiveExtension: ExtensionDefinition = {
   id: "comprehensive",
   name: "Comprehensive Extension",
-  type: "composite",
   description: "Handles multiple concerns",
+  scopes: ["form", "editor"], // Runs in both contexts
 
-  detect: () => true,
+  shouldActivate: () => true,
+  loader: () => import("./implementation"),
+};
 
-  hooks: {
-    // Global initialization
-    onInit: () => {
-      console.log("Setting up global configuration");
-    },
+// Implementation
+const implementation: ExtensionImplementation = {
+  // Global initialization (runs once)
+  onInit: () => {
+    console.log("Setting up global configuration");
+  },
 
-    // Per-form setup
-    onModelCreated: (model) => {
-      console.log("Form instance created");
-    },
+  // Per-form setup (runs for each survey instance)
+  onModelCreated: (model) => {
+    console.log("Form instance created");
+  },
 
-    // Editor setup
-    onCreatorCreated: (creator) => {
-      console.log("Form editor initialized");
-    },
+  // Editor setup (runs for each creator instance)
+  onCreatorCreated: (creator) => {
+    console.log("Form editor initialized");
   },
 };
 ```
 
 ## Performance: Smart Loading
 
-### The `detect()` Function
+### The `shouldActivate()` Function
 
-The `detect()` function enables server-side analysis to determine which extensions are needed:
+The `shouldActivate()` function enables server-side analysis to determine which extensions are needed:
 
 ```typescript
 // Global patches - always needed
-detect: () => true;
+shouldActivate: () => true;
 
 // Question-specific - only if form uses it
-detect: (json) => formUsesQuestionType(json, "myquestion");
+shouldActivate: (json) => formUsesQuestionType(json, "myquestion");
 
 // Custom logic - check for specific configuration
-detect: (json) => {
+shouldActivate: (json) => {
   const str = JSON.stringify(json);
   return str.includes('"enableAnalytics":true');
 };
@@ -229,20 +272,39 @@ detect: (json) => {
 
 ### The `loader()` Function
 
-The `loader()` function enables smart preloading:
+The `loader()` function enables lazy loading and smart preloading:
 
 ```typescript
 // Simple loader
-loader: () => import("./my-logic");
+loader: () => import("./implementation");
 
-// Complex loader with multiple modules
-loader: async () => {
-  const [logic, utils] = await Promise.all([
-    import("./logic"),
-    import("./utils"),
-  ]);
-  return { logic, utils };
-};
+// The implementation module should export default:
+// export default implementation: ExtensionImplementation = { ... }
+```
+
+### Server-Side Optimization (Public Forms)
+
+In public form pages, the server analyzes which extensions are needed:
+
+```typescript
+// app/(public)/view/[formId]/page.tsx
+import { getRequiredExtensionIds } from '@/lib/survey-extensions/server';
+
+export default async function Page({ params }) {
+  const form = await getForm(params.formId);
+
+  // Server determines which extensions to load
+  const requiredIds = getRequiredExtensionIds(
+    form.definition,
+    [...coreExtensions, ...userExtensions]
+  );
+
+  return (
+    <SurveyExtensions activeIds={requiredIds} scope="form">
+      <PublicFormView form={form} />
+    </SurveyExtensions>
+  );
+}
 ```
 
 ### When to Use Lazy Loading
@@ -253,11 +315,11 @@ loader: async () => {
 - ✅ Heavy components (>50KB)
 - ✅ Questions used in <10% of forms
 
-**Skip lazy loading for:**
+**Benefits of lazy loading:**
 
-- ❌ Lightweight patches (<5KB)
-- ❌ Core questions used frequently
-- ❌ Simple utility functions
+- ✅ Faster initial page load (smaller main bundle)
+- ✅ Better TTI (Time To Interactive)
+- ✅ Only downloads code when needed
 
 ## Architecture
 
@@ -279,11 +341,11 @@ When Endatix updates:
 
 ```
 customizations/extensions/
-├── survey-extensions.tsx        # Client bootstrapper (imports both registries)
+├── survey-extensions.tsx        # Client bootstrapper (auto-configured)
 ├── user-extensions.ts           # YOUR extensions (no conflicts!)
 ├── camera-fix/                  # Example extension
 │   ├── index.ts                 # Extension definition
-│   └── camera-patch.ts          # Patch logic (lazy loaded)
+│   └── camera-patch.ts          # Implementation (lazy loaded)
 └── README.md                    # This file
 ```
 
@@ -294,30 +356,30 @@ customizations/extensions/
 Extensions are automatically available via `SurveyExtensions` component:
 
 ```typescript
-// Already integrated in all layouts
-<SurveyExtensions>
+// Already integrated in layouts
+<SurveyExtensions scope="form">  {/* or scope="editor" */}
   {children}
 </SurveyExtensions>
 ```
 
-### In Survey Hooks
+### In Form Hooks
 
 ```typescript
-import { useSurveyExtensions } from "@/lib/survey-extensions";
+import { useFormExtensions } from "@/lib/survey-extensions";
 
-const { applyToModel } = useSurveyExtensions();
+const { applyToModel } = useFormExtensions();
 const model = new Model(json);
-applyToModel(model); // All extensions applied!
+applyToModel(model); // All form extensions applied!
 ```
 
 ### In Form Editor
 
 ```typescript
-import { useCreatorExtensions } from "@/lib/survey-extensions";
+import { useEditorExtensions } from "@/lib/survey-extensions";
 
-const { applyToCreator } = useCreatorExtensions();
+const { applyToCreator } = useEditorExtensions();
 const creator = new SurveyCreator(options);
-applyToCreator(creator); // All extensions applied!
+applyToCreator(creator); // All editor extensions applied!
 ```
 
 ## Debugging Extensions
@@ -328,11 +390,10 @@ applyToCreator(creator); // All extensions applied!
 import { useExtensionContext } from "@/lib/survey-extensions";
 
 function MyComponent() {
-  const { extensions, registry } = useExtensionContext();
+  const { registry } = useExtensionContext();
 
-  console.log("All extensions:", extensions);
-  console.log("Init extensions:", registry.getByType("init"));
-  console.log("Questions:", registry.getByType("question"));
+  console.log("All definitions:", registry.getAllDefinitions());
+  console.log("Loaded implementations:", registry.getAllImplementations());
 }
 ```
 
@@ -341,28 +402,76 @@ function MyComponent() {
 **Extension not running?**
 
 1. Check it's in `user-extensions.ts`
-2. Verify `hooks.onInit` is defined (for init extensions)
+2. Verify `loader()` returns `ExtensionImplementation`
 3. Check browser console for error messages
+4. Ensure `shouldActivate()` returns true for your form
 
 **Component not loading?**
 
-1. Ensure `Component` prop is set
-2. Check `config` is properly defined
+1. Ensure implementation exports default
+2. Check `Component` prop is set in implementation
 3. Verify the component is properly exported
+
+**Wrong scope?**
+
+1. Check `scopes` array includes the right scope ('form' or 'editor')
+2. Verify you're using the right hook (`useFormExtensions` vs `useEditorExtensions`)
 
 ## Example: Camera Fix Extension
 
 See `camera-fix/` folder for a complete working example:
 
-- **index.ts**: Extension definition with metadata and hooks
-- **camera-patch.ts**: Actual patch logic (lazy loaded for performance)
+- **index.ts**: Extension definition with metadata
+- **camera-patch.ts**: Implementation with actual patch logic (lazy loaded)
 
 This extension demonstrates:
 
-- ✅ Global patch (init extension)
+- ✅ Global patch (runs in both form and editor)
 - ✅ Lazy loading with `loader()`
-- ✅ Clean separation of concerns
+- ✅ Clean separation of definition and implementation
 - ✅ Proper error handling
+
+## Migration from Old System
+
+### Old Format (Deprecated)
+
+```typescript
+// ❌ Old way
+export const oldExtension: Extension = {
+  id: 'old',
+  name: 'Old Extension',
+  type: 'init',
+  hooks: {
+    onInit: () => { ... }
+  }
+};
+```
+
+### New Format (Current)
+
+```typescript
+// ✅ New way - Definition
+export const newExtension: ExtensionDefinition = {
+  id: 'new',
+  name: 'New Extension',
+  scopes: ['form', 'editor'],
+  shouldActivate: () => true,
+  loader: () => import('./implementation'),
+};
+
+// ✅ New way - Implementation (separate file)
+const implementation: ExtensionImplementation = {
+  onInit: () => { ... }
+};
+export default implementation;
+```
+
+### Key Changes
+
+1. **`type`** → **`scopes`**: More flexible, supports multiple contexts
+2. **`detect`** → **`shouldActivate`**: Clearer naming
+3. **`hooks`** → Implementation: Separation of concerns
+4. **Direct export** → **`loader()`**: Enables lazy loading
 
 ## Testing Your Extension
 
@@ -385,9 +494,9 @@ Look for initialization messages:
 
 Verify your extension works as expected in:
 
-- Public forms (`/share/[formId]`)
-- Form editor (`/forms/[formId]/design`)
-- Submission views (`/forms/[formId]/submissions`)
+- Public forms (`/share/[formId]`) - scope: 'form'
+- Form editor (`/forms/[formId]/design`) - scope: 'editor'
+- Submission views (`/forms/[formId]/submissions`) - scope: 'form'
 
 ## Next Steps
 
@@ -401,3 +510,4 @@ Verify your extension works as expected in:
 - Review `camera-fix/` for a working example
 - Check SurveyJS docs: https://surveyjs.io/form-library/documentation/
 - See `lib/survey-extensions/types.ts` for all available options
+- Read the inline documentation in the type definitions

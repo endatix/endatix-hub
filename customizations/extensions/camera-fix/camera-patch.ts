@@ -1,50 +1,71 @@
 /**
- * Camera Patch Logic
+ * Camera Patch Implementation
  *
- * Separated into its own module for lazy loading.
- * This code only executes when the extension is actually loaded.
+ * This file contains the actual patching logic for the camera fix extension.
+ * It's loaded lazily to optimize bundle size.
  */
 
 import { QuestionFileModel } from "survey-core";
+import type { ExtensionImplementation } from "@/lib/survey-extensions";
 
 /**
- * Patches the SurveyJS Camera prototype to force environment-facing camera
+ * Patches the SurveyJS Camera prototype to force environment-facing mode
  */
-export function patchCameraPrototype() {
+export function patchCameraPrototype(): void {
   try {
-    // Access the internal Camera class through a dummy QuestionFileModel instance
+    // Create a dummy instance to access the Camera class
     const dummyFile = new QuestionFileModel("dummy");
+
     // @ts-expect-error - Accessing internal camera constructor
     const CameraClass = dummyFile.camera?.constructor;
 
-    if (!CameraClass?.prototype) {
-      console.warn("[Endatix] Camera class not found, skipping camera patch");
-      return false;
+    if (!CameraClass || !CameraClass.prototype) {
+      console.warn("[Endatix] Camera class not found, cannot apply patch");
+      return;
     }
 
-    const originalGetMediaConstraints =
-      CameraClass.prototype.getMediaConstraints;
+    const originalConstraints = CameraClass.prototype.getMediaConstraints;
 
-    // Monkey-patch the getMediaConstraints method
+    if (!originalConstraints) {
+      console.warn(
+        "[Endatix] getMediaConstraints not found on Camera prototype",
+      );
+      return;
+    }
+
+    // Monkey-patch the method
     CameraClass.prototype.getMediaConstraints = function (deviceId: string) {
-      const constraints = originalGetMediaConstraints.call(this, deviceId);
+      const constraints = originalConstraints.call(this, deviceId);
 
-      // Ensure video constraints object exists
       if (!constraints.video) {
         constraints.video = {};
       }
 
+      // Force environment-facing camera (back camera)
       constraints.video.facingMode = { ideal: "environment" };
 
+      // Remove device ID to let the browser choose the best environment camera
       delete constraints.video.deviceId;
 
       return constraints;
     };
 
     console.log("[Endatix] Camera prototype patched: Environment mode forced");
-    return true;
   } catch (error) {
     console.error("[Endatix] Failed to patch Camera prototype:", error);
-    return false;
   }
 }
+
+/**
+ * Extension implementation
+ *
+ * This is what gets loaded by the loader() function.
+ * It exports the implementation with lifecycle hooks.
+ */
+const implementation: ExtensionImplementation = {
+  onInit: () => {
+    patchCameraPrototype();
+  },
+};
+
+export default implementation;

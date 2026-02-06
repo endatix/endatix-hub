@@ -36,7 +36,7 @@ export default async function ViewLayout({
       </head>
       <body>
         <AppProvider session={session}>
-          <SurveyExtensions>
+          <SurveyExtensions scope="form">
             {children}
           </SurveyExtensions>
         </AppProvider>

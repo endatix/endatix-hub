@@ -11,7 +11,7 @@ import { customQuestions as customQuestionsList } from "@/customizations/questio
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
 import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
-import { useExtensions } from "@/lib/survey-extensions";
+import { useFormExtensions } from "@/lib/survey-extensions";
 
 interface UseSurveyModelProps {
   formId: string;
@@ -41,7 +41,7 @@ export function useSurveyModel({
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
   const isInitializedRef = useRef(false);
   const submissionRef = useInitOnly(submission);
-  const registry = useExtensions();
+  const { applyToModel } = useFormExtensions();
 
   useEffect(() => {
     const loadCustomQuestions = async () => {
@@ -82,7 +82,7 @@ export function useSurveyModel({
 
     const model = new SurveyModel(definition);
 
-    registry.applyModelExtensions(model);
+    applyToModel(model);
 
     const initialSubmission = submissionRef.current;
     if (initialSubmission) {
@@ -108,7 +108,7 @@ export function useSurveyModel({
     processSearchParams,
     cleanupUrl,
     submissionRef,
-    registry,
+    applyToModel,
   ]);
 
   return {

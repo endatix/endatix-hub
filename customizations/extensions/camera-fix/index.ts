@@ -1,11 +1,3 @@
-/**
- * Camera Fix Extension
- *
- * Forces the environment-facing camera (back camera) for file upload questions.
- * Useful for mobile forms where users need to scan documents or capture objects
- * with their device's back camera by default.
- */
-
 import type { ExtensionDefinition } from "@/lib/survey-extensions";
 
 /**
@@ -19,17 +11,23 @@ export const cameraFixExtension: ExtensionDefinition = {
   name: "Camera Facing Mode Fix",
   description: "Forces environment-facing camera for file upload questions",
 
-  detect: () => true,
+  /**
+   * This extension runs in both form and editor scopes
+   * since the camera patch needs to be global
+   */
+  scopes: ["form", "editor"],
 
-  loader: () => import("@/customizations/extensions/camera-fix/camera-patch"),
+  /**
+   * Server-side detection
+   * Return true to always activate this extension (it's a global patch).
+   */
+  shouldActivate: () => true,
 
-  hooks: {
-    onInit: async () => {
-      const { patchCameraPrototype } =
-        await import("@/customizations/extensions/camera-fix/camera-patch");
-      patchCameraPrototype();
-    },
-  },
+  /**
+   * Dynamic loader to lazy load the implementation for smaller bundle size
+   * The module is only fetched when the extension is activated (server-side detection via shouldActivate)
+   */
+  loader: () => import("./camera-patch").then((m) => m.default),
 };
 
 // Export as default for convenience

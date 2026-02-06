@@ -26,7 +26,7 @@ export default async function EmbedLayout({
       </head>
       <body>
         <AppProvider options={AppOptions.NoTheme} session={session}>
-          <SurveyExtensions>
+          <SurveyExtensions scope="form">
             {children}
           </SurveyExtensions>
         </AppProvider>

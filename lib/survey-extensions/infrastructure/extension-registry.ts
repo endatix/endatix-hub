@@ -1,60 +1,89 @@
-import React from "react";
-import { ComponentCollection } from "survey-core";
-import { ReactElementFactory } from "survey-react-ui";
 import type { Model } from "survey-core";
 import type { SurveyCreator } from "survey-creator-react";
-import type { ExtensionDefinition } from "../types";
-import { CustomQuestionConfig } from "@/lib/questions";
+import type { ExtensionDefinition, ExtensionImplementation } from "../types";
 
+/**
+ * Extension Registry
+ *
+ * Manages extension definitions and their loaded implementations.
+ * Handles initialization and lifecycle hooks.
+ */
 class ExtensionRegistry {
-  private readonly extensions = new Map<string, ExtensionDefinition>();
+  private readonly definitions = new Map<string, ExtensionDefinition>();
+  private readonly implementations = new Map<string, ExtensionImplementation>();
   private initialized = false;
 
   /**
-   * Register multiple extensions.
+   * Register extension definitions.
    * Silently skips duplicates to support HMR.
    */
-  registerAll(extensions: ExtensionDefinition[]): void {
-    extensions.forEach((extension) => {
-      if (!this.extensions.has(extension.id)) {
-        this.extensions.set(extension.id, extension);
+  registerDefinitions(definitions: ExtensionDefinition[]): void {
+    definitions.forEach((definition) => {
+      if (!this.definitions.has(definition.id)) {
+        this.definitions.set(definition.id, definition);
       }
     });
   }
 
   /**
-   * Get all registered extensions
+   * Register loaded implementations.
+   * Called after dynamic imports complete.
    */
-  getAll(): ExtensionDefinition[] {
-    return Array.from(this.extensions.values());
+  registerImplementations(
+    implementations: Map<string, ExtensionImplementation>,
+  ): void {
+    implementations.forEach((impl, id) => {
+      this.implementations.set(id, impl);
+    });
   }
 
   /**
-   * Get extension by ID
+   * Get all registered extension definitions
    */
-  getById(id: string): ExtensionDefinition | undefined {
-    return this.extensions.get(id);
+  getAllDefinitions(): ExtensionDefinition[] {
+    return Array.from(this.definitions.values());
   }
 
   /**
-   * Global initialization
-   * Runs init hooks (for prototype patches, etc)
+   * Get all loaded implementations
+   */
+  getAllImplementations(): ExtensionImplementation[] {
+    return Array.from(this.implementations.values());
+  }
+
+  /**
+   * Get extension definition by ID
+   */
+  getDefinitionById(id: string): ExtensionDefinition | undefined {
+    return this.definitions.get(id);
+  }
+
+  /**
+   * Get extension implementation by ID
+   */
+  getImplementationById(id: string): ExtensionImplementation | undefined {
+    return this.implementations.get(id);
+  }
+
+  /**
+   * Phase 1: Global initialization
+   * Runs init hooks once at app startup
    */
   initializeExtensions(): void {
     if (this.initialized) {
       return;
     }
 
-    this.extensions.forEach((extension) => {
-      if (extension.hooks?.onInit) {
+    this.implementations.forEach((impl, id) => {
+      if (impl.onInit) {
         try {
-          console.log(`[Endatix] Initializing extension: ${extension.name}`);
-          extension.hooks.onInit();
-        } catch (error) {
-          console.error(
-            `[Endatix] Failed to init extension ${extension.id}:`,
-            error,
+          const definition = this.definitions.get(id);
+          console.log(
+            `[Endatix] Initializing extension: ${definition?.name || id}`,
           );
+          impl.onInit();
+        } catch (error) {
+          console.error(`[Endatix] Failed to init extension ${id}:`, error);
         }
       }
     });
@@ -63,49 +92,17 @@ class ExtensionRegistry {
   }
 
   /**
-   * WIP:Register a custom question with SurveyJS. Not used yet.
-   */
-  private registerQuestion(ext: ExtensionDefinition): void {
-    try {
-      const { Component } = ext;
-      const config: CustomQuestionConfig = {
-        name: "test",
-        title: "Test Question",
-      };
-
-      if (ComponentCollection.Instance.getCustomQuestionByName(config.name)) {
-        console.warn(
-          `[Endatix] Question "${config.name}" already registered, skipping`,
-        );
-        return;
-      }
-
-      ComponentCollection.Instance.add(config);
-
-      if (Component) {
-        ReactElementFactory.Instance.registerElement(config.name, (props) =>
-          React.createElement(Component, props),
-        );
-      }
-
-      console.log(`[Endatix] Registered question: ${config.name}`);
-    } catch (error) {
-      console.error(`[Endatix] Failed to register question ${ext.id}:`, error);
-    }
-  }
-
-  /**
-   * Apply model extensions
+   * Phase 2: Apply form extensions
    * Called when a new Survey Model is instantiated
    */
-  applyModelExtensions(model: Model): void {
-    this.extensions.forEach((ext) => {
-      if (typeof ext.hooks?.onModelCreated === "function") {
+  applyFormExtensions(model: Model): void {
+    this.implementations.forEach((impl, id) => {
+      if (impl.onModelCreated) {
         try {
-          ext.hooks.onModelCreated(model);
+          impl.onModelCreated(model);
         } catch (error) {
           console.error(
-            `[Endatix] Extension ${ext.id} failed in onModelCreated:`,
+            `[Endatix] Extension ${id} failed in onModelCreated:`,
             error,
           );
         }
@@ -114,23 +111,31 @@ class ExtensionRegistry {
   }
 
   /**
-   * Apply creator extensions
+   * Phase 3: Apply editor extensions
    * Called when Survey Creator is initialized
    */
-  applyCreatorExtensions(creator: SurveyCreator): void {
-    this.extensions.forEach((ext) => {
-      // Handle Creator Extensions
-      if (typeof ext.hooks?.onCreatorCreated === "function") {
+  applyEditorExtensions(creator: SurveyCreator): void {
+    this.implementations.forEach((impl, id) => {
+      if (impl.onCreatorCreated) {
         try {
-          ext.hooks.onCreatorCreated(creator);
+          impl.onCreatorCreated(creator);
         } catch (error) {
           console.error(
-            `[Endatix] Extension ${ext.id} failed in onCreatorCreated:`,
+            `[Endatix] Extension ${id} failed in onCreatorCreated:`,
             error,
           );
         }
       }
     });
+  }
+
+  /**
+   * Reset registry (for testing)
+   */
+  reset(): void {
+    this.definitions.clear();
+    this.implementations.clear();
+    this.initialized = false;
   }
 }
 

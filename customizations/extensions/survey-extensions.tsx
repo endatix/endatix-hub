@@ -1,72 +1,158 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { ExtensionProvider } from "@/lib/survey-extensions";
 import { coreExtensions } from "@/lib/survey-extensions/core-registry";
 import { userExtensions } from "./user-extensions";
+import type {
+  ExtensionDefinition,
+  ExtensionImplementation,
+  ExtensionScope,
+} from "@/lib/survey-extensions";
+import { extensionRegistry } from "@/lib/survey-extensions";
 
 interface SurveyExtensionsProps {
   children: React.ReactNode;
   /**
-   * Optional list of extension IDs to activate.
-   *
-   * - If provided: Only these extensions will be loaded (performance optimization)
-   * - If omitted: ALL extensions (core + user) will be loaded (for Creator/Editor)
-   *
-   * Use server-side analysis to determine which extensions are needed:
-   * @example
-   * const required = getRequiredExtensionIds(formJson, allExtensions);
-   * <SurveyExtensions activeIds={required}>
+   * IDs detected on the server.
+   * If provided, ONLY these are loaded (optimized for public forms).
+   * If undefined, ALL are loaded (for creator/editor mode).
    */
   activeIds?: string[];
+  /**
+   * Scope filter: which extensions to load based on where they run.
+   * Defaults to 'form' for public forms, 'editor' for creator.
+   */
+  scope?: ExtensionScope;
+}
+
+interface LoadedExtension {
+  id: string;
+  implementation: ExtensionImplementation;
 }
 
 /**
- * Survey Extensions Bootstrapper
+ * SurveyExtensions - Client Bootstrapper Component
  *
- * Merges core and user extensions, handles smart preloading,
- * and provides extension context to child components.
+ * This component:
+ * 1. Merges core and user extension registries (no conflicts!)
+ * 2. Filters based on activeIds (server-side analysis) and scope
+ * 3. Triggers smart preloading of extension chunks
+ * 4. Provides extensions to the app via ExtensionProvider
  *
- * ## Merge Strategy (No Conflicts!)
- * - **Core Extensions**: Maintained by Endatix in core-registry.ts
- * - **User Extensions**: Managed by you in user-extensions.ts
- * - Merged at runtime, so upstream updates don't conflict with your customizations
+ * ## Usage in Public Forms (Optimized TTI):
+ * ```tsx
+ * const requiredIds = getRequiredExtensionIds(form.definition);
+ * <SurveyExtensions activeIds={requiredIds} scope="form">
+ *   <PublicForm />
+ * </SurveyExtensions>
+ * ```
  *
- * ## Performance Optimization
- * When `activeIds` is provided (e.g., from server-side analysis),
- * only those extensions are loaded, reducing bundle size for end users.
+ * ## Usage in Form Editor (Load All):
+ * ```tsx
+ * <SurveyExtensions scope="editor">
+ *   <FormDesigner />
+ * </SurveyExtensions>
+ * ```
  */
 export function SurveyExtensions({
   children,
   activeIds,
+  scope = "form",
 }: SurveyExtensionsProps) {
+  const [loadedExtensions, setLoadedExtensions] = useState<LoadedExtension[]>(
+    [],
+  );
+
   const allExtensions = useMemo(() => {
-    return [...coreExtensions, ...userExtensions];
+    const extensionMap = new Map<string, ExtensionDefinition>();
+
+    coreExtensions.forEach((ext) => extensionMap.set(ext.id, ext));
+    userExtensions.forEach((ext) => extensionMap.set(ext.id, ext));
+
+    return Array.from(extensionMap.values());
   }, []);
 
-  const activeExtensions = useMemo(() => {
-    if (!activeIds) {
-      return allExtensions;
+  const extensionsToLoad = useMemo(() => {
+    let filtered = allExtensions;
+
+    if (activeIds) {
+      filtered = filtered.filter((ext) => activeIds.includes(ext.id));
     }
 
-    return allExtensions.filter((ext) => activeIds.includes(ext.id));
-  }, [allExtensions, activeIds]);
+    filtered = filtered.filter((ext) => ext.scopes.includes(scope));
 
-  // TTI Optimization: Preload Extension Chunks to speed up network requests
+    return filtered;
+  }, [allExtensions, activeIds, scope]);
+
   useEffect(() => {
-    activeExtensions.forEach((ext) => {
-      if ("loader" in ext && ext.loader) {
-        ext
-          .loader()
-          .catch((err) =>
-            console.error(`[Endatix] Failed to preload ${ext.name}:`, err),
-          );
+    extensionRegistry.registerDefinitions(extensionsToLoad);
+  }, [extensionsToLoad]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadImplementations = async () => {
+      if (extensionsToLoad.length === 0) {
+        console.debug("[Endatix] No extensions to load for scope:", scope);
+        setLoadedExtensions([]);
+        return;
       }
+
+      try {
+        const promises = extensionsToLoad.map(async (ext) => {
+          if (!ext.loader) {
+            console.warn(`[Endatix] Extension ${ext.id} has no loader`);
+            return null;
+          }
+
+          try {
+            const impl = await ext.loader();
+            console.debug(`[Endatix] Loaded extension: ${ext.id}`);
+
+            return { id: ext.id, implementation: impl };
+          } catch (error) {
+            console.error(
+              `[Endatix] Failed to load extension ${ext.id}:`,
+              error,
+            );
+            return null;
+          }
+        });
+
+        const results = await Promise.all(promises);
+
+        if (isMounted) {
+          const validExtensions = results.filter(
+            (ext): ext is LoadedExtension => ext !== null,
+          );
+          setLoadedExtensions(validExtensions);
+        }
+      } catch (error) {
+        console.error("[Endatix] Error loading extensions:", error);
+        if (isMounted) {
+          setLoadedExtensions([]);
+        }
+      }
+    };
+
+    loadImplementations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [extensionsToLoad, scope]);
+
+  const implementationMap = useMemo(() => {
+    const map = new Map<string, ExtensionImplementation>();
+    loadedExtensions.forEach(({ id, implementation }) => {
+      map.set(id, implementation);
     });
-  }, [activeExtensions]);
+    return map;
+  }, [loadedExtensions]);
 
   return (
-    <ExtensionProvider extensions={activeExtensions}>
+    <ExtensionProvider implementations={implementationMap}>
       {children}
     </ExtensionProvider>
   );

@@ -6,7 +6,12 @@
  */
 
 // Core types
-export type { ExtensionDefinition, ExtensionLifecycle } from "./types";
+export type {
+  ExtensionDefinition,
+  Extension,
+  ExtensionScope,
+  ExtensionImplementation,
+} from "./types";
 
 // Infrastructure
 export { extensionRegistry } from "./infrastructure/extension-registry";
@@ -16,8 +21,8 @@ export type { ExtensionRegistry } from "./infrastructure/extension-registry";
 export {
   ExtensionProvider,
   useExtensions,
-  useSurveyExtensions,
-  useCreatorExtensions,
+  useFormExtensions,
+  useEditorExtensions,
   useExtensionContext,
 } from "./ui/extension-provider";
 

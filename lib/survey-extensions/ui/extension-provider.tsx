@@ -7,17 +7,16 @@ import {
   ExtensionRegistry,
   extensionRegistry,
 } from "../infrastructure/extension-registry";
-import type { ExtensionDefinition } from "../types";
+import type { ExtensionImplementation } from "../types";
 
 interface ExtensionContextValue {
   registry: ExtensionRegistry;
-  extensions: ExtensionDefinition[];
 }
 
 const ExtensionContext = createContext<ExtensionContextValue | null>(null);
 
 interface ExtensionProviderProps {
-  extensions: ExtensionDefinition[];
+  implementations: Map<string, ExtensionImplementation>;
   children: React.ReactNode;
 }
 
@@ -28,22 +27,20 @@ interface ExtensionProviderProps {
  * to child components for applying extensions to models/creators.
  */
 export function ExtensionProvider({
-  extensions,
+  implementations,
   children,
 }: ExtensionProviderProps) {
   const initializedRef = useRef(false);
 
   if (!initializedRef.current) {
-    extensionRegistry.registerAll(extensions);
+    extensionRegistry.registerImplementations(implementations);
     extensionRegistry.initializeExtensions();
 
     initializedRef.current = true;
   }
 
   return (
-    <ExtensionContext.Provider
-      value={{ registry: extensionRegistry, extensions }}
-    >
+    <ExtensionContext.Provider value={{ registry: extensionRegistry }}>
       {children}
     </ExtensionContext.Provider>
   );
@@ -51,7 +48,7 @@ export function ExtensionProvider({
 
 /**
  * Base hook to access extension context
- * Use the specialized hooks below for specific use cases
+ * Internal use only - use specialized hooks below
  */
 export function useExtensionContext() {
   const context = useContext(ExtensionContext);
@@ -62,21 +59,28 @@ export function useExtensionContext() {
 }
 
 /**
- * Hook for public forms (Survey Runner)
+ * Hook for public survey forms (Survey Runner)
  *
- * Provides extensions and a helper to apply model hooks.
- * Use this in survey rendering components.
+ * **Use this in:** Public form pages, submission views, form previews
+ *
+ * Provides a helper to apply form-scoped extension hooks like analytics,
+ * validation, and event handlers to Survey Model instances.
  *
  * @example
- * const { applyToModel } = useSurveyExtensions();
+ * // In use-survey-model.hook.ts
+ * import { useFormExtensions } from '@/lib/survey-extensions';
+ *
+ * const { applyToModel } = useFormExtensions();
  * const model = new Model(json);
- * applyToModel(model);
+ * applyToModel(model); // Applies all form extensions
+ *
+ * @returns Object with `applyToModel` method
  */
-export function useSurveyExtensions() {
+export function useFormExtensions() {
   const { registry } = useExtensionContext();
 
   const applyToModel = (model: Model) => {
-    registry.applyModelExtensions(model);
+    registry.applyFormExtensions(model);
   };
 
   return { applyToModel };
@@ -85,34 +89,38 @@ export function useSurveyExtensions() {
 /**
  * Hook for form editor (Survey Creator)
  *
- * Provides extensions and a helper to apply creator hooks.
- * Use this in form editor/designer components.
+ * **Use this in:** Form designer/editor components
+ *
+ * Provides a helper to apply editor-scoped extension hooks like toolbox
+ * customization, property panels, and editor plugins to SurveyCreator instances.
+ *
+ * Also automatically applies form extensions to test survey instances within
+ * the creator (e.g., when testing forms in the "Test Survey" tab).
  *
  * @example
- * const { applyToCreator } = useCreatorExtensions();
+ * // In form-editor.tsx
+ * import { useEditorExtensions } from '@/lib/survey-extensions';
+ *
+ * const { applyToCreator } = useEditorExtensions();
  * const creator = new SurveyCreator(options);
- * applyToCreator(creator);
+ * applyToCreator(creator); // Applies all editor extensions
+ *
+ * @returns Object with `applyToCreator` method
  */
-export function useCreatorExtensions() {
-  const { registry, extensions } = useExtensionContext();
+export function useEditorExtensions() {
+  const { registry } = useExtensionContext();
 
   const applyToCreator = (creator: SurveyCreator) => {
-    // Apply creator hooks
-    registry.applyCreatorExtensions(creator);
+    registry.applyEditorExtensions(creator);
 
-    // Attach model hooks to creator's test survey instances
-    extensions.forEach((ext) => {
-      if (ext.hooks?.onModelCreated) {
-        creator.onSurveyInstanceCreated.add((_, options) => {
-          try {
-            ext.hooks!.onModelCreated!(options.survey as Model);
-          } catch (error) {
-            console.error(
-              `[Endatix] Extension ${ext.name} failed in creator model hook:`,
-              error,
-            );
-          }
-        });
+    creator.onSurveyInstanceCreated.add((_, options) => {
+      try {
+        registry.applyFormExtensions(options.survey as Model);
+      } catch (error) {
+        console.error(
+          "[Endatix] Failed to apply extensions to creator test survey:",
+          error,
+        );
       }
     });
   };
@@ -121,8 +129,23 @@ export function useCreatorExtensions() {
 }
 
 /**
- * Generic hook to access the extension registry
- * Use the specialized hooks above for most use cases
+ * Advanced hook to access the extension registry directly
+ *
+ * **Use this when:** You need direct access to registry methods or metadata
+ *
+ * Majority of cases, you should use the specialized hooks above (`useFormExtensions`
+ * or `useEditorExtensions`) instead. This hook is for advanced use cases like:
+ * - Debugging which extensions are loaded
+ * - Inspecting extension metadata
+ * - Building custom extension management UI
+ *
+ * @example
+ * // Advanced: Check which extensions are loaded
+ * const registry = useExtensions();
+ * const definitions = registry.getAllDefinitions();
+ * const implementations = registry.getAllImplementations();
+ *
+ * @returns The ExtensionRegistry instance
  */
 export function useExtensions(): ExtensionRegistry {
   const { registry } = useExtensionContext();
