@@ -1,6 +1,7 @@
 import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
+import { SurveyExtensions } from "@/customizations/extensions/survey-extensions";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -34,7 +35,11 @@ export default async function ViewLayout({
         <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>
       <body>
-        <AppProvider session={session}>{children}</AppProvider>
+        <AppProvider session={session}>
+          <SurveyExtensions>
+            {children}
+          </SurveyExtensions>
+        </AppProvider>
       </body>
     </html>
   );
