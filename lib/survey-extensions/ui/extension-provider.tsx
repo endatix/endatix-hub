@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useRef } from "react";
+import { createContext, useContext, useMemo, useRef } from "react";
 import type { Model } from "survey-core";
 import type { SurveyCreator } from "survey-creator-react";
 import {
@@ -31,19 +31,18 @@ export function ExtensionProvider({
   children,
 }: ExtensionProviderProps) {
   const initializedRef = useRef(false);
+  const contextValue = useMemo(() => {
+    if (!initializedRef.current) {
+      extensionRegistry.registerImplementations(implementations);
+      extensionRegistry.initializeExtensions();
 
-  if (!initializedRef.current) {
-    extensionRegistry.registerImplementations(implementations);
-    extensionRegistry.initializeExtensions();
+      initializedRef.current = true;
+    }
 
-    initializedRef.current = true;
-  }
+    return { registry: extensionRegistry };
+  }, [implementations]);
 
-  return (
-    <ExtensionContext.Provider value={{ registry: extensionRegistry }}>
-      {children}
-    </ExtensionContext.Provider>
-  );
+  return <ExtensionContext value={contextValue}>{children}</ExtensionContext>;
 }
 
 /**
