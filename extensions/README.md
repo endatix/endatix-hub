@@ -1,59 +1,74 @@
-# Endatix Extension System
+# Endatix Extensions Architecture 🧩
 
-This directory contains the extension infrastructure and definitions for enhancing SurveyJS functionality in Endatix.
+> **Experimental Feature** 🚧
+> This feature is currently experimental and enabled by default in development.
+> To configure it, check the `experimental.extensions` flag in `endatix-config.ts`.
 
 ## Overview
 
-The extension system allows you to:
-1.  **Add Custom Question Types**: Create new question types (like `hello-world`, `scandit`, etc.) with their own models and React components.
-2.  **Patch Global Behavior**: Modify SurveyJS prototypes or settings (like `camera-fix`).
-3.  **Optimize Loading**: Extensions are **lazy-loaded** via Next.js dynamic imports only when needed (based on the form definition).
+The Endatix Extensions Architecture is designed for **Zero-Overhead** modularity. It allows developers to extend the SurveyJS form runner (and Creator) with custom questions, logic, and widgets without bloating the initial bundle.
+
+**Key Goals:**
+
+- **Performance (TTI)**: Extensions are lazy-loaded only when the form actually needs them.
+- **Isolation**: Each extension is a self-contained module (code, types, logic).
+- **Composability**: Extensions are managed via hooks, avoiding global pollution and complex Context wrappers.
 
 ## Directory Structure
 
-```text
+All extensions live in `hub/extensions/`.
+
+```
 hub/extensions/
-├── core/                  # (Future) Core extensions maintained by Endatix
-├── user-extensions.ts     # Registry where you add your custom extensions
-├── use-survey-extensions.ts # Hook to load extensions in your components
-├── types.ts               # TypeScript interfaces (ExtensionDefinition, ExtensionModule)
-├── camera-fix/            # Example extension implementation
-└── index.ts               # Main entry point
+├── README.md             # This file
+├── index.ts              # Public API export
+├── types.ts              # Type definitions
+├── user-extensions.ts    # Registry for YOUR custom extensions
+├── camera-fix/           # Example: Built-in Camera Patch extension
+│   ├── index.ts          # Extension entry point
+│   └── camera-patch.ts   # Implementation logic
+└── ...
 ```
 
 ## How It Works
 
-1.  **Definition**: You define an extension in `user-extensions.ts` with metadata and a loader.
-2.  **Detection**: The `shouldLoad` function checks the form JSON (e.g., "does this form use question type 'x'?").
-3.  **Loading**: If `shouldLoad` returns true, `useSurveyExtensions` triggers the `load()` function.
-4.  **Execution**: The extension module is downloaded and its `onInit` (or other hooks) are executed.
+1.  **Detection (Server-Side)**:
+    When a form is requested, the server analyzes the JSON definition using `detectUsage` (or `shouldLoad`). It determines exactly which extensions are required.
+
+2.  **Loading (Client-Side)**:
+    The `useSurveyExtensions` hook receives the list of required IDs. It fetches the implementation chunks in parallel using dynamic `import()`.
+
+3.  **Initialization**:
+    Once loaded, the extension's `onInit` hook runs (for global registration like `Serializer.addClass`). Then, when the Survey Model is created, `onModelReady` runs for instance-specific logic.
 
 ## Creating a New Extension
 
-### 1. Create the Extension Module
+To create a new extension (e.g., `my-custom-widget`):
 
-Create a folder, e.g., `hub/customizations/questions/my-extension/`.
-Create an `index.ts` file that implements `ExtensionModule`.
+### 1. Implement the Logic
+
+Create a folder `hub/extensions/my-custom-widget/` and add `index.ts`.
 
 ```typescript
-// hub/customizations/questions/my-extension/index.ts
+// hub/extensions/my-custom-widget/index.ts
+import { ExtensionModule } from "@/lib/survey-extensions/types";
 import { Serializer } from "survey-core";
-import type { ExtensionModule } from "@/extensions/types";
 
 const extension: ExtensionModule = {
-  // Lifecycle hook called once when the extension is loaded
-  onInit: () => {
-    // Register your question type, add classes, etc.
-    Serializer.addClass("my-extension", [], ...);
-  },
-  
-  // Optional: React Component for rendering (if using ReactQuestionFactory)
-  Component: MyComponent,
+  // Optional: React Component for rendering
+  Component: MyReactComponent,
 
-  // Optional: Hook called every time a Survey Model is created
+  // Optional: Global registration (run once)
+  onInit: () => {
+    Serializer.addClass("my-custom-widget", [
+      { name: "myProperty", default: "value" },
+    ]);
+  },
+
+  // Optional: Instance logic
   onModelReady: (model) => {
-    model.onValueChanged.add(...)
-  }
+    console.log("Survey model is ready!");
+  },
 };
 
 export default extension;
@@ -61,59 +76,37 @@ export default extension;
 
 ### 2. Register the Extension
 
-Add your extension to `hub/extensions/user-extensions.ts`.
+Add it to `hub/extensions/user-extensions.ts`.
 
 ```typescript
 // hub/extensions/user-extensions.ts
-import { formUsesQuestionType } from "./analyzer";
-import type { ExtensionDefinition } from "./types";
+import type { ExtensionDefinition } from "@/lib/survey-extensions/types";
 
 export const userExtensions: ExtensionDefinition[] = [
   {
-    id: "my-extension",
+    id: "my-custom-widget",
     type: "question",
-    
-    // Only load if the form actually uses this question type
-    shouldLoad: (json) => formUsesQuestionType(json, "my-extension"),
-    
-    // Lazy load the implementation
-    load: () => import("@/customizations/questions/my-extension").then(m => m.default),
+    // Intelligent loading: only load if form uses this type
+    shouldLoad: (_, analyzer) => analyzer.usesQuestionType("my-custom-widget"),
+    // Dynamic import
+    load: () => import("@/extensions/my-custom-widget").then((m) => m.default),
   },
 ];
 ```
 
-## Usage
+## Configuration
 
-In your form viewer component:
+This feature is guarded by a compile-time/build-time flag.
 
-```typescript
-import { useSurveyExtensions } from "@/extensions/use-survey-extensions";
-
-function MyFormViewer({ formDefinition }) {
-  // Automatically loads extensions based on form definition
-  const { isReady, onModelCreated } = useSurveyExtensions({ 
-    formJson: formDefinition 
-  });
-
-  if (!isReady) return <LoadingSpinner />;
-
-  return (
-    <SurveyComponent 
-      model={model} 
-      onModelCreated={onModelCreated} 
-    />
-  );
-}
-```
-
-## Extension Interface
-
-See `types.ts` for full details.
+To enable or disable extensions project-wide, update your `next.config.ts` (via `withEndatix`):
 
 ```typescript
-interface ExtensionModule {
-  onInit?: () => void;
-  onModelReady?: (model: Model) => void;
-  Component?: React.ComponentType<any>;
-}
+// next.config.ts
+export default withEndatix(nextConfig, {
+  experimental: {
+    extensions: true, // Set to false to disable all extensions
+  },
+});
 ```
+
+When disabled, `useSurveyExtensions` returns an empty list, and no extension code will be downloaded or executed.

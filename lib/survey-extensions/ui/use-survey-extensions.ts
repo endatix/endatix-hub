@@ -23,14 +23,20 @@ export function useSurveyExtensions({
   extensionIdsToLoad,
   formJson,
 }: UseSurveyExtensionsOptions) {
-  const ids = useMemo(
-    () =>
+  const isEnabled = process.env.ENDATIX_ENABLE_EXTENSIONS === "true";
+
+  const ids = useMemo(() => {
+    if (!isEnabled) {
+      return [];
+    }
+
+    return (
       extensionIdsToLoad ??
       (formJson != null
         ? getRequiredExtensionIds(formJson, ALL_EXTENSIONS)
-        : ALL_EXTENSIONS.map((e) => e.id)),
-    [extensionIdsToLoad, formJson],
-  );
+        : ALL_EXTENSIONS.map((e) => e.id))
+    );
+  }, [extensionIdsToLoad, formJson, isEnabled]);
 
   return useExtensionLoader({
     allExtensions: ALL_EXTENSIONS,

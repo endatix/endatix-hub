@@ -26,11 +26,15 @@ export interface EndatixConfig {
     prefix?: string;
   };
   storage?: StorageConfigClient;
+  experimental?: {
+    extensions?: boolean;
+  };
 }
 
 export interface WithEndatixOptions {
   auth?: EndatixConfig["auth"];
   api?: EndatixConfig["api"];
+  experimental?: EndatixConfig["experimental"];
 }
 
 /**
@@ -79,7 +83,41 @@ export const withEndatix = (
     // Session configuration
     SESSION_SECRET: mergedAuthConfig.session.secret,
     SESSION_MAX_AGE_IN_MINUTES: mergedAuthConfig.session.maxAge.toString(),
+
+    // Experimental features
+    ENDATIX_ENABLE_EXTENSIONS: (
+      options.experimental?.extensions ?? true
+    ).toString(),
   };
+
+  // Log experimental features status
+  if (process.env.NODE_ENV !== "test") {
+    // Prevent duplicate logging across main process and workers using process.env because it is inherited by child processes (Next.js workers)
+    if (!process.env.__ENDATIX_LOGGED) {
+      const experiments = [
+        {
+          name: "extensions",
+          enabled: options.experimental?.extensions ?? true,
+        },
+      ];
+
+      const hasExperiments = experiments.some((e) => e.enabled);
+
+      if (hasExperiments) {
+        console.log("🧪 Endatix experimental features (use with caution):");
+        experiments.forEach((feature) => {
+          const symbol = feature.enabled
+            ? "\x1b[32m✓\x1b[0m" // Green Check
+            : "\x1b[90m·\x1b[0m"; // Gray Dot
+          console.log(`  ${symbol} ${feature.name}`);
+        });
+        console.log(""); // Empty line for spacing
+      }
+
+      // Mark as logged so child processes/re-evaluations skip it
+      process.env.__ENDATIX_LOGGED = "true";
+    }
+  }
 
   return {
     ...nextConfig,
