@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { ReactElementFactory } from "survey-react-ui";
 import type { Model } from "survey-core";
+import type { SurveyCreatorModel } from "survey-creator-core";
 import type { ExtensionDefinition, ExtensionModule } from "../types";
 
 // Global state stays outside to persist across renders/mounts
@@ -10,7 +11,7 @@ const loadedModules = new Map<string, ExtensionModule>();
 const loadingPromises = new Map<string, Promise<ExtensionModule | undefined>>();
 const initializedKeys = new Set<string>();
 
-interface UseExtensionLoaderOptions {
+export interface UseExtensionLoaderOptions {
   allExtensions: ExtensionDefinition[];
   extensionIdsToLoad: string[];
 }
@@ -105,5 +106,14 @@ export function useExtensionLoader({
     [extensionsToLoad],
   );
 
-  return { isReady, onModelCreated };
+  const onCreatorCreated = useCallback(
+    (creator: SurveyCreatorModel) => {
+      extensionsToLoad.forEach((ext: ExtensionDefinition) => {
+        loadedModules.get(ext.id)?.onCreatorReady?.(creator);
+      });
+    },
+    [extensionsToLoad],
+  );
+
+  return { isReady, onModelCreated, onCreatorCreated };
 }

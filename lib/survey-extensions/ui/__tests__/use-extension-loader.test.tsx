@@ -46,6 +46,35 @@ describe("useExtensionLoader", () => {
     // Assert
     expect(result.current.onModelCreated).toBeDefined();
     expect(typeof result.current.onModelCreated).toBe("function");
+    expect(result.current.onCreatorCreated).toBeDefined();
+    expect(typeof result.current.onCreatorCreated).toBe("function");
+  });
+
+  it("onCreatorCreated invokes onCreatorReady for loaded extensions", async () => {
+    // Arrange
+    const onCreatorReady = vi.fn();
+    const allExtensions: ExtensionDefinition[] = [
+      createExtension("ext-creator", { onCreatorReady }),
+    ];
+    const extensionIdsToLoad = ["ext-creator"];
+    const mockCreator = {} as any;
+
+    // Act
+    const { result } = renderHook(() =>
+      useExtensionLoader({ allExtensions, extensionIdsToLoad }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    act(() => {
+      result.current.onCreatorCreated(mockCreator);
+    });
+
+    // Assert
+    expect(onCreatorReady).toHaveBeenCalledTimes(1);
+    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator);
   });
 
   it("returns isReady true after extensions load and onModelCreated invokes onModelReady", async () => {
