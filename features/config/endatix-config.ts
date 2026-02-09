@@ -86,7 +86,7 @@ export const withEndatix = (
 
     // Experimental features
     ENDATIX_ENABLE_EXTENSIONS: (
-      options.experimental?.extensions ?? true
+      options.experimental?.extensions ?? false
     ).toString(),
   };
 
