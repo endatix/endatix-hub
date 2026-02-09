@@ -6,18 +6,17 @@
  */
 
 import { QuestionFileModel } from "survey-core";
-import type { ExtensionImplementation } from "@/lib/survey-extensions";
 
 /**
  * Patches the SurveyJS Camera prototype to force environment-facing mode
  */
 export function patchCameraPrototype(): void {
   try {
-    // Create a dummy instance to access the Camera class
-    const dummyFile = new QuestionFileModel("dummy");
+    // Create a filePatch dummy instance to access the Camera class
+    const filePatch = new QuestionFileModel("filePatch");
 
     // @ts-expect-error - Accessing internal camera constructor
-    const CameraClass = dummyFile.camera?.constructor;
+    const CameraClass = filePatch.camera?.constructor;
 
     if (!CameraClass || !CameraClass.prototype) {
       console.warn("[Endatix] Camera class not found, cannot apply patch");
@@ -49,23 +48,9 @@ export function patchCameraPrototype(): void {
 
       return constraints;
     };
-
-    console.log("[Endatix] Camera prototype patched: Environment mode forced");
   } catch (error) {
     console.error("[Endatix] Failed to patch Camera prototype:", error);
   }
 }
 
-/**
- * Extension implementation
- *
- * This is what gets loaded by the loader() function.
- * It exports the implementation with lifecycle hooks.
- */
-const implementation: ExtensionImplementation = {
-  onInit: () => {
-    patchCameraPrototype();
-  },
-};
-
-export default implementation;
+patchCameraPrototype();

@@ -3,9 +3,9 @@ import { getCustomQuestionsAction } from "@/features/forms/application/actions/g
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { Result } from "@/lib/result";
+import { Model } from "survey-core";
 import { useEffect, useRef, useState } from "react";
 import { SharpLightPanelless } from "survey-core/themes";
-import { Model } from "survey-react-ui";
 import {
   getSubmissionLocale,
   isLocaleValid,
@@ -15,6 +15,7 @@ export function useSurveyModel(
   submission: Submission,
   customQuestions?: string[],
   readOnly: boolean = false,
+  onModelCreated?: (model: Model) => void,
 ) {
   const modelRef = useRef<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +55,7 @@ export function useSurveyModel(
         const json = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
         const model = new Model(json);
+        onModelCreated?.(model);
 
         model.data = submissionData;
 
@@ -90,7 +92,7 @@ export function useSurveyModel(
     };
 
     initializeModel();
-  }, [submission, customQuestions, readOnly]);
+  }, [submission, customQuestions, readOnly, onModelCreated]);
 
   return { model: modelRef.current, isLoading };
 }

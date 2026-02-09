@@ -2,40 +2,38 @@
  * @endatix/survey-extensions
  *
  * Core extension system for customizing SurveyJS behavior in Endatix.
- * This module will eventually be extracted as a standalone npm package.
+ * Use useExtensionLoader (or useSurveyExtensions) hook
+ * and pass onModelCreated into your survey model hook.
  */
 
-// Core types
 export type {
   ExtensionDefinition,
   Extension,
-  ExtensionScope,
-  ExtensionImplementation,
+  ExtensionModule as ExtensionImplementation,
 } from "./types";
 
-// Infrastructure
-export { extensionRegistry } from "./infrastructure/extension-registry";
-export type { ExtensionRegistry } from "./infrastructure/extension-registry";
-
-// React integration (hooks and provider)
 export {
-  ExtensionProvider,
-  useExtensions,
-  useFormExtensions,
-  useEditorExtensions,
-  useExtensionContext,
-} from "./ui/extension-provider";
+  useExtensionLoader,
+  type UseExtensionLoaderOptions,
+} from "./ui/use-extension-loader";
 
-// Server-side utilities
 export {
-  getRequiredExtensionIds,
-  formUsesQuestionType,
-  extractQuestionTypes,
-} from "./server/analyzer";
+  useSurveyExtensions,
+  type UseSurveyExtensionsOptions,
+  ALL_EXTENSIONS,
+} from "./ui/use-survey-extensions";
 
-// Core and user registries
 export {
   coreExtensions,
   getCoreExtensionById,
   getAllCoreExtensions,
 } from "./core-registry";
+
+export {
+  formUsesQuestionType,
+  extractQuestionTypes,
+  createFormAnalyzer,
+  type FormAnalyzer,
+} from "./extension-utils";
+
+export { userExtensions } from "@/extensions/user-extensions";

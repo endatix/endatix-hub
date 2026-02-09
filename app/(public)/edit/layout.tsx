@@ -1,19 +1,13 @@
 import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
-import { SurveyExtensions } from "@/customizations/extensions/survey-extensions";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Edit Submission - Endatix",
   description: "Edit your submission",
   generator: "Endatix",
-  keywords: [
-    "endatix",
-    "edit",
-    "submission",
-    "form"
-  ],
+  keywords: ["endatix", "edit", "submission", "form"],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
   robots: {
@@ -35,11 +29,7 @@ export default async function EditLayout({
         <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>
       <body>
-        <AppProvider session={session}>
-          <SurveyExtensions>
-            {children}
-          </SurveyExtensions>
-        </AppProvider>
+        <AppProvider session={session}>{children}</AppProvider>
       </body>
     </html>
   );

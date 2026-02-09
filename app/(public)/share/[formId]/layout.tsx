@@ -1,7 +1,6 @@
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-provider";
 import { getSession } from "@/features/auth";
-import { SurveyExtensions } from "@/customizations/extensions/survey-extensions";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -33,7 +32,7 @@ export default async function ShareLayout({
       </head>
       <body>
         <AppProvider options={AppOptions.NoTheme} session={session}>
-          <SurveyExtensions scope="form">{children}</SurveyExtensions>
+          {children}
         </AppProvider>
       </body>
     </html>

@@ -1,19 +1,13 @@
 import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
-import { SurveyExtensions } from "@/customizations/extensions/survey-extensions";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "View Submission - Endatix",
   description: "View your submission",
   generator: "Endatix",
-  keywords: [
-    "endatix",
-    "view",
-    "submission",
-    "form"
-  ],
+  keywords: ["endatix", "view", "submission", "form"],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
   robots: {
@@ -35,11 +29,7 @@ export default async function ViewLayout({
         <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>
       <body>
-        <AppProvider session={session}>
-          <SurveyExtensions scope="form">
-            {children}
-          </SurveyExtensions>
-        </AppProvider>
+        <AppProvider session={session}>{children}</AppProvider>
       </body>
     </html>
   );

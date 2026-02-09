@@ -1,5 +1,6 @@
 "use client";
 
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -31,8 +32,16 @@ const SurveyJsWrapper = ({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
-  urlToken
+  urlToken,
 }: SurveyJsWrapperProps) => {
+  const { isReady, onModelCreated } = useSurveyExtensions({
+    formJson: definition,
+  });
+
+  if (!isReady) {
+    return null;
+  }
+
   return (
     <SurveyComponent
       formId={formId}
@@ -43,6 +52,7 @@ const SurveyJsWrapper = ({
       requiresReCaptcha={requiresReCaptcha}
       isEmbed={isEmbed}
       urlToken={urlToken}
+      onModelCreated={onModelCreated}
     />
   );
 };

@@ -11,13 +11,13 @@ import { customQuestions as customQuestionsList } from "@/customizations/questio
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
 import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
-import { useFormExtensions } from "@/lib/survey-extensions";
 
 interface UseSurveyModelProps {
   formId: string;
   definition: string;
   submission?: Submission;
   customQuestions?: string[];
+  onModelCreated?: (model: Model) => void;
 }
 
 /**
@@ -33,6 +33,7 @@ export function useSurveyModel({
   definition,
   customQuestions,
   submission,
+  onModelCreated,
 }: UseSurveyModelProps) {
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
@@ -41,7 +42,6 @@ export function useSurveyModel({
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
   const isInitializedRef = useRef(false);
   const submissionRef = useInitOnly(submission);
-  const { applyToModel } = useFormExtensions();
 
   useEffect(() => {
     const loadCustomQuestions = async () => {
@@ -82,8 +82,6 @@ export function useSurveyModel({
 
     const model = new SurveyModel(definition);
 
-    applyToModel(model);
-
     const initialSubmission = submissionRef.current;
     if (initialSubmission) {
       setSubmissionData(model, initialSubmission.jsonData, (error) => {
@@ -92,6 +90,7 @@ export function useSurveyModel({
       model.currentPageNo = initialSubmission.currentPage ?? 0;
       applyVariablesToModel(model, initialSubmission.metadata);
     }
+    onModelCreated?.(model);
     processSearchParams(model);
 
     setSurveyModel(model);
@@ -108,7 +107,7 @@ export function useSurveyModel({
     processSearchParams,
     cleanupUrl,
     submissionRef,
-    applyToModel,
+    onModelCreated,
   ]);
 
   return {

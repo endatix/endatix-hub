@@ -1,13 +1,14 @@
-import type { ComponentType } from "react";
 import type { Model } from "survey-core";
-import type { SurveyCreator } from "survey-creator-react";
+import type { SurveyCreatorModel } from "survey-creator-core";
 
 /**
- * Extension scopes. Defines where the extension will run.
- * - form: Runs on the survey form (Survey Model)
- * - editor: Runs on the survey editor (Survey Creator)
+ * Extension type. Defines the type of the extension.
+ * - feature: Add new features as event handlers for SurveyJS Model or Creator
+ * - question: Add new question types to the survey form
  */
-export type ExtensionScope = "form" | "editor";
+export type ExtensionType = "feature" | "question";
+
+import type { FormAnalyzer } from "./extension-utils";
 
 /**
  * Survey extension definition
@@ -22,81 +23,53 @@ export interface ExtensionDefinition {
   id: string;
 
   /**
-   * Human-readable name (e.g. "Audio Recorder", "Camera Facing Mode Fix")
+   * The type of the extension.
    */
-  name: string;
+  type: ExtensionType;
+
+  metadata?: {
+    name: string;
+    title?: string;
+    description?: string;
+    icon?: string;
+    category?: string;
+  };
 
   /**
-   * Optional description of what this extension does
+   * Server-side detection function. Determines if the extension should be loaded for the form.
+   * @param formJson - The raw form JSON
+   * @param analyzer - optimized analyzer with cached string representation
    */
-  description?: string;
-
-  /**
-   * The scopes where the extension will run.
-   * - form: Runs on the survey form (Survey Model)
-   * - editor: Runs on the survey editor (Survey Creator)
-   */
-  scopes: ExtensionScope[];
-
-  /**
-   * Server-side detection function.
-   * Analyzes form JSON to determine if this extension should be activated.
-   * Used for smart preloading optimization.
-   *
-   * @param formJson - The form definition JSON
-   * @returns true if the extension should be activated for the form
-   *
-   * @example
-   * // Always activate (for global patches)
-   * shouldActivate: () => true
-   *
-   * @example
-   * // Activate only if form uses specific question type
-   * shouldActivate: (json) => formUsesQuestionType(json, 'audio-recorder')
-   */
-  shouldActivate?: (formJson: any) => boolean;
+  shouldLoad?: (formJson: any, analyzer: FormAnalyzer) => boolean;
 
   /**
    * Dynamic import function for lazy loading.
    * Used for preloading the extension chunk before rendering.
-   *
-   * @returns Promise resolving to the extension implementation
-   *
    * @example
-   * loader: () => import('./my-extension-logic')
+   * load: () => import("@/customizations/questions/hello-world").then((module) => module.default)
+   * @returns A Promise that resolves to the extension module.
    */
-  loader?: () => Promise<ExtensionImplementation>;
+  load?: () => Promise<ExtensionModule>;
 }
 
 /**
- * Extension implementation
- *
- * This is the actual code that runs. It's loaded lazily via the loader function.
- * Contains the React component (for questions) and lifecycle hooks.
+ * Extension module. This is the actual extension code.
  */
-export interface ExtensionImplementation {
-  /**
-   * React component for rendering (question extensions only).
-   */
-  Component?: ComponentType<any>;
+export interface ExtensionModule {
+  /** For question-type extensions: the React component to render */
+  Component?: React.ComponentType<any>;
 
   /**
-   * Global app initialization (runs once at startup).
-   * Use for: Prototype patching, global SurveyJS settings
+   * Lifecycle hook: Called once when the extension is first loaded.
+   * Use this for global registrations (e.g., Serializer, ComponentCollection, QuestionFactory).
    */
-  onInit?: () => void | Promise<void>;
+  onInit?: () => void;
 
-  /**
-   * Form runner initialization (runs per survey instance).
-   * Use for: Event handlers, analytics tracking, custom validation
-   */
-  onModelCreated?: (model: Model) => void;
+  /** For SurveyJS Model-type extensions: called when the model is ready */
+  onModelReady?: (model: Model) => void;
 
-  /**
-   * Form creator initialization (runs per creator instance).
-   * Use for: Toolbox customization, property grid setup, editor plugins
-   */
-  onCreatorCreated?: (creator: SurveyCreator) => void;
+  /** For SurveyJS Creator-type extensions: called when the creator is ready */
+  onCreatorReady?: (creator: SurveyCreatorModel) => void;
 }
 
 export type { ExtensionDefinition as Extension };
