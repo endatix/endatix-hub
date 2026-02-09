@@ -12,10 +12,7 @@ export type {
   ExtensionModule as ExtensionImplementation,
 } from "./types";
 
-export {
-  useExtensionLoader,
-  type UseExtensionLoaderOptions,
-} from "./ui/use-extension-loader";
+export { useExtensionLoader } from "./ui/use-extension-loader";
 
 export {
   useSurveyExtensions,
@@ -30,7 +27,6 @@ export {
 } from "./core-registry";
 
 export {
-  formUsesQuestionType,
   extractQuestionTypes,
   createFormAnalyzer,
   type FormAnalyzer,

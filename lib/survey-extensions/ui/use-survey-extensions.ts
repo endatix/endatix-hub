@@ -30,12 +30,15 @@ export function useSurveyExtensions({
       return [];
     }
 
-    return (
-      extensionIdsToLoad ??
-      (formJson != null
-        ? getRequiredExtensionIds(formJson, ALL_EXTENSIONS)
-        : ALL_EXTENSIONS.map((e) => e.id))
-    );
+    if (extensionIdsToLoad) {
+      return extensionIdsToLoad;
+    }
+
+    if (formJson) {
+      return getRequiredExtensionIds(formJson, ALL_EXTENSIONS);
+    }
+
+    return ALL_EXTENSIONS.map((extension: ExtensionDefinition) => extension.id);
   }, [extensionIdsToLoad, formJson, isEnabled]);
 
   return useExtensionLoader({
