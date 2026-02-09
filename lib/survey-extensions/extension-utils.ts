@@ -30,7 +30,8 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
     formJson,
     usesQuestionType: (questionType: string) => {
       if (jsonString.length === 0) return false;
-      return jsonString.includes(`"type":"${questionType}"`);
+      const regex = new RegExp(`"type"\\s*:\\s*"${questionType}"`);
+      return regex.test(jsonString);
     },
   };
 }

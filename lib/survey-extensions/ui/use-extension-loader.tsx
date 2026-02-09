@@ -7,6 +7,7 @@ import type { Model } from "survey-core";
 import type { ExtensionDefinition, ExtensionModule } from "../types";
 
 const loadedModules = new Map<string, ExtensionModule>();
+const loadingPromises = new Map<string, Promise<ExtensionModule | undefined>>();
 const initializedKeys = new Set<string>();
 
 export interface UseExtensionLoaderOptions {
@@ -46,26 +47,44 @@ export function useExtensionLoader({
         extensionsToLoad.map(async (ext) => {
           if (loadedModules.has(ext.id)) return;
 
-          const mod = await ext.load?.();
-          if (!mod) {
-            return;
+          let promise = loadingPromises.get(ext.id);
+          if (!promise) {
+            promise = (async () => {
+              try {
+                const mod = await ext.load?.();
+                if (!mod) {
+                  return undefined;
+                }
+
+                mod.onInit?.();
+                console.debug(
+                  `✓ [ExtensionLoader] Initialized extension: ${ext.id}`,
+                );
+
+                const Component = mod.Component;
+                if (Component && ext.metadata) {
+                  ReactElementFactory.Instance.registerElement(
+                    ext.metadata.name,
+                    (props) => <Component {...props} key={ext.id} />,
+                  );
+                }
+                loadedModules.set(ext.id, mod);
+                return mod;
+              } catch (error) {
+                console.error(
+                  `✗ [ExtensionLoader] Error initializing extension ${ext.id}:`,
+                  error,
+                );
+                return undefined;
+              } finally {
+                loadingPromises.delete(ext.id);
+              }
+            })();
+
+            loadingPromises.set(ext.id, promise);
           }
 
-          try {
-            mod.onInit?.();
-            console.debug(`✓ [ExtensionLoader] Initialized extension: ${ext.id}`);
-          } catch (error) {
-            console.error(`✗ [ExtensionLoader] Error initializing extension ${ext.id}:`, error);
-          }
-
-          const Component = mod.Component;
-          if (Component && ext.metadata) {
-            ReactElementFactory.Instance.registerElement(
-              ext.metadata.name,
-              (props) => <Component {...props} key={ext.id} />,
-            );
-          }
-          loadedModules.set(ext.id, mod);
+          await promise;
         }),
       );
 

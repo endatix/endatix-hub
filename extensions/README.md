@@ -1,12 +1,13 @@
 # Endatix Extensions Architecture 🧩
 
 > **Experimental Feature** 🚧
-> This feature is currently experimental and enabled by default in development.
+> This feature is currently experimental and **enabled by default** in development.
 > To configure it, check the `experimental.extensions` flag in `endatix-config.ts`.
+> You can also enable by adding this to your .env file - `ENDATIX_ENABLE_EXTENSIONS=true`
 
 ## Overview
 
-The Endatix Extensions Architecture is designed for **Zero-Overhead** modularity. It allows developers to extend the SurveyJS form runner (and Creator) with custom questions, logic, and widgets without bloating the initial bundle.
+The Endatix Extensions Architecture is designed for **Zero-Overhead** modularity. It allows developers to extend the SurveyJS Model and Creator with custom questions, logic, and widgets without bloating the initial bundle.
 
 **Key Goals:**
 
@@ -94,9 +95,9 @@ export const userExtensions: ExtensionDefinition[] = [
 ];
 ```
 
-## Configuration
+## Configuration (Feature Flag)
 
-This feature is guarded by a compile-time/build-time flag.
+This feature is guarded by a compile-time/build-time flag to ensure safety during the experimental phase.
 
 To enable or disable extensions project-wide, update your `next.config.ts` (via `withEndatix`):
 
@@ -110,3 +111,46 @@ export default withEndatix(nextConfig, {
 ```
 
 When disabled, `useSurveyExtensions` returns an empty list, and no extension code will be downloaded or executed.
+
+## Advanced Usage: Context-Based Filtering
+
+You may want to load extensions not just based on the form content, but also based on **User Permissions**, **Tenant Settings**, or **Feature Flags**.
+
+The best place to do this is in your **Server Component** (e.g., `page.tsx`) before rendering the form.
+
+### Example: Filtering by Tenant Plan
+
+```typescript
+// app/(public)/view/[formId]/page.tsx
+import { getRequiredExtensionIds } from "@/lib/survey-extensions/server/analyzer";
+import { ALL_EXTENSIONS } from "@/lib/survey-extensions";
+
+export default async function Page({ params }) {
+  const form = await getForm(params.formId);
+  const tenant = await getTenant(form.tenantId);
+
+  // 1. Get extensions required by the form content (Base)
+  const requiredIds = getRequiredExtensionIds(form.definition, ALL_EXTENSIONS);
+
+  // 2. Apply Business Logic Filtering
+  const allowedIds = requiredIds.filter(id => {
+    // Example: 'ai-assistant' requires 'enterprise' plan
+    if (id === 'ai-assistant' && tenant.plan !== 'enterprise') {
+      return false;
+    }
+    return true;
+  });
+
+  // 3. Pass filtered IDs to the client
+  return (
+    <SurveyJsWrapper
+      formId={form.id}
+      definition={form.definition}
+      // explicit list overrides internal detection
+      extensionIdsToLoad={allowedIds}
+    />
+  );
+}
+```
+
+This ensures that sensitive or premium code is never even requested by the client if the user isn't authorized.

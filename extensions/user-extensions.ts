@@ -11,7 +11,7 @@ export const userExtensions: ExtensionDefinition[] = [
   {
     id: "hello-world",
     type: "question",
-    shouldLoad: (_, analyzer) => true || analyzer.usesQuestionType("hello-world"),
+    shouldLoad: (_, analyzer) => analyzer.usesQuestionType("hello-world"),
     load: () =>
       import("@/extensions/questions/hello-world").then(
         (module) => module.default,
@@ -20,7 +20,7 @@ export const userExtensions: ExtensionDefinition[] = [
   {
     id: "country",
     type: "question",
-    shouldLoad: (_, analyzer) => true || analyzer.usesQuestionType("country"),
+    shouldLoad: (_, analyzer) => analyzer.usesQuestionType("country"),
     load: () =>
       import("@/extensions/questions/country").then((module) => module.default),
   },

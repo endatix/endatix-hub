@@ -104,7 +104,7 @@ export const withEndatix = (
       const hasExperiments = experiments.some((e) => e.enabled);
 
       if (hasExperiments) {
-        console.log("🧪 Endatix experimental features (use with caution):");
+        console.log("🚧 Endatix experimental features (use with caution):");
         experiments.forEach((feature) => {
           const symbol = feature.enabled
             ? "\x1b[32m✓\x1b[0m" // Green Check

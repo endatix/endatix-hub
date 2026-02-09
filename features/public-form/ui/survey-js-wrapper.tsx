@@ -22,6 +22,7 @@ export interface SurveyJsWrapperProps {
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
   urlToken?: string;
+  extensionIdsToLoad?: string[];
 }
 
 const SurveyJsWrapper = ({
@@ -33,9 +34,11 @@ const SurveyJsWrapper = ({
   requiresReCaptcha,
   isEmbed = false,
   urlToken,
+  extensionIdsToLoad,
 }: SurveyJsWrapperProps) => {
   const { isReady, onModelCreated } = useSurveyExtensions({
     formJson: definition,
+    extensionIdsToLoad,
   });
 
   if (!isReady) {
