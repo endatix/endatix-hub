@@ -67,7 +67,7 @@ export function SubmissionsWithFilters({
   };
 
   // Create a key that changes when filters change to force table re-mount
-  const tableKey = `${Array.from(isCompleteFilter).sort().join(',')}-${Array.from(statusFilter).sort().join(',')}-${data.length}`;
+  const tableKey = `${Array.from(isCompleteFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(statusFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${data.length}`;
 
   return (
     <>
