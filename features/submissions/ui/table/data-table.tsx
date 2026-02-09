@@ -1,23 +1,4 @@
-import { useState } from "react";
-import {
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-  Table,
-} from "@/components/ui/table";
-import { Submission } from "@/lib/endatix-api";
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  Row,
-  RowSelectionState,
-} from "@tanstack/react-table";
-import { TablePagination } from "./table-pagination";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -25,8 +6,27 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Submission } from "@/lib/endatix-api";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  Row,
+  RowSelectionState,
+  useReactTable,
+} from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { TablePagination } from "./table-pagination";
 
 const ROW_CLASS_NAMES = {
   selected: "bg-accent",
@@ -71,6 +71,7 @@ export function DataTable({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    manualFiltering: true,
     enableRowSelection: true,
     enableMultiRowSelection: false,
     onRowSelectionChange: setRowSelection,

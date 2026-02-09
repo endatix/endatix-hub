@@ -1,17 +1,19 @@
+import { auth } from "@/auth";
 import PageTitle from "@/components/headings/page-title";
+import { Skeleton } from "@/components/ui/skeleton";
+import { authorization } from "@/features/auth/authorization";
 import { getForm, getSubmissions } from "@/services/api";
-import SubmissionsTable from "./ui/submissions-table";
 import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { SubmissionsWithFilters } from "./ui/submissions-with-filters";
 
 type Params = {
   params: Promise<{ formId: string }>;
   searchParams: Promise<{
-    page: string;
-    pageSize: string;
+    page?: string;
+    pageSize?: string;
+    isComplete?: string;
+    status?: string;
   }>;
 };
 
@@ -38,15 +40,15 @@ export async function generateMetadata(
 
 export default async function ResponsesPage({ params, searchParams }: Params) {
   const { formId } = await params;
-  const { pageSize } = await searchParams;
+  const sp = await searchParams;
 
   return (
     <>
       <Suspense fallback={<PageTitle title="Submissions..." />}>
         <PageTitleData formId={formId} />
       </Suspense>
-      <Suspense fallback={<TableLoader pageSize={pageSize} />}>
-        <SubmissionsTableData formId={formId} />
+      <Suspense fallback={<TableLoader pageSize={sp.pageSize ?? "10"} />}>
+        <SubmissionsTableData formId={formId} searchParams={sp} />
       </Suspense>
     </>
   );
@@ -57,9 +59,37 @@ async function PageTitleData({ formId }: { formId: string }) {
   return <PageTitle title={`Submissions for ${form.name}`} />;
 }
 
-async function SubmissionsTableData({ formId }: { formId: string }) {
-  const submissions = await getSubmissions(formId);
-  return <SubmissionsTable data={submissions} formId={formId} />;
+async function SubmissionsTableData({
+  formId,
+  searchParams,
+}: {
+  formId: string;
+  searchParams: {
+    isComplete?: string;
+    status?: string;
+  };
+}) {
+  const isCompleteFilter = searchParams.isComplete
+    ? searchParams.isComplete.split(',')
+    : [];
+
+  const statusFilter = searchParams.status
+    ? searchParams.status.split(',')
+    : [];
+
+  const submissions = await getSubmissions(formId, {
+    isComplete: isCompleteFilter,
+    status: statusFilter,
+  });
+
+  return (
+    <SubmissionsWithFilters
+      data={submissions}
+      formId={formId}
+      initialIsComplete={isCompleteFilter}
+      initialStatus={statusFilter}
+    />
+  );
 }
 
 function TableLoader({ pageSize }: { pageSize: string }) {

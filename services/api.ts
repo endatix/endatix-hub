@@ -1,20 +1,20 @@
 import { getSession } from "@/features/auth";
 import { SubmissionData } from "@/features/submissions/types";
+import { Submission } from "@/lib/endatix-api";
 import {
   CreateFormRequest,
   CreateFormTemplateRequest,
   CreateFormTemplateResult,
 } from "@/lib/form-types";
-import { redirect } from "next/navigation";
-import { ITheme } from "survey-core";
-import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
-import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
-import { Submission } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 import {
   validateEndatixId,
   validateHexToken,
 } from "@/lib/utils/type-validators";
-import { Result } from "@/lib/result";
+import { redirect } from "next/navigation";
+import { ITheme } from "survey-core";
+import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
+import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
 
 const API_BASE_URL = process.env.ENDATIX_API_URL;
 
@@ -514,7 +514,13 @@ export const deleteFormTemplate = async (
   return response.text();
 };
 
-export const getSubmissions = async (formId: string): Promise<Submission[]> => {
+export const getSubmissions = async (
+  formId: string,
+  filters?: {
+    isComplete?: string[];
+    status?: string[];
+  }
+): Promise<Submission[]> => {
   const session = await getSession();
   if (!session.isLoggedIn) {
     redirect("/login");
@@ -523,15 +529,26 @@ export const getSubmissions = async (formId: string): Promise<Submission[]> => {
   const CLIENT_PAGE_SIZE = 10_000;
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(
-    `${API_BASE_URL}/forms/${formId}/submissions?pageSize=${CLIENT_PAGE_SIZE}`,
-    {
-      headers: headers,
-    },
-  );
+  const params = new URLSearchParams();
+  params.set("pageSize", String(CLIENT_PAGE_SIZE));
+
+  if (filters?.isComplete && filters.isComplete.length > 0) {
+    params.append("filter", `isComplete:${filters.isComplete.join("|")}`);
+  }
+  if (filters?.status && filters.status.length > 0) {
+    params.append("filter", `status:${filters.status.join("|")}`);
+  }
+
+  const url = `${API_BASE_URL}/forms/${formId}/submissions?${params.toString()}`;
+
+  const response = await fetch(url, {
+    headers: headers,
+  });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch data");
+    const errorText = await response.text();
+    console.error("API Error:", response.status, errorText);
+    throw new Error(`Failed to fetch data: ${response.status} - ${errorText}`);
   }
 
   return response.json();
