@@ -34,6 +34,7 @@ import { useStorageWithCreator } from "@/features/asset-storage/client";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
+import { useSurveyExtensions } from "@/lib/survey-extensions";
 
 const invalidJsonErrorMessage =
   "Invalid JSON! Please fix all errors in the JSON editor before saving.";
@@ -65,6 +66,8 @@ function FormTemplateEditor({
   slkVal,
 }: FormTemplateEditorProps) {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
+  const { isReady: isExtensionsReady, onCreatorCreated } =
+    useSurveyExtensions();
   const { registerStorageHandlers } = useStorageWithCreator({
     itemId: templateId,
     itemType: "template",
@@ -121,6 +124,7 @@ function FormTemplateEditor({
   useEffect(() => {
     const initializeNewCreator = async () => {
       if (creator) return;
+      if (!isExtensionsReady) return;
 
       if (slkVal) {
         slk(slkVal);
@@ -143,6 +147,8 @@ function FormTemplateEditor({
         );
 
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
+
+        onCreatorCreated(newCreator);
         newCreator.applyCreatorTheme(endatixTheme);
         const unregisterStorage = registerStorageHandlers(newCreator);
         newCreator.saveSurveyFunc = (
@@ -153,6 +159,7 @@ function FormTemplateEditor({
           callback(no, true);
         };
         setCreator(newCreator);
+
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }
@@ -168,7 +175,14 @@ function FormTemplateEditor({
     };
 
     initializeNewCreator();
-  }, [options, slkVal, registerStorageHandlers, creator]);
+  }, [
+    options,
+    slkVal,
+    registerStorageHandlers,
+    creator,
+    onCreatorCreated,
+    isExtensionsReady,
+  ]);
 
   useEffect(() => {
     if (creator && templateJson) {
@@ -429,7 +443,7 @@ function FormTemplateEditor({
       </div>
 
       <div id="surveyCreatorContainer">
-        {isLoading ? (
+        {isLoading || !isExtensionsReady ? (
           <div className="flex items-center justify-center h-[calc(100vh-80px)]">
             <div className="flex flex-col items-center gap-4">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>

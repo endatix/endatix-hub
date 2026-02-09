@@ -22,7 +22,7 @@ export interface UseSurveyExtensionsOptions {
 export function useSurveyExtensions({
   extensionIdsToLoad,
   formJson,
-}: UseSurveyExtensionsOptions) {
+}: UseSurveyExtensionsOptions = {}) {
   const isEnabled = process.env.ENDATIX_ENABLE_EXTENSIONS === "true";
 
   const ids = useMemo(() => {

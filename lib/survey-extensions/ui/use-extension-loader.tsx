@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { ReactElementFactory } from "survey-react-ui";
 import type { Model } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
@@ -67,8 +67,12 @@ export function useExtensionLoader({
   const mountedRef = useRef(true);
 
   const extensionIdsKey = extensionIdsToLoad.join(",");
-  const extensionsToLoad = allExtensions.filter((ext: ExtensionDefinition) =>
-    extensionIdsToLoad.includes(ext.id),
+  const extensionsToLoad = useMemo(
+    () =>
+      allExtensions.filter((ext: ExtensionDefinition) =>
+        extensionIdsToLoad.includes(ext.id),
+      ),
+    [allExtensions, extensionIdsToLoad],
   );
 
   useEffect(() => {
