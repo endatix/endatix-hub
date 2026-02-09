@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { Separator } from "@/components/ui/separator";
-import { SidebarNav } from "@/components/layout-ui/my-account/sidebar-nav";
+import { SettingsSidebarNav } from "@/components/layout-ui/my-account/settings-sidebar-nav";
 import PageTitle from "@/components/headings/page-title";
 
 export const metadata: Metadata = {
@@ -13,6 +13,10 @@ const sidebarNavItems = [
     title: "Security",
     href: "/settings/security",
   },
+  {
+    title: "Users",
+    href: "/settings/organization/users",
+  },
 ];
 
 interface SettingsLayoutProps {
@@ -21,7 +25,7 @@ interface SettingsLayoutProps {
 
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
   return (
-    <div className="space-y-6 md:block">
+    <div className="min-w-0 space-y-6 md:block">
       <div className="space-y-0.5 mb-12">
         <PageTitle title="Settings" />
         <p className="text-muted-foreground">
@@ -29,11 +33,9 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
         </p>
         <Separator className="my-4" />
       </div>
-      <div className="flex flex-co pl-4 space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-        <aside className="-mx-4 lg:w-1/5">
-          <SidebarNav items={sidebarNavItems} />
-        </aside>
-        <div className="flex-1 lg:max-w-2xl">{children}</div>
+      <div className="flex flex-col overflow-x-hidden pl-4 space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
+        <SettingsSidebarNav items={sidebarNavItems} />
+        <div className="flex-1 overflow-x-auto">{children}</div>
       </div>
     </div>
   );
