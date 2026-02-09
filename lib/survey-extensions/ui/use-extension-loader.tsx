@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Serializer } from "survey-core";
 import { ReactElementFactory } from "survey-react-ui";
 import type { Model } from "survey-core";
 import type { ExtensionDefinition, ExtensionModule } from "../types";

@@ -18,7 +18,7 @@ export function patchCameraPrototype(): void {
     // @ts-expect-error - Accessing internal camera constructor
     const CameraClass = filePatch.camera?.constructor;
 
-    if (!CameraClass || !CameraClass.prototype) {
+    if (!CameraClass?.prototype) {
       console.warn("[Endatix] Camera class not found, cannot apply patch");
       return;
     }

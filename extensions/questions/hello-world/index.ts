@@ -3,20 +3,13 @@
  * Importing this module registers the question type with SurveyJS (side effect).
  */
 
-import { createCustomQuestion } from '@/lib/questions/question-factory';
-import {
-  HELLO_WORLD_QUESTION_TYPE,
-  HelloWorldQuestionModel,
-} from './hello-world-model';
-import './hello-world-component';
-import type { ExtensionModule } from '@/lib/survey-extensions/types';
-
-// Side-effects from imports register the question with SurveyJS
+import "./hello-world-component";
+import type { ExtensionModule } from "@/lib/survey-extensions/types";
 
 const extension: ExtensionModule = {};
 
+export default extension;
 export {
   HELLO_WORLD_QUESTION_TYPE,
   HelloWorldQuestionModel,
-};
-export default extension;
+} from "./hello-world-model";

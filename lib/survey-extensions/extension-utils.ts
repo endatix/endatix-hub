@@ -16,7 +16,7 @@ export interface FormAnalyzer {
  * @param formJson - The form definition JSON
  */
 export function createFormAnalyzer(formJson: any): FormAnalyzer {
-  if (typeof formJson === "undefined" || formJson === null) {
+  if (typeof formJson === undefined || formJson === null) {
     return {
       formJson: null,
       usesQuestionType: () => false,
@@ -29,8 +29,12 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
   return {
     formJson,
     usesQuestionType: (questionType: string) => {
-      if (jsonString.length === 0) return false;
-      const regex = new RegExp(`"type"\\s*:\\s*"${questionType}"`);
+      if (jsonString.length === 0) {
+        return false;
+      }
+
+      const questionTypePattern = String.raw`"type"\s*:\s*"${questionType}"`;
+      const regex = new RegExp(questionTypePattern);
       return regex.test(jsonString);
     },
   };
@@ -40,7 +44,7 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
  * @deprecated Use createFormAnalyzer instead for better performance
  */
 export function formUsesQuestionType(
-  formJson: any | string,
+  formJson: any,
   questionType: string,
 ): boolean {
   return createFormAnalyzer(formJson).usesQuestionType(questionType);
