@@ -6,6 +6,9 @@ declare namespace NodeJS {
     ROBOTS_ALLOWED_DOMAINS?: string;
     ENDATIX_BASE_URL?: string;
     AI_API_BASE_URL?: string;
+ 
+    // Experimental features
+    ENDATIX_ENABLE_EXTENSIONS?: string;
 
     // Session
     SESSION_SECRET?: string;

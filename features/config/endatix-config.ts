@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 import { getAuthConfig, EndatixAuthConfig } from "./auth-config";
 import { getApiConfig } from "./api-config";
+import {
+  getExperimentalConfig,
+  logExperimentalStatus,
+  type ExperimentalConfig,
+} from "./experimental-config";
 import { StorageConfigClient } from "../asset-storage/infrastructure/storage-config-client";
 
 export interface EndatixConfig {
@@ -68,7 +73,15 @@ export const withEndatix = (
 
   const apiConfig = getApiConfig();
 
-  // Set environment variables for auth configuration
+  const baseExperimentalConfig = getExperimentalConfig();
+  const mergedExperimentalConfig: ExperimentalConfig = {
+    ...baseExperimentalConfig,
+    ...options.experimental,
+  };
+
+  logExperimentalStatus(mergedExperimentalConfig);
+
+  // Set environment variables for endatix configuration
   const env = {
     ...nextConfig.env,
     ...(apiConfig && { ENDATIX_API_URL: apiConfig.apiUrl }),
@@ -84,40 +97,9 @@ export const withEndatix = (
     SESSION_SECRET: mergedAuthConfig.session.secret,
     SESSION_MAX_AGE_IN_MINUTES: mergedAuthConfig.session.maxAge.toString(),
 
-    // Experimental features
-    ENDATIX_ENABLE_EXTENSIONS: (
-      options.experimental?.extensions ?? false
-    ).toString(),
+    // Experimental configuration
+    ENDATIX_ENABLE_EXTENSIONS: mergedExperimentalConfig.extensions.toString(),
   };
-
-  // Log experimental features status
-  if (process.env.NODE_ENV !== "test") {
-    // Prevent duplicate logging across main process and workers using process.env because it is inherited by child processes (Next.js workers)
-    if (!process.env.__ENDATIX_LOGGED) {
-      const experiments = [
-        {
-          name: "extensions",
-          enabled: options.experimental?.extensions ?? true,
-        },
-      ];
-
-      const hasExperiments = experiments.some((e) => e.enabled);
-
-      if (hasExperiments) {
-        console.log("🚧 Endatix experimental features (use with caution):");
-        experiments.forEach((feature) => {
-          const symbol = feature.enabled
-            ? "\x1b[32m✓\x1b[0m" // Green Check
-            : "\x1b[90m·\x1b[0m"; // Gray Dot
-          console.log(`  ${symbol} ${feature.name}`);
-        });
-        console.log(""); // Empty line for spacing
-      }
-
-      // Mark as logged so child processes/re-evaluations skip it
-      process.env.__ENDATIX_LOGGED = "true";
-    }
-  }
 
   return {
     ...nextConfig,
