@@ -19,7 +19,7 @@ export function SettingsSidebarNav({
   className,
   items,
   ...props
-}: SettingsSidebarNavProps) {
+}: Readonly<SettingsSidebarNavProps>) {
   const pathname = usePathname();
   const activeItem = items.find((item) => pathname === item.href);
   const triggerLabel = activeItem?.title ?? "Settings";
@@ -66,7 +66,7 @@ export function SettingsSidebarNav({
           </AccordionItem>
         </Accordion>
       </div>
-      
+
       {/* Desktop: vertical list (no accordion), wider sidebar, full-width links */}
       <aside className="hidden lg:block -mx-4 lg:w-52">{linkList}</aside>
     </nav>

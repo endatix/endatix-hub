@@ -25,7 +25,10 @@ interface UsersTableProps {
   currentUserId?: string;
 }
 
-export function UsersTable({ usersPromise, currentUserId }: UsersTableProps) {
+export function UsersTable({
+  usersPromise,
+  currentUserId,
+}: Readonly<UsersTableProps>) {
   const users = use(usersPromise);
   const columns: ColumnDef<UserListItem>[] =
     USERS_COLUMNS_DEFINITION(currentUserId);
