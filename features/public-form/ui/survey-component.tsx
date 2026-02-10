@@ -31,6 +31,7 @@ import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
+import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
 
@@ -276,12 +277,12 @@ export default function SurveyComponent({
   }
 
   return (
-    <>
+    <div className={isEmbed ? undefined : styles.layoutFullHeight}>
       <LanguageSelector
         availableLocales={surveyLocales}
         surveyModel={surveyModel}
       />
       <Survey model={surveyModel} />
-    </>
+    </div>
   );
 }

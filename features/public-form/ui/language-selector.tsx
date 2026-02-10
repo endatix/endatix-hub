@@ -67,16 +67,6 @@ export function LanguageSelector({
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (hasMultipleLocales) {
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [hasMultipleLocales]);
-
   if (!hasMultipleLocales) {
     return null;
   }
