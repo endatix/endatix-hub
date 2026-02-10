@@ -2,38 +2,32 @@
 
 exports[`ShareForm Page > renders form when definition is found 1`] = `
 <div
-  style={
-    {
-      "bottom": 0,
-      "height": "100%",
-      "left": 0,
-      "minHeight": "100%",
-      "position": "absolute",
-      "right": 0,
-      "top": 0,
-    }
-  }
+  className="_surveyPage_336443"
 >
-  <React.Suspense
-    fallback={
-      <div>
-        Loading...
-      </div>
-    }
+  <div
+    className="_surveyContent_336443"
   >
-    <AssetStorageProvider>
-      <default
-        customQuestions={[]}
-        definition={
-          {
-            "title": "Test Form",
+    <React.Suspense
+      fallback={
+        <div>
+          Loading...
+        </div>
+      }
+    >
+      <AssetStorageProvider>
+        <default
+          customQuestions={[]}
+          definition={
+            {
+              "title": "Test Form",
+            }
           }
-        }
-        formId="valid-id"
-        requiresReCaptcha={false}
-        theme={{}}
-      />
-    </AssetStorageProvider>
-  </React.Suspense>
+          formId="valid-id"
+          requiresReCaptcha={false}
+          theme={{}}
+        />
+      </AssetStorageProvider>
+    </React.Suspense>
+  </div>
 </div>
 `;
