@@ -10,17 +10,22 @@
 
 import type { ExtensionDefinition } from "./types";
 
-export const coreExtensions: ExtensionDefinition[] = [
-  {
-    id: "camera-fix",
-    type: "feature",
-    shouldLoad: (_) => true,
-    load: () =>
-      import("@/extensions/camera-fix").then(
-        (module) => module.default,
-      ),
-  },
-];
+/**
+ * Core extensions that ship with the platform.
+ * Developers should add their extensions to hub/extensions/user-extensions.ts
+ * to avoid merge conflicts when updating from upstream.
+ * @example
+ * {
+ *   id: "camera-fix",
+ *   type: "feature",
+ *   shouldLoad: (_) => true,
+ *   load: () =>
+ *     import("@/extensions/camera-fix").then(
+ *       (module) => module.default,
+ *     ),
+ */
+export const coreExtensions: ExtensionDefinition[] = [];
+
 
 /**
  * Get extension by ID from core registry

@@ -1,9 +1,9 @@
 # Endatix Extensions Architecture 🧩
 
 > **Experimental Feature** 🚧
-> This feature is currently experimental and **enabled by default** in development.
-> To configure it, check the `experimental.extensions` flag in `endatix-config.ts`.
-> You can also enable by adding this to your .env file - `ENDATIX_ENABLE_EXTENSIONS=true`
+> This feature is currently experimental and **disabled by default** in development.
+> To enable it add this to your .env file - `ENDATIX_ENABLE_EXTENSIONS=true`. 
+> Alternatively, set the `experimental.extensions` flag in `endatix-config.ts` to true.
 
 ## Overview
 
