@@ -53,7 +53,7 @@ export function useRichTextEditing(surveyCreator: SurveyCreator | null) {
 
     surveyCreator.toolbox.removeItem(RICH_TEXT_EDITOR_TYPE);
     surveyCreator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
-    
+
     if (surveyCreator.survey) {
       const view = registerMarkdownRenderer(surveyCreator.survey);
       disposers.push(view);
