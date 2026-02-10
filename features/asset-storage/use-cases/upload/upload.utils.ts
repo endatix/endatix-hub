@@ -2,6 +2,7 @@ import { Result } from "@/lib/result";
 import type { FileMetadata } from "../../types";
 import { toBlobUploadOptions } from "../../infrastructure/blob-metadata-parser";
 import { uploadBlob, resizeImageOrFallback } from "./upload-blob";
+import { processUploadError, UploadBlockedError } from "./upload-errors";
 
 const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
@@ -107,7 +108,7 @@ export async function processAndUploadFile(
     const url = await uploadBlob(sasUrl, buffer, options);
     return Result.success({ url, file });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Upload failed";
-    return Result.error(`Could not upload file: ${file.name}. ${message}`);
+    const errorMessage = processUploadError(err, sasUrl);
+    return Result.error(errorMessage);
   }
 }

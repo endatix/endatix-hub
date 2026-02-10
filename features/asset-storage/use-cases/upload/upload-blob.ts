@@ -1,5 +1,6 @@
 import { BlockBlobClient } from "@azure/storage-blob";
 import type { BlobUploadOptions } from "../../types";
+import { throwUploadError } from "./upload-errors";
 
 /** Uploads files to a SAS blob URL and returns the base URL (without query). */
 export async function uploadBlob(
@@ -8,18 +9,22 @@ export async function uploadBlob(
   options: BlobUploadOptions,
 ): Promise<string> {
   const client = new BlockBlobClient(sasUrl);
-  await client.uploadData(data, {
-    metadata: options.metadata,
-    blobHTTPHeaders: options.blobHTTPHeaders,
-    onProgress: (progress) => {
-      const progressPercentage = Math.round(
-        (progress.loadedBytes / data.byteLength) * 100,
-      );
-      console.debug(
-        `Upload of ${options.metadata.fileName} is ${progressPercentage}% complete`,
-      );
-    },
-  });
+  try {
+    await client.uploadData(data, {
+      metadata: options.metadata,
+      blobHTTPHeaders: options.blobHTTPHeaders,
+      onProgress: (progress) => {
+        const progressPercentage = Math.round(
+          (progress.loadedBytes / data.byteLength) * 100,
+        );
+        console.debug(
+          `Upload of ${options.metadata.fileName} is ${progressPercentage}% complete`,
+        );
+      },
+    });
+  } catch (err) {
+    throwUploadError(err, sasUrl);
+  }
 
   return sasUrl.split("?").at(0) ?? sasUrl;
 }
