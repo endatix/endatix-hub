@@ -5,7 +5,8 @@ import { RICH_TEXT_EDITOR_TYPE } from "./ui/rich-text-editor.model";
 let isInitialized = false;
 
 /**
- * Register the rich text editor question and extends the Survey Creator's Property Grid to include the rich text editor question.
+ * Registers the rich text editor for the Survey Creator property grid only.
+ * It is used as an augmenting editor for description/title/text in the property grid.
  */
 export function registerRichTextEditor() {
   if (isInitialized) {

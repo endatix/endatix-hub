@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { SurveyCreator } from "survey-creator-react";
 import { registerMarkdownRenderer } from "./register-markdown-renderer";
 import registerRichTextEditor from "@/lib/survey-features/rich-text/rich-text-editor";
+import { RICH_TEXT_EDITOR_TYPE } from "@/lib/survey-features/rich-text/ui/rich-text-editor.model";
 import { SurveyInstanceCreatedEvent } from "survey-creator-core";
 
 let isRichTextRegistered = false;
@@ -50,8 +51,9 @@ export function useRichTextEditing(surveyCreator: SurveyCreator | null) {
       disposers.push(view);
     };
 
+    surveyCreator.toolbox.removeItem(RICH_TEXT_EDITOR_TYPE);
     surveyCreator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
-
+    
     if (surveyCreator.survey) {
       const view = registerMarkdownRenderer(surveyCreator.survey);
       disposers.push(view);
