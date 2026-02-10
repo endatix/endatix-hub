@@ -3,6 +3,7 @@ import {
   deleteBlob,
   type FileOptions,
 } from "@/features/asset-storage/server";
+import { apiResponses } from "@/lib/utils/route-handlers";
 
 interface DeleteFilesRequest {
   formId: string;
@@ -15,18 +16,15 @@ export async function DELETE(request: Request) {
   const { formId, fileUrls, submissionId } = data;
 
   if (!formId) {
-    return Response.json({ error: "Form ID is required" }, { status: 400 });
+    return apiResponses.badRequest({ detail: "Form ID is required" });
   }
 
   if (!Array.isArray(fileUrls) || fileUrls.length === 0) {
-    return Response.json({ error: "File URLs are required" }, { status: 400 });
+    return apiResponses.badRequest({ detail: "File URLs are required" });
   }
 
   if (!submissionId) {
-    return Response.json(
-      { error: "Submission ID is required" },
-      { status: 400 },
-    );
+    return apiResponses.badRequest({ detail: "Submission ID is required" });
   }
 
   const containerNames = getContainerNames();
@@ -85,10 +83,9 @@ export async function DELETE(request: Request) {
       results: deleteResults,
     });
   } catch (error) {
-    console.error("Error in delete operation:", error);
-    return Response.json(
-      { error: "Internal server error during file deletion" },
-      { status: 500 },
-    );
+    console.error("Error in deleteFiles:", error);
+    return apiResponses.serverError({
+      detail: "Internal server error during file deletion",
+    });
   }
 }

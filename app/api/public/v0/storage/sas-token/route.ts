@@ -7,6 +7,8 @@ import {
 import { generateUniqueFileName } from "@/features/asset-storage";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
+import { apiResponses } from "@/lib/utils/route-handlers";
+import { buildUserFileFolderPath } from "@/features/asset-storage/infrastructure/storage-utils";
 
 interface SASTokenRequest {
   formId: string;
@@ -36,11 +38,11 @@ export async function POST(request: Request): Promise<Response> {
   let submissionId = data.submissionId;
 
   if (!formId) {
-    return Response.json({ error: "Form ID is required" }, { status: 400 });
+    return apiResponses.badRequest({ detail: "Form ID is required" });
   }
 
   if (!Array.isArray(fileNames) || fileNames.length === 0) {
-    return Response.json({ error: "File names are required" }, { status: 400 });
+    return apiResponses.badRequest({ detail: "File names are required" });
   }
 
   if (!submissionId) {
@@ -51,10 +53,9 @@ export async function POST(request: Request): Promise<Response> {
     );
 
     if (ApiResult.isError(initialSubmissionResult)) {
-      return Response.json(
-        { error: initialSubmissionResult.error.message },
-        { status: 400 },
-      );
+      return apiResponses.badRequest({
+        detail: initialSubmissionResult.error.message,
+      });
     }
 
     submissionId = initialSubmissionResult.data.submissionId;
@@ -67,28 +68,27 @@ export async function POST(request: Request): Promise<Response> {
   for (const fileName of fileNames) {
     const uniqueFileNameResult = generateUniqueFileName(fileName);
     if (Result.isError(uniqueFileNameResult)) {
-      sasTokens[fileName] = {
-        success: false,
-        message: uniqueFileNameResult.message,
-      };
+      sasTokens[fileName] = failedResult(uniqueFileNameResult.message);
+      continue;
+    }
+
+    const folderPathResult = buildUserFileFolderPath(formId, submissionId);
+    if (Result.isError(folderPathResult)) {
+      sasTokens[fileName] = failedResult(folderPathResult.message);
       continue;
     }
 
     try {
       const sasToken = await generateUploadUrl({
         containerName,
-        folderPath: `s/${formId}/${submissionId}`,
+        folderPath: folderPathResult.value,
         fileName: uniqueFileNameResult.value,
       });
-      sasTokens[fileName] = {
-        success: true,
-        url: sasToken,
-      };
+      sasTokens[fileName] = successResult(sasToken);
     } catch (error) {
-      sasTokens[fileName] = {
-        success: false,
-        message: error instanceof Error ? error.message : "Unknown error",
-      };
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      sasTokens[fileName] = failedResult(errorMessage);
     }
   }
 
@@ -97,5 +97,20 @@ export async function POST(request: Request): Promise<Response> {
     submissionId,
     userId,
   };
+
   return Response.json(sasTokenResponse);
+}
+
+function successResult(url: string): SASOperationResult {
+  return {
+    success: true,
+    url,
+  };
+}
+
+function failedResult(message: string): SASOperationResult {
+  return {
+    success: false,
+    message,
+  };
 }

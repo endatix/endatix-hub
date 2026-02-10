@@ -8,3 +8,12 @@ export type {
   UserUploadConfig,
   ContentUploadConfig,
 } from "./upload-handler.factory";
+export {
+  UploadCode,
+  type UploadErrorOptions,
+  UploadError,
+  UploadUnauthorizedError,
+  UploadBlockedError,
+  throwUploadError,
+  processUploadError
+} from "./upload-errors";
