@@ -15,5 +15,5 @@ export {
   UploadUnauthorizedError,
   UploadBlockedError,
   throwUploadError,
-  processUploadError,
+  processUploadError
 } from "./upload-errors";

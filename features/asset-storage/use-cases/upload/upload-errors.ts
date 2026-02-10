@@ -98,17 +98,37 @@ function throwUploadError(err: unknown, fileUrl: string): never {
 }
 
 /**
- * Processes the error and returns a user-friendly message.
- * @param err - The error to process.
- * @param fileUrl - The URL of the file that caused the error.
- * @returns A user-friendly message.
+ * Returns the message body for an upload error (no file prefix).
+ * Uses strongly-typed description from UploadError and its descendants.
  */
-function processUploadError(err: unknown, fileUrl: string): string {
+function getUploadErrorMessageBody(err: unknown): string {
   if (err instanceof UploadError) {
-    return err.description ?? UNKNOWN_ERROR_MESSAGE;
+    if (err.description) {
+      return err.description;
+    }
+
+    return err.message || UNKNOWN_ERROR_MESSAGE;
   }
 
   return err instanceof Error ? err.message : UNKNOWN_ERROR_MESSAGE;
+}
+
+const FILE_ERROR_PREFIX = "Could not upload file:";
+
+/**
+ * Returns the full user-facing error message for the UI.
+ * When fileName is provided, prefixes with "Could not upload file: {fileName}. {message}".
+ *
+ * @param err - The error to process.
+ * @param fileName - Optional file name to include in the message.
+ * @returns The complete message to show in the UI.
+ */
+function processUploadError(err: unknown, fileName?: string): string {
+  const body = getUploadErrorMessageBody(err);
+  if (fileName !== undefined && fileName !== "") {
+    return `${FILE_ERROR_PREFIX} ${fileName}. ${body}`;
+  }
+  return body;
 }
 
 export {
