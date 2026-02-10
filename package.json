@@ -90,6 +90,7 @@
     "semver": "^7.6.3",
     "sharp": "^0.34.2",
     "sonner": "^1.7.1",
+    "survey-analytics": "^2.5.9",
     "survey-core": "^2.5.9",
     "survey-creator-core": "^2.5.9",
     "survey-creator-react": "^2.5.9",

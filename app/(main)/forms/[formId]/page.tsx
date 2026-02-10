@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import { formAnalyticsFlag } from "@/lib/feature-flags";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -17,6 +18,7 @@ export default async function FormOverviewPage({ params }: Params) {
   await requireHubAccess();
 
   const { formId } = await params;
+  const enableAnalytics = await formAnalyticsFlag();
 
   let form: Form | null = null;
 
@@ -41,5 +43,12 @@ export default async function FormOverviewPage({ params }: Params) {
     );
   }
 
-  return <FormDetails form={form} showHeader={true} enableEditing={true} />;
+  return (
+    <FormDetails
+      form={form}
+      showHeader={true}
+      enableEditing={true}
+      enableAnalytics={enableAnalytics}
+    />
+  );
 }

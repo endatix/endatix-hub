@@ -9,6 +9,7 @@ import {
   Trash2,
   FilePen,
   Save,
+  BarChart3,
 } from "lucide-react";
 import { Form } from "@/types";
 import Link from "next/link";
@@ -127,6 +128,7 @@ interface FormDetailsProps {
   form: Form;
   enableEditing?: boolean;
   showHeader?: boolean;
+  enableAnalytics?: boolean;
   onFormDeleted?: () => void; // Callback for when form is successfully deleted
   titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
 }
@@ -135,6 +137,7 @@ const FormDetails = ({
   form,
   enableEditing = false,
   showHeader = true,
+  enableAnalytics = false,
   onFormDeleted,
   titleSize = "text-4xl",
 }: FormDetailsProps) => {
@@ -257,7 +260,10 @@ const FormDetails = ({
               Design
             </Link>
           </Button>
-          <Button variant={"outline"} onClick={() => setIsShareDialogOpen(true)}>
+          <Button
+            variant={"outline"}
+            onClick={() => setIsShareDialogOpen(true)}
+          >
             <Share2 className="mr-2 h-4 w-4" />
             Share
           </Button>
@@ -271,6 +277,14 @@ const FormDetails = ({
               Submissions
             </Link>
           </Button>
+          {enableAnalytics && (
+            <Button variant="outline" asChild>
+              <Link href={`/forms/${form.id}/analytics`}>
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analytics
+              </Link>
+            </Button>
+          )}
           <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
