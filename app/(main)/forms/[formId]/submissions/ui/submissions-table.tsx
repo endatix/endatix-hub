@@ -1,6 +1,5 @@
 "use client";
 
-import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { COLUMNS_DEFINITION, DataTable } from "@/features/submissions/ui/table";
 import { Submission } from "@/lib/endatix-api";
 import { useEffect, useState } from "react";
@@ -42,14 +41,7 @@ const SubmissionsTable = ({ data, formId }: SubmissionsTableProps) => {
     };
   }, [selectedSubmissionId, data]);
 
-  return (
-    <>
-      <div className="flex justify-end mb-4">
-        <ExportSubmissionsButton formId={formId} />
-      </div>
-      <DataTable data={data} columns={COLUMNS_DEFINITION} />
-    </>
-  );
+  return <DataTable data={data} columns={COLUMNS_DEFINITION} />;
 };
 
 export default SubmissionsTable;
