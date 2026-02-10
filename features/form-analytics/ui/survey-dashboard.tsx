@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Model } from "survey-core";
 import { VisualizationPanel } from "survey-analytics";
 import "survey-analytics/survey.analytics.css";
@@ -14,7 +14,7 @@ export interface SurveyDashboardProps {
 export function SurveyDashboard({
   surveyJson,
   results = MOCK_RESULTS,
-}: SurveyDashboardProps) {
+}: Readonly<SurveyDashboardProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<VisualizationPanel | null>(null);
 
@@ -26,7 +26,7 @@ export function SurveyDashboard({
     const survey = new Model(json);
     const vizPanel = new VisualizationPanel(
       survey.getAllQuestions(),
-      results as Record<string, unknown>[],
+      results ?? [],
     );
     panelRef.current = vizPanel;
     vizPanel.render(container);

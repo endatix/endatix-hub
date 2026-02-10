@@ -14,7 +14,7 @@ type Params = {
   params: Promise<{ formId: string }>;
 };
 
-export default async function FormAnalyticsPage({ params }: Params) {
+export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

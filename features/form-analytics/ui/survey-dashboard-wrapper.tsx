@@ -12,6 +12,8 @@ const SurveyDashboard = dynamic(
 
 export type SurveyDashboardWrapperProps = SurveyDashboardProps;
 
-export function SurveyDashboardWrapper(props: SurveyDashboardWrapperProps) {
+export function SurveyDashboardWrapper(
+  props: Readonly<SurveyDashboardWrapperProps>,
+) {
   return <SurveyDashboard {...props} />;
 }
