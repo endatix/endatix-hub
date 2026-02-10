@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Form Analytics Page > renders analytics page when form exists and flag is enabled 1`] = `
+<div>
+  <div
+    class="container py-6"
+  >
+    <div
+      class="mb-6 flex flex-wrap items-center justify-between gap-4"
+    >
+      <div>
+        <h1
+          class="font-semibold tracking-tight text-2xl"
+        >
+          Reporting: Reporting Form
+        </h1>
+        <p
+          class="text-muted-foreground mt-1"
+        >
+          Survey analytics and charts (v1: mocked data).
+        </p>
+      </div>
+      <a
+        class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+        href="/forms/f1"
+      >
+        Back to form
+      </a>
+    </div>
+    <div
+      data-testid="survey-dashboard-wrapper"
+    >
+      survey-dashboard 
+      mock
+    </div>
+  </div>
+</div>
+`;
