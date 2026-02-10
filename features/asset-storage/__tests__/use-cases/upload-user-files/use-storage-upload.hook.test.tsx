@@ -12,6 +12,7 @@ import {
 import { StorageHeaderNames } from "@/features/asset-storage/infrastructure/storage-utils";
 import { BlockBlobClient } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
+import { processUploadError } from "@/features/asset-storage/use-cases/upload";
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -1170,8 +1171,12 @@ describe("useStorageUpload", () => {
     });
 
     it("should handle individual file upload failure", async () => {
+      const fileToUpload = createFileWithArrayBuffer(
+        "large-video.mp4",
+        "video/mp4",
+      );
       const uploadOptions: UploadFilesEvent = {
-        files: [mockLargeFile],
+        files: [fileToUpload],
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
@@ -1188,9 +1193,8 @@ describe("useStorageUpload", () => {
           }),
       });
 
-      const mockUploadData = vi
-        .fn()
-        .mockRejectedValue(new Error("Upload failed"));
+      const error = new Error("Upload failed");
+      const mockUploadData = vi.fn().mockRejectedValue(error);
       (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(() => ({
         uploadData: mockUploadData,
       }));
@@ -1203,15 +1207,17 @@ describe("useStorageUpload", () => {
         },
       );
 
+      // Act
       await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
+      // Assert
+      const callbackSucessses: any[] = [];
+      const callbackErrors = [processUploadError(error)];
       expect(uploadOptions.callback).toHaveBeenCalledWith(
-        [],
-        expect.arrayContaining([
-          expect.stringContaining("Could not upload file: large-video.mp4"),
-        ]),
+        callbackSucessses,
+        callbackErrors,
       );
     });
 
@@ -1418,3 +1424,28 @@ describe("useStorageUpload", () => {
     });
   });
 });
+
+/**
+ * Creates mock file with array buffer.
+ * @param fileName - The name of the file e.g. "test.jpg", "large-video.mp4", "document.pdf".
+ * @param contentType - The content type of the file e.g. "image/jpeg", "video/mp4", "application/pdf".
+ * @param content - The content of the file. Optional, if not provided, the file content will be the fileName.
+ * @returns A file with an array buffer.
+ */
+function createFileWithArrayBuffer(
+  fileName: string,
+  contentType: string,
+  content?: string,
+) {
+  const fileContent = content ?? fileName;
+  const fileWithArrayBuffer = new File([fileContent], fileName, {
+    type: contentType,
+  });
+
+  Object.defineProperty(fileWithArrayBuffer, "arrayBuffer", {
+    value: () => Promise.resolve(new ArrayBuffer(0)),
+    writable: false,
+  });
+
+  return fileWithArrayBuffer;
+}

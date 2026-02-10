@@ -108,6 +108,6 @@ export async function processAndUploadFile(
     const url = await uploadBlob(sasUrl, buffer, options);
     return Result.success({ url, file });
   } catch (err) {
-    return Result.error(processUploadError(err, file.name));
+    return Result.error(processUploadError(err));
   }
 }

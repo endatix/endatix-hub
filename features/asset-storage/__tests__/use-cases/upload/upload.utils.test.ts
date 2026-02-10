@@ -169,8 +169,7 @@ describe("processAndUploadFile", () => {
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
-      expect(result.message).toContain("doc.pdf");
-      expect(result.message).toContain("Upload failed");
+      expect(result.message).toBe("Upload failed");
     }
   });
 
@@ -190,8 +189,7 @@ describe("processAndUploadFile", () => {
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
-      expect(result.message).toContain("img.png");
-      expect(result.message).toContain("Resize failed");
+      expect(result.message).toBe("Resize failed");
     }
   });
 });

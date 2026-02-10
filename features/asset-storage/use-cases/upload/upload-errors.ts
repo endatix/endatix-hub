@@ -103,11 +103,13 @@ function throwUploadError(err: unknown, fileUrl: string): never {
  */
 function getUploadErrorMessageBody(err: unknown): string {
   if (err instanceof UploadError) {
-    if (err.description) {
-      return err.description;
+    const desc = err.description ?? UNKNOWN_ERROR_MESSAGE;
+
+    if (desc === UNKNOWN_ERROR_MESSAGE) {
+      return err.message || UNKNOWN_ERROR_MESSAGE;
     }
 
-    return err.message || UNKNOWN_ERROR_MESSAGE;
+    return desc;
   }
 
   return err instanceof Error ? err.message : UNKNOWN_ERROR_MESSAGE;
