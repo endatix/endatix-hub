@@ -83,6 +83,7 @@ export async function DELETE(request: Request) {
       results: deleteResults,
     });
   } catch (error) {
+    console.error("Error in deleteFiles:", error);
     return apiResponses.serverError({
       detail: "Internal server error during file deletion",
     });
