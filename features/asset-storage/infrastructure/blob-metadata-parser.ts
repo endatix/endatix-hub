@@ -19,6 +19,46 @@ const DEFAULT_CONTENT_TYPE = "application/octet-stream";
 /** Placeholder when content type is missing in list views (e.g. table "—"). */
 const LIST_CONTENT_TYPE_PLACEHOLDER = "—";
 
+/** Extension (lowercase) → MIME type for inferring type when blob has application/octet-stream. */
+const EXTENSION_TO_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  bmp: "image/bmp",
+  ico: "image/x-icon",
+  pdf: "application/pdf",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+};
+
+/**
+ * When stored contentType is generic (octet-stream or placeholder), guess from file extension
+ * so legacy uploads can be previewed (e.g. image in modal).
+ */
+function resolveContentType(contentType: string, fileName: string): string {
+  const shouldResolveFromExtension =
+    !contentType ||
+    contentType === DEFAULT_CONTENT_TYPE ||
+    contentType === LIST_CONTENT_TYPE_PLACEHOLDER;
+
+  if (!shouldResolveFromExtension) {
+    return contentType;
+  }
+
+  const extension = fileName.split(".").pop()?.toLowerCase();
+  if (!extension) {
+    return contentType;
+  }
+
+  return EXTENSION_TO_MIME[extension] ?? contentType;
+}
+
 function parseFileState(value: string | undefined): ProcessedState | undefined {
   if (value === "original" || value === "optimized") return value;
   return undefined;
@@ -53,11 +93,12 @@ export const blobMetadataParser = {
    */
   parseFromBlob(blob: BlobItem): UserFileMetadata {
     const metadata = blob.metadata ?? {};
-    const contentType =
+    const rawContentType =
       metadata["content-type"] ??
       (blob.properties?.contentType as string | undefined) ??
       LIST_CONTENT_TYPE_PLACEHOLDER;
     const displayName = getLastSegmentFromUrlPath(blob.name);
+    const contentType = resolveContentType(rawContentType, displayName);
     const fields = parseMetadataFields(metadata);
 
     return {
@@ -79,7 +120,9 @@ export const blobMetadataParser = {
   ): UserFileMetadata {
     const metadata = properties.metadata ?? {};
     const displayName = getLastSegmentFromUrlPath(blobName);
-    const contentType = properties.contentType?.trim() || DEFAULT_CONTENT_TYPE;
+    const rawContentType =
+      properties.contentType?.trim() || DEFAULT_CONTENT_TYPE;
+    const contentType = resolveContentType(rawContentType, displayName);
     const fields = parseMetadataFields(metadata);
 
     return {
