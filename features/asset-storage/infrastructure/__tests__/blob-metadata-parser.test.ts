@@ -131,6 +131,42 @@ describe("blobMetadataParser.parseFromProperties", () => {
     );
     expect(lowercased.uploadedBy).toBe("usr-456");
   });
+
+  it("infers contentType from file extension when stored as application/octet-stream", () => {
+    const result = blobMetadataParser.parseFromProperties(
+      {
+        contentType: "application/octet-stream",
+        sizeInBytes: 1024,
+        metadata: {},
+      },
+      "s/f1/s1/photo.png",
+    );
+    expect(result.contentType).toBe("image/png");
+  });
+
+  it("keeps application/octet-stream when extension is unknown", () => {
+    const result = blobMetadataParser.parseFromProperties(
+      {
+        contentType: "application/octet-stream",
+        sizeInBytes: 100,
+        metadata: {},
+      },
+      "s/f1/s1/file.bin",
+    );
+    expect(result.contentType).toBe("application/octet-stream");
+  });
+
+  it("does not override explicit contentType with extension guess", () => {
+    const result = blobMetadataParser.parseFromProperties(
+      {
+        contentType: "image/jpeg",
+        sizeInBytes: 500,
+        metadata: {},
+      },
+      "s/f1/s1/photo.png",
+    );
+    expect(result.contentType).toBe("image/jpeg");
+  });
 });
 
 describe("blobMetadataParser.parseFromBlob", () => {
@@ -264,6 +300,33 @@ describe("blobMetadataParser.parseFromBlob", () => {
     expect(result.kind).toBe("user");
     expect(result.originalFileName).toBe("from-lowercase");
     expect(result.questionName).toBe("q-lower");
+  });
+
+  it("infers contentType from displayName when blob has application/octet-stream", () => {
+    const blob = {
+      name: "s/f1/s1/screenshot.png",
+      metadata: {},
+      properties: {
+        contentType: "application/octet-stream",
+        contentLength: 2048,
+      },
+    } as unknown as BlobItem;
+
+    const result = blobMetadataParser.parseFromBlob(blob);
+
+    expect(result.contentType).toBe("image/png");
+  });
+
+  it("infers contentType from displayName when placeholder (missing contentType)", () => {
+    const blob = {
+      name: "s/f1/s1/document.pdf",
+      metadata: {},
+      properties: { contentLength: 100 },
+    } as unknown as BlobItem;
+
+    const result = blobMetadataParser.parseFromBlob(blob);
+
+    expect(result.contentType).toBe("application/pdf");
   });
 });
 
