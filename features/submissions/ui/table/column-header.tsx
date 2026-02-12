@@ -33,6 +33,8 @@ export function ColumnHeader<TData, TValue>({
     return <div className={cn(className)}>{title}</div>;
   }
 
+  const SortIcon = isSorted === "desc" ? ArrowDown : isSorted === "asc" ? ArrowUp : ChevronsUpDown;
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <DropdownMenu>
@@ -43,13 +45,7 @@ export function ColumnHeader<TData, TValue>({
             className="data-[state=open]:bg-accent -ml-3 h-8"
           >
             <span>{title}</span>
-            {isSorted === "desc" ? (
-              <ArrowDown />
-            ) : isSorted === "asc" ? (
-              <ArrowUp />
-            ) : (
-              <ChevronsUpDown />
-            )}
+            <SortIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
