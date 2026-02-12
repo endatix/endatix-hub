@@ -10,6 +10,7 @@ import { CellStatusDropdown } from "./cell-status-dropdown";
 export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   {
     id: "actions",
+    enableSorting: false,
     header: ({ column }) => (
       <ColumnHeader
         className="text-center hidden"
@@ -22,10 +23,12 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   },
   {
     id: "createdAt",
+    accessorKey: "createdAt",
     header: ({ column }) => (
       <ColumnHeader
         className="hidden md:table-cell"
         column={column}
+        isSorted={column.getIsSorted()}
         title="Created at"
       />
     ),
@@ -33,8 +36,9 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   },
   {
     id: "complete",
+    accessorKey: "isComplete",
     header: ({ column }) => (
-      <ColumnHeader column={column} title="Is Complete" />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Is Complete" />
     ),
     cell: ({ row }) => (
       <CellCompleteStatus isComplete={row.original.isComplete} />
@@ -42,8 +46,9 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   },
   {
     id: "completedAt",
+    accessorKey: "completedAt",
     header: ({ column }) => (
-      <ColumnHeader column={column} title="Completed at" />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Completed at" />
     ),
     cell: ({ row }) => (
       <CellDate
@@ -54,8 +59,12 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   },
   {
     id: "completionTime",
+    accessorFn: (row) =>
+      row.completedAt
+        ? new Date(row.completedAt).getTime() - new Date(row.createdAt).getTime()
+        : -1,
     header: ({ column }) => (
-      <ColumnHeader column={column} title="Completion Time" />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Completion Time" />
     ),
     cell: ({ row }) => (
       <CellCompletionTime
@@ -66,10 +75,11 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   },
   {
     id: "status",
-    header: ({ column }) => <ColumnHeader column={column} title="Status" />,
+    accessorKey: "status",
+    header: ({ column }) => <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Status" />,
     cell: ({ row }) => (
-      <CellStatusDropdown 
-        code={row.original.status} 
+      <CellStatusDropdown
+        code={row.original.status}
         submissionId={row.original.id}
         formId={row.original.formId}
       />
