@@ -20,8 +20,10 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   Row,
   RowSelectionState,
+  SortingState,
   useReactTable,
 } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
@@ -52,6 +54,7 @@ export function DataTable({
   data: Submission[];
   columns: ColumnDef<Submission>[];
 }) {
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const router = useRouter();
   const handleRowSelectionChange = (row: Row<Submission>) => {
@@ -71,11 +74,14 @@ export function DataTable({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     manualFiltering: true,
     enableRowSelection: true,
     enableMultiRowSelection: false,
+    onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     state: {
+      sorting,
       rowSelection,
     },
   });
