@@ -33,7 +33,13 @@ export function ColumnHeader<TData, TValue>({
     return <div className={cn(className)}>{title}</div>;
   }
 
-  const SortIcon = isSorted === "desc" ? ArrowDown : isSorted === "asc" ? ArrowUp : ChevronsUpDown;
+  let SortIcon: typeof ChevronsUpDown = ChevronsUpDown;
+  if (isSorted === "asc") {
+    SortIcon = ArrowUp;
+  }
+  else if (isSorted === "desc") {
+    SortIcon = ArrowDown;
+  }
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
