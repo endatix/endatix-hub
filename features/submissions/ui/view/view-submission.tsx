@@ -1,5 +1,6 @@
 "use client";
 
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { Submission } from "@/lib/endatix-api";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
@@ -9,14 +10,10 @@ import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import ViewSubmissionHeader from "./view-submission-header";
 
-const SubmissionSurvey = dynamic(
-  () => import("../shared/submission-survey"),
-  {
-    ssr: false,
-  },
-);
+const SubmissionSurvey = dynamic(() => import("../shared/submission-survey"), {
+  ssr: false,
+});
 
-// Load all custom questions registered in the question registry
 for (const questionName of customQuestions) {
   try {
     await questionLoaderModule.loadQuestion(questionName);
@@ -35,6 +32,14 @@ function ViewSubmission({ submission }: ViewSubmissionProps) {
     return (submission.formDefinition as ActiveDefinition)?.customQuestions;
   }, [submission.formDefinition]);
 
+  const { isReady, onModelCreated } = useSurveyExtensions({
+    formJson: submission.formDefinition?.jsonData,
+  });
+
+  if (!isReady) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <ViewSubmissionHeader submission={submission} />
@@ -42,6 +47,7 @@ function ViewSubmission({ submission }: ViewSubmissionProps) {
         submission={submission}
         customQuestions={customQuestionsList}
         readOnly={true}
+        onModelCreated={onModelCreated}
       />
       <div className="h-8 text-muted-foreground flex flex-row justify-center items-center gap-2">
         <Info className="h-4 w-4" />

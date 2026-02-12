@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 import { getAuthConfig, EndatixAuthConfig } from "./auth-config";
 import { getApiConfig } from "./api-config";
+import {
+  getExperimentalConfig,
+  logExperimentalStatus,
+  type ExperimentalConfig,
+} from "./experimental-config";
 import { StorageConfigClient } from "../asset-storage/infrastructure/storage-config-client";
 
 export interface EndatixConfig {
@@ -26,11 +31,15 @@ export interface EndatixConfig {
     prefix?: string;
   };
   storage?: StorageConfigClient;
+  experimental?: {
+    extensions?: boolean;
+  };
 }
 
 export interface WithEndatixOptions {
   auth?: EndatixConfig["auth"];
   api?: EndatixConfig["api"];
+  experimental?: EndatixConfig["experimental"];
 }
 
 /**
@@ -64,7 +73,15 @@ export const withEndatix = (
 
   const apiConfig = getApiConfig();
 
-  // Set environment variables for auth configuration
+  const baseExperimentalConfig = getExperimentalConfig();
+  const mergedExperimentalConfig: ExperimentalConfig = {
+    ...baseExperimentalConfig,
+    ...options.experimental,
+  };
+
+  logExperimentalStatus(mergedExperimentalConfig);
+
+  // Set environment variables for endatix configuration
   const env = {
     ...nextConfig.env,
     ...(apiConfig && { ENDATIX_API_URL: apiConfig.apiUrl }),
@@ -79,6 +96,9 @@ export const withEndatix = (
     // Session configuration
     SESSION_SECRET: mergedAuthConfig.session.secret,
     SESSION_MAX_AGE_IN_MINUTES: mergedAuthConfig.session.maxAge.toString(),
+
+    // Experimental configuration
+    ENDATIX_ENABLE_EXTENSIONS: mergedExperimentalConfig.extensions.toString(),
   };
 
   return {

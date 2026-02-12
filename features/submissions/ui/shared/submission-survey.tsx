@@ -7,6 +7,7 @@ import addRandomizeGroupFeature from "@/lib/questions/features/group-randomizati
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
+import type { Model } from "survey-core";
 import { useEffect } from "react";
 import {
   DynamicPanelItemValueChangedEvent,
@@ -24,6 +25,7 @@ interface SubmissionSurveyProps {
   submission: Submission;
   customQuestions?: string[];
   readOnly?: boolean;
+  onModelCreated?: (model: Model) => void;
   onChange?: (
     sender: SurveyModel,
     event:
@@ -37,12 +39,14 @@ function SubmissionSurvey({
   submission,
   customQuestions,
   readOnly = false,
+  onModelCreated,
   onChange,
 }: Readonly<SubmissionSurveyProps>) {
   const { model, isLoading } = useSurveyModel(
     submission,
     customQuestions,
     readOnly,
+    onModelCreated,
   );
   const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
     model: model,

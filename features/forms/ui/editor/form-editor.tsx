@@ -16,6 +16,7 @@ import { Result } from "@/lib/result";
 import { useQuestionLoopsEditing } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Question } from "survey-core";
@@ -148,6 +149,9 @@ function FormEditor({
     itemId: formId,
     itemType: "form",
   });
+  const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions(
+    {},
+  );
 
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
@@ -426,6 +430,10 @@ function FormEditor({
         return;
       }
 
+      if (!isExtensionsReady) {
+        return;
+      }
+
       if (slkVal) {
         slk(slkVal);
       }
@@ -463,6 +471,8 @@ function FormEditor({
         };
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
+
+        onCreatorCreated(newCreator);
 
         const unregisterStorage = registerStorageHandlers(newCreator);
 
@@ -513,6 +523,8 @@ function FormEditor({
     initialPropertyGridVisible,
     formJson,
     registerStorageHandlers,
+    isExtensionsReady,
+    onCreatorCreated,
   ]);
 
   useEffect(() => {

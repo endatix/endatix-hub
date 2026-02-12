@@ -10,6 +10,7 @@ import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Survey } from "survey-react-ui";
 import { useStorageView } from "@/features/asset-storage/client";
+import { useSurveyExtensions } from "@/lib/survey-extensions";
 
 interface SurveyPreviewComponentProps {
   template: FormTemplate;
@@ -20,6 +21,7 @@ export default function SurveyPreviewComponent({
 }: SurveyPreviewComponentProps) {
   const [model, setModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions();
   useRichText(model);
   useLoopAwareSummaryTable(model);
   useQuestionLoops(model);
@@ -27,41 +29,56 @@ export default function SurveyPreviewComponent({
   const { setModelMetadata, registerViewHandlers } = useStorageView();
 
   useEffect(() => {
-    if (template) {
-      try {
-        const survey = new Model(template.jsonData);
+    if (!template || !isExtensionsReady) return;
 
-        // Set survey to read-only mode
-        survey.mode = "display";
+    try {
+      const survey = new Model(template.jsonData);
+      onModelCreated(survey);
 
-        // Disable all navigation, buttons, and editing
-        survey.showNavigationButtons = false;
-        survey.showCompletedPage = false;
-        survey.showProgressBar = "top";
-        survey.questionsOnPageMode = "singlePage";
+      // Set survey to read-only mode
+      survey.mode = "display";
 
-        // Apply theme
-        survey.applyTheme(SharpLightPanelless);
+      // Disable all navigation, buttons, and editing
+      survey.showNavigationButtons = false;
+      survey.showCompletedPage = false;
+      survey.showProgressBar = "top";
+      survey.questionsOnPageMode = "singlePage";
 
-        setModelMetadata(survey);
-        const unregisterView = registerViewHandlers(survey);
+      // Apply theme
+      survey.applyTheme(SharpLightPanelless);
 
-        setModel(survey);
-        setError(null);
+      setModelMetadata(survey);
+      const unregisterView = registerViewHandlers(survey);
 
-        return () => {
-          unregisterView();
-        };
-      } catch (error) {
-        console.error("Error parsing survey JSON:", error);
-        setError("Could not parse the form template data");
-        setModel(null);
-      }
+      setModel(survey);
+      setError(null);
+
+      return () => {
+        unregisterView();
+      };
+    } catch (err) {
+      console.error("Error parsing survey JSON:", err);
+      setError("Could not parse the form template data");
+      setModel(null);
     }
-  }, [template, setModelMetadata, registerViewHandlers]);
+  }, [
+    template,
+    registerViewHandlers,
+    onModelCreated,
+    isExtensionsReady,
+    setModelMetadata,
+  ]);
 
   if (error) {
     return <div className="text-destructive text-center">{error}</div>;
+  }
+
+  if (!isExtensionsReady) {
+    return (
+      <div className="text-center text-muted-foreground">
+        Loading preview...
+      </div>
+    );
   }
 
   if (!model) {

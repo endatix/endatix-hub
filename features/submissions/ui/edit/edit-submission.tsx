@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
@@ -42,15 +43,21 @@ interface EditSubmissionProps {
   token?: string; // Optional: for public mode
 }
 
-function EditSubmission({ submission, formId, token }: Readonly<EditSubmissionProps>) {
+function EditSubmission({
+  submission,
+  formId,
+  token,
+}: Readonly<EditSubmissionProps>) {
   const isPublicMode = token !== undefined;
-  const [submissionData, setSubmissionData] = useState<Record<string, unknown>>(() => {
-    try {
-      return JSON.parse(submission.jsonData);
-    } catch {
-      return {};
-    }
-  });
+  const [submissionData, setSubmissionData] = useState<Record<string, unknown>>(
+    () => {
+      try {
+        return JSON.parse(submission.jsonData);
+      } catch {
+        return {};
+      }
+    },
+  );
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [changes, setChanges] = useState<Record<string, Question>>({});
   const [surveyModel, setSurveyModel] = useState<SurveyModel | null>(null);
@@ -75,13 +82,19 @@ function EditSubmission({ submission, formId, token }: Readonly<EditSubmissionPr
 
       // Show toast warnings at thresholds
       if (minutes === 30 && !shownWarningsRef.current.has(30)) {
-        toast.warning("Your edit access will expire in 30 minutes. Please save your changes soon.");
+        toast.warning(
+          "Your edit access will expire in 30 minutes. Please save your changes soon.",
+        );
         shownWarningsRef.current.add(30);
       } else if (minutes === 10 && !shownWarningsRef.current.has(10)) {
-        toast.warning("Your edit access will expire in 10 minutes. Save your changes!");
+        toast.warning(
+          "Your edit access will expire in 10 minutes. Save your changes!",
+        );
         shownWarningsRef.current.add(10);
       } else if (minutes === 5 && !shownWarningsRef.current.has(5)) {
-        toast.error("Your access expires in 5 minutes! Save now or your changes may be lost.");
+        toast.error(
+          "Your access expires in 5 minutes! Save now or your changes may be lost.",
+        );
         shownWarningsRef.current.add(5);
       }
     };
@@ -149,10 +162,13 @@ function EditSubmission({ submission, formId, token }: Readonly<EditSubmissionPr
             );
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
+          const errorMessage =
+            error instanceof Error ? error.message.toLowerCase() : "";
 
           if (errorMessage.includes("expired")) {
-            toast.error("Your access link has expired. Please request a new one.");
+            toast.error(
+              "Your access link has expired. Please request a new one.",
+            );
           } else {
             console.error(error);
             toast.error("Failed to save changes");
@@ -190,6 +206,14 @@ function EditSubmission({ submission, formId, token }: Readonly<EditSubmissionPr
     }
   }, [isPublicMode, surveyModel, submissionData, router, isPending]);
 
+  const { isReady, onModelCreated } = useSurveyExtensions({
+    formJson: submission.formDefinition?.jsonData,
+  });
+
+  if (!isReady) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <EditSubmissionHeader
@@ -204,6 +228,7 @@ function EditSubmission({ submission, formId, token }: Readonly<EditSubmissionPr
       <SubmissionSurvey
         submission={submission}
         onChange={onSubmissionChange}
+        onModelCreated={onModelCreated}
         customQuestions={
           isPublicMode
             ? (submission.formDefinition as ActiveDefinition)?.customQuestions

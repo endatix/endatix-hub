@@ -23,6 +23,7 @@ import {
   CurrentPageChangedEvent,
   DynamicPanelItemValueChangedEvent,
   MatrixCellValueChangedEvent,
+  Model,
   SurveyModel,
   ValueChangedEvent,
 } from "survey-core";
@@ -44,6 +45,7 @@ interface SurveyComponentProps {
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
   urlToken?: string;
+  onModelCreated?: (model: Model) => void;
 }
 
 type PartialUpdateEvent =
@@ -61,12 +63,14 @@ export default function SurveyComponent({
   requiresReCaptcha,
   isEmbed = false,
   urlToken,
+  onModelCreated,
 }: SurveyComponentProps) {
   const { surveyModel } = useSurveyModel({
     formId,
     definition,
     submission,
     customQuestions,
+    onModelCreated,
   });
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(
     formId,

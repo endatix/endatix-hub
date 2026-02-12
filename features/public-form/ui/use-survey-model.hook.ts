@@ -17,6 +17,7 @@ interface UseSurveyModelProps {
   definition: string;
   submission?: Submission;
   customQuestions?: string[];
+  onModelCreated?: (model: Model) => void;
 }
 
 /**
@@ -32,6 +33,7 @@ export function useSurveyModel({
   definition,
   customQuestions,
   submission,
+  onModelCreated,
 }: UseSurveyModelProps) {
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
@@ -88,6 +90,7 @@ export function useSurveyModel({
       model.currentPageNo = initialSubmission.currentPage ?? 0;
       applyVariablesToModel(model, initialSubmission.metadata);
     }
+    onModelCreated?.(model);
     processSearchParams(model);
 
     setSurveyModel(model);
@@ -104,6 +107,7 @@ export function useSurveyModel({
     processSearchParams,
     cleanupUrl,
     submissionRef,
+    onModelCreated,
   ]);
 
   return {

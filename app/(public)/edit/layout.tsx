@@ -7,12 +7,7 @@ export const metadata: Metadata = {
   title: "Edit Submission - Endatix",
   description: "Edit your submission",
   generator: "Endatix",
-  keywords: [
-    "endatix",
-    "edit",
-    "submission",
-    "form"
-  ],
+  keywords: ["endatix", "edit", "submission", "form"],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
   robots: {
