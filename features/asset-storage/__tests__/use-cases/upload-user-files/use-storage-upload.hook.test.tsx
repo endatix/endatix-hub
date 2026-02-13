@@ -971,32 +971,120 @@ describe("useStorageUpload", () => {
       global.FileReader = MockFileReader as unknown as typeof FileReader;
     });
 
-    it("should download file with token when token is available", async () => {
-      const tokenResult = Result.success({
-        token: "test-token-123",
-        containerName: "user-files",
-        isPrivate: false,
-        hostName: "test.blob.core.windows.net",
-        expiresOn: new Date(),
-        generatedAt: new Date(),
-      });
-
-      const userFiles = Promise.resolve(tokenResult);
+    it("should call read-token API and use token when storage is private", async () => {
       const props = createHookProps();
-      const readTokenPromises = {
-        userFiles,
-        content: sharedResolvedPromise,
-      };
 
       let result: ReturnType<typeof renderHook>["result"];
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
-          wrapper: createWrapper(mockStorageConfig, readTokenPromises),
+          wrapper: createWrapper(mockStorageConfig),
         });
         result = view.result;
         await Promise.resolve();
       });
 
+      // Mock the read-token API response
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              token: "on-demand-token-123",
+              expiresOn: new Date().toISOString(),
+            }),
+        })
+        .mockResolvedValueOnce({
+          blob: () =>
+            Promise.resolve(new Blob(["test"], { type: "application/pdf" })),
+        });
+
+      await act(async () => {
+        (
+          result.current as ReturnType<typeof useStorageUpload>
+        ).registerUploadHandlers(mockSurveyModel);
+        const downloadHandler = (
+          mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
+        ).mock.calls[0][0];
+        await downloadHandler(mockSurveyModel, mockDownloadOptions);
+      });
+
+      // Should call read-token API first
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/public/v0/storage/read-token",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            url: "https://test.blob.core.windows.net/user-files/test.pdf",
+          }),
+        }),
+      );
+
+      // Should use the token from the API response
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://test.blob.core.windows.net/user-files/test.pdf?on-demand-token-123",
+      );
+
+      // Wait for FileReader async operation
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(mockDownloadOptions.callback).toHaveBeenCalledWith(
+        "success",
+        "data:application/pdf;base64,test",
+      );
+    });
+
+    it("should call callback with error when read-token API fails", async () => {
+      const props = createHookProps();
+
+      let result: ReturnType<typeof renderHook>["result"];
+      await act(async () => {
+        const view = renderHook(() => useStorageUpload(props), {
+          wrapper: createWrapper(mockStorageConfig),
+        });
+        result = view.result;
+        await Promise.resolve();
+      });
+
+      // Mock the read-token API failure
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: false,
+        statusText: "Unauthorized",
+      });
+
+      await act(async () => {
+        (
+          result.current as ReturnType<typeof useStorageUpload>
+        ).registerUploadHandlers(mockSurveyModel);
+        const downloadHandler = (
+          mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
+        ).mock.calls[0][0];
+        await downloadHandler(mockSurveyModel, mockDownloadOptions);
+      });
+
+      expect(mockDownloadOptions.callback).toHaveBeenCalledWith("error");
+    });
+
+    it("should use URL directly when storage is not private", async () => {
+      // Create a config with isPrivate = false
+      const publicStorageConfig = {
+        ...mockStorageConfig,
+        isPrivate: false,
+      };
+
+      const props = createHookProps();
+
+      let result: ReturnType<typeof renderHook>["result"];
+      await act(async () => {
+        const view = renderHook(() => useStorageUpload(props), {
+          wrapper: createWrapper(publicStorageConfig),
+        });
+        result = view.result;
+        await Promise.resolve();
+      });
+
+      // Mock the file fetch (not read-token API)
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         blob: () =>
           Promise.resolve(new Blob(["test"], { type: "application/pdf" })),
@@ -1012,39 +1100,8 @@ describe("useStorageUpload", () => {
         await downloadHandler(mockSurveyModel, mockDownloadOptions);
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        "https://test.blob.core.windows.net/user-files/test.pdf?test-token-123",
-      );
-
-      // Wait for FileReader async operation
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      });
-
-      expect(mockDownloadOptions.callback).toHaveBeenCalledWith(
-        "success",
-        "data:application/pdf;base64,test",
-      );
-    });
-
-    it("should download file without token when token is not available", async () => {
-      const { result } = renderHook(() => useStorageUpload(createHookProps()), {
-        wrapper: createWrapper(),
-      });
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        blob: () =>
-          Promise.resolve(new Blob(["test"], { type: "application/pdf" })),
-      });
-
-      await act(async () => {
-        await result.current.registerUploadHandlers(mockSurveyModel);
-        const downloadHandler = (
-          mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
-        ).mock.calls[0][0];
-        await downloadHandler(mockSurveyModel, mockDownloadOptions);
-      });
-
+      // Should NOT call read-token API when storage is not private
+      expect(global.fetch).toHaveBeenCalledTimes(1);
       expect(global.fetch).toHaveBeenCalledWith(
         "https://test.blob.core.windows.net/user-files/test.pdf",
       );
@@ -1060,17 +1117,34 @@ describe("useStorageUpload", () => {
       );
     });
 
-    it("should handle download errors", async () => {
-      const { result } = renderHook(() => useStorageUpload(createHookProps()), {
-        wrapper: createWrapper(),
+    it("should handle network errors when fetching file", async () => {
+      const props = createHookProps();
+
+      let result: ReturnType<typeof renderHook>["result"];
+      await act(async () => {
+        const view = renderHook(() => useStorageUpload(props), {
+          wrapper: createWrapper(mockStorageConfig),
+        });
+        result = view.result;
+        await Promise.resolve();
       });
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error("Network error"),
-      );
+      // Mock successful read-token but failed file fetch
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              token: "on-demand-token-123",
+              expiresOn: new Date().toISOString(),
+            }),
+        })
+        .mockRejectedValue(new Error("Network error"));
 
       await act(async () => {
-        await result.current.registerUploadHandlers(mockSurveyModel);
+        (
+          result.current as ReturnType<typeof useStorageUpload>
+        ).registerUploadHandlers(mockSurveyModel);
         const downloadHandler = (
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];

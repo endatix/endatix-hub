@@ -42,9 +42,6 @@ export function useStorageUpload({
   const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
   const readTokenPromises = propsReadTokenPromises ?? contextTokens;
 
-  const userFilesTokenResult = use(
-    readTokenPromises?.userFiles ?? DEFAULT_READ_TOKEN_PROMISE,
-  );
 
   const onUploadFiles = useMemo(() => {
     return createUserUpload({
@@ -141,13 +138,35 @@ export function useStorageUpload({
 
   const onDownloadFile = useCallback(
     async (_: SurveyModel, options: DownloadFileEvent) => {
-      const userFilesToken = Result.isSuccess(userFilesTokenResult)
-        ? userFilesTokenResult.value.token
-        : "";
+      let url = options.content;
 
-      const url = userFilesToken
-        ? `${options.content}?${userFilesToken}`
-        : options.content;
+      if (storageConfig?.isPrivate) {
+        try {
+          const tokenResponse = await fetch(
+            "/api/public/v0/storage/read-token",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: options.content }),
+            },
+          );
+
+          if (!tokenResponse.ok) {
+            console.error(
+              "Failed to get read token:",
+              tokenResponse.statusText,
+            );
+            options.callback("error");
+            return;
+          }
+
+          const { token } = await tokenResponse.json();
+          url = token ? `${options.content}?${token}` : options.content;
+        } catch (error) {
+          console.error("Error getting read token:", error);
+          options.callback("error");
+        }
+      }
 
       fetch(url)
         .then((response) => response.blob())
@@ -166,7 +185,7 @@ export function useStorageUpload({
           options.callback("error");
         });
     },
-    [userFilesTokenResult],
+    [storageConfig],
   );
 
   const registerUploadHandlers = useCallback(
