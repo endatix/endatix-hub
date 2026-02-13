@@ -79,14 +79,17 @@ describe("POST /api/public/v0/storage/read-token", () => {
   };
 
   it("should return 401 if user is not authenticated and storage is private", async () => {
+    // Arrange
     mockAuth.mockResolvedValue(null);
 
     const request = createRequest({
       url: "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf",
     });
 
+    // Act
     const response = await POST(request);
 
+    // Assert
     expect(response.status).toBe(401);
 
     const data = await response.json();
@@ -96,6 +99,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return early with empty token and expiresOn if storage is not private", async () => {
+    // Arrange
     mockGetStorageConfig.mockReturnValue({
       isEnabled: true,
       isPrivate: false,
@@ -109,8 +113,11 @@ describe("POST /api/public/v0/storage/read-token", () => {
     const request = createRequest({
       url: "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf",
     });
+
+    // Act
     const response = await POST(request);
 
+    // Assert
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.token).toBe("");
@@ -118,6 +125,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return 400 if body is not valid JSON", async () => {
+    // Arrange
     const request = new Request(
       "http://localhost/api/public/v0/storage/read-token",
       {
@@ -126,35 +134,47 @@ describe("POST /api/public/v0/storage/read-token", () => {
       },
     );
 
+    // Act
     const response = await POST(request);
+
+    // Assert
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.detail).toContain("Invalid JSON");
   });
 
   it("should return 400 if url is not provided", async () => {
+    // Arrange
     const request = createRequest({});
 
+    // Act
     const response = await POST(request);
+
+    // Assert
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.detail).toBe("URL is required");
   });
 
   it("should return 400 if URL does not match a known container", async () => {
+    // Arrange
     mockResolveContainerFromUrl.mockReturnValue(null);
 
     const request = createRequest({
       url: "https://unknown.blob.core.windows.net/container/file.txt",
     });
 
+    // Act
     const response = await POST(request);
+
+    // Assert
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.detail).toBe("URL does not match a known storage container");
   });
 
   it("should return 400 if URL does not contain a blob path", async () => {
+    // Arrange
     mockResolveContainerFromUrl.mockReturnValue({
       containerType: "USER_FILES",
       containerName: "user-files",
@@ -167,13 +187,17 @@ describe("POST /api/public/v0/storage/read-token", () => {
       url: "https://test.blob.core.windows.net/user-files",
     });
 
+    // Act
     const response = await POST(request);
+
+    // Assert
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.detail).toBe("URL does not contain a blob path");
   });
 
   it("should return token on success", async () => {
+    // Arrange
     mockResolveContainerFromUrl.mockReturnValue({
       containerType: "USER_FILES",
       containerName: "user-files",
@@ -198,7 +222,10 @@ describe("POST /api/public/v0/storage/read-token", () => {
       url: "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf",
     });
 
+    // Act
     const response = await POST(request);
+
+    // Assert
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.token).toBe("sv=2021-06-08&se=2023-01-01T00:00:00Z&sig=abc");
@@ -206,6 +233,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return 500 if token generation fails", async () => {
+    // Arrange
     mockResolveContainerFromUrl.mockReturnValue({
       containerType: "USER_FILES",
       containerName: "user-files",
@@ -224,7 +252,10 @@ describe("POST /api/public/v0/storage/read-token", () => {
       url: "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf",
     });
 
+    // Act
     const response = await POST(request);
+
+    // Assert
     expect(response.status).toBe(500);
     const data = await response.json();
     expect(data.detail).toContain("Failed to generate read token");
