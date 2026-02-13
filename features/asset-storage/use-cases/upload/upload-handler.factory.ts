@@ -91,15 +91,18 @@ export function createUserUpload(config: UserUploadConfig) {
       ),
     );
 
-    const successes = uploadResults
-      .filter(Result.isSuccess)
-      .map((r) => r.value);
-    const errors = uploadResults.filter(Result.isError).map((r) => r.message);
+    const successes = uploadResults.filter(Result.isSuccess).map((result) => {
+      return {
+        file: result.value.file,
+        content: result.value.url,
+      };
+    });
 
-    options.callback(
-      successes.map((r) => ({ file: r.file, content: r.url })),
-      errors,
-    );
+    const errors = uploadResults
+      .filter(Result.isError)
+      .map((result) => result.message);
+
+    options.callback(successes, errors);
   };
 }
 
