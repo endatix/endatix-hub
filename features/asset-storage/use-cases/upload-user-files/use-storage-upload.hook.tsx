@@ -42,9 +42,6 @@ export function useStorageUpload({
   const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
   const readTokenPromises = propsReadTokenPromises ?? contextTokens;
 
-  const userFilesTokenResult = use(
-    readTokenPromises?.userFiles ?? DEFAULT_READ_TOKEN_PROMISE,
-  );
 
   const onUploadFiles = useMemo(() => {
     return createUserUpload({

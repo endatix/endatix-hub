@@ -55,7 +55,7 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  const { containerName, blobName } = containerInfo as IContainerInfo;
+  const { containerName, blobName } = containerInfo;
   if (!blobName) {
     return apiResponses.badRequest({
       detail: "URL does not contain a blob path",
