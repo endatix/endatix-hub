@@ -1,57 +1,73 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Use vi.hoisted to define mocks before they're used
+const {
+  mockGetStorageConfig,
+  mockBulkGenerateReadTokens,
+  mockResolveContainerFromUrl,
+  mockAuth,
+} = vi.hoisted(() => ({
+  mockGetStorageConfig: vi.fn(),
+  mockBulkGenerateReadTokens: vi.fn(),
+  mockResolveContainerFromUrl: vi.fn(),
+  mockAuth: vi.fn(),
+}));
 
 // Mock dependencies before importing the route
 vi.mock("@/auth", () => ({
-  auth: vi.fn().mockResolvedValue({ user: { id: "user-123" }, error: null }),
+  auth: mockAuth,
 }));
 
-const mockStorageConfig = {
-  isEnabled: true,
-  isPrivate: true,
-  hostName: "test.blob.core.windows.net",
-  containerNames: {
-    USER_FILES: "user-files",
-    CONTENT: "content",
-  },
-};
-
 vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
-  getStorageConfig: vi.fn(() => mockStorageConfig),
+  getStorageConfig: mockGetStorageConfig,
 }));
 
 vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
-  bulkGenerateReadTokens: vi.fn(),
+  bulkGenerateReadTokens: mockBulkGenerateReadTokens,
 }));
 
-vi.mock("@/features/asset-storage", () => ({
-  resolveContainerFromUrl: vi.fn(),
+vi.mock("@/features/asset-storage/utils", () => ({
+  resolveContainerFromUrl: mockResolveContainerFromUrl,
 }));
 
 vi.mock("@/lib/utils/route-handlers", () => ({
   apiResponses: {
     badRequest: (body: any) =>
       new Response(JSON.stringify(body), { status: 400 }),
-    internalServerError: (body: any) =>
+    unauthorized: (body: any) =>
+      new Response(JSON.stringify(body), { status: 401 }),
+    serverError: (body: any) =>
       new Response(JSON.stringify(body), { status: 500 }),
   },
 }));
 
 // Import after mocking
 import { POST } from "../route";
-import { bulkGenerateReadTokens } from "@/features/asset-storage/infrastructure/storage-service";
-import { resolveContainerFromUrl } from "@/features/asset-storage/utils";
-import { getStorageConfig } from "@/features/asset-storage/server";
 
 describe("POST /api/public/v0/storage/read-token", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mock implementations for each test
-    vi.mocked(resolveContainerFromUrl).mockReset();
-    vi.mocked(bulkGenerateReadTokens).mockReset();
-  });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+    // Default mock implementations
+    mockGetStorageConfig.mockReturnValue({
+      isEnabled: true,
+      isPrivate: true,
+      hostName: "test.blob.core.windows.net",
+      containerNames: {
+        USER_FILES: "user-files",
+        CONTENT: "content",
+      },
+    });
+    mockAuth.mockResolvedValue({ user: { id: "user-123" }, error: null });
+    mockResolveContainerFromUrl.mockReturnValue(null);
+    mockBulkGenerateReadTokens.mockResolvedValue({
+      kind: 0,
+      value: {
+        readTokens: {},
+        expiresOn: new Date(),
+        generatedAt: new Date(),
+      },
+    });
   });
 
   const createRequest = (body: object) => {
@@ -63,17 +79,14 @@ describe("POST /api/public/v0/storage/read-token", () => {
   };
 
   it("should return 401 if user is not authenticated and storage is private", async () => {
-    // Arrange
-    const { auth } = await import("@/auth");
-    vi.mocked(auth).mockResolvedValue(null as any);
+    mockAuth.mockResolvedValue(null);
+
     const request = createRequest({
       url: "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf",
     });
 
-    // Act
     const response = await POST(request);
 
-    // Assert
     expect(response.status).toBe(401);
 
     const data = await response.json();
@@ -83,8 +96,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return early with empty token and expiresOn if storage is not private", async () => {
-    // Arrange
-    vi.mocked(getStorageConfig).mockReturnValue({
+    mockGetStorageConfig.mockReturnValue({
       isEnabled: true,
       isPrivate: false,
       hostName: "test.blob.core.windows.net",
@@ -92,23 +104,13 @@ describe("POST /api/public/v0/storage/read-token", () => {
         USER_FILES: "user-files",
         CONTENT: "content",
       },
-      imageConfig: {
-        isResizeEnabled: false,
-        defaultResizeWidth: 1000,
-      },
-      accountName: "test",
-      accountKey: "test",
-      protocol: "https",
-      sasReadExpiryMinutes: 15,
     });
 
-    // Act
     const request = createRequest({
       url: "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf",
     });
     const response = await POST(request);
 
-    // Assert
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.token).toBe("");
@@ -140,7 +142,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return 400 if URL does not match a known container", async () => {
-    vi.mocked(resolveContainerFromUrl).mockReturnValue(null);
+    mockResolveContainerFromUrl.mockReturnValue(null);
 
     const request = createRequest({
       url: "https://unknown.blob.core.windows.net/container/file.txt",
@@ -153,7 +155,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return 400 if URL does not contain a blob path", async () => {
-    vi.mocked(resolveContainerFromUrl).mockReturnValue({
+    mockResolveContainerFromUrl.mockReturnValue({
       containerType: "USER_FILES",
       containerName: "user-files",
       hostName: "test.blob.core.windows.net",
@@ -172,7 +174,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return token on success", async () => {
-    vi.mocked(resolveContainerFromUrl).mockReturnValue({
+    mockResolveContainerFromUrl.mockReturnValue({
       containerType: "USER_FILES",
       containerName: "user-files",
       hostName: "test.blob.core.windows.net",
@@ -180,7 +182,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
       blobName: "s/form-123/submission-123/test.pdf",
     });
 
-    vi.mocked(bulkGenerateReadTokens).mockResolvedValue({
+    mockBulkGenerateReadTokens.mockResolvedValue({
       kind: 0, // Kind.Success
       value: {
         readTokens: {
@@ -204,7 +206,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   it("should return 500 if token generation fails", async () => {
-    vi.mocked(resolveContainerFromUrl).mockReturnValue({
+    mockResolveContainerFromUrl.mockReturnValue({
       containerType: "USER_FILES",
       containerName: "user-files",
       hostName: "test.blob.core.windows.net",
@@ -212,7 +214,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
       blobName: "s/form-123/submission-123/test.pdf",
     });
 
-    vi.mocked(bulkGenerateReadTokens).mockResolvedValue({
+    mockBulkGenerateReadTokens.mockResolvedValue({
       kind: 1, // Kind.Error
       errorType: 1, // ErrorType.Error
       message: "Token generation failed",
