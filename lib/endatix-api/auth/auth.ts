@@ -3,12 +3,12 @@ import { EndatixApi } from "../endatix-api";
 import {
   ApiResult,
   AuthorizationData,
-  FormAccessData,
   RefreshTokenRequest,
   RefreshTokenResponse,
   SignInRequest,
   SignInResponse,
 } from "../types";
+import { FormAccessData } from "./types";
 
 export default class Auth {
   constructor(private readonly endatix: EndatixApi) {}
