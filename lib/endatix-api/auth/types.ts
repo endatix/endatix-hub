@@ -38,3 +38,8 @@ export interface AuthorizationData {
   expiresAt: string;
   eTag: string;
 }
+
+export interface FormAccessData {
+  formPermissions: string[];
+  submissionPermissions: string[];
+}

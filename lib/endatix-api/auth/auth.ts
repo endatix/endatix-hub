@@ -3,6 +3,7 @@ import { EndatixApi } from "../endatix-api";
 import {
   ApiResult,
   AuthorizationData,
+  FormAccessData,
   RefreshTokenRequest,
   RefreshTokenResponse,
   SignInRequest,
@@ -46,6 +47,27 @@ export default class Auth {
    */
   async getAuthorizationData(): Promise<ApiResult<AuthorizationData>> {
     return this.endatix.get<AuthorizationData>("/auth/me", {
+      requireAuth: true,
+    });
+  }
+
+  /**
+   * Get form access permissions
+   * @param formId - The form ID
+   * @param submissionId - Optional submission ID
+   * @param token - Optional access token
+   * @returns The form access data with permissions
+   */
+  async getFormAccess(
+    formId: string,
+    submissionId?: string,
+    token?: string,
+  ): Promise<ApiResult<FormAccessData>> {
+    const params = new URLSearchParams({ formId });
+    if (submissionId) params.append("submissionId", submissionId);
+    if (token) params.append("token", token);
+
+    return this.endatix.get<FormAccessData>(`/auth/access/form?${params}`, {
       requireAuth: true,
     });
   }
