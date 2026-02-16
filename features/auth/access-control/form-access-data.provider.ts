@@ -1,4 +1,4 @@
-import { Session } from "next-auth";
+import type { Session } from "next-auth";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { FormAccessData } from "./types";
@@ -10,13 +10,14 @@ const getFormAccessCacheKey = (
   formId: string,
   submissionId?: string,
   token?: string,
+  userId?: string,
 ) =>
-  `${FORM_ACCESS_CACHE_TAG}:${formId}:${submissionId ?? "new"}:${token ? "with-token" : "no-token"}`;
+  `${FORM_ACCESS_CACHE_TAG}:${formId}:${submissionId ?? "new"}:${token ? "with-token" : "no-token"}:${userId ?? "anon"}`;
 
 async function fetchFormAccessData(
   formId: string,
   submissionId: string | undefined,
-  accessToken: string,
+  accessToken: string | undefined,
   token?: string,
 ): Promise<FormAccessData> {
   try {
@@ -48,16 +49,13 @@ export function getFormAccessDataForContext(session: Session | null) {
     submissionId?: string,
     token?: string,
   ): Promise<FormAccessData> => {
-    if (!session?.accessToken) {
-      return { formPermissions: [], submissionPermissions: [] };
-    }
-
-    const cacheKey = getFormAccessCacheKey(formId, submissionId, token);
+    const userId = session?.user?.id;
+    const accessToken = session?.accessToken;
+    const cacheKey = getFormAccessCacheKey(formId, submissionId, token, userId);
 
     return unstable_cache(
-      () =>
-        fetchFormAccessData(formId, submissionId, session.accessToken!, token),
-      [formId, submissionId ?? "new", session.accessToken, token ?? "no-token"],
+      () => fetchFormAccessData(formId, submissionId, accessToken, token),
+      [formId, submissionId ?? "new", userId ?? "anon", token ?? "no-token"],
       {
         tags: [cacheKey, `${FORM_ACCESS_CACHE_TAG}:form-${formId}`],
         revalidate: FORM_ACCESS_CACHE_TTL,

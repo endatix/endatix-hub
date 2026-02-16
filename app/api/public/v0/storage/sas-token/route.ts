@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { createFormAccessService } from "@/features/auth/access-control";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import {
   getContainerNames,
@@ -31,7 +32,6 @@ interface SASTokenResponse {
 
 export async function POST(request: Request): Promise<Response> {
   const session = await auth();
-  const userId = session?.user?.id ?? "anonymous";
 
   const data: SASTokenRequest = await request.json();
   const { formId, fileNames, formLocale } = data;
@@ -44,6 +44,15 @@ export async function POST(request: Request): Promise<Response> {
   if (!Array.isArray(fileNames) || fileNames.length === 0) {
     return apiResponses.badRequest({ detail: "File names are required" });
   }
+
+  // Check permission to upload files
+  const access = await createFormAccessService({ formId, submissionId, session });
+  
+  if (!access.canUploadFile()) {
+    return apiResponses.forbidden({ detail: "You do not have permission to upload files" });
+  }
+
+  const userId = session?.user?.id ?? "anonymous";
 
   if (!submissionId) {
     const initialSubmissionResult = await createInitialSubmissionUseCase(

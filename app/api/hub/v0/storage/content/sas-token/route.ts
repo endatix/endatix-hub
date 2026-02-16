@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
+import { createFormAccessService } from "@/features/auth/access-control";
 import {
   getContainerNames,
   generateUploadUrl,
@@ -58,6 +59,15 @@ export async function POST(request: Request): Promise<Response> {
   }
   if (!Array.isArray(fileNames) || fileNames.length === 0) {
     return apiResponses.badRequest({ detail: "File names are required" });
+  }
+
+  // For form content, check design permission
+  if (itemType === "form") {
+    const access = await createFormAccessService({ formId: itemId, session });
+    
+    if (!access.canDesignForm()) {
+      return apiResponses.forbidden({ detail: "You do not have permission to upload form content" });
+    }
   }
 
   const folderPathResult = buildContentFolderPath(itemType, itemId);

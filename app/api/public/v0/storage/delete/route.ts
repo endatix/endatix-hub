@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { createFormAccessService } from "@/features/auth/access-control";
 import {
   getContainerNames,
   deleteBlob,
@@ -12,6 +14,8 @@ interface DeleteFilesRequest {
 }
 
 export async function DELETE(request: Request) {
+  const session = await auth();
+
   const data: DeleteFilesRequest = await request.json();
   const { formId, fileUrls, submissionId } = data;
 
@@ -25,6 +29,13 @@ export async function DELETE(request: Request) {
 
   if (!submissionId) {
     return apiResponses.badRequest({ detail: "Submission ID is required" });
+  }
+
+  // Check permission to delete files
+  const access = await createFormAccessService({ formId, submissionId, session });
+  
+  if (!access.canDeleteFile()) {
+    return apiResponses.forbidden({ detail: "You do not have permission to delete files" });
   }
 
   const containerNames = getContainerNames();
