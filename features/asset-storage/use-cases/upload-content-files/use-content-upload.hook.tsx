@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
-import { Base, Question, SurveyModel } from "survey-core";
+import { Base } from "survey-core";
 import type { ContentItemType } from "../../types";
 import { useAssetStorage } from "../../ui/asset-storage.context";
 import { createContentUpload } from "../upload/upload-handler.factory";
