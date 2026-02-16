@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React from "react";
-import { SurveyCreatorModel } from "survey-creator-core";
+import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import {
   AssetStorageClientProvider,
   StorageConfig,
@@ -14,20 +14,6 @@ vi.mock("@azure/storage-blob", () => ({
   })),
 }));
 
-/** Mock Base so upload event element passes instanceof Base and exposes getPropertyValue/uniqueId. */
-vi.mock("survey-core", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("survey-core")>();
-  class MockBase extends actual.Base {
-    getPropertyValue(name: string): unknown {
-      return name === "name" ? "question1" : undefined;
-    }
-    override get uniqueId(): number {
-      return 1;
-    }
-  }
-  return { ...actual, Base: MockBase };
-});
-
 const mockStorageConfig = {
   isEnabled: true,
   isPrivate: true,
@@ -36,6 +22,43 @@ const mockStorageConfig = {
     USER_FILES: "user-files",
     CONTENT: "content",
   },
+};
+
+const createMockFile = (name = "test.jpg"): File => {
+  const file = new File(["test"], name, { type: "image/jpeg" });
+  if (typeof file.arrayBuffer !== "function") {
+    (file as File & { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer =
+      () => Promise.resolve(new ArrayBuffer(0));
+  }
+  return file;
+};
+
+const mockFetchSuccess = (questionName: string) => {
+  global.fetch = vi.fn().mockResolvedValueOnce({
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        sasTokens: {
+          "test.jpg": {
+            success: true,
+            url: `https://account.blob.core.windows.net/content/f/test-item/unique.jpg?sas=token`,
+          },
+        },
+        uploadMetadata: {
+          userId: "user-1",
+          itemId: "test-item",
+          contentItemType: "form",
+          questionName,
+        },
+      }),
+  });
+};
+
+const mockFetchError = (detail = "Unauthorized") => {
+  global.fetch = vi.fn().mockResolvedValueOnce({
+    ok: false,
+    json: () => Promise.resolve({ detail }),
+  });
 };
 
 describe("useContentUpload", () => {
@@ -108,38 +131,14 @@ describe("useContentUpload", () => {
       result.current.registerUploadHandlers(creator);
     });
 
-    const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
-    if (typeof mockFile.arrayBuffer !== "function") {
-      (
-        mockFile as File & { arrayBuffer: () => Promise<ArrayBuffer> }
-      ).arrayBuffer = () => Promise.resolve(new ArrayBuffer(0));
-    }
-    const { Base } = await import("survey-core");
-    const element = new Base();
-    const options = {
-      files: [mockFile],
+    const options: UploadFileEvent = {
+      files: [createMockFile()],
       callback: vi.fn(),
-      element,
+      element: { name: "testQuestion" } as any,
+      elementType: "question",
     };
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          sasTokens: {
-            "test.jpg": {
-              success: true,
-              url: "https://account.blob.core.windows.net/content/f/test-item/unique.jpg?sas=token",
-            },
-          },
-          uploadMetadata: {
-            userId: "user-1",
-            itemId: "test-item",
-            contentItemType: "form",
-            questionName: "question1",
-          },
-        }),
-    });
+    mockFetchSuccess("testQuestion");
 
     await act(async () => {
       await creator._handlers.onUploadFile(creator, options);
@@ -153,7 +152,7 @@ describe("useContentUpload", () => {
           itemId: "test-item",
           itemType: "form",
           fileNames: ["test.jpg"],
-          questionName: "question1",
+          questionName: "testQuestion",
         }),
       }),
     );
@@ -174,16 +173,12 @@ describe("useContentUpload", () => {
       result.current.registerUploadHandlers(creator);
     });
 
-    const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
     const options = {
-      files: [mockFile],
+      files: [createMockFile()],
       callback: vi.fn(),
     };
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: false,
-      json: () => Promise.resolve({ detail: "Unauthorized" }),
-    });
+    mockFetchError("Unauthorized");
 
     await act(async () => {
       await creator._handlers.onUploadFile(creator, options);
@@ -193,5 +188,32 @@ describe("useContentUpload", () => {
       "error",
       expect.stringContaining("Unauthorized"),
     );
+  });
+
+  it("should pass isResizeEnabled from storage config", async () => {
+    const creator = createMockCreatorModel();
+    const { result } = renderHook(
+      () => useContentUpload({ itemId: "test-item", itemType: "form" }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.registerUploadHandlers(creator);
+    });
+
+    const options: UploadFileEvent = {
+      files: [createMockFile()],
+      callback: vi.fn(),
+      element: { name: "testQuestion" } as any,
+      elementType: "question",
+    };
+
+    mockFetchSuccess("testQuestion");
+
+    await act(async () => {
+      await creator._handlers.onUploadFile(creator, options);
+    });
+
+    expect(fetch).toHaveBeenCalled();
   });
 });
