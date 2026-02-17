@@ -33,6 +33,8 @@ export {
 export {
   contentTokensHandlers,
   type ContentTokensHandlers,
+} from "./use-cases/generate-tokens/content-tokens.handler";
+export {
   submissionTokensHandlers,
   type SubmissionTokensHandlers,
-} from "./use-cases/generate-tokens/generate-tokens.handlers";
+} from "./use-cases/generate-tokens/submission-tokens.handler";
