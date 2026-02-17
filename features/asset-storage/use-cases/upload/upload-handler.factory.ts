@@ -65,7 +65,7 @@ export function createUserUpload(config: UserUploadConfig) {
     const uploadResults = await Promise.all(
       options.files.map(
         async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
-          const token = sasData.sasTokens[file.name];
+          const token = sasData.tokens[file.name];
           if (!token?.success || !token?.url) {
             return Result.error(token?.message ?? `No URL for ${file.name}`);
           }
@@ -149,7 +149,7 @@ export function createContentUpload(config: ContentUploadConfig) {
 
     const uploadResults = await Promise.all(
       files.map(async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
-        const token = uploadUrlsData.sasTokens[file.name];
+        const token = uploadUrlsData.tokens[file.name];
         if (!token?.success || !token?.url) {
           return Result.error(token?.message ?? "No upload URL");
         }

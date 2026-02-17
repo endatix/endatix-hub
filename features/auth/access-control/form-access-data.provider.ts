@@ -6,6 +6,18 @@ import { FormAccessData } from "./types";
 const FORM_ACCESS_CACHE_TAG = "form_access";
 const FORM_ACCESS_CACHE_TTL = 300; // 5 minutes (Short TTL for security)
 
+function emptyFormAccessData(
+  formId: string,
+  submissionId?: string,
+): FormAccessData {
+  return {
+    formId,
+    submissionId,
+    formPermissions: [],
+    submissionPermissions: [],
+  };
+}
+
 const getFormAccessCacheKey = (
   formId: string,
   submissionId?: string,
@@ -36,10 +48,10 @@ async function fetchFormAccessData(
       "Error fetching form access:",
       ApiResult.getErrorMessage(result),
     );
-    return { formPermissions: [], submissionPermissions: [] };
+    return emptyFormAccessData(formId, submissionId);
   } catch (error) {
     console.error("Error getting form access:", error);
-    return { formPermissions: [], submissionPermissions: [] };
+    return emptyFormAccessData(formId, submissionId);
   }
 }
 

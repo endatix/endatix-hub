@@ -10,7 +10,7 @@ const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
  * The data returned from the upload URLs endpoint.
  */
 export interface UploadUrlsData {
-  sasTokens: Record<
+  tokens: Record<
     string,
     { success: boolean; url?: string; message?: string }
   >;

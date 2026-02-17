@@ -64,11 +64,17 @@ export default class Auth {
     token?: string,
   ): Promise<ApiResult<FormAccessData>> {
     const params = new URLSearchParams({ formId });
-    if (submissionId) params.append("submissionId", submissionId);
-    if (token) params.append("token", token);
+
+    if (submissionId) {
+      params.append("submissionId", submissionId);
+    }
+
+    if (token) {
+      params.append("token", token);
+    }
 
     return this.endatix.get<FormAccessData>(`/auth/access/form?${params}`, {
-      requireAuth: true,
+      requireAuth: false,
     });
   }
 }

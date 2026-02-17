@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  SubmissionTokenRequest,
-  SubmissionTokenResponse,
-} from "../../types";
+import { SubmissionTokenRequest, SubmissionTokenResponse } from "../../types";
 import { AuthorizationResult } from "@/features/auth";
 import { createFormAccessService } from "@/features/auth/access-control";
-import {
-  buildUserFileFolderPath,
-} from "../../infrastructure/storage-utils";
+import { buildUserFileFolderPath } from "../../infrastructure/storage-utils";
 import { Result } from "@/lib/result";
 import { getContainerNames } from "../../server";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
@@ -21,24 +16,31 @@ export const submissionTokensHandler = (
     getFileNames: (d) => d.fileNames,
 
     validate: (data) => {
-      if (!data.formId) return Result.validationError("Form ID is required");
-      if (!Array.isArray(data.fileNames) || data.fileNames.length === 0)
+      const { formId, fileNames } = data;
+      if (!formId) {
+        return Result.validationError("Form ID is required");
+      }
+
+      if (!Array.isArray(fileNames) || fileNames.length === 0) {
         return Result.validationError("File names are required");
+      }
+
       return Result.success(true);
     },
 
     authorize: async ({ session, data }) => {
-      const access = await createFormAccessService({
+      const accessService = await createFormAccessService({
         formId: data.formId,
         submissionId: data.submissionId,
         session,
       });
 
-      if (!access.canUploadFile()) {
+      if (!accessService.canUploadFile()) {
         return AuthorizationResult.forbidden(
           "You do not have permission to upload files",
         );
       }
+
       return AuthorizationResult.success();
     },
 

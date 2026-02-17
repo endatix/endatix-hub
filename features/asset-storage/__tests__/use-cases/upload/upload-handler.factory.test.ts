@@ -84,7 +84,7 @@ describe("createUserUpload", () => {
 
   it("calls onSubmissionIdChange when SAS returns new submissionId", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
+      tokens: {
         "a.pdf": {
           success: true,
           url: "https://storage.blob/core/file?sas",
@@ -135,7 +135,7 @@ describe("createUserUpload", () => {
 
   it("calls callback with error when token missing for file", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
+      tokens: {
         "a.pdf": { success: false, message: "No URL for a.pdf" },
       },
       userId: "user-1",
@@ -204,7 +204,7 @@ describe("createContentUpload", () => {
 
   it("calls callback success with first URL when uploads succeed", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
+      tokens: {
         "img.png": {
           success: true,
           url: "https://storage.blob/core/img?sas",
@@ -243,7 +243,7 @@ describe("createContentUpload", () => {
 
   it("calls callback error when processAndUploadFile returns error", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
+      tokens: {
         "img.png": {
           success: true,
           url: "https://storage.blob/core/img?sas",

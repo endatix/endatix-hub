@@ -1,4 +1,6 @@
 export interface FormAccessData {
+  formId: string;
+  submissionId?: string;
   formPermissions: string[];
   submissionPermissions: string[];
 }

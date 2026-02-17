@@ -26,7 +26,7 @@ describe("fetchUploadUrls", () => {
 
   it("returns success with data when response is ok", async () => {
     const data: UploadUrlsData = {
-      sasTokens: {
+      tokens: {
         "a.pdf": { success: true, url: "https://example.com/a?sas" },
       },
       userId: "user-1",
@@ -41,7 +41,7 @@ describe("fetchUploadUrls", () => {
     expect(Result.isSuccess(result)).toBe(true);
     if (Result.isSuccess(result)) {
       expect(result.value).toEqual(data);
-      expect(result.value.sasTokens["a.pdf"].url).toBe(
+      expect(result.value.tokens["a.pdf"].url).toBe(
         "https://example.com/a?sas",
       );
     }

@@ -6,19 +6,26 @@ import { buildContentFolderPath } from "../../infrastructure/storage-utils";
 import { Result } from "@/lib/result";
 import { getContainerNames } from "../../server";
 import { ApiResult } from "@/lib/endatix-api";
-import { executeTokenFlow } from "./token-flow";
+import { executeTokenFlow, StorageContext } from "./token-flow";
 
 export const contentTokensHandler = (req: NextRequest): Promise<NextResponse> =>
   executeTokenFlow<ContentTokenRequest, ContentUploadMetadata>(req, {
     getFileNames: (d) => d.fileNames,
 
     validate: (data) => {
-      if (!data.itemId?.trim())
+      const { itemId, itemType, fileNames } = data;
+      if (!itemId?.trim()) {
         return Result.validationError("Item ID is required");
-      if (!data.itemType)
+      }
+
+      if (!itemType) {
         return Result.validationError("Item type is required");
-      if (!Array.isArray(data.fileNames) || data.fileNames.length === 0)
+      }
+
+      if (!Array.isArray(fileNames) || fileNames.length === 0) {
         return Result.validationError("File names are required");
+      }
+
       return Result.success(true);
     },
 
@@ -43,7 +50,12 @@ export const contentTokensHandler = (req: NextRequest): Promise<NextResponse> =>
       return AuthorizationResult.success();
     },
 
-    resolveStorage: async ({ data, session }) => {
+    resolveStorage: async ({
+      data,
+      session,
+    }): Promise<
+      ApiResult<StorageContext & { extra?: ContentUploadMetadata }>
+    > => {
       const folderResult = buildContentFolderPath(data.itemType, data.itemId);
       if (Result.isError(folderResult)) {
         return ApiResult.validationError(folderResult.message);

@@ -65,7 +65,7 @@ export function useFormAccess({
     try {
       const session = await auth();
       if (!session?.accessToken) {
-        setAccessData({ formPermissions: [], submissionPermissions: [] });
+        setAccessData({ formId, submissionId, formPermissions: [], submissionPermissions: [] });
         return;
       }
 
@@ -93,6 +93,8 @@ export function useFormAccess({
   }, [fetchData]);
 
   const permissions = accessData ?? {
+    formId,
+    submissionId,
     formPermissions: [],
     submissionPermissions: [],
   };
