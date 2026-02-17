@@ -36,6 +36,23 @@ export interface ContentTokenResponse {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
+ * Types for submission (user files) tokens generation operations
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+export interface SubmissionTokenRequest {
+  formId: string;
+  fileNames: string[];
+  formLocale?: string;
+  submissionId?: string;
+}
+
+export interface SubmissionTokenResponse {
+  tokens: Record<string, TokenOperationResult>;
+  submissionId: string;
+  userId: string;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
  * Types for read token operations
  * ────────────────────────────────────────────────────────────────────────────── */
 

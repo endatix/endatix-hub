@@ -5,6 +5,8 @@ import {
   ContentTokenResponse,
   ContentUploadMetadata,
   TokenOperationResult,
+  SubmissionTokenRequest,
+  SubmissionTokenResponse,
 } from "../../types";
 import {
   authorization,
@@ -14,11 +16,16 @@ import {
 } from "@/features/auth";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { createFormAccessService } from "@/features/auth/access-control";
-import { buildContentFolderPath } from "../../infrastructure/storage-utils";
+import {
+  buildContentFolderPath,
+  buildUserFileFolderPath,
+} from "../../infrastructure/storage-utils";
 import { Result } from "@/lib/result";
 import { generateUploadUrl, getContainerNames } from "../../server";
 import { generateUniqueFileName } from "../../utils";
 import { Session } from "next-auth";
+import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
+import { ApiResult } from "@/lib/endatix-api";
 
 /**
  * Generates SAS tokens for uploading content to the hub storage.
@@ -190,6 +197,118 @@ async function checkContentOperationPermissions(
   return AuthorizationResult.success();
 }
 
+/**
+ * Generates SAS tokens for uploading submission files (user files) to the storage.
+ * @param request - The request containing the form ID, file names, and optional submission ID.
+ * @returns A response containing the SAS tokens and submission ID.
+ */
+async function submissionTokensHandler(
+  request: NextRequest,
+): Promise<NextResponse> {
+  const session = await auth();
+
+  const data: SubmissionTokenRequest = await request.json();
+  const { formId, fileNames, formLocale } = data;
+  let { submissionId: submissionId } = data;
+
+  const validateRequest = validateSubmissionTokenRequest(data);
+  if (Result.isError(validateRequest)) {
+    return apiResponses.badRequest({
+      detail: validateRequest.message,
+    });
+  }
+
+  const access = await createFormAccessService({
+    formId,
+    submissionId,
+    session,
+  });
+
+  if (!access.canUploadFile()) {
+    return apiResponses.forbidden({
+      detail: "You do not have permission to upload files",
+    });
+  }
+
+  const userId = session?.user?.id ?? "anonymous";
+
+  if (!submissionId) {
+    const initialSubmissionResult = await createInitialSubmissionUseCase(
+      formId,
+      formLocale ?? null,
+      "Generate submissionId for sas token generation",
+    );
+
+    if (ApiResult.isError(initialSubmissionResult)) {
+      return apiResponses.badRequest({
+        detail: initialSubmissionResult.error.message,
+      });
+    }
+
+    submissionId = initialSubmissionResult.data.submissionId;
+  }
+
+  const containerNames = getContainerNames();
+  const containerName = containerNames.USER_FILES;
+  const sasTokens: Record<string, TokenOperationResult> = {};
+
+  for (const fileName of fileNames) {
+    const uniqueFileNameResult = generateUniqueFileName(fileName);
+    if (Result.isError(uniqueFileNameResult)) {
+      sasTokens[fileName] = {
+        success: false,
+        message: uniqueFileNameResult.message,
+      };
+      continue;
+    }
+
+    const folderPathResult = buildUserFileFolderPath(formId, submissionId);
+    if (Result.isError(folderPathResult)) {
+      sasTokens[fileName] = {
+        success: false,
+        message: folderPathResult.message,
+      };
+      continue;
+    }
+
+    try {
+      const sasUrl = await generateUploadUrl({
+        containerName,
+        folderPath: folderPathResult.value,
+        fileName: uniqueFileNameResult.value,
+      });
+      sasTokens[fileName] = { success: true, url: sasUrl };
+    } catch (error) {
+      sasTokens[fileName] = {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  const body: SubmissionTokenResponse = {
+    tokens: sasTokens,
+    submissionId,
+    userId,
+  };
+
+  return NextResponse.json(body);
+}
+
+function validateSubmissionTokenRequest(
+  data: SubmissionTokenRequest,
+): Result<boolean> {
+  const { formId, fileNames } = data;
+  if (!formId) {
+    return Result.validationError("Form ID is required");
+  }
+  if (!Array.isArray(fileNames) || fileNames.length === 0) {
+    return Result.validationError("File names are required");
+  }
+
+  return Result.success(true);
+}
+
 export type ContentTokensHandlers = Record<
   "POST",
   (request: NextRequest) => Promise<NextResponse>
@@ -200,4 +319,16 @@ export type ContentTokensHandlers = Record<
  */
 export const contentTokensHandlers: ContentTokensHandlers = {
   POST: contentTokensHandler,
+};
+
+export type SubmissionTokensHandlers = Record<
+  "POST",
+  (request: NextRequest) => Promise<NextResponse>
+>;
+
+/**
+ * The route handler for generating submission (user file) tokens.
+ */
+export const submissionTokensHandlers: SubmissionTokensHandlers = {
+  POST: submissionTokensHandler,
 };
