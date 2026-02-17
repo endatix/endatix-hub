@@ -4,32 +4,13 @@ import { auth } from "@/auth";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { Result } from "@/lib/result";
 import { ApiResult } from "@/lib/endatix-api";
-import { generateUploadUrl, getContainerNames } from "../../server";
+import { generateUploadUrl } from "../../server";
 import { generateUniqueFileName } from "../../utils";
 import { TokenOperationResult } from "../../types";
 import { AuthorizationResult } from "@/features/auth";
+import { TokenContext, TokenStrategy } from "./types";
 
-export type TokenContext<TRequest> = {
-  request: NextRequest;
-  data: TRequest;
-  session: Session | null;
-};
-
-export type StorageContext = {
-  containerName: string;
-  folderPath: string;
-};
-
-export interface TokenStrategy<TRequest, TResponseExtras> {
-  validate: (data: TRequest) => Result<boolean>;
-  authorize: (ctx: TokenContext<TRequest>) => Promise<AuthorizationResult>;
-  resolveStorage: (
-    ctx: TokenContext<TRequest>,
-  ) => Promise<ApiResult<StorageContext & { extra?: TResponseExtras }>>;
-  getFileNames: (data: TRequest) => string[];
-}
-
-export async function generateSasTokens(
+export async function generateTokens(
   containerName: string,
   folderPath: string,
   fileNames: string[],
@@ -93,7 +74,7 @@ export async function executeTokenFlow<TRequest, TResponseExtras>(
 
   const { containerName, folderPath, extra } = storageResult.data;
   const fileNames = strategy.getFileNames(data);
-  const tokens = await generateSasTokens(containerName, folderPath, fileNames);
+  const tokens = await generateTokens(containerName, folderPath, fileNames);
 
   return NextResponse.json({
     tokens,

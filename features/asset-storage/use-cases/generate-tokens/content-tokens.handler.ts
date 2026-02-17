@@ -6,7 +6,8 @@ import { buildContentFolderPath } from "../../infrastructure/storage-utils";
 import { Result } from "@/lib/result";
 import { getContainerNames } from "../../server";
 import { ApiResult } from "@/lib/endatix-api";
-import { executeTokenFlow, StorageContext } from "./token-flow";
+import { executeTokenFlow } from "./generate-tokens";
+import { StorageContext } from "./types";
 
 export const contentTokensHandler = (req: NextRequest): Promise<NextResponse> =>
   executeTokenFlow<ContentTokenRequest, ContentUploadMetadata>(req, {
