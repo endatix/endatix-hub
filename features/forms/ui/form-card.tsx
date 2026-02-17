@@ -11,7 +11,7 @@ import {
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { FilePen, Link2, List, MoreVertical, Save } from "lucide-react";
+import { FilePen, Globe, Link2, List, Lock, MoreVertical, Save } from "lucide-react";
 import React, { useState } from "react";
 import {
   DropdownMenu,
@@ -70,6 +70,7 @@ const FormCard = ({
   ...props
 }: FormCardProps) => {
   const getFormLabel = () => (form.isEnabled ? "Enabled" : "Disabled");
+  const getVisibilityLabel = () => (form.isPublic ? "Public" : "Private");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleOpenSaveAsTemplate = () => {
@@ -98,12 +99,25 @@ const FormCard = ({
               formId={form.id}
               submissionsCount={form?.submissionsCount}
             />
-            <Badge
-              className="text-xs font-normal pointer-events-none"
-              variant={form.isEnabled ? "default" : "secondary"}
-            >
-              {getFormLabel()}
-            </Badge>
+            <div className="flex items-center gap-1">
+              <Badge
+                className="text-xs font-normal pointer-events-none"
+                variant={form.isEnabled ? "default" : "secondary"}
+              >
+                {getFormLabel()}
+              </Badge>
+              <Badge
+                className="text-xs font-normal pointer-events-none flex items-center gap-1"
+                variant={form.isPublic ? "default" : "outline"}
+              >
+                {form.isPublic ? (
+                  <Globe className="h-3 w-3" />
+                ) : (
+                  <Lock className="h-3 w-3" />
+                )}
+                {getVisibilityLabel()}
+              </Badge>
+            </div>
           </div>
         </CardContent>
       </div>

@@ -16,6 +16,7 @@ export interface FormDesignerWrapperProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
+  isPublic?: boolean;
 }
 
 export default function FormDesignerWrapper({
@@ -25,6 +26,7 @@ export default function FormDesignerWrapper({
   options,
   slkVal,
   themeId,
+  isPublic,
 }: FormDesignerWrapperProps) {
   const router = useRouter();
 
@@ -62,6 +64,7 @@ export default function FormDesignerWrapper({
         {...headerState}
         hasUnsavedChanges={hasUnsavedChanges}
         isCurrentThemeModified={isCurrentThemeModified}
+        isPublic={isPublic}
       />
       {isAssistantEnabled ? (
         <FormEditorWithChat

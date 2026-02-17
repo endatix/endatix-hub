@@ -3,6 +3,7 @@ export type Form = {
   name: string;
   description?: string;
   isEnabled: boolean;
+  isPublic: boolean;
   createdAt: Date;
   modifiedAt?: Date;
   submissionsCount?: number;

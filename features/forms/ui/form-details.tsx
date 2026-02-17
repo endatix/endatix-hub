@@ -10,6 +10,8 @@ import {
   FilePen,
   Save,
   BarChart3,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { Form } from "@/types";
 import Link from "next/link";
@@ -18,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useTransition, useState } from "react";
 import { updateFormStatusAction } from "../application/actions/update-form-status.action";
+import { updateFormVisibilityAction } from "../application/actions/update-form-visibility.action";
 import { toast } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -143,6 +146,7 @@ const FormDetails = ({
 }: FormDetailsProps) => {
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
+  const [isPublic, setIsPublic] = useState(form?.isPublic);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
@@ -174,6 +178,7 @@ const FormDetails = ({
   };
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
+  const visibilityLabel = isPublic ? "Public" : "Private";
 
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
@@ -193,6 +198,27 @@ const FormDetails = ({
       }
 
       toast.success(`Form is now ${enabled ? "enabled" : "disabled"}`);
+    });
+  };
+
+  const toggleVisibility = async (publicValue: boolean) => {
+    setIsPublic(publicValue);
+    startTransition(async () => {
+      const result = await updateFormVisibilityAction(form.id, publicValue);
+      if (result === undefined) {
+        toast.error("Could not proceed with updating form visibility");
+        return;
+      }
+
+      if (Result.isError(result)) {
+        setIsPublic(!publicValue);
+        toast.error(
+          "Failed to update form visibility. Error: " + result.message,
+        );
+        return;
+      }
+
+      toast.success(`Form is now ${publicValue ? "public" : "private"}`);
     });
   };
 
@@ -347,6 +373,40 @@ const FormDetails = ({
             ) : (
               <Badge variant={form.isEnabled ? "default" : "secondary"}>
                 {enabledLabel}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 py-2 items-center gap-4">
+          <span className="text-right self-start">Visibility</span>
+          <div className="col-span-3 flex items-center space-x-2">
+            {enableEditing ? (
+              <>
+                <Switch
+                  id="form-visibility"
+                  checked={isPublic}
+                  onCheckedChange={toggleVisibility}
+                  disabled={pending}
+                  aria-readonly
+                />
+                <Label htmlFor="form-visibility" className="flex items-center gap-1">
+                  {isPublic ? (
+                    <Globe className="h-3 w-3" />
+                  ) : (
+                    <Lock className="h-3 w-3" />
+                  )}
+                  {visibilityLabel}
+                </Label>
+              </>
+            ) : (
+              <Badge variant={isPublic ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                {isPublic ? (
+                  <Globe className="h-3 w-3" />
+                ) : (
+                  <Lock className="h-3 w-3" />
+                )}
+                {visibilityLabel}
               </Badge>
             )}
           </div>

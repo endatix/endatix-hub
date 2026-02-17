@@ -95,6 +95,7 @@ export const updateForm = async (
   data: {
     name?: string;
     isEnabled?: boolean;
+    isPublic?: boolean;
     themeId?: string;
     webHookSettingsJson?: string | null;
   },

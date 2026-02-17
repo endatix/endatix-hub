@@ -1,20 +1,20 @@
-import { Form, FormDefinition } from "@/types";
-import { getForm, getActiveFormDefinition } from "@/services/api";
+import { auth } from "@/auth";
+import { NotFoundComponent } from "@/components/error-handling/not-found";
+import { Button } from "@/components/ui/button";
+import { trackException } from "@/features/analytics/posthog/server";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { authorization } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
-import { Suspense } from "react";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
-import { NotFoundComponent } from "@/components/error-handling/not-found";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
-import { authorization } from "@/features/auth/authorization";
-import { auth } from "@/auth";
-import { trackException } from "@/features/analytics/posthog/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
-import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
+import { getActiveFormDefinition, getForm } from "@/services/api";
+import { Form, FormDefinition } from "@/types";
+import Link from "next/link";
+import { Suspense } from "react";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -70,6 +70,7 @@ export default async function FormDesignerPage({ params }: Params) {
     formName: form.name,
     slkVal: process.env.NEXT_PUBLIC_SLK,
     themeId: form.themeId ?? undefined,
+    isPublic: form.isPublic,
   };
 
   return (
