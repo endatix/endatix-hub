@@ -4,7 +4,40 @@ import { SurveyModel } from "survey-react-ui";
 
 export type ContainerType = "USER_FILES" | "CONTENT";
 
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Types for content tokens generation operations
+ * ────────────────────────────────────────────────────────────────────────────── */
+
 export type ContentItemType = "form" | "template";
+
+export interface ContentTokenRequest {
+  itemId: string;
+  itemType: ContentItemType;
+  fileNames: string[];
+  questionName?: string;
+}
+
+export interface TokenOperationResult {
+  success: boolean;
+  message?: string;
+  url?: string;
+}
+
+export interface ContentUploadMetadata {
+  userId: string;
+  itemId: string;
+  contentItemType: string;
+  questionName: string;
+}
+
+export interface ContentTokenResponse {
+  tokens: Record<string, TokenOperationResult>;
+  uploadMetadata: ContentUploadMetadata;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Types for read token operations
+ * ────────────────────────────────────────────────────────────────────────────── */
 
 export interface IContainerInfo {
   containerType: ContainerType;

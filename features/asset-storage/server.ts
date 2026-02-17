@@ -30,3 +30,4 @@ export {
   getUserFile,
   handleResizeImageRequest,
 } from "./use-cases";
+export { contentTokensHandlers, type ContentTokensHandlers } from "./use-cases/generate-tokens/generate-tokens.handlers";
