@@ -38,7 +38,7 @@ export function QuestionLabel({
     processedTitle?.length > 0 && processedTitle !== originalTitle;
 
   return (
-    <div className={cn("text-right col-span-2", className)} {...props}>
+    <div className={cn("justify-items-end col-span-2", className)} {...props}>
       {isPersonalized && options.showDynamicVariables ? (
         <PersonalizedTextLabel question={forQuestion} />
       ) : (

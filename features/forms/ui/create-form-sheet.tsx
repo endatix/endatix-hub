@@ -123,7 +123,7 @@ const CreateFormSheet: FC = () => {
   };
 
   return (
-    <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none flex flex-col h-screen justify-between">
+    <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none flex flex-col h-screen justify-between p-6">
       <SheetHeader className="mb-12">
         <SheetTitle>Create a Form</SheetTitle>
         <SheetDescription>

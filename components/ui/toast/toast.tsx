@@ -143,7 +143,7 @@ function Toast({
 
   return (
     <div
-      className="flex flex-col w-full min-w-[356px] md:max-w-[364px] gap-0 justify-between items-center rounded-lg bg-white shadow-lg ring-1 ring-black/5 relative overflow-hidden"
+      className="flex flex-col w-full min-w-[356px] md:max-w-[364px] gap-0 justify-between items-center rounded-lg bg-card shadow-lg ring-1 ring-black/5 relative overflow-hidden"
       onMouseEnter={handlePause}
       onMouseLeave={handleResume}
     >

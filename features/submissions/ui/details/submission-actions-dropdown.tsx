@@ -36,7 +36,7 @@ export function SubmissionActionsDropdown({
           <span className="sr-only">Toggle menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="text-gray-600" align="end">
+      <DropdownMenuContent className="text-muted-foreground" align="end">
         <DropdownMenuItem className="md:hidden cursor-pointer" asChild>
           <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
             <FilePenLine className="w-4 h-4 mr-2" />

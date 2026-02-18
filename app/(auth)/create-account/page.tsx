@@ -93,7 +93,7 @@ const LoggedInSuccessMessage = ({
 }: LoggedInMessageProps) => {
   if (isLoggedIn)
     return (
-      <Card className="bg-background">
+      <Card className="bg-background gap-2">
         <CardHeader className="pb-3">
           <CardTitle>Welcome!</CardTitle>
           <CardDescription className="max-w-lg text-balance leading-relaxed">

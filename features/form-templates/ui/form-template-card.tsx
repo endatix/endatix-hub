@@ -65,7 +65,7 @@ const FormTemplateCard = ({
   return (
     <Card
       className={cn(
-        "flex flex-col gap-1 hover:bg-accent justify-between group",
+        "flex flex-col gap-1 hover:bg-accent justify-between group py-0",
         isSelected ? "bg-accent border-primary" : "",
         className,
       )}

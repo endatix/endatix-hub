@@ -17,7 +17,7 @@ export default async function MainHeader({
   if (!showHeader) return null;
 
   return (
-    <header className="sticky top-0 z-30 flex h-24 items-center gap-4 border-b bg-gray-50 px-4 py-4 sm:h-auto sm:border-0 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-24 items-center gap-4 border-b bg-background px-4 py-4 sm:h-auto sm:border-0 sm:px-6">
       <MobileNav />
       <BreadcrumbNav homeText="Home" sitemap={sitemap}></BreadcrumbNav>
       {/* <MainSearchBar /> */}

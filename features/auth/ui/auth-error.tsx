@@ -8,7 +8,7 @@ export default function AuthErrorDetails({
   errorDetatails,
 }: AuthErrorDetailsProps) {
   return (
-    <div className="mt-2 text-sm text-gray-500 gap-4">
+    <div className="mt-2 text-sm text-muted-foreground gap-4">
       <p className="text-center mb-4">{errorDetatails.message}</p>
       <p className="text-center mb-4">
         Unique error code:{" "}

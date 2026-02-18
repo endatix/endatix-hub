@@ -411,12 +411,12 @@ function FormTemplateEditor({
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="font-bold text-lg border border-gray-300 rounded"
+              className="font-bold text-lg border border-border rounded"
               autoFocus
             />
           ) : (
             <span
-              className="font-bold text-lg hover:border hover:border-gray-300 hover:rounded px-1"
+              className="font-bold text-lg hover:border hover:border-border hover:rounded px-1"
               onClick={() => setIsEditingName(true)}
               style={{ cursor: "text" }}
             >

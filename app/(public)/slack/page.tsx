@@ -37,7 +37,7 @@ function SlackTokenTransfer() {
   }, [code]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-muted">
       <h3>Slack authorization for Endatix Bot</h3>
       {message}
       <br />

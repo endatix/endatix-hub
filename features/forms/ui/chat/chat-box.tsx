@@ -313,7 +313,7 @@ const ChatBox = ({
           />
         </div>
       </form>
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-xs text-muted-foreground">
         Endatix AI Assistant may make mistakes. Please use with discretion.
       </p>
     </div>

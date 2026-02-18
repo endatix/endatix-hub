@@ -101,7 +101,7 @@ const NotificationsBell: React.FC<NotificationsBellProps> = ({
                 </div>
                 <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium">New form submission</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     5 minutes ago
                   </p>
                 </div>
@@ -112,7 +112,7 @@ const NotificationsBell: React.FC<NotificationsBellProps> = ({
                 </div>
                 <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium">You have a new message</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     1 minute ago
                   </p>
                 </div>
@@ -125,7 +125,7 @@ const NotificationsBell: React.FC<NotificationsBellProps> = ({
                   <p className="text-sm font-medium">
                     RS-200 trial survey is expiring soon
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     2 hours ago
                   </p>
                 </div>
