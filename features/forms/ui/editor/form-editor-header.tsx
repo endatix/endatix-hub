@@ -1,12 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Globe, Lock, Save } from "lucide-react";
 import { FormEditorHeaderState } from "./use-form-editor-header.hook";
 
 interface FormEditorHeaderProps extends FormEditorHeaderState {
   hasUnsavedChanges: boolean;
   isCurrentThemeModified: boolean;
+  isPublic?: boolean;
 }
 
 export default function FormEditorHeader({
@@ -17,6 +18,7 @@ export default function FormEditorHeader({
   isSaving,
   hasUnsavedChanges,
   isCurrentThemeModified,
+  isPublic,
   handleSaveAndGoBack,
   handleKeyDown,
   saveFormHandler,
@@ -55,6 +57,22 @@ export default function FormEditorHeader({
         )}
       </div>
       <div className="flex items-center gap-2">
+        {isPublic !== undefined && (
+          <span
+            className={`text-xs border rounded-full px-2 py-0.5 flex items-center gap-1 whitespace-nowrap ${
+              isPublic
+                ? "border-primary text-primary"
+                : "border-muted-foreground text-muted-foreground"
+            }`}
+          >
+            {isPublic ? (
+              <Globe className="h-3 w-3" />
+            ) : (
+              <Lock className="h-3 w-3" />
+            )}
+            {isPublic ? "Public" : "Private"}
+          </span>
+        )}
         {(hasUnsavedChanges || isCurrentThemeModified) && (
           <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
             Unsaved changes
