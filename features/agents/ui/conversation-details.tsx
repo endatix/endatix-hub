@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImperativePanelHandle } from "react-resizable-panels";
+import type { PanelImperativeHandle } from "react-resizable-panels";
 
 const SHEET_CSS = "absolute inset-x-0 top-0 h-screen";
 const CRITICAL_WIDTH = 600;
@@ -47,7 +47,7 @@ export default function ConversationDetails({
   formModelError,
   conversation,
 }: ConversationDetailsProps) {
-  const chatPanelRef = useRef<ImperativePanelHandle>(null);
+  const chatPanelRef = useRef<PanelImperativeHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const tokenUsageStats: TokenUsageStats = useMemo(() => {
@@ -99,11 +99,12 @@ export default function ConversationDetails({
     }
   };
 
-  const handleResize = (size: number) => {
-    if (size > 300 && isCollapsed == false) {
+  const handleResize = (panelSize: { asPercentage: number; inPixels: number }) => {
+    if (panelSize.inPixels > 300 && isCollapsed === false) {
       toggleCollapse();
       return;
     }
+    setIsCollapsed(panelSize.asPercentage <= 4);
   };
 
   if (isMobile) {
@@ -112,7 +113,7 @@ export default function ConversationDetails({
 
   return (
     <ResizablePanelGroup
-      direction="horizontal"
+      orientation="horizontal"
       className={`${SHEET_CSS} flex flex-1 space-y-2`}
     >
       <ResizablePanel defaultSize={70}>
@@ -129,14 +130,12 @@ export default function ConversationDetails({
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel
-        ref={chatPanelRef}
+        panelRef={chatPanelRef}
         defaultSize={30}
         minSize={30}
         collapsible={true}
         collapsedSize={4}
-        onCollapse={() => setIsCollapsed(true)}
-        onExpand={() => setIsCollapsed(false)}
-        onResize={(size) => handleResize(size)}
+        onResize={(panelSize) => handleResize(panelSize)}
         className="transition-all duration-300 ease-in-out"
       >
         <div className="flex h-screen shrink-0 z-50 bg-background border-l pt-6 md:px-4">

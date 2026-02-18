@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { ImperativePanelHandle } from "react-resizable-panels";
+import type { PanelImperativeHandle } from "react-resizable-panels";
 import ChatBox from "../chat/chat-box";
 import ChatThread from "../chat/chat-thread";
 import DotLoader from "@/components/loaders/dot-loader";
@@ -50,7 +50,7 @@ export default function FormEditorWithChat({
   onThemeModificationChange,
   onSaveHandlerReady,
 }: FormEditorWithChatProps) {
-  const chatPanelRef = useRef<ImperativePanelHandle>(null);
+  const chatPanelRef = useRef<PanelImperativeHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(
@@ -114,16 +114,20 @@ export default function FormEditorWithChat({
     }
   };
 
-  const handleResize = (size: number) => {
-    if (size > 300 && isCollapsed === false) {
+  const handleResize = (panelSize: {
+    asPercentage: number;
+    inPixels: number;
+  }) => {
+    if (panelSize.inPixels > 300 && isCollapsed === false) {
       toggleCollapse();
       return;
     }
+    setIsCollapsed(panelSize.asPercentage <= 4);
   };
 
   return (
     <div className="flex-1 flex overflow-hidden">
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
+      <ResizablePanelGroup orientation="horizontal" className="flex-1">
         <ResizablePanel defaultSize={70}>
           {shouldRenderEditor ? (
             <FormEditorContainer
@@ -146,18 +150,12 @@ export default function FormEditorWithChat({
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel
-          ref={chatPanelRef}
+          panelRef={chatPanelRef}
           defaultSize={30}
           minSize={30}
           collapsible={true}
           collapsedSize={4}
-          onCollapse={() => {
-            setIsCollapsed(true);
-          }}
-          onExpand={() => {
-            setIsCollapsed(false);
-          }}
-          onResize={(size) => handleResize(size)}
+          onResize={(panelSize) => handleResize(panelSize)}
           className="transition-all duration-300 ease-in-out"
         >
           <div className="flex h-full shrink-0 z-50 bg-background border-l pt-6 md:px-4">
