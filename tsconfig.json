@@ -26,11 +26,12 @@
   },
   "include": [
     "next-env.d.ts",
-    "env.d.ts",
-    ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/dev/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts",
+    "env.d.ts"
   ],
   "exclude": ["node_modules", "docs", "examples"]
 }
