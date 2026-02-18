@@ -1,4 +1,4 @@
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import Link from "next/link";
 import { StatusDropdownMenuItem } from "@/features/submissions/use-cases/change-status";
 import { DownloadFilesDropdownItem } from "@/features/submissions/ui/download-files-dropdown-item";
 
-interface SubmissionActionsDropdownProps extends ButtonProps {
+interface SubmissionActionsDropdownProps extends React.ComponentProps<typeof Button> {
   submissionId: string;
   formId: string;
   status: string;
