@@ -1,8 +1,9 @@
 "use server";
 
 import { authorization } from "@/features/auth/authorization";
+import { getSession } from "@/features/auth";
 import { Result } from "@/lib/result";
-import { deleteForm } from "@/services/api";
+import { EndatixApi } from "@/lib/endatix-api";
 
 export type DeleteFormResult = Result<string>;
 
@@ -11,12 +12,15 @@ export async function deleteFormAction(
 ): Promise<DeleteFormResult | never> {
   const { requireHubAccess } = await authorization();
   await requireHubAccess();
-  
-  try {
-    const deletedFormId = await deleteForm(formId);
-    return Result.success(deletedFormId);
-  } catch (error) {
-    console.error("Failed to delete form", error);
+
+  const session = await getSession();
+  const api = new EndatixApi(session);
+  const result = await api.forms.delete(formId);
+
+  if (!result.success) {
+    console.error("Failed to delete form", result.error);
     return Result.error("Failed to delete form");
   }
+
+  return Result.success(formId);
 }

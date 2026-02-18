@@ -1,7 +1,8 @@
 "use server";
 
 import { authorization } from "@/features/auth/authorization";
-import { updateForm } from "@/services/api";
+import { getSession } from "@/features/auth";
+import { EndatixApi } from "@/lib/endatix-api";
 import type { WebHookConfiguration } from "@/types";
 import {
   EVENT_KEYS,
@@ -41,48 +42,42 @@ export async function updateWebhookSettingsAction(
     };
   }
 
-  try {
-    const { formId, useCustomSettings } = validatedData.data;
-    let webHookSettingsJson: string = "";
+  const { formId, useCustomSettings } = validatedData.data;
+  let webHookSettingsJson: string = "";
 
-    if (useCustomSettings) {
-      const config: WebHookConfiguration = { Events: {} };
+  if (useCustomSettings) {
+    const config: WebHookConfiguration = { Events: {} };
 
-      EVENT_KEYS.forEach((eventKey) => {
-        const enabled = validatedData.data[`event-${eventKey}-enabled` as keyof typeof validatedData.data];
-        const url = validatedData.data[`event-${eventKey}-url` as keyof typeof validatedData.data] as string;
+    EVENT_KEYS.forEach((eventKey) => {
+      const enabled = validatedData.data[`event-${eventKey}-enabled` as keyof typeof validatedData.data];
+      const url = validatedData.data[`event-${eventKey}-url` as keyof typeof validatedData.data] as string;
 
-        if (enabled && url) {
-          config.Events[eventKey] = {
-            IsEnabled: true,
-            WebHookEndpoints: [{ Url: url }],
-          };
-        }
-      });
-
-      webHookSettingsJson = JSON.stringify(config);
-    }
-
-    await updateForm(formId, {
-      webHookSettingsJson: webHookSettingsJson,
+      if (enabled && url) {
+        config.Events[eventKey] = {
+          IsEnabled: true,
+          WebHookEndpoints: [{ Url: url }],
+        };
+      }
     });
 
-    return {
-      isSuccess: true,
-    };
-  } catch (error) {
-    console.error("Failed to update webhook settings", error);
+    webHookSettingsJson = JSON.stringify(config);
+  }
 
-    let errorMessage = "Failed to update webhook settings";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
+  const session = await getSession();
+  const api = new EndatixApi(session);
+  const result = await api.forms.update(formId, { webHookSettingsJson });
 
+  if (!result.success) {
+    console.error("Failed to update webhook settings", result.error);
     return {
       isSuccess: false,
-      formErrors: [errorMessage],
+      formErrors: [result.error.message],
       errors: errors?.fieldErrors,
       values: rawData,
     };
   }
+
+  return {
+    isSuccess: true,
+  };
 }

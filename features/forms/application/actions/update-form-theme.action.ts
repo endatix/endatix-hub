@@ -1,7 +1,8 @@
 "use server";
 
 import { authorization } from "@/features/auth/authorization";
-import { updateForm } from "@/services/api";
+import { getSession } from "@/features/auth";
+import { EndatixApi } from "@/lib/endatix-api";
 import { revalidatePath } from "next/cache";
 
 interface UpdateFormThemeRequest {
@@ -20,14 +21,16 @@ export async function updateFormThemeAction(
   const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
-  try {
-    const { formId, themeId } = request;
-    await updateForm(formId, { themeId: themeId });
-    revalidatePath(`/(main)/forms/${formId}/design`);
+  const session = await getSession();
+  const api = new EndatixApi(session);
+  const { formId, themeId } = request;
+  const result = await api.forms.update(formId, { themeId });
 
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to update form theme", error);
+  if (!result.success) {
+    console.error("Failed to update form theme", result.error);
     return { success: false, error: "Failed to update form theme" };
   }
+
+  revalidatePath(`/(main)/forms/${formId}/design`);
+  return { success: true };
 }
