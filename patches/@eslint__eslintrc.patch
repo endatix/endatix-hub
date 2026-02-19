@@ -1,9 +1,7 @@
 diff --git a/lib/config-array/override-tester.js b/lib/config-array/override-tester.js
 --- a/lib/config-array/override-tester.js
 +++ b/lib/config-array/override-tester.js
-@@ -19,10 +19,8 @@
-  */
- 
+@@ -20,8 +20,6 @@
  import assert from "node:assert";
  import path from "node:path";
  import util from "node:util";

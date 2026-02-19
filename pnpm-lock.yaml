@@ -19,7 +19,7 @@ overrides:
 
 patchedDependencies:
   '@eslint/eslintrc':
-    hash: 1f69fffafeb479f5696b146c05593a2db229a19cc7f9dd5ed05b1da8cd97fd4d
+    hash: a5a7711da0fcdaa0e928d58d2a1b869d09478d04dacd2d95d1e389c1ad4c9a43
     path: patches/@eslint__eslintrc.patch
 
 importers:
@@ -6995,7 +6995,7 @@ snapshots:
     dependencies:
       '@types/json-schema': 7.0.15
 
-  '@eslint/eslintrc@3.3.3(patch_hash=1f69fffafeb479f5696b146c05593a2db229a19cc7f9dd5ed05b1da8cd97fd4d)':
+  '@eslint/eslintrc@3.3.3(patch_hash=a5a7711da0fcdaa0e928d58d2a1b869d09478d04dacd2d95d1e389c1ad4c9a43)':
     dependencies:
       ajv: 6.12.6
       debug: 4.4.3
@@ -10308,7 +10308,7 @@ snapshots:
       '@eslint/config-array': 0.21.1
       '@eslint/config-helpers': 0.4.2
       '@eslint/core': 0.17.0
-      '@eslint/eslintrc': 3.3.3(patch_hash=1f69fffafeb479f5696b146c05593a2db229a19cc7f9dd5ed05b1da8cd97fd4d)
+      '@eslint/eslintrc': 3.3.3(patch_hash=a5a7711da0fcdaa0e928d58d2a1b869d09478d04dacd2d95d1e389c1ad4c9a43)
       '@eslint/js': 9.39.2
       '@eslint/plugin-kit': 0.4.1
       '@humanfs/node': 0.16.7
