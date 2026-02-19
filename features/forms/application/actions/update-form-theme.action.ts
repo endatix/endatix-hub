@@ -1,7 +1,7 @@
 "use server";
 
+import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { getSession } from "@/features/auth";
 import { EndatixApi } from "@/lib/endatix-api";
 import { revalidatePath } from "next/cache";
 
@@ -18,11 +18,11 @@ export interface UpdateFormThemeResult {
 export async function updateFormThemeAction(
   request: UpdateFormThemeRequest,
 ): Promise<UpdateFormThemeResult | never> {
-  const { requireHubAccess } = await authorization();
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  const session = await getSession();
-  const api = new EndatixApi(session);
+  const api = new EndatixApi(session?.accessToken);
   const { formId, themeId } = request;
   const result = await api.forms.update(formId, { themeId });
 

@@ -1,7 +1,7 @@
 "use server";
 
+import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { getSession } from "@/features/auth";
 import { Result } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";
 import { revalidatePath } from "next/cache";
@@ -12,11 +12,11 @@ export async function updateFormNameAction(
   formId: string,
   formName: string,
 ): Promise<UpdateFormNameResult | never> {
-  const { requireHubAccess } = await authorization();
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  const session = await getSession();
-  const api = new EndatixApi(session);
+  const api = new EndatixApi(session?.accessToken);
   const result = await api.forms.update(formId, { name: formName });
 
   if (!result.success) {

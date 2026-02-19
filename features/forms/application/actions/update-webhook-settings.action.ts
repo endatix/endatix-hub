@@ -1,7 +1,7 @@
 "use server";
 
+import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { getSession } from "@/features/auth";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { WebHookConfiguration } from "@/types";
 import {
@@ -14,7 +14,8 @@ export async function updateWebhookSettingsAction(
   _prevState: WebhookSettingsState,
   formData: FormData
 ): Promise<WebhookSettingsState | never> {
-  const { requireHubAccess } = await authorization();
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const rawData: Record<string, string | boolean> = {
@@ -63,8 +64,7 @@ export async function updateWebhookSettingsAction(
     webHookSettingsJson = JSON.stringify(config);
   }
 
-  const session = await getSession();
-  const api = new EndatixApi(session);
+  const api = new EndatixApi(session?.accessToken);
   const result = await api.forms.update(formId, { webHookSettingsJson });
 
   if (!result.success) {
