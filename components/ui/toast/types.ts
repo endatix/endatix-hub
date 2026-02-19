@@ -1,9 +1,14 @@
-import { ButtonProps } from '../button';
+import { Button } from '../button';
 import { ReactNode } from 'react';
 
 type ToastVariant = "success" | "info" | "warning" | "error";
 
 type ProgressVariant = "none" | "left-to-right" | "right-to-left";
+
+interface ButtonProps extends React.ComponentProps<typeof Button> {
+  label: string;
+  onClick: () => void;
+}
 
 interface ToastProps {
   id: string | number;

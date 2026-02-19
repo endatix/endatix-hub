@@ -29,7 +29,7 @@ export default function SignOutPage() {
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <h1 className="mt-2 text-2xl font-bold ">Sign out of Endatix Hub?</h1>
-      <p className="mt-2 text-sm text-gray-500">
+      <p className="mt-2 text-sm text-muted-foreground">
         You can always sign in back in at any time.
       </p>
       <div className="flex gap-2 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 mt-8">

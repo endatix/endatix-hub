@@ -2,7 +2,7 @@ import { JWT } from "next-auth/jwt";
 import { Session, Account, User } from "next-auth";
 import { Provider } from "next-auth/providers";
 import React from "react";
-import { ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Result } from "@/lib/result";
 import { NextResponse } from "next/server";
 
@@ -97,7 +97,7 @@ export interface IAuthPresentation {
   /**
    * Optional props to override the default sign in button props.
    */
-  signInButtonProps?: ButtonProps;
+  signInButtonProps?: React.ComponentProps<typeof Button>;
 
   /**
    * Optional component to override the default sign in component. Designed for credentials based providers.

@@ -46,7 +46,7 @@ export function RowActions<TData>({ row }: RowActionsProps<TData>) {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         onClick={(event) => event.stopPropagation()}
-        className="text-gray-600"
+        className="text-muted-foreground"
         align="start"
       >
         <DropdownMenuItem asChild className="cursor-pointer">

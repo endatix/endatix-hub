@@ -5,7 +5,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChangePasswordForm } from "./change-password-form";
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ChevronUp, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -37,7 +37,9 @@ function ChangePassword() {
   );
 }
 
-interface ChangePasswordButtonProps extends ButtonProps {
+interface ChangePasswordButtonProps extends React.ComponentProps<
+  typeof Button
+> {
   isOpen: boolean;
 }
 

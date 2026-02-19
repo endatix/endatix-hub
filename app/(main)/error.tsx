@@ -1,6 +1,11 @@
 "use client"; // Error boundaries must be Client Components
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  AlertAction,
+} from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { useEffect } from "react";
@@ -17,19 +22,23 @@ export default function Error({
 
   useEffect(() => {
     trackException(error, {
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }, [error, trackException]);
 
   return (
-    <Alert variant="destructive">
-      <AlertCircle className="h-4 w-4" />
+    <Alert variant="destructive" className="max-w-md">
+      <AlertCircle/>
       <AlertTitle>Something went wrong!</AlertTitle>
       <AlertDescription>
         We are notified on the issue and are working on it.{" "}
         <b>Error details:</b> {error.message}
       </AlertDescription>
-      <Button onClick={reset}>Click to Retry</Button>
+      <AlertAction>
+        <Button onClick={reset}>
+          Click to Retry
+        </Button>
+      </AlertAction>
     </Alert>
   );
 }

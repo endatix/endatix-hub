@@ -1,11 +1,11 @@
 "use client";
 
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import React from "react";
 import { useSubmissionStatus } from "../use-submission-status.hook";
 import { SubmissionStatusIcon } from "./status-icon";
 
-interface StatusButtonProps extends ButtonProps {
+interface StatusButtonProps extends React.ComponentProps<typeof Button> {
   submissionId: string;
   formId: string;
   status: string;

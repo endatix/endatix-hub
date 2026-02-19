@@ -1,8 +1,10 @@
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 
-interface BackToSubmissionsButtonProps extends ButtonProps {
+interface BackToSubmissionsButtonProps extends React.ComponentProps<
+  typeof Button
+> {
   formId: string;
   text?: string;
 }
