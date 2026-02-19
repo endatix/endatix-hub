@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Globe, Lock, Save } from "lucide-react";
+import { ArrowLeftIcon, Globe, Lock, Save } from "lucide-react";
 import { FormEditorHeaderState } from "./use-form-editor-header.hook";
 
 interface FormEditorHeaderProps extends FormEditorHeaderState {
@@ -27,15 +27,16 @@ export default function FormEditorHeader({
 }: FormEditorHeaderProps) {
   return (
     <div className="flex justify-between items-center mt-0 pt-4 pb-4 px-6 sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex w-full items-center gap-8">
-        <button
+      <div className="flex w-full items-center gap-6">
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          aria-label="Save and Go Back"
           onClick={handleSaveAndGoBack}
-          className="mr-0 text-2xl flex items-center"
           disabled={isSaving}
-          style={{ border: "none", background: "transparent" }}
         >
-          ←
-        </button>
+          <ArrowLeftIcon />
+        </Button>
 
         {isEditingName ? (
           <input
