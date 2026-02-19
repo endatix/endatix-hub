@@ -1,23 +1,25 @@
 "use server";
 
+import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { getForm } from "@/services/api";
 import { Result } from "@/lib/result";
+import { EndatixApi } from "@/lib/endatix-api";
 import type { Form } from "@/types";
 
 export type GetFormResult = Result<Form>;
 
 export async function getFormAction(formId: string): Promise<GetFormResult | never> {
-  const { requireHubAccess } = await authorization();
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  try {
-    const form = await getForm(formId);
-    return Result.success(form);
-  } catch (error) {
-    console.error("Failed to fetch form", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to fetch form";
-    return Result.error(errorMessage);
+  const api = new EndatixApi(session?.accessToken);
+  const result = await api.forms.get(formId);
+
+  if (!result.success) {
+    console.error("Failed to fetch form", result.error);
+    return Result.error(result.error.message);
   }
+
+  return Result.success(result.data);
 }

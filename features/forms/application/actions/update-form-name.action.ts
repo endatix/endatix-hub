@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
-import { updateForm } from "@/services/api";
+import { EndatixApi } from "@/lib/endatix-api";
 import { revalidatePath } from "next/cache";
 
 export type UpdateFormNameResult = Result<string>;
@@ -16,13 +16,14 @@ export async function updateFormNameAction(
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  try {
-    await updateForm(formId, { name: formName });
-    revalidatePath(`/(main)/forms/${formId}/design`);
+  const api = new EndatixApi(session?.accessToken);
+  const result = await api.forms.update(formId, { name: formName });
 
-    return Result.success(formId);
-  } catch (error) {
-    console.error("Failed to update form name", error);
+  if (!result.success) {
+    console.error("Failed to update form name", result.error);
     return Result.error("Failed to update form name");
   }
+
+  revalidatePath(`/(main)/forms/${formId}/design`);
+  return Result.success(formId);
 }

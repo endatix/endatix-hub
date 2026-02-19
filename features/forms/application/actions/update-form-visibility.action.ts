@@ -1,8 +1,9 @@
 "use server";
 
+import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
-import { updateForm } from "@/services/api";
+import { EndatixApi } from "@/lib/endatix-api";
 import { revalidatePath } from "next/cache";
 
 export type UpdateFormVisibilityResult = Result<string>;
@@ -11,16 +12,19 @@ export async function updateFormVisibilityAction(
   formId: string,
   isPublic: boolean,
 ): Promise<UpdateFormVisibilityResult | never> {
-  const { requireHubAccess } = await authorization();
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  try {
-    await updateForm(formId, { isPublic });
-    revalidatePath("/(main)/forms");
-    revalidatePath(`/(main)/forms/${formId}`);
-    return Result.success(formId);
-  } catch (error) {
-    console.error("Failed to update form visibility", error);
+  const api = new EndatixApi(session?.accessToken);
+  const result = await api.forms.update(formId, { isPublic });
+
+  if (!result.success) {
+    console.error("Failed to update form visibility", result.error);
     return Result.error("Failed to update form visibility");
   }
+
+  revalidatePath("/(main)/forms");
+  revalidatePath(`/(main)/forms/${formId}`);
+  return Result.success(formId);
 }
