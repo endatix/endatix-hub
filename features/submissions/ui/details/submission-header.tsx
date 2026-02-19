@@ -81,7 +81,7 @@ export function SubmissionHeader({
   return (
     <div className="my-2 flex flex-col gap-6 sm:gap-2 sm:flex-row justify-between">
       <PageTitle title="Submission Details" />
-      <div className="flex space-x-2 justify-end text-muted-foreground">
+      <div className="flex space-x-2 justify-end">
         <SubmissionViewOptions
           submissionLanguageName={submissionLanguageName}
         />
