@@ -27,8 +27,8 @@ export default function Error({
   }, [error, trackException]);
 
   return (
-    <Alert variant="destructive">
-      <AlertCircle className="h-4 w-4" />
+    <Alert variant="destructive" className="max-w-md">
+      <AlertCircle/>
       <AlertTitle>Something went wrong!</AlertTitle>
       <AlertDescription>
         We are notified on the issue and are working on it.{" "}
