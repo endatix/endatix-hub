@@ -161,4 +161,35 @@ export class Submissions {
       { exportFormat, exportId },
     );
   }
+
+  /**
+   * List all submissions for a form with optional filters
+   */
+  async list(
+    formId: string,
+    filters?: {
+      isComplete?: string[];
+      status?: string[];
+    },
+  ): Promise<ApiResult<Submission[]>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    const params = new URLSearchParams();
+    params.set("pageSize", "10000");
+
+    if (filters?.isComplete && filters.isComplete.length > 0) {
+      params.append("filter", `isComplete:${filters.isComplete.join("|")}`);
+    }
+    if (filters?.status && filters.status.length > 0) {
+      params.append("filter", `status:${filters.status.join("|")}`);
+    }
+
+    const queryString = params.toString();
+    const endpoint = `/forms/${validateFormIdResult.value}/submissions${queryString ? `?${queryString}` : ""}`;
+
+    return this.endatix.get<Submission[]>(endpoint);
+  }
 }

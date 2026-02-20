@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Submission } from "@/lib/endatix-api";
+import { DefinitionField, Submission } from "@/lib/endatix-api";
 import { RowActions } from "./row-actions";
 import { ColumnHeader } from "./column-header";
 import { CellDate } from "./cell-date";
@@ -86,3 +86,38 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
     ),
   },
 ];
+
+/**
+ * Question types excluded from grid columns: binary data, complex objects, or display-only.
+ */
+const GRID_UNSUPPORTED_TYPES = new Set([
+  "file",
+  "signaturepad",
+  "imagepicker",
+  "matrix",
+  "matrixdynamic",
+  "matrixdropdown",
+  "paneldynamic",
+  "multipletext",
+  "html",
+  "image",
+]);
+
+export function buildSubmissionDataColumns(fields: DefinitionField[]): ColumnDef<Submission>[] {
+  return fields
+    .filter((field) => !GRID_UNSUPPORTED_TYPES.has(field.type))
+    .map((field) => ({
+      id: `data_${field.name}`,
+      header: field.title,
+      accessorFn: (row: Submission) => {
+        try {
+          const data = row.jsonData ? JSON.parse(row.jsonData as string) : {};
+          const value = data[field.name];
+          return value !== undefined && value !== null ? String(value) : null;
+        } catch {
+          return null;
+        }
+      },
+      cell: ({ getValue }) => <span>{(getValue() as string) ?? "-"}</span>,
+    }));
+}

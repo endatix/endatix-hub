@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import PageTitle from "@/components/headings/page-title";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
-import { getForm, getSubmissions } from "@/services/api";
+import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
 import { SubmissionsWithFilters } from "./ui/submissions-with-filters";
@@ -26,11 +27,14 @@ export async function generateMetadata(
   await requireHubAccess();
 
   const { formId } = await params;
-  const form = await getForm(formId);
+  const api = new EndatixApi(session?.accessToken);
+  const formResult = await api.forms.get(formId);
+
+  const formName = formResult.success ? formResult.data.name : "Form";
 
   return {
-    title: `Submissions for ${form.name}`,
-    description: `View all submissions for ${form.name}`,
+    title: `Submissions for ${formName}`,
+    description: `View all submissions for ${formName}`,
     openGraph: {
       title: `Search params: ${JSON.stringify(await searchParams)}`,
       description: `Parent title: ${(await parent).title}`,
@@ -55,8 +59,13 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
 }
 
 async function PageTitleData({ formId }: { formId: string }) {
-  const form = await getForm(formId);
-  return <PageTitle title={`Submissions for ${form.name}`} />;
+  const session = await getSession();
+  const api = new EndatixApi(session ?? undefined);
+  const formResult = await api.forms.get(formId);
+
+  const formName = formResult.success ? formResult.data.name : "Form";
+
+  return <PageTitle title={`Submissions for ${formName}`} />;
 }
 
 async function SubmissionsTableData({
@@ -77,15 +86,25 @@ async function SubmissionsTableData({
     ? searchParams.status.split(',')
     : [];
 
-  const submissions = await getSubmissions(formId, {
-    isComplete: isCompleteFilter,
-    status: statusFilter,
-  });
+  const session = await getSession();
+  const api = new EndatixApi(session ?? undefined);
+
+  const [submissionsResult, fieldsResult] = await Promise.all([
+    api.submissions.list(formId, {
+      isComplete: isCompleteFilter,
+      status: statusFilter,
+    }),
+    api.definitions.getFields(formId),
+  ]);
+
+  const submissions = submissionsResult.success ? submissionsResult.data : [];
+  const definitionFields = fieldsResult.success ? fieldsResult.data : [];
 
   return (
     <SubmissionsWithFilters
       data={submissions}
       formId={formId}
+      definitionFields={definitionFields}
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}
     />

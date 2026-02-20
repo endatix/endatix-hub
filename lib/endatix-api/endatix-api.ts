@@ -1,6 +1,7 @@
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
 import { ApiResult, ApiErrorDetails, ApiErrorType } from "./shared/api-result";
 import { ERROR_CODE, getErrorMessageWithFallback } from "./shared/error-codes";
+import { Definitions } from "./definitions/definitions";
 import { Forms } from "./forms/forms";
 import { Submissions } from "./submissions/submissions";
 import type { SessionData } from "@/features/auth";
@@ -48,6 +49,7 @@ export class EndatixApi {
   private readonly baseUrl: string;
   private readonly defaultHeaders: Record<string, string>;
   private readonly session?: SessionData;
+  private _definitions?: Definitions;
   private _forms?: Forms;
   private _submissions?: Submissions;
   private _agents?: Agents;
@@ -78,6 +80,16 @@ export class EndatixApi {
       // Full SessionData provided
       this.session = sessionOrToken;
     }
+  }
+
+  /**
+   * Lazy-loaded definitions API - only creates instance when first accessed
+   */
+  get definitions(): Definitions {
+    if (!this._definitions) {
+      this._definitions = new Definitions(this);
+    }
+    return this._definitions;
   }
 
   /**

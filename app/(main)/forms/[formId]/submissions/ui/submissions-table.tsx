@@ -1,15 +1,16 @@
 "use client";
 
-import { COLUMNS_DEFINITION, DataTable } from "@/features/submissions/ui/table";
-import { Submission } from "@/lib/endatix-api";
+import { COLUMNS_DEFINITION, DataTable, buildSubmissionDataColumns } from "@/features/submissions/ui/table";
+import { DefinitionField, Submission } from "@/lib/endatix-api";
 import { useEffect, useState } from "react";
 
 type SubmissionsTableProps = {
   data: Submission[];
   formId: string;
+  definitionFields?: DefinitionField[];
 };
 
-const SubmissionsTable = ({ data, formId }: SubmissionsTableProps) => {
+const SubmissionsTable = ({ data, formId, definitionFields = [] }: SubmissionsTableProps) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<
     string | null
   >(null);
@@ -41,7 +42,8 @@ const SubmissionsTable = ({ data, formId }: SubmissionsTableProps) => {
     };
   }, [selectedSubmissionId, data]);
 
-  return <DataTable data={data} columns={COLUMNS_DEFINITION} />;
+  const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
+  return <DataTable data={data} columns={allColumns} />;
 };
 
 export default SubmissionsTable;

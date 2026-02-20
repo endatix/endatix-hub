@@ -2,6 +2,7 @@
 
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
+import { DefinitionField } from "@/lib/endatix-api";
 import { Submission } from "@/lib/endatix-api/submissions/types";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ import SubmissionsTable from "./submissions-table";
 interface SubmissionsWithFiltersProps {
   data: Submission[];
   formId: string;
+  definitionFields?: DefinitionField[];
   initialIsComplete?: string[];
   initialStatus?: string[];
 }
@@ -18,6 +20,7 @@ interface SubmissionsWithFiltersProps {
 export function SubmissionsWithFilters({
   data,
   formId,
+  definitionFields = [],
   initialIsComplete = [],
   initialStatus = [],
 }: SubmissionsWithFiltersProps) {
@@ -84,7 +87,7 @@ export function SubmissionsWithFilters({
       {isPending && (
         <div className="text-sm text-muted-foreground">Updating...</div>
       )}
-      <SubmissionsTable key={tableKey} data={data} formId={formId} />
+      <SubmissionsTable key={tableKey} data={data} formId={formId} definitionFields={definitionFields} />
     </>
   );
 }
