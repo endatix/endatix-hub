@@ -188,7 +188,8 @@ export class Submissions {
     }
 
     const queryString = params.toString();
-    const endpoint = `/forms/${validateFormIdResult.value}/submissions${queryString ? `?${queryString}` : ""}`;
+    const queryPart = queryString ? `?${queryString}` : "";
+    const endpoint = `/forms/${validateFormIdResult.value}/submissions${queryPart}`;
 
     return this.endatix.get<Submission[]>(endpoint);
   }
