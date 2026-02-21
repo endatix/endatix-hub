@@ -9,6 +9,7 @@ export type Form = {
   submissionsCount?: number;
   themeId?: string;
   webHookSettingsJson?: string;
+  activeDefinitionId?: string;
 };
 
 export type FormDefinition = {
