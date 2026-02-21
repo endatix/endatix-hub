@@ -60,7 +60,7 @@ export default async function FormTemplateEditPage({ params }: Params) {
 
   return (
     <Suspense fallback={<FormEditorLoader />}>
-      <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
+      <div className="h-dvh overflow-hidden max-w-[100vw]">
         <AssetStorageProvider>
           <FormTemplateEditorContainer {...props} />
         </AssetStorageProvider>
