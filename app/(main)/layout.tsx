@@ -2,7 +2,7 @@ import "@/app/globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { AppProvider } from "@/components/providers";
-import { getSession } from "@/features/auth";
+import { auth } from "@/auth";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -41,7 +41,7 @@ export default async function RootLayout({
   header,
   nav,
 }: RootLayoutProps) {
-  const session = await getSession();
+  const session = await auth();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -50,13 +50,11 @@ export default async function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider session={session}>
-          <div className="flex min-h-screen w-full flex-row bg-muted/40">
-            {nav}
-            <div className="flex flex-1 flex-col">
-              {header}
-              <main className="flex-1 flex flex-col p-6">{children}</main>
-            </div>
-          </div>
+          {nav}
+          <main data-slot="sidebar-inset">
+            {header}
+            <div data-slot="content-wrapper">{children}</div>
+          </main>
         </AppProvider>
       </body>
     </html>

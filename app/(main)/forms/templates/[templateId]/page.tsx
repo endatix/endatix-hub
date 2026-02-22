@@ -59,12 +59,12 @@ export default async function FormTemplateEditPage({ params }: Params) {
   };
 
   return (
-    <Suspense fallback={<FormEditorLoader />}>
-      <div className="h-dvh overflow-hidden max-w-[100vw]">
+    <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
+      <Suspense fallback={<FormEditorLoader />}>
         <AssetStorageProvider>
           <FormTemplateEditorContainer {...props} />
         </AssetStorageProvider>
-      </div>
-    </Suspense>
+      </Suspense>
+    </div>
   );
 }
