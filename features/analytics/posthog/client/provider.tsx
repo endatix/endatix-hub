@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, Suspense, useEffect } from "react";
+import { ReactNode, Suspense, useEffect, useMemo } from "react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import {
@@ -11,11 +11,11 @@ import {
 import { PostHogPageView } from "./pageview";
 import { PostHogUserIdentity } from "./user-identity";
 import { initPostHog } from "./client";
-import type { SessionData } from "@/features/auth";
+import { Session } from "next-auth";
 
 interface PostHogProviderProps {
   children: ReactNode;
-  session?: SessionData;
+  session?: Session | null;
 }
 
 /**
@@ -23,7 +23,7 @@ interface PostHogProviderProps {
  * Handles initialization and user identification
  */
 export function PostHogProvider({ children, session }: PostHogProviderProps) {
-  const config = createPostHogConfig();
+  const config = useMemo(() => createPostHogConfig(), []);
   const analyticsEnabled = isPostHogEnabled(config);
   const debugMode = isDebugMode();
 
@@ -38,7 +38,7 @@ export function PostHogProvider({ children, session }: PostHogProviderProps) {
     } catch (error) {
       // Silently handle initialization errors to prevent app crashes
       // In a production app, you might want to log this to an error tracking service
-      console.error('Failed to initialize PostHog:', error);
+      console.error("Failed to initialize PostHog:", error);
     }
   }, [analyticsEnabled, config, debugMode]);
 

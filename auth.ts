@@ -39,6 +39,15 @@ declare module "next-auth" {
       id?: string;
     };
   }
+
+  export interface CurrentUserInfo {
+    isLoggedIn: boolean;
+    name: string;
+    email: string;
+    id: string;
+    initials: string;
+    displayName: string;
+  }
 }
 
 declare module "next-auth/jwt" {
