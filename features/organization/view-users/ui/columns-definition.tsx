@@ -4,7 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { UserListItem } from "@/lib/endatix-api";
-import { getDisplayName, getInitials } from "../../user-utils";
+import { getDisplayName, getInitials } from "@/features/users/user-utils";
 
 export const USERS_COLUMNS_DEFINITION = (
   currentUserId?: string,
@@ -49,11 +49,18 @@ export const USERS_COLUMNS_DEFINITION = (
       const roles = row.original.roles;
 
       if (roles.length === 0) {
-        return <span className="text-muted-foreground items-center justify-center" title="No roles">—</span>;
+        return (
+          <span
+            className="items-center justify-center text-muted-foreground"
+            title="No roles"
+          >
+            —
+          </span>
+        );
       }
 
       return (
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
           {roles.map((role) => (
             <Badge key={role} variant="secondary" className="font-normal">
               {role}

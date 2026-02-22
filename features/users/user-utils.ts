@@ -1,3 +1,5 @@
+import { CurrentUserInfo, Session } from "next-auth";
+
 const UNKNOWN_INITIALS = "?";
 
 /**
@@ -67,4 +69,29 @@ function getInitials(userName?: string, email?: string): string {
   return UNKNOWN_INITIALS;
 }
 
-export { getDisplayName, getInitials };
+/**
+ * Get the current user info from the session.
+ */
+function getCurrentUserInfo(session: Session | null): CurrentUserInfo {
+  const user = session?.user;
+  if (!user) {
+    return {
+      isLoggedIn: false,
+      name: "Not logged in",
+      email: "",
+      id: "",
+      displayName: UNKNOWN_INITIALS,
+      initials: UNKNOWN_INITIALS,
+    };
+  }
+
+  return {
+    isLoggedIn: true,
+    name: user.name ?? "",
+    email: user.email ?? "",
+    id: user.id ?? "",
+    displayName: getDisplayName(user.name, user.email),
+    initials: getInitials(user.name, user.email),
+  };
+}
+export { getDisplayName, getInitials, getCurrentUserInfo };
