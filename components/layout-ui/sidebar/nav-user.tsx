@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, LogOut, Settings, Sparkles } from "lucide-react";
+import { LogOut, Settings2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -71,24 +71,9 @@ const NavUser = ({ currentUser, trigger }: NavUserProps) => {
           <>
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="#">
-                  <Sparkles />
-                  Upgrade to Pro
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
                 <Link href="/settings/security">
-                  <Settings />
+                  <Settings2 />
                   Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings/security">
-                  <BadgeCheck />
-                  Account
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
