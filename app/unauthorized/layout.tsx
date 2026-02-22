@@ -2,7 +2,7 @@ import "@/app/globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { AppProvider } from "@/components/providers";
-import { getSession } from "@/features/auth";
+import { auth } from "@/auth";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -41,7 +41,7 @@ interface UnauthorizedLayoutProps {
 export default async function UnauthorizedLayout({
   children,
 }: UnauthorizedLayoutProps) {
-  const session = await getSession();
+  const session = await auth();
 
   return (
     <html lang="en" suppressHydrationWarning>

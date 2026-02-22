@@ -23,7 +23,7 @@ type ThemeOptions = Partial<Omit<ThemeProviderProps, "children">>;
 
 // Predefined options
 export const AppOptions = {
-  NoTheme: { enableTheme: false, enableAnalytics: true } as AppProviderOptions,
+  PublicPages: { enableTheme: false, enableAnalytics: true, enableSidebar: false } as AppProviderOptions,
 };
 
 // Main props interface

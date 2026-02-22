@@ -1,9 +1,9 @@
 import "@/app/globals.css";
 import Image from "next/image";
 import localFont from "next/font/local";
-import { getSession } from "@/features/auth";
 import { AppProvider } from "@/components/providers";
 import { Metadata } from "next";
+import { auth } from "@/auth";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AuthLayout({ children }: AuthLayoutProps) {
-  const session = await getSession();
+  const session = await auth();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
