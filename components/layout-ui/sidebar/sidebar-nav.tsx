@@ -1,10 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import Link from "next/link";
-import type { Route } from "next";
 import { ChevronsUpDown } from "lucide-react";
-import { sitemap } from "@/lib/constants";
 import { SitemapService } from "@/services/sitemap-service";
 import UserAvatar from "@/components/user/user-avatar";
 import NavUser from "./nav-user";
@@ -13,6 +10,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -20,27 +19,14 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { getCurrentUserInfo } from "@/features/users/user-utils";
+import { SidebarNavItem } from "./sidebar-nav-item";
 
 const SidebarNav = () => {
-  const sitemapList = SitemapService.getTopLevelSitemap(true);
-  const settingsNavItem = sitemap.settings;
   const { data: session } = useSession();
-
+  const mainNavItems = SitemapService.getTopLevelSitemap();
+  const secondaryNavItems = SitemapService.getSecondarySitemap();
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
-
-  const navItems = [
-    ...sitemapList.map((navItem) => ({
-      title: navItem.text,
-      url: navItem.path,
-      icon: navItem.IconType,
-    })),
-    {
-      title: settingsNavItem.text,
-      url: settingsNavItem.path,
-      icon: settingsNavItem.IconType,
-    },
-  ];
 
   return (
     <Sidebar collapsible="icon">
@@ -48,18 +34,22 @@ const SidebarNav = () => {
         <TenantSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
-          {navItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <Link href={item.url as Route}>
-                  {item.icon && <item.icon className="h-5 w-5" />}
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
+        <SidebarGroup>
+          <SidebarMenu>
+            {mainNavItems.map((item) => (
+              <SidebarNavItem key={item.title} item={item} />
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {secondaryNavItems.map((item) => (
+                <SidebarNavItem key={item.title} item={item} size="sm"/>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

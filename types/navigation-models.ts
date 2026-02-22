@@ -2,11 +2,12 @@ import { LucideIcon } from "lucide-react";
 
 interface ISitemapItem {
   key: string;
-  text: string;
-  path: string;
+  title: string;
+  url: string;
+  external?: boolean;
 }
 interface INavItem extends ISitemapItem {
-  IconType: LucideIcon;
+  icon?: LucideIcon;
   children?: INavItem[];
 }
 

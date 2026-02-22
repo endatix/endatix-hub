@@ -75,7 +75,7 @@ const ChatThread: React.FC = () => {
                 <UserAvatar
                   className="w-10 h-10 bg-muted"
                   isLoggedIn={true}
-                  userName={"endatix"}
+                  displayName={"endatix"}
                 />
               )}
               <div

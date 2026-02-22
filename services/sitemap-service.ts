@@ -1,6 +1,5 @@
 import { sitemap } from "@/lib/constants";
 import { INavItem, ISitemapItem } from "@/types/navigation-models";
-import { BrainCircuit } from "lucide-react";
 
 export class SitemapService {
   public static getSitemap(): ISitemapItem[] {
@@ -8,8 +7,8 @@ export class SitemapService {
       ([, value]) => {
         const sitemapItem: ISitemapItem = {
           key: value?.key,
-          text: value?.text,
-          path: value?.path,
+          title: value?.title,
+          url: value?.url,
         };
         return sitemapItem;
       },
@@ -17,32 +16,22 @@ export class SitemapService {
     return sitemapArray;
   }
 
-  public static getTopLevelSitemap(
-    excludeSettings: boolean = false,
-  ): INavItem[] {
+  public static getTopLevelSitemap(): INavItem[] {
     const sitemapList: INavItem[] = [
       sitemap.forms,
       sitemap.formTemplates,
-      sitemap.analytics,
-      sitemap.workflows,
-      sitemap.integrations,
+      sitemap.documentation,
+      sitemap.settings,
     ];
-
-    if (!excludeSettings) {
-      sitemapList.push(sitemap.settings);
-    }
 
     return sitemapList;
   }
 
-  public static getLogo(): INavItem {
-    const logoNavItem: INavItem = {
-      key: "logo",
-      path: "https://endatix.com",
-      text: "Endatix",
-      IconType: BrainCircuit,
-    };
+  public static getSecondarySitemap(): INavItem[] {
+    const sitemapList: INavItem[] = [
+      sitemap.support,
+    ];
 
-    return logoNavItem;
+    return sitemapList;
   }
 }
