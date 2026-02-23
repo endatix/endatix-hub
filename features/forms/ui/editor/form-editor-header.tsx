@@ -57,7 +57,7 @@ export default function FormEditorHeader({
             {name}
           </span>
         )}
-        <FormPublicStatus isPublic={isPublic} includeTooltip={true} />
+        <FormPublicStatus isPublic={isPublic} />
       </div>
       <div className="flex items-center gap-2">
         {(hasUnsavedChanges || isCurrentThemeModified) && (
