@@ -11,7 +11,7 @@ import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
-import { getActiveFormDefinition, getForm } from "@/services/api";
+import { getForm, getFormDefinition } from "@/services/api";
 import { Form, FormDefinition } from "@/types";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -35,7 +35,7 @@ export default async function FormDesignerPage({ params }: Params) {
   try {
     form = await getForm(formId);
 
-    const response: FormDefinition = await getActiveFormDefinition(formId);
+    const response: FormDefinition = await getFormDefinition(formId, form.activeDefinitionId!);
     formJson = response?.jsonData ? JSON.parse(response.jsonData) : null;
   } catch (error) {
     console.error("Failed to load form:", error);
