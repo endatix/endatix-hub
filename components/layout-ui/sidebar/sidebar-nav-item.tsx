@@ -9,6 +9,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { INavItem } from "@/types/navigation-models";
 import { ChevronRight } from "lucide-react";
@@ -23,6 +24,24 @@ interface SidebarNavItemProps extends React.ComponentProps<
 
 export function SidebarNavItem({ item, ...props }: SidebarNavItemProps) {
   const hasChildren = (item.children?.length ?? 0) > 0;
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
+  if (hasChildren && isCollapsed && item.url) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild tooltip={item.title} {...props}>
+          <Link
+            href={item.url as Route}
+            target={item.external ? "_blank" : undefined}
+          >
+            {item.icon && <item.icon className="h-5 w-5" />}
+            <span>{item.title}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
 
   if (hasChildren) {
     return (
@@ -59,7 +78,10 @@ export function SidebarNavItem({ item, ...props }: SidebarNavItemProps) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild tooltip={item.title} {...props}>
-        <Link href={item.url as Route} target={item.external ? "_blank" : undefined}>
+        <Link
+          href={item.url as Route}
+          target={item.external ? "_blank" : undefined}
+        >
           {item.icon && <item.icon className="h-5 w-5" />}
           <span>{item.title}</span>
         </Link>
