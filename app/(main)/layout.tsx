@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { AppProvider } from "@/components/providers";
 import { auth } from "@/auth";
-import { SIDEBAR_COOKIE_NAME } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 
 const geistSans = localFont({
@@ -54,10 +53,7 @@ export default async function RootLayout({
         <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppProvider
-          session={session}
-          sidebarDefaultOpen={defaultSidebarOpen}
-        >
+        <AppProvider session={session} sidebarDefaultOpen={defaultSidebarOpen}>
           {nav}
           <main data-slot="sidebar-inset">
             {header}
