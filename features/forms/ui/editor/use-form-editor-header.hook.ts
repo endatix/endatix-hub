@@ -1,7 +1,6 @@
 import { toast } from "@/components/ui/toast";
 import { updateFormNameAction } from "@/features/forms/application/actions/update-form-name.action";
 import { Result } from "@/lib/result";
-import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -10,11 +9,11 @@ import {
   useTransition,
   RefObject,
 } from "react";
+import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 
 interface UseFormEditorHeaderProps {
   formId: string;
   initialFormName: string;
-  hasUnsavedChanges: boolean;
   isCurrentThemeModified: boolean;
   onSave: () => Promise<void>;
   onNavigateBack: () => void;
@@ -27,12 +26,18 @@ export interface FormEditorHeaderState {
   inputRef: RefObject<HTMLInputElement | null>;
   isPending: boolean;
   isSaving: boolean;
+  isJsonModified: boolean;
+  hasUnsavedChanges: boolean;
+  hasJsonErrors: boolean;
+  isOnJsonTab: boolean;
+  showSavedSuccess: boolean;
 
   // Handlers
   handleNameSave: () => void;
   handleSaveAndGoBack: () => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
   saveFormHandler: () => void;
+  clearSavedSuccess: () => void;
   setIsEditingName: (editing: boolean) => void;
   setName: (name: string) => void;
 }
@@ -40,12 +45,12 @@ export interface FormEditorHeaderState {
 export const useFormEditorHeader = ({
   formId,
   initialFormName,
-  hasUnsavedChanges,
   isCurrentThemeModified,
   onSave,
   onNavigateBack,
 }: UseFormEditorHeaderProps): FormEditorHeaderState => {
-  const router = useRouter();
+  const { hasUnsavedChanges, hasJsonErrors, isOnJsonTab, isJsonModified } =
+    useSurveyDesigner();
   const [isEditingName, setIsEditingName] = useState(
     initialFormName === "New Form",
   );
@@ -54,6 +59,7 @@ export const useFormEditorHeader = ({
   const [originalName, setOriginalName] = useState(initialFormName);
   const [isPending, startTransition] = useTransition();
   const [isSaving] = useState(false);
+  const [showSavedSuccess, setShowSavedSuccess] = useState(false);
 
   const handleNameSave = useCallback(async () => {
     if (name !== originalName) {
@@ -80,17 +86,25 @@ export const useFormEditorHeader = ({
   }, [formId, name, originalName, startTransition]);
 
   const handleSaveAndGoBack = useCallback(() => {
-    if (hasUnsavedChanges || isCurrentThemeModified) {
-      const confirm = window.confirm(
-        "There are unsaved changes. Are you sure you want to leave?",
-      );
-      if (confirm) {
-        onNavigateBack();
-      }
-    } else {
+    const hasChanges =
+      hasUnsavedChanges || isCurrentThemeModified || isJsonModified;
+    if (!hasChanges) {
+      onNavigateBack();
+      return;
+    }
+
+    const confirm = window.confirm(
+      "There are unsaved changes. Are you sure you want to leave?",
+    );
+    if (confirm) {
       onNavigateBack();
     }
-  }, [hasUnsavedChanges, isCurrentThemeModified, onNavigateBack]);
+  }, [
+    hasUnsavedChanges,
+    isCurrentThemeModified,
+    onNavigateBack,
+    isJsonModified,
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -105,15 +119,30 @@ export const useFormEditorHeader = ({
   );
 
   const saveFormHandler = useCallback(() => {
+    const hasChanges =
+      hasUnsavedChanges || isCurrentThemeModified || isJsonModified;
+    if (!hasChanges) {
+      toast.info("Nothing to save");
+      return;
+    }
     startTransition(async () => {
       try {
         await onSave();
+        setShowSavedSuccess(true);
       } catch (error) {
         console.error("Error in save flow:", error);
         toast.error("Failed to save changes");
       }
     });
-  }, [onSave, startTransition]);
+  }, [
+    hasUnsavedChanges,
+    isCurrentThemeModified,
+    isJsonModified,
+    onSave,
+    startTransition,
+  ]);
+
+  const clearSavedSuccess = useCallback(() => setShowSavedSuccess(false), []);
 
   // Handle click outside to save name
   useEffect(() => {
@@ -141,10 +170,16 @@ export const useFormEditorHeader = ({
     inputRef,
     isPending,
     isSaving,
+    hasUnsavedChanges,
+    hasJsonErrors,
+    isOnJsonTab,
+    showSavedSuccess,
+    isJsonModified,
     handleNameSave,
     handleSaveAndGoBack,
     handleKeyDown,
     saveFormHandler,
+    clearSavedSuccess,
     setIsEditingName,
     setName,
   };

@@ -1,24 +1,21 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { Save } from "lucide-react";
+import {
+  SurveyDesignSaveButton,
+  SurveyDesignStatusBadge,
+} from "@/lib/survey-features/survey-design/ui";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
-  useTransition,
   useLayoutEffect,
 } from "react";
 import { slk } from "survey-core";
 import "survey-core/survey-core.css";
-import {
-  ICreatorOptions,
-  SurveyCreatorModel,
-  TabJsonEditorTextareaPlugin,
-} from "survey-creator-core";
+import { ICreatorOptions } from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
@@ -29,15 +26,19 @@ import { Result } from "@/lib/result";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import "survey-core/i18n";
 import "survey-creator-core/i18n";
+import {
+  DesignSurveyProvider,
+  useSurveyDesigner,
+} from "@/lib/survey-features/designer/design-survey.context";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { useSurveyExtensions } from "@/lib/survey-extensions";
-
-const invalidJsonErrorMessage =
-  "Invalid JSON! Please fix all errors in the JSON editor before saving.";
+import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor.hook";
+import { Button } from "@/components/ui/button";
+import { ArrowLeftIcon } from "lucide-react";
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -58,60 +59,90 @@ const defaultCreatorOptions: ICreatorOptions = {
   themeForPreview: "Default",
 };
 
-function FormTemplateEditor({
+function FormTemplateEditorContent({
   templateJson,
   templateId,
   templateName,
   options,
   slkVal,
-}: FormTemplateEditorProps) {
+}: Readonly<FormTemplateEditorProps>) {
+  const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
+  const {
+    hasUnsavedChanges,
+    isJsonModified,
+    hasJsonErrors,
+    isOnJsonTab,
+    setHasUnsavedChanges,
+    setHasJsonErrors,
+    setIsOnJsonTab,
+    setIsJsonModified,
+  } = useSurveyDesigner();
   const { isReady: isExtensionsReady, onCreatorCreated } =
     useSurveyExtensions();
   const { registerStorageHandlers } = useStorageWithCreator({
     itemId: templateId,
     itemType: "template",
   });
+  const { registerJsonEditor, getJsonModel } = useJsonEditor({
+    onJsonStateChange: (state) => {
+      setHasJsonErrors(state.hasErrors);
+      setIsOnJsonTab(state.isOnJsonTab);
+      setIsJsonModified(state.isJsonModified);
+    },
+  });
   const router = useRouter();
   const [isEditingName, setIsEditingName] = useState(false);
   const [name, setName] = useState(templateName);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [originalName, setOriginalName] = useState(templateName);
-  const [isPending, startTransition] = useTransition();
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSavedSuccess, setShowSavedSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
 
+  useEffect(() => {
+    if (creator === null) return;
+
+    const setAsModified = () => setHasUnsavedChanges(true);
+
+    creator.onModified.add(setAsModified);
+    return () => creator.onModified.remove(setAsModified);
+  }, [creator, setHasUnsavedChanges]);
+
   const handleNameSave = useCallback(async () => {
-    if (name !== originalName) {
-      startTransition(async () => {
-        const updateTemplateNameResult = await updateTemplateNameAction(
-          templateId,
-          name,
+    if (name === originalName) return;
+
+    setIsSaving(true);
+
+    try {
+      const updateTemplateNameResult = await updateTemplateNameAction(
+        templateId,
+        name,
+      );
+
+      if (!updateTemplateNameResult) {
+        toast.error("Could not proceed with updating template name");
+        return;
+      }
+
+      if (Result.isError(updateTemplateNameResult)) {
+        toast.error(
+          updateTemplateNameResult.message || "Failed to update template name",
         );
+        setName(originalName);
+        return;
+      }
 
-        if (updateTemplateNameResult === undefined) {
-          toast.error("Could not proceed with updating template name");
-          return;
-        }
-
-        if (Result.isError(updateTemplateNameResult)) {
-          toast.error(
-            updateTemplateNameResult.message ||
-              "Failed to update template name",
-          );
-          setName(originalName);
-          return;
-        }
-
-        setOriginalName(name);
-        setName(name);
-        toast.success("Template name updated");
-      });
+      setOriginalName(name);
+      setName(name);
+      toast.success("Template name updated");
+      setIsEditingName(false);
+    } finally {
+      setIsSaving(false);
     }
-    setIsEditingName(false);
-  }, [templateId, name, originalName, startTransition]);
+  }, [templateId, name, originalName]);
 
   useLayoutEffect(() => {
     if (!creator) return;
@@ -123,8 +154,13 @@ function FormTemplateEditor({
 
   useEffect(() => {
     const initializeNewCreator = async () => {
-      if (creator) return;
-      if (!isExtensionsReady) return;
+      if (creator || isCreatorInitializedRef.current) {
+        return;
+      }
+
+      if (!isExtensionsReady) {
+        return;
+      }
 
       if (slkVal) {
         slk(slkVal);
@@ -151,20 +187,17 @@ function FormTemplateEditor({
         onCreatorCreated(newCreator);
         newCreator.applyCreatorTheme(endatixTheme);
         const unregisterStorage = registerStorageHandlers(newCreator);
-        newCreator.saveSurveyFunc = (
-          no: number,
-          callback: (num: number, status: boolean) => void,
-        ) => {
-          console.log(JSON.stringify(newCreator?.JSON));
-          callback(no, true);
-        };
-        setCreator(newCreator);
+        const unregisterJsonEditor = registerJsonEditor(newCreator);
 
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
         }
 
+        setCreator(newCreator);
+        isCreatorInitializedRef.current = true;
+
         return () => {
+          unregisterJsonEditor();
           unregisterStorage();
         };
       } catch (error) {
@@ -179,15 +212,18 @@ function FormTemplateEditor({
     options,
     slkVal,
     registerStorageHandlers,
+    registerJsonEditor,
     creator,
     onCreatorCreated,
     isExtensionsReady,
   ]);
 
   useEffect(() => {
-    if (creator && templateJson) {
-      creator.JSON = templateJson;
+    if (!creator || !templateJson) {
+      return;
     }
+
+    creator.JSON = templateJson;
   }, [creator, templateJson]);
 
   useEffect(() => {
@@ -211,83 +247,6 @@ function FormTemplateEditor({
   }, [isEditingName, handleNameSave]);
 
   useEffect(() => {
-    let isLeavingJsonTab = false;
-
-    const setAsModified = () => {
-      if (isLeavingJsonTab) {
-        return;
-      }
-
-      setHasUnsavedChanges(true);
-    };
-
-    const attachJsonTextareaListener = (jsonTextarea: HTMLTextAreaElement) => {
-      if (!(jsonTextarea as any).__handlerAttached) {
-        const handleInput = () => {
-          setHasUnsavedChanges(true);
-        };
-
-        jsonTextarea.addEventListener("input", handleInput);
-
-        (jsonTextarea as any).__handlerAttached = true;
-        (jsonTextarea as any).__inputHandler = handleInput;
-      }
-    };
-
-    const waitForTextarea = (attempt = 1, maxAttempts = 4) => {
-      const textarea = document.querySelector(
-        ".svc-json-editor-tab__content-area",
-      ) as HTMLTextAreaElement;
-      if (textarea) {
-        attachJsonTextareaListener(textarea);
-      } else if (attempt < maxAttempts) {
-        const delay = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms
-        setTimeout(() => waitForTextarea(attempt + 1, maxAttempts), delay);
-      }
-    };
-
-    const handleTabChanging = (sender: SurveyCreatorModel, options: any) => {
-      if (creator?.activeTab === "json" && options.tabName !== "json") {
-        isLeavingJsonTab = true;
-      }
-    };
-
-    const handleTabChange = (sender: SurveyCreatorModel, options: any) => {
-      isLeavingJsonTab = false;
-
-      if (options.tabName === "json") {
-        waitForTextarea();
-      }
-    };
-
-    if (creator) {
-      creator.onModified.add(setAsModified);
-      creator.onActiveTabChanging.add(handleTabChanging);
-      creator.onActiveTabChanged.add(handleTabChange);
-
-      if (creator.activeTab === "json") {
-        waitForTextarea();
-      }
-
-      return () => {
-        creator.onModified.remove(setAsModified);
-        creator.onActiveTabChanging.remove(handleTabChanging);
-        creator.onActiveTabChanged.remove(handleTabChange);
-
-        const jsonTextarea = document.querySelector(
-          ".svc-json-editor-tab__content-area",
-        ) as HTMLTextAreaElement;
-        if (jsonTextarea && (jsonTextarea as any).__handlerAttached) {
-          jsonTextarea.removeEventListener(
-            "input",
-            (jsonTextarea as any).__inputHandler,
-          );
-        }
-      };
-    }
-  }, [creator]);
-
-  useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
@@ -295,12 +254,13 @@ function FormTemplateEditor({
       }
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    globalThis.window.addEventListener("beforeunload", handleBeforeUnload);
+    return () =>
+      globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
   const handleSaveAndGoBack = () => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges || isJsonModified) {
       const confirm = window.confirm(
         "There are unsaved changes. Are you sure you want to leave?",
       );
@@ -312,68 +272,42 @@ function FormTemplateEditor({
     }
   };
 
-  const getJsonForSaving = () => {
-    if (creator?.activeTab === "json") {
-      const errorsList = document.querySelector(
-        ".svc-json-editor-tab__errros_list",
-      ) as HTMLElement;
-      const errorsContainer = document.querySelector(
-        ".svc-json-errors",
-      ) as HTMLElement;
-
-      const isErrorsListVisible =
-        errorsList && getComputedStyle(errorsList).display !== "none";
-      const hasErrorChildren =
-        errorsContainer && errorsContainer.children.length > 0;
-
-      if (isErrorsListVisible && hasErrorChildren) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-
-      const jsonAreaPlugin = creator.getPlugin(
-        "json",
-      ) as TabJsonEditorTextareaPlugin;
-      try {
-        return JSON.parse(jsonAreaPlugin.model.text);
-      } catch (error) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-    } else {
-      return creator?.JSON;
+  const saveTemplate = async () => {
+    if (!hasUnsavedChanges && !isJsonModified) {
+      toast.info("No changes to save");
+      return;
     }
-  };
 
-  const saveTemplate = () => {
-    startTransition(async () => {
-      const updatedFormJson = getJsonForSaving();
-      if (updatedFormJson === null) {
-        return;
-      }
+    const jsonResult = getJsonModel(creator);
+    if (Result.isError(jsonResult)) {
+      toast.error(jsonResult.message);
+      return;
+    }
 
-      const updateTemplateJsonResult = await updateTemplateJsonAction(
-        templateId,
-        updatedFormJson,
-      );
+    const creatorJson = jsonResult.value;
 
-      if (updateTemplateJsonResult === undefined) {
+    setIsSaving(true);
+    try {
+      const result = await updateTemplateJsonAction(templateId, creatorJson);
+
+      if (!result) {
         toast.error("Could not proceed with updating template JSON");
         return;
       }
 
-      if (Result.isError(updateTemplateJsonResult)) {
-        toast.error(
-          updateTemplateJsonResult.message || "Failed to update template JSON",
-        );
+      if (Result.isError(result)) {
+        toast.error(result.message || "Failed to update template JSON");
         return;
       }
 
-      if (Result.isSuccess(updateTemplateJsonResult)) {
-        toast.success("Template saved");
-        setHasUnsavedChanges(false);
-      }
-    });
+      setHasUnsavedChanges(false);
+      setIsJsonModified(false);
+      setShowSavedSuccess(true);
+
+      toast.success("Template saved");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -392,18 +326,22 @@ function FormTemplateEditor({
     };
   }, []);
 
+  const saveDisabled = isSaving || hasJsonErrors;
+  const showInvalidJson = isOnJsonTab && hasJsonErrors;
+  const showUnsavedChanges = !showInvalidJson && hasUnsavedChanges;
   return (
     <>
       <div className="flex justify-between items-center mt-0 pt-4 pb-4 px-6 sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex w-full items-center gap-8">
-          <button
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            aria-label="Save and Go Back"
             onClick={handleSaveAndGoBack}
-            className="mr-0 text-2xl flex items-center"
-            disabled={isPending}
-            style={{ border: "none", background: "transparent" }}
+            disabled={isSaving}
           >
-            ←
-          </button>
+            <ArrowLeftIcon />
+          </Button>
 
           {isEditingName ? (
             <input
@@ -425,20 +363,22 @@ function FormTemplateEditor({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {hasUnsavedChanges && (
-            <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
-              Unsaved changes
-            </span>
-          )}
-          <Button
-            disabled={isPending}
+          <SurveyDesignStatusBadge
+            isOnJsonTab={isOnJsonTab}
+            isJsonModified={isJsonModified}
+            hasJsonErrors={showInvalidJson}
+            hasUnsavedChanges={showUnsavedChanges}
+            isSaving={isSaving}
+            showSavedSuccess={showSavedSuccess}
+            onSavedSuccessDismiss={() => setShowSavedSuccess(false)}
+          />
+          <SurveyDesignSaveButton
+            disabled={saveDisabled}
             onClick={saveTemplate}
-            variant="default"
-            size="sm"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isPending ? "Saving..." : "Save Template"}
-          </Button>
+            label="Save Template"
+            savingLabel="Saving..."
+            isPending={isSaving}
+          />
         </div>
       </div>
 
@@ -460,4 +400,12 @@ function FormTemplateEditor({
   );
 }
 
-export default FormTemplateEditor;
+export default function FormTemplateEditor(
+  props: Readonly<FormTemplateEditorProps>,
+) {
+  return (
+    <DesignSurveyProvider>
+      <FormTemplateEditorContent {...props} />
+    </DesignSurveyProvider>
+  );
+}
