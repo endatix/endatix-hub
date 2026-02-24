@@ -13,6 +13,11 @@ This codebase uses a **Registration Pattern** for Survey Creator features: hooks
 - **Composable**: Multiple features can be registered in one place (e.g. storage, JSON editor, loops). Each returns its own cleanup.
 - **Explicit lifecycle**: No DOM polling or "wait for element"; use creator APIs (e.g. `getPlugin('json').model`) and events instead.
 - **Testable**: Registration logic can be unit-tested without mounting the full creator.
+- **Fewer re-renders**: The creator instance is not put in React context; only serializable state (flags) lives in context. Components that need the creator hold it locally.
+
+## Design Survey context (lightweight)
+
+`DesignSurveyContext` holds only **serializable state** consumed by UI (badges, save button): `hasUnsavedChanges`, `hasJsonErrors`, `isOnJsonTab` and their setters. It does **not** hold the `SurveyCreator` instance. The editor component (FormEditor / FormTemplateEditor) keeps the creator in local `useState`, subscribes to `creator.onModified` to call `setHasUnsavedChanges(true)`, and registers feature hooks (e.g. `registerJsonEditor(creator)`) in the same effect that creates the creator. This keeps the context value stable and reduces re-renders.
 
 ## Template for a new creator feature hook
 
@@ -57,23 +62,34 @@ export function useMyFeature(options: UseMyFeatureOptions) {
 
 ## Usage in the editor component
 
-In `form-editor.tsx` or `form-template-editor.tsx`, inside the effect that creates the creator:
+In `form-editor.tsx` or `form-template-editor.tsx`, keep the creator in local state and register features in the init effect:
 
 ```typescript
-const { registerMyFeature } = useMyFeature({ onSomeEvent: props.onCallback });
+const [creator, setCreator] = useState<SurveyCreator | null>(null);
+const { setHasUnsavedChanges, setHasJsonErrors, setIsOnJsonTab } = useSurveyDesigner();
+const { registerMyFeature } = useMyFeature({ onSomeEvent: setHasUnsavedChanges });
 
-// Inside the same effect where you have newCreator:
+// In the effect that creates the creator:
+const newCreator = new SurveyCreator(options);
 const unregisterMyFeature = registerMyFeature(newCreator);
 const unregisterStorage = registerStorageHandlers(newCreator);
 // ...
-
+setCreator(newCreator);
 return () => {
   unregisterMyFeature();
   unregisterStorage();
 };
+
+// Separate effect: subscribe to creator.onModified and call setHasUnsavedChanges(true).
+useEffect(() => {
+  if (creator === null) return;
+  const setAsModified = () => setHasUnsavedChanges(true);
+  creator.onModified.add(setAsModified);
+  return () => creator.onModified.remove(setAsModified);
+}, [creator, setHasUnsavedChanges]);
 ```
 
-Add `registerMyFeature` (and any other register functions) to the effect’s dependency array.
+Add `registerMyFeature` (and any other register functions) to the init effect’s dependency array.
 
 ## Best practices
 
@@ -87,4 +103,4 @@ Add `registerMyFeature` (and any other register functions) to the effect’s dep
    - **Editor / designer logic** (e.g. unsaved changes, toolbar): use `creator.onModified`, `creator.onActiveTabChanged`, or plugin model property changes.
    - **Preview / runtime logic** (e.g. custom question behavior in the running survey): use `creator.onSurveyInstanceCreated` and apply behavior to `options.survey` for the relevant `options.area`.
 
-5. **Reference implementations**: See `hub/features/asset-storage/ui/hooks/use-storage-with-creator.hook.tsx` (storage) and `hub/lib/survey-features/json-editor/use-json-editor.hook.ts` (JSON tab unsaved state).
+5. **Reference implementations**: See `hub/features/asset-storage/ui/hooks/use-storage-with-creator.hook.tsx` (storage) and `hub/lib/survey-features/json-editor/use-json-editor.hook.ts` (JSON tab state).
