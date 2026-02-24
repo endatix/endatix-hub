@@ -23,7 +23,7 @@ import Image from "next/image";
 
 const ENDATIX_CORP_SITE_URL = "https://endatix.com";
 
-function EndatixLogoIcon({ className }: { className?: string }) {
+function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
   return (
     <Image
       src={EndatixLogoSvg}
