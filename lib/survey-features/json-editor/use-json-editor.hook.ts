@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import {
   Model,
-  SurveyModel,
   type Base,
   type IPropertyValueChangedEvent,
 } from "survey-core";
