@@ -1,12 +1,15 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, Globe, Lock, Save } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
+import {
+  SurveyDesignSaveButton,
+  SurveyDesignStatusBadge,
+} from "@/lib/survey-features/survey-design/ui";
 import { FormEditorHeaderState } from "./use-form-editor-header.hook";
 import FormPublicStatus from "./form-public-status";
 
 interface FormEditorHeaderProps extends FormEditorHeaderState {
-  hasUnsavedChanges: boolean;
   isCurrentThemeModified: boolean;
   isPublic?: boolean;
 }
@@ -18,14 +21,22 @@ export default function FormEditorHeader({
   isPending,
   isSaving,
   hasUnsavedChanges,
+  hasJsonErrors,
+  isOnJsonTab,
+  showSavedSuccess,
   isCurrentThemeModified,
   isPublic,
   handleSaveAndGoBack,
   handleKeyDown,
   saveFormHandler,
+  clearSavedSuccess,
   setIsEditingName,
   setName,
 }: FormEditorHeaderProps) {
+  const saveDisabled = isPending || isOnJsonTab;
+  const showInvalidJson = isOnJsonTab && hasJsonErrors;
+  const showUnsavedChanges =
+    !showInvalidJson && (hasUnsavedChanges || isCurrentThemeModified);
   return (
     <div className="flex justify-between items-center mt-0 pt-4 pb-4 px-6 sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex w-full items-center gap-6">
@@ -60,20 +71,20 @@ export default function FormEditorHeader({
         <FormPublicStatus isPublic={isPublic} />
       </div>
       <div className="flex items-center gap-2">
-        {(hasUnsavedChanges || isCurrentThemeModified) && (
-          <span className="font-bold text-black text-xs border border-black px-2 py-0.5 rounded-full whitespace-nowrap">
-            Unsaved changes
-          </span>
-        )}
-        <Button
-          disabled={isPending}
+        <SurveyDesignStatusBadge
+          showInvalidJson={showInvalidJson}
+          showUnsavedChanges={showUnsavedChanges}
+          isSaving={isPending}
+          showSavedSuccess={showSavedSuccess}
+          onSavedSuccessDismiss={clearSavedSuccess}
+        />
+        <SurveyDesignSaveButton
+          disabled={saveDisabled}
           onClick={saveFormHandler}
-          variant="default"
-          size="sm"
-        >
-          <Save className="mr-2 h-4 w-4" />
-          Save
-        </Button>
+          label="Save"
+          isPending={isPending}
+          savingLabel="Saving..."
+        />
       </div>
     </div>
   );

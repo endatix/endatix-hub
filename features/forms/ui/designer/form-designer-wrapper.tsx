@@ -4,6 +4,7 @@ import { useFormEditorHeader } from "../editor/use-form-editor-header.hook";
 import FormEditorHeader from "../editor/form-editor-header";
 import FormEditorContainer from "../editor/form-editor-container";
 import FormEditorWithChat from "../editor/form-editor-with-chat";
+import { DesignSurveyProvider } from "@/lib/survey-features/designer/design-survey.context";
 import { ICreatorOptions } from "survey-creator-core";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
@@ -19,7 +20,13 @@ export interface FormDesignerWrapperProps {
   isPublic?: boolean;
 }
 
-export default function FormDesignerWrapper({
+interface FormDesignerContentProps extends FormDesignerWrapperProps {
+  isCurrentThemeModified: boolean;
+  setIsCurrentThemeModified: (value: boolean) => void;
+  formSaveHandlerRef: React.RefObject<(() => Promise<void>) | null>;
+}
+
+function FormDesignerContent({
   formId,
   formJson,
   formName,
@@ -27,32 +34,29 @@ export default function FormDesignerWrapper({
   slkVal,
   themeId,
   isPublic,
-}: FormDesignerWrapperProps) {
+  isCurrentThemeModified,
+  setIsCurrentThemeModified,
+  formSaveHandlerRef,
+}: FormDesignerContentProps) {
   const router = useRouter();
-
-  // State for header coordination
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
-  const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
   const { isAssistantEnabled } = useFormAssistant();
 
-  // Wrapper for FormEditor's save handler
   const handleSave = useCallback(async () => {
     if (formSaveHandlerRef.current) {
       await formSaveHandlerRef.current();
     }
-  }, []);
+  }, [formSaveHandlerRef]);
 
-  // Callback to store the save handler
-  const setSaveHandler = useCallback((handler: () => Promise<void>) => {
-    formSaveHandlerRef.current = handler;
-  }, []);
+  const setSaveHandler = useCallback(
+    (handler: () => Promise<void>) => {
+      formSaveHandlerRef.current = handler;
+    },
+    [formSaveHandlerRef],
+  );
 
-  // Header state management
   const headerState = useFormEditorHeader({
     formId,
     initialFormName: formName,
-    hasUnsavedChanges,
     isCurrentThemeModified,
     onSave: handleSave,
     onNavigateBack: () => router.push("/forms"),
@@ -62,7 +66,6 @@ export default function FormDesignerWrapper({
     <div className="flex flex-col h-full">
       <FormEditorHeader
         {...headerState}
-        hasUnsavedChanges={hasUnsavedChanges}
         isCurrentThemeModified={isCurrentThemeModified}
         isPublic={isPublic}
       />
@@ -74,8 +77,6 @@ export default function FormDesignerWrapper({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
-          hasUnsavedChanges={hasUnsavedChanges}
-          onUnsavedChanges={setHasUnsavedChanges}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
@@ -87,12 +88,40 @@ export default function FormDesignerWrapper({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
-          hasUnsavedChanges={hasUnsavedChanges}
-          onUnsavedChanges={setHasUnsavedChanges}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
       )}
     </div>
+  );
+}
+
+export default function FormDesignerWrapper({
+  formId,
+  formJson,
+  formName,
+  options,
+  slkVal,
+  themeId,
+  isPublic,
+}: FormDesignerWrapperProps) {
+  const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
+  const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
+
+  return (
+    <DesignSurveyProvider>
+      <FormDesignerContent
+        formId={formId}
+        formJson={formJson}
+        formName={formName}
+        options={options}
+        slkVal={slkVal}
+        themeId={themeId}
+        isPublic={isPublic}
+        isCurrentThemeModified={isCurrentThemeModified}
+        setIsCurrentThemeModified={setIsCurrentThemeModified}
+        formSaveHandlerRef={formSaveHandlerRef}
+      />
+    </DesignSurveyProvider>
   );
 }
