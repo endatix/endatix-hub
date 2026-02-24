@@ -12,12 +12,14 @@ export interface DesignSurveyState {
   hasUnsavedChanges: boolean;
   hasJsonErrors: boolean;
   isOnJsonTab: boolean;
+  isJsonModified: boolean;
 }
 
 export interface DesignSurveyContextValue extends DesignSurveyState {
   setHasUnsavedChanges: (value: boolean) => void;
   setHasJsonErrors: (value: boolean) => void;
   setIsOnJsonTab: (value: boolean) => void;
+  setIsJsonModified: (value: boolean) => void;
 }
 
 const DesignSurveyContext = createContext<DesignSurveyContextValue | null>(
@@ -28,20 +30,27 @@ export function DesignSurveyProvider({ children }: { children: ReactNode }) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasJsonErrors, setHasJsonErrors] = useState(false);
   const [isOnJsonTab, setIsOnJsonTab] = useState(false);
+  const [isJsonModified, setIsJsonModified] = useState(false);
 
   const value = useMemo<DesignSurveyContextValue>(
     () => ({
       hasUnsavedChanges,
       hasJsonErrors,
       isOnJsonTab,
+      isJsonModified,
       setHasUnsavedChanges,
       setHasJsonErrors,
       setIsOnJsonTab,
+      setIsJsonModified,
     }),
-    [hasUnsavedChanges, hasJsonErrors, isOnJsonTab],
+    [hasUnsavedChanges, hasJsonErrors, isOnJsonTab, isJsonModified],
   );
 
-  return <DesignSurveyContext value={value}>{children}</DesignSurveyContext>;
+  return (
+    <DesignSurveyContext value={value}>
+      {children}
+    </DesignSurveyContext>
+  );
 }
 
 export function useSurveyDesigner(): DesignSurveyContextValue {
