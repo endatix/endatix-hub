@@ -17,12 +17,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { getCurrentUserInfo } from "@/features/users/user-utils";
 import { SidebarNavItem } from "./sidebar-nav-item";
 
 const SidebarNav = () => {
   const { data: session } = useSession();
+  const { state } = useSidebar();
+  const isSidebarCollapsed = state === "collapsed";
   const mainNavItems = SitemapService.getTopLevelSitemap();
   const secondaryNavItems = SitemapService.getSecondarySitemap();
   const isLoggedIn = session?.user !== null;
@@ -37,7 +40,7 @@ const SidebarNav = () => {
         <SidebarGroup>
           <SidebarMenu>
             {mainNavItems.map((item) => (
-              <SidebarNavItem key={item.title} item={item} />
+              <SidebarNavItem key={item.title} item={item} isCollapsed={isSidebarCollapsed} />
             ))}
           </SidebarMenu>
         </SidebarGroup>
@@ -45,7 +48,7 @@ const SidebarNav = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {secondaryNavItems.map((item) => (
-                <SidebarNavItem key={item.title} item={item} size="sm"/>
+                <SidebarNavItem key={item.title} item={item} isCollapsed={isSidebarCollapsed} size="sm" />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>

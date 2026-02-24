@@ -9,7 +9,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { INavItem } from "@/types/navigation-models";
 import { ChevronRight } from "lucide-react";
@@ -20,12 +19,15 @@ interface SidebarNavItemProps extends React.ComponentProps<
   typeof SidebarMenuButton
 > {
   item: INavItem;
+  isCollapsed?: boolean;
 }
 
-export function SidebarNavItem({ item, ...props }: SidebarNavItemProps) {
+export function SidebarNavItem({
+  item,
+  isCollapsed = false,
+  ...props
+}: SidebarNavItemProps) {
   const hasChildren = (item.children?.length ?? 0) > 0;
-  const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
 
   if (hasChildren && isCollapsed && item.url) {
     return (

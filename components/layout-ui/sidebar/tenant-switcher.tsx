@@ -21,6 +21,8 @@ import {
 import EndatixLogoSvg from "@/public/assets/icons/endatix-logo-beta.svg";
 import Image from "next/image";
 
+const ENDATIX_CORP_SITE_URL = "https://endatix.com";
+
 function EndatixLogoIcon({ className }: { className?: string }) {
   return (
     <Image
@@ -134,7 +136,7 @@ const SingleTenantDisplay = ({ tenant }: { tenant: Tenant }) => {
     <SidebarMenu>
       <SidebarMenuItem>
         <SidebarMenuButton size="lg" asChild>
-          <a href={tenant.href ?? "/"}>
+          <a href={ENDATIX_CORP_SITE_URL} target="_blank">
             <div className="fflex aspect-square size-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:rounded-md">
               <tenant.logo className="size-8 shrink-0" />
             </div>
