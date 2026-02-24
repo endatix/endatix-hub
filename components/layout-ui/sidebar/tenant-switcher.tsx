@@ -54,7 +54,7 @@ const DEFAULT_TENANT = {
   href: "/forms",
 };
 
-export function TenantSwitcher({ tenants }: TenantSwitcherProps) {
+export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
   const { isMobile } = useSidebar();
   const [activeTenant, setActiveTenant] = React.useState(
     tenants?.at(0) ?? DEFAULT_TENANT,
@@ -131,7 +131,7 @@ export function TenantSwitcher({ tenants }: TenantSwitcherProps) {
   );
 }
 
-const SingleTenantDisplay = ({ tenant }: { tenant: Tenant }) => {
+const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
   return (
     <SidebarMenu>
       <SidebarMenuItem>

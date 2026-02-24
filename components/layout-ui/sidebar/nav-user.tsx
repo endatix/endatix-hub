@@ -54,9 +54,7 @@ const NavUser = ({ currentUser, trigger }: NavUserProps) => {
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
             <Avatar className="h-8 w-8 rounded-lg">
               <AvatarImage src="" alt={displayName} />
-              <AvatarFallback className="rounded-lg">
-                {initials}
-              </AvatarFallback>
+              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{email}</span>
@@ -86,16 +84,14 @@ const NavUser = ({ currentUser, trigger }: NavUserProps) => {
             </DropdownMenuItem>
           </>
         ) : (
-          <>
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/login">
-                  <Sparkles />
-                  Sign in
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </>
+          <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+              <Link href="/login">
+                <Sparkles />
+                Sign in
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

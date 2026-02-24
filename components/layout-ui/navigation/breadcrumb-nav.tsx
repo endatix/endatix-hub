@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -57,7 +58,7 @@ const BreadcrumbNav = ({
 
           if (index === pathNames.length - 1) {
             return (
-              <React.Fragment key={index}>
+              <React.Fragment key={href}>
                 {pathNames.length > 2 && (
                   <>
                     <BreadcrumbEllipsis className="md:hidden" />

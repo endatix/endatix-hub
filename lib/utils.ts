@@ -20,9 +20,10 @@ export function cn(...inputs: ClassValue[]) {
 export function generateRandomNumber(min: number, max: number): number {
   const array = new Uint32Array(1);
   globalThis.crypto.getRandomValues(array);
-  const normalized = array[0]! / (0xffff_ffff + 1);
+  const normalized = array[0] / (0xffffffff + 1);
+  
   return Math.floor(normalized * (max - min + 1)) + min;
-}
+} 
 
 /**
  * Delays execution for specified milliseconds. Used for testing purposes.

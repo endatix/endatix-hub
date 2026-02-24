@@ -26,7 +26,7 @@ export function SidebarNavItem({
   item,
   isCollapsed = false,
   ...props
-}: SidebarNavItemProps) {
+}: Readonly<SidebarNavItemProps>) {
   const hasChildren = (item.children?.length ?? 0) > 0;
 
   if (hasChildren && isCollapsed && item.url) {
