@@ -15,7 +15,7 @@ interface FormPublicStatusProps {
 function FormPublicStatus({
   isPublic,
   includeTooltip = true,
-}: FormPublicStatusProps) {
+}: Readonly<FormPublicStatusProps>) {
   if (isPublic === undefined) {
     return null;
   }

@@ -38,7 +38,7 @@ function SurveyDesignStatusBadge({
   showSavedSuccess = false,
   onSavedSuccessDismiss,
   invalidJsonTooltip = INVALID_JSON_TOOLTIP,
-}: SurveyDesignStatusBadgeProps) {
+}: Readonly<SurveyDesignStatusBadgeProps>) {
   useEffect(() => {
     if (!showSavedSuccess || onSavedSuccessDismiss == null) {
       return;

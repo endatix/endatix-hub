@@ -37,7 +37,7 @@ function FormDesignerContent({
   isCurrentThemeModified,
   setIsCurrentThemeModified,
   formSaveHandlerRef,
-}: FormDesignerContentProps) {
+}: Readonly<FormDesignerContentProps>) {
   const router = useRouter();
   const { isAssistantEnabled } = useFormAssistant();
 

@@ -141,7 +141,7 @@ function FormEditor({
   onThemeModificationChange,
   onSaveHandlerReady,
   onPropertyGridControllerReady,
-}: FormEditorProps) {
+}: Readonly<FormEditorProps>) {
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);

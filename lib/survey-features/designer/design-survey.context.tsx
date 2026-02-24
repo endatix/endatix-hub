@@ -26,7 +26,9 @@ const DesignSurveyContext = createContext<DesignSurveyContextValue | null>(
   null,
 );
 
-export function DesignSurveyProvider({ children }: { children: ReactNode }) {
+export function DesignSurveyProvider({
+  children,
+}: Readonly<{ children: ReactNode }>) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasJsonErrors, setHasJsonErrors] = useState(false);
   const [isOnJsonTab, setIsOnJsonTab] = useState(false);
@@ -46,11 +48,7 @@ export function DesignSurveyProvider({ children }: { children: ReactNode }) {
     [hasUnsavedChanges, hasJsonErrors, isOnJsonTab, isJsonModified],
   );
 
-  return (
-    <DesignSurveyContext value={value}>
-      {children}
-    </DesignSurveyContext>
-  );
+  return <DesignSurveyContext value={value}>{children}</DesignSurveyContext>;
 }
 
 export function useSurveyDesigner(): DesignSurveyContextValue {

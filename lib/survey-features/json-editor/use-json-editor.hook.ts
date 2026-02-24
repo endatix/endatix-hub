@@ -52,9 +52,9 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
       }
 
       function enterJsonTab() {
-        const jsonPlugin = creator.getPlugin(JSON_EDITOR_PLUGIN_NAME) as
-          | TabJsonEditorBasePlugin
-          | undefined;
+        const jsonPlugin: TabJsonEditorBasePlugin = creator.getPlugin(
+          JSON_EDITOR_PLUGIN_NAME,
+        );
         if (!jsonPlugin?.model) {
           notify(
             createOnJsonTabState({

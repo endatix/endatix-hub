@@ -19,7 +19,7 @@ export function SurveyDesignSaveButton({
   isPending = false,
   children,
   ...props
-}: SurveyDesignSaveButtonProps) {
+}: Readonly<SurveyDesignSaveButtonProps>) {
   return (
     <Button
       {...props}
