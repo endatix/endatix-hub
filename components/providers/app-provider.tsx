@@ -35,6 +35,9 @@ interface AppProviderProps {
   sidebarDefaultOpen?: boolean;
 }
 
+/** Default for sidebar open state when layout does not pass it (avoids server cookie read). */
+export const DEFAULT_SIDEBAR_OPEN = true;
+
 /**
  * Application provider component
  * Configurable provider that can enable/disable different features
@@ -50,7 +53,7 @@ export function AppProvider({
     enableSidebar: true,
   },
   themeOptions = {},
-  sidebarDefaultOpen = true,
+  sidebarDefaultOpen = DEFAULT_SIDEBAR_OPEN,
 }: AppProviderProps) {
   const {
     enableTheme,
