@@ -59,7 +59,7 @@ export function SidebarNavItem({ item, ...props }: SidebarNavItemProps) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild tooltip={item.title} {...props}>
-        <Link href={item.url as Route}>
+        <Link href={item.url as Route} target={item.external ? "_blank" : undefined}>
           {item.icon && <item.icon className="h-5 w-5" />}
           <span>{item.title}</span>
         </Link>
