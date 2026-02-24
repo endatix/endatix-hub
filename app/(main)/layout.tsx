@@ -1,8 +1,8 @@
 import "@/app/globals.css";
-import type { Metadata } from "next";
-import localFont from "next/font/local";
 import { AppProvider } from "@/components/providers";
 import { getSession } from "@/features/auth";
+import type { Metadata } from "next";
+import localFont from "next/font/local";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -52,9 +52,9 @@ export default async function RootLayout({
         <AppProvider session={session}>
           <div className="flex min-h-screen w-full flex-row bg-muted/40">
             {nav}
-            <div className="flex flex-1 flex-col">
+            <div className="flex flex-1 flex-col min-w-0">
               {header}
-              <main className="flex-1 flex flex-col p-6">{children}</main>
+              <main className="flex-1 flex flex-col p-6 min-w-0">{children}</main>
             </div>
           </div>
         </AppProvider>

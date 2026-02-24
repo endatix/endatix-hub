@@ -116,5 +116,8 @@ export type {
 // forms/types
 export type { FormsListRequest } from "./forms/types";
 
+// definitions/types
+export type { DefinitionField } from "./definitions/types";
+
 // users/types
 export type { UserListItem } from "./users/types";
