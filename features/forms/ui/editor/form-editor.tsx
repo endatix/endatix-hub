@@ -144,6 +144,7 @@ function FormEditor({
 
   const {
     hasUnsavedChanges,
+    isJsonModified,
     setHasUnsavedChanges,
     setHasJsonErrors,
     setIsOnJsonTab,
@@ -162,7 +163,9 @@ function FormEditor({
     },
     [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified],
   );
-  const { registerJsonEditor } = useJsonEditor({ onJsonStateChange });
+  const { registerJsonEditor, getJsonModel } = useJsonEditor({
+    onJsonStateChange,
+  });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions(
     {},
   );
@@ -239,11 +242,13 @@ function FormEditor({
   const saveForm = useCallback(async () => {
     const isDraft = false;
 
-    const updatedFormJson = creator?.JSON ?? null;
-    if (updatedFormJson === null) {
+    const jsonResult = getJsonModel(creator);
+    if (Result.isError(jsonResult)) {
+      toast.error(jsonResult.message);
       return;
     }
 
+    const updatedFormJson = jsonResult.value;
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
     let isFormUpdated = false;
@@ -288,6 +293,7 @@ function FormEditor({
     }
 
     setHasUnsavedChanges(false);
+    setIsJsonModified(false);
     toast.success(
       <p>
         {isFormUpdated && "Form changes saved. "}
@@ -298,7 +304,14 @@ function FormEditor({
         )}
       </p>,
     );
-  }, [creator?.JSON, creator?.theme, formId, themeId, setHasUnsavedChanges]);
+  }, [
+    getJsonModel,
+    creator,
+    formId,
+    themeId,
+    setHasUnsavedChanges,
+    setIsJsonModified,
+  ]);
 
   const { saveThemeHandler, isCurrentThemeModified } = useThemeManagement({
     formId,
@@ -309,7 +322,7 @@ function FormEditor({
   });
 
   const saveFormHandler = useCallback(async () => {
-    if (!hasUnsavedChanges && !isCurrentThemeModified) {
+    if (!hasUnsavedChanges && !isCurrentThemeModified && !isJsonModified) {
       toast.info("Nothing to save");
       return;
     }
@@ -319,7 +332,13 @@ function FormEditor({
     if (!isThemeSavedFlow) {
       await saveForm();
     }
-  }, [hasUnsavedChanges, isCurrentThemeModified, saveThemeHandler, saveForm]);
+  }, [
+    hasUnsavedChanges,
+    isCurrentThemeModified,
+    isJsonModified,
+    saveThemeHandler,
+    saveForm,
+  ]);
 
   useEffect(() => {
     onThemeModificationChange?.(isCurrentThemeModified);

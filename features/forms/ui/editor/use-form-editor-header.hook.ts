@@ -119,6 +119,12 @@ export const useFormEditorHeader = ({
   );
 
   const saveFormHandler = useCallback(() => {
+    const hasChanges =
+      hasUnsavedChanges || isCurrentThemeModified || isJsonModified;
+    if (!hasChanges) {
+      toast.info("Nothing to save");
+      return;
+    }
     startTransition(async () => {
       try {
         await onSave();
@@ -128,7 +134,13 @@ export const useFormEditorHeader = ({
         toast.error("Failed to save changes");
       }
     });
-  }, [onSave, startTransition]);
+  }, [
+    hasUnsavedChanges,
+    isCurrentThemeModified,
+    isJsonModified,
+    onSave,
+    startTransition,
+  ]);
 
   const clearSavedSuccess = useCallback(() => setShowSavedSuccess(false), []);
 

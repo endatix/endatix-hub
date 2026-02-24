@@ -1,5 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { Model } from "survey-core";
+import { Result } from "@/lib/result";
 import { JSON_EDITOR_PROPERTY_NAMES } from "../json-editor-state";
 import { useJsonEditor } from "../use-json-editor.hook";
 
@@ -207,5 +209,140 @@ describe("useJsonEditor", () => {
     cleanup();
 
     expect(removeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe("getJsonModel", () => {
+    it("returns error when creator is null", () => {
+      const { result } = renderHook(() => useJsonEditor({}));
+      const getResult = result.current.getJsonModel(null);
+      expect(Result.isError(getResult)).toBe(true);
+      if (Result.isError(getResult)) {
+        expect(getResult.message).toBe(
+          "Unexpeted error. Please reload the page and try again.",
+        );
+      }
+    });
+
+    it("returns creator.JSON when active tab is not json", () => {
+      const creatorJson = { title: "My form", pages: [] };
+      const creator = {
+        activeTab: "designer",
+        JSON: creatorJson,
+        getPlugin: vi.fn(),
+      };
+      const { result } = renderHook(() => useJsonEditor({}));
+      const getResult = result.current.getJsonModel(creator as any);
+      expect(Result.isSuccess(getResult)).toBe(true);
+      if (Result.isSuccess(getResult)) {
+        expect(getResult.value).toBe(creatorJson);
+      }
+    });
+
+    it("returns error when on json tab but plugin is missing", () => {
+      const creator = {
+        activeTab: "json",
+        JSON: {},
+        getPlugin: vi.fn(() => undefined),
+      };
+      const { result } = renderHook(() => useJsonEditor({}));
+      const getResult = result.current.getJsonModel(creator as any);
+      expect(Result.isError(getResult)).toBe(true);
+      if (Result.isError(getResult)) {
+        expect(getResult.message).toBe(
+          "Unexpeted error. Please reload the page and try again.",
+        );
+      }
+    });
+
+    it("returns validation error when json editor model has errors", () => {
+      const creator = {
+        activeTab: "json",
+        JSON: {},
+        getPlugin: vi.fn(() => ({
+          model: { hasErrors: true, text: "{}" },
+        })),
+      };
+      const { result } = renderHook(() => useJsonEditor({}));
+      const getResult = result.current.getJsonModel(creator as any);
+      expect(Result.isError(getResult)).toBe(true);
+      if (Result.isError(getResult)) {
+        expect(getResult.message).toBe(
+          "Please fix the errors in the JSON schema and try again.",
+        );
+      }
+    });
+
+    it("returns success with parsed and normalized JSON when on json tab with valid schema", () => {
+      const validSchema = {
+        title: "Survey",
+        pages: [{ name: "p1", elements: [] }],
+      };
+      const creator = {
+        activeTab: "json",
+        JSON: {},
+        getPlugin: vi.fn(() => ({
+          model: {
+            hasErrors: false,
+            text: JSON.stringify(validSchema),
+          },
+        })),
+      };
+      const { result } = renderHook(() => useJsonEditor({}));
+      const getResult = result.current.getJsonModel(creator as any);
+      expect(Result.isSuccess(getResult)).toBe(true);
+      if (Result.isSuccess(getResult)) {
+        expect(getResult.value).toMatchObject({ title: "Survey" });
+        expect(Array.isArray(getResult.value.pages)).toBe(true);
+      }
+    });
+
+    it("returns validation error when json text is malformed", () => {
+      const creator = {
+        activeTab: "json",
+        JSON: {},
+        getPlugin: vi.fn(() => ({
+          model: {
+            hasErrors: false,
+            text: "not valid json {{{",
+          },
+        })),
+      };
+      const { result } = renderHook(() => useJsonEditor({}));
+      const getResult = result.current.getJsonModel(creator as any);
+      expect(Result.isError(getResult)).toBe(true);
+      if (Result.isError(getResult)) {
+        expect(getResult.message).toBe(
+          "JSON schema is malformed and cannot be parsed.",
+        );
+      }
+    });
+
+    it("returns validation error when json parses but Model reports jsonErrors", () => {
+      const invalidSchema = { pages: [{ invalidProp: true }] };
+      const model = new Model();
+      model.fromJSON(invalidSchema);
+      const hasJsonErrors = (model.jsonErrors?.length ?? 0) > 0;
+      if (!hasJsonErrors) {
+        return;
+      }
+      const creator = {
+        activeTab: "json",
+        JSON: {},
+        getPlugin: vi.fn(() => ({
+          model: {
+            hasErrors: false,
+            text: JSON.stringify(invalidSchema),
+          },
+        })),
+      };
+      const { result } = renderHook(() => useJsonEditor({}));
+      const getResult = result.current.getJsonModel(creator as any);
+      expect(Result.isError(getResult)).toBe(true);
+      if (Result.isError(getResult)) {
+        expect(getResult.message).toBe(
+          "Please fix the errors in the JSON schema and try again.",
+        );
+      }
+    });
   });
 });

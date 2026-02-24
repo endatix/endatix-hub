@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback } from "react";
-import type { Base, IPropertyValueChangedEvent } from "survey-core";
+import {
+  Model,
+  SurveyModel,
+  type Base,
+  type IPropertyValueChangedEvent,
+} from "survey-core";
 import type {
   ActiveTabChangedEvent,
   SurveyCreatorModel,
@@ -14,6 +19,14 @@ import {
   computeStateAfterPropertyChange,
   createOnJsonTabState,
 } from "./json-editor-state";
+import { Result } from "@/lib/result";
+
+const INVALID_JSON_ERROR_MESSAGE =
+  "Please fix the errors in the JSON schema and try again.";
+const MALFORMED_JSON_ERROR_MESSAGE =
+  "JSON schema is malformed and cannot be parsed.";
+const UNEXPECTED_ERROR_MESSAGE =
+  "Unexpeted error. Please reload the page and try again.";
 
 export type { JsonEditorState } from "./json-editor-state";
 
@@ -133,5 +146,46 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
     [onJsonStateChange],
   );
 
-  return { registerJsonEditor };
+  const getJsonModel = useCallback(
+    (creator: SurveyCreatorModel | null): Result<any> => {
+      if (!creator) {
+        return Result.error(UNEXPECTED_ERROR_MESSAGE);
+      }
+
+      const currentTab = creator.activeTab;
+
+      if (currentTab !== JSON_EDITOR_PLUGIN_NAME) {
+        return Result.success(creator.JSON);
+      }
+
+      const jsonPlugin: TabJsonEditorBasePlugin = creator.getPlugin(
+        JSON_EDITOR_PLUGIN_NAME,
+      );
+
+      if (!jsonPlugin) {
+        return Result.error(UNEXPECTED_ERROR_MESSAGE);
+      }
+
+      if (jsonPlugin.model.hasErrors) {
+        return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
+      }
+
+      try {
+        const resultJson = JSON.parse(jsonPlugin.model.text);
+        const surveyModel = new Model();
+        surveyModel.fromJSON(resultJson);
+
+        if (surveyModel.jsonErrors?.length > 0) {
+          return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
+        }
+
+        return Result.success(surveyModel.toJSON());
+      } catch {
+        return Result.validationError(MALFORMED_JSON_ERROR_MESSAGE);
+      }
+    },
+    [],
+  );
+
+  return { registerJsonEditor, getJsonModel };
 }

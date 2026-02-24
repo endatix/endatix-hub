@@ -84,7 +84,7 @@ function FormTemplateEditorContent({
     itemId: templateId,
     itemType: "template",
   });
-  const { registerJsonEditor } = useJsonEditor({
+  const { registerJsonEditor, getJsonModel } = useJsonEditor({
     onJsonStateChange: (state) => {
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
@@ -273,18 +273,18 @@ function FormTemplateEditorContent({
   };
 
   const saveTemplate = async () => {
-    if (!hasUnsavedChanges) {
+    if (!hasUnsavedChanges && !isJsonModified) {
       toast.info("No changes to save");
       return;
     }
 
-    const creatorJson = creator?.JSON;
-    if (!creatorJson) {
-      toast.error(
-        "Cannot save template with no data. Please add elements to the template.",
-      );
+    const jsonResult = getJsonModel(creator);
+    if (Result.isError(jsonResult)) {
+      toast.error(jsonResult.message);
       return;
     }
+
+    const creatorJson = jsonResult.value;
 
     setIsSaving(true);
     try {
@@ -301,6 +301,7 @@ function FormTemplateEditorContent({
       }
 
       setHasUnsavedChanges(false);
+      setIsJsonModified(false);
       setShowSavedSuccess(true);
 
       toast.success("Template saved");
@@ -325,7 +326,7 @@ function FormTemplateEditorContent({
     };
   }, []);
 
-  const saveDisabled = isSaving || isOnJsonTab;
+  const saveDisabled = isSaving || hasJsonErrors;
   const showInvalidJson = isOnJsonTab && hasJsonErrors;
   const showUnsavedChanges = !showInvalidJson && hasUnsavedChanges;
   return (

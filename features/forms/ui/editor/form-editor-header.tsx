@@ -34,7 +34,7 @@ export default function FormEditorHeader({
   setIsEditingName,
   setName,
 }: FormEditorHeaderProps) {
-  const saveDisabled = isPending || isOnJsonTab;
+  const saveDisabled = isPending || hasJsonErrors;
   const showInvalidJson = isOnJsonTab && hasJsonErrors;
   const showUnsavedChanges =
     !showInvalidJson && (hasUnsavedChanges || isCurrentThemeModified);
