@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { AppProvider } from "@/components/providers";
 import { auth } from "@/auth";
+import { SIDEBAR_COOKIE_NAME } from "@/components/ui/sidebar";
+import { cookies } from "next/headers";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -42,6 +44,9 @@ export default async function RootLayout({
   nav,
 }: RootLayoutProps) {
   const session = await auth();
+  const cookieStore = await cookies();
+  const sidebarValue = cookieStore.get("sidebar_state");
+  const defaultSidebarOpen = sidebarValue?.value === "true";
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -49,7 +54,10 @@ export default async function RootLayout({
         <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppProvider session={session}>
+        <AppProvider
+          session={session}
+          sidebarDefaultOpen={defaultSidebarOpen}
+        >
           {nav}
           <main data-slot="sidebar-inset">
             {header}

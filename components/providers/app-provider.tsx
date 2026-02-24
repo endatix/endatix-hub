@@ -32,6 +32,7 @@ interface AppProviderProps {
   session?: Session | null;
   options?: AppProviderOptions;
   themeOptions?: ThemeOptions;
+  sidebarDefaultOpen?: boolean;
 }
 
 /**
@@ -49,6 +50,7 @@ export function AppProvider({
     enableSidebar: true,
   },
   themeOptions = {},
+  sidebarDefaultOpen = true,
 }: AppProviderProps) {
   const {
     enableTheme,
@@ -68,7 +70,7 @@ export function AppProvider({
 
   // Add sidebar provider if enabled
   if (enableSidebar) {
-    content = <SidebarProvider>{content}</SidebarProvider>;
+    content = <SidebarProvider defaultOpen={sidebarDefaultOpen}>{content}</SidebarProvider>;
   }
 
   // Add analytics provider if enabled
