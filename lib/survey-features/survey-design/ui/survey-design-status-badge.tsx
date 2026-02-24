@@ -10,6 +10,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Check, CircleX, Code, Pencil } from "lucide-react";
 import { useEffect } from "react";
+import {
+  getSurveyDesignStatus,
+  SurveyDesignStatus,
+} from "../survey-design-status";
 
 const SAVED_SUCCESS_DURATION_MS = 2000;
 const INVALID_JSON_TOOLTIP = "Fix all errors in the JSON editor before saving.";
@@ -23,15 +27,6 @@ export interface SurveyDesignStatusBadgeProps {
   showSavedSuccess?: boolean;
   onSavedSuccessDismiss?: () => void;
   invalidJsonTooltip?: string;
-}
-
-enum SurveyDesignStatus {
-  NoChanges = "NoChanges",
-  InvalidJson = "InvalidJson",
-  SaveInProgress = "SaveInProgress",
-  Saved = "Saved",
-  JsonModified = "JsonChanges",
-  UnsavedChanges = "UnsavedChanges",
 }
 
 function SurveyDesignStatusBadge({
@@ -56,29 +51,16 @@ function SurveyDesignStatusBadge({
     return () => globalThis.window.clearTimeout(id);
   }, [showSavedSuccess, onSavedSuccessDismiss]);
 
-  const surveyDesignStatus = (): SurveyDesignStatus => {
-    if (hasJsonErrors) {
-      return SurveyDesignStatus.InvalidJson;
-    }
-    if (isSaving) {
-      return SurveyDesignStatus.SaveInProgress;
-    }
-    if (showSavedSuccess) {
-      return SurveyDesignStatus.Saved;
-    }
+  const status = getSurveyDesignStatus({
+    hasJsonErrors,
+    isOnJsonTab,
+    isJsonModified,
+    hasUnsavedChanges,
+    isSaving,
+    showSavedSuccess,
+  });
 
-    if (isJsonModified && isOnJsonTab) {
-      return SurveyDesignStatus.JsonModified;
-    }
-
-    if (hasUnsavedChanges && !isOnJsonTab) {
-      return SurveyDesignStatus.UnsavedChanges;
-    }
-
-    return SurveyDesignStatus.NoChanges;
-  };
-
-  switch (surveyDesignStatus()) {
+  switch (status) {
     case SurveyDesignStatus.InvalidJson:
       return <InvalidJsonBadge invalidJsonTooltip={invalidJsonTooltip} />;
     case SurveyDesignStatus.SaveInProgress:

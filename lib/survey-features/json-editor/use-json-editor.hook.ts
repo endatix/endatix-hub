@@ -7,31 +7,26 @@ import type {
   SurveyCreatorModel,
   TabJsonEditorBasePlugin,
 } from "survey-creator-core";
+import {
+  type JsonEditorState,
+  JSON_EDITOR_PLUGIN_NAME,
+  NOT_ON_JSON_TAB_STATE,
+  computeStateAfterPropertyChange,
+  createOnJsonTabState,
+} from "./json-editor-state";
 
-export interface JsonEditorState {
-  hasErrors: boolean;
-  isOnJsonTab: boolean;
-  isJsonModified: boolean;
-}
+export type { JsonEditorState } from "./json-editor-state";
 
 export interface UseJsonEditorOptions {
   onJsonStateChange?: (state: JsonEditorState) => void;
 }
 
-const JSON_EDITOR_PLUGIN = {
-  name: "json",
-  propertyNames: {
-    hasErrors: "hasErrors",
-    aceCanUndo: "aceCanUndo",
-  } as const,
-} as const;
-
 /**
  * Registers JSON editor state and change handling with the Survey Creator.
- * Uses the plugin model's hasErrors and aceCanUndo (ACE) from onPropertyChanged.
+ * Subscribes to the plugin model's onPropertyChanged for hasErrors and aceCanUndo.
  * Does not subscribe to creator.onModified; the consumer should do that for unsaved state.
  *
- * @param options.onJsonStateChange - Called when JSON tab or validation state changes.
+ * @param options.onJsonStateChange - Called when JSON tab, validation, or modified state changes.
  * @returns { registerJsonEditor } - Call with creator; returns cleanup.
  */
 export function useJsonEditor(options: UseJsonEditorOptions) {
@@ -39,113 +34,99 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
 
   const registerJsonEditor = useCallback(
     (creator: SurveyCreatorModel): (() => void) => {
-      let removeModelListener: (() => void) | undefined;
-      let isOnJsonTab = false;
-      const isJsonModified = { current: false };
-      const fileImportedRef = { current: false };
-
-      const notifyState = (hasErrors: boolean) => {
-        onJsonStateChange?.({
-          hasErrors,
-          isOnJsonTab,
-          isJsonModified: isJsonModified.current,
-        });
+      const jsonEditorState = {
+        isJsonModified: false,
+        fileJustImported: false,
       };
+      let removeModelListener: (() => void) | undefined;
 
-      const handleTabChanged = (
-        sender: SurveyCreatorModel,
-        tabOptions: ActiveTabChangedEvent,
-      ) => {
-        if (tabOptions.tabName !== JSON_EDITOR_PLUGIN.name) {
-          removeModelListener?.();
-          removeModelListener = undefined;
-          isOnJsonTab = false;
-          isJsonModified.current = false;
-          onJsonStateChange?.({
-            hasErrors: false,
-            isOnJsonTab: false,
-            isJsonModified: false,
-          });
+      function notify(state: JsonEditorState) {
+        onJsonStateChange?.(state);
+      }
+
+      function leaveJsonTab() {
+        removeModelListener?.();
+        removeModelListener = undefined;
+        jsonEditorState.isJsonModified = false;
+        notify(NOT_ON_JSON_TAB_STATE);
+      }
+
+      function enterJsonTab() {
+        const jsonPlugin = creator.getPlugin(JSON_EDITOR_PLUGIN_NAME) as
+          | TabJsonEditorBasePlugin
+          | undefined;
+        if (!jsonPlugin?.model) {
+          notify(
+            createOnJsonTabState({
+              isJsonModified: jsonEditorState.isJsonModified,
+            }),
+          );
           return;
         }
 
-        isOnJsonTab = true;
-        const jsonPlugin = creator.getPlugin(
-          JSON_EDITOR_PLUGIN.name,
-        ) as TabJsonEditorBasePlugin;
         const originalImportFromFile =
           jsonPlugin.importFromFile.bind(jsonPlugin);
         jsonPlugin.importFromFile = (
           file: File,
           callback?: (json: string) => void,
         ) => {
-          fileImportedRef.current = true;
+          jsonEditorState.fileJustImported = true;
           originalImportFromFile(file, callback);
         };
 
-        if (!jsonPlugin?.model) {
-          onJsonStateChange?.({
-            hasErrors: false,
-            isOnJsonTab: true,
-            isJsonModified: isJsonModified.current,
-          });
-          return;
-        }
-
-        notifyState(!!jsonPlugin.model.hasErrors);
-
-        const handler = (
-          _sender: Base,
-          propertyOptions: IPropertyValueChangedEvent,
-        ) => {
-          const { name, newValue } = propertyOptions;
-          let shouldNotify = false;
-          const state: JsonEditorState = {
+        notify(
+          createOnJsonTabState({
             hasErrors: !!jsonPlugin.model.hasErrors,
-            isOnJsonTab: true,
-            isJsonModified: isJsonModified.current,
-          };
+            isJsonModified: jsonEditorState.isJsonModified,
+          }),
+        );
 
-          if (name === JSON_EDITOR_PLUGIN.propertyNames.hasErrors) {
-            state.hasErrors = !!newValue;
-            shouldNotify = true;
-          }
-          
-          const isJsonTextDifferent = jsonPlugin.model.text?.length > 0 && jsonPlugin.model.text !== sender.text;
-          if (isJsonTextDifferent) {
-            state.isJsonModified = true;
-            isJsonModified.current = true;
-            shouldNotify = true;
-          }
+        const onPropertyChanged = (
+          _sender: Base,
+          options: IPropertyValueChangedEvent,
+        ) => {
+          const { name, newValue } = options;
 
-          if (fileImportedRef.current) {
-            state.isJsonModified = true;
-            isJsonModified.current = true;
-            fileImportedRef.current = false;
-            shouldNotify = true;
-          }
+          const isJsonTextDifferent =
+            jsonPlugin.model.text?.length > 0 &&
+            jsonPlugin.model.text !== creator.text;
+          const next = computeStateAfterPropertyChange({
+            propertyName: name,
+            newValue,
+            hasErrorsFromModel: !!jsonPlugin.model.hasErrors,
+            isJsonModifiedCurrent: jsonEditorState.isJsonModified,
+            isJsonTextDifferent,
+            fileJustImported: jsonEditorState.fileJustImported,
+          });
 
-          if (shouldNotify) {
-            onJsonStateChange?.(state);
-          }
+          if (next === null) return;
+
+          jsonEditorState.isJsonModified = next.isJsonModified;
+          jsonEditorState.fileJustImported = false;
+          notify(next);
         };
 
-        jsonPlugin.model.onPropertyChanged.add(handler);
+        jsonPlugin.model.onPropertyChanged.add(onPropertyChanged);
         removeModelListener = () => {
-          jsonPlugin.model?.onPropertyChanged.remove(handler);
+          jsonPlugin.model?.onPropertyChanged.remove(onPropertyChanged);
         };
-      };
-
-      creator.onActiveTabChanged.add(handleTabChanged);
-
-      if (creator.activeTab === JSON_EDITOR_PLUGIN.name) {
-        handleTabChanged(creator, {
-          tabName: JSON_EDITOR_PLUGIN.name,
-        } as ActiveTabChangedEvent);
       }
 
+      function onTabChanged(
+        _sender: SurveyCreatorModel,
+        tabOptions: ActiveTabChangedEvent,
+      ) {
+        if (tabOptions.tabName !== JSON_EDITOR_PLUGIN_NAME) {
+          leaveJsonTab();
+          return;
+        }
+        enterJsonTab();
+      }
+
+      creator.onActiveTabChanged.add(onTabChanged);
+
       return () => {
-        creator.onActiveTabChanged.remove(handleTabChanged);
+        creator.onActiveTabChanged.remove(onTabChanged);
         removeModelListener?.();
       };
     },
