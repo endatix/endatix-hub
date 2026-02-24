@@ -13,6 +13,11 @@ import {
 } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
+import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
+import {
+  JsonEditorState,
+  useJsonEditor,
+} from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useQuestionLoopsEditing } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
@@ -36,9 +41,7 @@ import {
   getLocaleStrings,
   ICreatorOptions,
   registerSurveyTheme,
-  SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
-  TabJsonEditorTextareaPlugin,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
@@ -84,11 +87,9 @@ translations.pehelp.fileNamesPrefix =
 
 const downloadSettingsIcon = `<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round}</style></defs><path class="st0" d="M20 20c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-7.9c-.7 0-1.3-.3-1.7-.9l-.8-1.2c-.4-.6-1-.9-1.7-.9H4c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2zm-8-10v6"/><path class="st0" d="m15 13-3 3-3-3"/></svg>`;
 SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
-const questionLoopsIcon = '<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 32 32"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px}</style></defs><path class="st0" d="M3.3 18.3V28h25.4V9.7H9.6"/><path class="st0" d="M14.4 15.5 8.6 9.7 14.7 4"/></svg>';
+const questionLoopsIcon =
+  '<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 32 32"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px}</style></defs><path class="st0" d="M3.3 18.3V28h25.4V9.7H9.6"/><path class="st0" d="M14.4 15.5 8.6 9.7 14.7 4"/></svg>';
 SvgRegistry.registerIcon("icon-question-loops", questionLoopsIcon);
-
-const invalidJsonErrorMessage =
-  "Invalid JSON! Please fix all errors in the JSON editor before saving.";
 
 registerSurveyTheme(DefaultLight);
 
@@ -100,8 +101,6 @@ interface FormEditorProps {
   slkVal?: string;
   themeId?: string;
   initialPropertyGridVisible?: boolean;
-  hasUnsavedChanges?: boolean;
-  onUnsavedChanges?: (hasChanges: boolean) => void;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
   onPropertyGridControllerReady?: (
@@ -135,19 +134,37 @@ function FormEditor({
   slkVal,
   themeId,
   initialPropertyGridVisible = true,
-  hasUnsavedChanges = false,
-  onUnsavedChanges,
   onThemeModificationChange,
   onSaveHandlerReady,
   onPropertyGridControllerReady,
-}: FormEditorProps) {
+}: Readonly<FormEditorProps>) {
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const {
+    hasUnsavedChanges,
+    isJsonModified,
+    setHasUnsavedChanges,
+    setHasJsonErrors,
+    setIsOnJsonTab,
+    setIsJsonModified,
+  } = useSurveyDesigner();
+
   const { registerStorageHandlers, isStorageReady } = useStorageWithCreator({
     itemId: formId,
     itemType: "form",
+  });
+  const onJsonStateChange = useCallback(
+    (state: JsonEditorState) => {
+      setHasJsonErrors(state.hasErrors);
+      setIsOnJsonTab(state.isOnJsonTab);
+      setIsJsonModified(state.isJsonModified);
+    },
+    [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified],
+  );
+  const { registerJsonEditor, getJsonModel } = useJsonEditor({
+    onJsonStateChange,
   });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions(
     {},
@@ -157,8 +174,8 @@ function FormEditor({
     SpecializedSurveyQuestionType[]
   >([]);
   const handleThemeIdChanged = useCallback(() => {
-    onUnsavedChanges?.(true);
-  }, [onUnsavedChanges]);
+    setHasUnsavedChanges(true);
+  }, [setHasUnsavedChanges]);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
   useQuestionLoopsEditing(creator);
@@ -222,46 +239,16 @@ function FormEditor({
     [creator],
   );
 
-  const getJsonForSaving = useCallback(() => {
-    if (creator?.activeTab === "json") {
-      const errorsList = document.querySelector(
-        ".svc-json-editor-tab__errros_list",
-      ) as HTMLElement;
-      const errorsContainer = document.querySelector(
-        ".svc-json-errors",
-      ) as HTMLElement;
-
-      const isErrorsListVisible =
-        errorsList && getComputedStyle(errorsList).display !== "none";
-      const hasErrorChildren =
-        errorsContainer && errorsContainer.children.length > 0;
-
-      if (isErrorsListVisible && hasErrorChildren) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-
-      const jsonAreaPlugin = creator.getPlugin(
-        "json",
-      ) as TabJsonEditorTextareaPlugin;
-      try {
-        return JSON.parse(jsonAreaPlugin.model.text);
-      } catch (error) {
-        toast.error(invalidJsonErrorMessage);
-        return null;
-      }
-    } else {
-      return creator?.JSON;
-    }
-  }, [creator]);
-
   const saveForm = useCallback(async () => {
     const isDraft = false;
 
-    const updatedFormJson = getJsonForSaving();
-    if (updatedFormJson === null) {
+    const jsonResult = getJsonModel(creator);
+    if (Result.isError(jsonResult)) {
+      toast.error(jsonResult.message);
       return;
     }
+
+    const updatedFormJson = jsonResult.value;
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
     let isFormUpdated = false;
@@ -305,7 +292,8 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    onUnsavedChanges?.(false);
+    setHasUnsavedChanges(false);
+    setIsJsonModified(false);
     toast.success(
       <p>
         {isFormUpdated && "Form changes saved. "}
@@ -316,7 +304,14 @@ function FormEditor({
         )}
       </p>,
     );
-  }, [getJsonForSaving, creator?.theme, formId, themeId, onUnsavedChanges]);
+  }, [
+    getJsonModel,
+    creator,
+    formId,
+    themeId,
+    setHasUnsavedChanges,
+    setIsJsonModified,
+  ]);
 
   const { saveThemeHandler, isCurrentThemeModified } = useThemeManagement({
     formId,
@@ -327,7 +322,7 @@ function FormEditor({
   });
 
   const saveFormHandler = useCallback(async () => {
-    if (!hasUnsavedChanges && !isCurrentThemeModified) {
+    if (!hasUnsavedChanges && !isCurrentThemeModified && !isJsonModified) {
       toast.info("Nothing to save");
       return;
     }
@@ -337,7 +332,13 @@ function FormEditor({
     if (!isThemeSavedFlow) {
       await saveForm();
     }
-  }, [hasUnsavedChanges, isCurrentThemeModified, saveThemeHandler, saveForm]);
+  }, [
+    hasUnsavedChanges,
+    isCurrentThemeModified,
+    isJsonModified,
+    saveThemeHandler,
+    saveForm,
+  ]);
 
   useEffect(() => {
     onThemeModificationChange?.(isCurrentThemeModified);
@@ -475,6 +476,7 @@ function FormEditor({
         onCreatorCreated(newCreator);
 
         const unregisterStorage = registerStorageHandlers(newCreator);
+        const unregisterJsonEditor = registerJsonEditor(newCreator);
 
         newCreator.onSurveyInstanceCreated.add(
           (_, options: SurveyInstanceCreatedEvent) => {
@@ -496,7 +498,8 @@ function FormEditor({
               ).iconName = "icon-question-loops";
               questionLoopsCategory.title = "Question Loops";
             }
-        });
+          },
+        );
 
         if (newQuestionClasses.length > 0) {
           setQuestionClasses(newQuestionClasses);
@@ -506,6 +509,7 @@ function FormEditor({
         isCreatorInitializedRef.current = true;
 
         return () => {
+          unregisterJsonEditor();
           unregisterStorage();
         };
       } catch (error) {
@@ -523,9 +527,21 @@ function FormEditor({
     initialPropertyGridVisible,
     formJson,
     registerStorageHandlers,
+    registerJsonEditor,
     isExtensionsReady,
     onCreatorCreated,
   ]);
+
+  useEffect(() => {
+    if (!creator) return;
+
+    const setAsModified = () => {
+      setHasUnsavedChanges(true);
+    };
+    creator.onModified.add(setAsModified);
+
+    return () => creator.onModified.remove(setAsModified);
+  }, [creator, setHasUnsavedChanges]);
 
   useEffect(() => {
     if (!creator) return;
@@ -553,83 +569,6 @@ function FormEditor({
       });
     };
   }, [creator, createCustomQuestionDialog]);
-
-  useEffect(() => {
-    let isLeavingJsonTab = false;
-
-    const setAsModified = () => {
-      if (isLeavingJsonTab) {
-        return;
-      }
-
-      onUnsavedChanges?.(true);
-    };
-
-    const attachJsonTextareaListener = (jsonTextarea: HTMLTextAreaElement) => {
-      if (!(jsonTextarea as any).__handlerAttached) {
-        const handleInput = () => {
-          onUnsavedChanges?.(true);
-        };
-
-        jsonTextarea.addEventListener("input", handleInput);
-
-        (jsonTextarea as any).__handlerAttached = true;
-        (jsonTextarea as any).__inputHandler = handleInput;
-      }
-    };
-
-    const waitForTextarea = (attempt = 1, maxAttempts = 4) => {
-      const textarea = document.querySelector(
-        ".svc-json-editor-tab__content-area",
-      ) as HTMLTextAreaElement;
-      if (textarea) {
-        attachJsonTextareaListener(textarea);
-      } else if (attempt < maxAttempts) {
-        const delay = 100 * Math.pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms
-        setTimeout(() => waitForTextarea(attempt + 1, maxAttempts), delay);
-      }
-    };
-
-    const handleTabChanging = (sender: SurveyCreatorModel, options: any) => {
-      if (creator?.activeTab === "json" && options.tabName !== "json") {
-        isLeavingJsonTab = true;
-      }
-    };
-
-    const handleTabChange = (sender: SurveyCreatorModel, options: any) => {
-      isLeavingJsonTab = false;
-
-      if (options.tabName === "json") {
-        waitForTextarea();
-      }
-    };
-
-    if (creator) {
-      creator.onModified.add(setAsModified);
-      creator.onActiveTabChanging.add(handleTabChanging);
-      creator.onActiveTabChanged.add(handleTabChange);
-
-      if (creator.activeTab === "json") {
-        waitForTextarea();
-      }
-
-      return () => {
-        creator.onModified.remove(setAsModified);
-        creator.onActiveTabChanging.remove(handleTabChanging);
-        creator.onActiveTabChanged.remove(handleTabChange);
-
-        const jsonTextarea = document.querySelector(
-          ".svc-json-editor-tab__content-area",
-        ) as HTMLTextAreaElement;
-        if (jsonTextarea && (jsonTextarea as any).__handlerAttached) {
-          jsonTextarea.removeEventListener(
-            "input",
-            (jsonTextarea as any).__inputHandler,
-          );
-        }
-      };
-    }
-  }, [creator, themeId, onUnsavedChanges]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {

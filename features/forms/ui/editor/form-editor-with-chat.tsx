@@ -20,6 +20,7 @@ import ChatBox from "../chat/chat-box";
 import ChatThread from "../chat/chat-thread";
 import DotLoader from "@/components/loaders/dot-loader";
 import FormEditorContainer from "./form-editor-container";
+import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import { ICreatorOptions } from "survey-creator-core";
 import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
 
@@ -32,8 +33,6 @@ export interface FormEditorWithChatProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
-  hasUnsavedChanges?: boolean;
-  onUnsavedChanges?: (hasChanges: boolean) => void;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
 }
@@ -45,11 +44,10 @@ export default function FormEditorWithChat({
   options,
   slkVal,
   themeId,
-  hasUnsavedChanges,
-  onUnsavedChanges,
   onThemeModificationChange,
   onSaveHandlerReady,
 }: FormEditorWithChatProps) {
+  const { setHasUnsavedChanges } = useSurveyDesigner();
   const chatPanelRef = useRef<PanelImperativeHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -75,7 +73,7 @@ export default function FormEditorWithChat({
       // If form definition is empty but conversation has resultJson, load it
       if (chatContext?.resultDefinition) {
         setUpdatedFormJson(chatContext?.resultDefinition);
-        onUnsavedChanges?.(true);
+        setHasUnsavedChanges(true);
       }
       setConversationLoaded(true);
     };
@@ -85,7 +83,7 @@ export default function FormEditorWithChat({
     chatContext?.error,
     chatContext?.formId,
     chatContext?.resultDefinition,
-    onUnsavedChanges,
+    setHasUnsavedChanges,
   ]);
 
   useEffect(() => {
@@ -138,8 +136,6 @@ export default function FormEditorWithChat({
               slkVal={slkVal}
               themeId={themeId}
               initialPropertyGridVisible={isCollapsed}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onUnsavedChanges={onUnsavedChanges}
               onThemeModificationChange={onThemeModificationChange}
               onSaveHandlerReady={onSaveHandlerReady}
               onPropertyGridControllerReady={(controller) => {
@@ -167,8 +163,9 @@ export default function FormEditorWithChat({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`${isMobile ? "hidden" : "flex"
-                          } items-center justify-center -mt-2`}
+                        className={`${
+                          isMobile ? "hidden" : "flex"
+                        } items-center justify-center -mt-2`}
                         onClick={toggleCollapse}
                       >
                         <ChevronLeft className="h-10 w-10 stroke-[2.5]" />
