@@ -42,7 +42,6 @@ import {
   ICreatorOptions,
   registerSurveyTheme,
   SurveyInstanceCreatedEvent,
-  TabJsonEditorTextareaPlugin,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
@@ -91,9 +90,6 @@ SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
 const questionLoopsIcon =
   '<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 32 32"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px}</style></defs><path class="st0" d="M3.3 18.3V28h25.4V9.7H9.6"/><path class="st0" d="M14.4 15.5 8.6 9.7 14.7 4"/></svg>';
 SvgRegistry.registerIcon("icon-question-loops", questionLoopsIcon);
-
-const invalidJsonErrorMessage =
-  "Invalid JSON! Please fix all errors in the JSON editor before saving.";
 
 registerSurveyTheme(DefaultLight);
 
