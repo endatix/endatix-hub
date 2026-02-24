@@ -151,6 +151,7 @@ function FormEditor({
     setHasUnsavedChanges,
     setHasJsonErrors,
     setIsOnJsonTab,
+    setIsJsonModified,
   } = useSurveyDesigner();
 
   const { registerStorageHandlers, isStorageReady } = useStorageWithCreator({
@@ -158,12 +159,12 @@ function FormEditor({
     itemType: "form",
   });
   const onJsonStateChange = useCallback(
-    (options: JsonEditorState) => {
-      const { hasErrors, isOnJsonTab } = options;
-      setHasJsonErrors(hasErrors);
-      setIsOnJsonTab(isOnJsonTab);
+    (state: JsonEditorState) => {
+      setHasJsonErrors(state.hasErrors);
+      setIsOnJsonTab(state.isOnJsonTab);
+      setIsJsonModified(state.isJsonModified);
     },
-    [setHasJsonErrors, setIsOnJsonTab],
+    [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified],
   );
   const { registerJsonEditor } = useJsonEditor({ onJsonStateChange });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions(

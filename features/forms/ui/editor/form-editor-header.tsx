@@ -23,6 +23,7 @@ export default function FormEditorHeader({
   hasUnsavedChanges,
   hasJsonErrors,
   isOnJsonTab,
+  isJsonModified,
   showSavedSuccess,
   isCurrentThemeModified,
   isPublic,
@@ -72,8 +73,10 @@ export default function FormEditorHeader({
       </div>
       <div className="flex items-center gap-2">
         <SurveyDesignStatusBadge
-          showInvalidJson={showInvalidJson}
-          showUnsavedChanges={showUnsavedChanges}
+          isOnJsonTab={isOnJsonTab}
+          isJsonModified={isJsonModified}
+          hasJsonErrors={showInvalidJson}
+          hasUnsavedChanges={showUnsavedChanges}
           isSaving={isPending}
           showSavedSuccess={showSavedSuccess}
           onSavedSuccessDismiss={clearSavedSuccess}

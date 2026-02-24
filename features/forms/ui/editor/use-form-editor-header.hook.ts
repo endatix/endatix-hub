@@ -26,6 +26,7 @@ export interface FormEditorHeaderState {
   inputRef: RefObject<HTMLInputElement | null>;
   isPending: boolean;
   isSaving: boolean;
+  isJsonModified: boolean;
   hasUnsavedChanges: boolean;
   hasJsonErrors: boolean;
   isOnJsonTab: boolean;
@@ -48,7 +49,8 @@ export const useFormEditorHeader = ({
   onSave,
   onNavigateBack,
 }: UseFormEditorHeaderProps): FormEditorHeaderState => {
-  const { hasUnsavedChanges, hasJsonErrors, isOnJsonTab } = useSurveyDesigner();
+  const { hasUnsavedChanges, hasJsonErrors, isOnJsonTab, isJsonModified } =
+    useSurveyDesigner();
   const [isEditingName, setIsEditingName] = useState(
     initialFormName === "New Form",
   );
@@ -84,17 +86,25 @@ export const useFormEditorHeader = ({
   }, [formId, name, originalName, startTransition]);
 
   const handleSaveAndGoBack = useCallback(() => {
-    if (hasUnsavedChanges || isCurrentThemeModified) {
-      const confirm = window.confirm(
-        "There are unsaved changes. Are you sure you want to leave?",
-      );
-      if (confirm) {
-        onNavigateBack();
-      }
-    } else {
+    const hasChanges =
+      hasUnsavedChanges || isCurrentThemeModified || isJsonModified;
+    if (!hasChanges) {
+      onNavigateBack();
+      return;
+    }
+
+    const confirm = window.confirm(
+      "There are unsaved changes. Are you sure you want to leave?",
+    );
+    if (confirm) {
       onNavigateBack();
     }
-  }, [hasUnsavedChanges, isCurrentThemeModified, onNavigateBack]);
+  }, [
+    hasUnsavedChanges,
+    isCurrentThemeModified,
+    onNavigateBack,
+    isJsonModified,
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -152,6 +162,7 @@ export const useFormEditorHeader = ({
     hasJsonErrors,
     isOnJsonTab,
     showSavedSuccess,
+    isJsonModified,
     handleNameSave,
     handleSaveAndGoBack,
     handleKeyDown,
