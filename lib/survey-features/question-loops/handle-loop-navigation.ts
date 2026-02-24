@@ -18,22 +18,26 @@ function resolveCondition(condition: string, panelName: string, currentIndex: nu
 export function handleLoopExits(survey: SurveyModel) {
     const handler = (sender: SurveyModel, options: DynamicPanelItemValueChangedEvent) => {
         const loopPanel = options.question as LoopingPanelModel;
+        const { 
+            loopSource,
+            exitLoopCondition : singleCondition, 
+            exitAllLoopsCondition : allCondition
+             } = loopPanel;
 
-        if (!loopPanel || !loopPanel.loopSource) return;
+        if (!loopSource || loopSource.length === 0)  return;
+        if (!allCondition && !singleCondition) return;
 
         // Evaluate "Exit All Loops"
         let shouldExitAllLoops = false;
-        const exitAllCond = loopPanel.exitAllLoopsCondition;
-        if (typeof exitAllCond === "string" && exitAllCond.trim() !== "") {
-            const expr = resolveCondition(exitAllCond, loopPanel.name, options.panelIndex);
+        if (typeof allCondition === "string" && allCondition.trim() !== "") {
+            const expr = resolveCondition(allCondition, loopPanel.name, options.panelIndex);
             shouldExitAllLoops = sender.runCondition(expr);
         }
 
         // Evaluate "Exit Current Loop"
         let shouldExitCurrentLoop = false;
-        const exitLoopCond = loopPanel.exitLoopCondition;
-        if (typeof exitLoopCond === "string" && exitLoopCond.trim() !== "") {
-            const expr = resolveCondition(exitLoopCond, loopPanel.name, options.panelIndex);
+        if (typeof singleCondition === "string" && singleCondition.trim() !== "") {
+            const expr = resolveCondition(singleCondition, loopPanel.name, options.panelIndex);
             shouldExitCurrentLoop = sender.runCondition(expr);
         }
 

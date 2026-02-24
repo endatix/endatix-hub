@@ -55,6 +55,50 @@ function fireDynamicPanelValueChanged(
   survey.onDynamicPanelValueChanged.fire(survey, options);
 }
 
+describe("handleLoopExits - gating (early return)", () => {
+  it("returns early when loopSource is missing or empty", () => {
+    const { survey, loopPanel } = createLoopingSurvey();
+    const dispose = handleLoopExits(survey);
+    const runConditionSpy = vi.spyOn(survey, "runCondition");
+    const navSpy = vi.spyOn(survey, "updateNavigationElements");
+
+    loopPanel.loopSource = [];
+    loopPanel.exitAllLoopsCondition = "{panel.exitFlag} = true";
+    survey.setValue("loopPanel[0].exitFlag", true);
+    fireDynamicPanelValueChanged(survey, loopPanel, 0, "exitFlag");
+
+    expect(runConditionSpy).not.toHaveBeenCalled();
+    expect(navSpy).not.toHaveBeenCalled();
+    expect(loopPanel.panels[1].visible).toBe(true);
+    expect(loopPanel.panels[2].visible).toBe(true);
+
+    runConditionSpy.mockRestore();
+    navSpy.mockRestore();
+    dispose?.();
+  });
+
+  it("returns early when loopSource is set but neither exit condition is set", () => {
+    const { survey, loopPanel } = createLoopingSurvey();
+    const dispose = handleLoopExits(survey);
+    const runConditionSpy = vi.spyOn(survey, "runCondition");
+    const navSpy = vi.spyOn(survey, "updateNavigationElements");
+
+    loopPanel.exitAllLoopsCondition = undefined;
+    loopPanel.exitLoopCondition = undefined;
+    survey.setValue("loopPanel[0].exitFlag", true);
+    fireDynamicPanelValueChanged(survey, loopPanel, 0, "exitFlag");
+
+    expect(runConditionSpy).not.toHaveBeenCalled();
+    expect(navSpy).not.toHaveBeenCalled();
+    expect(loopPanel.panels[1].visible).toBe(true);
+    expect(loopPanel.panels[2].visible).toBe(true);
+
+    runConditionSpy.mockRestore();
+    navSpy.mockRestore();
+    dispose?.();
+  });
+});
+
 describe("handleLoopExits - exitAllLoopsCondition", () => {
   it("calls runCondition with resolved panel expression and hides subsequent panels when the condition evaluates to true", () => {
     const { survey, loopPanel } = createLoopingSurvey();
@@ -76,6 +120,10 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
     expect(loopPanel.panels[0].visible).toBe(true);
     expect(loopPanel.panels[1].visible).toBe(false);
     expect(loopPanel.panels[2].visible).toBe(false);
+    const currentPanelQuestions = loopPanel.panels[0].questions;
+    expect(currentPanelQuestions.find((q) => q.name === "exitFlag")?.visible).toBe(true);
+    expect(currentPanelQuestions.find((q) => q.name === "q1")?.visible).toBe(false);
+    expect(currentPanelQuestions.find((q) => q.name === "q2")?.visible).toBe(false);
     expect(navSpy).toHaveBeenCalled();
 
     runConditionSpy.mockRestore();
@@ -103,6 +151,9 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
 
     expect(loopPanel.panels[1].visible).toBe(true);
     expect(loopPanel.panels[2].visible).toBe(true);
+    const currentPanelQuestions = loopPanel.panels[0].questions;
+    expect(currentPanelQuestions.find((q) => q.name === "q1")?.visible).toBe(true);
+    expect(currentPanelQuestions.find((q) => q.name === "q2")?.visible).toBe(true);
 
     expect(runConditionSpy).toHaveBeenCalledTimes(2);
     runConditionSpy.mockRestore();
