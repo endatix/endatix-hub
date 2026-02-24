@@ -1,13 +1,18 @@
-import { ColumnDef } from "@tanstack/react-table";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
-import { RowActions } from "./row-actions";
-import { ColumnHeader } from "./column-header";
-import { CellDate } from "./cell-date";
+import { QUESTION_REGISTRY, QuestionType } from "@/lib/questions/questions-registry";
+import { ColumnDef } from "@tanstack/react-table";
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
+import { CellDate } from "./cell-date";
 import { CellStatusDropdown } from "./cell-status-dropdown";
+import { ColumnHeader } from "./column-header";
+import { RowActions } from "./row-actions";
 
-export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
+export type ParsedSubmission = Submission & {
+  parsedData: Record<string, any>;
+};
+
+export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
   {
     id: "actions",
     enableSorting: false,
@@ -87,36 +92,18 @@ export const COLUMNS_DEFINITION: ColumnDef<Submission>[] = [
   },
 ];
 
-/**
- * Question types excluded from grid columns: binary data, complex objects, or display-only.
- */
-const GRID_UNSUPPORTED_TYPES = new Set([
-  "file",
-  "signaturepad",
-  "imagepicker",
-  "matrix",
-  "matrixdynamic",
-  "matrixdropdown",
-  "paneldynamic",
-  "multipletext",
-  "html",
-  "image",
-]);
-
-export function buildSubmissionDataColumns(fields: DefinitionField[]): ColumnDef<Submission>[] {
+export function buildSubmissionDataColumns(fields: DefinitionField[]): ColumnDef<ParsedSubmission>[] {
   return fields
-    .filter((field) => !GRID_UNSUPPORTED_TYPES.has(field.type))
+    .filter((field) => {
+      const questionType = field.type as QuestionType;
+      return QUESTION_REGISTRY[questionType]?.supportedInGrid === true;
+    })
     .map((field) => ({
       id: `data_${field.name}`,
       header: field.title,
-      accessorFn: (row: Submission) => {
-        try {
-          const data = row.jsonData ? JSON.parse(row.jsonData as string) : {};
-          const value = data[field.name];
-          return value !== undefined && value !== null ? String(value) : null;
-        } catch {
-          return null;
-        }
+      accessorFn: (row: ParsedSubmission) => {
+        const value = row.parsedData?.[field.name];
+        return value !== undefined && value !== null ? String(value) : null;
       },
       cell: ({ getValue }) => <span>{(getValue() as string) ?? "-"}</span>,
     }));

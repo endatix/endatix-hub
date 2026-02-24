@@ -1,6 +1,6 @@
 "use client";
 
-import { COLUMNS_DEFINITION, DataTable, buildSubmissionDataColumns } from "@/features/submissions/ui/table";
+import { buildSubmissionDataColumns, COLUMNS_DEFINITION, DataTable, ParsedSubmission } from "@/features/submissions/ui/table";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
 import { useEffect, useState } from "react";
 
@@ -42,8 +42,19 @@ const SubmissionsTable = ({ data, formId, definitionFields = [] }: SubmissionsTa
     };
   }, [selectedSubmissionId, data]);
 
+  const parsedData: ParsedSubmission[] = data.map(submission => ({
+    ...submission,
+    parsedData: (() => {
+      try {
+        return submission.jsonData ? JSON.parse(submission.jsonData as string) : {};
+      } catch {
+        return {};
+      }
+    })()
+  }));
+
   const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
-  return <DataTable data={data} columns={allColumns} />;
+  return <DataTable data={parsedData} columns={allColumns} />;
 };
 
 export default SubmissionsTable;

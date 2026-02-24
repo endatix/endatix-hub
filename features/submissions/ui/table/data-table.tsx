@@ -35,7 +35,7 @@ const ROW_CLASS_NAMES = {
   complete: "font-medium",
 } as const;
 
-const getRowClassName = (row: Row<Submission>) => {
+const getRowClassName = <TData extends Submission>(row: Row<TData>) => {
   let className = "";
   if (row.getIsSelected()) {
     className += ROW_CLASS_NAMES.selected;
@@ -47,22 +47,22 @@ const getRowClassName = (row: Row<Submission>) => {
   return className || undefined;
 };
 
-export function DataTable({
+export function DataTable<TData extends Submission>({
   data,
   columns,
 }: {
-  data: Submission[];
-  columns: ColumnDef<Submission>[];
+  data: TData[];
+  columns: ColumnDef<TData>[];
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const router = useRouter();
-  const handleRowSelectionChange = (row: Row<Submission>) => {
+  const handleRowSelectionChange = (row: Row<TData>) => {
     table.setRowSelection({
       [row.id]: true,
     });
     //setIsSheetOpen(true)
-    const submission = row.original as Submission;
+    const submission = row.original;
     router.push(`/forms/${submission.formId}/submissions/${submission.id}`, {
       scroll: false,
     });
@@ -88,50 +88,52 @@ export function DataTable({
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={getRowClassName(row)}
-                onClick={() => handleRowSelectionChange(row)}
-                data-state={row.getIsSelected() && "selected"}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
+      <div className="w-full overflow-x-auto">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id} colSpan={header.colSpan}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={getRowClassName(row)}
+                  onClick={() => handleRowSelectionChange(row)}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
       <TablePagination table={table} />
       <Sheet modal={true} open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none flex flex-col h-screen justify-between">
