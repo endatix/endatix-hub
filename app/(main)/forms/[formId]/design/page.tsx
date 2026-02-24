@@ -74,8 +74,8 @@ export default async function FormDesignerPage({ params }: Params) {
   };
 
   return (
-    <Suspense fallback={<FormEditorLoader />}>
-      <div className="h-dvh overflow-hidden max-w-[100vw] -m-6">
+    <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
+      <Suspense fallback={<FormEditorLoader />}>
         <AssetStorageProvider>
           <FormAssistantProvider
             isAssistantEnabled={aiFeaturesEnabled}
@@ -84,7 +84,7 @@ export default async function FormDesignerPage({ params }: Params) {
             <FormDesignerWrapper {...props} />
           </FormAssistantProvider>
         </AssetStorageProvider>
-      </div>
-    </Suspense>
+      </Suspense>
+    </div>
   );
 }

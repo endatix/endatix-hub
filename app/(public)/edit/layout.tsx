@@ -1,6 +1,6 @@
 import "@/app/globals.css";
+import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
-import { getSession } from "@/features/auth";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default async function EditLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
+  const session = await auth();
 
   return (
     <html lang="en" suppressHydrationWarning>

@@ -11,6 +11,21 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Generates a cryptographically secure random integer in [min, max] (inclusive).
+ * Uses crypto.getRandomValues; avoid Math.random() for security-sensitive or lint compliance.
+ * @param min - Minimum value (inclusive)
+ * @param max - Maximum value (inclusive)
+ * @returns Random integer in [min, max]
+ */
+export function generateRandomNumber(min: number, max: number): number {
+  const array = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(array);
+  const normalized = array[0] / (0xffffffff + 1);
+  
+  return Math.floor(normalized * (max - min + 1)) + min;
+} 
+
+/**
  * Delays execution for specified milliseconds. Used for testing purposes.
  * @param ms - Number of milliseconds to sleep
  * @returns Promise that resolves after the specified delay
@@ -124,7 +139,8 @@ export const TokenPermission = {
   Export: "x",
 } as const;
 
-export type TokenPermissionValue = typeof TokenPermission[keyof typeof TokenPermission];
+export type TokenPermissionValue =
+  (typeof TokenPermission)[keyof typeof TokenPermission];
 
 /**
  * Checks if an access token has a specific permission.
@@ -133,7 +149,10 @@ export type TokenPermissionValue = typeof TokenPermission[keyof typeof TokenPerm
  * @param permission - The permission to check (TokenPermission.Read or TokenPermission.Write)
  * @returns true if the token has the specified permission
  */
-export function hasTokenPermission(token: string, permission: TokenPermissionValue): boolean {
+export function hasTokenPermission(
+  token: string,
+  permission: TokenPermissionValue,
+): boolean {
   const parts = token.split(".");
   if (parts.length < 4) {
     return false;

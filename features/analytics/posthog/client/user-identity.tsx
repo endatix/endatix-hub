@@ -1,10 +1,10 @@
 "use client";
 
-import type { SessionData } from "@/features/auth";
 import { useSessionIdentity } from "./hooks/use-identify";
+import { Session } from "next-auth";
 
 interface PostHogUserIdentityProps {
-  session?: SessionData;
+  session?: Session | null;
 }
 
 /**
@@ -16,6 +16,6 @@ export function PostHogUserIdentity({
   session,
 }: PostHogUserIdentityProps): null {
   useSessionIdentity(session);
-  
+
   return null;
 }

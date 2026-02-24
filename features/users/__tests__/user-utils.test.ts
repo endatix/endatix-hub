@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { getDisplayName, getInitials } from "../user-utils";
+import { Session } from "next-auth";
+import {
+  getDisplayName,
+  getInitials,
+  getCurrentUserInfo,
+} from "../../users/user-utils";
 
 describe("getInitials", () => {
   it("returns first and last initial when userName has multiple words", () => {
@@ -64,5 +69,73 @@ describe("getDisplayName", () => {
   it("prefers userName over email", () => {
     expect(getDisplayName("Jane Doe", "tech@x.com")).toBe("Jane Doe");
     expect(getDisplayName("admin@hub.com", "user@other.com")).toBe("Admin");
+  });
+});
+
+describe("getCurrentUserInfo", () => {
+  it("returns not logged in when session is null", () => {
+    const result = getCurrentUserInfo(null);
+    expect(result.isLoggedIn).toBe(false);
+    expect(result.name).toBe("Not logged in");
+    expect(result.email).toBe("");
+    expect(result.id).toBe("");
+    expect(result.displayName).toBe("?");
+    expect(result.initials).toBe("?");
+  });
+
+  it("returns not logged in when session.user is null", () => {
+    const result = getCurrentUserInfo({} as Session);
+    expect(result.isLoggedIn).toBe(false);
+    expect(result.name).toBe("Not logged in");
+  });
+
+  it("returns user info when session has user with name and email", () => {
+    const session = {
+      user: { name: "John Doe", email: "john@example.com", id: "123" },
+    } as Session;
+    const result = getCurrentUserInfo(session);
+    expect(result.isLoggedIn).toBe(true);
+    expect(result.name).toBe("John Doe");
+    expect(result.email).toBe("john@example.com");
+    expect(result.id).toBe("123");
+    expect(result.displayName).toBe("John Doe");
+    expect(result.initials).toBe("JD");
+  });
+
+  it("handles user with only email", () => {
+    const session = {
+      user: { email: "tech@endatix.com", id: "456" },
+    } as Session;
+    const result = getCurrentUserInfo(session);
+    expect(result.isLoggedIn).toBe(true);
+    expect(result.name).toBe("");
+    expect(result.email).toBe("tech@endatix.com");
+    expect(result.id).toBe("456");
+    expect(result.displayName).toBe("Tech");
+    expect(result.initials).toBe("TE");
+  });
+
+  it("handles user with email-shaped name", () => {
+    const session = {
+      user: { name: "admin@hub.com", email: "other@x.com", id: "789" },
+    } as Session;
+    const result = getCurrentUserInfo(session);
+    expect(result.isLoggedIn).toBe(true);
+    expect(result.name).toBe("admin@hub.com");
+    expect(result.displayName).toBe("Admin");
+    expect(result.initials).toBe("AD");
+  });
+
+  it("handles null/undefined user properties", () => {
+    const session = {
+      user: { name: null, email: null, id: null },
+    } as unknown as Session;
+    const result = getCurrentUserInfo(session);
+    expect(result.isLoggedIn).toBe(true);
+    expect(result.name).toBe("");
+    expect(result.email).toBe("");
+    expect(result.id).toBe("");
+    expect(result.displayName).toBe("");
+    expect(result.initials).toBe("?");
   });
 });

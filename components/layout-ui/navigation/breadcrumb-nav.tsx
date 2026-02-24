@@ -1,11 +1,14 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Breadcrumb,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ISitemapItem } from "@/types/navigation-models";
@@ -29,7 +32,7 @@ const BreadcrumbNav = ({
   const pathNames = currentPath.split("/").filter((path) => path);
 
   return (
-    <Breadcrumb className="hidden md:flex">
+    <Breadcrumb>
       <BreadcrumbList>
         {homeText?.length && (
           <>
@@ -52,14 +55,33 @@ const BreadcrumbNav = ({
             ? parsedLink[0].toUpperCase() +
               parsedLink.slice(1, parsedLink.length)
             : parsedLink;
+
+          if (index === pathNames.length - 1) {
+            return (
+              <React.Fragment key={href}>
+                {pathNames.length > 2 && (
+                  <>
+                    <BreadcrumbEllipsis className="md:hidden" />
+                    <BreadcrumbSeparator className="md:hidden" />
+                  </>
+                )}
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{itemLink}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </React.Fragment>
+            );
+          }
+
           return (
             <React.Fragment key={index}>
-              <BreadcrumbItem>
+              <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink className={itemClasses} asChild>
                   <Link href={{ pathname: href }}>{itemLink}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              {pathNames.length !== index + 1 && <BreadcrumbSeparator />}
+              {pathNames.length !== index + 1 && (
+                <BreadcrumbSeparator className="hidden md:block" />
+              )}
             </React.Fragment>
           );
         })}

@@ -1,8 +1,9 @@
 import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
-import { getSession } from "@/features/auth";
-import type { Metadata } from "next";
+import { auth } from "@/auth";
+import { cookies } from "next/headers";
 import localFont from "next/font/local";
+import { Metadata } from "next";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -41,7 +42,10 @@ export default async function RootLayout({
   header,
   nav,
 }: RootLayoutProps) {
-  const session = await getSession();
+  const session = await auth();
+  const cookieStore = await cookies();
+  const sidebarValue = cookieStore.get("sidebar_state");
+  const defaultSidebarOpen = sidebarValue?.value === "true";
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -49,14 +53,12 @@ export default async function RootLayout({
         <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppProvider session={session}>
-          <div className="flex min-h-screen w-full flex-row bg-muted/40">
-            {nav}
-            <div className="flex flex-1 flex-col min-w-0">
-              {header}
-              <main className="flex-1 flex flex-col p-6 min-w-0">{children}</main>
-            </div>
-          </div>
+        <AppProvider session={session} sidebarDefaultOpen={defaultSidebarOpen}>
+          {nav}
+          <main data-slot="sidebar-inset">
+            {header}
+            <div data-slot="content-wrapper">{children}</div>
+          </main>
         </AppProvider>
       </body>
     </html>

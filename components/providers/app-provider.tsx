@@ -4,9 +4,10 @@ import { ReactNode } from "react";
 import { ThemeProvider } from "./theme-provider";
 import { PostHogProvider } from "@/features/analytics/posthog/client";
 import { SessionProvider } from "next-auth/react";
-import type { SessionData } from "@/features/auth";
 import type { ThemeProviderProps } from "next-themes";
 import { Toaster } from "sonner";
+import { SidebarProvider } from "../ui/sidebar";
+import { Session } from "next-auth";
 
 // Options for enabling specific features
 interface AppProviderOptions {
@@ -14,6 +15,7 @@ interface AppProviderOptions {
   enableAnalytics?: boolean;
   enableSession?: boolean;
   enableToaster?: boolean;
+  enableSidebar?: boolean;
 }
 
 // Theme options - use next-themes types for compatibility
@@ -21,16 +23,20 @@ type ThemeOptions = Partial<Omit<ThemeProviderProps, "children">>;
 
 // Predefined options
 export const AppOptions = {
-  NoTheme: { enableTheme: false, enableAnalytics: true } as AppProviderOptions,
+  PublicPages: { enableTheme: false, enableAnalytics: true, enableSidebar: false } as AppProviderOptions,
 };
 
 // Main props interface
 interface AppProviderProps {
   children: ReactNode;
-  session?: SessionData;
+  session?: Session | null;
   options?: AppProviderOptions;
   themeOptions?: ThemeOptions;
+  sidebarDefaultOpen?: boolean;
 }
+
+/** Default for sidebar open state when layout does not pass it (avoids server cookie read). */
+export const DEFAULT_SIDEBAR_OPEN = true;
 
 /**
  * Application provider component
@@ -44,17 +50,30 @@ export function AppProvider({
     enableAnalytics: true,
     enableSession: true,
     enableToaster: true,
+    enableSidebar: true,
   },
   themeOptions = {},
+  sidebarDefaultOpen = DEFAULT_SIDEBAR_OPEN,
 }: AppProviderProps) {
-  const { enableTheme, enableAnalytics, enableToaster, enableSession} = options;
+  const {
+    enableTheme,
+    enableAnalytics,
+    enableToaster,
+    enableSession,
+    enableSidebar,
+  } = options;
 
   // Build the provider stack based on enabled features
   let content = <>{children}</>;
 
   // Add NextAuth session provider if enabled
   if (enableSession) {
-    content = <SessionProvider>{content}</SessionProvider>;
+    content = <SessionProvider session={session}>{content}</SessionProvider>;
+  }
+
+  // Add sidebar provider if enabled
+  if (enableSidebar) {
+    content = <SidebarProvider defaultOpen={sidebarDefaultOpen}>{content}</SidebarProvider>;
   }
 
   // Add analytics provider if enabled

@@ -12,4 +12,6 @@ module.exports = {
   semi: true,
   printWidth: 80,
   arrowParens: "always",
+  plugins: ["prettier-plugin-tailwindcss"],
+  tailwindStylesheet: "./app/globals.css",
 };

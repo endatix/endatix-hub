@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { usePostHog } from "posthog-js/react";
-import type { SessionData } from "@/features/auth";
+import { Session } from "next-auth";
 
 const TRACKED_IDENTITY_KEY = "anon_id";
 
@@ -118,11 +118,11 @@ export const useIdentify = () => {
    * Returns a boolean indicating if PostHog is active
    */
   const handleSession = useCallback(
-    (session?: SessionData) => {
+    (session?: Session | null) => {
       if (!posthog || typeof window === "undefined") return false;
 
-      const isLoggedIn = session?.isLoggedIn === true;
-      const email = session?.username;
+      const isLoggedIn = session?.user !== null;
+      const email = session?.user?.email;
 
       if (isLoggedIn && email) {
         identifyLoggedInUser(email);
@@ -152,12 +152,15 @@ export const useIdentify = () => {
  * Simplified to focus on the happy path - identifying logged in users with their email
  * and anonymous users with a persistent anonymous ID
  */
-export const useSessionIdentity = (session?: SessionData) => {
+export const useSessionIdentity = (session?: Session | null) => {
   const { handleSession } = useIdentify();
   const posthog = usePostHog();
 
   useEffect(() => {
-    if (!posthog) return;
+    if (!posthog) {
+      return;
+    }
+
     handleSession(session);
   }, [session, posthog, handleSession]);
 };
