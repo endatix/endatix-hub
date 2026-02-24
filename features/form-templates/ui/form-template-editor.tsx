@@ -11,7 +11,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useTransition,
   useLayoutEffect,
 } from "react";
 import { slk } from "survey-core";
@@ -41,7 +40,6 @@ import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor
 import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon } from "lucide-react";
 
-
 export interface FormTemplateEditorProps {
   templateId: string;
   templateJson: object | null;
@@ -67,7 +65,7 @@ function FormTemplateEditorContent({
   templateName,
   options,
   slkVal,
-}: FormTemplateEditorProps) {
+}: Readonly<FormTemplateEditorProps>) {
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const {
@@ -401,7 +399,9 @@ function FormTemplateEditorContent({
   );
 }
 
-export default function FormTemplateEditor(props: FormTemplateEditorProps) {
+export default function FormTemplateEditor(
+  props: Readonly<FormTemplateEditorProps>,
+) {
   return (
     <DesignSurveyProvider>
       <FormTemplateEditorContent {...props} />
