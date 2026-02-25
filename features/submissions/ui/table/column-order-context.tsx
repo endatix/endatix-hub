@@ -6,6 +6,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -81,31 +82,34 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
     store.saveColumnOrder(columnOrder);
   }, [formId, columnOrder]);
 
-  const setColumnOrder = (order: string[]) => {
+  const setColumnOrder = useCallback((order: string[]) => {
     setColumnOrderState(order);
-  };
+  }, []);
 
-  const reorderColumn = (activeId: string, overId: string) => {
-    if (activeId === "actions" || overId === "actions") {
-      return;
-    }
+  const reorderColumn = useCallback(
+    (activeId: string, overId: string) => {
+      if (activeId === "actions" || overId === "actions") {
+        return;
+      }
 
-    const oldIndex = columnOrder.indexOf(activeId);
-    const newIndex = columnOrder.indexOf(overId);
+      const oldIndex = columnOrder.indexOf(activeId);
+      const newIndex = columnOrder.indexOf(overId);
 
-    if (oldIndex === -1 || newIndex === -1) {
-      return;
-    }
+      if (oldIndex === -1 || newIndex === -1) {
+        return;
+      }
 
-    const newOrder = arrayMove(columnOrder, oldIndex, newIndex);
-    setColumnOrderState(newOrder);
-  };
+      const newOrder = arrayMove(columnOrder, oldIndex, newIndex);
+      setColumnOrderState(newOrder);
+    },
+    [columnOrder]
+  );
 
-  const resetToDefault = () => {
+  const resetToDefault = useCallback(() => {
     setColumnOrderState(defaultColumnOrder);
     const store = createColumnOrderStore(formId);
     store.resetColumnOrder();
-  };
+  }, [defaultColumnOrder, formId]);
 
   const hasCustomOrder = useMemo(
     () => JSON.stringify(columnOrder) !== JSON.stringify(defaultColumnOrder),
@@ -121,7 +125,7 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
       resetToDefault,
       hasCustomOrder,
     }),
-    [columnOrder, defaultColumnOrder, hasCustomOrder],
+    [columnOrder, defaultColumnOrder, setColumnOrder, reorderColumn, resetToDefault, hasCustomOrder],
   );
 
   return (
