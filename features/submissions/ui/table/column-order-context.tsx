@@ -45,7 +45,7 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
   );
 
   const [columnOrder, setColumnOrderState] = useState<string[]>(() => {
-    if (typeof window === "undefined") {
+    if (typeof globalThis.window === "undefined") {
       return defaultColumnOrder;
     }
 
@@ -69,7 +69,7 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof globalThis.window === "undefined") {
       return;
     }
 
