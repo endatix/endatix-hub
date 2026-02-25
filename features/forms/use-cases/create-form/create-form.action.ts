@@ -36,7 +36,7 @@ export async function createFormAction(
     const initialFormRequest = {
       name: rawData.name,
       description: rawData.description || undefined,
-      isEnabled: false,
+      isEnabled: true,
       formDefinitionJsonData: JSON.stringify(EMPTY_FORM_DEFINITION),
     };
 
