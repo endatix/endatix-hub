@@ -162,13 +162,13 @@ export const getActiveFormDefinition = async (
   const requestOptions: RequestInit = {};
   const headerBuilder = new HeaderBuilder();
 
-  if (!allowAnonymous) {
-    const session = await getSession();
+  const session = await getSession();
 
-    if (!session.isLoggedIn) {
-      redirect("/login");
-    }
+  if (!allowAnonymous && !session.isLoggedIn) {
+    redirect("/login");
+  }
 
+  if (session.isLoggedIn) {
     headerBuilder.withAuth(session);
   }
 
