@@ -1,106 +1,107 @@
 ---
-name: customize-creator
-description: Add or extend Survey Creator (SurveyJS) features in this codebase. Use when creating hooks that attach behavior to the form/template editor, when following the registration pattern for creator plugins, or when asked how to customize the creator.
----
 
-# Customize Survey Creator
+## *name: add-survey-feature
+description: Add or extend Survey Creator or Survey Runner (SurveyJS) features in this codebase. Use when creating hooks that attach behavior, registering plugins, or customizing SurveyJS functionality.*
 
-This codebase uses a **Registration Pattern** for Survey Creator features: hooks return a **register** function that accepts the creator instance and returns a **cleanup** function. The consumer calls register when the creator is ready and uses the returned cleanup in their effect teardown.
+# *Add Survey Feature*
 
-## Why this pattern
+*This codebase uses a strict **Vertical Slice Architecture** combined with a **Registration Pattern** for SurveyJS features. Because SurveyJS models are heavy, mutable class instances, we bridge them to React by returning imperative registration functions that yield explicit cleanup functions.*
 
-- **Decouples config from instance**: The hook receives options (callbacks, ids) and returns a function; the component passes the creator when it exists.
-- **Composable**: Multiple features can be registered in one place (e.g. storage, JSON editor, loops). Each returns its own cleanup.
-- **Explicit lifecycle**: No DOM polling or "wait for element"; use creator APIs (e.g. `getPlugin('json').model`) and events instead.
-- **Testable**: Registration logic can be unit-tested without mounting the full creator.
-- **Fewer re-renders**: The creator instance is not put in React context; only serializable state (flags) lives in context. Components that need the creator hold it locally.
+## *When to Use*
 
-## Design Survey context (lightweight)
+- *Use this skill when adding a new custom capability to the SurveyJS Creator (e.g., JSON editors, asset storage, custom properties).*
+- *Use this skill when adding custom behavior to the runtime Survey Runner (e.g., question loops, dynamic visibility).*
+- *This skill is helpful for ensuring features are isolated, do not cause React re-renders, and do not leak memory via lingering event listeners.*
 
-`DesignSurveyContext` holds only **serializable state** consumed by UI (badges, save button): `hasUnsavedChanges`, `hasJsonErrors`, `isOnJsonTab` and their setters. It does **not** hold the `SurveyCreator` instance. The editor component (FormEditor / FormTemplateEditor) keeps the creator in local `useState`, subscribes to `creator.onModified` to call `setHasUnsavedChanges(true)`, and registers feature hooks (e.g. `registerJsonEditor(creator)`) in the same effect that creates the creator. This keeps the context value stable and reduces re-renders.
+## *Instructions*
 
-## Template for a new creator feature hook
+### *1. Vertical Slicing & File Structure*
 
-Create a hook under `hub/lib/survey-features/<feature-name>/` (e.g. `use-json-editor.hook.ts`).
+*Group feature code by domain under* `hub/lib/survey-features/<feature-name>/`*.*
+
+- `registry.ts`*: Strictly for global registrations (*`Serializer`*,* `FunctionFactory`*).*
+- `survey-bindings.ts`*: Pure functions for binding runner events.*
+- `creator-bindings.ts`*: Pure functions for binding creator events.*
+- `use-<feature>.hook.ts`*: The unified React hook exposing the API.*
+
+### *2. Isolate Global Logic (*`registry.ts`*)*
+
+*Global configurations must run exactly once per app load.*
+
+- *Guard with a **module-level flag** (e.g.,* `let areGlobalsRegistered = false`*).*
+- *Export a function (e.g.,* `registerMyFeatureGlobals()`*) and call it synchronously before* `new Model()` *or* `new Creator()` *is instantiated. Do not rely on* `useEffect` *for this, as custom properties must exist before the SurveyJS JSON parser runs.*
+
+### *3. Isolate Instance Bindings (*`*-bindings.ts`*)*
+
+*Write pure, imperative functions that accept the* `SurveyModel` *or* `SurveyCreatorModel`*.*
+
+- ***Always return a cleanup function** that removes every* `.add()` *listener attached during binding.*
+
+### *4. Hook API Design (`*use-<feature>.hook.ts`*)*
+
+- ***Decouple config from instance**: The hook receives options (callbacks, flags) and returns registration functions.* 
+- ***No reactive models**: Never pass* `SurveyModel` *or* `SurveyCreatorModel` *into the hook's arguments or* `useEffect` *dependency arrays.*
+- ***Return explicit registers**: Return functions like* `registerWithCreator(creator)` *and* `bindToSurvey(survey)`*.*
+
+### *5. Instance Reusability (*`survey.JSON` *vs* `new Model`*)*
+
+*Whenever possible, prefer mutating* `survey.JSON = newJson` *to update a schema rather than creating a* `new Model(json)`*.* 
+
+- *Because our bindings attach to the model instance, updating* `.JSON` *preserves all registered events.* 
+- *You only need to bind events once when the model is initially created.*
+
+### *6. Feature Orchestration (Avoiding Dependency Bloat)*
+
+*When a component uses multiple features, do not import all hooks directly into the UI component (which bloats the* `useEffect` *dependency array). Instead, create a **Composer Hook** (e.g.,* `useSurveyCreatorFeatures`*) that aggregates them.*
+
+## *Templates & Examples*
+
+***Feature Hook Template (*`use-my-feature.hook.ts`*)***
 
 ```typescript
 'use client';
 
 import { useCallback } from 'react';
 import type { SurveyCreatorModel } from 'survey-creator-core';
+import type { SurveyModel } from 'survey-core';
+import { registerMyFeatureGlobals } from './registry';
 
 export interface UseMyFeatureOptions {
-  onSomeEvent?: (value: boolean) => void;
+  onModified?: () => void;
 }
 
-/**
- * Registers my feature with the Survey Creator.
- * @returns { registerMyFeature } - Call with creator; returns cleanup.
- */
 export function useMyFeature(options: UseMyFeatureOptions) {
-  const { onSomeEvent } = options;
+  const { onModified } = options;
 
-  const registerMyFeature = useCallback(
+  // 1. Synchronous Global Registration
+  const initGlobals = useCallback(() => {
+    registerMyFeatureGlobals();
+  }, []);
+
+  // 2. Creator Registration
+  const registerWithCreator = useCallback(
     (creator: SurveyCreatorModel): (() => void) => {
-      const handler = () => {
-        onSomeEvent?.(true);
-      };
+      const spawnedSurveyCleanups: (() => void)[] = [];
 
-      creator.onModified.add(handler);
-      // Or: creator.onSurveyInstanceCreated.add(...) for preview/runtime logic
+      const handleModified = () => onModified?.();
+      creator.onModified.add(handleModified);
+
+      const handleSurveyCreated = (sender: any, options: { survey: SurveyModel }) => {
+        // e.g., const cleanup = bindToSurvey(options.survey);
+        // spawnedSurveyCleanups.push(cleanup);
+      };
+      creator.onSurveyInstanceCreated.add(handleSurveyCreated);
 
       return () => {
-        creator.onModified.remove(handler);
+        creator.onModified.remove(handleModified);
+        creator.onSurveyInstanceCreated.remove(handleSurveyCreated);
+        spawnedSurveyCleanups.forEach(cleanup => cleanup());
       };
     },
-    [onSomeEvent],
+    [onModified]
   );
 
-  return { registerMyFeature };
+  return { initGlobals, registerWithCreator };
 }
 ```
 
-## Usage in the editor component
-
-In `form-editor.tsx` or `form-template-editor.tsx`, keep the creator in local state and register features in the init effect:
-
-```typescript
-const [creator, setCreator] = useState<SurveyCreator | null>(null);
-const { setHasUnsavedChanges, setHasJsonErrors, setIsOnJsonTab } = useSurveyDesigner();
-const { registerMyFeature } = useMyFeature({ onSomeEvent: setHasUnsavedChanges });
-
-// In the effect that creates the creator:
-const newCreator = new SurveyCreator(options);
-const unregisterMyFeature = registerMyFeature(newCreator);
-const unregisterStorage = registerStorageHandlers(newCreator);
-// ...
-setCreator(newCreator);
-return () => {
-  unregisterMyFeature();
-  unregisterStorage();
-};
-
-// Separate effect: subscribe to creator.onModified and call setHasUnsavedChanges(true).
-useEffect(() => {
-  if (creator === null) return;
-  const setAsModified = () => setHasUnsavedChanges(true);
-  creator.onModified.add(setAsModified);
-  return () => creator.onModified.remove(setAsModified);
-}, [creator, setHasUnsavedChanges]);
-```
-
-Add `registerMyFeature` (and any other register functions) to the init effect’s dependency array.
-
-## Best practices
-
-1. **Decouple config from creator**: The hook takes options (callbacks, ids). The returned register function takes only the `SurveyCreatorModel`. Do not put the creator in the hook’s dependency array; the register function is stable for a given config.
-
-2. **Always return a cleanup function**: The register function must return a function that removes every listener or subscription it added. This avoids leaks and duplicate handlers on re-init.
-
-3. **Use creator APIs, not DOM**: Prefer `creator.getPlugin('json').model`, `creator.onModified`, `creator.onActiveTabChanged`, and model `onPropertyChanged` over `document.querySelector` or polling for elements.
-
-4. **Preview vs editor logic**:
-   - **Editor / designer logic** (e.g. unsaved changes, toolbar): use `creator.onModified`, `creator.onActiveTabChanged`, or plugin model property changes.
-   - **Preview / runtime logic** (e.g. custom question behavior in the running survey): use `creator.onSurveyInstanceCreated` and apply behavior to `options.survey` for the relevant `options.area`.
-
-5. **Reference implementations**: See `hub/features/asset-storage/ui/hooks/use-storage-with-creator.hook.tsx` (storage) and `hub/lib/survey-features/json-editor/use-json-editor.hook.ts` (JSON tab state).
