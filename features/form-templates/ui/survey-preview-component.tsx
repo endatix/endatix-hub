@@ -24,7 +24,7 @@ export default function SurveyPreviewComponent({
   const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions();
   useRichText(model);
   useLoopAwareSummaryTable(model);
-  const { bindToSurvey: bindQuestionLoops } = useQuestionLoops();
+  const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
 
   const { setModelMetadata, registerViewHandlers } = useStorageView();
 
@@ -32,6 +32,7 @@ export default function SurveyPreviewComponent({
     if (!template || !isExtensionsReady) return;
 
     try {
+      initQuestionLoopsGlobals();
       const survey = new Model();
       const unbindQuestionLoops = bindQuestionLoops(survey);
 
@@ -71,6 +72,7 @@ export default function SurveyPreviewComponent({
     onModelCreated,
     isExtensionsReady,
     setModelMetadata,
+    initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);
 

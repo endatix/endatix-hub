@@ -1,9 +1,6 @@
 import { SurveyModel } from "survey-core";
 import { handleLoopExit } from "../use-cases/handle-loop-exit";
-import {
-  injectVisibilityConditions,
-  removeLoopExitWrappers,
-} from "../use-cases/inject-visibility-conditions";
+import { injectVisibilityConditions } from "../use-cases/inject-visibility-conditions";
 import { loadLoopSources } from "../use-cases/load-loop-sources";
 
 /**

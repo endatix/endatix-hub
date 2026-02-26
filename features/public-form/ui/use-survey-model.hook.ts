@@ -41,7 +41,7 @@ export function useSurveyModel({
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const { variables } = useDynamicVariables(surveyModel);
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
-  const { bindToSurvey: bindQuestionLoops } = useQuestionLoops();
+  const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
   const isInitializedRef = useRef(false);
   const submissionRef = useInitOnly(submission);
 
@@ -82,6 +82,7 @@ export function useSurveyModel({
       return;
     }
 
+    initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
 
     const initialSubmission = submissionRef.current;
@@ -113,6 +114,7 @@ export function useSurveyModel({
     cleanupUrl,
     submissionRef,
     onModelCreated,
+    initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);
 

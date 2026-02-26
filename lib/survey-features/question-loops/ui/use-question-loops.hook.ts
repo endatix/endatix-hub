@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { SurveyModel } from "survey-core";
 import {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
-import { registerQuestionLoopsGlobals } from "../infrastructure/globals-registration";
+import { registerQuestionLoopsGlobals } from "../infrastructure/registry";
 import { bindFeatureToSurvey } from "../infrastructure/survey-bindings";
 
 interface QuestionLoopInstallApi {
+  /**
+   * Registers globals (Serializer, FunctionFactory). Call once before creating any SurveyModel or SurveyCreator.
+   */
+  initGlobals: () => void;
+
   /**
    * Binds the question loops feature to a survey model.
    * @param survey - The survey model to bind the question loops feature to.
@@ -28,7 +33,7 @@ export function useQuestionLoops(): QuestionLoopInstallApi {
   const isCreatorInitializedRef = useRef(false);
   const creatorCleanupsRef = useRef<(() => void)[]>([]);
 
-  useEffect(() => {
+  const initGlobals = useCallback(() => {
     registerQuestionLoopsGlobals();
   }, []);
 
@@ -77,6 +82,7 @@ export function useQuestionLoops(): QuestionLoopInstallApi {
   }, []);
 
   return {
+    initGlobals,
     bindToSurvey,
     bindToCreator,
   };

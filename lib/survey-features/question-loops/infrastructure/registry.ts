@@ -5,7 +5,8 @@ import { LOOP_EXIT_FUNCTION_NAME } from "../types";
 let areGlobalsRegistered = false;
 
 /**
- * Registers the question loops globals that are indipendant of the survey model & creator instances. E.g functions, serializer's properties, etc.
+ * Registers the question loops globals (Serializer, FunctionFactory).
+ * Call once before any SurveyModel or SurveyCreator is created.
  */
 export function registerQuestionLoopsGlobals() {
   if (areGlobalsRegistered) return;

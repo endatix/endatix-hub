@@ -178,7 +178,7 @@ function FormEditor({
   }, [setHasUnsavedChanges]);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
-  const { bindToCreator: bindQuestionLoops } = useQuestionLoops();
+  const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -470,6 +470,7 @@ function FormEditor({
           ...(options || defaultCreatorOptions),
           showSidebar: initialPropertyGridVisible,
         };
+        initQuestionLoopsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);

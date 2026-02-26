@@ -29,7 +29,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
-  const { bindToCreator: bindQuestionLoops } = useQuestionLoops();
+  const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
 
   useEffect(() => {
     if (creator) {
@@ -43,6 +43,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
       slk(slkVal);
     }
 
+    initQuestionLoopsGlobals();
     const newCreator = new SurveyCreator(creatorOptions);
     const cleanupQuestionLoops = bindQuestionLoops(newCreator);
     newCreator.JSON = model;
@@ -55,7 +56,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     return () => {
       cleanupQuestionLoops?.();
     }
-  }, [creator, model, slkVal, bindQuestionLoops]);
+  }, [creator, model, slkVal, initQuestionLoopsGlobals, bindQuestionLoops]);
 
   return creator && <SurveyCreatorComponent creator={creator} />;
 };

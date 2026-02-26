@@ -21,7 +21,7 @@ export function useSurveyModel(
   const cleanUpFuncRef = useRef<(() => void) | null>(null);
   const modelRef = useRef<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { bindToSurvey: bindQuestionLoops } = useQuestionLoops();
+  const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -55,6 +55,7 @@ export function useSurveyModel(
           initializeCustomQuestions(questionsList);
         }
 
+        initQuestionLoopsGlobals();
         const json = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
         const model = new Model();
@@ -115,6 +116,7 @@ export function useSurveyModel(
     customQuestions,
     readOnly,
     onModelCreated,
+    initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);
 
