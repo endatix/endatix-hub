@@ -1,5 +1,5 @@
 import { DynamicPanelItemValueChangedEvent, SurveyModel } from "survey-core";
-import { LoopExitState, LoopingPanelModel } from "./types";
+import { LoopExitState, DynamicLoopModel } from "./types";
 import { PANEL_VISIBILITY_SENTINEL } from "./dynamic-loop-question";
 
 const EXIT_MARKER = "isLoopExited";
@@ -8,6 +8,9 @@ const EXIT_MARKER = "isLoopExited";
  * Idempotently injects loop exit logic. Backs up the original JSON state to prevent pollution.
  */
 export function applyLoopExitWrappers(survey: SurveyModel) {
+  const isDesignMode = survey.isDesignMode;
+  if (isDesignMode) return;
+
   const dynamicPanels = survey
     .getAllQuestions()
     .filter(
@@ -108,7 +111,7 @@ export function handleLoopExits(survey: SurveyModel) {
     sender: SurveyModel,
     options: DynamicPanelItemValueChangedEvent,
   ) => {
-    const loopPanel = options.question as LoopingPanelModel;
+    const loopPanel = options.question as DynamicLoopModel;
     const { loopSource, exitLoopCondition, exitAllLoopsCondition } = loopPanel;
 
     if (!loopSource || loopSource.length === 0) return;

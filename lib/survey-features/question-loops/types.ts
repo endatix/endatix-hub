@@ -1,5 +1,6 @@
 import {
   IJsonPropertyInfo,
+  Question,
   QuestionPanelDynamicModel,
   SurveyModel,
 } from "survey-core";
@@ -12,10 +13,11 @@ interface DynamicLoopDefinition {
   functions: {
     [LOOP_EXIT_FUNCTION_NAME]: (params: unknown[]) => boolean;
   };
+  isLoopType: (question: Question) => boolean;
 }
 
-type LoopingPanelModel = QuestionPanelDynamicModel & {
-  loopSource?: string[];
+type DynamicLoopModel = QuestionPanelDynamicModel & {
+  loopSource: string[];
   exitLoopCondition?: string;
   exitAllLoopsCondition?: string;
 };
@@ -30,8 +32,4 @@ type ConditionRunnerContext = {
   question?: { survey: SurveyModel };
 };
 
-export type {
-  DynamicLoopDefinition,
-  LoopingPanelModel,
-  ConditionRunnerContext,
-};
+export type { DynamicLoopDefinition, DynamicLoopModel, ConditionRunnerContext };

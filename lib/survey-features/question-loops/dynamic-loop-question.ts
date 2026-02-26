@@ -10,6 +10,7 @@ import {
   DynamicLoopDefinition,
   LoopExitState,
 } from "./types";
+import { isLoopQuestion } from "./loop-utils";
 
 const PANEL_QUESTION_TYPE = "paneldynamic";
 export const PANEL_VISIBILITY_SENTINEL = 9999;
@@ -54,14 +55,6 @@ export function isLoopExitedfunction(
   }
 
   return false;
-}
-
-export function isLoopType(question: Question) {
-  if (question?.getType() !== PANEL_QUESTION_TYPE) {
-    return false;
-  }
-
-  return Array.isArray(question.loopSource) && question.loopSource.length > 0;
 }
 
 const LOOP_SOURCE_PROPERTY: IJsonPropertyInfo = {
@@ -109,7 +102,7 @@ const CHOICE_PATTERN_PROPERTY: IJsonPropertyInfo = {
   },
   type: "dropdown",
   choices: ["Selected Only", "Unselected Only"],
-  visibleIf: isLoopType,
+  visibleIf: isLoopQuestion,
 };
 
 const RANDOMIZE_LOOP_PROPERTY: IJsonPropertyInfo = {
@@ -118,7 +111,7 @@ const RANDOMIZE_LOOP_PROPERTY: IJsonPropertyInfo = {
   category: "questionLoops",
   type: "boolean",
   default: false,
-  visibleIf: isLoopType,
+  visibleIf: isLoopQuestion,
 };
 
 const MAX_LOOP_COUNT_PROPERTY: IJsonPropertyInfo = {
@@ -127,7 +120,7 @@ const MAX_LOOP_COUNT_PROPERTY: IJsonPropertyInfo = {
   category: "questionLoops",
   type: "number",
   default: 0,
-  visibleIf: isLoopType,
+  visibleIf: isLoopQuestion,
 };
 
 const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
@@ -161,7 +154,7 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
 
     choicesCallback(allChoices);
   },
-  visibleIf: isLoopType,
+  visibleIf: isLoopQuestion,
 };
 
 const EXIT_LOOP_CONDITION_PROPERTY: IJsonPropertyInfo = {
@@ -169,7 +162,7 @@ const EXIT_LOOP_CONDITION_PROPERTY: IJsonPropertyInfo = {
   displayName: "Exit current loop if...",
   category: "questionLoops",
   type: "condition",
-  visibleIf: isLoopType,
+  visibleIf: isLoopQuestion,
 };
 
 const EXIT_ALL_LOOPS_CONDITION_PROPERTY: IJsonPropertyInfo = {
@@ -177,7 +170,7 @@ const EXIT_ALL_LOOPS_CONDITION_PROPERTY: IJsonPropertyInfo = {
   displayName: "Exit all loops if...",
   category: "questionLoops",
   type: "condition",
-  visibleIf: isLoopType,
+  visibleIf: isLoopQuestion,
 };
 
 const EXIT_META_PROPERTY: IJsonPropertyInfo = {
@@ -201,10 +194,14 @@ const DEFAULT_LOOP_DEFINITION: DynamicLoopDefinition = {
   functions: {
     isLoopExited: isLoopExitedfunction,
   },
-  isLoopType: isLoopType,
+  isLoopType: isLoopQuestion,
 };
 
 const getDynamicLoopDefinition = (): DynamicLoopDefinition =>
   DEFAULT_LOOP_DEFINITION;
 
-export { type DynamicLoopDefinition, getDynamicLoopDefinition };
+export {
+  PANEL_QUESTION_TYPE,
+  type DynamicLoopDefinition,
+  getDynamicLoopDefinition,
+};
