@@ -1,6 +1,6 @@
 import { ItemValue, SurveyModel, ValueChangedEvent } from "survey-core";
 import { PanelItem } from "../types";
-import { shuffleArray } from "../loop-utils";
+import { getAllLoopQuestions, shuffleArray } from "../loop-utils";
 
 let isUpdatingLoop = false;
 
@@ -16,14 +16,7 @@ export function loadLoopSources(
 ) {
   if (isUpdatingLoop) return;
 
-  const dynamicPanels = sender
-    .getAllQuestions()
-    .filter(
-      (q) =>
-        q.getType() === "paneldynamic" &&
-        Array.isArray(q.loopSource) &&
-        q.loopSource.length > 0,
-    );
+  const dynamicPanels = getAllLoopQuestions(sender);
 
   const loopControlProps = [
     "randomizeLoop",
@@ -31,8 +24,9 @@ export function loadLoopSources(
     "maxLoopCount",
     "priorityItems",
   ];
-  const isSourceChanged = dynamicPanels.some((p) =>
-    p.loopSource.includes(options.name),
+
+  const isSourceChanged = dynamicPanels.some((panel) =>
+    panel.loopSource.includes(options.name),
   );
 
   if (!isSourceChanged && !loopControlProps.includes(options.name)) return;

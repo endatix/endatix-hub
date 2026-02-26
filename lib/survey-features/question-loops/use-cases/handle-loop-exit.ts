@@ -1,6 +1,6 @@
 import { DynamicPanelItemValueChangedEvent, SurveyModel } from "survey-core";
 import { DynamicLoopModel, LoopExitState } from "../types";
-import { resolveDynamicLoopCondition } from "../loop-utils";
+import { isLoopQuestion, resolveDynamicLoopCondition } from "../loop-utils";
 
 /**
  * Handles the loop exit for a dynamic loop question
@@ -13,9 +13,10 @@ export function handleLoopExit(
   options: DynamicPanelItemValueChangedEvent,
 ) {
   const loopPanel = options.question as DynamicLoopModel;
-  const { loopSource, exitLoopCondition, exitAllLoopsCondition } = loopPanel;
 
-  if (!loopSource || loopSource.length === 0) return;
+  if (!isLoopQuestion(loopPanel)) return;
+
+  const { exitLoopCondition, exitAllLoopsCondition } = loopPanel;
   if (!exitAllLoopsCondition && !exitLoopCondition) return;
 
   const meta: LoopExitState = loopPanel.exitMeta ?? {
@@ -86,7 +87,6 @@ export function handleLoopExit(
       exitAllTriggeredPanelIndex: meta.exitAllTriggeredPanelIndex,
       exitCurrentTriggeredIndexMap: { ...meta.exitCurrentTriggeredIndexMap },
     };
-    // Re-evaluate visibleIf expressions that use exitMeta (SurveyJS internal API)
-    (sender as unknown as { runConditions(): void }).runConditions();
+    sender.runExpressions();
   }
 }

@@ -1,5 +1,6 @@
 import { SurveyModel } from "survey-core";
 import { PANEL_VISIBILITY_SENTINEL } from "../dynamic-loop-question";
+import { getAllLoopQuestions } from "../loop-utils";
 
 const EXIT_MARKER = "isLoopExited";
 
@@ -10,13 +11,7 @@ export function injectVisibilityConditions(survey: SurveyModel) {
   const isDesignMode = survey.isDesignMode;
   if (isDesignMode) return;
 
-  const dynamicPanels = survey
-    .getAllQuestions()
-    .filter(
-      (q) =>
-        q.getType() === "paneldynamic" &&
-        Array.isArray((q as { loopSource?: unknown }).loopSource),
-    );
+  const dynamicPanels = getAllLoopQuestions(survey);
 
   dynamicPanels.forEach((panel) => {
     const loopPanel = panel as unknown as {

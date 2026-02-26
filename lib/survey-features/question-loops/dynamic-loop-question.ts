@@ -26,6 +26,7 @@ export function isLoopExitedfunction(
     number,
     number,
   ];
+  
   const survey: SurveyModel | undefined = this.survey ?? this.question?.survey;
   if (!survey) return false;
 
