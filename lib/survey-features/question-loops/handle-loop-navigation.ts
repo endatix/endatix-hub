@@ -1,95 +1,198 @@
-import { DynamicPanelItemValueChangedEvent, QuestionPanelDynamicModel, SurveyModel } from "survey-core";
+import { DynamicPanelItemValueChangedEvent, SurveyModel } from "survey-core";
+import {
+  type LoopExitState,
+  PANEL_VISIBILITY_SENTINEL,
+} from "./register-dynamic-looping-properties";
+import { LoopingPanelModel } from "./types";
 
-interface LoopingPanelModel extends QuestionPanelDynamicModel {
-    loopSource?: string[];
-    exitLoopCondition?: string;
-    exitAllLoopsCondition?: string;
+const EXIT_MARKER = "isLoopExited";
+
+/**
+ * Idempotently injects loop exit logic. Backs up the original JSON state to prevent pollution.
+ */
+export function applyLoopExitWrappers(survey: SurveyModel) {
+  const dynamicPanels = survey
+    .getAllQuestions()
+    .filter(
+      (q) =>
+        q.getType() === "paneldynamic" &&
+        Array.isArray((q as { loopSource?: unknown }).loopSource),
+    );
+
+  dynamicPanels.forEach((panel) => {
+    const loopPanel = panel as unknown as {
+      name: string;
+      templateVisibleIf?: string;
+      originalTemplateVisibleIf?: string;
+      templateElements: {
+        visibleIf?: string;
+        visible?: boolean;
+        originalVisibleIf?: string;
+        originalVisible?: boolean;
+      }[];
+    };
+
+    const origPanelIf = loopPanel.templateVisibleIf ?? "true";
+    if (!origPanelIf.includes(EXIT_MARKER)) {
+      loopPanel.originalTemplateVisibleIf = loopPanel.templateVisibleIf;
+      loopPanel.templateVisibleIf = `(${origPanelIf}) and ${EXIT_MARKER}('${loopPanel.name}', {panelIndex}, ${PANEL_VISIBILITY_SENTINEL}) = false`;
+    }
+
+    loopPanel.templateElements.forEach((element, elementIndex) => {
+      const origIf = element.visibleIf ?? "";
+      if (!origIf.includes(EXIT_MARKER)) {
+        element.originalVisibleIf = element.visibleIf;
+        element.originalVisible = element.visible;
+
+        const baseLogic = origIf
+          ? origIf
+          : element.visible === false
+            ? "false"
+            : "true";
+        element.visibleIf = `(${baseLogic}) and ${EXIT_MARKER}('${loopPanel.name}', {panelIndex}, ${elementIndex}) = false`;
+      }
+    });
+  });
 }
 
-function resolveCondition(condition: string, panelName: string, currentIndex: number) {
-    if (!condition) return "";
+/**
+ * Restores the original design-time JSON state, completely removing the runtime expressions.
+ */
+export function removeLoopExitWrappers(survey: SurveyModel) {
+  const dynamicPanels = survey
+    .getAllQuestions()
+    .filter((q) => q.getType() === "paneldynamic");
 
-    // Regex looks for "{panel." (case insensitive)
-    // and replaces it with "{PanelName[Index]."
-    const absolutePath = `{${panelName}[${currentIndex}].`;
-    return condition.replace(/\{panel\./gi, absolutePath);
+  dynamicPanels.forEach((panel) => {
+    const loopPanel = panel as unknown as {
+      templateVisibleIf?: string;
+      originalTemplateVisibleIf?: string;
+      templateElements: {
+        visibleIf?: string;
+        visible?: boolean;
+        originalVisibleIf?: string;
+        originalVisible?: boolean;
+      }[];
+    };
+
+    if (loopPanel.originalTemplateVisibleIf !== undefined) {
+      loopPanel.templateVisibleIf = loopPanel.originalTemplateVisibleIf;
+      delete loopPanel.originalTemplateVisibleIf;
+    }
+
+    loopPanel.templateElements.forEach((element) => {
+      if (element.originalVisibleIf !== undefined) {
+        element.visibleIf = element.originalVisibleIf;
+        delete element.originalVisibleIf;
+      }
+      if (element.originalVisible !== undefined) {
+        element.visible = element.originalVisible;
+        delete element.originalVisible;
+      }
+    });
+  });
+}
+
+function resolveCondition(
+  condition: string,
+  panelName: string,
+  currentIndex: number,
+) {
+  if (!condition) return "";
+
+  // Regex looks for "{panel." (case insensitive)
+  // and replaces it with "{PanelName[Index]."
+  const absolutePath = `{${panelName}[${currentIndex}].`;
+  return condition.replace(/\{panel\./gi, absolutePath);
 }
 
 export function handleLoopExits(survey: SurveyModel) {
-    const handler = (sender: SurveyModel, options: DynamicPanelItemValueChangedEvent) => {
-        const loopPanel = options.question as LoopingPanelModel;
-        const { 
-            loopSource,
-            exitLoopCondition : singleCondition, 
-            exitAllLoopsCondition : allCondition
-             } = loopPanel;
+  const handler = (
+    sender: SurveyModel,
+    options: DynamicPanelItemValueChangedEvent,
+  ) => {
+    const loopPanel = options.question as LoopingPanelModel;
+    const { loopSource, exitLoopCondition, exitAllLoopsCondition } = loopPanel;
 
-        if (!loopSource || loopSource.length === 0)  return;
-        if (!allCondition && !singleCondition) return;
+    if (!loopSource || loopSource.length === 0) return;
+    if (!exitAllLoopsCondition && !exitLoopCondition) return;
 
-        // Evaluate "Exit All Loops"
-        let shouldExitAllLoops = false;
-        if (typeof allCondition === "string" && allCondition.trim() !== "") {
-            const expr = resolveCondition(allCondition, loopPanel.name, options.panelIndex);
-            shouldExitAllLoops = sender.runCondition(expr);
-        }
-
-        // Evaluate "Exit Current Loop"
-        let shouldExitCurrentLoop = false;
-        if (typeof singleCondition === "string" && singleCondition.trim() !== "") {
-            const expr = resolveCondition(singleCondition, loopPanel.name, options.panelIndex);
-            shouldExitCurrentLoop = sender.runCondition(expr);
-        }
-
-        let shouldUpdateNavigation = false;
-
-        // Hide Future Panels (Exit all)
-        if (options.panelIndex < loopPanel.panels.length) {
-            for (let i = options.panelIndex + 1; i < loopPanel.panels.length; i++) {
-                // Toggle visibility for all SUBSEQUENT panels
-                // If shouldExitAllLoops is true -> hide them. 
-                // If shouldExitAllLoops is false -> show them (in case user changed their mind).
-                if (loopPanel.panels[i].visible === shouldExitAllLoops) {
-                    shouldUpdateNavigation = true;
-                    loopPanel.panels[i].visible = !shouldExitAllLoops;
-                }
-            }
-        }
-
-        // Hide Remaining Questions in Current Panel (Exit current)
-        const shouldHideRestOfPanel = shouldExitAllLoops || shouldExitCurrentLoop;
-        
-        const currentPanelQuestions = options.panel.questions;
-        let triggerIndex = -1;
-
-        // Find the question that triggered this event
-        for (let i = 0; i < currentPanelQuestions.length; i++) {
-            if (currentPanelQuestions[i].name === options.name) {
-                triggerIndex = i;
-                break;
-            }
-        }
-
-        if (triggerIndex !== -1) {
-            // Toggle visibility for all SUBSEQUENT questions
-            // If shouldExitCurrentLoop is true -> hide them. 
-            // If shouldExitCurrentLoop is false -> show them (in case user changed their mind).
-            for (let i = triggerIndex + 1; i < currentPanelQuestions.length; i++) {
-                if (currentPanelQuestions[i].visible === shouldHideRestOfPanel) {
-                    shouldUpdateNavigation = true;
-                    currentPanelQuestions[i].visible = !shouldHideRestOfPanel;
-                }
-            }
-        }
-
-        if(shouldUpdateNavigation ) {
-            sender.updateNavigationElements();
-        }
+    const meta: LoopExitState = loopPanel.exitMeta ?? {
+      exitCurrentTriggeredIndexMap: {},
     };
+    let stateChanged = false;
 
-    survey.onDynamicPanelValueChanged.add(handler);
+    if (
+      typeof exitAllLoopsCondition === "string" &&
+      exitAllLoopsCondition.trim() !== ""
+    ) {
+      const expr = resolveCondition(
+        exitAllLoopsCondition,
+        loopPanel.name,
+        options.panelIndex,
+      );
+      const shouldExitAll = !!sender.runCondition(expr);
 
-    return () => {
-        survey.onDynamicPanelValueChanged.remove(handler);
-    };
+      if (shouldExitAll) {
+        if (
+          meta.exitAllTriggeredPanelIndex === undefined ||
+          meta.exitAllTriggeredPanelIndex > options.panelIndex
+        ) {
+          meta.exitAllTriggeredPanelIndex = options.panelIndex;
+          stateChanged = true;
+        }
+      } else if (meta.exitAllTriggeredPanelIndex === options.panelIndex) {
+        meta.exitAllTriggeredPanelIndex = undefined;
+        stateChanged = true;
+      }
+    }
+
+    if (
+      typeof exitLoopCondition === "string" &&
+      exitLoopCondition.trim() !== ""
+    ) {
+      const expr = resolveCondition(
+        exitLoopCondition,
+        loopPanel.name,
+        options.panelIndex,
+      );
+      const shouldExitCurrent = !!sender.runCondition(expr);
+
+      if (!meta.exitCurrentTriggeredIndexMap)
+        meta.exitCurrentTriggeredIndexMap = {};
+
+      if (shouldExitCurrent) {
+        const triggerIndex = options.panel.questions.findIndex(
+          (q) => q.name === options.name,
+        );
+        if (
+          triggerIndex !== -1 &&
+          meta.exitCurrentTriggeredIndexMap[options.panelIndex] !== triggerIndex
+        ) {
+          meta.exitCurrentTriggeredIndexMap[options.panelIndex] = triggerIndex;
+          stateChanged = true;
+        }
+      } else if (
+        meta.exitCurrentTriggeredIndexMap[options.panelIndex] !== undefined
+      ) {
+        delete meta.exitCurrentTriggeredIndexMap[options.panelIndex];
+        stateChanged = true;
+      }
+    }
+
+    if (stateChanged) {
+      loopPanel.exitMeta = {
+        exitAllTriggeredPanelIndex: meta.exitAllTriggeredPanelIndex,
+        exitCurrentTriggeredIndexMap: { ...meta.exitCurrentTriggeredIndexMap },
+      };
+      // Re-evaluate visibleIf expressions that use exitMeta (SurveyJS internal API)
+      (sender as unknown as { runConditions(): void }).runConditions();
+    }
+  };
+
+  survey.onDynamicPanelValueChanged.add(handler);
+
+  return () => {
+    survey.onDynamicPanelValueChanged.remove(handler);
+  };
 }

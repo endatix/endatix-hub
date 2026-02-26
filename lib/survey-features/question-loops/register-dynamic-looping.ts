@@ -1,20 +1,24 @@
 import { ItemValue, SurveyModel, ValueChangedEvent } from "survey-core";
-import { handleLoopExits } from "./handle-loop-navigation";
+import {
+  applyLoopExitWrappers,
+  handleLoopExits,
+  removeLoopExitWrappers,
+} from "./handle-loop-navigation";
 import { registerDynamicLoopingProperties } from "./register-dynamic-looping-properties";
 
 // Thе following properties will be injected into the value of each panel
 // Allowing users to use them for text piping, expressions, and see them in the survey results
 interface PanelItem {
-  itemText: string; 
+  itemText: string;
   itemValue: string;
   loopIndex?: number;
 }
 
 export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
-
   registerDynamicLoopingProperties();
+  applyLoopExitWrappers(surveyModel);
   const cleanupExitHandlers = handleLoopExits(surveyModel);
-  
+
   const shuffleArray = (array: PanelItem[]) => {
     for (let i = array.length - 1; i > 0; i--) {
       const rand = new Uint32Array(1);
@@ -36,7 +40,7 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
         (q) =>
           q.getType() === "paneldynamic" &&
           Array.isArray(q.loopSource) &&
-          q.loopSource.length > 0
+          q.loopSource.length > 0,
       );
 
     const loopControlProps = [
@@ -46,7 +50,7 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
       "priorityItems",
     ];
     const isSourceChanged = dynamicPanels.some((p) =>
-      p.loopSource.includes(options.name)
+      p.loopSource.includes(options.name),
     );
 
     if (!isSourceChanged && !loopControlProps.includes(options.name)) return;
@@ -71,10 +75,12 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
 
         let filtered = [];
         if (panelQuestion.choicePattern === "Selected Only") {
-          filtered = allChoices.filter((c: ItemValue) => selectedValues.includes(c.value));
+          filtered = allChoices.filter((c: ItemValue) =>
+            selectedValues.includes(c.value),
+          );
         } else if (panelQuestion.choicePattern === "Unselected Only") {
           filtered = allChoices.filter(
-            (c: ItemValue) => !selectedValues.includes(c.value)
+            (c: ItemValue) => !selectedValues.includes(c.value),
           );
         } else {
           filtered = allChoices;
@@ -102,7 +108,7 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
           }
         }
       });
-      
+
       const max = parseInt(panelQuestion.maxLoopCount);
       let finalValue: PanelItem[] = [];
 
@@ -122,10 +128,10 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
           finalValue = shuffleArray(finalValue);
         }
       }
-      
+
       finalValue = finalValue.map((obj, index) => ({
         ...obj,
-        loopIndex: index 
+        loopIndex: index,
       }));
 
       if (JSON.stringify(panelQuestion.value) !== JSON.stringify(finalValue)) {
@@ -134,12 +140,13 @@ export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
     });
 
     isUpdatingLoop = false;
-  }
+  };
 
   surveyModel.onValueChanged.add(handler);
 
   return () => {
     surveyModel.onValueChanged.remove(handler);
     cleanupExitHandlers();
+    removeLoopExitWrappers(surveyModel);
   };
 }

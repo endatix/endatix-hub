@@ -5,12 +5,7 @@ import {
   SurveyModel,
 } from "survey-core";
 import { handleLoopExits } from "@/lib/survey-features/question-loops/handle-loop-navigation";
-
-type LoopingPanelModel = QuestionPanelDynamicModel & {
-  loopSource?: string[];
-  exitLoopCondition?: string;
-  exitAllLoopsCondition?: string;
-};
+import { LoopingPanelModel } from "../types";
 
 function createLoopingSurvey(): { survey: SurveyModel; loopPanel: LoopingPanelModel } {
   const surveyJson = {
