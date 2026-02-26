@@ -4,7 +4,7 @@ import {
   handleLoopExits,
   removeLoopExitWrappers,
 } from "./handle-loop-navigation";
-import { registerDynamicLoopingProperties } from "./register-dynamic-looping-properties";
+import { registerQuestionLoopsGlobals } from "./register-question-loops";
 
 // Thе following properties will be injected into the value of each panel
 // Allowing users to use them for text piping, expressions, and see them in the survey results
@@ -15,7 +15,7 @@ interface PanelItem {
 }
 
 export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
-  registerDynamicLoopingProperties();
+  registerQuestionLoopsGlobals();
   applyLoopExitWrappers(surveyModel);
   const cleanupExitHandlers = handleLoopExits(surveyModel);
 

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { SurveyInstanceCreatedEvent } from "survey-creator-core";
 import { SurveyCreator } from "survey-creator-react";
 import { registerDynamicLooping } from "./register-dynamic-looping";
-import { registerDynamicLoopingProperties } from "./register-dynamic-looping-properties";
+import { registerQuestionLoopsGlobals } from "./register-question-loops";
 
 let isDynamicLoopingRegistered = false;
 
@@ -13,7 +13,7 @@ function ensureDynamicLoopingRegistered() {
   if (isDynamicLoopingRegistered) {
     return;
   }
-  registerDynamicLoopingProperties();
+  registerQuestionLoopsGlobals();
   isDynamicLoopingRegistered = true;
 }
 

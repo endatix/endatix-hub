@@ -1,9 +1,6 @@
 import { DynamicPanelItemValueChangedEvent, SurveyModel } from "survey-core";
-import {
-  type LoopExitState,
-  PANEL_VISIBILITY_SENTINEL,
-} from "./register-dynamic-looping-properties";
-import { LoopingPanelModel } from "./types";
+import { LoopExitState, LoopingPanelModel } from "./types";
+import { PANEL_VISIBILITY_SENTINEL } from "./dynamic-loop-question";
 
 const EXIT_MARKER = "isLoopExited";
 
