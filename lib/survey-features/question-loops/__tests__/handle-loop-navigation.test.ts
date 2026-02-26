@@ -4,10 +4,10 @@ import {
   QuestionPanelDynamicModel,
   SurveyModel,
 } from "survey-core";
-import { handleLoopExits } from "@/lib/survey-features/question-loops/handle-loop-navigation";
-import { LoopingPanelModel } from "../types";
+import { registerLoopExitHandlers } from "@/lib/survey-features/question-loops/handle-loop-navigation";
+import { DynamicLoopModel } from "../types";
 
-function createLoopingSurvey(): { survey: SurveyModel; loopPanel: LoopingPanelModel } {
+function createLoopingSurvey(): { survey: SurveyModel; loopPanel: DynamicLoopModel } {
   const surveyJson = {
     elements: [
       {
@@ -23,7 +23,7 @@ function createLoopingSurvey(): { survey: SurveyModel; loopPanel: LoopingPanelMo
   };
 
   const survey = new SurveyModel(surveyJson);
-  const loopPanel = survey.getQuestionByName("loopPanel") as LoopingPanelModel;
+  const loopPanel = survey.getQuestionByName("loopPanel") as DynamicLoopModel;
 
   loopPanel.panelCount = 3;
   loopPanel.loopSource = ["item1"];
@@ -33,7 +33,7 @@ function createLoopingSurvey(): { survey: SurveyModel; loopPanel: LoopingPanelMo
 
 function fireDynamicPanelValueChanged(
   survey: SurveyModel,
-  loopPanel: LoopingPanelModel,
+  loopPanel: DynamicLoopModel,
   panelIndex: number,
   questionName: string,
 ): void {
@@ -53,7 +53,7 @@ function fireDynamicPanelValueChanged(
 describe("handleLoopExits - gating (early return)", () => {
   it("returns early when loopSource is missing or empty", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    const dispose = registerLoopExitHandlers(survey);
     const runConditionSpy = vi.spyOn(survey, "runCondition");
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
 
@@ -74,7 +74,7 @@ describe("handleLoopExits - gating (early return)", () => {
 
   it("returns early when loopSource is set but neither exit condition is set", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    const dispose = registerLoopExitHandlers(survey);
     const runConditionSpy = vi.spyOn(survey, "runCondition");
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
 
@@ -97,7 +97,7 @@ describe("handleLoopExits - gating (early return)", () => {
 describe("handleLoopExits - exitAllLoopsCondition", () => {
   it("calls runCondition with resolved panel expression and hides subsequent panels when the condition evaluates to true", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    const dispose = registerLoopExitHandlers(survey);
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
@@ -127,7 +127,7 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
 
   it("shows subsequent panels again when the exit-all condition becomes false", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    const dispose = registerLoopExitHandlers(survey);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValueOnce(true)
@@ -159,7 +159,7 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
 describe("handleLoopExits - exitLoopCondition", () => {
   it("hides subsequent questions in the current panel when the exit-loop condition evaluates to true", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    const dispose = registerLoopExitHandlers(survey);
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
@@ -183,7 +183,7 @@ describe("handleLoopExits - exitLoopCondition", () => {
 
   it("shows subsequent questions again when the exit-loop condition becomes false", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    const dispose = registerLoopExitHandlers(survey);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValueOnce(true)

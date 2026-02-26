@@ -1,6 +1,7 @@
 import { DynamicPanelItemValueChangedEvent, SurveyModel } from "survey-core";
 import { LoopExitState, DynamicLoopModel } from "./types";
 import { PANEL_VISIBILITY_SENTINEL } from "./dynamic-loop-question";
+import { handleLoopExit } from "./use-cases/handle-loop-exit";
 
 const EXIT_MARKER = "isLoopExited";
 
@@ -93,106 +94,10 @@ export function removeLoopExitWrappers(survey: SurveyModel) {
   });
 }
 
-function resolveCondition(
-  condition: string,
-  panelName: string,
-  currentIndex: number,
-) {
-  if (!condition) return "";
-
-  // Regex looks for "{panel." (case insensitive)
-  // and replaces it with "{PanelName[Index]."
-  const absolutePath = `{${panelName}[${currentIndex}].`;
-  return condition.replace(/\{panel\./gi, absolutePath);
-}
-
-export function handleLoopExits(survey: SurveyModel) {
-  const handler = (
-    sender: SurveyModel,
-    options: DynamicPanelItemValueChangedEvent,
-  ) => {
-    const loopPanel = options.question as DynamicLoopModel;
-    const { loopSource, exitLoopCondition, exitAllLoopsCondition } = loopPanel;
-
-    if (!loopSource || loopSource.length === 0) return;
-    if (!exitAllLoopsCondition && !exitLoopCondition) return;
-
-    const meta: LoopExitState = loopPanel.exitMeta ?? {
-      exitCurrentTriggeredIndexMap: {},
-    };
-    let stateChanged = false;
-
-    if (
-      typeof exitAllLoopsCondition === "string" &&
-      exitAllLoopsCondition.trim() !== ""
-    ) {
-      const expr = resolveCondition(
-        exitAllLoopsCondition,
-        loopPanel.name,
-        options.panelIndex,
-      );
-      const shouldExitAll = !!sender.runCondition(expr);
-
-      if (shouldExitAll) {
-        if (
-          meta.exitAllTriggeredPanelIndex === undefined ||
-          meta.exitAllTriggeredPanelIndex > options.panelIndex
-        ) {
-          meta.exitAllTriggeredPanelIndex = options.panelIndex;
-          stateChanged = true;
-        }
-      } else if (meta.exitAllTriggeredPanelIndex === options.panelIndex) {
-        meta.exitAllTriggeredPanelIndex = undefined;
-        stateChanged = true;
-      }
-    }
-
-    if (
-      typeof exitLoopCondition === "string" &&
-      exitLoopCondition.trim() !== ""
-    ) {
-      const expr = resolveCondition(
-        exitLoopCondition,
-        loopPanel.name,
-        options.panelIndex,
-      );
-      const shouldExitCurrent = !!sender.runCondition(expr);
-
-      if (!meta.exitCurrentTriggeredIndexMap)
-        meta.exitCurrentTriggeredIndexMap = {};
-
-      if (shouldExitCurrent) {
-        const triggerIndex = options.panel.questions.findIndex(
-          (q) => q.name === options.name,
-        );
-        if (
-          triggerIndex !== -1 &&
-          meta.exitCurrentTriggeredIndexMap[options.panelIndex] !== triggerIndex
-        ) {
-          meta.exitCurrentTriggeredIndexMap[options.panelIndex] = triggerIndex;
-          stateChanged = true;
-        }
-      } else if (
-        meta.exitCurrentTriggeredIndexMap[options.panelIndex] !== undefined
-      ) {
-        delete meta.exitCurrentTriggeredIndexMap[options.panelIndex];
-        stateChanged = true;
-      }
-    }
-
-    if (stateChanged) {
-      loopPanel.exitMeta = {
-        exitAllTriggeredPanelIndex: meta.exitAllTriggeredPanelIndex,
-        exitCurrentTriggeredIndexMap: { ...meta.exitCurrentTriggeredIndexMap },
-      };
-      // Re-evaluate visibleIf expressions that use exitMeta (SurveyJS internal API)
-      (sender as unknown as { runConditions(): void }).runConditions();
-    }
-  };
-
-  survey.onDynamicPanelValueChanged.add(handler);
+export function registerLoopExitHandlers(survey: SurveyModel) {
+  survey.onDynamicPanelValueChanged.add(handleLoopExit);
 
   return () => {
-    survey.onDynamicPanelValueChanged.remove(handler);
+    survey.onDynamicPanelValueChanged.remove(handleLoopExit);
   };
 }

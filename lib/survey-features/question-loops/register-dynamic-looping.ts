@@ -1,7 +1,7 @@
 import { ItemValue, SurveyModel, ValueChangedEvent } from "survey-core";
 import {
   applyLoopExitWrappers,
-  handleLoopExits,
+  registerLoopExitHandlers,
   removeLoopExitWrappers,
 } from "./handle-loop-navigation";
 import { registerQuestionLoopsGlobals } from "./register-question-loops";
@@ -17,7 +17,7 @@ interface PanelItem {
 export function registerDynamicLooping(surveyModel: SurveyModel): () => void {
   registerQuestionLoopsGlobals();
   applyLoopExitWrappers(surveyModel);
-  const cleanupExitHandlers = handleLoopExits(surveyModel);
+  const cleanupExitHandlers = registerLoopExitHandlers(surveyModel);
 
   const shuffleArray = (array: PanelItem[]) => {
     for (let i = array.length - 1; i > 0; i--) {

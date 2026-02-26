@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { SurveyModel } from "survey-core";
-import { isLoopQuestion, getAllLoopQuestions } from "../loop-utils";
+import {
+  isLoopQuestion,
+  getAllLoopQuestions,
+  resolveDynamicLoopCondition,
+} from "../loop-utils";
 import { DynamicLoopModel } from "../types";
 
 function createSurvey(
@@ -207,6 +211,114 @@ describe("getAllLoopQuestions", () => {
         "loop2",
         "loop3",
       ]);
+    });
+  });
+});
+
+describe("resolveDynamicLoopCondition", () => {
+  describe("arrange", () => {
+    it("should set up test parameters", () => {
+      const condition = "{panel.rateYourPurchase} = '5'";
+      const panelName = "loop1";
+      const currentIndex = 0;
+
+      expect(condition).toBeDefined();
+      expect(panelName).toBeDefined();
+      expect(currentIndex).toBeDefined();
+    });
+  });
+
+  describe("act", () => {
+    it("should return empty string when condition is empty", () => {
+      const result = resolveDynamicLoopCondition("", "loop1", 0);
+
+      expect(result).toBe("");
+    });
+
+    it("should return empty string when condition is null", () => {
+      const result = resolveDynamicLoopCondition(null as any, "loop1", 0);
+
+      expect(result).toBe("");
+    });
+
+    it("should return empty string when condition is undefined", () => {
+      const result = resolveDynamicLoopCondition(undefined as any, "loop1", 0);
+
+      expect(result).toBe("");
+    });
+
+    it("should replace {panel. with panelName[index]. and resolve the condition", () => {
+      const condition = "{panel.rateYourPurchase} = '5'";
+      const result = resolveDynamicLoopCondition(condition, "loop1", 0);
+
+      expect(result).toBe("{loop1[0].rateYourPurchase} = '5'");
+    });
+
+    it("should handle different panel names", () => {
+      const condition = "{panel.question} = true";
+      const result = resolveDynamicLoopCondition(condition, "myLoop", 2);
+
+      expect(result).toBe("{myLoop[2].question} = true");
+    });
+
+    it("should handle different indices", () => {
+      const condition = "{panel.value} > 10";
+      const result = resolveDynamicLoopCondition(condition, "loop1", 5);
+
+      expect(result).toBe("{loop1[5].value} > 10");
+    });
+
+    it("should handle multiple panel references in the same condition", () => {
+      const condition = "{panel.q1} = 1 and {panel.q2} = 2";
+      const result = resolveDynamicLoopCondition(condition, "loop1", 3);
+
+      expect(result).toBe("{loop1[3].q1} = 1 and {loop1[3].q2} = 2");
+    });
+
+    it("should be case insensitive for {panel.", () => {
+      const condition = "{PANEL.something} = 1";
+      const result = resolveDynamicLoopCondition(condition, "loop1", 0);
+
+      expect(result).toBe("{loop1[0].something} = 1");
+    });
+
+    it("should preserve parts of the condition that are not {panel.", () => {
+      const condition = "{panel.q1} = 'yes' and {other.q2} = 'no'";
+      const result = resolveDynamicLoopCondition(condition, "loop1", 1);
+
+      expect(result).toBe("{loop1[1].q1} = 'yes' and {other.q2} = 'no'");
+    });
+  });
+
+  describe("assert", () => {
+    it("should correctly resolve complex condition with multiple replacements", () => {
+      const condition = "{panel.exitFlag} = true and {panel.rating} > 3";
+      const panelName = "purchaseLoop";
+      const currentIndex = 4;
+
+      const result = resolveDynamicLoopCondition(
+        condition,
+        panelName,
+        currentIndex,
+      );
+
+      expect(result).toBe(
+        "{purchaseLoop[4].exitFlag} = true and {purchaseLoop[4].rating} > 3",
+      );
+    });
+
+    it("should match the documented example", () => {
+      const condition = "{panel.rateYourPurchase} = '5'";
+      const panelName = "loop1";
+      const currentIndex = 0;
+
+      const result = resolveDynamicLoopCondition(
+        condition,
+        panelName,
+        currentIndex,
+      );
+
+      expect(result).toBe("{loop1[0].rateYourPurchase} = '5'");
     });
   });
 });
