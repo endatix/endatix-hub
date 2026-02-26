@@ -1,6 +1,6 @@
 import { FunctionFactory, Serializer } from "survey-core";
-import { getDynamicLoopDefinition } from "./dynamic-loop-question";
-import { LOOP_EXIT_FUNCTION_NAME } from "./types";
+import { getDynamicLoopDefinition } from "../dynamic-loop-question";
+import { LOOP_EXIT_FUNCTION_NAME } from "../types";
 
 let areGlobalsRegistered = false;
 

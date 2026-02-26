@@ -1,5 +1,5 @@
 import { Question, SurveyModel } from "survey-core";
-import { DynamicLoopModel } from "./types";
+import { DynamicLoopModel, PanelItem } from "./types";
 import { PANEL_QUESTION_TYPE } from "./dynamic-loop-question";
 
 /**
@@ -48,4 +48,34 @@ function resolveDynamicLoopCondition(
   return condition.replace(/\{panel\./gi, absolutePath);
 }
 
-export { isLoopQuestion, getAllLoopQuestions, resolveDynamicLoopCondition };
+/** Returns a random integer in [0, max) using crypto. */
+function getRandomIndex(max: number): number {
+  const rand = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(rand);
+  return rand[0] % max;
+}
+
+/**
+ * Shuffles an array of items
+ * @param array - The array to shuffle
+ * @returns The shuffled array
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  if (!Array.isArray(array) || array.length === 0) {
+    return array;
+  }
+
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = getRandomIndex(i + 1);
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+
+  return array;
+}
+
+export {
+  isLoopQuestion,
+  getAllLoopQuestions,
+  resolveDynamicLoopCondition,
+  shuffleArray,
+};

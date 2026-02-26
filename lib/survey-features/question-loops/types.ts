@@ -32,4 +32,17 @@ type ConditionRunnerContext = {
   question?: { survey: SurveyModel };
 };
 
-export type { DynamicLoopDefinition, DynamicLoopModel, ConditionRunnerContext };
+// Thе following properties will be injected into the value of each panel
+// Allowing users to use them for text piping, expressions, and see them in the survey results
+interface PanelItem {
+  itemText: string;
+  itemValue: string;
+  loopIndex?: number;
+}
+
+export type {
+  DynamicLoopDefinition,
+  DynamicLoopModel,
+  ConditionRunnerContext,
+  PanelItem,
+};

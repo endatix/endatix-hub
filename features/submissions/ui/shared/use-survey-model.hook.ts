@@ -10,6 +10,7 @@ import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 
 export function useSurveyModel(
   submission: Submission,
@@ -17,8 +18,10 @@ export function useSurveyModel(
   readOnly: boolean = false,
   onModelCreated?: (model: Model) => void,
 ) {
+  const cleanUpFuncRef = useRef<(() => void) | null>(null);
   const modelRef = useRef<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { bindToSurvey: bindQuestionLoops } = useQuestionLoops();
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -54,7 +57,10 @@ export function useSurveyModel(
 
         const json = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
-        const model = new Model(json);
+        const model = new Model();
+        const unbindQuestionLoops = bindQuestionLoops(model);
+
+        model.JSON = json;
         onModelCreated?.(model);
 
         model.data = submissionData;
@@ -84,6 +90,12 @@ export function useSurveyModel(
         }
 
         modelRef.current = model;
+
+        cleanUpFuncRef.current = () => {
+          unbindQuestionLoops?.();
+          modelRef.current = null;
+          cleanUpFuncRef.current = null;
+        };
       } catch (error) {
         console.error("Error initializing survey model:", error);
       } finally {
@@ -91,8 +103,20 @@ export function useSurveyModel(
       }
     };
 
-    initializeModel();
-  }, [submission, customQuestions, readOnly, onModelCreated]);
+    const cleanup = initializeModel();
+
+    return () => {
+      cleanUpFuncRef.current?.();
+      cleanUpFuncRef.current = null;
+      modelRef.current = null;
+    };
+  }, [
+    submission,
+    customQuestions,
+    readOnly,
+    onModelCreated,
+    bindQuestionLoops,
+  ]);
 
   return { model: modelRef.current, isLoading };
 }

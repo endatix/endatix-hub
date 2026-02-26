@@ -55,7 +55,6 @@ function SubmissionSurvey({
   });
   useRichText(model);
   useLoopAwareSummaryTable(model);
-  useQuestionLoops(model);
 
   useEffect(() => {
     if (!model) {

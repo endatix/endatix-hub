@@ -11,6 +11,7 @@ import { customQuestions as customQuestionsList } from "@/customizations/questio
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
 import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 
 interface UseSurveyModelProps {
   formId: string;
@@ -40,6 +41,7 @@ export function useSurveyModel({
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const { variables } = useDynamicVariables(surveyModel);
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
+  const { bindToSurvey: bindQuestionLoops } = useQuestionLoops();
   const isInitializedRef = useRef(false);
   const submissionRef = useInitOnly(submission);
 
@@ -90,6 +92,8 @@ export function useSurveyModel({
       model.currentPageNo = initialSubmission.currentPage ?? 0;
       applyVariablesToModel(model, initialSubmission.metadata);
     }
+
+    const unbindQuestionLoops = bindQuestionLoops(model);
     onModelCreated?.(model);
     processSearchParams(model);
 
@@ -99,6 +103,7 @@ export function useSurveyModel({
     cleanupUrl();
 
     return () => {
+      unbindQuestionLoops?.();
       isInitializedRef.current = false;
     };
   }, [
@@ -108,6 +113,7 @@ export function useSurveyModel({
     cleanupUrl,
     submissionRef,
     onModelCreated,
+    bindQuestionLoops,
   ]);
 
   return {

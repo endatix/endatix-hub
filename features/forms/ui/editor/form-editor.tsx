@@ -18,7 +18,7 @@ import {
   JsonEditorState,
   useJsonEditor,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
-import { useQuestionLoopsEditing } from "@/lib/survey-features/question-loops";
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
@@ -178,7 +178,7 @@ function FormEditor({
   }, [setHasUnsavedChanges]);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
-  useQuestionLoopsEditing(creator);
+  const { bindToCreator: bindQuestionLoops } = useQuestionLoops();
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -472,6 +472,7 @@ function FormEditor({
         };
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
+        const cleanupQuestionLoops = bindQuestionLoops(newCreator);
 
         onCreatorCreated(newCreator);
 
@@ -509,6 +510,7 @@ function FormEditor({
         isCreatorInitializedRef.current = true;
 
         return () => {
+          cleanupQuestionLoops?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
@@ -530,6 +532,7 @@ function FormEditor({
     registerJsonEditor,
     isExtensionsReady,
     onCreatorCreated,
+    bindQuestionLoops,
   ]);
 
   useEffect(() => {
@@ -595,9 +598,9 @@ function FormEditor({
   return (
     <div id="creator">
       {isCreatorLoading ? (
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+        <div className="flex h-[calc(100vh-80px)] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
             <p className="text-muted-foreground">Loading designer...</p>
           </div>
         </div>

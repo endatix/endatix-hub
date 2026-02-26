@@ -4,6 +4,7 @@ import {
   isLoopQuestion,
   getAllLoopQuestions,
   resolveDynamicLoopCondition,
+  shuffleArray,
 } from "../loop-utils";
 import { DynamicLoopModel } from "../types";
 
@@ -319,6 +320,107 @@ describe("resolveDynamicLoopCondition", () => {
       );
 
       expect(result).toBe("{loop1[0].rateYourPurchase} = '5'");
+    });
+  });
+});
+
+describe("shuffleArray", () => {
+  describe("arrange", () => {
+    it("should set up test arrays", () => {
+      const numbers = [1, 2, 3, 4, 5];
+      const strings = ["a", "b", "c"];
+
+      expect(numbers).toHaveLength(5);
+      expect(strings).toHaveLength(3);
+    });
+  });
+
+  describe("act", () => {
+    it("should return empty array when input is empty", () => {
+      const result = shuffleArray([]);
+
+      expect(result).toEqual([]);
+    });
+
+    it("should return array with same single element", () => {
+      const input = [42];
+      const result = shuffleArray([...input]);
+
+      expect(result).toHaveLength(1);
+      expect(result).toContain(42);
+    });
+
+    it("should preserve array length", () => {
+      const input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      const result = shuffleArray([...input]);
+
+      expect(result).toHaveLength(input.length);
+    });
+
+    it("should contain the same elements (valid permutation)", () => {
+      const input = [1, 2, 3, 4, 5];
+      const result = shuffleArray([...input]);
+
+      expect(result.sort()).toEqual(input);
+    });
+
+    it("should preserve sum of integers", () => {
+      const input = [1, 2, 3, 4, 5];
+      const originalSum = input.reduce((a, b) => a + b, 0);
+      const result = shuffleArray([...input]);
+      const resultSum = result.reduce((a, b) => a + b, 0);
+
+      expect(resultSum).toBe(originalSum);
+    });
+
+    it("should mutate the original array", () => {
+      const input = [1, 2, 3, 4, 5];
+      shuffleArray(input);
+
+      expect(input).toHaveLength(5);
+    });
+
+    it("should handle array of strings", () => {
+      const input = ["apple", "banana", "cherry", "date"];
+      const result = shuffleArray([...input]);
+
+      expect(result.sort()).toEqual(input.sort());
+    });
+
+    it("should handle objects", () => {
+      const input = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      const result = shuffleArray([...input]);
+
+      expect(result.length).toBe(3);
+      expect(result.map((r) => r.id).sort()).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe("assert", () => {
+    it("should produce different orders on multiple shuffles (statistical test)", () => {
+      const input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      const results: number[][] = [];
+
+      for (let i = 0; i < 50; i++) {
+        results.push(shuffleArray([...input]));
+      }
+
+      const firstElements = results.map((r) => r[0]);
+      const uniqueFirstElements = new Set(firstElements);
+
+      expect(uniqueFirstElements.size).toBeGreaterThan(1);
+    });
+
+    it("should eventually produce different permutations over many runs", () => {
+      const input = [1, 2, 3];
+      const permutations = new Set<string>();
+
+      for (let i = 0; i < 10; i++) {
+        const result = shuffleArray([...input]);
+        permutations.add(result.join(","));
+      }
+
+      expect(permutations.size).toBeGreaterThan(1);
     });
   });
 });
