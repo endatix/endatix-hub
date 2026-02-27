@@ -4,6 +4,7 @@ import { injectVisibilityConditions } from "../use-cases/inject-visibility-condi
 import { loadLoopSources } from "../use-cases/load-loop-sources";
 import { getAllLoopQuestions } from "../loop-utils";
 import { syncLoopExitState } from "../use-cases/sync-loop-exit-state";
+import { syncSingleLoopSource } from "../use-cases/sync-loop-source";
 
 /**
  * Binds the feature to the survey
@@ -18,6 +19,7 @@ export function bindFeatureToSurvey(survey: SurveyModel): () => void {
   if (survey.data && Object.keys(survey.data).length > 0) {
     const loopPanels = getAllLoopQuestions(survey);
     loopPanels.forEach((loopPanel) => {
+      syncSingleLoopSource(survey, loopPanel);
       syncLoopExitState(survey, loopPanel);
     });
   }

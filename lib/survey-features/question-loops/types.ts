@@ -7,6 +7,15 @@ import {
 
 export const LOOP_EXIT_FUNCTION_NAME = "isLoopExited" as const;
 
+export const SourceSelectionModes = {
+  SelectedOnly: "Selected Only",
+  UnselectedOnly: "Unselected Only",
+  All: "All",
+};
+
+type SourceSelectionMode =
+  (typeof SourceSelectionModes)[keyof typeof SourceSelectionModes];
+
 interface DynamicLoopDefinition {
   type: string;
   properties: Array<IJsonPropertyInfo>;
@@ -21,6 +30,17 @@ type DynamicLoopModel = QuestionPanelDynamicModel & {
    * The sources for the loop (question names that will be used in the loop)
    */
   loopSource: string[];
+
+  /**
+   * The pattern to use for the loop choices
+   * @default SourceSelectionModes.SelectedOnly
+   * @see SourceSelectionModes
+   * @example
+   * "Selected Only" - Only selected choices will be used
+   * "Unselected Only" - Only unselected choices will be used
+   * "All" - All choices will be used
+   */
+  choicePattern: SourceSelectionMode;
 
   /**
    * The condition to exit the current loop
@@ -81,4 +101,5 @@ export type {
   DynamicLoopModel,
   ConditionRunnerContext,
   PanelItem,
+  SourceSelectionMode,
 };

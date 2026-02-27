@@ -1,5 +1,14 @@
-import { Question, SurveyModel } from "survey-core";
-import { DynamicLoopModel, PanelItem } from "./types";
+import {
+  ItemValue,
+  Question,
+  QuestionSelectBase,
+  SurveyModel,
+} from "survey-core";
+import {
+  DynamicLoopModel,
+  SourceSelectionMode,
+  SourceSelectionModes,
+} from "./types";
 import { PANEL_QUESTION_TYPE } from "./dynamic-loop-question";
 
 /**
@@ -89,10 +98,65 @@ function isNonEmptyCondition(
   return !isEmptyString(condition);
 }
 
+/**
+ * Gets all the choice base questions in the survey
+ * @param survey - The survey to get the choice base questions from
+ * @returns An array of QuestionSelectBase choice base questions
+ */
+function getAllSelectBasedQuestions(survey: SurveyModel): QuestionSelectBase[] {
+  return (
+    survey.getAllQuestions().filter((q: Question): q is QuestionSelectBase => {
+      const type = q.getType();
+      return ["checkbox", "tagbox", "radiogroup"].includes(type);
+    }) || []
+  );
+}
+
+/**
+ * Gets the queschoices for loop question based on selection mode
+ * @param question - The loop question to get the choices from
+ * @param selectionMode - The selection mode to get the choices for
+ * @returns An array of choices for the loop question
+ */
+function getLoopChoicesFromQuestion(
+  question: Question,
+  selectionMode: SourceSelectionMode,
+): ItemValue[] {
+  const allChoices = question.choices || [];
+
+  if (selectionMode === SourceSelectionModes.All) {
+    return allChoices;
+  }
+
+  let selectedValues: any[] = [];
+  if (question.value != null) {
+    selectedValues = Array.isArray(question.value)
+      ? question.value
+      : [question.value];
+  }
+
+  switch (selectionMode) {
+    case SourceSelectionModes.SelectedOnly:
+      return allChoices.filter((choice: ItemValue) =>
+        selectedValues.includes(choice.value),
+      );
+
+    case SourceSelectionModes.UnselectedOnly:
+      return allChoices.filter(
+        (choice: ItemValue) => !selectedValues.includes(choice.value),
+      );
+
+    default:
+      return [];
+  }
+}
+
 export {
   isLoopQuestion,
   getAllLoopQuestions,
   resolveDynamicLoopCondition,
   shuffleArray,
-  isNonEmptyCondition
+  isNonEmptyCondition,
+  getLoopChoicesFromQuestion,
+  getAllSelectBasedQuestions,
 };

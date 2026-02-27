@@ -11,7 +11,7 @@ import {
 } from "../dynamic-loop-question";
 
 export function createLoopExitCommand(panel: DynamicLoopModel) {
-  const state: LoopExitMeta = panel.exitMeta ?? INITIAL_EXIT_STATE;
+  const state: LoopExitMeta = panel.exitMeta ?? { ...INITIAL_EXIT_STATE };
 
   let stateChanged = false;
 

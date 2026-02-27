@@ -1,7 +1,6 @@
 import {
   IJsonPropertyInfo,
   ItemValue,
-  Question,
   QuestionSelectBase,
   SurveyModel,
 } from "survey-core";
@@ -10,8 +9,9 @@ import {
   DynamicLoopDefinition,
   DynamicLoopModel,
   LoopExitMeta,
+  SourceSelectionModes,
 } from "./types";
-import { isLoopQuestion } from "./loop-utils";
+import { getAllSelectBasedQuestions, isLoopQuestion } from "./loop-utils";
 import { createLoopExitQuery } from "./use-cases/handle-loop-exit";
 
 const PANEL_QUESTION_TYPE = "paneldynamic";
@@ -61,20 +61,11 @@ const LOOP_SOURCE_PROPERTY: IJsonPropertyInfo = {
       return;
     }
 
-    const questions = survey.getAllQuestions();
-    const filteredChoices = [{ value: "", text: "None" }];
-
-    questions
-      .filter((q: Question): q is QuestionSelectBase => {
-        const type = q.getType();
-        return ["checkbox", "tagbox", "radiogroup"].includes(type);
-      })
-      .forEach((q) => {
-        filteredChoices.push({
-          value: q.name,
-          text: q.name,
-        });
-      });
+    const filteredChoices =
+      getAllSelectBasedQuestions(survey).map((selectQuestion) => ({
+        value: selectQuestion.name,
+        text: selectQuestion.name,
+      })) || [];
 
     choicesCallback(filteredChoices);
   },
@@ -84,12 +75,12 @@ const CHOICE_PATTERN_PROPERTY: IJsonPropertyInfo = {
   name: "choicePattern",
   displayName: "Loop over",
   category: "questionLoops",
-  default: "Selected Only",
+  default: SourceSelectionModes.SelectedOnly,
   onSetValue: (obj, value) => {
-    obj.choicePattern = value ?? "Selected Only";
+    obj.choicePattern = value ?? SourceSelectionModes.SelectedOnly;
   },
   type: "dropdown",
-  choices: ["Selected Only", "Unselected Only"],
+  choices: [Object.values(SourceSelectionModes)],
   visibleIf: isLoopQuestion,
 };
 
