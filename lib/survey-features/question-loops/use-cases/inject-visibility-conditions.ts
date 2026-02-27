@@ -1,8 +1,42 @@
-import { SurveyModel } from "survey-core";
+import { IElement, SurveyModel } from "survey-core";
 import { PANEL_VISIBILITY_SENTINEL } from "../dynamic-loop-question";
 import { getAllLoopQuestions } from "../loop-utils";
+import { DynamicLoopModel, LOOP_EXIT_FUNCTION_NAME } from "../types";
+import { hasProperty } from "@/lib/utils/type-validators";
 
-const EXIT_MARKER = "isLoopExited";
+function injectTemplateLevelCondition(element: DynamicLoopModel): void {
+  const templateVisibleIf = String(element.templateVisibleIf ?? "");
+
+  if (templateVisibleIf.includes(LOOP_EXIT_FUNCTION_NAME)) return;
+
+  const isConditionEmpty =
+    templateVisibleIf.length === 0 || templateVisibleIf.trim().length === 0;
+  const templateVisibleCondition = `${LOOP_EXIT_FUNCTION_NAME}('${element.name}', {panelIndex}, ${PANEL_VISIBILITY_SENTINEL}) = false`;
+
+  element.templateVisibleIf = isConditionEmpty
+    ? templateVisibleCondition
+    : `(${templateVisibleIf}) and ${templateVisibleCondition}`;
+}
+
+function injectElementLevelCondition(
+  element: IElement,
+  panelName: string,
+  elementIndex: number,
+): void {
+  if (!hasProperty(element, "visibleIf")) return;
+
+  const elementVisibleIf = String(element.visibleIf ?? "");
+
+  if (elementVisibleIf.includes(LOOP_EXIT_FUNCTION_NAME)) return;
+
+  const isConditionEmpty =
+    elementVisibleIf.length === 0 || elementVisibleIf.trim().length === 0;
+  const elementVisibleCondition = `${LOOP_EXIT_FUNCTION_NAME}('${panelName}', {panelIndex}, ${elementIndex}) = false`;
+
+  element.visibleIf = isConditionEmpty
+    ? elementVisibleCondition
+    : `(${elementVisibleIf}) and ${elementVisibleCondition}`;
+}
 
 /**
  * Idempotently injects visibility conditions for loop exit logic. Backs up the original JSON state to prevent pollution.
@@ -12,77 +46,15 @@ export function injectVisibilityConditions(survey: SurveyModel) {
   if (isDesignMode) return;
 
   const dynamicPanels = getAllLoopQuestions(survey);
+  dynamicPanels.forEach((loopPanel) => {
+    if (loopPanel.isLoopReady) return;
 
-  dynamicPanels.forEach((panel) => {
-    const loopPanel = panel as unknown as {
-      name: string;
-      templateVisibleIf?: string;
-      originalTemplateVisibleIf?: string;
-      templateElements: {
-        visibleIf?: string;
-        visible?: boolean;
-        originalVisibleIf?: string;
-        originalVisible?: boolean;
-      }[];
-    };
 
-    const origPanelIf = loopPanel.templateVisibleIf ?? "true";
-    if (!origPanelIf.includes(EXIT_MARKER)) {
-      loopPanel.originalTemplateVisibleIf = loopPanel.templateVisibleIf;
-      loopPanel.templateVisibleIf = `(${origPanelIf}) and ${EXIT_MARKER}('${loopPanel.name}', {panelIndex}, ${PANEL_VISIBILITY_SENTINEL}) = false`;
-    }
-
+    injectTemplateLevelCondition(loopPanel);
     loopPanel.templateElements.forEach((element, elementIndex) => {
-      const origIf = element.visibleIf ?? "";
-      if (!origIf.includes(EXIT_MARKER)) {
-        element.originalVisibleIf = element.visibleIf;
-        element.originalVisible = element.visible;
-
-        const baseLogic = origIf
-          ? origIf
-          : element.visible === false
-            ? "false"
-            : "true";
-        element.visibleIf = `(${baseLogic}) and ${EXIT_MARKER}('${loopPanel.name}', {panelIndex}, ${elementIndex}) = false`;
-      }
+      injectElementLevelCondition(element, loopPanel.name, elementIndex);
     });
-  });
-}
 
-/**
- * Restores the original design-time JSON state, completely removing the runtime expressions.
- */
-export function removeLoopExitWrappers(survey: SurveyModel) {
-  const dynamicPanels = survey
-    .getAllQuestions()
-    .filter((q) => q.getType() === "paneldynamic");
-
-  dynamicPanels.forEach((panel) => {
-    const loopPanel = panel as unknown as {
-      templateVisibleIf?: string;
-      originalTemplateVisibleIf?: string;
-      templateElements: {
-        visibleIf?: string;
-        visible?: boolean;
-        originalVisibleIf?: string;
-        originalVisible?: boolean;
-      }[];
-    };
-
-    if (loopPanel.originalTemplateVisibleIf !== undefined) {
-      loopPanel.templateVisibleIf = loopPanel.originalTemplateVisibleIf;
-      delete loopPanel.originalTemplateVisibleIf;
-    }
-
-    loopPanel.templateElements.forEach((element) => {
-      if (element.originalVisibleIf !== undefined) {
-        element.visibleIf = element.originalVisibleIf;
-        delete element.originalVisibleIf;
-      }
-      if (element.originalVisible !== undefined) {
-        element.visible = element.originalVisible;
-        delete element.originalVisible;
-      }
-    });
+    loopPanel.isLoopReady = true;
   });
 }

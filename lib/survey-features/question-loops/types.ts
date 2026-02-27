@@ -17,9 +17,25 @@ interface DynamicLoopDefinition {
 }
 
 type DynamicLoopModel = QuestionPanelDynamicModel & {
+  /**
+   * The sources for the loop (question names that will be used in the loop)
+   */
   loopSource: string[];
+
+  /**
+   * The condition to exit the current loop
+   */
   exitLoopCondition?: string;
+
+  /**
+   * The condition to exit all loops
+   */
   exitAllLoopsCondition?: string;
+
+  /**
+   * Indicates if the loop is ready to be used meaning all exit conditions and sources are loaded
+   */
+  isLoopReady?: boolean;
 };
 
 export interface LoopExitState {

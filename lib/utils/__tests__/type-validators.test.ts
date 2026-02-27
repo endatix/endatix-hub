@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   validateEndatixId,
   validateHexToken,
+  hasProperty,
 } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
 
@@ -551,6 +552,276 @@ describe("validateHexToken", () => {
         expect(result.value).toBe(realToken);
         expect(result.value.length).toBe(64);
       }
+    });
+  });
+});
+
+describe("hasProperty", () => {
+  describe("arrange", () => {
+    it("should set up test objects", () => {
+      const obj = { name: "John", age: 30 };
+      expect(obj).toBeDefined();
+    });
+  });
+
+  describe("act", () => {
+    it("should return true for existing property", () => {
+      const result = hasProperty({ name: "John", age: 30 }, "name");
+
+      expect(result).toBe(true);
+    });
+
+    it("should return false for non-existing property", () => {
+      const result = hasProperty({ name: "John", age: 30 }, "address");
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false for null object", () => {
+      const result = hasProperty(null, "name");
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false for undefined object", () => {
+      const result = hasProperty(undefined, "name");
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false for primitive values", () => {
+      expect(hasProperty("string" as any, "length")).toBe(false);
+      expect(hasProperty(123 as any, "toString")).toBe(false);
+    });
+
+    it("should return false for empty object when property not present", () => {
+      const result = hasProperty({}, "name");
+
+      expect(result).toBe(false);
+    });
+
+    it("should return true for inherited properties (prototype chain)", () => {
+      const parent = { greet: () => "hello" };
+      const child = Object.create(parent);
+      child.name = "child";
+
+      expect(hasProperty(child, "greet")).toBe(true);
+      expect(hasProperty(child, "name")).toBe(true);
+    });
+
+    it("should return false for symbol property on plain object", () => {
+      const sym = Symbol("test");
+      const obj = { [sym]: "value" };
+
+      expect(hasProperty(obj, sym)).toBe(true);
+    });
+
+    it("should return true for numeric property names", () => {
+      const arr = [1, 2, 3];
+      const result = hasProperty(arr, "0");
+
+      expect(result).toBe(true);
+    });
+
+    it("should return true for array length property", () => {
+      const arr = [1, 2, 3];
+      const result = hasProperty(arr, "length");
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe("assert", () => {
+    it("should correctly type guard for SurveyJS-like objects", () => {
+      const surveyObj = {
+        getType: () => "text",
+        value: "test",
+      } as any;
+
+      if (hasProperty(surveyObj, "value")) {
+        expect(surveyObj.value).toBe("test");
+      }
+    });
+
+    it("should work with nested property checking", () => {
+      const obj = {
+        user: {
+          profile: {
+            name: "John",
+          },
+        },
+      };
+
+      expect(hasProperty(obj, "user")).toBe(true);
+    });
+  });
+
+  describe("SurveyJS integration", () => {
+    describe("arrange", () => {
+      it("should set up SurveyJS-like element mock", () => {
+        const mockQuestion = {
+          getType: () => "text",
+          name: "q1",
+          visible: true,
+        };
+        expect(mockQuestion).toBeDefined();
+      });
+    });
+
+    describe("act", () => {
+      it("should detect visibleIf property on SurveyJS element", () => {
+        const surveyElement = {
+          getType: () => "text",
+          name: "question1",
+          visibleIf: "{someCondition} = true",
+        } as any;
+
+        expect(hasProperty(surveyElement, "visibleIf")).toBe(true);
+      });
+
+      it("should return false for missing visibleIf on SurveyJS element", () => {
+        const surveyElement = {
+          getType: () => "text",
+          name: "question1",
+        } as any;
+
+        expect(hasProperty(surveyElement, "visibleIf")).toBe(false);
+      });
+
+      it("should detect enableIf property on SurveyJS element", () => {
+        const surveyElement = {
+          getType: () => "text",
+          name: "question1",
+          enableIf: "{otherQuestion} notempty",
+        } as any;
+
+        expect(hasProperty(surveyElement, "enableIf")).toBe(true);
+      });
+
+      it("should detect requiredIf property on SurveyJS element", () => {
+        const surveyElement = {
+          getType: () => "text",
+          name: "question1",
+          requiredIf: "{cond} = true",
+        } as any;
+
+        expect(hasProperty(surveyElement, "requiredIf")).toBe(true);
+      });
+
+      it("should detect defaultValue property on SurveyJS element", () => {
+        const surveyElement = {
+          getType: () => "text",
+          name: "question1",
+          defaultValue: "some default",
+        } as any;
+
+        expect(hasProperty(surveyElement, "defaultValue")).toBe(true);
+      });
+
+      it("should work with SurveyJS Panel element properties", () => {
+        const panelElement = {
+          getType: () => "panel",
+          name: "panel1",
+          visible: true,
+          elements: [],
+        } as any;
+
+        expect(hasProperty(panelElement, "elements")).toBe(true);
+        expect(hasProperty(panelElement, "visible")).toBe(true);
+        expect(hasProperty(panelElement, "visibleIf")).toBe(false);
+      });
+
+      it("should detect choices property on SurveyJS Question", () => {
+        const questionElement = {
+          getType: () => "dropdown",
+          name: "dropdown1",
+          choices: ["a", "b", "c"],
+        } as any;
+
+        expect(hasProperty(questionElement, "choices")).toBe(true);
+      });
+
+      it("should detect SurveyJS getter properties from prototype chain", () => {
+        const base = {
+          name: "baseProp",
+        };
+        const derived = Object.create(base);
+        derived.getType = () => "custom";
+        derived.visible = true;
+
+        expect(hasProperty(derived, "name")).toBe(true);
+        expect(hasProperty(derived, "visible")).toBe(true);
+        expect(hasProperty(derived, "getType")).toBe(true);
+      });
+
+      it("should detect runConditions method on SurveyJS element", () => {
+        const surveyElement = {
+          getType: () => "text",
+          name: "q1",
+          runConditions: () => {},
+        } as any;
+
+        expect(hasProperty(surveyElement, "runConditions")).toBe(true);
+      });
+    });
+
+    describe("assert", () => {
+      it("should safely check SurveyJS question without knowing type at compile time", () => {
+        const unknownElement: any = {
+          getType: () => "text",
+          name: "dynamicQuestion",
+        };
+
+        if (hasProperty(unknownElement, "visibleIf")) {
+          expect(unknownElement.visibleIf).toBeUndefined();
+        }
+
+        const elementWithCondition: any = {
+          getType: () => "text",
+          name: "conditionalQuestion",
+          visibleIf: "{age} > 18",
+        };
+
+        expect(hasProperty(elementWithCondition, "visibleIf")).toBe(true);
+      });
+
+      it("should work in type guard pattern for SurveyJS elements", () => {
+        function processElement(element: any): boolean {
+          if (
+            hasProperty(element, "visibleIf") &&
+            hasProperty(element, "enableIf")
+          ) {
+            return true;
+          }
+          return false;
+        }
+
+        const bothConditions = { visibleIf: "a", enableIf: "b" };
+        const onlyVisible = { visibleIf: "a" };
+        const neither = { name: "test" };
+
+        expect(processElement(bothConditions)).toBe(true);
+        expect(processElement(onlyVisible)).toBe(false);
+        expect(processElement(neither)).toBe(false);
+      });
+
+      it("should handle SurveyJS IElement-like objects from survey.getAllQuestions()", () => {
+        const surveyJson = {
+          elements: [
+            { type: "text", name: "q1" },
+            { type: "text", name: "q2", visibleIf: "{q1} = 'yes'" },
+          ],
+        };
+
+        const { SurveyModel } = require("survey-core");
+        const survey = new SurveyModel(surveyJson);
+        const questions = survey.getAllQuestions();
+
+        expect(hasProperty(questions[0], "name")).toBe(true);
+        expect(hasProperty(questions[0], "getType")).toBe(true);
+        expect(hasProperty(questions[0], "visibleIf")).toBe(true);
+        expect(hasProperty(questions[1], "visibleIf")).toBe(true);
+      });
     });
   });
 });
