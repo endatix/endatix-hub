@@ -49,7 +49,6 @@ export function injectVisibilityConditions(survey: SurveyModel) {
   dynamicPanels.forEach((loopPanel) => {
     if (loopPanel.isLoopReady) return;
 
-
     injectTemplateLevelCondition(loopPanel);
     loopPanel.templateElements.forEach((element, elementIndex) => {
       injectElementLevelCondition(element, loopPanel.name, elementIndex);

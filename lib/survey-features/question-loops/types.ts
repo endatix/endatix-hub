@@ -33,14 +33,34 @@ type DynamicLoopModel = QuestionPanelDynamicModel & {
   exitAllLoopsCondition?: string;
 
   /**
+   * The state of the loop exit
+   */
+  exitMeta: LoopExitMeta;
+
+  /**
    * Indicates if the loop is ready to be used meaning all exit conditions and sources are loaded
    */
   isLoopReady?: boolean;
 };
 
-export interface LoopExitState {
-  exitAllTriggeredPanelIndex?: number;
-  exitCurrentTriggeredIndexMap?: Record<number, number>;
+/**
+ * The metadata for the loop exit. Keeps track of the triggered exit conditions and the panels that have been exited.
+ */
+export interface LoopExitMeta {
+  /**
+   * If defined, the exit all condition has been triggered
+   */
+  exitAll?: {
+    triggeredPanelIndex: number;
+  };
+
+  /**
+   * If defined, the exit current condition has been triggered
+   */
+  exitCurrent?: {
+    // Map of panel index and its respective question index that triggered the exit current condition
+    triggeredIndexMap: Record<number, number>;
+  };
 }
 
 type ConditionRunnerContext = {

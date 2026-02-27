@@ -8,14 +8,21 @@ import {
 import {
   ConditionRunnerContext,
   DynamicLoopDefinition,
-  LoopExitState,
+  DynamicLoopModel,
+  LoopExitMeta,
 } from "./types";
 import { isLoopQuestion } from "./loop-utils";
+import { createLoopExitQuery } from "./use-cases/handle-loop-exit";
 
 const PANEL_QUESTION_TYPE = "paneldynamic";
 export const PANEL_VISIBILITY_SENTINEL = 9999;
 
-export function isLoopExitedfunction(
+const INITIAL_EXIT_STATE: LoopExitMeta = {
+  exitAll: undefined,
+  exitCurrent: undefined,
+};
+
+export function isLoopExitedFunction(
   this: ConditionRunnerContext,
   params: unknown[],
 ) {
@@ -30,32 +37,12 @@ export function isLoopExitedfunction(
   const survey: SurveyModel | undefined = this.survey ?? this.question?.survey;
   if (!survey) return false;
 
-  const panel = survey.getQuestionByName(panelName) as {
-    exitMeta?: LoopExitState;
-  } | null;
+  const panel = survey.getQuestionByName(panelName) as DynamicLoopModel | null;
   if (!panel?.exitMeta) return false;
 
-  const meta = panel.exitMeta;
+  const query = createLoopExitQuery(panel.exitMeta);
 
-  // Exit All: hide panels after the trigger panel
-  if (
-    meta.exitAllTriggeredPanelIndex !== undefined &&
-    panelIndex > meta.exitAllTriggeredPanelIndex
-  ) {
-    return true;
-  }
-
-  // Exit Current: hide only elements after the trigger (panel uses sentinel, so skip)
-  if (
-    questionIndex !== PANEL_VISIBILITY_SENTINEL &&
-    meta.exitCurrentTriggeredIndexMap?.[panelIndex] !== undefined
-  ) {
-    if (questionIndex > meta.exitCurrentTriggeredIndexMap[panelIndex]) {
-      return true;
-    }
-  }
-
-  return false;
+  return query.isExited(panelIndex, questionIndex);
 }
 
 const LOOP_SOURCE_PROPERTY: IJsonPropertyInfo = {
@@ -177,7 +164,7 @@ const EXIT_ALL_LOOPS_CONDITION_PROPERTY: IJsonPropertyInfo = {
 const EXIT_META_PROPERTY: IJsonPropertyInfo = {
   name: "exitMeta",
   visible: false,
-  default: { exitCurrentTriggeredIndexMap: {} },
+  default: INITIAL_EXIT_STATE,
 };
 
 const DEFAULT_LOOP_DEFINITION: DynamicLoopDefinition = {
@@ -193,7 +180,7 @@ const DEFAULT_LOOP_DEFINITION: DynamicLoopDefinition = {
     EXIT_META_PROPERTY,
   ],
   functions: {
-    isLoopExited: isLoopExitedfunction,
+    isLoopExited: isLoopExitedFunction,
   },
   isLoopType: isLoopQuestion,
 };
@@ -203,6 +190,7 @@ const getDynamicLoopDefinition = (): DynamicLoopDefinition =>
 
 export {
   PANEL_QUESTION_TYPE,
+  INITIAL_EXIT_STATE,
   type DynamicLoopDefinition,
   getDynamicLoopDefinition,
 };

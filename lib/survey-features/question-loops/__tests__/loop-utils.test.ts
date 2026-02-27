@@ -5,6 +5,7 @@ import {
   getAllLoopQuestions,
   resolveDynamicLoopCondition,
   shuffleArray,
+  isNonEmptyCondition,
 } from "../loop-utils";
 import { DynamicLoopModel } from "../types";
 
@@ -421,6 +422,92 @@ describe("shuffleArray", () => {
       }
 
       expect(permutations.size).toBeGreaterThan(1);
+    });
+  });
+});
+
+describe("isNonEmptyCondition", () => {
+  describe("arrange", () => {
+    it("should set up test conditions", () => {
+      const condition = "{panel.value} = 'test'";
+      expect(condition).toBeDefined();
+    });
+  });
+
+  describe("act", () => {
+    it("should return true for non-empty string condition", () => {
+      const result = isNonEmptyCondition("{panel.value} = 'test'");
+
+      expect(result).toBe(true);
+    });
+
+    it("should return true for condition with only whitespace (treated as empty after trim)", () => {
+      const result = isNonEmptyCondition("   ");
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false for empty string", () => {
+      const result = isNonEmptyCondition("");
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false for undefined", () => {
+      const result = isNonEmptyCondition(undefined);
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false for null", () => {
+      const result = isNonEmptyCondition(null as any);
+
+      expect(result).toBe(false);
+    });
+
+    it("should return true for condition with leading and trailing whitespace", () => {
+      const result = isNonEmptyCondition("  {panel.value} = 'test'  ");
+
+      expect(result).toBe(true);
+    });
+
+    it("should return false for number type", () => {
+      const result = isNonEmptyCondition(123 as any);
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false for object type", () => {
+      const result = isNonEmptyCondition({ value: "test" } as any);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("assert", () => {
+    it("should work as type guard for conditional logic", () => {
+      const conditions: (string | undefined)[] = [
+        "{panel.q1} = 1",
+        "",
+        undefined,
+        "  ",
+        "{panel.q2} > 5",
+      ];
+
+      const nonEmptyConditions = conditions.filter(isNonEmptyCondition);
+
+      expect(nonEmptyConditions).toHaveLength(2);
+      expect(nonEmptyConditions).toEqual(["{panel.q1} = 1", "{panel.q2} > 5"]);
+    });
+
+    it("should correctly identify SurveyJS visibility conditions", () => {
+      const validCondition = "{panel.exitFlag} = true";
+      const emptyCondition = "";
+      const whitespaceCondition = "   ";
+
+      expect(isNonEmptyCondition(validCondition)).toBe(true);
+      expect(isNonEmptyCondition(emptyCondition)).toBe(false);
+      expect(isNonEmptyCondition(whitespaceCondition)).toBe(false);
     });
   });
 });

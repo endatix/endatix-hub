@@ -73,9 +73,26 @@ function shuffleArray<T>(array: T[]): T[] {
   return array;
 }
 
+function isEmptyString(condition: string | undefined): boolean {
+  if (!condition || typeof condition !== "string") return true;
+  return condition.trim() === "";
+}
+
+/**
+ * Checks if the condition is a non-empty string
+ * @param condition - The condition to check
+ * @returns True if the condition is a non-empty string, false otherwise
+ */
+function isNonEmptyCondition(
+  condition: string | undefined,
+): condition is string {
+  return !isEmptyString(condition);
+}
+
 export {
   isLoopQuestion,
   getAllLoopQuestions,
   resolveDynamicLoopCondition,
   shuffleArray,
+  isNonEmptyCondition
 };
