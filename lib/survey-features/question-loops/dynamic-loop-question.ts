@@ -1,17 +1,21 @@
 import {
   IJsonPropertyInfo,
-  ItemValue,
-  QuestionSelectBase,
   SurveyModel,
 } from "survey-core";
 import {
+  ChoiceOption,
   ConditionRunnerContext,
   DynamicLoopDefinition,
   DynamicLoopModel,
   LoopExitMeta,
   SourceSelectionModes,
 } from "./types";
-import { getAllSelectBasedQuestions, isLoopQuestion } from "./loop-utils";
+import {
+  extractUniqueChoices,
+  getAllSelectBasedQuestions,
+  isLoopQuestion,
+  isSelectBaseQuestion,
+} from "./loop-utils";
 import { createLoopExitQuery } from "./use-cases/handle-loop-exit";
 
 const PANEL_QUESTION_TYPE = "paneldynamic";
@@ -80,7 +84,7 @@ const CHOICE_PATTERN_PROPERTY: IJsonPropertyInfo = {
     obj.choicePattern = value ?? SourceSelectionModes.SelectedOnly;
   },
   type: "dropdown",
-  choices: [Object.values(SourceSelectionModes)],
+  choices: Object.values(SourceSelectionModes),
   visibleIf: isLoopQuestion,
 };
 
@@ -110,28 +114,18 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
   type: "multiplevalues",
   choices: function (
     obj: { survey: SurveyModel; loopSource: string[] },
-    choicesCallback: (choices: { value: string; text: string }[]) => void,
+    choicesCallback: (choices: ChoiceOption[]) => void,
   ) {
     const { survey, loopSource } = obj || {};
     if (!survey || !loopSource) return choicesCallback([]);
 
-    const allChoices: { value: string; text: string }[] = [];
-
-    loopSource
+    const loopSourceQuestions = loopSource
       .map((name) => survey.getQuestionByName(name))
-      .filter((q): q is QuestionSelectBase => !!q && "choices" in q)
-      .forEach((q) => {
-        q.choices.forEach((c: ItemValue) => {
-          if (!allChoices.some((existing) => existing.value === c.value)) {
-            allChoices.push({
-              value: c.value,
-              text: String(c.value),
-            });
-          }
-        });
-      });
+      .filter(isSelectBaseQuestion);
 
-    choicesCallback(allChoices);
+    const uniqueChoices = extractUniqueChoices(loopSourceQuestions);
+
+    choicesCallback(uniqueChoices);
   },
   visibleIf: isLoopQuestion,
 };

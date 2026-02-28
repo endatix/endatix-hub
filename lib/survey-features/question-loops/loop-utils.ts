@@ -5,6 +5,7 @@ import {
   SurveyModel,
 } from "survey-core";
 import {
+  ChoiceOption,
   DynamicLoopModel,
   SourceSelectionMode,
   SourceSelectionModes,
@@ -74,12 +75,13 @@ function shuffleArray<T>(array: T[]): T[] {
     return array;
   }
 
-  for (let i = array.length - 1; i > 0; i--) {
+  const suffledCopy = [...array];
+  for (let i = suffledCopy.length - 1; i > 0; i--) {
     const j = getRandomIndex(i + 1);
-    [array[i], array[j]] = [array[j], array[i]];
+    [suffledCopy[i], suffledCopy[j]] = [suffledCopy[j], suffledCopy[i]];
   }
 
-  return array;
+  return suffledCopy;
 }
 
 function isEmptyString(condition: string | undefined): boolean {
@@ -99,17 +101,26 @@ function isNonEmptyCondition(
 }
 
 /**
+ * Checks if the question is a select base question.
+ * As opposed to providing list of question types, this function checks if the question is an instance of QuestionSelectBase, which means it has a choices property.
+ * @param question - The question to check
+ * @returns True if the question is a select base question, false otherwise
+ */
+function isSelectBaseQuestion(
+  question: Question,
+): question is QuestionSelectBase {
+  return question instanceof QuestionSelectBase;
+}
+
+/**
  * Gets all the choice base questions in the survey
  * @param survey - The survey to get the choice base questions from
  * @returns An array of QuestionSelectBase choice base questions
  */
 function getAllSelectBasedQuestions(survey: SurveyModel): QuestionSelectBase[] {
-  return (
-    survey.getAllQuestions().filter((q: Question): q is QuestionSelectBase => {
-      const type = q.getType();
-      return ["checkbox", "tagbox", "radiogroup"].includes(type);
-    }) || []
-  );
+  if (!survey) return [];
+
+  return survey.getAllQuestions().filter(isSelectBaseQuestion);
 }
 
 /**
@@ -151,6 +162,28 @@ function getLoopChoicesFromQuestion(
   }
 }
 
+/**
+ * Extracts unique choices from a list of SelectBase questions (questions with choices)
+ * @param questions - The list of SelectBase questions to extract the choices from
+ * @returns An array of unique choices
+ */
+function extractUniqueChoices(questions: QuestionSelectBase[]) {
+  const result = new Map<string, ChoiceOption>();
+
+  for (const question of questions) {
+    for (const choice of question.choices) {
+      if (result.has(choice.value)) continue;
+
+      result.set(choice.value, {
+        value: choice.value,
+        text: `${question.name}: (${choice.value})`,
+      });
+    }
+  }
+
+  return Array.from(result.values());
+}
+
 export {
   isLoopQuestion,
   getAllLoopQuestions,
@@ -158,5 +191,7 @@ export {
   shuffleArray,
   isNonEmptyCondition,
   getLoopChoicesFromQuestion,
+  isSelectBaseQuestion,
   getAllSelectBasedQuestions,
+  extractUniqueChoices,
 };

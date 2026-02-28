@@ -5,6 +5,15 @@ import {
   SurveyModel,
 } from "survey-core";
 
+/**
+ * A choice option for a question
+ * @see ItemValue
+ */
+export type ChoiceOption = {
+  value: string;
+  text: string;
+};
+
 export const LOOP_EXIT_FUNCTION_NAME = "isLoopExited" as const;
 
 export const SourceSelectionModes = {

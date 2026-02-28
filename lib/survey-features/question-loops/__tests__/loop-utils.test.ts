@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { SurveyModel } from "survey-core";
+import { QuestionSelectBase, SurveyModel } from "survey-core";
 import {
   isLoopQuestion,
   getAllLoopQuestions,
   resolveDynamicLoopCondition,
   shuffleArray,
   isNonEmptyCondition,
+  isSelectBaseQuestion,
+  getAllSelectBasedQuestions,
+  getLoopChoicesFromQuestion,
+  extractUniqueChoices,
 } from "../loop-utils";
-import { DynamicLoopModel } from "../types";
+import { DynamicLoopModel, SourceSelectionModes } from "../types";
+import { allQuestionsSurveySchema } from "./fixtures/all-questions-survey";
+import { sampleLoopSurveySchema } from "./fixtures/sample-loop-survey";
 
 function createSurvey(
   loopQuestions: Array<{ name: string; loopSource?: string[] }>,
@@ -509,5 +515,416 @@ describe("isNonEmptyCondition", () => {
       expect(isNonEmptyCondition(emptyCondition)).toBe(false);
       expect(isNonEmptyCondition(whitespaceCondition)).toBe(false);
     });
+  });
+});
+
+describe("isSelectBaseQuestion", () => {
+  it("should return true for checkbox question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const checkbox = survey.getQuestionByName("q_checkbox");
+    expect(checkbox).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(checkbox);
+
+    // assert
+    expect(result).toBe(true);
+  });
+
+  it("should return true for radiogroup question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const radiogroup = survey.getQuestionByName("q_radiogroup");
+    expect(radiogroup).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(radiogroup);
+
+    // assert
+    expect(result).toBe(true);
+  });
+
+  it("should return true for dropdown question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const dropdown = survey.getQuestionByName("q_dropdown");
+    expect(dropdown).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(dropdown);
+
+    // assert
+    expect(result).toBe(true);
+  });
+
+  it("should return true for tagbox question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const tagbox = survey.getQuestionByName("q_tagbox");
+    expect(tagbox).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(tagbox);
+
+    // assert
+    expect(result).toBe(true);
+  });
+
+  it("should return true for imagepicker question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const imagepicker = survey.getQuestionByName("q_imagepicker");
+    expect(imagepicker).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(imagepicker);
+
+    // assert
+    expect(result).toBe(true);
+  });
+
+  it("should return true for ranking question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const ranking = survey.getQuestionByName("q_ranking");
+    expect(ranking).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(ranking);
+
+    // assert
+    expect(result).toBe(true);
+  });
+
+  it("should return true for buttongroup question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const buttongroup = survey.getQuestionByName("q_buttongroup");
+    expect(buttongroup).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(buttongroup);
+
+    // assert
+    expect(result).toBe(true);
+  });
+
+  it("should return false for text question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const text = survey.getQuestionByName("q_text");
+    expect(text).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(text);
+
+    // assert
+    expect(result).toBe(false);
+  });
+
+  it("should return false for rating question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const rating = survey.getQuestionByName("q_rating");
+    expect(rating).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(rating);
+
+    // assert
+    expect(result).toBe(false);
+  });
+
+  it("should return false for matrix question", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const matrix = survey.getQuestionByName("q_matrix");
+    expect(matrix).toBeDefined();
+
+    // act
+    const result = isSelectBaseQuestion(matrix);
+
+    // assert
+    expect(result).toBe(false);
+  });
+
+  it("should return false for null question", () => {
+    // act
+    const result = isSelectBaseQuestion(null as any);
+
+    // assert
+    expect(result).toBe(false);
+  });
+
+  it("should correctly identify all select-based questions in sample survey", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+
+    // act
+    const selectBasedQuestions = survey
+      .getAllQuestions()
+      .filter(isSelectBaseQuestion);
+
+    // assert
+    const expectedTypes = [
+      "checkbox",
+      "radiogroup",
+      "dropdown",
+      "tagbox",
+      "imagepicker",
+      "ranking",
+      "buttongroup",
+    ];
+    const actualTypes = selectBasedQuestions.map((q) => q.getType());
+
+    expectedTypes.forEach((type) => {
+      expect(actualTypes).toContain(type);
+    });
+  });
+});
+
+describe("getAllSelectBasedQuestions", () => {
+  it("should return empty array when survey is null", () => {
+    // act
+    const result = getAllSelectBasedQuestions(null as any);
+
+    // assert
+    expect(result).toEqual([]);
+  });
+
+  it("should return empty array when survey is undefined", () => {
+    // act
+    const result = getAllSelectBasedQuestions(undefined as any);
+
+    // assert
+    expect(result).toEqual([]);
+  });
+
+  it("should return all select-based questions from sample loop survey", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+
+    // act
+    const result = getAllSelectBasedQuestions(survey);
+
+    // assert
+    expect(result.length).toBe(1);
+    expect(result[0].name).toBe("brands");
+  });
+
+  it("should return all select-based questions from all-questions survey", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+
+    // act
+    const result = getAllSelectBasedQuestions(survey);
+
+    // assert
+    expect(result.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("should return correct question names from sample loop survey", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+
+    // act
+    const result = getAllSelectBasedQuestions(survey);
+
+    // assert
+    const names = result.map((q) => q.name);
+    expect(names).toContain("brands");
+  });
+});
+
+describe("getLoopChoicesFromQuestion", () => {
+  it("should return all choices when selection mode is All", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands");
+
+    // act
+    const result = getLoopChoicesFromQuestion(brands, SourceSelectionModes.All);
+
+    // assert
+    expect(result.length).toBe(5);
+  });
+
+  it("should return empty array when no value is selected and mode is SelectedOnly", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands");
+
+    // act
+    const result = getLoopChoicesFromQuestion(
+      brands,
+      SourceSelectionModes.SelectedOnly,
+    );
+
+    // assert
+    expect(result).toEqual([]);
+  });
+
+  it("should return selected choices when mode is SelectedOnly", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands");
+    brands.value = ["kia", "toyota"];
+
+    // act
+    const result = getLoopChoicesFromQuestion(
+      brands,
+      SourceSelectionModes.SelectedOnly,
+    );
+
+    // assert
+    expect(result.length).toBe(2);
+    const values = result.map((c) => c.value);
+    expect(values).toContain("kia");
+    expect(values).toContain("toyota");
+  });
+
+  it("should return unselected choices when mode is UnselectedOnly", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands");
+    brands.value = ["kia", "toyota"];
+
+    // act
+    const result = getLoopChoicesFromQuestion(
+      brands,
+      SourceSelectionModes.UnselectedOnly,
+    );
+
+    // assert
+    expect(result.length).toBe(3);
+    const values = result.map((c) => c.value);
+    expect(values).toContain("huyndai");
+    expect(values).toContain("honda");
+    expect(values).toContain("nissan");
+  });
+
+  it("should return empty array for unknown selection mode", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands");
+
+    // act
+    const result = getLoopChoicesFromQuestion(brands, "Unknown Mode" as any);
+
+    // assert
+    expect(result).toEqual([]);
+  });
+
+  it("should handle question with no choices property", () => {
+    // arrange
+    const survey = new SurveyModel({
+      elements: [{ type: "text", name: "text1" }],
+    });
+    const textQ = survey.getQuestionByName("text1");
+
+    // act
+    const result = getLoopChoicesFromQuestion(textQ, SourceSelectionModes.All);
+
+    // assert
+    expect(result).toEqual([]);
+  });
+
+  it("should handle single value (not array) when mode is SelectedOnly", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands");
+    brands.value = "kia";
+
+    // act
+    const result = getLoopChoicesFromQuestion(
+      brands,
+      SourceSelectionModes.SelectedOnly,
+    );
+
+    // assert
+    expect(result.length).toBe(1);
+    expect(result[0].value).toBe("kia");
+  });
+
+  it("should return correct choices for sample loop survey brands", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands");
+
+    // act
+    const allChoices = getLoopChoicesFromQuestion(
+      brands,
+      SourceSelectionModes.All,
+    );
+    const allValues = allChoices.map((c) => c.value);
+
+    // assert
+    expect(allValues).toEqual(["kia", "huyndai", "honda", "toyota", "nissan"]);
+  });
+});
+
+describe("extractUniqueChoices", () => {
+  it("should return empty array for empty input", () => {
+    // act
+    const result = extractUniqueChoices([]);
+
+    // assert
+    expect(result).toEqual([]);
+  });
+
+  it("should extract unique choices from multiple questions", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const selectQuestions = getAllSelectBasedQuestions(survey);
+
+    // act
+    const result = extractUniqueChoices(selectQuestions);
+
+    // assert
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it("should not include duplicate choice values across questions", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const selectQuestions = getAllSelectBasedQuestions(survey);
+
+    // act
+    const result = extractUniqueChoices(selectQuestions);
+    const values = result.map((c) => c.value);
+    const uniqueValues = new Set(values);
+
+    // assert
+    expect(uniqueValues.size).toBe(values.length);
+  });
+
+  it("should include question name in choice text", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const selectQuestions = getAllSelectBasedQuestions(survey);
+
+    // act
+    const result = extractUniqueChoices(selectQuestions);
+
+    // assert
+    result.forEach((choice) => {
+      expect(choice.text).toContain(": (");
+      expect(choice.text).toContain(choice.value);
+    });
+  });
+
+  it("should correctly extract unique choices from sample loop survey brands", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
+    const result = extractUniqueChoices([brands]);
+
+    // assert
+    expect(result.length).toBe(5);
+    const values = result.map((c) => c.value).sort();
+    expect(values).toEqual(["honda", "huyndai", "kia", "nissan", "toyota"]);
   });
 });
