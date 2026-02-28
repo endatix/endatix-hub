@@ -44,21 +44,6 @@ function createSurvey(
 }
 
 describe("isLoopQuestion", () => {
-  describe("arrange", () => {
-    it("should set up a survey with various question types", () => {
-      const survey = createSurvey(
-        [
-          { name: "loop1", loopSource: ["item1", "item2"] },
-          { name: "loop2", loopSource: [] },
-        ],
-        ["regular1", "regular2"],
-      );
-
-      const questions = survey.getAllQuestions();
-      expect(questions).toHaveLength(4);
-    });
-  });
-
   describe("act", () => {
     it("should return true for a question with non-empty loopSource array", () => {
       const survey = createSurvey([
@@ -133,22 +118,6 @@ describe("isLoopQuestion", () => {
 });
 
 describe("getAllLoopQuestions", () => {
-  describe("arrange", () => {
-    it("should set up a survey with mixed question types", () => {
-      const survey = createSurvey(
-        [
-          { name: "loop1", loopSource: ["item1"] },
-          { name: "loop2", loopSource: ["item2"] },
-          { name: "loop3", loopSource: [] },
-        ],
-        ["text1", "dropdown1"],
-      );
-
-      const questions = survey.getAllQuestions();
-      expect(questions).toHaveLength(5);
-    });
-  });
-
   describe("act", () => {
     it("should return all loop questions from the survey", () => {
       const survey = createSurvey(
@@ -224,18 +193,6 @@ describe("getAllLoopQuestions", () => {
 });
 
 describe("resolveDynamicLoopCondition", () => {
-  describe("arrange", () => {
-    it("should set up test parameters", () => {
-      const condition = "{panel.rateYourPurchase} = '5'";
-      const panelName = "loop1";
-      const currentIndex = 0;
-
-      expect(condition).toBeDefined();
-      expect(panelName).toBeDefined();
-      expect(currentIndex).toBeDefined();
-    });
-  });
-
   describe("act", () => {
     it("should return empty string when condition is empty", () => {
       const result = resolveDynamicLoopCondition("", "loop1", 0);
@@ -332,16 +289,6 @@ describe("resolveDynamicLoopCondition", () => {
 });
 
 describe("shuffleArray", () => {
-  describe("arrange", () => {
-    it("should set up test arrays", () => {
-      const numbers = [1, 2, 3, 4, 5];
-      const strings = ["a", "b", "c"];
-
-      expect(numbers).toHaveLength(5);
-      expect(strings).toHaveLength(3);
-    });
-  });
-
   describe("act", () => {
     it("should return empty array when input is empty", () => {
       const result = shuffleArray([]);
@@ -433,13 +380,6 @@ describe("shuffleArray", () => {
 });
 
 describe("isNonEmptyCondition", () => {
-  describe("arrange", () => {
-    it("should set up test conditions", () => {
-      const condition = "{panel.value} = 'test'";
-      expect(condition).toBeDefined();
-    });
-  });
-
   describe("act", () => {
     it("should return true for non-empty string condition", () => {
       const result = isNonEmptyCondition("{panel.value} = 'test'");
