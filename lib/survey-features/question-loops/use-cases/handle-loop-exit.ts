@@ -44,9 +44,7 @@ export function createLoopExitCommand(panel: DynamicLoopModel) {
     triggerIndex: number,
   ) => {
     if (shouldExitCurrent && triggerIndex !== -1) {
-      if (!state.exitCurrent) {
-        state.exitCurrent = { triggeredIndexMap: {} };
-      }
+      state.exitCurrent ??= { triggeredIndexMap: {} };
 
       if (state.exitCurrent.triggeredIndexMap[panelIndex] !== triggerIndex) {
         state.exitCurrent.triggeredIndexMap[panelIndex] = triggerIndex;
@@ -117,7 +115,7 @@ export function handleLoopExit(
   sender: SurveyModel,
   options: DynamicPanelItemValueChangedEvent,
 ) {
-  const loopPanel = options.question as DynamicLoopModel;
+  const loopPanel = options.question;
 
   if (!isLoopQuestion(loopPanel)) return;
 

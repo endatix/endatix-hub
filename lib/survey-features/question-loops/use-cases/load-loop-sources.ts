@@ -18,17 +18,17 @@ export function loadLoopSources(
 
   const dynamicPanels = getAllLoopQuestions(sender);
 
-  const loopControlProps = [
+  const loopControlProps = new Set([
     "randomizeLoop",
     "choicePattern",
     "maxLoopCount",
     "priorityItems",
-  ];
+  ]);
 
   const panelsToUpdate = dynamicPanels.filter(
     (panel) =>
       panel.loopSource.includes(options.name) ||
-      loopControlProps.includes(options.name),
+      loopControlProps.has(options.name),
   );
 
   if (panelsToUpdate.length === 0) return;

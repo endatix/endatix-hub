@@ -2,7 +2,6 @@ import { IJsonPropertyInfo, ItemValue, SurveyModel } from "survey-core";
 import {
   ConditionRunnerContext,
   DynamicLoopDefinition,
-  DynamicLoopModel,
   LoopExitMeta,
   SourceSelectionModes,
 } from "./types";
