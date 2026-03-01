@@ -1,6 +1,5 @@
-import { IJsonPropertyInfo, SurveyModel } from "survey-core";
+import { IJsonPropertyInfo, ItemValue, SurveyModel } from "survey-core";
 import {
-  ChoiceOption,
   ConditionRunnerContext,
   DynamicLoopDefinition,
   DynamicLoopModel,
@@ -8,7 +7,7 @@ import {
   SourceSelectionModes,
 } from "./types";
 import {
-  extractUniqueChoicesMap,
+  getAllUniqueChoices,
   getAllSelectBasedQuestions,
   isLoopQuestion,
   isSelectBaseQuestion,
@@ -111,7 +110,7 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
   type: "multiplevalues",
   choices: function (
     obj: { survey: SurveyModel; loopSource: string[] },
-    choicesCallback: (choices: ChoiceOption[]) => void,
+    choicesCallback: (choices: ItemValue[]) => void,
   ) {
     const { survey, loopSource } = obj || {};
     if (!survey || !loopSource) return choicesCallback([]);
@@ -120,12 +119,11 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
       .map((name) => survey.getQuestionByName(name))
       .filter(isSelectBaseQuestion);
 
-    const choicesMap = extractUniqueChoicesMap(
+    const uniqueChoices = getAllUniqueChoices(
       loopSourceQuestions,
       (question, choice) => `${question.name}: (${choice.value})`,
     );
 
-    const uniqueChoices = Array.from(choicesMap.values());
     choicesCallback(uniqueChoices);
   },
   visibleIf: isLoopQuestion,

@@ -163,32 +163,68 @@ function getLoopChoicesFromQuestion(
 }
 
 /**
- * Extracts unique choices from a list of SelectBase questions (questions with choices)
- * @param questions - The list of SelectBase questions to extract the choices from
- * @param formatChoiceText - A function to format the choice text
- * @returns A Map of unique choices as ItemValue objects with the item value as the key
+ * Gets all unique available choices across multiple questions.
  */
-function extractUniqueChoicesMap(
+function getAllUniqueChoices(
   questions: QuestionSelectBase[],
   formatChoiceText?: (
     question: QuestionSelectBase,
     choice: ItemValue,
   ) => string,
-) {
+): ItemValue[] {
+  return extractUniqueChoicesBy(questions, (q) => q.choices, formatChoiceText);
+}
+
+/**
+ * Gets only the unique selected choices across multiple questions.
+ */
+function getUniqueSelectedChoices(
+  questions: QuestionSelectBase[],
+  formatChoiceText?: (
+    question: QuestionSelectBase,
+    choice: ItemValue,
+  ) => string,
+): ItemValue[] {
+  // Note: Ensure `q.selectedChoices` is an array of ItemValue in your types,
+  // as single-selects (Radiogroup/Dropdown) might use a different property in SurveyJS.
+  return extractUniqueChoicesBy(
+    questions,
+    (q) => q.selectedChoices,
+    formatChoiceText,
+  );
+}
+
+/**
+ * Base engine to extract and deduplicate choices from a list of questions.
+ */
+function extractUniqueChoicesBy(
+  questions: QuestionSelectBase[],
+  choiceSelector: (question: QuestionSelectBase) => ItemValue[],
+  formatChoiceText?: (
+    question: QuestionSelectBase,
+    choice: ItemValue,
+  ) => string,
+): ItemValue[] {
   const choicesMap = new Map<ChoiceValue, ItemValue>();
+
   for (const question of questions) {
-    for (const choice of question.choices) {
+    const choicesToProcess = choiceSelector(question) || [];
+
+    for (const choice of choicesToProcess) {
       if (choicesMap.has(choice.value)) continue;
 
       const text = formatChoiceText
         ? formatChoiceText(question, choice)
-        : choice.text;
+        : choice.text || choice.value; // Fallback to value if text is missing
 
-      choicesMap.set(choice.value, question.createItemValue(choice.value, text));
+      choicesMap.set(
+        choice.value,
+        question.createItemValue(choice.value, text),
+      );
     }
   }
 
-  return choicesMap;
+  return Array.from(choicesMap.values());
 }
 
 export {
@@ -200,5 +236,7 @@ export {
   getLoopChoicesFromQuestion,
   isSelectBaseQuestion,
   getAllSelectBasedQuestions,
-  extractUniqueChoicesMap,
+  getAllUniqueChoices,
+  getUniqueSelectedChoices,
+  extractUniqueChoicesBy
 };

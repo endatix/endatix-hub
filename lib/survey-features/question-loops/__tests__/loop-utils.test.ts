@@ -9,7 +9,8 @@ import {
   isSelectBaseQuestion,
   getAllSelectBasedQuestions,
   getLoopChoicesFromQuestion,
-  extractUniqueChoicesMap,
+  getAllUniqueChoices,
+  extractUniqueChoicesBy,
 } from "../loop-utils";
 import { DynamicLoopModel, SourceSelectionModes } from "../types";
 import { allQuestionsSurveySchema } from "./fixtures/all-questions-survey";
@@ -46,58 +47,75 @@ function createSurvey(
 describe("isLoopQuestion", () => {
   describe("act", () => {
     it("should return true for a question with non-empty loopSource array", () => {
+      // arrange
       const survey = createSurvey([
         { name: "loop1", loopSource: ["item1", "item2"] },
       ]);
-
       const question = survey.getQuestionByName("loop1") as DynamicLoopModel;
+
+      // act
       const result = isLoopQuestion(question);
 
+      // assert
       expect(result).toBe(true);
     });
 
     it("should return false for a question with empty loopSource array", () => {
+      // arrange
       const survey = createSurvey([{ name: "loop1", loopSource: [] }]);
-
       const question = survey.getQuestionByName("loop1") as DynamicLoopModel;
+
+      // act
       const result = isLoopQuestion(question);
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for a regular question without loopSource", () => {
+      // arrange
       const survey = createSurvey([], ["regular1"]);
-
       const question = survey.getQuestionByName("regular1");
+
+      // act
       const result = isLoopQuestion(question);
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for a null question", () => {
+      // act
       const result = isLoopQuestion(null as any);
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for a undefined question", () => {
+      // act
       const result = isLoopQuestion(undefined as any);
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for a question that is not a paneldynamic type", () => {
+      // arrange
       const survey = createSurvey([], ["text1"]);
-
       const question = survey.getQuestionByName("text1");
+
+      // act
       const result = isLoopQuestion(question);
 
+      // assert
       expect(result).toBe(false);
     });
   });
 
   describe("assert", () => {
     it("should correctly identify loop questions with valid loopSource", () => {
+      // arrange
       const survey = createSurvey(
         [
           { name: "loop1", loopSource: ["item1"] },
@@ -105,11 +123,11 @@ describe("isLoopQuestion", () => {
         ],
         ["regular1"],
       );
-
       const loop1 = survey.getQuestionByName("loop1") as DynamicLoopModel;
       const loop2 = survey.getQuestionByName("loop2") as DynamicLoopModel;
       const regular1 = survey.getQuestionByName("regular1");
 
+      // act & assert
       expect(isLoopQuestion(loop1)).toBe(true);
       expect(isLoopQuestion(loop2)).toBe(true);
       expect(isLoopQuestion(regular1)).toBe(false);
@@ -120,6 +138,7 @@ describe("isLoopQuestion", () => {
 describe("getAllLoopQuestions", () => {
   describe("act", () => {
     it("should return all loop questions from the survey", () => {
+      // arrange
       const survey = createSurvey(
         [
           { name: "loop1", loopSource: ["item1"] },
@@ -128,41 +147,53 @@ describe("getAllLoopQuestions", () => {
         ["text1"],
       );
 
+      // act
       const result = getAllLoopQuestions(survey);
 
+      // assert
       expect(result).toHaveLength(2);
       expect(result.map((q) => q.name)).toEqual(["loop1", "loop2"]);
     });
 
     it("should return empty array when survey is null", () => {
+      // act
       const result = getAllLoopQuestions(null as any);
 
+      // assert
       expect(result).toEqual([]);
     });
 
     it("should return empty array when survey is undefined", () => {
+      // act
       const result = getAllLoopQuestions(undefined as any);
 
+      // assert
       expect(result).toEqual([]);
     });
 
     it("should return empty array when there are no loop questions", () => {
+      // arrange
       const survey = createSurvey([], ["text1", "text2"]);
 
+      // act
       const result = getAllLoopQuestions(survey);
 
+      // assert
       expect(result).toHaveLength(0);
     });
 
     it("should filter out questions with empty loopSource", () => {
+      // arrange
       const survey = createSurvey([
         { name: "loop1", loopSource: ["item1"] },
         { name: "emptyLoop", loopSource: [] },
         { name: "loop2", loopSource: ["item2"] },
       ]);
 
+      // act
       const result = getAllLoopQuestions(survey);
 
+      // assert
       expect(result).toHaveLength(2);
       expect(result.map((q) => q.name)).toEqual(["loop1", "loop2"]);
     });
@@ -170,6 +201,7 @@ describe("getAllLoopQuestions", () => {
 
   describe("assert", () => {
     it("should return correct loop questions in a complex survey", () => {
+      // arrange
       const survey = createSurvey(
         [
           { name: "loop1", loopSource: ["a"] },
@@ -180,8 +212,10 @@ describe("getAllLoopQuestions", () => {
         ["text1", "dropdown1"],
       );
 
+      // act
       const result = getAllLoopQuestions(survey);
 
+      // assert
       expect(result).toHaveLength(3);
       expect(result.map((q) => q.name).sort()).toEqual([
         "loop1",
@@ -195,94 +229,130 @@ describe("getAllLoopQuestions", () => {
 describe("resolveDynamicLoopCondition", () => {
   describe("act", () => {
     it("should return empty string when condition is empty", () => {
+      // act
       const result = resolveDynamicLoopCondition("", "loop1", 0);
 
+      // assert
       expect(result).toBe("");
     });
 
     it("should return empty string when condition is null", () => {
+      // act
       const result = resolveDynamicLoopCondition(null as any, "loop1", 0);
 
+      // assert
       expect(result).toBe("");
     });
 
     it("should return empty string when condition is undefined", () => {
+      // act
       const result = resolveDynamicLoopCondition(undefined as any, "loop1", 0);
 
+      // assert
       expect(result).toBe("");
     });
 
     it("should replace {panel. with panelName[index]. and resolve the condition", () => {
+      // arrange
       const condition = "{panel.rateYourPurchase} = '5'";
+
+      // act
       const result = resolveDynamicLoopCondition(condition, "loop1", 0);
 
+      // assert
       expect(result).toBe("{loop1[0].rateYourPurchase} = '5'");
     });
 
     it("should handle different panel names", () => {
+      // arrange
       const condition = "{panel.question} = true";
+
+      // act
       const result = resolveDynamicLoopCondition(condition, "myLoop", 2);
 
+      // assert
       expect(result).toBe("{myLoop[2].question} = true");
     });
 
     it("should handle different indices", () => {
+      // arrange
       const condition = "{panel.value} > 10";
+
+      // act
       const result = resolveDynamicLoopCondition(condition, "loop1", 5);
 
+      // assert
       expect(result).toBe("{loop1[5].value} > 10");
     });
 
     it("should handle multiple panel references in the same condition", () => {
+      // arrange
       const condition = "{panel.q1} = 1 and {panel.q2} = 2";
+
+      // act
       const result = resolveDynamicLoopCondition(condition, "loop1", 3);
 
+      // assert
       expect(result).toBe("{loop1[3].q1} = 1 and {loop1[3].q2} = 2");
     });
 
     it("should be case insensitive for {panel.", () => {
+      // arrange
       const condition = "{PANEL.something} = 1";
+
+      // act
       const result = resolveDynamicLoopCondition(condition, "loop1", 0);
 
+      // assert
       expect(result).toBe("{loop1[0].something} = 1");
     });
 
     it("should preserve parts of the condition that are not {panel.", () => {
+      // arrange
       const condition = "{panel.q1} = 'yes' and {other.q2} = 'no'";
+
+      // act
       const result = resolveDynamicLoopCondition(condition, "loop1", 1);
 
+      // assert
       expect(result).toBe("{loop1[1].q1} = 'yes' and {other.q2} = 'no'");
     });
   });
 
   describe("assert", () => {
     it("should correctly resolve complex condition with multiple replacements", () => {
+      // arrange
       const condition = "{panel.exitFlag} = true and {panel.rating} > 3";
       const panelName = "purchaseLoop";
       const currentIndex = 4;
 
+      // act
       const result = resolveDynamicLoopCondition(
         condition,
         panelName,
         currentIndex,
       );
 
+      // assert
       expect(result).toBe(
         "{purchaseLoop[4].exitFlag} = true and {purchaseLoop[4].rating} > 3",
       );
     });
 
     it("should match the documented example", () => {
+      // arrange
       const condition = "{panel.rateYourPurchase} = '5'";
       const panelName = "loop1";
       const currentIndex = 0;
 
+      // act
       const result = resolveDynamicLoopCondition(
         condition,
         panelName,
         currentIndex,
       );
 
+      // assert
       expect(result).toBe("{loop1[0].rateYourPurchase} = '5'");
     });
   });
@@ -804,128 +874,108 @@ describe("getLoopChoicesFromQuestion", () => {
   });
 });
 
-describe("extractUniqueChoices", () => {
-  it("should return empty map for empty input", () => {
-    // act
-    const map = extractUniqueChoicesMap([]);
-
-    // assert
-    expect(map).toEqual(new Map());
+describe("getAllUniqueChoices", () => {
+  it("should return empty array for empty input", () => {
+    const result = getAllUniqueChoices([]);
+    expect(result).toEqual([]);
   });
 
   it("should extract unique choices from multiple questions", () => {
-    // arrange
     const survey = new SurveyModel(allQuestionsSurveySchema as any);
     const selectQuestions = getAllSelectBasedQuestions(survey);
-
-    // act
-    const result = extractUniqueChoicesMap(selectQuestions);
-
-    // assert
-    expect(result.size).toBeGreaterThan(0);
+    const result = getAllUniqueChoices(selectQuestions);
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it("should not include duplicate choice values across questions", () => {
-    // arrange
     const survey = new SurveyModel(allQuestionsSurveySchema as any);
     const selectQuestions = getAllSelectBasedQuestions(survey);
-
-    // act
-    const result = extractUniqueChoicesMap(selectQuestions);
-    const values = result.keys();
-    const uniqueValues = new Set(values);
-
-    // assert
-    expect(uniqueValues.size).toBe(result.size);
+    const result = getAllUniqueChoices(selectQuestions);
+    const uniqueValues = new Set(result.map((c) => c.value));
+    expect(uniqueValues.size).toBe(result.length);
   });
 
   it("should use choice text from original choice when no formatter provided", () => {
-    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
-
-    // act
-    const map = extractUniqueChoicesMap([brands]);
-
-    // assert
-    expect(map.size).toBe(5);
-
-    const choices = Array.from(map.values());
+    const choices = getAllUniqueChoices([brands]);
+    expect(choices.length).toBe(5);
     expect(choices[0].text).toBe("Kia");
     expect(choices[1].text).toBe("Huyndai");
   });
 
   it("should use custom formatter when provided", () => {
-    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
-
-    // act
-    const map = extractUniqueChoicesMap(
+    const choices = getAllUniqueChoices(
       [brands],
       (q, c) => `${q.name}: ${c.value}`,
     );
-
-    // assert
-    expect(map.size).toBe(5);
-
-    const choices = Array.from(map.values());
+    expect(choices.length).toBe(5);
     expect(choices[0].text).toBe("brands: kia");
     expect(choices[1].text).toBe("brands: huyndai");
   });
 
   it("should correctly extract unique choices from sample loop survey brands", () => {
-    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
-
-    // act
-    const map = extractUniqueChoicesMap([brands]);
-
-    // assert
-    expect(map.size).toBe(5);
-
-    const values = Array.from(map.keys()).sort();
-    expect(values).toEqual(["honda", "huyndai", "kia", "nissan", "toyota"]);
+    const choices = getAllUniqueChoices([brands]);
+    expect(choices.length).toBe(5);
+    const sortedChoices = choices.map((c) => c.value).sort();
+    expect(sortedChoices).toEqual([
+      "honda",
+      "huyndai",
+      "kia",
+      "nissan",
+      "toyota",
+    ]);
   });
 
   it("should preserve choice value when using custom formatter", () => {
-    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
-
-    // act
-    const result = extractUniqueChoicesMap([brands], () => "custom text");
-
-    // assert
-    result.forEach((choice) => {
+    const choices = getAllUniqueChoices([brands], () => "custom text");
+    choices.forEach((choice) => {
       expect(choice.value).toBeDefined();
       expect(choice.text).toBe("custom text");
     });
   });
 
   it("should correctly extract unique choices from all questions fixture", () => {
-    // arrange
     const survey = new SurveyModel(allQuestionsSurveySchema as any);
     const selectQuestions = getAllSelectBasedQuestions(survey);
     const allChoices = selectQuestions.flatMap((q) => q.choices);
-
-    // act
-    const choicesMap = extractUniqueChoicesMap(selectQuestions);
-    const uniqueValues = choicesMap.keys();
-    const valueSet = new Set(uniqueValues);
+    const choices = getAllUniqueChoices(selectQuestions);
+    const valueSet = new Set(choices.map((c) => c.value));
     const isEveryChoicePresent = allChoices.every((choice) =>
       valueSet.has(choice.value),
     );
+    expect(valueSet.size, "each choice value is unique").toBe(choices.length);
+    expect(isEveryChoicePresent, "every choice present in unique choices").toBe(
+      true,
+    );
+  });
+});
 
-    expect(
-      valueSet.size,
-      "each uniqueChoice.value is unique (no repeats)",
-    ).toBe(choicesMap.size);
+describe("extractUniqueChoicesBy (integration with fixtures)", () => {
+  it("should deduplicate by value when using choices selector across all-questions survey", () => {
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const selectQuestions = getAllSelectBasedQuestions(survey);
+    const choices = extractUniqueChoicesBy(selectQuestions, (q) => q.choices);
+    const values = choices.map((c) => c.value);
+    expect(new Set(values).size).toBe(choices.length);
+  });
 
-    expect(
-      isEveryChoicePresent,
-      "every choice should be present in unique choices",
-    ).toBe(true);
+  it("should return unique choices from sample loop survey when using choices selector", () => {
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+    const choices = extractUniqueChoicesBy([brands], (q) => q.choices);
+    expect(choices.map((c) => c.value).sort()).toEqual([
+      "honda",
+      "huyndai",
+      "kia",
+      "nissan",
+      "toyota",
+    ]);
   });
 });

@@ -1,120 +1,122 @@
 import { ItemValue, SurveyModel } from "survey-core";
-import { DynamicLoopModel, PanelItem } from "../types";
-import { getLoopChoicesFromQuestion, shuffleArray } from "../loop-utils";
+import { ChoiceValue, DynamicLoopModel, PanelItem } from "../types";
+import {
+  getUniqueSelectedChoices,
+  isLoopQuestion,
+  isSelectBaseQuestion,
+  shuffleArray,
+} from "../loop-utils";
+
+type GroupedChoices = {
+  priorityChoicesGroup: Map<ChoiceValue, PanelItem>;
+  othersChoicesGroup: Map<ChoiceValue, PanelItem>;
+};
 
 /**
- * Core logic to evaluate and update a single loop panel's source.
- * Uses a Stable Merge Algorithm to prevent wiping user data upon re-evaluation.
+ * Syncs the loop source choices to the panel question
+ * @param survey - The survey model
+ * @param panelQuestion - The panel question to sync the loop source choices to
  */
 export function syncSingleLoopSource(
-  sender: SurveyModel,
+  survey: SurveyModel,
   panelQuestion: DynamicLoopModel,
 ) {
-  const aggregatedLoopChoices: ItemValue[] = [];
-  const priorityIds = panelQuestion.priorityItems || [];
-  const seenValues = new Set();
-  const priorityBucket: PanelItem[] = [];
-  const othersBucket: PanelItem[] = [];
+  if (!isLoopQuestion(panelQuestion)) return;
 
-  panelQuestion.loopSource.forEach((sourceName: string) => {
-    const sourceQuestion = sender.getQuestionByName(sourceName);
-    if (!sourceQuestion) return;
+  const loopSourceQuestions = panelQuestion.loopSource
+    .map((sourceName) => survey.getQuestionByName(sourceName))
+    .filter(isSelectBaseQuestion);
 
-    const loopChoices = getLoopChoicesFromQuestion(
-      sourceQuestion,
-      panelQuestion.choicePattern,
-    );
-    aggregatedLoopChoices.push(...loopChoices);
-  });
-
-  aggregatedLoopChoices.forEach((choice) => {
-    if (!seenValues.has(choice.value)) {
-      seenValues.add(choice.value);
-      const itemObj = {
-        itemText: choice.text || choice.value,
-        itemValue: choice.value,
-      };
-
-      if (priorityIds.includes(choice.value)) {
-        priorityBucket.push(itemObj);
-      } else {
-        othersBucket.push(itemObj);
-      }
-    }
-  });
-
-  const existingValue: PanelItem[] = Array.isArray(panelQuestion.value)
-    ? panelQuestion.value
-    : [];
-  const existingValuesSet = new Set(existingValue.map((v) => v.itemValue));
-
-  const max = parseInt(panelQuestion.maxLoopCount);
-  let selectedOthers: PanelItem[] = [];
-
-  // 4. Handle Max Limits (Prioritize keeping existing data!)
-  if (max > 0) {
-    const otherSlotsAvailable = Math.max(0, max - priorityBucket.length);
-
-    // Split 'others' into items we already have vs brand new ones
-    const existingOthers = othersBucket.filter((o) =>
-      existingValuesSet.has(o.itemValue),
-    );
-    const newOthers = othersBucket.filter(
-      (o) => !existingValuesSet.has(o.itemValue),
-    );
-
-    // Keep existing others first so we don't drop user data unnecessarily
-    const othersToKeep = existingOthers.slice(0, otherSlotsAvailable);
-
-    // Fill remaining slots with new items
-    const remainingSlots = otherSlotsAvailable - othersToKeep.length;
-    let othersToAdd = remainingSlots > 0 ? newOthers : [];
-
-    if (remainingSlots > 0 && othersToAdd.length > remainingSlots) {
-      // Pick randomly from the new items if we have more than we need
-      const poolToPickFrom = panelQuestion.randomizeLoop
-        ? shuffleArray([...othersToAdd])
-        : othersToAdd;
-      othersToAdd = poolToPickFrom.slice(0, remainingSlots);
-    }
-
-    selectedOthers = [...othersToKeep, ...othersToAdd];
-  } else {
-    selectedOthers = othersBucket;
-  }
-
-  const finalValueBucket = [...priorityBucket, ...selectedOthers];
-  const finalValueSet = new Set(finalValueBucket.map((v) => v.itemValue));
-
-  let finalValue: PanelItem[] = [];
-
-  // 5. Construct Final Array: Preserve Existing Order First
-  existingValue.forEach((existingItem) => {
-    if (finalValueSet.has(existingItem.itemValue)) {
-      finalValue.push(existingItem);
-      finalValueSet.delete(existingItem.itemValue); // Mark as processed
-    }
-  });
-
-  // 6. Append New Items (Randomize ONLY the new items)
-  let newItemsToAdd = finalValueBucket.filter((item) =>
-    finalValueSet.has(item.itemValue),
+  const choicesMap = getUniqueSelectedChoices(loopSourceQuestions);
+  const groupedChoices = groupChoicesByPriority(
+    choicesMap,
+    panelQuestion.priorityItems,
   );
 
+  const maxLimit = parseInt(panelQuestion.maxLoopCount) || 0;
+  const panelsToDisplay = {
+    current: applyMaxLimit(groupedChoices, maxLimit),
+  };
+
   if (panelQuestion.randomizeLoop) {
-    newItemsToAdd = shuffleArray(newItemsToAdd);
+    panelsToDisplay.current = shuffleArray(panelsToDisplay.current);
   }
 
-  finalValue.push(...newItemsToAdd);
-
-  // 7. Re-index and apply
-  finalValue = finalValue.map((obj, index) => ({
+  panelsToDisplay.current = panelsToDisplay.current.map((obj, index) => ({
     ...obj,
     loopIndex: index,
   }));
 
+  const existingValue = Array.isArray(panelQuestion.value)
+    ? panelQuestion.value
+    : [];
+
   // Only trigger a SurveyJS update if the array actually changed
-  if (JSON.stringify(existingValue) !== JSON.stringify(finalValue)) {
-    panelQuestion.value = finalValue;
+  if (
+    JSON.stringify(existingValue) !== JSON.stringify(panelsToDisplay.current)
+  ) {
+    panelQuestion.value = panelsToDisplay.current;
   }
+}
+
+/**
+ * Buckets the loop source choices into priority and others based on the priority values
+ * @param choices - The choices to bucket
+ * @param priorityValues - The priority values to use for bucketing
+ * @returns An object with the priority choices group and the others choices group
+ */
+export function groupChoicesByPriority(
+  choices: ItemValue[],
+  priorityValues: ChoiceValue[],
+): GroupedChoices {
+  const prioritySet = new Set(priorityValues);
+  const priorityChoicesGroup = new Map<ChoiceValue, PanelItem>();
+  const othersChoicesGroup = new Map<ChoiceValue, PanelItem>();
+
+  choices.forEach((choice) => {
+    const panelItem = {
+      itemText: choice.text || choice.value,
+      itemValue: choice.value,
+    };
+
+    if (prioritySet.has(choice.value)) {
+      priorityChoicesGroup.set(choice.value, panelItem);
+    } else {
+      othersChoicesGroup.set(choice.value, panelItem);
+    }
+  });
+
+  return {
+    priorityChoicesGroup,
+    othersChoicesGroup,
+  };
+}
+
+/**
+ * Applies the max limit to the grouped choices
+ * @param groupedChoices - The grouped choices to apply the max limit to
+ * @param maxLimit - The max limit to apply
+ * @returns The grouped choices with the max limit applied
+ */
+export function applyMaxLimit(
+  groupedChoices: GroupedChoices,
+  maxLimit: number,
+): PanelItem[] {
+  const { priorityChoicesGroup, othersChoicesGroup } = groupedChoices;
+  // No limit, return all choices
+  if (maxLimit < 1) {
+    return [...priorityChoicesGroup.values(), ...othersChoicesGroup.values()];
+  }
+
+  const remainingSlots = Math.max(0, maxLimit - priorityChoicesGroup.size);
+  if (othersChoicesGroup.size > remainingSlots) {
+    // If we have more others than we need, shuffle them before slicing
+    const shuffledOthers = shuffleArray([...othersChoicesGroup.values()]);
+    return [
+      ...priorityChoicesGroup.values(),
+      ...shuffledOthers.slice(0, remainingSlots),
+    ];
+  }
+
+  return [...priorityChoicesGroup.values(), ...othersChoicesGroup.values()];
 }
