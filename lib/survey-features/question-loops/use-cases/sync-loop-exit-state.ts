@@ -7,6 +7,7 @@ import {
 import { createLoopExitCommand } from "./handle-loop-exit";
 
 const FIRST_QUESTION_INDEX = 0;
+
 /**
  * Finds the index of the last question in a panel that has a value.
  * Used during initial load when we don't have a specific event trigger.
@@ -27,6 +28,7 @@ export function syncLoopExitState(
   loopPanel: DynamicLoopModel,
 ) {
   const { exitLoopCondition, exitAllLoopsCondition } = loopPanel;
+
   if (!exitAllLoopsCondition && !exitLoopCondition) return;
 
   const command = createLoopExitCommand(loopPanel);
@@ -38,12 +40,14 @@ export function syncLoopExitState(
         loopPanel.name,
         panelIndex,
       );
-      command.processExitAll(
-        !survey.runCondition(exitAllExpression),
-        panelIndex,
-      );
+
+      const isExitAllConditionMet = survey.runCondition(exitAllExpression);
+      const shouldRetainAllLoops = !isExitAllConditionMet;
+
+      command.processExitAll(shouldRetainAllLoops, panelIndex);
     }
 
+    // 2. Process "Exit Current" Logic
     if (isNonEmptyCondition(exitLoopCondition)) {
       const exitCurrentExpression = resolveDynamicLoopCondition(
         exitLoopCondition,
@@ -51,11 +55,15 @@ export function syncLoopExitState(
         panelIndex,
       );
 
-      const triggerIndex = !survey.runCondition(exitCurrentExpression)
+      const isExitCurrentConditionMet = survey.runCondition(exitCurrentExpression);
+      const shouldRetainCurrentLoop = !isExitCurrentConditionMet;
+
+      const triggerIndex = isExitCurrentConditionMet
         ? findLastAnsweredQuestionIndex(panel)
         : -1;
+
       command.processExitCurrent(
-        !survey.runCondition(exitCurrentExpression),
+        shouldRetainCurrentLoop,
         panelIndex,
         triggerIndex,
       );
@@ -64,6 +72,5 @@ export function syncLoopExitState(
 
   if (command.apply()) {
     survey.runExpressions();
-    console.log("running expressions");
   }
 }
