@@ -104,7 +104,7 @@ export function useSurveyModel(
       }
     };
 
-    const cleanup = initializeModel();
+    initializeModel();
 
     return () => {
       cleanUpFuncRef.current?.();

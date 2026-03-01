@@ -361,60 +361,90 @@ describe("resolveDynamicLoopCondition", () => {
 describe("shuffleArray", () => {
   describe("act", () => {
     it("should return empty array when input is empty", () => {
+      // act
       const result = shuffleArray([]);
 
+      // assert
       expect(result).toEqual([]);
     });
 
     it("should return array with same single element", () => {
+      // arrange
       const input = [42];
+
+      // act
       const result = shuffleArray([...input]);
 
+      // assert
       expect(result).toHaveLength(1);
       expect(result).toContain(42);
     });
 
     it("should preserve array length", () => {
+      // arrange
       const input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+      // act
       const result = shuffleArray([...input]);
 
+      // assert
       expect(result).toHaveLength(input.length);
     });
 
     it("should contain the same elements (valid permutation)", () => {
+      // arrange
       const input = [1, 2, 3, 4, 5];
+
+      // act
       const result = shuffleArray([...input]);
 
+      // assert
       expect(result.sort()).toEqual(input);
     });
 
     it("should preserve sum of integers", () => {
+      // arrange
       const input = [1, 2, 3, 4, 5];
       const originalSum = input.reduce((a, b) => a + b, 0);
+
+      // act
       const result = shuffleArray([...input]);
       const resultSum = result.reduce((a, b) => a + b, 0);
 
+      // assert
       expect(resultSum).toBe(originalSum);
     });
 
     it("should mutate the original array", () => {
+      // arrange
       const input = [1, 2, 3, 4, 5];
+
+      // act
       shuffleArray(input);
 
+      // assert
       expect(input).toHaveLength(5);
     });
 
     it("should handle array of strings", () => {
+      // arrange
       const input = ["apple", "banana", "cherry", "date"];
+
+      // act
       const result = shuffleArray([...input]);
 
+      // assert
       expect(result.sort()).toEqual(input.sort());
     });
 
     it("should handle objects", () => {
+      // arrange
       const input = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+      // act
       const result = shuffleArray([...input]);
 
+      // assert
       expect(result.length).toBe(3);
       expect(result.map((r) => r.id).sort()).toEqual([1, 2, 3]);
     });
@@ -422,28 +452,33 @@ describe("shuffleArray", () => {
 
   describe("assert", () => {
     it("should produce different orders on multiple shuffles (statistical test)", () => {
+      // arrange
       const input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
       const results: number[][] = [];
 
+      // act
       for (let i = 0; i < 50; i++) {
         results.push(shuffleArray([...input]));
       }
-
       const firstElements = results.map((r) => r[0]);
       const uniqueFirstElements = new Set(firstElements);
 
+      // assert
       expect(uniqueFirstElements.size).toBeGreaterThan(1);
     });
 
     it("should eventually produce different permutations over many runs", () => {
+      // arrange
       const input = [1, 2, 3];
       const permutations = new Set<string>();
 
+      // act
       for (let i = 0; i < 10; i++) {
         const result = shuffleArray([...input]);
         permutations.add(result.join(","));
       }
 
+      // assert
       expect(permutations.size).toBeGreaterThan(1);
     });
   });
@@ -452,56 +487,73 @@ describe("shuffleArray", () => {
 describe("isNonEmptyCondition", () => {
   describe("act", () => {
     it("should return true for non-empty string condition", () => {
+      // act
       const result = isNonEmptyCondition("{panel.value} = 'test'");
 
+      // assert
       expect(result).toBe(true);
     });
 
     it("should return true for condition with only whitespace (treated as empty after trim)", () => {
+      // act
       const result = isNonEmptyCondition("   ");
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for empty string", () => {
+      // act
       const result = isNonEmptyCondition("");
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for undefined", () => {
+      // act
       const result = isNonEmptyCondition(undefined);
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for null", () => {
+      // act
       const result = isNonEmptyCondition(null as any);
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return true for condition with leading and trailing whitespace", () => {
+      // act
       const result = isNonEmptyCondition("  {panel.value} = 'test'  ");
 
+      // assert
       expect(result).toBe(true);
     });
 
     it("should return false for number type", () => {
+      // act
       const result = isNonEmptyCondition(123 as any);
 
+      // assert
       expect(result).toBe(false);
     });
 
     it("should return false for object type", () => {
+      // act
       const result = isNonEmptyCondition({ value: "test" } as any);
 
+      // assert
       expect(result).toBe(false);
     });
   });
 
   describe("assert", () => {
     it("should work as type guard for conditional logic", () => {
+      // arrange
       const conditions: (string | undefined)[] = [
         "{panel.q1} = 1",
         "",
@@ -510,17 +562,21 @@ describe("isNonEmptyCondition", () => {
         "{panel.q2} > 5",
       ];
 
+      // act
       const nonEmptyConditions = conditions.filter(isNonEmptyCondition);
 
+      // assert
       expect(nonEmptyConditions).toHaveLength(2);
       expect(nonEmptyConditions).toEqual(["{panel.q1} = 1", "{panel.q2} > 5"]);
     });
 
     it("should correctly identify SurveyJS visibility conditions", () => {
+      // arrange
       const validCondition = "{panel.exitFlag} = true";
       const emptyCondition = "";
       const whitespaceCondition = "   ";
 
+      // act & assert
       expect(isNonEmptyCondition(validCondition)).toBe(true);
       expect(isNonEmptyCondition(emptyCondition)).toBe(false);
       expect(isNonEmptyCondition(whitespaceCondition)).toBe(false);
@@ -876,50 +932,78 @@ describe("getLoopChoicesFromQuestion", () => {
 
 describe("getAllUniqueChoices", () => {
   it("should return empty array for empty input", () => {
+    // act
     const result = getAllUniqueChoices([]);
+
+    // assert
     expect(result).toEqual([]);
   });
 
   it("should extract unique choices from multiple questions", () => {
+    // arrange
     const survey = new SurveyModel(allQuestionsSurveySchema as any);
     const selectQuestions = getAllSelectBasedQuestions(survey);
+
+    // act
     const result = getAllUniqueChoices(selectQuestions);
+
+    // assert
     expect(result.length).toBeGreaterThan(0);
   });
 
   it("should not include duplicate choice values across questions", () => {
+    // arrange
     const survey = new SurveyModel(allQuestionsSurveySchema as any);
     const selectQuestions = getAllSelectBasedQuestions(survey);
+
+    // act
     const result = getAllUniqueChoices(selectQuestions);
     const uniqueValues = new Set(result.map((c) => c.value));
+
+    // assert
     expect(uniqueValues.size).toBe(result.length);
   });
 
   it("should use choice text from original choice when no formatter provided", () => {
+    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
     const choices = getAllUniqueChoices([brands]);
+
+    // assert
     expect(choices.length).toBe(5);
     expect(choices[0].text).toBe("Kia");
     expect(choices[1].text).toBe("Huyndai");
   });
 
   it("should use custom formatter when provided", () => {
+    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
     const choices = getAllUniqueChoices(
       [brands],
       (q, c) => `${q.name}: ${c.value}`,
     );
+
+    // assert
     expect(choices.length).toBe(5);
     expect(choices[0].text).toBe("brands: kia");
     expect(choices[1].text).toBe("brands: huyndai");
   });
 
   it("should correctly extract unique choices from sample loop survey brands", () => {
+    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
     const choices = getAllUniqueChoices([brands]);
+
+    // assert
     expect(choices.length).toBe(5);
     const sortedChoices = choices.map((c) => c.value).sort();
     expect(sortedChoices).toEqual([
@@ -932,9 +1016,14 @@ describe("getAllUniqueChoices", () => {
   });
 
   it("should preserve choice value when using custom formatter", () => {
+    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
     const choices = getAllUniqueChoices([brands], () => "custom text");
+
+    // assert
     choices.forEach((choice) => {
       expect(choice.value).toBeDefined();
       expect(choice.text).toBe("custom text");
@@ -942,14 +1031,19 @@ describe("getAllUniqueChoices", () => {
   });
 
   it("should correctly extract unique choices from all questions fixture", () => {
+    // arrange
     const survey = new SurveyModel(allQuestionsSurveySchema as any);
     const selectQuestions = getAllSelectBasedQuestions(survey);
     const allChoices = selectQuestions.flatMap((q) => q.choices);
+
+    // act
     const choices = getAllUniqueChoices(selectQuestions);
     const valueSet = new Set(choices.map((c) => c.value));
     const isEveryChoicePresent = allChoices.every((choice) =>
       valueSet.has(choice.value),
     );
+
+    // assert
     expect(valueSet.size, "each choice value is unique").toBe(choices.length);
     expect(isEveryChoicePresent, "every choice present in unique choices").toBe(
       true,
@@ -959,17 +1053,27 @@ describe("getAllUniqueChoices", () => {
 
 describe("extractUniqueChoicesBy (integration with fixtures)", () => {
   it("should deduplicate by value when using choices selector across all-questions survey", () => {
+    // arrange
     const survey = new SurveyModel(allQuestionsSurveySchema as any);
     const selectQuestions = getAllSelectBasedQuestions(survey);
+
+    // act
     const choices = extractUniqueChoicesBy(selectQuestions, (q) => q.choices);
     const values = choices.map((c) => c.value);
+
+    // assert
     expect(new Set(values).size).toBe(choices.length);
   });
 
   it("should return unique choices from sample loop survey when using choices selector", () => {
+    // arrange
     const survey = new SurveyModel(sampleLoopSurveySchema as any);
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
     const choices = extractUniqueChoicesBy([brands], (q) => q.choices);
+
+    // assert
     expect(choices.map((c) => c.value).sort()).toEqual([
       "honda",
       "huyndai",

@@ -805,7 +805,7 @@ describe("hasProperty", () => {
         expect(processElement(neither)).toBe(false);
       });
 
-      it("should handle SurveyJS IElement-like objects from survey.getAllQuestions()", () => {
+      it("should handle SurveyJS IElement-like objects from survey.getAllQuestions()", async () => {
         const surveyJson = {
           elements: [
             { type: "text", name: "q1" },
@@ -813,7 +813,7 @@ describe("hasProperty", () => {
           ],
         };
 
-        const { SurveyModel } = require("survey-core");
+        const { SurveyModel } = await import ("survey-core");
         const survey = new SurveyModel(surveyJson);
         const questions = survey.getAllQuestions();
 
