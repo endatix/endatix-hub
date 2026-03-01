@@ -1,7 +1,4 @@
-import {
-  IJsonPropertyInfo,
-  SurveyModel,
-} from "survey-core";
+import { IJsonPropertyInfo, SurveyModel } from "survey-core";
 import {
   ChoiceOption,
   ConditionRunnerContext,
@@ -123,7 +120,10 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
       .map((name) => survey.getQuestionByName(name))
       .filter(isSelectBaseQuestion);
 
-    const uniqueChoices = extractUniqueChoices(loopSourceQuestions);
+    const uniqueChoices = extractUniqueChoices(
+      loopSourceQuestions,
+      (question, choice) => `${question.name}: (${choice.value})`,
+    );
 
     choicesCallback(uniqueChoices);
   },

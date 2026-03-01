@@ -1,9 +1,16 @@
 import {
   IJsonPropertyInfo,
+  ItemValue,
   Question,
   QuestionPanelDynamicModel,
   SurveyModel,
 } from "survey-core";
+
+
+/**
+ * The value of a choice as defined by the ItemValue types
+ */
+export type ChoiceValue = ItemValue["value"];
 
 /**
  * A choice option for a question

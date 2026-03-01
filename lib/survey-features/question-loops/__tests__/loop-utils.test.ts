@@ -839,19 +839,35 @@ describe("extractUniqueChoices", () => {
     expect(uniqueValues.size).toBe(values.length);
   });
 
-  it("should include question name in choice text", () => {
+  it("should use choice text from original choice when no formatter provided", () => {
     // arrange
-    const survey = new SurveyModel(allQuestionsSurveySchema as any);
-    const selectQuestions = getAllSelectBasedQuestions(survey);
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
 
     // act
-    const result = extractUniqueChoices(selectQuestions);
+    const result = extractUniqueChoices([brands]);
 
     // assert
-    result.forEach((choice) => {
-      expect(choice.text).toContain(": (");
-      expect(choice.text).toContain(choice.value);
-    });
+    expect(result.length).toBe(5);
+    expect(result[0].text).toBe("Kia");
+    expect(result[1].text).toBe("Huyndai");
+  });
+
+  it("should use custom formatter when provided", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
+    const result = extractUniqueChoices(
+      [brands],
+      (q, c) => `${q.name}: ${c.value}`,
+    );
+
+    // assert
+    expect(result.length).toBe(5);
+    expect(result[0].text).toBe("brands: kia");
+    expect(result[1].text).toBe("brands: huyndai");
   });
 
   it("should correctly extract unique choices from sample loop survey brands", () => {
@@ -866,5 +882,45 @@ describe("extractUniqueChoices", () => {
     expect(result.length).toBe(5);
     const values = result.map((c) => c.value).sort();
     expect(values).toEqual(["honda", "huyndai", "kia", "nissan", "toyota"]);
+  });
+
+  it("should preserve choice value when using custom formatter", () => {
+    // arrange
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
+
+    // act
+    const result = extractUniqueChoices([brands], () => "custom text");
+
+    // assert
+    result.forEach((choice) => {
+      expect(choice.value).toBeDefined();
+      expect(choice.text).toBe("custom text");
+    });
+  });
+
+  it("should correctly extract unique choices from all questions fixture", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const selectQuestions = getAllSelectBasedQuestions(survey);
+    const allChoices = selectQuestions.flatMap((q) => q.choices);
+
+    // act
+    const uniqueChoices = extractUniqueChoices(selectQuestions);
+    const uniqueValues = uniqueChoices.map((c) => c.value);
+    const valueSet = new Set(uniqueValues);
+    const isEveryChoicePresent = allChoices.every((choice) =>
+      valueSet.has(choice.value),
+    );
+
+    expect(
+      valueSet.size,
+      "each uniqueChoice.value is unique (no repeats)",
+    ).toBe(uniqueChoices.length);
+
+    expect(
+      isEveryChoicePresent,
+      "every choice should be present in unique choices",
+    ).toBe(true);
   });
 });

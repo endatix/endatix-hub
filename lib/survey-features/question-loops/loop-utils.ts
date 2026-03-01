@@ -5,7 +5,7 @@ import {
   SurveyModel,
 } from "survey-core";
 import {
-  ChoiceOption,
+  ChoiceValue,
   DynamicLoopModel,
   SourceSelectionMode,
   SourceSelectionModes,
@@ -165,23 +165,30 @@ function getLoopChoicesFromQuestion(
 /**
  * Extracts unique choices from a list of SelectBase questions (questions with choices)
  * @param questions - The list of SelectBase questions to extract the choices from
- * @returns An array of unique choices
+ * @param formatChoiceText - A function to format the choice text
+ * @returns An array of unique choices as ItemValue objects
  */
-function extractUniqueChoices(questions: QuestionSelectBase[]) {
-  const result = new Map<string, ChoiceOption>();
-
+function extractUniqueChoices(
+  questions: QuestionSelectBase[],
+  formatChoiceText?: (
+    question: QuestionSelectBase,
+    choice: ItemValue,
+  ) => string,
+) {
+  const map = new Map<ChoiceValue, ItemValue>();
   for (const question of questions) {
     for (const choice of question.choices) {
-      if (result.has(choice.value)) continue;
+      if (map.has(choice.value)) continue;
 
-      result.set(choice.value, {
-        value: choice.value,
-        text: `${question.name}: (${choice.value})`,
-      });
+      const text = formatChoiceText
+        ? formatChoiceText(question, choice)
+        : choice.text;
+
+      map.set(choice.value, question.createItemValue(choice.value, text));
     }
   }
 
-  return Array.from(result.values());
+  return Array.from(map.values());
 }
 
 export {
