@@ -8,7 +8,7 @@ import {
   SourceSelectionModes,
 } from "./types";
 import {
-  extractUniqueChoices,
+  extractUniqueChoicesMap,
   getAllSelectBasedQuestions,
   isLoopQuestion,
   isSelectBaseQuestion,
@@ -120,11 +120,12 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
       .map((name) => survey.getQuestionByName(name))
       .filter(isSelectBaseQuestion);
 
-    const uniqueChoices = extractUniqueChoices(
+    const choicesMap = extractUniqueChoicesMap(
       loopSourceQuestions,
       (question, choice) => `${question.name}: (${choice.value})`,
     );
 
+    const uniqueChoices = Array.from(choicesMap.values());
     choicesCallback(uniqueChoices);
   },
   visibleIf: isLoopQuestion,

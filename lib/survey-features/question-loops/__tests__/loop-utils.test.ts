@@ -9,7 +9,7 @@ import {
   isSelectBaseQuestion,
   getAllSelectBasedQuestions,
   getLoopChoicesFromQuestion,
-  extractUniqueChoices,
+  extractUniqueChoicesMap,
 } from "../loop-utils";
 import { DynamicLoopModel, SourceSelectionModes } from "../types";
 import { allQuestionsSurveySchema } from "./fixtures/all-questions-survey";
@@ -805,12 +805,12 @@ describe("getLoopChoicesFromQuestion", () => {
 });
 
 describe("extractUniqueChoices", () => {
-  it("should return empty array for empty input", () => {
+  it("should return empty map for empty input", () => {
     // act
-    const result = extractUniqueChoices([]);
+    const map = extractUniqueChoicesMap([]);
 
     // assert
-    expect(result).toEqual([]);
+    expect(map).toEqual(new Map());
   });
 
   it("should extract unique choices from multiple questions", () => {
@@ -819,10 +819,10 @@ describe("extractUniqueChoices", () => {
     const selectQuestions = getAllSelectBasedQuestions(survey);
 
     // act
-    const result = extractUniqueChoices(selectQuestions);
+    const result = extractUniqueChoicesMap(selectQuestions);
 
     // assert
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.size).toBeGreaterThan(0);
   });
 
   it("should not include duplicate choice values across questions", () => {
@@ -831,12 +831,12 @@ describe("extractUniqueChoices", () => {
     const selectQuestions = getAllSelectBasedQuestions(survey);
 
     // act
-    const result = extractUniqueChoices(selectQuestions);
-    const values = result.map((c) => c.value);
+    const result = extractUniqueChoicesMap(selectQuestions);
+    const values = result.keys();
     const uniqueValues = new Set(values);
 
     // assert
-    expect(uniqueValues.size).toBe(values.length);
+    expect(uniqueValues.size).toBe(result.size);
   });
 
   it("should use choice text from original choice when no formatter provided", () => {
@@ -845,12 +845,14 @@ describe("extractUniqueChoices", () => {
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
 
     // act
-    const result = extractUniqueChoices([brands]);
+    const map = extractUniqueChoicesMap([brands]);
 
     // assert
-    expect(result.length).toBe(5);
-    expect(result[0].text).toBe("Kia");
-    expect(result[1].text).toBe("Huyndai");
+    expect(map.size).toBe(5);
+
+    const choices = Array.from(map.values());
+    expect(choices[0].text).toBe("Kia");
+    expect(choices[1].text).toBe("Huyndai");
   });
 
   it("should use custom formatter when provided", () => {
@@ -859,15 +861,17 @@ describe("extractUniqueChoices", () => {
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
 
     // act
-    const result = extractUniqueChoices(
+    const map = extractUniqueChoicesMap(
       [brands],
       (q, c) => `${q.name}: ${c.value}`,
     );
 
     // assert
-    expect(result.length).toBe(5);
-    expect(result[0].text).toBe("brands: kia");
-    expect(result[1].text).toBe("brands: huyndai");
+    expect(map.size).toBe(5);
+
+    const choices = Array.from(map.values());
+    expect(choices[0].text).toBe("brands: kia");
+    expect(choices[1].text).toBe("brands: huyndai");
   });
 
   it("should correctly extract unique choices from sample loop survey brands", () => {
@@ -876,11 +880,12 @@ describe("extractUniqueChoices", () => {
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
 
     // act
-    const result = extractUniqueChoices([brands]);
+    const map = extractUniqueChoicesMap([brands]);
 
     // assert
-    expect(result.length).toBe(5);
-    const values = result.map((c) => c.value).sort();
+    expect(map.size).toBe(5);
+
+    const values = Array.from(map.keys()).sort();
     expect(values).toEqual(["honda", "huyndai", "kia", "nissan", "toyota"]);
   });
 
@@ -890,7 +895,7 @@ describe("extractUniqueChoices", () => {
     const brands = survey.getQuestionByName("brands") as QuestionSelectBase;
 
     // act
-    const result = extractUniqueChoices([brands], () => "custom text");
+    const result = extractUniqueChoicesMap([brands], () => "custom text");
 
     // assert
     result.forEach((choice) => {
@@ -906,8 +911,8 @@ describe("extractUniqueChoices", () => {
     const allChoices = selectQuestions.flatMap((q) => q.choices);
 
     // act
-    const uniqueChoices = extractUniqueChoices(selectQuestions);
-    const uniqueValues = uniqueChoices.map((c) => c.value);
+    const choicesMap = extractUniqueChoicesMap(selectQuestions);
+    const uniqueValues = choicesMap.keys();
     const valueSet = new Set(uniqueValues);
     const isEveryChoicePresent = allChoices.every((choice) =>
       valueSet.has(choice.value),
@@ -916,7 +921,7 @@ describe("extractUniqueChoices", () => {
     expect(
       valueSet.size,
       "each uniqueChoice.value is unique (no repeats)",
-    ).toBe(uniqueChoices.length);
+    ).toBe(choicesMap.size);
 
     expect(
       isEveryChoicePresent,

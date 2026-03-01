@@ -166,29 +166,29 @@ function getLoopChoicesFromQuestion(
  * Extracts unique choices from a list of SelectBase questions (questions with choices)
  * @param questions - The list of SelectBase questions to extract the choices from
  * @param formatChoiceText - A function to format the choice text
- * @returns An array of unique choices as ItemValue objects
+ * @returns A Map of unique choices as ItemValue objects with the item value as the key
  */
-function extractUniqueChoices(
+function extractUniqueChoicesMap(
   questions: QuestionSelectBase[],
   formatChoiceText?: (
     question: QuestionSelectBase,
     choice: ItemValue,
   ) => string,
 ) {
-  const map = new Map<ChoiceValue, ItemValue>();
+  const choicesMap = new Map<ChoiceValue, ItemValue>();
   for (const question of questions) {
     for (const choice of question.choices) {
-      if (map.has(choice.value)) continue;
+      if (choicesMap.has(choice.value)) continue;
 
       const text = formatChoiceText
         ? formatChoiceText(question, choice)
         : choice.text;
 
-      map.set(choice.value, question.createItemValue(choice.value, text));
+      choicesMap.set(choice.value, question.createItemValue(choice.value, text));
     }
   }
 
-  return Array.from(map.values());
+  return choicesMap;
 }
 
 export {
@@ -200,5 +200,5 @@ export {
   getLoopChoicesFromQuestion,
   isSelectBaseQuestion,
   getAllSelectBasedQuestions,
-  extractUniqueChoices,
+  extractUniqueChoicesMap,
 };
