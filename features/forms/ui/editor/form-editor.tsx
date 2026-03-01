@@ -178,7 +178,10 @@ function FormEditor({
   }, [setHasUnsavedChanges]);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
-  const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
+  const {
+    initGlobals: initQuestionLoopsGlobals,
+    bindToCreator: bindQuestionLoops,
+  } = useQuestionLoops();
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -534,6 +537,7 @@ function FormEditor({
     isExtensionsReady,
     onCreatorCreated,
     bindQuestionLoops,
+    initQuestionLoopsGlobals,
   ]);
 
   useEffect(() => {

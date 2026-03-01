@@ -39,7 +39,7 @@ export function syncLoopExitState(
         panelIndex,
       );
       command.processExitAll(
-        !!survey.runCondition(exitAllExpression),
+        !survey.runCondition(exitAllExpression),
         panelIndex,
       );
     }
@@ -51,11 +51,11 @@ export function syncLoopExitState(
         panelIndex,
       );
 
-      const triggerIndex = !!survey.runCondition(exitCurrentExpression)
+      const triggerIndex = !survey.runCondition(exitCurrentExpression)
         ? findLastAnsweredQuestionIndex(panel)
         : -1;
       command.processExitCurrent(
-        !!survey.runCondition(exitCurrentExpression),
+        !survey.runCondition(exitCurrentExpression),
         panelIndex,
         triggerIndex,
       );

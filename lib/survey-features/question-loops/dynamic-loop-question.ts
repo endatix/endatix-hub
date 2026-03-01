@@ -35,9 +35,10 @@ export function isLoopExitedFunction(
   ];
 
   const survey: SurveyModel | undefined = this.survey ?? this.question?.survey;
+  
   if (!survey) return false;
 
-  const panel = survey.getQuestionByName(panelName) as DynamicLoopModel | null;
+  const panel = survey.getQuestionByName(panelName);
   if (!panel?.exitMeta) return false;
 
   const query = createLoopExitQuery(panel.exitMeta);
@@ -172,9 +173,4 @@ const DEFAULT_LOOP_DEFINITION: DynamicLoopDefinition = {
 const getDynamicLoopDefinition = (): DynamicLoopDefinition =>
   DEFAULT_LOOP_DEFINITION;
 
-export {
-  PANEL_QUESTION_TYPE,
-  INITIAL_EXIT_STATE,
-  type DynamicLoopDefinition,
-  getDynamicLoopDefinition,
-};
+export { PANEL_QUESTION_TYPE, INITIAL_EXIT_STATE, getDynamicLoopDefinition };

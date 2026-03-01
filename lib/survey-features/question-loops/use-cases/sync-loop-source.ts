@@ -33,7 +33,7 @@ export function syncSingleLoopSource(
     panelQuestion.priorityItems,
   );
 
-  const maxLimit = parseInt(panelQuestion.maxLoopCount) || 0;
+  const maxLimit = Number.parseInt(panelQuestion.maxLoopCount) || 0;
   const panelsToDisplay = {
     current: applyMaxLimit(groupedChoices, maxLimit),
   };

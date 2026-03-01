@@ -55,7 +55,7 @@ function resolveDynamicLoopCondition(
   // Regex looks for "{panel." (case insensitive)
   // and replaces it with "{PanelName[Index]."
   const absolutePath = `{${panelName}[${currentIndex}].`;
-  return condition.replace(/\{panel\./gi, absolutePath);
+  return condition.replaceAll(/\{panel\./gi, absolutePath);
 }
 
 /** Returns a random integer in [0, max) using crypto. */

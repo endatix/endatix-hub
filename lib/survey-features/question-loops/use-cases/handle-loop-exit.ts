@@ -132,7 +132,7 @@ export function handleLoopExit(
       options.panelIndex,
     );
     command.processExitAll(
-      !!sender.runCondition(exitAllExpression),
+      !sender.runCondition(exitAllExpression),
       options.panelIndex,
     );
   }
@@ -147,7 +147,7 @@ export function handleLoopExit(
       (question) => question.name === options.name,
     );
     command.processExitCurrent(
-      !!sender.runCondition(exitCurrentExpression),
+      !sender.runCondition(exitCurrentExpression),
       options.panelIndex,
       triggerIndex,
     );
