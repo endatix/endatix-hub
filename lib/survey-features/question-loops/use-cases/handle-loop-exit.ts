@@ -131,10 +131,8 @@ export function handleLoopExit(
       loopPanel.name,
       options.panelIndex,
     );
-    command.processExitAll(
-      !sender.runCondition(exitAllExpression),
-      options.panelIndex,
-    );
+    const isExitAllConditionMet = sender.runCondition(exitAllExpression);
+    command.processExitAll(isExitAllConditionMet, options.panelIndex);
   }
 
   if (isNonEmptyCondition(exitLoopCondition)) {
@@ -146,8 +144,11 @@ export function handleLoopExit(
     const triggerIndex = options.panel.questions.findIndex(
       (question) => question.name === options.name,
     );
+    const isExitCurrentConditionMet = sender.runCondition(
+      exitCurrentExpression,
+    );
     command.processExitCurrent(
-      !sender.runCondition(exitCurrentExpression),
+      isExitCurrentConditionMet,
       options.panelIndex,
       triggerIndex,
     );

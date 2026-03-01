@@ -42,9 +42,8 @@ export function syncLoopExitState(
       );
 
       const isExitAllConditionMet = survey.runCondition(exitAllExpression);
-      const shouldRetainAllLoops = !isExitAllConditionMet;
 
-      command.processExitAll(shouldRetainAllLoops, panelIndex);
+      command.processExitAll(isExitAllConditionMet, panelIndex);
     }
 
     // 2. Process "Exit Current" Logic
@@ -56,14 +55,13 @@ export function syncLoopExitState(
       );
 
       const isExitCurrentConditionMet = survey.runCondition(exitCurrentExpression);
-      const shouldRetainCurrentLoop = !isExitCurrentConditionMet;
 
       const triggerIndex = isExitCurrentConditionMet
         ? findLastAnsweredQuestionIndex(panel)
         : -1;
 
       command.processExitCurrent(
-        shouldRetainCurrentLoop,
+        isExitCurrentConditionMet,
         panelIndex,
         triggerIndex,
       );
