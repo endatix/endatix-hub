@@ -1,4 +1,4 @@
-import { ItemValue, SurveyModel } from "survey-core";
+import { Helpers, ItemValue, SurveyModel } from "survey-core";
 import { ChoiceValue, DynamicLoopModel, PanelItem } from "../types";
 import {
   getUniqueSelectedChoices,
@@ -51,10 +51,12 @@ export function syncSingleLoopSource(
     ? panelQuestion.value
     : [];
 
-  // Only trigger a SurveyJS update if the array actually changed
-  if (
-    JSON.stringify(existingValue) !== JSON.stringify(panelsToDisplay.current)
-  ) {
+  const panelsHaveChanged = !Helpers.isArraysEqual(
+    existingValue,
+    panelsToDisplay.current,
+    false,
+  );
+  if (panelsHaveChanged) {
     panelQuestion.value = panelsToDisplay.current;
   }
 }
