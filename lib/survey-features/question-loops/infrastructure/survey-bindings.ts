@@ -12,10 +12,7 @@ import { syncSingleLoopSource } from "../use-cases/sync-loop-source";
  * @returns A function to unbind the feature from the survey
  */
 export function bindFeatureToSurvey(survey: SurveyModel): () => void {
-  survey.onValueChanged.add(loadLoopSources);
-  survey.onDynamicPanelValueChanged.add(handleLoopExit);
   injectVisibilityConditions(survey);
-
   if (survey.data && Object.keys(survey.data).length > 0) {
     const loopPanels = getAllLoopQuestions(survey);
     loopPanels.forEach((loopPanel) => {
@@ -23,6 +20,9 @@ export function bindFeatureToSurvey(survey: SurveyModel): () => void {
       syncLoopExitState(survey, loopPanel);
     });
   }
+
+  survey.onValueChanged.add(loadLoopSources);
+  survey.onDynamicPanelValueChanged.add(handleLoopExit);
 
   return () => {
     survey.onValueChanged.remove(loadLoopSources);

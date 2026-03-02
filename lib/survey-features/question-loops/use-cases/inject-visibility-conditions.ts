@@ -23,12 +23,11 @@ function injectElementLevelCondition(
   panelName: string,
   elementIndex: number,
 ): void {
-  // If already hidden, no need to inject condition
-  if (!element.visible) return;
-
-  if (!hasProperty(element, "visibleIf")) return;
+  const hasVisibleIf = hasProperty(element, "visibleIf");
+  if (!hasVisibleIf) return;
 
   const elementVisibleIf = String(element.visibleIf ?? "");
+  if (!element.visible && elementVisibleIf.length === 0) return;
 
   if (elementVisibleIf.includes(LOOP_EXIT_FUNCTION_NAME)) return;
 

@@ -6,7 +6,6 @@ import {
   SurveyModel,
 } from "survey-core";
 
-
 /**
  * The value of a choice as defined by the ItemValue types
  */
@@ -37,6 +36,11 @@ type DynamicLoopModel = QuestionPanelDynamicModel & {
    * The sources for the loop (question names that will be used in the loop)
    */
   loopSource: string[];
+
+  /**
+   * Indicates if the loop should be randomized
+   */
+  randomizeLoop: boolean;
 
   /**
    * The pattern to use for the loop choices
