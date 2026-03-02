@@ -129,9 +129,9 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
   );
 
   return (
-    <ColumnOrderContext.Provider value={contextValue}>
+    <ColumnOrderContext value={contextValue}>
       {children}
-    </ColumnOrderContext.Provider>
+    </ColumnOrderContext>
   );
 }
 

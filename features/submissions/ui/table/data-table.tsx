@@ -127,6 +127,8 @@ export function DataTable<TData extends Submission>({
     },
   });
 
+  const rows = table.getRowModel().rows;
+
   return (
     <>
       <DndContext
@@ -161,8 +163,8 @@ export function DataTable<TData extends Submission>({
               </SortableContext>
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
+              {rows.length > 0 ? (
+                rows.map((row) => (
                   <TableRow
                     key={row.id}
                     className={getRowClassName(row)}
