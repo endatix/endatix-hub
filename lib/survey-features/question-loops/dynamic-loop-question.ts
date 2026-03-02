@@ -38,11 +38,13 @@ export function isLoopExitedFunction(
   if (!survey) return false;
 
   const panel = survey.getQuestionByName(panelName);
-  if (!panel?.exitMeta) return false;
+  
+  if (!panel?.exitMeta?.exitAll && !panel?.exitMeta?.exitCurrent) return false;
 
   const query = createLoopExitQuery(panel.exitMeta);
+  const isExited = query.isExited(panelIndex, questionIndex);
 
-  return query.isExited(panelIndex, questionIndex);
+  return isExited;
 }
 
 const LOOP_SOURCE_PROPERTY: IJsonPropertyInfo = {
