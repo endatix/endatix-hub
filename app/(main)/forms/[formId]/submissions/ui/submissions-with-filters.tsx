@@ -1,9 +1,17 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
+import {
+  buildSubmissionDataColumns,
+  ColumnOrderProvider,
+  COLUMNS_DEFINITION,
+  useColumnOrder,
+} from "@/features/submissions/ui/table";
 import { DefinitionField } from "@/lib/endatix-api";
 import { Submission } from "@/lib/endatix-api/submissions/types";
+import { RotateCcw } from "lucide-react";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -15,6 +23,64 @@ interface SubmissionsWithFiltersProps {
   definitionFields?: DefinitionField[];
   initialIsComplete?: string[];
   initialStatus?: string[];
+}
+
+function SubmissionsContent({
+  data,
+  formId,
+  definitionFields,
+  isCompleteFilter,
+  statusFilter,
+  onIsCompleteChange,
+  onStatusChange,
+  onResetFilters,
+  isPending,
+  tableKey,
+}: {
+  data: Submission[];
+  formId: string;
+  definitionFields: DefinitionField[];
+  isCompleteFilter: Set<string>;
+  statusFilter: Set<string>;
+  onIsCompleteChange: (values: Set<string>) => void;
+  onStatusChange: (values: Set<string>) => void;
+  onResetFilters: () => void;
+  isPending: boolean;
+  tableKey: string;
+}) {
+  const { resetToDefault, hasCustomOrder } = useColumnOrder();
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-4 mt-8 mb-4">
+        <SubmissionsFilterToolbar
+          isCompleteFilter={isCompleteFilter}
+          statusFilter={statusFilter}
+          onIsCompleteChange={onIsCompleteChange}
+          onStatusChange={onStatusChange}
+          onResetFilters={onResetFilters}
+        />
+        <div className="flex items-center gap-2">
+          {hasCustomOrder && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetToDefault}
+              className="px-2 lg:px-3"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset Columns
+            </Button>
+          )}
+          <ExportSubmissionsButton formId={formId} />
+        </div>
+      </div>
+      {isPending && (
+        <div className="text-sm text-muted-foreground">Updating...</div>
+      )}
+      <SubmissionsTable key={tableKey} data={data} formId={formId} definitionFields={definitionFields} />
+    </>
+  );
 }
 
 export function SubmissionsWithFilters({
@@ -72,22 +138,22 @@ export function SubmissionsWithFilters({
   // Create a key that changes when filters change to force table re-mount
   const tableKey = `${Array.from(isCompleteFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(statusFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${data.length}`;
 
+  const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
+
   return (
-    <>
-      <div className="flex items-center justify-between gap-4 mt-8 mb-4">
-        <SubmissionsFilterToolbar
-          isCompleteFilter={isCompleteFilter}
-          statusFilter={statusFilter}
-          onIsCompleteChange={handleIsCompleteChange}
-          onStatusChange={handleStatusChange}
-          onResetFilters={handleResetFilters}
-        />
-        <ExportSubmissionsButton formId={formId} />
-      </div>
-      {isPending && (
-        <div className="text-sm text-muted-foreground">Updating...</div>
-      )}
-      <SubmissionsTable key={tableKey} data={data} formId={formId} definitionFields={definitionFields} />
-    </>
+    <ColumnOrderProvider formId={formId} defaultColumns={allColumns}>
+      <SubmissionsContent
+        data={data}
+        formId={formId}
+        definitionFields={definitionFields}
+        isCompleteFilter={isCompleteFilter}
+        statusFilter={statusFilter}
+        onIsCompleteChange={handleIsCompleteChange}
+        onStatusChange={handleStatusChange}
+        onResetFilters={handleResetFilters}
+        isPending={isPending}
+        tableKey={tableKey}
+      />
+    </ColumnOrderProvider>
   );
 }

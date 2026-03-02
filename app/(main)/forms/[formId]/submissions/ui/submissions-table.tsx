@@ -1,6 +1,11 @@
 "use client";
 
-import { buildSubmissionDataColumns, COLUMNS_DEFINITION, DataTable, ParsedSubmission } from "@/features/submissions/ui/table";
+import {
+  buildSubmissionDataColumns,
+  COLUMNS_DEFINITION,
+  DataTable,
+  ParsedSubmission,
+} from "@/features/submissions/ui/table";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
 import { useEffect, useState } from "react";
 
@@ -54,7 +59,7 @@ const SubmissionsTable = ({ data, formId, definitionFields = [] }: SubmissionsTa
   }));
 
   const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
-  return <DataTable data={parsedData} columns={allColumns} />;
+  return <DataTable data={parsedData} columns={allColumns} formId={formId} />;
 };
 
 export default SubmissionsTable;
