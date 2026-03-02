@@ -12,7 +12,7 @@ export function createColumnOrderStore(formId: string) {
   const STORAGE_KEY = `ehx_submissions_column_order_${formId}`;
 
   const getColumnOrder = (): string[] | null => {
-    if (typeof globalThis.window === "undefined") {
+    if (globalThis.window === undefined) {
       return null;
     }
 
@@ -38,7 +38,7 @@ export function createColumnOrderStore(formId: string) {
   };
 
   const saveColumnOrder = (order: string[]): void => {
-    if (typeof globalThis.window === "undefined") {
+    if (globalThis.window === undefined) {
       return;
     }
 
@@ -56,7 +56,7 @@ export function createColumnOrderStore(formId: string) {
   };
 
   const resetColumnOrder = (): void => {
-    if (typeof globalThis.window === "undefined") {
+    if (globalThis.window === undefined) {
       return;
     }
 
@@ -64,7 +64,7 @@ export function createColumnOrderStore(formId: string) {
   };
 
   const hasStoredOrder = (): boolean => {
-    if (typeof globalThis.window === "undefined") {
+    if (globalThis.window === undefined) {
       return false;
     }
 
