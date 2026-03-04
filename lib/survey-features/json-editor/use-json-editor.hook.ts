@@ -1,11 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
-import {
-  Model,
-  type Base,
-  type IPropertyValueChangedEvent,
-} from "survey-core";
+import { useCallback, useState } from "react";
+import { Model, type Base, type IPropertyValueChangedEvent } from "survey-core";
 import type {
   ActiveTabChangedEvent,
   SurveyCreatorModel,
@@ -67,6 +63,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         const jsonPlugin: TabJsonEditorBasePlugin = creator.getPlugin(
           JSON_EDITOR_PLUGIN_NAME,
         );
+
         if (!jsonPlugin?.model) {
           notify(
             createOnJsonTabState({
@@ -76,15 +73,15 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
           return;
         }
 
-        const originalImportFromFile =
-          jsonPlugin.importFromFile.bind(jsonPlugin);
-        jsonPlugin.importFromFile = (
-          file: File,
-          callback?: (json: string) => void,
-        ) => {
-          jsonEditorState.fileJustImported = true;
-          originalImportFromFile(file, callback);
-        };
+        // const originalImportFromFile =
+        //   jsonPlugin.importFromFile.bind(jsonPlugin);
+        // jsonPlugin.importFromFile = (
+        //   file: File,
+        //   callback?: (json: string) => void,
+        // ) => {
+        //   jsonEditorState.fileJustImported = true;
+        //   originalImportFromFile(file, callback);
+        // };
 
         notify(
           createOnJsonTabState({
@@ -93,11 +90,32 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
           }),
         );
 
+        let isAceHooked = false;
+
         const onPropertyChanged = (
           _sender: Base,
           options: IPropertyValueChangedEvent,
         ) => {
           const { name, newValue } = options;
+          const aceInstance =
+            (_sender as any).aceEditor || (_sender as any).editor;
+
+          if (aceInstance && !isAceHooked) {
+            isAceHooked = true;
+
+            // Hook the Session for REAL text changes (typing & clipboard)
+            aceInstance.getSession().on("change", () => {
+              if (!jsonEditorState.isJsonModified) {
+                jsonEditorState.isJsonModified = true;
+                notify(
+                  createOnJsonTabState({
+                    hasErrors: !!jsonPlugin.model.hasErrors,
+                    isJsonModified: true,
+                  }),
+                );
+              }
+            });
+          }
 
           const isJsonTextDifferent =
             jsonPlugin.model.text?.length > 0 &&
@@ -119,6 +137,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         };
 
         jsonPlugin.model.onPropertyChanged.add(onPropertyChanged);
+
         removeModelListener = () => {
           jsonPlugin.model?.onPropertyChanged.remove(onPropertyChanged);
         };
