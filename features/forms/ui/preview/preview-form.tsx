@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuestionLoopsEditing } from "@/lib/survey-features/question-loops";
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useEffect, useState } from "react";
@@ -29,8 +29,8 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
-  useQuestionLoopsEditing(creator);
-  
+  const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
+
   useEffect(() => {
     if (creator) {
       if (model && Object.keys(model).length > 0) {
@@ -43,19 +43,20 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
       slk(slkVal);
     }
 
+    initQuestionLoopsGlobals();
     const newCreator = new SurveyCreator(creatorOptions);
+    const cleanupQuestionLoops = bindQuestionLoops(newCreator);
     newCreator.JSON = model;
     newCreator.activeTab = "test";
     newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
     newCreator.theme = BorderlessLight;
-    newCreator.saveSurveyFunc = (
-      no: number,
-      callback: (num: number, status: boolean) => void,
-    ) => {
-      callback(no, true);
-    };
+    
     setCreator(newCreator);
-  }, [creator, model, slkVal]);
+
+    return () => {
+      cleanupQuestionLoops?.();
+    }
+  }, [creator, model, slkVal, initQuestionLoopsGlobals, bindQuestionLoops]);
 
   return creator && <SurveyCreatorComponent creator={creator} />;
 };

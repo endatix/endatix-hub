@@ -24,7 +24,7 @@ export default function SurveyPreviewComponent({
   const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions();
   useRichText(model);
   useLoopAwareSummaryTable(model);
-  useQuestionLoops(model);
+  const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
 
   const { setModelMetadata, registerViewHandlers } = useStorageView();
 
@@ -32,7 +32,11 @@ export default function SurveyPreviewComponent({
     if (!template || !isExtensionsReady) return;
 
     try {
-      const survey = new Model(template.jsonData);
+      initQuestionLoopsGlobals();
+      const survey = new Model();
+      const unbindQuestionLoops = bindQuestionLoops(survey);
+
+      survey.JSON = template.jsonData;
       onModelCreated(survey);
 
       // Set survey to read-only mode
@@ -55,6 +59,7 @@ export default function SurveyPreviewComponent({
 
       return () => {
         unregisterView();
+        unbindQuestionLoops?.();
       };
     } catch (err) {
       console.error("Error parsing survey JSON:", err);
@@ -67,10 +72,12 @@ export default function SurveyPreviewComponent({
     onModelCreated,
     isExtensionsReady,
     setModelMetadata,
+    initQuestionLoopsGlobals,
+    bindQuestionLoops,
   ]);
 
   if (error) {
-    return <div className="text-destructive text-center">{error}</div>;
+    return <div className="text-center text-destructive">{error}</div>;
   }
 
   if (!isExtensionsReady) {

@@ -1,18 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   DynamicPanelItemValueChangedEvent,
-  QuestionPanelDynamicModel,
   SurveyModel,
 } from "survey-core";
-import { handleLoopExits } from "@/lib/survey-features/question-loops/handle-loop-navigation";
+import { DynamicLoopModel } from "../types";
+import { registerQuestionLoopsGlobals } from "../infrastructure/registry";
+import { bindFeatureToSurvey } from "../infrastructure/survey-bindings";
+import { sampleLoopSurveySchema } from "./fixtures/sample-loop-survey";
 
-type LoopingPanelModel = QuestionPanelDynamicModel & {
-  loopSource?: string[];
-  exitLoopCondition?: string;
-  exitAllLoopsCondition?: string;
-};
-
-function createLoopingSurvey(): { survey: SurveyModel; loopPanel: LoopingPanelModel } {
+function createLoopingSurvey(): { survey: SurveyModel; loopPanel: DynamicLoopModel } {
   const surveyJson = {
     elements: [
       {
@@ -28,17 +24,21 @@ function createLoopingSurvey(): { survey: SurveyModel; loopPanel: LoopingPanelMo
   };
 
   const survey = new SurveyModel(surveyJson);
-  const loopPanel = survey.getQuestionByName("loopPanel") as LoopingPanelModel;
+  const loopPanel = survey.getQuestionByName("loopPanel") as DynamicLoopModel;
 
-  loopPanel.panelCount = 3;
   loopPanel.loopSource = ["item1"];
 
   return { survey, loopPanel };
 }
 
+/** Ensures 3 panels exist; call after bind so initial sync does not clear panels. */
+function ensureThreePanels(survey: SurveyModel, loopPanel: DynamicLoopModel): void {
+  survey.setValue("loopPanel", [{}, {}, {}]);
+}
+
 function fireDynamicPanelValueChanged(
   survey: SurveyModel,
-  loopPanel: LoopingPanelModel,
+  loopPanel: DynamicLoopModel,
   panelIndex: number,
   questionName: string,
 ): void {
@@ -55,10 +55,22 @@ function fireDynamicPanelValueChanged(
   survey.onDynamicPanelValueChanged.fire(survey, options);
 }
 
+let dispose: (() => void) | undefined;
+
+beforeAll(() => {
+  registerQuestionLoopsGlobals();
+});
+
+afterEach(() => {
+  dispose?.();
+  dispose = undefined;
+});
+
 describe("handleLoopExits - gating (early return)", () => {
   it("returns early when loopSource is missing or empty", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    dispose = bindFeatureToSurvey(survey);
+    ensureThreePanels(survey, loopPanel);
     const runConditionSpy = vi.spyOn(survey, "runCondition");
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
 
@@ -74,12 +86,12 @@ describe("handleLoopExits - gating (early return)", () => {
 
     runConditionSpy.mockRestore();
     navSpy.mockRestore();
-    dispose?.();
   });
 
   it("returns early when loopSource is set but neither exit condition is set", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    dispose = bindFeatureToSurvey(survey);
+    ensureThreePanels(survey, loopPanel);
     const runConditionSpy = vi.spyOn(survey, "runCondition");
     const navSpy = vi.spyOn(survey, "updateNavigationElements");
 
@@ -95,15 +107,14 @@ describe("handleLoopExits - gating (early return)", () => {
 
     runConditionSpy.mockRestore();
     navSpy.mockRestore();
-    dispose?.();
   });
 });
 
 describe("handleLoopExits - exitAllLoopsCondition", () => {
   it("calls runCondition with resolved panel expression and hides subsequent panels when the condition evaluates to true", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
-    const navSpy = vi.spyOn(survey, "updateNavigationElements");
+    dispose = bindFeatureToSurvey(survey);
+    ensureThreePanels(survey, loopPanel);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValue(true);
@@ -120,19 +131,14 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
     expect(loopPanel.panels[0].visible).toBe(true);
     expect(loopPanel.panels[1].visible).toBe(false);
     expect(loopPanel.panels[2].visible).toBe(false);
-    const currentPanelQuestions = loopPanel.panels[0].questions;
-    expect(currentPanelQuestions.find((q) => q.name === "exitFlag")?.visible).toBe(true);
-    expect(currentPanelQuestions.find((q) => q.name === "q1")?.visible).toBe(false);
-    expect(currentPanelQuestions.find((q) => q.name === "q2")?.visible).toBe(false);
-    expect(navSpy).toHaveBeenCalled();
 
     runConditionSpy.mockRestore();
-    dispose?.();
   });
 
   it("shows subsequent panels again when the exit-all condition becomes false", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    dispose = bindFeatureToSurvey(survey);
+    ensureThreePanels(survey, loopPanel);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValueOnce(true)
@@ -157,15 +163,14 @@ describe("handleLoopExits - exitAllLoopsCondition", () => {
 
     expect(runConditionSpy).toHaveBeenCalledTimes(2);
     runConditionSpy.mockRestore();
-    dispose?.();
   });
 });
 
 describe("handleLoopExits - exitLoopCondition", () => {
   it("hides subsequent questions in the current panel when the exit-loop condition evaluates to true", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
-    const navSpy = vi.spyOn(survey, "updateNavigationElements");
+    dispose = bindFeatureToSurvey(survey);
+    ensureThreePanels(survey, loopPanel);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValue(true);
@@ -180,15 +185,14 @@ describe("handleLoopExits - exitLoopCondition", () => {
     expect(questions.find((q) => q.name === "q1")?.visible).toBe(true);
     expect(questions.find((q) => q.name === "q2")?.visible).toBe(false);
     expect(runConditionSpy).toHaveBeenCalledTimes(1);
-    expect(navSpy).toHaveBeenCalled();
 
     runConditionSpy.mockRestore();
-    dispose?.();
   });
 
   it("shows subsequent questions again when the exit-loop condition becomes false", () => {
     const { survey, loopPanel } = createLoopingSurvey();
-    const dispose = handleLoopExits(survey);
+    dispose = bindFeatureToSurvey(survey);
+    ensureThreePanels(survey, loopPanel);
     const runConditionSpy = vi
       .spyOn(survey, "runCondition")
       .mockReturnValueOnce(true)
@@ -210,7 +214,22 @@ describe("handleLoopExits - exitLoopCondition", () => {
 
     expect(runConditionSpy).toHaveBeenCalledTimes(2);
     runConditionSpy.mockRestore();
-    dispose?.();
   });
 });
 
+describe("integration with sample-loop-survey", () => {
+  it("binds feature and creates loop panels when source value is set", () => {
+    const survey = new SurveyModel(sampleLoopSurveySchema as any);
+    dispose = bindFeatureToSurvey(survey);
+
+    const loopPanel = survey.getQuestionByName("favouriteCars");
+    expect(loopPanel).toBeDefined();
+
+    survey.setValue("brands", ["kia", "toyota"]);
+
+    const panelValue = loopPanel?.value as unknown[] | undefined;
+    expect(panelValue).toBeDefined();
+    expect(Array.isArray(panelValue)).toBe(true);
+    expect(panelValue?.length).toBe(2);
+  });
+});

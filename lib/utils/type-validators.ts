@@ -102,3 +102,20 @@ export function validateHexToken(
 
   return Result.success(value);
 }
+
+/**
+ * Checks if an object has a property.
+ * @param obj - The object to check.
+ * @param prop - The property to check.
+ * @returns true if the object has the property, false otherwise.
+ * @example
+ * hasProperty({ name: "John", age: 30 }, "name"); // true
+ * hasProperty({ name: "John", age: 30 }, "address"); // false
+ */
+export function hasProperty<X extends object, Y extends PropertyKey>(
+  obj: X,
+  prop: Y,
+): obj is X & Record<Y, any> {
+  // Use the 'in' operator to check the prototype chain where SurveyJS getters live
+  return obj !== null && typeof obj === "object" && prop in obj;
+}
