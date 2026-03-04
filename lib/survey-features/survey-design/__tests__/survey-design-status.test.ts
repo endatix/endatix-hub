@@ -123,7 +123,7 @@ describe("getSurveyDesignStatus", () => {
       ).toBe(SurveyDesignStatus.NoChanges);
     });
 
-    it("on JSON tab with unsaved designer changes but no JSON edit shows NoChanges", () => {
+    it("on JSON tab with unsaved designer changes but no JSON edit shows UnsavedChanges", () => {
       expect(
         getSurveyDesignStatus({
           ...baseInput,
