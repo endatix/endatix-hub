@@ -10,6 +10,7 @@ import {
   getAllSelectBasedQuestions,
   getLoopChoicesFromQuestion,
   getAllUniqueChoices,
+  getUniqueSelectedChoices,
   extractUniqueChoicesBy,
 } from "../loop-utils";
 import { DynamicLoopModel, SourceSelectionModes } from "../types";
@@ -1081,5 +1082,346 @@ describe("extractUniqueChoicesBy (integration with fixtures)", () => {
       "nissan",
       "toyota",
     ]);
+  });
+});
+
+describe("getUniqueSelectedChoices", () => {
+  it("should return empty array when no questions have values", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const selectQuestions = getAllSelectBasedQuestions(survey);
+    selectQuestions.forEach((q) => (q.value = undefined));
+
+    // act
+    const result = getUniqueSelectedChoices(selectQuestions);
+
+    // assert
+    expect(result).toEqual([]);
+  });
+
+  it("should return selected choices from checkbox (multi-select) with value", () => {
+    // arrange – all-questions has q_checkbox defaultValue: ["choice_foo", "checkbox_choice_1"]
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const checkbox = survey.getQuestionByName(
+      "q_checkbox",
+    ) as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([checkbox]);
+
+    // assert
+    expect(result.length).toBe(2);
+    const values = result.map((c) => c.value);
+    expect(values).toContain("choice_foo");
+    expect(values).toContain("checkbox_choice_1");
+  });
+
+  it("should return selected choice from radiogroup (single-select) with value", () => {
+    // arrange – defaultValue: "radiogroup_choice_2"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const radiogroup = survey.getQuestionByName(
+      "q_radiogroup",
+    ) as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([radiogroup]);
+
+    // assert
+    expect(result.length).toBe(1);
+    expect(result[0].value).toBe("radiogroup_choice_2");
+  });
+
+  it("should return selected choice from dropdown (single-select) with value", () => {
+    // arrange – defaultValue: "dropdown_choice_1"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const dropdown = survey.getQuestionByName(
+      "q_dropdown",
+    ) as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([dropdown]);
+
+    // assert
+    expect(result.length).toBe(1);
+    expect(result[0].value).toBe("dropdown_choice_1");
+  });
+
+  it("should return selected choices from tagbox (multi-select) with value", () => {
+    // arrange – defaultValue: ["choice_foo", "tagbox_choice_2"]
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const tagbox = survey.getQuestionByName("q_tagbox") as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([tagbox]);
+
+    // assert
+    expect(result.length).toBe(2);
+    const values = result.map((c) => c.value);
+    expect(values).toContain("choice_foo");
+    expect(values).toContain("tagbox_choice_2");
+  });
+
+  it("should return selected choice from imagepicker (single-select) with value", () => {
+    // arrange – defaultValue: "imagepicker_choice_1"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const imagepicker = survey.getQuestionByName(
+      "q_imagepicker",
+    ) as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([imagepicker]);
+
+    // assert
+    expect(result.length).toBe(1);
+    expect(result[0].value).toBe("imagepicker_choice_1");
+  });
+
+  it("should return selected choices from ranking (ordered multi-select) with value", () => {
+    // arrange – defaultValue: ["ranking_choice_1", "choice_foo", "choice_bar"]
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const ranking = survey.getQuestionByName("q_ranking") as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([ranking]);
+
+    // assert
+    expect(result.length).toBe(3);
+    const values = result.map((c) => c.value);
+    expect(values).toContain("ranking_choice_1");
+    expect(values).toContain("choice_foo");
+    expect(values).toContain("choice_bar");
+  });
+
+  it("should return selected choice from buttongroup (single-select) with value", () => {
+    // arrange – defaultValue: "buttongroup_choice_2"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const buttongroup = survey.getQuestionByName(
+      "q_buttongroup",
+    ) as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([buttongroup]);
+
+    // assert
+    expect(result.length).toBe(1);
+    expect(result[0].value).toBe("buttongroup_choice_2");
+  });
+
+  it("should deduplicate selected values across multiple SelectBase questions", () => {
+    // arrange – checkbox has choice_foo, tagbox has choice_foo
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const checkbox = survey.getQuestionByName(
+      "q_checkbox",
+    ) as QuestionSelectBase;
+    const tagbox = survey.getQuestionByName("q_tagbox") as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices([checkbox, tagbox]);
+    const values = result.map((c) => c.value);
+
+    // assert
+    expect(values).toContain("choice_foo");
+    expect(values).toContain("checkbox_choice_1");
+    expect(values).toContain("tagbox_choice_2");
+    expect(values.filter((v) => v === "choice_foo").length).toBe(1);
+  });
+
+  it("should use custom formatChoiceText when provided", () => {
+    // arrange
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const radiogroup = survey.getQuestionByName(
+      "q_radiogroup",
+    ) as QuestionSelectBase;
+
+    // act
+    const result = getUniqueSelectedChoices(
+      [radiogroup],
+      (q, c) => `${q.name}:${c.value}`,
+    );
+
+    // assert
+    expect(result.length).toBe(1);
+    expect(result[0].value).toBe("radiogroup_choice_2");
+    expect(result[0].text).toBe("q_radiogroup:radiogroup_choice_2");
+  });
+});
+
+describe("getLoopChoicesFromQuestion — value return per SelectBase type", () => {
+  /**
+   * All-questions survey has default values set for each SelectBase type.
+   * We assert that getLoopChoicesFromQuestion returns the expected subset
+   * for SelectedOnly/UnselectedOnly and full set for All.
+   */
+  it("checkbox: returns value for SelectedOnly and All", () => {
+    // arrange – defaultValue: ["choice_foo", "checkbox_choice_1"]
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const q = survey.getQuestionByName("q_checkbox");
+
+    // act
+    const selected = getLoopChoicesFromQuestion(
+      q,
+      SourceSelectionModes.SelectedOnly,
+    );
+    const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+
+    // assert
+    expect(selected.map((c) => c.value).sort()).toEqual([
+      "checkbox_choice_1",
+      "choice_foo",
+    ]);
+    expect(all.length).toBe(5);
+  });
+
+  it("radiogroup: returns value for SelectedOnly and All", () => {
+    // arrange – defaultValue: "radiogroup_choice_2"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const q = survey.getQuestionByName("q_radiogroup");
+
+    // act
+    const selected = getLoopChoicesFromQuestion(
+      q,
+      SourceSelectionModes.SelectedOnly,
+    );
+    const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+
+    // assert
+    expect(selected.length).toBe(1);
+    expect(selected[0].value).toBe("radiogroup_choice_2");
+    expect(all.length).toBe(5);
+  });
+
+  it("dropdown: returns value for SelectedOnly and All", () => {
+    // arrange – defaultValue: "dropdown_choice_1"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const q = survey.getQuestionByName("q_dropdown");
+
+    // act
+    const selected = getLoopChoicesFromQuestion(
+      q,
+      SourceSelectionModes.SelectedOnly,
+    );
+    const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+
+    // assert
+    expect(selected.length).toBe(1);
+    expect(selected[0].value).toBe("dropdown_choice_1");
+    expect(all.length).toBe(5);
+  });
+
+  it("tagbox: returns value for SelectedOnly and All", () => {
+    // arrange – defaultValue: ["choice_foo", "tagbox_choice_2"]
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const q = survey.getQuestionByName("q_tagbox");
+
+    // act
+    const selected = getLoopChoicesFromQuestion(
+      q,
+      SourceSelectionModes.SelectedOnly,
+    );
+    const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+
+    // assert
+    expect(selected.map((c) => c.value).sort()).toEqual([
+      "choice_foo",
+      "tagbox_choice_2",
+    ]);
+    expect(all.length).toBe(5);
+  });
+
+  it("imagepicker: returns value for SelectedOnly and All", () => {
+    // arrange – defaultValue: "imagepicker_choice_1"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const q = survey.getQuestionByName("q_imagepicker");
+
+    // act
+    const selected = getLoopChoicesFromQuestion(
+      q,
+      SourceSelectionModes.SelectedOnly,
+    );
+    const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+
+    // assert
+    expect(selected.length).toBe(1);
+    expect(selected[0].value).toBe("imagepicker_choice_1");
+    expect(all.length).toBe(3);
+  });
+
+  it("ranking: returns value for SelectedOnly and All", () => {
+    // arrange – defaultValue: ["ranking_choice_1", "choice_foo", "choice_bar"]
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const q = survey.getQuestionByName("q_ranking");
+
+    // act
+    const selected = getLoopChoicesFromQuestion(
+      q,
+      SourceSelectionModes.SelectedOnly,
+    );
+    const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+
+    // assert
+    expect(selected.map((c) => c.value).sort()).toEqual([
+      "choice_bar",
+      "choice_foo",
+      "ranking_choice_1",
+    ]);
+    expect(all.length).toBe(5);
+  });
+
+  it("buttongroup: returns value for SelectedOnly and All", () => {
+    // arrange – defaultValue: "buttongroup_choice_2"
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const q = survey.getQuestionByName("q_buttongroup");
+
+    // act
+    const selected = getLoopChoicesFromQuestion(
+      q,
+      SourceSelectionModes.SelectedOnly,
+    );
+    const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+
+    // assert
+    expect(selected.length).toBe(1);
+    expect(selected[0].value).toBe("buttongroup_choice_2");
+    expect(all.length).toBe(4);
+  });
+
+  it("all SelectBase types return UnselectedOnly correctly when value is set", () => {
+    // arrange – single choice selected per question
+    const survey = new SurveyModel(allQuestionsSurveySchema as any);
+    const selectNames = [
+      "q_checkbox",
+      "q_radiogroup",
+      "q_dropdown",
+      "q_tagbox",
+      "q_imagepicker",
+      "q_ranking",
+      "q_buttongroup",
+    ];
+
+    for (const name of selectNames) {
+      const q = survey.getQuestionByName(name);
+      const all = getLoopChoicesFromQuestion(q, SourceSelectionModes.All);
+      const unselected = getLoopChoicesFromQuestion(
+        q,
+        SourceSelectionModes.UnselectedOnly,
+      );
+      const selected = getLoopChoicesFromQuestion(
+        q,
+        SourceSelectionModes.SelectedOnly,
+      );
+
+      // assert: selected + unselected = all (by value)
+      const selectedValues = new Set(selected.map((c) => c.value));
+      const unselectedValues = new Set(unselected.map((c) => c.value));
+      const allValues = new Set(all.map((c) => c.value));
+      for (const v of selectedValues) {
+        expect(allValues.has(v)).toBe(true);
+      }
+      for (const v of unselectedValues) {
+        expect(allValues.has(v)).toBe(true);
+        expect(selectedValues.has(v)).toBe(false);
+      }
+      expect(selectedValues.size + unselectedValues.size).toBe(allValues.size);
+    }
   });
 });

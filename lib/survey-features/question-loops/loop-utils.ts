@@ -185,11 +185,26 @@ function getUniqueSelectedChoices(
     choice: ItemValue,
   ) => string,
 ): ItemValue[] {
-  // Note: Ensure `q.selectedChoices` is an array of ItemValue in your types,
-  // as single-selects (Radiogroup/Dropdown) might use a different property in SurveyJS.
   return extractUniqueChoicesBy(
     questions,
-    (q) => q.selectedChoices,
+    (question: any) => {
+      const rawValue = question.value;
+      if (rawValue === undefined || rawValue === null || rawValue === "")
+        return [];
+
+      // Multi-select questions
+      if (Array.isArray(rawValue)) {
+        return question.selectedChoices || [];
+      }
+
+      // Single-select (Radiogroup, Dropdown)
+      if (question.selectedItem) {
+        return [question.selectedItem];
+      }
+
+      // Fallback: Value exists but doesn't match a choice object
+      return [question.createItemValue(rawValue, String(rawValue))];
+    },
     formatChoiceText,
   );
 }
@@ -238,5 +253,5 @@ export {
   getAllSelectBasedQuestions,
   getAllUniqueChoices,
   getUniqueSelectedChoices,
-  extractUniqueChoicesBy
+  extractUniqueChoicesBy,
 };
