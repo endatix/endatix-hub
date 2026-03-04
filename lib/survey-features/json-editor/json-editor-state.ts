@@ -1,7 +1,6 @@
-/**
- * Pure state logic for the JSON editor. No React, no Survey Creator.
- * Used by useJsonEditor and by tests.
- */
+import {
+  JsonEditorBaseModel
+} from "survey-creator-core";
 
 export interface JsonEditorState {
   hasErrors: boolean;
@@ -37,53 +36,7 @@ export function createOnJsonTabState(
   };
 }
 
-export interface PropertyChangeInput {
-  propertyName: string;
-  newValue: unknown;
-  hasErrorsFromModel: boolean;
-  isJsonModifiedCurrent: boolean;
-  isJsonTextDifferent: boolean;
-  fileJustImported: boolean;
-}
-
-/**
- * Computes the next state after a model property change. Pure and testable.
- * Returns null when nothing relevant changed (no need to notify).
- */
-export function computeStateAfterPropertyChange(
-  input: PropertyChangeInput,
-): JsonEditorState | null {
-  const {
-    propertyName,
-    newValue,
-    hasErrorsFromModel,
-    isJsonModifiedCurrent,
-    isJsonTextDifferent,
-    fileJustImported,
-  } = input;
-
-  let hasErrors = hasErrorsFromModel;
-  let isJsonModifiedNew;
-
-  if (propertyName === JSON_EDITOR_PROPERTY_NAMES.hasErrors) {
-    hasErrors = !!newValue;
-  }
-
-  if (isJsonModifiedCurrent !== isJsonTextDifferent) {
-    isJsonModifiedNew = isJsonTextDifferent;
-  }
-
-  if (fileJustImported && !isJsonModifiedCurrent) {
-    isJsonModifiedNew = true;
-  }
-
-  const shouldNotify =
-    propertyName === JSON_EDITOR_PROPERTY_NAMES.hasErrors ||
-    isJsonModifiedNew !== isJsonModifiedCurrent;
-
-  if (!shouldNotify) {
-    return null;
-  }
-
-  return createOnJsonTabState({ hasErrors, isJsonModified: isJsonModifiedNew });
-}
+/** Extends the TabJsonEditorBasePlugin with an aceEditor property. */
+export type AceJsonPlugin = JsonEditorBaseModel & {
+  aceEditor: any;
+};
