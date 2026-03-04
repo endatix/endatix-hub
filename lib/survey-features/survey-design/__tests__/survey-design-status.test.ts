@@ -90,14 +90,14 @@ describe("getSurveyDesignStatus", () => {
       ).toBe(SurveyDesignStatus.NoChanges);
     });
 
-    it("UnsavedChanges only when not on JSON tab", () => {
+    it("UnsavedChanges also when on JSON tab", () => {
       expect(
         getSurveyDesignStatus({
           ...baseInput,
           hasUnsavedChanges: true,
           isOnJsonTab: true,
         }),
-      ).toBe(SurveyDesignStatus.NoChanges);
+      ).toBe(SurveyDesignStatus.UnsavedChanges);
     });
 
     it("isSaving wins over showSavedSuccess (saving takes precedence)", () => {
@@ -131,7 +131,7 @@ describe("getSurveyDesignStatus", () => {
           hasUnsavedChanges: true,
           isJsonModified: false,
         }),
-      ).toBe(SurveyDesignStatus.NoChanges);
+      ).toBe(SurveyDesignStatus.UnsavedChanges);
     });
   });
 });
