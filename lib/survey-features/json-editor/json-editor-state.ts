@@ -8,6 +8,8 @@ export interface JsonEditorState {
   isJsonModified: boolean;
 }
 
+export const JSON_CHANGED_TYPE = "JSON_EDITOR";
+
 export const JSON_EDITOR_PLUGIN_NAME = "json" as const;
 
 export const JSON_EDITOR_PROPERTY_NAMES = {

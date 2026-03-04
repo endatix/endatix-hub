@@ -40,7 +40,9 @@ import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
   getLocaleStrings,
   ICreatorOptions,
+  ModifiedEvent,
   registerSurveyTheme,
+  SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
@@ -53,6 +55,7 @@ import { StoredTheme } from "../../domain/models/theme";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
+import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -160,8 +163,11 @@ function FormEditor({
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
       setIsJsonModified(state.isJsonModified);
+      if (state.isJsonModified) {
+        setHasUnsavedChanges(true);
+      }
     },
-    [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified],
+    [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified, setHasUnsavedChanges],
   );
   const { registerJsonEditor, getJsonModel } = useJsonEditor({
     onJsonStateChange,
@@ -535,7 +541,9 @@ function FormEditor({
   useEffect(() => {
     if (!creator) return;
 
-    const setAsModified = () => {
+    const setAsModified = (_: SurveyCreatorModel, options: ModifiedEvent) => {
+      if (options.type === JSON_CHANGED_TYPE) return;
+
       setHasUnsavedChanges(true);
     };
     creator.onModified.add(setAsModified);
@@ -595,9 +603,9 @@ function FormEditor({
   return (
     <div id="creator">
       {isCreatorLoading ? (
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+        <div className="flex h-[calc(100vh-80px)] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
             <p className="text-muted-foreground">Loading designer...</p>
           </div>
         </div>

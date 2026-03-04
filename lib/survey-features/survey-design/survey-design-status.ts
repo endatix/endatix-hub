@@ -50,7 +50,7 @@ export function getSurveyDesignStatus(
     return SurveyDesignStatus.JsonModified;
   }
 
-  if (hasUnsavedChanges && !isOnJsonTab) {
+  if (hasUnsavedChanges) {
     return SurveyDesignStatus.UnsavedChanges;
   }
 
