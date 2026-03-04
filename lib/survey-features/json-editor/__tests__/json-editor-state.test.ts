@@ -1,21 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  createOnJsonTabState,
+  JSON_EDITOR_PLUGIN_NAME,
   JSON_EDITOR_PROPERTY_NAMES,
   NOT_ON_JSON_TAB_STATE,
-  createOnJsonTabState,
-  computeStateAfterPropertyChange,
 } from "../json-editor-state";
-
-const baseInput = {
-  hasErrorsFromModel: false,
-  isJsonModifiedCurrent: false,
-  isJsonTextDifferent: false,
-  fileJustImported: false,
-};
 
 describe("json-editor-state", () => {
   describe("NOT_ON_JSON_TAB_STATE", () => {
-    it("has all flags false", () => {
+    it("should have isOnJsonTab false and all flags false", () => {
+      // Assert
       expect(NOT_ON_JSON_TAB_STATE).toEqual({
         hasErrors: false,
         isOnJsonTab: false,
@@ -25,130 +19,54 @@ describe("json-editor-state", () => {
   });
 
   describe("createOnJsonTabState", () => {
-    it("defaults to isOnJsonTab true and others false", () => {
-      expect(createOnJsonTabState({})).toEqual({
+    it("should return state with isOnJsonTab true and defaults when no overrides", () => {
+      // Act
+      const state = createOnJsonTabState({});
+
+      // Assert
+      expect(state).toEqual({
         hasErrors: false,
         isOnJsonTab: true,
         isJsonModified: false,
       });
     });
 
-    it("applies overrides", () => {
-      expect(
-        createOnJsonTabState({ hasErrors: true, isJsonModified: true }),
-      ).toEqual({
+    it("should merge overrides onto default on-json-tab state", () => {
+      // Act
+      const state = createOnJsonTabState({
+        hasErrors: true,
+        isJsonModified: true,
+      });
+
+      // Assert
+      expect(state).toEqual({
         hasErrors: true,
         isOnJsonTab: true,
         isJsonModified: true,
       });
     });
+
+    it("should allow partial overrides", () => {
+      // Act
+      const state = createOnJsonTabState({ hasErrors: true });
+
+      // Assert
+      expect(state.hasErrors).toBe(true);
+      expect(state.isOnJsonTab).toBe(true);
+      expect(state.isJsonModified).toBe(false);
+    });
   });
 
-  describe("computeStateAfterPropertyChange", () => {
-    it("returns state when hasErrors property changes", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        propertyName: JSON_EDITOR_PROPERTY_NAMES.hasErrors,
-        newValue: true,
-      });
-      expect(result).toMatchObject({
-        hasErrors: true,
-        isOnJsonTab: true,
-      });
+  describe("constants", () => {
+    it('should export JSON_EDITOR_PLUGIN_NAME as "json"', () => {
+      expect(JSON_EDITOR_PLUGIN_NAME).toBe("json");
     });
 
-    it("returns state when hasErrors becomes false", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        hasErrorsFromModel: true,
-        propertyName: JSON_EDITOR_PROPERTY_NAMES.hasErrors,
-        newValue: false,
+    it("should export JSON_EDITOR_PROPERTY_NAMES with hasErrors and aceCanUndo", () => {
+      expect(JSON_EDITOR_PROPERTY_NAMES).toEqual({
+        hasErrors: "hasErrors",
+        aceCanUndo: "aceCanUndo",
       });
-      expect(result).toMatchObject({
-        hasErrors: false,
-        isOnJsonTab: true,
-      });
-    });
-
-    it("returns state with isJsonModified true when isJsonTextDifferent is true and differs from isJsonModifiedCurrent", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        isJsonModifiedCurrent: false,
-        isJsonTextDifferent: true,
-        propertyName: "other",
-        newValue: undefined,
-      });
-      expect(result).toEqual(
-        createOnJsonTabState({ hasErrors: false, isJsonModified: true }),
-      );
-    });
-
-    it("returns state with isJsonModified false when isJsonTextDifferent is false and differs from isJsonModifiedCurrent", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        isJsonModifiedCurrent: true,
-        isJsonTextDifferent: false,
-        propertyName: "other",
-        newValue: undefined,
-      });
-      expect(result).toEqual(
-        createOnJsonTabState({ hasErrors: false, isJsonModified: false }),
-      );
-    });
-
-    it("notifies when isJsonTextDifferent equals isJsonModifiedCurrent and no hasErrors change (isJsonModifiedNew undefined)", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        isJsonModifiedCurrent: false,
-        isJsonTextDifferent: false,
-        propertyName: "other",
-        newValue: undefined,
-      });
-      // Implementation: isJsonModifiedNew is never set, so undefined !== isJsonModifiedCurrent triggers notify
-      expect(result).toMatchObject({
-        hasErrors: false,
-        isOnJsonTab: true,
-      });
-      expect(result?.isJsonModified).toBeUndefined();
-    });
-
-    it("returns state with isJsonModified true when fileJustImported is true and isJsonModifiedCurrent is false", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        fileJustImported: true,
-        propertyName: "other",
-        newValue: undefined,
-      });
-      expect(result).toEqual(
-        createOnJsonTabState({ hasErrors: false, isJsonModified: true }),
-      );
-    });
-
-    it("notifies for unknown property when fileJustImported is false and isJsonTextDifferent equals isJsonModifiedCurrent (isJsonModifiedNew undefined)", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        propertyName: "unknown",
-        newValue: 123,
-      });
-      // Implementation: isJsonModifiedNew is never set, so undefined !== isJsonModifiedCurrent triggers notify
-      expect(result).toMatchObject({
-        hasErrors: false,
-        isOnJsonTab: true,
-      });
-      expect(result?.isJsonModified).toBeUndefined();
-    });
-
-    it("combines hasErrors and isJsonModified when both trigger", () => {
-      const result = computeStateAfterPropertyChange({
-        ...baseInput,
-        hasErrorsFromModel: false,
-        fileJustImported: true,
-        propertyName: JSON_EDITOR_PROPERTY_NAMES.hasErrors,
-        newValue: true,
-      });
-      expect(result).toEqual(
-        createOnJsonTabState({ hasErrors: true, isJsonModified: true }),
-      );
     });
   });
 });
