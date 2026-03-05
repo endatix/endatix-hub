@@ -24,7 +24,7 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
       <ColumnHeader
         className="text-center hidden"
         column={column}
-        title={column.columnDef.meta?.displayName!}
+        title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
         visible={false}
       />
     ),
@@ -40,7 +40,7 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
       <ColumnHeader
         column={column}
         isSorted={column.getIsSorted()}
-        title={column.columnDef.meta?.displayName!}
+        title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
       />
     ),
     cell: ({ row }) => <CellDate date={row.original.createdAt} />,
@@ -52,7 +52,7 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
       displayName: "Is Complete",
     },
     header: ({ column }) => (
-      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName!} />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />
     ),
     cell: ({ row }) => (
       <CellCompleteStatus isComplete={row.original.isComplete} />
@@ -65,7 +65,7 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
       displayName: "Completed at",
     },
     header: ({ column }) => (
-      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName!} />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />
     ),
     cell: ({ row }) => (
       <CellDate
@@ -84,7 +84,7 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
       displayName: "Completion Time",
     },
     header: ({ column }) => (
-      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName!} />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />
     ),
     cell: ({ row }) => (
       <CellCompletionTime

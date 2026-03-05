@@ -52,8 +52,8 @@ export function ResetOptionsDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
-        {options.map((option, index) => (
-          <DropdownMenuItem key={index} onClick={option.onClick}>
+        {options.map((option) => (
+          <DropdownMenuItem key={option.label} onClick={option.onClick}>
             {option.label}
           </DropdownMenuItem>
         ))}
