@@ -118,9 +118,9 @@ function FormTemplateEditorContent({
 
       setHasUnsavedChanges(true);
     };
+    
     creator.onModified.add(setAsModified);
 
-    creator.onModified.add(setAsModified);
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
 
