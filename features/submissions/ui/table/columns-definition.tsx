@@ -99,7 +99,7 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
     meta: {
       displayName: "Status",
     },
-    header: ({ column }) => <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName!} />,
+    header: ({ column }) => <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />,
     cell: ({ row }) => (
       <CellStatusDropdown
         code={row.original.status}
