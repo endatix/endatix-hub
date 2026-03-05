@@ -40,7 +40,9 @@ import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
   getLocaleStrings,
   ICreatorOptions,
+  ModifiedEvent,
   registerSurveyTheme,
+  SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
@@ -53,6 +55,7 @@ import { StoredTheme } from "../../domain/models/theme";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
+import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -160,8 +163,11 @@ function FormEditor({
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
       setIsJsonModified(state.isJsonModified);
+      if (state.isJsonModified) {
+        setHasUnsavedChanges(true);
+      }
     },
-    [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified],
+    [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified, setHasUnsavedChanges],
   );
   const { registerJsonEditor, getJsonModel } = useJsonEditor({
     onJsonStateChange,
@@ -543,7 +549,9 @@ function FormEditor({
   useEffect(() => {
     if (!creator) return;
 
-    const setAsModified = () => {
+    const setAsModified = (_: SurveyCreatorModel, options: ModifiedEvent) => {
+      if (options.type === JSON_CHANGED_TYPE) return;
+
       setHasUnsavedChanges(true);
     };
     creator.onModified.add(setAsModified);

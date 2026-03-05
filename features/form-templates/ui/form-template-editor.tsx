@@ -15,7 +15,11 @@ import {
 } from "react";
 import { slk } from "survey-core";
 import "survey-core/survey-core.css";
-import { ICreatorOptions } from "survey-creator-core";
+import {
+  ICreatorOptions,
+  ModifiedEvent,
+  SurveyCreatorModel,
+} from "survey-creator-core";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
@@ -39,6 +43,7 @@ import { useSurveyExtensions } from "@/lib/survey-extensions";
 import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon } from "lucide-react";
+import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -89,6 +94,9 @@ function FormTemplateEditorContent({
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
       setIsJsonModified(state.isJsonModified);
+      if (state.isJsonModified) {
+        setHasUnsavedChanges(true);
+      }
     },
   });
   const router = useRouter();
@@ -105,9 +113,14 @@ function FormTemplateEditorContent({
   useEffect(() => {
     if (creator === null) return;
 
-    const setAsModified = () => setHasUnsavedChanges(true);
+    const setAsModified = (_: SurveyCreatorModel, options: ModifiedEvent) => {
+      if (options.type === JSON_CHANGED_TYPE) return;
 
+      setHasUnsavedChanges(true);
+    };
+    
     creator.onModified.add(setAsModified);
+
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
 
@@ -328,10 +341,10 @@ function FormTemplateEditorContent({
 
   const saveDisabled = isSaving || hasJsonErrors;
   const showInvalidJson = isOnJsonTab && hasJsonErrors;
-  const showUnsavedChanges = !showInvalidJson && hasUnsavedChanges;
+  const showUnsavedChanges = !hasJsonErrors && hasUnsavedChanges;
   return (
     <>
-      <div className="flex justify-between items-center mt-0 pt-4 pb-4 px-6 sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="sticky top-0 z-50 mt-0 flex w-full items-center justify-between border-border/40 bg-background/95 px-6 pt-4 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex w-full items-center gap-8">
           <Button
             variant="ghost"
@@ -349,12 +362,12 @@ function FormTemplateEditorContent({
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="font-bold text-lg border border-border rounded"
+              className="rounded border border-border text-lg font-bold"
               autoFocus
             />
           ) : (
             <span
-              className="font-bold text-lg hover:border hover:border-border hover:rounded px-1"
+              className="px-1 text-lg font-bold hover:rounded hover:border hover:border-border"
               onClick={() => setIsEditingName(true)}
               style={{ cursor: "text" }}
             >
@@ -384,9 +397,9 @@ function FormTemplateEditorContent({
 
       <div id="surveyCreatorContainer">
         {isLoading || !isExtensionsReady ? (
-          <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+          <div className="flex h-[calc(100vh-80px)] items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
               <p className="text-muted-foreground">Loading designer...</p>
             </div>
           </div>

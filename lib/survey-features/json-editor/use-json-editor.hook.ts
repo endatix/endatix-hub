@@ -1,21 +1,19 @@
 "use client";
 
 import { useCallback } from "react";
+import { Base, Model, type IPropertyValueChangedEvent } from "survey-core";
 import {
-  Model,
-  type Base,
-  type IPropertyValueChangedEvent,
-} from "survey-core";
-import type {
-  ActiveTabChangedEvent,
-  SurveyCreatorModel,
-  TabJsonEditorBasePlugin,
+  TabJsonEditorAcePlugin,
+  type ActiveTabChangedEvent,
+  type SurveyCreatorModel,
+  type TabJsonEditorBasePlugin,
 } from "survey-creator-core";
 import {
   type JsonEditorState,
+  AceJsonPlugin,
   JSON_EDITOR_PLUGIN_NAME,
+  JSON_EDITOR_PROPERTY_NAMES,
   NOT_ON_JSON_TAB_STATE,
-  computeStateAfterPropertyChange,
   createOnJsonTabState,
 } from "./json-editor-state";
 import { Result } from "@/lib/result";
@@ -46,20 +44,20 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
 
   const registerJsonEditor = useCallback(
     (creator: SurveyCreatorModel): (() => void) => {
-      const jsonEditorState = {
-        isJsonModified: false,
-        fileJustImported: false,
-      };
+      let isJsonModified = false;
       let removeModelListener: (() => void) | undefined;
+      let aceChangedHandler: (() => void) | undefined;
 
-      function notify(state: JsonEditorState) {
-        onJsonStateChange?.(state);
+      function notify(overrides: Partial<JsonEditorState>) {
+        onJsonStateChange?.(
+          createOnJsonTabState({ isJsonModified, ...overrides }),
+        );
       }
 
       function leaveJsonTab() {
         removeModelListener?.();
         removeModelListener = undefined;
-        jsonEditorState.isJsonModified = false;
+        isJsonModified = false;
         notify(NOT_ON_JSON_TAB_STATE);
       }
 
@@ -67,61 +65,53 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         const jsonPlugin: TabJsonEditorBasePlugin = creator.getPlugin(
           JSON_EDITOR_PLUGIN_NAME,
         );
-        if (!jsonPlugin?.model) {
-          notify(
-            createOnJsonTabState({
-              isJsonModified: jsonEditorState.isJsonModified,
-            }),
-          );
-          return;
-        }
+        const model = jsonPlugin?.model as unknown as AceJsonPlugin;
+        const hasAceEditor = TabJsonEditorAcePlugin.hasAceEditor();
+        if (!model || !hasAceEditor) return;
 
-        const originalImportFromFile =
-          jsonPlugin.importFromFile.bind(jsonPlugin);
-        jsonPlugin.importFromFile = (
-          file: File,
-          callback?: (json: string) => void,
-        ) => {
-          jsonEditorState.fileJustImported = true;
-          originalImportFromFile(file, callback);
-        };
-
-        notify(
-          createOnJsonTabState({
-            hasErrors: !!jsonPlugin.model.hasErrors,
-            isJsonModified: jsonEditorState.isJsonModified,
-          }),
-        );
+        let isAceHooked = false;
 
         const onPropertyChanged = (
-          _sender: Base,
+          sender: Base,
           options: IPropertyValueChangedEvent,
         ) => {
-          const { name, newValue } = options;
+          const { name } = options;
 
-          const isJsonTextDifferent =
-            jsonPlugin.model.text?.length > 0 &&
-            jsonPlugin.model.text !== creator.text;
-          const next = computeStateAfterPropertyChange({
-            propertyName: name,
-            newValue,
-            hasErrorsFromModel: !!jsonPlugin.model.hasErrors,
-            isJsonModifiedCurrent: jsonEditorState.isJsonModified,
-            isJsonTextDifferent,
-            fileJustImported: jsonEditorState.fileJustImported,
-          });
+          if (name === JSON_EDITOR_PROPERTY_NAMES.hasErrors) {
+            notify({ hasErrors: !!options.newValue });
+          }
 
-          if (next === null) return;
+          const aceInstance = (sender as AceJsonPlugin).aceEditor;
+          if (aceInstance && !isAceHooked) {
+            isAceHooked = true;
 
-          jsonEditorState.isJsonModified = next.isJsonModified;
-          jsonEditorState.fileJustImported = false;
-          notify(next);
+            aceChangedHandler = () => {
+              if (!isJsonModified) {
+                const session = aceInstance.getSession();
+                const editorValue = session.$editor.getValue();
+
+                if (editorValue?.length < 1 || editorValue === creator.text)
+                  return;
+
+                isJsonModified = true;
+                notify({ hasErrors: !!model.hasErrors });
+              }
+            };
+            aceInstance.getSession().on("change", aceChangedHandler);
+          }
         };
 
-        jsonPlugin.model.onPropertyChanged.add(onPropertyChanged);
+        model.onPropertyChanged.add(onPropertyChanged);
+
         removeModelListener = () => {
-          jsonPlugin.model?.onPropertyChanged.remove(onPropertyChanged);
+          model?.onPropertyChanged.remove(onPropertyChanged);
+          const aceInstance = model.aceEditor;
+          if (aceInstance && aceChangedHandler) {
+            aceInstance.getSession().off("change", aceChangedHandler);
+          }
         };
+
+        notify({ hasErrors: !!model.hasErrors });
       }
 
       function onTabChanged(
