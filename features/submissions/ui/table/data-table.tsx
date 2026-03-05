@@ -41,8 +41,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { useColumnOrder } from "./column-order-context";
+import { useColumnVisibility } from "./column-visibility-context";
 import { DraggableColumnHeader } from "./draggable-column-header";
 import { TablePagination } from "./table-pagination";
 
@@ -67,16 +68,24 @@ export function DataTable<TData extends Submission>({
   data,
   columns,
   formId,
+  sorting: externalSorting,
+  onSortingChange: externalOnSortingChange,
 }: {
   data: TData[];
   columns: ColumnDef<TData>[];
   formId: string;
+  sorting?: SortingState;
+  onSortingChange?: Dispatch<SetStateAction<SortingState>>;
 }) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [internalSorting, setInternalSorting] = useState<SortingState>([]);
+
+  const sorting = externalSorting !== undefined ? externalSorting : internalSorting;
+  const setSorting = externalOnSortingChange !== undefined ? externalOnSortingChange : setInternalSorting;
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const router = useRouter();
   const { columnOrder, reorderColumn } = useColumnOrder();
+  const { columnVisibility } = useColumnVisibility();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -124,6 +133,7 @@ export function DataTable<TData extends Submission>({
       sorting,
       rowSelection,
       columnOrder,
+      columnVisibility,
     },
   });
 

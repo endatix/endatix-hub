@@ -7,6 +7,7 @@ import { CellDate } from "./cell-date";
 import { CellStatusDropdown } from "./cell-status-dropdown";
 import { ColumnHeader } from "./column-header";
 import { RowActions } from "./row-actions";
+import "./types";
 
 export type ParsedSubmission = Submission & {
   parsedData: Record<string, any>;
@@ -16,11 +17,14 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
   {
     id: "actions",
     enableSorting: false,
+    meta: {
+      displayName: "Actions",
+    },
     header: ({ column }) => (
       <ColumnHeader
         className="text-center hidden"
         column={column}
-        title="Actions"
+        title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
         visible={false}
       />
     ),
@@ -29,12 +33,14 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
   {
     id: "createdAt",
     accessorKey: "createdAt",
+    meta: {
+      displayName: "Created at",
+    },
     header: ({ column }) => (
       <ColumnHeader
-        className="hidden md:table-cell"
         column={column}
         isSorted={column.getIsSorted()}
-        title="Created at"
+        title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
       />
     ),
     cell: ({ row }) => <CellDate date={row.original.createdAt} />,
@@ -42,8 +48,11 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
   {
     id: "complete",
     accessorKey: "isComplete",
+    meta: {
+      displayName: "Is Complete",
+    },
     header: ({ column }) => (
-      <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Is Complete" />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />
     ),
     cell: ({ row }) => (
       <CellCompleteStatus isComplete={row.original.isComplete} />
@@ -52,8 +61,11 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
   {
     id: "completedAt",
     accessorKey: "completedAt",
+    meta: {
+      displayName: "Completed at",
+    },
     header: ({ column }) => (
-      <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Completed at" />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />
     ),
     cell: ({ row }) => (
       <CellDate
@@ -68,8 +80,11 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
       row.completedAt
         ? new Date(row.completedAt).getTime() - new Date(row.createdAt).getTime()
         : -1,
+    meta: {
+      displayName: "Completion Time",
+    },
     header: ({ column }) => (
-      <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Completion Time" />
+      <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />
     ),
     cell: ({ row }) => (
       <CellCompletionTime
@@ -81,7 +96,10 @@ export const COLUMNS_DEFINITION: ColumnDef<ParsedSubmission>[] = [
   {
     id: "status",
     accessorKey: "status",
-    header: ({ column }) => <ColumnHeader column={column} isSorted={column.getIsSorted()} title="Status" />,
+    meta: {
+      displayName: "Status",
+    },
+    header: ({ column }) => <ColumnHeader column={column} isSorted={column.getIsSorted()} title={column.columnDef.meta?.displayName ?? (column.id || "Column")} />,
     cell: ({ row }) => (
       <CellStatusDropdown
         code={row.original.status}

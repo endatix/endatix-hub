@@ -1,20 +1,23 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import {
   buildSubmissionDataColumns,
   ColumnOrderProvider,
   COLUMNS_DEFINITION,
+  ColumnViewOptionsDropdown,
+  ColumnVisibilityProvider,
+  ResetOptionsDropdown,
   useColumnOrder,
+  useColumnVisibility,
 } from "@/features/submissions/ui/table";
 import { DefinitionField } from "@/lib/endatix-api";
 import { Submission } from "@/lib/endatix-api/submissions/types";
-import { RotateCcw } from "lucide-react";
+import { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useTransition } from "react";
 import SubmissionsTable from "./submissions-table";
 
 interface SubmissionsWithFiltersProps {
@@ -36,6 +39,10 @@ function SubmissionsContent({
   onResetFilters,
   isPending,
   tableKey,
+  allColumns,
+  sorting,
+  onSortingChange,
+  onResetSorting,
 }: {
   data: Submission[];
   formId: string;
@@ -47,8 +54,65 @@ function SubmissionsContent({
   onResetFilters: () => void;
   isPending: boolean;
   tableKey: string;
+  allColumns: ColumnDef<any>[];
+  sorting: SortingState;
+  onSortingChange: Dispatch<SetStateAction<SortingState>>;
+  onResetSorting: () => void;
 }) {
-  const { resetToDefault, hasCustomOrder } = useColumnOrder();
+  const { resetToDefault: resetOrder, hasCustomOrder } = useColumnOrder();
+  const { resetToDefault: resetVisibility, hasCustomVisibility } = useColumnVisibility();
+  const [isClient, setIsClient] = useState(false);
+
+  const hasSorting = sorting.length > 0;
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const getColumnHeaderText = (col: ColumnDef<any>): string => {
+    if (col.meta?.displayName) {
+      return col.meta.displayName as string;
+    }
+
+    if (typeof col.header === "string") {
+      return col.header;
+    }
+
+    return col.id || "Column";
+  };
+
+  const columnHeaders = allColumns
+    .filter((col) => col.id && col.id !== "actions")
+    .map((col) => ({
+      id: col.id as string,
+      header: getColumnHeaderText(col),
+    }));
+
+  const resetOptions = [];
+  if (hasCustomOrder) {
+    resetOptions.push({
+      label: "Reset Column Order",
+      onClick: resetOrder,
+    });
+  }
+  if (hasCustomVisibility) {
+    resetOptions.push({
+      label: "Reset Column Visibility",
+      onClick: resetVisibility,
+    });
+  }
+  if (hasSorting) {
+    resetOptions.push({
+      label: "Reset Sorting",
+      onClick: onResetSorting,
+    });
+  }
+
+  const handleResetAll = () => {
+    if (hasCustomOrder) resetOrder();
+    if (hasCustomVisibility) resetVisibility();
+    if (hasSorting) onResetSorting();
+  };
 
   return (
     <>
@@ -61,16 +125,12 @@ function SubmissionsContent({
           onResetFilters={onResetFilters}
         />
         <div className="flex items-center gap-2">
-          {hasCustomOrder && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetToDefault}
-              className="px-2 lg:px-3"
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Reset Columns
-            </Button>
+          <ColumnViewOptionsDropdown columns={columnHeaders} />
+          {isClient && (
+            <ResetOptionsDropdown
+              options={resetOptions}
+              onResetAll={handleResetAll}
+            />
           )}
           <ExportSubmissionsButton formId={formId} />
         </div>
@@ -78,7 +138,14 @@ function SubmissionsContent({
       {isPending && (
         <div className="text-sm text-muted-foreground">Updating...</div>
       )}
-      <SubmissionsTable key={tableKey} data={data} formId={formId} definitionFields={definitionFields} />
+      <SubmissionsTable
+        key={tableKey}
+        data={data}
+        formId={formId}
+        definitionFields={definitionFields}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
+      />
     </>
   );
 }
@@ -99,6 +166,7 @@ export function SubmissionsWithFilters({
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
     new Set(initialStatus)
   );
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const updateURL = (isComplete: Set<string>, status: Set<string>) => {
     const params = new URLSearchParams();
@@ -135,6 +203,10 @@ export function SubmissionsWithFilters({
     updateURL(emptySet, emptySet);
   };
 
+  const handleResetSorting = () => {
+    setSorting([]);
+  };
+
   // Create a key that changes when filters change to force table re-mount
   const tableKey = `${Array.from(isCompleteFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(statusFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${data.length}`;
 
@@ -142,18 +214,24 @@ export function SubmissionsWithFilters({
 
   return (
     <ColumnOrderProvider formId={formId} defaultColumns={allColumns}>
-      <SubmissionsContent
-        data={data}
-        formId={formId}
-        definitionFields={definitionFields}
-        isCompleteFilter={isCompleteFilter}
-        statusFilter={statusFilter}
-        onIsCompleteChange={handleIsCompleteChange}
-        onStatusChange={handleStatusChange}
-        onResetFilters={handleResetFilters}
-        isPending={isPending}
-        tableKey={tableKey}
-      />
+      <ColumnVisibilityProvider formId={formId} defaultColumns={allColumns}>
+        <SubmissionsContent
+          data={data}
+          formId={formId}
+          definitionFields={definitionFields}
+          isCompleteFilter={isCompleteFilter}
+          statusFilter={statusFilter}
+          onIsCompleteChange={handleIsCompleteChange}
+          onStatusChange={handleStatusChange}
+          onResetFilters={handleResetFilters}
+          isPending={isPending}
+          tableKey={tableKey}
+          allColumns={allColumns}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          onResetSorting={handleResetSorting}
+        />
+      </ColumnVisibilityProvider>
     </ColumnOrderProvider>
   );
 }
