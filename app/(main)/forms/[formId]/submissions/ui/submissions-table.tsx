@@ -7,15 +7,24 @@ import {
   ParsedSubmission,
 } from "@/features/submissions/ui/table";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
-import { useEffect, useState } from "react";
+import { SortingState } from "@tanstack/react-table";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type SubmissionsTableProps = {
   data: Submission[];
   formId: string;
   definitionFields?: DefinitionField[];
+  sorting?: SortingState;
+  onSortingChange?: Dispatch<SetStateAction<SortingState>>;
 };
 
-const SubmissionsTable = ({ data, formId, definitionFields = [] }: SubmissionsTableProps) => {
+const SubmissionsTable = ({
+  data,
+  formId,
+  definitionFields = [],
+  sorting,
+  onSortingChange,
+}: SubmissionsTableProps) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<
     string | null
   >(null);
@@ -59,7 +68,15 @@ const SubmissionsTable = ({ data, formId, definitionFields = [] }: SubmissionsTa
   }));
 
   const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
-  return <DataTable data={parsedData} columns={allColumns} formId={formId} />;
+  return (
+    <DataTable
+      data={parsedData}
+      columns={allColumns}
+      formId={formId}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+    />
+  );
 };
 
 export default SubmissionsTable;

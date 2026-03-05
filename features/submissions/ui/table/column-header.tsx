@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Column, SortDirection } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "lucide-react";
+import { useColumnVisibility } from "./column-visibility-context";
 
 interface ColumnHeaderProps<TData, TValue>
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -25,6 +26,8 @@ export function ColumnHeader<TData, TValue>({
   className,
   isSorted,
 }: ColumnHeaderProps<TData, TValue>) {
+  const { toggleColumnVisibility } = useColumnVisibility();
+
   if (!visible) {
     return <span className="sr-only">{title}</span>;
   }
@@ -63,10 +66,24 @@ export function ColumnHeader<TData, TValue>({
             <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
             Desc
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => column.clearSorting()}>
-            Clear Sort
-          </DropdownMenuItem>
+          {column.getIsSorted() && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => column.clearSorting()}>
+                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+                Clear Sort
+              </DropdownMenuItem>
+            </>
+          )}
+          {column.id !== "actions" && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => toggleColumnVisibility(column.id!)}>
+                <EyeOff className="h-3.5 w-3.5 text-muted-foreground/70" />
+                Hide
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
