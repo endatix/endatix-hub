@@ -67,9 +67,9 @@ describe("changePasswordAction", () => {
     mockFormData.delete("confirmPassword");
 
     // Reset mock implementations
-    vi.mocked(EndatixApi).mockImplementation(
-      () => mockEndatixApiInstance as unknown as EndatixApi,
-    );
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockEndatixApiInstance as unknown as EndatixApi;
+    });
     (vi.mocked(auth) as Mock).mockResolvedValue(mockSession);
 
     // Reset permission service mock to default (no redirect)

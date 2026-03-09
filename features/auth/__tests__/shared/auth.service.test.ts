@@ -13,7 +13,7 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("../../infrastructure/jwt.service", () => ({
-  JwtService: vi.fn(),
+  JwtService: vi.fn().mockImplementation(() => {}),
 }));
 
 // Mock the auth function from NextAuth
@@ -53,9 +53,9 @@ describe("AuthService", () => {
       decodeAccessToken: vi.fn(),
     };
 
-    vi.mocked(JwtService).mockImplementation(
-      () => mockJwtService as JwtService,
-    );
+    vi.mocked(JwtService).mockImplementation(function () {
+      return mockJwtService;
+    });
 
     authService = new AuthService(testCookieOptions);
   });

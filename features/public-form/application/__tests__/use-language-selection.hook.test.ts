@@ -51,7 +51,7 @@ describe("useLanguageSelection", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("initialization", () => {

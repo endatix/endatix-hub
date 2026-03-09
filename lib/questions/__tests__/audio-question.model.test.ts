@@ -88,9 +88,9 @@ describe("AudioQuestionModel", () => {
       },
     } as unknown as Navigator;
 
-    global.AudioContext = vi.fn(
-      () => mockAudioContext,
-    ) as unknown as typeof AudioContext;
+    global.AudioContext = vi.fn(function (this: unknown) {
+      return mockAudioContext;
+    }) as unknown as typeof AudioContext;
     global.window = {
       AudioContext: global.AudioContext,
     } as unknown as Window & typeof globalThis;
@@ -120,7 +120,7 @@ describe("AudioQuestionModel", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("Constructor and Properties", () => {

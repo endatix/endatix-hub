@@ -16,7 +16,7 @@ describe("PostHog Server", () => {
     // Reset everything before each test
     vi.clearAllMocks();
     resetPostHogServer();
-    
+
     // Set up default mock behaviors
     vi.mocked(createPostHogConfig).mockReturnValue(defaultConfig);
     vi.mocked(isPostHogEnabled).mockReturnValue(true);
@@ -29,11 +29,13 @@ describe("PostHog Server", () => {
   }));
 
   vi.mock("posthog-node", () => ({
-    PostHog: vi.fn().mockImplementation(() => ({
-      capture: vi.fn(),
-      isFeatureEnabled: vi.fn(),
-      shutdown: vi.fn(),
-    })),
+    PostHog: vi.fn().mockImplementation(function (this: unknown) {
+      return {
+        capture: vi.fn(),
+        isFeatureEnabled: vi.fn(),
+        shutdown: vi.fn(),
+      };
+    }),
   }));
 
   describe("getPostHogServer", () => {
@@ -99,4 +101,4 @@ describe("PostHog Server", () => {
       });
     });
   });
-}); 
+});

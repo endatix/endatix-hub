@@ -28,12 +28,14 @@ vi.mock("survey-core", async () => {
 
 // Mock SurveyCreator
 vi.mock("survey-creator-react", () => ({
-  SurveyCreator: vi.fn().mockImplementation(() => ({
-    toolbox: {
-      changeCategory: vi.fn(),
-      orderedQuestions: [],
-    },
-  })),
+  SurveyCreator: vi.fn().mockImplementation(function (this: unknown) {
+    return {
+      toolbox: {
+        changeCategory: vi.fn(),
+        orderedQuestions: [],
+      },
+    };
+  }),
 }));
 
 describe("SpecializedSurveyQuestion", () => {
@@ -47,7 +49,7 @@ describe("SpecializedSurveyQuestion", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("parseJsonSafely", () => {

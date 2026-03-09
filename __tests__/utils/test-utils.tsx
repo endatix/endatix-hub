@@ -3,6 +3,9 @@ import { QuestionFileModel } from "survey-core";
 import { render, RenderResult } from "@testing-library/react";
 
 /**
+ * SurveyJS component tests: use renderSurveyJsComponent for class components that expose renderElement.
+ * When mocking survey-react-ui or survey-creator-react, use function () { return ...; } (not arrow) for constructor mocks (Vitest 4).
+ *
  * Type for SurveyJS components that have a protected renderElement method.
  * Used in tests to access protected methods via type assertion.
  */

@@ -23,7 +23,7 @@ describe("AzureTelemetryStrategy", () => {
 
   afterEach(() => {
     process.env = envBackup;
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should call useAzureMonitor and return null", () => {

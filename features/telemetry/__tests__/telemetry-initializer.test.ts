@@ -14,17 +14,21 @@ import {
 } from "../infrastructure/strategies";
 
 vi.mock("../infrastructure/strategies", () => ({
-  AzureTelemetryStrategy: vi.fn(() => ({
-    initialize: vi.fn(() => null),
-    name: "Azure",
-  })),
-  OtelTelemetryStrategy: vi.fn(() => ({
-    initialize: vi.fn(() => ({
-      start: vi.fn(),
-      shutdown: vi.fn(() => Promise.resolve()),
-    })),
-    name: "OTel",
-  })),
+  AzureTelemetryStrategy: vi.fn().mockImplementation(function (this: unknown) {
+    return {
+      initialize: vi.fn(() => null),
+      name: "Azure",
+    };
+  }),
+  OtelTelemetryStrategy: vi.fn().mockImplementation(function (this: unknown) {
+    return {
+      initialize: vi.fn(() => ({
+        start: vi.fn(),
+        shutdown: vi.fn(() => Promise.resolve()),
+      })),
+      name: "OTel",
+    };
+  }),
 }));
 
 describe("TelemetryInitializer", () => {
@@ -43,7 +47,7 @@ describe("TelemetryInitializer", () => {
 
   afterEach(() => {
     process.env = envBackup;
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("selects AzureTelemetryStrategy if Azure is configured", () => {
@@ -101,12 +105,14 @@ describe("TelemetryInitializer", () => {
       AzureTelemetryStrategy as unknown as {
         mockImplementation: (impl: () => unknown) => void;
       }
-    ).mockImplementation(() => ({
-      initialize: () => {
-        throw new Error("Init failed");
-      },
-      name: "Azure AppInsights",
-    }));
+    ).mockImplementation(function (this: unknown) {
+      return {
+        initialize: () => {
+          throw new Error("Init failed");
+        },
+        name: "Azure AppInsights",
+      };
+    });
 
     // Act
     const initializer = new TelemetryInitializer();

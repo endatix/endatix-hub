@@ -51,7 +51,7 @@ describe('Robots.ts metadata route', () => {
 
   afterEach(() => {
     process.env = originalEnv;
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should allow /login for app.endatix.com host when explicitly listed', async () => {

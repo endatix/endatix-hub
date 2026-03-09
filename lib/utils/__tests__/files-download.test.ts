@@ -109,7 +109,7 @@ describe("initiateFileDownload", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("does nothing if blob or filename is missing", () => {

@@ -16,7 +16,7 @@ describe("OtelTelemetryStrategy", () => {
 
   afterEach(() => {
     process.env = envBackup;
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should initialize telemetry", () => {

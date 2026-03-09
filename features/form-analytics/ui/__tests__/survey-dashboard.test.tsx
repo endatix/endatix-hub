@@ -6,9 +6,11 @@ const mockRender = vi.fn();
 const mockClear = vi.fn();
 
 vi.mock("survey-core", () => ({
-  Model: vi.fn().mockImplementation(() => ({
-    getAllQuestions: vi.fn().mockReturnValue([]),
-  })),
+  Model: vi.fn().mockImplementation(function () {
+    return {
+      getAllQuestions: vi.fn().mockReturnValue([]),
+    };
+  }),
 }));
 
 vi.mock("survey-analytics", () => ({
