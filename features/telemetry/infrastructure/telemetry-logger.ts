@@ -152,12 +152,19 @@ export class TelemetryLogger {
     };
 
     if (error) {
-      enhancedAttributes["error.message"] = error.message;
-      enhancedAttributes["error.stack"] = error.stack;
-      enhancedAttributes["error.name"] = error.name;
+      // OTEL semantic convention – Azure maps these to Failures; body includes context so it appears in exception view
+      enhancedAttributes["exception.type"] = error.name;
+      enhancedAttributes["exception.message"] = error.message;
+      enhancedAttributes["exception.stacktrace"] = error.stack ?? "";
+      this.log(
+        `${message}: ${error.message}`,
+        LogSeverity.Error,
+        enhancedAttributes,
+        loggerName,
+      );
+    } else {
+      this.log(message, LogSeverity.Error, enhancedAttributes, loggerName);
     }
-
-    this.log(message, LogSeverity.Error, enhancedAttributes, loggerName);
   }
 
   /**
@@ -178,11 +185,17 @@ export class TelemetryLogger {
     };
 
     if (error) {
-      enhancedAttributes["error.message"] = error.message;
-      enhancedAttributes["error.stack"] = error.stack;
-      enhancedAttributes["error.name"] = error.name;
+      enhancedAttributes["exception.type"] = error.name;
+      enhancedAttributes["exception.message"] = error.message;
+      enhancedAttributes["exception.stacktrace"] = error.stack ?? "";
+      this.log(
+        `${message}: ${error.message}`,
+        LogSeverity.Critical,
+        enhancedAttributes,
+        loggerName,
+      );
+    } else {
+      this.log(message, LogSeverity.Critical, enhancedAttributes, loggerName);
     }
-
-    this.log(message, LogSeverity.Critical, enhancedAttributes, loggerName);
   }
 }

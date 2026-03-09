@@ -15,10 +15,7 @@ import {
 
 vi.mock("../infrastructure/strategies", () => ({
   AzureTelemetryStrategy: vi.fn(() => ({
-    initialize: vi.fn(() => ({
-      start: vi.fn(),
-      shutdown: vi.fn(() => Promise.resolve()),
-    })),
+    initialize: vi.fn(() => null),
     name: "Azure",
   })),
   OtelTelemetryStrategy: vi.fn(() => ({
