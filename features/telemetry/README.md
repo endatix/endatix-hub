@@ -86,6 +86,28 @@ TelemetryLogger.critical(message: string, error?: Error, attributes?: LogAttribu
 
 ---
 
+## Unit testing
+
+Tests live in `features/telemetry/__tests__/`. Run them with:
+
+```bash
+pnpm test -- --run features/telemetry
+```
+
+| Module | Test file | What’s covered |
+|--------|-----------|----------------|
+| **TelemetryConfig** | `telemetry-config.test.ts` | `SERVICE_NAME`, `isAzureConfigured()`, `isOtelConfigured()` with env toggles |
+| **FilteringSpanProcessor** | `filtering-span-processor.test.ts` | Spans matching URL/pattern or internal metric → `traceFlags` set to NONE; non-matching span unchanged; `forceFlush`/`shutdown` |
+| **TelemetryLogger** | `telemetry-logger.test.ts` | `debug`/`info`/`warn`/`error`/`critical` call OTEL logger `emit` with correct severity, body, attributes; error/critical with `Error` set `exception.*` and combined body |
+| **TelemetryTracer** | `telemetry-tracer.test.ts` | `getTracer`, `traceAsync`/`trace` invoke callback with span and return result; on throw, `recordException` and `setStatus` called |
+| **AzureTelemetryStrategy** | `azure-telemetry-strategy.test.ts` | `useAzureMonitor` called with connection string, resource, `FilteringSpanProcessor`; throws when connection string missing |
+| **OtelTelemetryStrategy** | `otel-telemetry-strategy.test.ts` | Returns SDK when OTLP endpoint set; throws when endpoint missing |
+| **TelemetryInitializer** | `telemetry-initializer.test.ts` | Strategy selection (Azure vs OTel), warning when none configured, error when init throws |
+
+OTEL APIs (`logs.getLogger`, `trace.getTracer`) are mocked so tests don’t require a running SDK.
+
+---
+
 ## Tracing (optional)
 
 For spans around operations, use `TelemetryTracer` from `@/features/telemetry` (e.g. `TelemetryTracer.traceAsync("feature", "operation", async (span) => { ... })`). Prefer logging for discrete events and tracer for timing and parent/child spans.

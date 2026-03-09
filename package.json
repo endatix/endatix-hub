@@ -134,9 +134,6 @@
       "axios": "^1.13.5",
       "minimatch": "^10.2.1"
     },
-    "ignoredBuiltDependencies": [
-      "sharp"
-    ],
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "core-js",
