@@ -33,6 +33,7 @@ const SURVEY_PACKAGES = [
   "survey-creator-core",
   "survey-creator-react",
   "survey-react-ui",
+  "survey-analytics",
 ];
 
 // Extract a valid semver string from a range or tag (e.g. "^2.5.9" or "v2.5.9" -> "2.5.9"). Uses semver package to avoid ReDoS.

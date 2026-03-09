@@ -13,6 +13,7 @@ This skill upgrades all Survey.js related packages in the hub application.
 - `survey-creator-core`
 - `survey-creator-react`
 - `survey-react-ui`
+- `survey-analytics`
 
 ## Usage
 
