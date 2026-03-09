@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Submission } from "@/lib/endatix-api";
+import { cn } from "@/lib/utils";
 import {
   closestCenter,
   DndContext,
@@ -127,6 +128,7 @@ export function DataTable<TData extends Submission>({
     manualFiltering: true,
     enableRowSelection: true,
     enableMultiRowSelection: false,
+    enableColumnPinning: true,
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     state: {
@@ -134,6 +136,9 @@ export function DataTable<TData extends Submission>({
       rowSelection,
       columnOrder,
       columnVisibility,
+      columnPinning: {
+        left: ['actions'],
+      },
     },
   });
 
@@ -148,17 +153,25 @@ export function DataTable<TData extends Submission>({
         onDragEnd={handleDragEnd}
       >
         <div className="w-full overflow-x-auto">
-          <Table>
+          <Table className="border-separate border-spacing-0">
             <TableHeader>
               <SortableContext
-                items={columnOrder}
+                items={columnOrder.filter(id => id !== 'actions')}
                 strategy={horizontalListSortingStrategy}
               >
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => {
+                      const isPinned = header.column.getIsPinned();
                       return (
-                        <TableHead key={header.id} colSpan={header.colSpan}>
+                        <TableHead
+                          key={header.id}
+                          colSpan={header.colSpan}
+                          className={cn(
+                            isPinned && "sticky bg-background z-10",
+                            isPinned === 'left' && "left-0"
+                          )}
+                        >
                           {header.isPlaceholder ? null : (
                             <DraggableColumnHeader
                               header={header}
@@ -177,15 +190,25 @@ export function DataTable<TData extends Submission>({
                 rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    className={getRowClassName(row)}
+                    className={cn("group", getRowClassName(row))}
                     onClick={() => handleRowSelectionChange(row)}
                     data-state={row.getIsSelected() && "selected"}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isPinned = cell.column.getIsPinned();
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            isPinned && "sticky bg-background group-hover:bg-slate-50 z-10 transition-colors duration-150",
+                            isPinned === 'left' && "left-0",
+                            isPinned && row.getIsSelected() && "bg-accent"
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))
               ) : (
