@@ -74,11 +74,8 @@ function shouldFilterSpan(span: ReadableSpan): boolean {
 function markSpanNotExported(span: ReadableSpan): void {
   try {
     const ctx = span.spanContext();
-    if (
-      ctx &&
-      typeof (ctx as { traceFlags?: number }).traceFlags !== "undefined"
-    ) {
-      (ctx as { traceFlags: number }).traceFlags = TraceFlags.NONE;
+    if (ctx?.traceFlags !== undefined) {
+      ctx.traceFlags = TraceFlags.NONE;
     }
   } catch {
     // If span context is immutable or unavailable, skip; span may still be exported.
@@ -101,10 +98,10 @@ export class FilteringSpanProcessor implements SpanProcessor {
   }
 
   async forceFlush(): Promise<void> {
-    return Promise.resolve();
+    return;
   }
 
   async shutdown(): Promise<void> {
-    return Promise.resolve();
+    return;
   }
 }
