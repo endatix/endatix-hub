@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Resource, resourceFromAttributes } from "@opentelemetry/resources";
 import { TelemetryConfig } from "../infrastructure/telemetry-config";
+import { FilteringSpanProcessor } from "../infrastructure/filtering-span-processor";
 
 const mockUseAzureMonitor = vi.fn();
 vi.mock("@azure/monitor-opentelemetry", () => ({
@@ -33,13 +34,20 @@ describe("AzureTelemetryStrategy", () => {
     const result = strategy.initialize(resource);
 
     expect(result).toBeNull();
-    expect(mockUseAzureMonitor).toHaveBeenCalledWith({
-      azureMonitorExporterOptions: {
-        connectionString:
-          "InstrumentationKey=e5a33aeb-9056-4881-8155-d2ee13542a4f;EndpointSuffix=core.windows.net",
-      },
-      resource,
-    });
+    expect(mockUseAzureMonitor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        azureMonitorExporterOptions: {
+          connectionString:
+            "InstrumentationKey=e5a33aeb-9056-4881-8155-d2ee13542a4f;EndpointSuffix=core.windows.net",
+        },
+        resource,
+        spanProcessors: expect.any(Array),
+      }),
+    );
+    expect(mockUseAzureMonitor.mock.calls[0][0].spanProcessors).toHaveLength(1);
+    expect(
+      mockUseAzureMonitor.mock.calls[0][0].spanProcessors[0],
+    ).toBeInstanceOf(FilteringSpanProcessor);
     expect(strategy.name).toBe("Azure AppInsights");
   });
 

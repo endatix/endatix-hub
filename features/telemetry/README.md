@@ -80,7 +80,7 @@ TelemetryLogger.critical(message: string, error?: Error, attributes?: LogAttribu
 
 ## Configuration
 
-- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` in the environment. The Azure Monitor OpenTelemetry distro is used; logs and exceptions are sent to App Insights.
+- **Azure**: set `APPLICATIONINSIGHTS_CONNECTION_STRING` in the environment. The Azure Monitor OpenTelemetry distro is used; logs and exceptions are sent to App Insights. A **span filter** is applied so noisy spans (Next.js static assets, `/_next/*`, RSC payloads, `/api/health`, favicon, fonts, etc.) are not exported—reducing volume and cost. See [Filtering OpenTelemetry in Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/opentelemetry-filter?tabs=nodejs).
 - **OTLP (e.g. AWS, self-hosted)**: set `OTEL_EXPORTER_OTLP_ENDPOINT`. Logs and traces are sent to that endpoint.
 - If neither is set, the telemetry SDK is not started; `TelemetryLogger` still runs but logs are not exported.
 
