@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import { useStorageUpload } from "@/features/asset-storage/use-cases/upload-user-files/use-storage-upload.hook";
@@ -9,7 +9,6 @@ import {
   ClearFilesEvent,
   DownloadFileEvent,
 } from "survey-core";
-import { StorageHeaderNames } from "@/features/asset-storage/infrastructure/storage-utils";
 import { BlockBlobClient } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
 import { processUploadError } from "@/features/asset-storage/use-cases/upload";
@@ -127,7 +126,6 @@ describe("useStorageUpload", () => {
       const props = createHookProps();
       let result: ReturnType<typeof renderHook>["result"];
 
-      // eslint-disable-next-line testing-library/no-unnecessary-act
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(),
@@ -151,7 +149,6 @@ describe("useStorageUpload", () => {
       };
       let result: ReturnType<typeof renderHook>["result"];
 
-      // eslint-disable-next-line testing-library/no-unnecessary-act
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(),

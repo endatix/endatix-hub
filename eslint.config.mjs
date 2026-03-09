@@ -1,24 +1,13 @@
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+import prettierConfig from "eslint-config-prettier/flat";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FlatCompat } from "@eslint/eslintrc";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  // import.meta.dirname is available after Node.js v20.11.0
-  baseDirectory: __dirname,
-});
-
 const project = resolve(__dirname, "tsconfig.json");
-
-// Test file patterns
-const testFiles = [
-  "**/__tests__/**/*.[jt]s?(x)",
-  "**/?(*.)+(spec|test).[jt]s?(x)",
-];
 
 const tempRuleOverrides = {
   "no-console": "off",
@@ -33,28 +22,31 @@ const tempRuleOverrides = {
   "react-hooks/refs": "off",
 };
 
-/** @type {import('eslint').Linter.Config[]} */
-const eslintConfig = [
-  // 1. Base ignores (replaces .eslintignore)
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "**/node_modules/",
+    "**/public/",
+    "**/playwright/",
+    "**/dist/",
+    "**/coverage/",
+    "**/.coverage/",
+    "**/vendor/",
+    "**/docs/",
+    "**/examples/",
+    "**/package.json",
+    "**/tsconfig.json",
+  ]),
   {
-    ignores: [
-      "**/node_modules/",
-      "**/.next/",
-      "**/public/",
-      "**/playwright/",
-      "**/dist/",
-      "**/coverage/",
-      "**/.coverage/",
-      "**/vendor/",
-      "**/docs/",
-      "**/examples/",
-      "**/package.json",
-      "**/tsconfig.json",
-      "next-env.d.ts",
-    ],
+    settings: {
+      react: { version: "19" },
+    },
   },
-  ...nextCoreWebVitals,
-  ...nextTypescript, // 3. Global rules & overrides
   {
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
@@ -67,32 +59,17 @@ const eslintConfig = [
       "no-console": ["warn", { allow: ["warn", "error", "debug"] }],
       ...tempRuleOverrides,
     },
-  }, // 4. Testing Library rules for test files only
-  {
-    files: testFiles,
-    ...compat.config({
-      extends: ["plugin:testing-library/react"],
-    })[0],
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "testing-library/no-unnecessary-act": "off",
-    },
-  }, // 5. E2E specific overrides (preserving existing logic)
+  },
   {
     files: ["e2e/**/*.ts", "e2e/**/*.tsx"],
     languageOptions: {
-      parserOptions: {
-        project,
-      },
+      parserOptions: { project },
     },
     rules: {
-      "testing-library/prefer-screen-queries": "off",
       "@typescript-eslint/no-floating-promises": "error",
     },
   },
-  ...compat.config({
-    extends: ["prettier"],
-  }),
-];
+  prettierConfig,
+]);
 
 export default eslintConfig;
