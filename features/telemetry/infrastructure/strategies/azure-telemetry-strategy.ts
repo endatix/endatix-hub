@@ -1,59 +1,39 @@
-import { NodeSDK } from "@opentelemetry/sdk-node";
 import { Resource } from "@opentelemetry/resources";
-import {
-  AzureMonitorLogExporter,
-  AzureMonitorTraceExporter,
-} from "@azure/monitor-opentelemetry-exporter";
-import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-node";
-import { logs } from "@opentelemetry/api-logs";
-import {
-  LoggerProvider,
-  BatchLogRecordProcessor,
-} from "@opentelemetry/sdk-logs";
+import { useAzureMonitor } from "@azure/monitor-opentelemetry";
 import { TelemetryInitStrategy } from "./telemetry-init-strategy.interface";
-import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
+import { FilteringSpanProcessor } from "../filtering-span-processor";
 
 /**
- * Azure Application Insights telemetry initialization strategy
+ * Azure Application Insights telemetry strategy using the official distro.
+ * Uses useAzureMonitor() for automatic traces, metrics, logs, and exception collection.
+ * Registers a FilteringSpanProcessor to exclude noisy spans (Next.js static assets,
+ * RSC payloads, health checks, duplicate internal metric spans). See:
+ * https://learn.microsoft.com/en-us/azure/azure-monitor/app/opentelemetry-filter?tabs=nodejs
+ *
+ * Returns null because the distro manages SDK lifecycle and shutdown internally.
  */
 export class AzureTelemetryStrategy implements TelemetryInitStrategy {
   /**
-   * Initialize telemetry for Azure environment
-   * @param resource OpenTelemetry resource
-   * @returns The initialized SDK
+   * Initialize telemetry via the Azure Monitor OpenTelemetry distro
+   * @param resource OpenTelemetry resource (service name etc.)
+   * @returns null – distro manages lifecycle
    */
-  initialize(resource: Resource): NodeSDK {
-    const azureTelemetryOptions = {
-      connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
-    };
-
-    if (!azureTelemetryOptions.connectionString) {
+  initialize(resource: Resource): null {
+    const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
+    if (!connectionString) {
       throw new Error(
         "APPLICATIONINSIGHTS_CONNECTION_STRING is not configured",
       );
     }
 
-    const traceExporter = new AzureMonitorTraceExporter(azureTelemetryOptions);
-    const logExporter = new AzureMonitorLogExporter(azureTelemetryOptions);
-
-    const loggerProvider = new LoggerProvider({
-      processors: [new BatchLogRecordProcessor(logExporter)],
-    });
-
-    // Register logger provider as global
-    logs.setGlobalLoggerProvider(loggerProvider);
-
-    // Create the SDK
-    const sdk = new NodeSDK({
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useAzureMonitor({
+      azureMonitorExporterOptions: { connectionString },
       resource,
-      autoDetectResources: true,
-      traceExporter: traceExporter,
-      spanProcessor: new BatchSpanProcessor(traceExporter),
-      instrumentations: [new HttpInstrumentation(), new FetchInstrumentation()],
+      spanProcessors: [new FilteringSpanProcessor()],
     });
 
-    return sdk;
+    return null;
   }
 
   name: string = "Azure AppInsights";

@@ -12,13 +12,16 @@ import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-ho
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-node";
 
 /**
- * Local development telemetry initialization strategy via OpenTelemetry
+ * Local development telemetry initialization strategy via OpenTelemetry.
+ * Builds and returns a NodeSDK; TelemetryInitializer is responsible for
+ * calling sdk.start(), registering unhandled error handlers, and shutdown.
  */
 export class OtelTelemetryStrategy implements TelemetryInitStrategy {
   /**
-   * Initialize telemetry for local development
+   * Build and return the OpenTelemetry NodeSDK for local/OTLP.
+   * The initializer will start the SDK and register lifecycle handlers.
    * @param resource OpenTelemetry resource
-   * @returns The initialized SDK
+   * @returns The configured SDK (not started)
    */
   initialize(resource: Resource): NodeSDK {
     const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -53,7 +56,6 @@ export class OtelTelemetryStrategy implements TelemetryInitStrategy {
       autoDetectResources: true,
       spanProcessors: [spanProcessor],
       logRecordProcessors: [logProcessor],
-      traceExporter: traceExporter,
       contextManager: new AsyncLocalStorageContextManager(),
       sampler: new AlwaysOnSampler(),
       instrumentations: [new HttpInstrumentation(), new FetchInstrumentation()],
