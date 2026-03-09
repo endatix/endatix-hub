@@ -10,15 +10,14 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
       include: [
-        "features/**/*.ts",
         "app/**/*.{ts,tsx}",
         "components/**/*.tsx",
+        "extensions/**/*.ts",
+        "features/**/*.ts",
         "lib/**/*.{ts,tsx}",
-        "services/**/*.ts",
         "types/**/*.ts",
       ],
       exclude: [
-        "node_modules/",
         "**/*.d.ts",
         "**/index.ts",
         "**/server.ts",
