@@ -1,6 +1,7 @@
 "use server";
 
 import { authorization } from "@/features/auth";
+import { TelemetryLogger } from "@/features/telemetry";
 import { Result } from "@/lib/result";
 import { createFormTemplate, getActiveFormDefinition } from "@/services/api";
 
@@ -9,6 +10,8 @@ export type SaveAsTemplateRequest = {
   name: string;
   description?: string;
 };
+
+const LOGGER_NAME = "form-templates";
 
 export type SaveAsTemplateResult = Result<string>;
 
@@ -30,7 +33,6 @@ export async function saveAsTemplateAction(
     const templateResult = await createFormTemplate({
       name: request.name,
       description: request.description || "",
-      isEnabled: true,
       jsonData: formDefinition.jsonData,
     });
 
@@ -40,7 +42,12 @@ export async function saveAsTemplateAction(
       return Result.error(templateResult.error || "Failed to create template");
     }
   } catch (error) {
-    console.error("Failed to save form as template", error);
+    TelemetryLogger.error(
+      "Failed to save form as template",
+      error,
+      {},
+      LOGGER_NAME,
+    );
     return Result.error("Failed to save form as template");
   }
 }

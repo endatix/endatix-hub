@@ -52,18 +52,18 @@ export interface LogAttributes {
  * Converts an unknown value to a string suitable for an Error message.
  * Avoids "[object Object]" for plain objects by using JSON.stringify or .message when present.
  */
-function parseUnknownValue(value: unknown): string {
+export function parseErrorMessage(value: unknown): string {
   if (value === null) return "null";
   if (value === undefined) return "undefined";
   if (typeof value === "string") return value;
   if (value instanceof Error) return value.message;
   if (typeof value === "object" && value !== null) {
     const obj = value as Record<string, unknown>;
-    if (typeof obj.message === "string") return obj.message;
+    if ("message" in obj) return String(obj.message);
     try {
       return JSON.stringify(value);
     } catch {
-      return Object.prototype.toString.call(value);
+      return "[Circular]";
     }
   }
   return String(value);
@@ -174,7 +174,7 @@ export class TelemetryLogger {
 
     if (error) {
       const err =
-        error instanceof Error ? error : new Error(parseUnknownValue(error));
+        error instanceof Error ? error : new Error(parseErrorMessage(error));
       // OTEL semantic convention – Azure maps these to Failures; body includes context so it appears in exception view
       enhancedAttributes["exception.type"] = err.name;
       enhancedAttributes["exception.message"] = err.message;
@@ -209,7 +209,7 @@ export class TelemetryLogger {
 
     if (error) {
       const err =
-        error instanceof Error ? error : new Error(parseUnknownValue(error));
+        error instanceof Error ? error : new Error(parseErrorMessage(error));
       enhancedAttributes["exception.type"] = err.name;
       enhancedAttributes["exception.message"] = err.message;
       enhancedAttributes["exception.stacktrace"] = err.stack ?? "";
