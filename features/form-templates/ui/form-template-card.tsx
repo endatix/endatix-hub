@@ -32,13 +32,10 @@ const FormTemplateCard = ({
   className,
   ...props
 }: FormTemplateCardProps) => {
-  const getEnabledLabel = () => (template.isEnabled ? "Enabled" : "Disabled");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const handleUseTemplate = () => {
-    if (!template.isEnabled) return;
-
     startTransition(async () => {
       // this is not a hook, but an action, so adding this rule to avoid the false eslint error
       // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -65,62 +62,55 @@ const FormTemplateCard = ({
   return (
     <Card
       className={cn(
-        "flex flex-col gap-1 hover:bg-accent justify-between group py-0",
-        isSelected ? "bg-accent border-primary" : "",
+        "group flex flex-col justify-between gap-1 py-0 hover:bg-accent",
+        isSelected ? "border-primary bg-accent" : "",
         className,
       )}
       {...props}
     >
       <div className="cursor-pointer">
         <CardHeader className="flex flex-row justify-between p-4 pt-6">
-          <CardTitle className="text-2xl font-normal font-sans tracking-tigher">
+          <CardTitle className="tracking-tigher font-sans text-2xl font-normal">
             {template.name}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 p-4">
-          <div className="flex items-center">
-            <Badge
-              className="text-xs font-normal pointer-events-none ml-auto"
-              variant={template.isEnabled ? "default" : "secondary"}
-            >
-              {getEnabledLabel()}
-            </Badge>
-          </div>
+          
         </CardContent>
       </div>
       <CardFooter
-        className="pb-2 p-4 bg-muted mt-auto border-t rounded-b-lg cursor-default"
+        className="mt-auto cursor-default rounded-b-lg border-t bg-muted p-4 pb-2"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between w-full">
-          <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex w-full justify-between">
+          <div className="flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100">
             <Link
               href={`/forms/templates/${template.id}`}
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
+              className="inline-flex cursor-pointer items-center text-sm text-muted-foreground hover:text-foreground"
             >
-              <FilePen className="w-4 h-4 mr-1" />
+              <FilePen className="mr-1 h-4 w-4" />
               Design
             </Link>
             <button
               onClick={handlePreviewClick}
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer bg-transparent border-none p-0"
+              className="inline-flex cursor-pointer items-center border-none bg-transparent p-0 text-sm text-muted-foreground hover:text-foreground"
             >
-              <Eye className="w-4 h-4 mr-1" />
+              <Eye className="mr-1 h-4 w-4" />
               Preview
             </button>
             <button
               onClick={handleUseTemplate}
               disabled={!template.isEnabled || isPending}
               className={cn(
-                "text-sm text-muted-foreground inline-flex items-center hover:text-foreground cursor-pointer bg-transparent border-none p-0 whitespace-nowrap",
+                "inline-flex cursor-pointer items-center border-none bg-transparent p-0 text-sm whitespace-nowrap text-muted-foreground hover:text-foreground",
                 (!template.isEnabled || isPending) &&
-                  "opacity-50 cursor-not-allowed",
+                  "cursor-not-allowed opacity-50",
               )}
             >
               {isPending ? (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
               ) : (
-                <FilePlus2 className="w-4 h-4 mr-1" />
+                <FilePlus2 className="mr-1 h-4 w-4" />
               )}
               {isPending ? "Creating..." : "Use Template"}
             </button>
