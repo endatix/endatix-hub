@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormTemplate } from "@/types";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Eye, FilePen, FilePlus2, Loader2 } from "lucide-react";
 import React from "react";
