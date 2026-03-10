@@ -66,7 +66,14 @@ export function parseErrorMessage(value: unknown): string {
       return "[Circular]";
     }
   }
-  return String(value);
+
+  const shouldUseToString =
+    typeof value === "bigint" ||
+    typeof value === "symbol" ||
+    typeof value === "function";
+
+  // Use value.toString() for bigint, symbol, and function to avoid double-escaping
+  return shouldUseToString ? value.toString() : String(value);
 }
 
 /**
