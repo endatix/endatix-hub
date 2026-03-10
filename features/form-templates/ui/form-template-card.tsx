@@ -74,15 +74,13 @@ const FormTemplateCard = ({
             {template.name}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 p-4">
-          
-        </CardContent>
+        <CardContent className="grid gap-4 p-4"></CardContent>
       </div>
       <CardFooter
-        className="mt-auto cursor-default rounded-b-lg border-t bg-muted p-4 pb-2"
+        className="mt-auto flex cursor-default items-center rounded-b-lg border-t bg-muted p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex w-full justify-between">
+        <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100">
             <Link
               href={`/forms/templates/${template.id}`}
@@ -100,11 +98,10 @@ const FormTemplateCard = ({
             </button>
             <button
               onClick={handleUseTemplate}
-              disabled={!template.isEnabled || isPending}
+              disabled={isPending}
               className={cn(
                 "inline-flex cursor-pointer items-center border-none bg-transparent p-0 text-sm whitespace-nowrap text-muted-foreground hover:text-foreground",
-                (!template.isEnabled || isPending) &&
-                  "cursor-not-allowed opacity-50",
+                isPending && "cursor-not-allowed opacity-50",
               )}
             >
               {isPending ? (

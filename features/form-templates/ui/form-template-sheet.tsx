@@ -42,13 +42,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition, useRef } from "react";
-import { updateTemplateStatusAction } from "../application/update-template-status.action";
+import { useState, useTransition, useRef } from "react";
 import { useTemplateAction } from "../application/use-template.action";
 import { deleteTemplateAction } from "../application/delete-template.action";
 
-interface FormTemplateSheetProps
-  extends React.ComponentPropsWithoutRef<typeof Sheet> {
+interface FormTemplateSheetProps extends React.ComponentPropsWithoutRef<
+  typeof Sheet
+> {
   selectedTemplate: FormTemplate | null;
   enableEditing?: boolean;
   onPreviewClick?: (templateId: string) => void;
@@ -61,28 +61,17 @@ const FormTemplateSheet = ({
 }: FormTemplateSheetProps) => {
   const [pendingCreateForm, startCreateFormTransition] = useTransition();
   const [pending, startTransition] = useTransition();
-  const [isEnabled, setIsEnabled] = useState(
-    selectedTemplate?.isEnabled ?? false,
-  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formTemplateNameInput, setFormTemplateNameInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    if (selectedTemplate) {
-      setIsEnabled(selectedTemplate.isEnabled);
-    }
-  }, [selectedTemplate]);
-
   if (!selectedTemplate) {
     return null;
   }
 
   const handleUseTemplate = () => {
-    if (!selectedTemplate.isEnabled) return;
-
     startCreateFormTransition(async () => {
       // this is not a hook, but an action, so adding this rule to avoid the false eslint error
       // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -121,33 +110,6 @@ const FormTemplateSheet = ({
     });
   };
 
-  const enabledLabel = selectedTemplate?.isEnabled ? "Enabled" : "Disabled";
-
-  const toggleEnabled = async (enabled: boolean) => {
-    setIsEnabled(enabled);
-    startTransition(async () => {
-      const updateTemplateStatusResult = await updateTemplateStatusAction(
-        selectedTemplate.id,
-        enabled,
-      );
-      if (updateTemplateStatusResult === undefined) {
-        toast.error("Could not proceed with updating template status");
-        return;
-      }
-
-      if (Result.isError(updateTemplateStatusResult)) {
-        toast.error(
-          updateTemplateStatusResult.message ||
-            "Failed to update template status",
-        );
-        setIsEnabled(!enabled);
-        return;
-      }
-
-      toast.success(`Form template is now ${enabled ? "enabled" : "disabled"}`);
-    });
-  };
-
   const handleDialogOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
@@ -166,7 +128,6 @@ const FormTemplateSheet = ({
 
   const handleDelete = async () => {
     startTransition(async () => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
       const result = await deleteTemplateAction(selectedTemplate.id);
       if (result === undefined) {
         toast.error("Could not proceed with deleting template");
@@ -187,7 +148,6 @@ const FormTemplateSheet = ({
         ),
       });
       setIsDialogOpen(false);
-      props.onOpenChange?.(false);
     });
   };
 
@@ -206,7 +166,7 @@ const FormTemplateSheet = ({
             </SheetTitle>
             <SheetDescription>{selectedTemplate?.description}</SheetDescription>
           </SheetHeader>
-          <div className="my-8 flex space-x-2 justify-end">
+          <div className="my-8 flex justify-end space-x-2">
             <Button variant={"outline"} asChild>
               <Link href={`/forms/templates/${selectedTemplate.id}`}>
                 <FilePen className="mr-2 h-4 w-4" />
@@ -218,14 +178,14 @@ const FormTemplateSheet = ({
               Preview
             </Button>
             <Button
-              disabled={!selectedTemplate.isEnabled || pendingCreateForm}
+              disabled={pendingCreateForm}
               variant={"outline"}
               onClick={handleUseTemplate}
             >
               {pendingCreateForm ? (
-                <Spinner className="w-4 h-4 mr-1" />
+                <Spinner className="mr-1 h-4 w-4" />
               ) : (
-                <FilePlus2 className="w-4 h-4 mr-1" />
+                <FilePlus2 className="mr-1 h-4 w-4" />
               )}
               {pendingCreateForm ? "Creating..." : "Use Template"}
             </Button>
@@ -241,11 +201,12 @@ const FormTemplateSheet = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  className="text-destructive cursor-pointer"
+                  className="cursor-pointer text-destructive"
                   onClick={handleOpenDeleteDialog}
+                  disabled={pending}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {pending ? <Spinner className="h-4 w-4" /> : "Delete"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -256,7 +217,7 @@ const FormTemplateSheet = ({
             onOpenChange={handleDialogOpenChange}
           >
             <AlertDialogContent
-              onOpenAutoFocus={(e) => {
+              onOpenAutoFocus={(e: React.FocusEvent<HTMLDivElement>) => {
                 e.preventDefault();
                 inputRef.current?.focus();
               }}
@@ -266,8 +227,8 @@ const FormTemplateSheet = ({
                   Are you sure you want to delete form template{" "}
                   <strong>{selectedTemplate.name}</strong>?
                 </AlertDialogTitle>
-                <AlertDialogDescription className="space-y-4 mb-1">
-                  <span className="flex items-center gap-2 text-destructive font-medium">
+                <AlertDialogDescription className="mb-1 space-y-4">
+                  <span className="flex items-center gap-2 font-medium text-destructive">
                     <AlertTriangle className="h-4 w-4" />
                     This action will permanently delete the form template.
                   </span>
@@ -291,7 +252,7 @@ const FormTemplateSheet = ({
                       }
                     }
                   }}
-                  className="w-full mt-1"
+                  className="mt-1 w-full"
                 />
               </AlertDialogHeader>
 
@@ -309,25 +270,11 @@ const FormTemplateSheet = ({
           </AlertDialog>
 
           <div className="grid gap-2 py-4">
-            <div className="grid grid-cols-4 py-2 items-center gap-4">
-              <span className="text-right self-start">Created at</span>
-              <span className="text-sm text-muted-foreground col-span-3">
+            <div className="grid grid-cols-4 items-center gap-4 py-2">
+              <span className="self-start text-right">Created at</span>
+              <span className="col-span-3 text-sm text-muted-foreground">
                 {getFormattedDate(selectedTemplate.createdAt)}
               </span>
-            </div>
-
-            <div className="grid grid-cols-4 py-2 items-center gap-4">
-              <span className="text-right self-start">Status</span>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Switch
-                  id="form-template-status"
-                  checked={isEnabled}
-                  onCheckedChange={toggleEnabled}
-                  disabled={pending}
-                  aria-readonly
-                />
-                <Label htmlFor="form-template-status">{enabledLabel}</Label>
-              </div>
             </div>
           </div>
           <SheetFooter></SheetFooter>
