@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 
 interface UpdateFormThemeRequest {
   formId: string;
-  themeId: string;
+  themeId: string | null;
 }
 
 export interface UpdateFormThemeResult {

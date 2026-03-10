@@ -10,9 +10,9 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useTransition,
   useRef,
   useState,
+  useTransition,
 } from "react";
 import {
   Action,
@@ -29,6 +29,9 @@ import {
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import { ThemeTabPlugin } from "survey-creator-core";
 import { SurveyCreator } from "survey-creator-react";
+
+const DEFAULT_THEME_NAME = "default";
+const DEFAULT_THEME_ID = "0"; // Sentinel value for clearing/resetting theme
 
 interface SaveThemeData {
   save_as_new: boolean;
@@ -225,7 +228,7 @@ export const useThemeManagement = ({
 
       const survey = new SurveyModel(surveyDefinition);
       survey.isCompact = true;
-      const isDefaultTheme = templateName?.toLowerCase() === "default";
+      const isDefaultTheme = templateName?.toLowerCase() === DEFAULT_THEME_NAME;
       if (isDefaultTheme) {
         const description = survey.getQuestionByName(
           "description",
@@ -480,7 +483,7 @@ export const useThemeManagement = ({
         iconName: "icon-delete",
         showTitle: false,
         enabledIf: () => {
-          return creator?.theme?.themeName !== "default";
+          return creator?.theme?.themeName !== DEFAULT_THEME_NAME;
         },
       }),
     [deleteThemeHandler, creator],
@@ -512,7 +515,24 @@ export const useThemeManagement = ({
         theme: ITheme;
       },
     ) => {
-      const selectedThemeId = (options.theme as StoredTheme)?.id;
+      const selectedTheme = options.theme as StoredTheme;
+      const selectedThemeId = selectedTheme?.id;
+      const isDefaultTheme = selectedTheme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME;
+
+      if (isDefaultTheme) {
+        const wasDefaultTheme = currentThemeId === undefined;
+        setCurrentThemeId(undefined);
+        setIsCurrentThemeModified(false);
+
+        // Only notify parent if theme actually changed (not during initialization)
+        if (!wasDefaultTheme && originalThemeId !== undefined) {
+          queueMicrotask(() => {
+            onThemeIdChanged?.(DEFAULT_THEME_ID);
+          });
+        }
+        return;
+      }
+
       if (!selectedThemeId) {
         return;
       }
@@ -521,13 +541,20 @@ export const useThemeManagement = ({
       setIsCurrentThemeModified(themeModifiedTracker[selectedThemeId] ?? false);
 
       if (selectedThemeId !== originalThemeId) {
-        onThemeIdChanged?.(selectedThemeId);
+        queueMicrotask(() => {
+          onThemeIdChanged?.(selectedThemeId);
+        });
       }
     },
-    [themeModifiedTracker, originalThemeId, onThemeIdChanged],
+    [themeModifiedTracker, originalThemeId, onThemeIdChanged, currentThemeId],
   );
 
   const handleThemePropertyChanged = useCallback((sender: ThemeTabPlugin) => {
+    const isActualChange = sender.isModified !== false;
+    if (!isActualChange) {
+      return;
+    }
+
     const currentTheme = sender.getCurrentTheme() as StoredTheme;
     setThemeModifiedTracker((prev) => ({
       ...prev,
