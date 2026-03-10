@@ -1,16 +1,28 @@
 "use client";
 
 import { FormTemplate } from "@/types";
-import { useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import FormTemplateCard from "./form-template-card";
 import FormTemplateSheet from "./form-template-sheet";
 import { FormTemplatePreview } from "./form-template-preview";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight, FilePlus2, FileText } from "lucide-react";
+import Link from "next/link";
 
 type FormTemplatesListProps = {
-  templates: FormTemplate[];
+  templatesPromise: Promise<FormTemplate[]>;
 };
 
-const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
+const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
+  const templates = use(templatesPromise);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
   );
@@ -51,9 +63,13 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
     }
   };
 
+  if (templates.length === 0) {
+    return <NoFormTemplates />;
+  }
+
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {templates.map((template) => (
           <FormTemplateCard
             key={template.id}
@@ -81,6 +97,45 @@ const FormTemplatesList = ({ templates }: FormTemplatesListProps) => {
         />
       )}
     </>
+  );
+};
+
+const NoFormTemplates = () => {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <FileText />
+        </EmptyMedia>
+        <EmptyTitle>No form templates yet</EmptyTitle>
+        <EmptyDescription>
+          You haven&apos;t created any form templates yet. Get started by
+          creating your first template.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent className="flex flex-row justify-center gap-2">
+        <Button asChild>
+          <Link href="/forms/templates/create">
+            <FilePlus2 data-icon="inline-start" />
+            Create a Form Template
+          </Link>
+        </Button>
+      </EmptyContent>
+      <Button
+        variant="link"
+        asChild
+        className="text-muted-foreground"
+        size="sm"
+      >
+        <a
+          href="https://docs.endatix.com/docs/form-builder?utm_source=endatix-hub&utm_medium=product"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Learn more <ArrowUpRight data-icon="inline-end" />
+        </a>
+      </Button>
+    </Empty>
   );
 };
 

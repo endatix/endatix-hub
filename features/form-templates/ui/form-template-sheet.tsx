@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -28,7 +27,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
 import { FormTemplate } from "@/types";
@@ -46,10 +44,12 @@ import { useState, useTransition, useRef } from "react";
 import { useTemplateAction } from "../application/use-template.action";
 import { deleteTemplateAction } from "../application/delete-template.action";
 
-interface FormTemplateSheetProps extends React.ComponentPropsWithoutRef<
-  typeof Sheet
-> {
+interface FormTemplateSheetProps
+  extends Omit<React.ComponentProps<typeof Sheet>, "open" | "onOpenChange" | "modal"> {
   selectedTemplate: FormTemplate | null;
+  open?: boolean;
+  modal?: boolean;
+  onOpenChange?: (open: boolean) => void;
   enableEditing?: boolean;
   onPreviewClick?: (templateId: string) => void;
 }
@@ -217,7 +217,7 @@ const FormTemplateSheet = ({
             onOpenChange={handleDialogOpenChange}
           >
             <AlertDialogContent
-              onOpenAutoFocus={(e: React.FocusEvent<HTMLDivElement>) => {
+              onOpenAutoFocus={(e: Event) => {
                 e.preventDefault();
                 inputRef.current?.focus();
               }}
