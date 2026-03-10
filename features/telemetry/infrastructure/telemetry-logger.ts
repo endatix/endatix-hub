@@ -143,7 +143,7 @@ export class TelemetryLogger {
    */
   static error(
     message: string,
-    error?: Error,
+    error?: unknown,
     attributes?: LogAttributes,
     loggerName?: string,
   ): void {
@@ -152,12 +152,13 @@ export class TelemetryLogger {
     };
 
     if (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
       // OTEL semantic convention – Azure maps these to Failures; body includes context so it appears in exception view
-      enhancedAttributes["exception.type"] = error.name;
-      enhancedAttributes["exception.message"] = error.message;
-      enhancedAttributes["exception.stacktrace"] = error.stack ?? "";
+      enhancedAttributes["exception.type"] = err.name;
+      enhancedAttributes["exception.message"] = err.message;
+      enhancedAttributes["exception.stacktrace"] = err.stack ?? "";
       this.log(
-        `${message}: ${error.message}`,
+        `${message}: ${err.message}`,
         LogSeverity.Error,
         enhancedAttributes,
         loggerName,
@@ -176,7 +177,7 @@ export class TelemetryLogger {
    */
   static critical(
     message: string,
-    error?: Error,
+    error?: unknown,
     attributes?: LogAttributes,
     loggerName?: string,
   ): void {
@@ -185,11 +186,12 @@ export class TelemetryLogger {
     };
 
     if (error) {
-      enhancedAttributes["exception.type"] = error.name;
-      enhancedAttributes["exception.message"] = error.message;
-      enhancedAttributes["exception.stacktrace"] = error.stack ?? "";
+      const err = error instanceof Error ? error : new Error(String(error));
+      enhancedAttributes["exception.type"] = err.name;
+      enhancedAttributes["exception.message"] = err.message;
+      enhancedAttributes["exception.stacktrace"] = err.stack ?? "";
       this.log(
-        `${message}: ${error.message}`,
+        `${message}: ${err.message}`,
         LogSeverity.Critical,
         enhancedAttributes,
         loggerName,

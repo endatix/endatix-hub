@@ -92,6 +92,21 @@ describe("TelemetryLogger", () => {
     );
   });
 
+  it("error() with unknown (non-Error) normalizes to Error and sets exception attributes", () => {
+    TelemetryLogger.error("Request failed", "oops", {}, "api");
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severityText: LogSeverity.Error,
+        body: "Request failed: oops",
+        attributes: expect.objectContaining({
+          "exception.type": "Error",
+          "exception.message": "oops",
+        }),
+      }),
+    );
+  });
+
   it("critical() with Error sets exception attributes and combined body", () => {
     const err = new Error("fatal");
 
@@ -117,6 +132,21 @@ describe("TelemetryLogger", () => {
       expect.objectContaining({
         severityText: LogSeverity.Critical,
         body: "System down",
+      }),
+    );
+  });
+
+  it("critical() with unknown (non-Error) normalizes to Error and sets exception attributes", () => {
+    TelemetryLogger.critical("Crash", "timeout", {}, "core");
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severityText: LogSeverity.Critical,
+        body: "Crash: timeout",
+        attributes: expect.objectContaining({
+          "exception.type": "Error",
+          "exception.message": "timeout",
+        }),
       }),
     );
   });
