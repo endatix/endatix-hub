@@ -44,13 +44,13 @@ const azureMocks = vi.hoisted(() => {
 
 // 2. Mock module: inject hoisted mocks. Constructors use function (Vitest 4).
 vi.mock("@azure/storage-blob", () => ({
-  BlobServiceClient: vi.fn().mockImplementation(function (this: unknown) {
+  BlobServiceClient: vi.fn().mockImplementation(function () {
     return azureMocks.blobServiceClient;
   }),
-  ContainerClient: vi.fn().mockImplementation(function (this: unknown) {
+  ContainerClient: vi.fn().mockImplementation(function () {
     return azureMocks.containerClient;
   }),
-  BlockBlobClient: vi.fn().mockImplementation(function (this: unknown) {
+  BlockBlobClient: vi.fn().mockImplementation(function () {
     return azureMocks.blockBlobClient;
   }),
   StorageSharedKeyCredential: vi.fn().mockImplementation(function (

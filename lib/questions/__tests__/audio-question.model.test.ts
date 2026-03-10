@@ -88,7 +88,7 @@ describe("AudioQuestionModel", () => {
       },
     } as unknown as Navigator;
 
-    global.AudioContext = vi.fn(function (this: unknown) {
+    global.AudioContext = vi.fn(function () {
       return mockAudioContext;
     }) as unknown as typeof AudioContext;
     global.window = {

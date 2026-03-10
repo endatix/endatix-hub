@@ -173,7 +173,7 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(function (this: unknown) {
+    vi.mocked(EndatixApi).mockImplementation(function () {
       return mockApiInstance as unknown as EndatixApi;
     });
 
@@ -203,7 +203,7 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(function (this: unknown) {
+    vi.mocked(EndatixApi).mockImplementation(function () {
       return mockApiInstance as unknown as EndatixApi;
     });
 
@@ -226,7 +226,7 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(function (this: unknown) {
+    vi.mocked(EndatixApi).mockImplementation(function () {
       return mockApiInstance as unknown as EndatixApi;
     });
     const consoleErrorSpy = vi
@@ -256,7 +256,7 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(function (this: unknown) {
+    vi.mocked(EndatixApi).mockImplementation(function () {
       return mockApiInstance as unknown as EndatixApi;
     });
 

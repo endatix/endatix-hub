@@ -14,7 +14,7 @@ vi.mock("survey-core", () => ({
 }));
 
 vi.mock("survey-analytics", () => ({
-  VisualizationPanel: vi.fn().mockImplementation(function (this: unknown) {
+  VisualizationPanel: vi.fn().mockImplementation(function () {
     return {
       render: mockRender,
       clear: mockClear,

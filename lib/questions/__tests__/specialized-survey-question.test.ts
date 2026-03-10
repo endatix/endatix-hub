@@ -28,7 +28,7 @@ vi.mock("survey-core", async () => {
 
 // Mock SurveyCreator
 vi.mock("survey-creator-react", () => ({
-  SurveyCreator: vi.fn().mockImplementation(function (this: unknown) {
+  SurveyCreator: vi.fn().mockImplementation(function () {
     return {
       toolbox: {
         changeCategory: vi.fn(),

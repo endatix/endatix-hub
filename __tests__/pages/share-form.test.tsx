@@ -64,7 +64,7 @@ vi.mock(
 
 // Mock cookie store
 vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
-  FormTokenCookieStore: vi.fn().mockImplementation(function (this: unknown) {
+  FormTokenCookieStore: vi.fn().mockImplementation(function () {
     return {};
   }),
 }));

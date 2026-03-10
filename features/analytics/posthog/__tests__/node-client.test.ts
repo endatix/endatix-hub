@@ -29,7 +29,7 @@ describe("PostHog Server", () => {
   }));
 
   vi.mock("posthog-node", () => ({
-    PostHog: vi.fn().mockImplementation(function (this: unknown) {
+    PostHog: vi.fn().mockImplementation(function () {
       return {
         capture: vi.fn(),
         isFeatureEnabled: vi.fn(),

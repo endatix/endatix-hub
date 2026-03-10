@@ -14,13 +14,13 @@ import {
 } from "../infrastructure/strategies";
 
 vi.mock("../infrastructure/strategies", () => ({
-  AzureTelemetryStrategy: vi.fn().mockImplementation(function (this: unknown) {
+  AzureTelemetryStrategy: vi.fn().mockImplementation(function () {
     return {
       initialize: vi.fn(() => null),
       name: "Azure",
     };
   }),
-  OtelTelemetryStrategy: vi.fn().mockImplementation(function (this: unknown) {
+  OtelTelemetryStrategy: vi.fn().mockImplementation(function () {
     return {
       initialize: vi.fn(() => ({
         start: vi.fn(),
@@ -105,7 +105,7 @@ describe("TelemetryInitializer", () => {
       AzureTelemetryStrategy as unknown as {
         mockImplementation: (impl: () => unknown) => void;
       }
-    ).mockImplementation(function (this: unknown) {
+    ).mockImplementation(function () {
       return {
         initialize: () => {
           throw new Error("Init failed");

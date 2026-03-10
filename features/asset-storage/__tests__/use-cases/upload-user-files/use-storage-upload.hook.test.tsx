@@ -23,7 +23,7 @@ vi.mock("@azure/storage-blob", async () => {
   );
   return {
     ...actual,
-    BlockBlobClient: vi.fn().mockImplementation(function (this: unknown) {
+    BlockBlobClient: vi.fn().mockImplementation(function () {
       return { uploadData: vi.fn().mockResolvedValue(undefined) };
     }),
   };
@@ -240,7 +240,7 @@ describe("useStorageUpload", () => {
 
       // Mock BlockBlobClient
       const mockUploadData = vi.fn().mockResolvedValue(undefined);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function (this: unknown) {
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
         return { uploadData: mockUploadData };
       });
     });
@@ -1268,7 +1268,7 @@ describe("useStorageUpload", () => {
 
       const error = new Error("Upload failed");
       const mockUploadData = vi.fn().mockRejectedValue(error);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function (this: unknown) {
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
         return { uploadData: mockUploadData };
       });
 
@@ -1315,7 +1315,7 @@ describe("useStorageUpload", () => {
       });
 
       const mockUploadData = vi.fn().mockResolvedValue(undefined);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function (this: unknown) {
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
         return { uploadData: mockUploadData };
       });
 
@@ -1344,7 +1344,7 @@ describe("useStorageUpload", () => {
 
   describe("upload (SAS + resize) edge cases", () => {
     beforeEach(() => {
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function (this: unknown) {
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
         return { uploadData: vi.fn().mockResolvedValue(undefined) };
       });
     });

@@ -49,7 +49,7 @@ export function createEndatixApiMock(
     ...instanceOverrides,
   };
   return {
-    EndatixApi: vi.fn().mockImplementation(function (this: unknown) {
+    EndatixApi: vi.fn().mockImplementation(function () {
       return instance;
     }),
   };
