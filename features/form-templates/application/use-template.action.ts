@@ -25,7 +25,6 @@ export async function useTemplateAction(
 
     const newForm = await createForm({
       name: `Form from template: ${template.name}`,
-      isEnabled: true,
       formDefinitionJsonData: template.jsonData,
     });
 
