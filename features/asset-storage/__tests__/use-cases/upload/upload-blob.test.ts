@@ -16,9 +16,9 @@ vi.mock("@azure/storage-blob", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@azure/storage-blob")>();
   return {
     ...mod,
-    BlockBlobClient: vi.fn().mockImplementation(() => ({
-      uploadData: mockUploadData,
-    })),
+    BlockBlobClient: vi.fn().mockImplementation(function () {
+      return { uploadData: mockUploadData };
+    }),
   };
 });
 

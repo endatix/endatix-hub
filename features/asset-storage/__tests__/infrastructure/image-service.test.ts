@@ -13,7 +13,7 @@ describe("Image Service", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("IMAGE_SERVICE_CONFIG", () => {

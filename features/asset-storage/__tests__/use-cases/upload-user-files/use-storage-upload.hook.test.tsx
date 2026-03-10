@@ -23,7 +23,9 @@ vi.mock("@azure/storage-blob", async () => {
   );
   return {
     ...actual,
-    BlockBlobClient: vi.fn(),
+    BlockBlobClient: vi.fn().mockImplementation(function () {
+      return { uploadData: vi.fn().mockResolvedValue(undefined) };
+    }),
   };
 });
 
@@ -118,7 +120,7 @@ describe("useStorageUpload", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("hook initialization", () => {
@@ -238,9 +240,9 @@ describe("useStorageUpload", () => {
 
       // Mock BlockBlobClient
       const mockUploadData = vi.fn().mockResolvedValue(undefined);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        uploadData: mockUploadData,
-      }));
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
+        return { uploadData: mockUploadData };
+      });
     });
 
     it("should upload small image via resize then SAS (browser-to-storage)", async () => {
@@ -1266,9 +1268,9 @@ describe("useStorageUpload", () => {
 
       const error = new Error("Upload failed");
       const mockUploadData = vi.fn().mockRejectedValue(error);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        uploadData: mockUploadData,
-      }));
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
+        return { uploadData: mockUploadData };
+      });
 
       const { result } = renderHook(
         () =>
@@ -1313,9 +1315,9 @@ describe("useStorageUpload", () => {
       });
 
       const mockUploadData = vi.fn().mockResolvedValue(undefined);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        uploadData: mockUploadData,
-      }));
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
+        return { uploadData: mockUploadData };
+      });
 
       const { result } = renderHook(
         () =>
@@ -1342,9 +1344,9 @@ describe("useStorageUpload", () => {
 
   describe("upload (SAS + resize) edge cases", () => {
     beforeEach(() => {
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        uploadData: vi.fn().mockResolvedValue(undefined),
-      }));
+      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
+        return { uploadData: vi.fn().mockResolvedValue(undefined) };
+      });
     });
 
     it("should handle empty files array", async () => {

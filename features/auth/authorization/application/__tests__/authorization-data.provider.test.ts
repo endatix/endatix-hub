@@ -17,9 +17,10 @@ vi.mock("next/cache", () => ({
 
 // Partially mock EndatixApi - keep real implementations of isAuthError, ApiErrorType, etc.
 vi.mock("@/lib/endatix-api", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/endatix-api")>(
-    "@/lib/endatix-api",
-  );
+  const actual =
+    await vi.importActual<typeof import("@/lib/endatix-api")>(
+      "@/lib/endatix-api",
+    );
   return {
     ...actual,
     EndatixApi: vi.fn(),
@@ -142,9 +143,9 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(
-      () => mockApiInstance as unknown as EndatixApi,
-    );
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockApiInstance as unknown as EndatixApi;
+    });
 
     const getAuthData = getAuthDataForCurrentUser(mockSession);
     const result = await getAuthData();
@@ -172,9 +173,9 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(
-      () => mockApiInstance as unknown as EndatixApi,
-    );
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockApiInstance as unknown as EndatixApi;
+    });
 
     const getAuthData = getAuthDataForCurrentUser(mockSession);
     const result = await getAuthData();
@@ -202,9 +203,9 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(
-      () => mockApiInstance as unknown as EndatixApi,
-    );
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockApiInstance as unknown as EndatixApi;
+    });
 
     const getAuthData = getAuthDataForCurrentUser(mockSession);
     const result = await getAuthData();
@@ -225,9 +226,9 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(
-      () => mockApiInstance as unknown as EndatixApi,
-    );
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockApiInstance as unknown as EndatixApi;
+    });
     const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
@@ -255,9 +256,9 @@ describe("getAuthDataForCurrentUser", () => {
       },
     };
 
-    vi.mocked(EndatixApi).mockImplementation(
-      () => mockApiInstance as unknown as EndatixApi,
-    );
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockApiInstance as unknown as EndatixApi;
+    });
 
     const getAuthData = getAuthDataForCurrentUser(mockSession);
     await getAuthData();

@@ -13,9 +13,11 @@ vi.mock("@/features/auth/authorization", () => ({
   Permissions: { Tenant: { ViewUsers: "tenant.users.view" } },
 }));
 
-vi.mock("@/lib/endatix-api", () => ({
-  EndatixApi: vi.fn(),
-}));
+vi.mock("@/lib/endatix-api", async () => {
+  const { createEndatixApiMock } =
+    await import("@/__tests__/utils/mock-endatix-api");
+  return createEndatixApiMock();
+});
 
 vi.mock("@/features/organization/view-users/ui/users-table", () => ({
   UsersTable: ({
@@ -45,14 +47,6 @@ describe("Settings organization users page", () => {
       requireHubAccess: mockRequireHubAccess,
       requirePermission: mockRequirePermission,
     } as unknown as Awaited<ReturnType<typeof authFeature.authorization>>);
-    vi.mocked(EndatixApi).mockImplementation(
-      () =>
-        ({
-          users: {
-            list: vi.fn().mockResolvedValue({ success: true, data: [] }),
-          },
-        }) as unknown as EndatixApi,
-    );
   });
 
   it("calls auth and authorization", async () => {

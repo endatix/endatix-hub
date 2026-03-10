@@ -9,9 +9,9 @@ import {
 import { useContentUpload } from "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook";
 
 vi.mock("@azure/storage-blob", () => ({
-  BlockBlobClient: vi.fn().mockImplementation(() => ({
-    uploadData: vi.fn().mockResolvedValue(undefined),
-  })),
+  BlockBlobClient: vi.fn().mockImplementation(function () {
+    return { uploadData: vi.fn().mockResolvedValue(undefined) };
+  }),
 }));
 
 const mockStorageConfig = {

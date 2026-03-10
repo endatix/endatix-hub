@@ -44,7 +44,9 @@ vi.mock("@/lib/endatix-api", async () => {
 });
 
 vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
-  FormTokenCookieStore: vi.fn().mockImplementation(() => mockTokenStore),
+  FormTokenCookieStore: vi.fn().mockImplementation(function () {
+    return mockTokenStore;
+  }),
 }));
 
 vi.mock("next/headers", () => ({

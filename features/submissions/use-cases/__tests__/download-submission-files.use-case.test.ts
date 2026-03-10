@@ -40,7 +40,7 @@ describe("downloadSubmissionFilesUseCase", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("handles successful download", async () => {

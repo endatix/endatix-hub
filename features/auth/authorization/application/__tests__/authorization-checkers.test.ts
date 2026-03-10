@@ -18,7 +18,7 @@ const serverErrorResult = AuthorizationResult.error();
 
 describe("authorization-checkers", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   const baseAuthData = createTestAuthorizationData();
