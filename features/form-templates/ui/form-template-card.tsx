@@ -61,56 +61,60 @@ const FormTemplateCard = ({
   return (
     <Card
       className={cn(
-        "group flex flex-col justify-between gap-1 py-0 hover:bg-accent",
+        "group flex min-w-[280px] flex-col justify-between gap-1 py-0 hover:bg-accent",
         isSelected ? "border-primary bg-accent" : "",
         className,
       )}
       {...props}
     >
-      <div className="cursor-pointer">
+      <div className="min-w-0 cursor-pointer">
         <CardHeader className="flex flex-row justify-between p-4 pt-6">
-          <CardTitle className="tracking-tigher font-sans text-2xl font-normal">
+          <CardTitle className="tracking-tigher min-w-0 font-sans text-2xl font-normal">
             {template.name}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 p-4"></CardContent>
+        <CardContent className="grid gap-4 p-4">
+          <p className="text-sm text-muted-foreground truncate">
+            {template.description}
+          </p>
+        </CardContent>
       </div>
       <CardFooter
         className="mt-auto flex cursor-default items-center rounded-b-lg border-t bg-muted p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100">
-            <Link
-              href={`/forms/templates/${template.id}`}
-              className="inline-flex cursor-pointer items-center text-sm text-muted-foreground hover:text-foreground"
-            >
-              <FilePen className="mr-1 h-4 w-4" />
-              Design
-            </Link>
-            <button
-              onClick={handlePreviewClick}
-              className="inline-flex cursor-pointer items-center border-none bg-transparent p-0 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <Eye className="mr-1 h-4 w-4" />
-              Preview
-            </button>
-            <button
-              onClick={handleUseTemplate}
-              disabled={isPending}
-              className={cn(
-                "inline-flex cursor-pointer items-center border-none bg-transparent p-0 text-sm whitespace-nowrap text-muted-foreground hover:text-foreground",
-                isPending && "cursor-not-allowed opacity-50",
-              )}
-            >
-              {isPending ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : (
-                <FilePlus2 className="mr-1 h-4 w-4" />
-              )}
+        <div className="flex w-full items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+          <Link
+            href={`/forms/templates/${template.id}`}
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <FilePen className="size-4" />
+            Design
+          </Link>
+          <button
+            onClick={handlePreviewClick}
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Eye className="size-4" />
+            Preview
+          </button>
+          <button
+            onClick={handleUseTemplate}
+            disabled={isPending}
+            className={cn(
+              "inline-flex shrink-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-sm text-muted-foreground hover:text-foreground",
+              isPending && "cursor-not-allowed opacity-50",
+            )}
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FilePlus2 className="size-4" />
+            )}
+            <span className="whitespace-nowrap">
               {isPending ? "Creating..." : "Use Template"}
-            </button>
-          </div>
+            </span>
+          </button>
         </div>
       </CardFooter>
     </Card>
