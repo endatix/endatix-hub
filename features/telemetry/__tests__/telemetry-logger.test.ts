@@ -150,4 +150,17 @@ describe("TelemetryLogger", () => {
       }),
     );
   });
+
+  it("error() with plain object uses JSON stringification instead of [object Object]", () => {
+    TelemetryLogger.error("Failed", { code: 500, detail: "Server error" }, {});
+
+    expect(mockEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'Failed: {"code":500,"detail":"Server error"}',
+        attributes: expect.objectContaining({
+          "exception.message": '{"code":500,"detail":"Server error"}',
+        }),
+      }),
+    );
+  });
 });
