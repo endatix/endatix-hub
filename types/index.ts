@@ -32,7 +32,6 @@ export type FormTemplate = {
   id: string;
   name: string;
   description?: string;
-  isEnabled: boolean;
   createdAt: Date;
   modifiedAt?: Date;
   jsonData?: string;

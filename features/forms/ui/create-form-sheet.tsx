@@ -54,7 +54,7 @@ const CreateFormCard: FC<FormCreateSheetProps> = ({
     <Card
       onClick={disabled ? undefined : onClick}
       className={cn(
-        "hover:border-primary hover:bg-accent focus:outline focus:outline-2 focus:outline-primary-500 flex flex-col overflow-hidden",
+        "hover:border-primary hover:bg-accent focus:outline focus:outline-2 focus:outline-primary-500 flex flex-col overflow-hidden py-0",
         !disabled && "cursor-pointer",
         isSelected && "border-primary bg-accent",
         disabled &&

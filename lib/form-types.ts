@@ -3,7 +3,6 @@ import { z } from "zod";
 export const CreateFormRequestSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   description: z.string().optional(),
-  isEnabled: z.boolean(),
   formDefinitionJsonData: z.string(),
 });
 
@@ -17,7 +16,6 @@ export interface CreateFormResult {
 
 export interface CreateFormTemplateRequest {
   name: string;
-  isEnabled: boolean;
   jsonData: string;
   description?: string;
 }

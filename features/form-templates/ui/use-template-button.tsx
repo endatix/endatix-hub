@@ -25,7 +25,7 @@ export function UseTemplateButton({
   const router = useRouter();
 
   const handleUseTemplate = () => {
-    if (!template?.isEnabled) return;
+    if (!template) return;
 
     startCreateFormTransition(async () => {
       // this is not a hook, but an action, so adding this rule to avoid the false eslint error
@@ -46,7 +46,7 @@ export function UseTemplateButton({
   return (
     <Button
       className={className}
-      disabled={!template?.isEnabled || pendingCreateForm}
+      disabled={pendingCreateForm}
       variant={variant}
       onClick={handleUseTemplate}
     >

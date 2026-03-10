@@ -50,7 +50,6 @@ export interface FormTemplateEditorProps {
   templateJson: object | null;
   templateName: string;
   description?: string;
-  isEnabled: boolean;
   options?: ICreatorOptions;
   slkVal?: string;
 }
