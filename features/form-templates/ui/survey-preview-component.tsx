@@ -33,10 +33,9 @@ export default function SurveyPreviewComponent({
 
     try {
       initQuestionLoopsGlobals();
-      const survey = new Model();
+      const survey = new Model(template.jsonData);
       const unbindQuestionLoops = bindQuestionLoops(survey);
 
-      survey.JSON = template.jsonData;
       onModelCreated(survey);
 
       // Set survey to read-only mode

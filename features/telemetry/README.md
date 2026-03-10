@@ -70,8 +70,8 @@ try {
 TelemetryLogger.debug(message: string, attributes?: LogAttributes, loggerName?: string): void
 TelemetryLogger.info(message: string, attributes?: LogAttributes, loggerName?: string): void
 TelemetryLogger.warn(message: string, attributes?: LogAttributes, loggerName?: string): void
-TelemetryLogger.error(message: string, error?: Error, attributes?: LogAttributes, loggerName?: string): void
-TelemetryLogger.critical(message: string, error?: Error, attributes?: LogAttributes, loggerName?: string): void
+TelemetryLogger.error(message: string, error?: unknown, attributes?: LogAttributes, loggerName?: string): void
+TelemetryLogger.critical(message: string, error?: unknown, attributes?: LogAttributes, loggerName?: string): void
 ```
 
 `LogAttributes` is a record of string/number/boolean values. Avoid logging PII or secrets.

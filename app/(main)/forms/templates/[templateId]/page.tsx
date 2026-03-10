@@ -54,8 +54,7 @@ export default async function FormTemplateEditPage({ params }: Params) {
     templateId: template.id,
     templateJson,
     templateName: template.name,
-    description: template.description,
-    isEnabled: template.isEnabled,
+    description: template.description
   };
 
   return (

@@ -49,6 +49,34 @@ export interface LogAttributes {
 }
 
 /**
+ * Converts an unknown value to a string suitable for an Error message.
+ * Avoids "[object Object]" for plain objects by using JSON.stringify or .message when present.
+ */
+export function parseErrorMessage(value: unknown): string {
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.message;
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, unknown>;
+    if ("message" in obj) return String(obj.message);
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "[Circular]";
+    }
+  }
+
+  const shouldUseToString =
+    typeof value === "bigint" ||
+    typeof value === "symbol" ||
+    typeof value === "function";
+
+  // Use value.toString() for bigint, symbol, and function to avoid double-escaping
+  return shouldUseToString ? value.toString() : String(value);
+}
+
+/**
  * Provides utilities for logging with OpenTelemetry
  */
 export class TelemetryLogger {
@@ -143,7 +171,7 @@ export class TelemetryLogger {
    */
   static error(
     message: string,
-    error?: Error,
+    error?: unknown,
     attributes?: LogAttributes,
     loggerName?: string,
   ): void {
@@ -152,12 +180,14 @@ export class TelemetryLogger {
     };
 
     if (error) {
+      const err =
+        error instanceof Error ? error : new Error(parseErrorMessage(error));
       // OTEL semantic convention – Azure maps these to Failures; body includes context so it appears in exception view
-      enhancedAttributes["exception.type"] = error.name;
-      enhancedAttributes["exception.message"] = error.message;
-      enhancedAttributes["exception.stacktrace"] = error.stack ?? "";
+      enhancedAttributes["exception.type"] = err.name;
+      enhancedAttributes["exception.message"] = err.message;
+      enhancedAttributes["exception.stacktrace"] = err.stack ?? "";
       this.log(
-        `${message}: ${error.message}`,
+        `${message}: ${err.message}`,
         LogSeverity.Error,
         enhancedAttributes,
         loggerName,
@@ -176,7 +206,7 @@ export class TelemetryLogger {
    */
   static critical(
     message: string,
-    error?: Error,
+    error?: unknown,
     attributes?: LogAttributes,
     loggerName?: string,
   ): void {
@@ -185,11 +215,13 @@ export class TelemetryLogger {
     };
 
     if (error) {
-      enhancedAttributes["exception.type"] = error.name;
-      enhancedAttributes["exception.message"] = error.message;
-      enhancedAttributes["exception.stacktrace"] = error.stack ?? "";
+      const err =
+        error instanceof Error ? error : new Error(parseErrorMessage(error));
+      enhancedAttributes["exception.type"] = err.name;
+      enhancedAttributes["exception.message"] = err.message;
+      enhancedAttributes["exception.stacktrace"] = err.stack ?? "";
       this.log(
-        `${message}: ${error.message}`,
+        `${message}: ${err.message}`,
         LogSeverity.Critical,
         enhancedAttributes,
         loggerName,
