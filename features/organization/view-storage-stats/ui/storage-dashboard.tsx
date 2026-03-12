@@ -30,7 +30,7 @@ type StorageDashboardProps = {
 
 export function StorageDashboard({
   storageStatsPromise,
-}: StorageDashboardProps) {
+}: Readonly<StorageDashboardProps>) {
   const result = use(storageStatsPromise);
 
   if (!result.success) {

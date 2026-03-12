@@ -188,9 +188,7 @@ export class EndatixApi {
    * Lazy-loaded stats API - only creates instance when first accessed
    */
   get stats(): Stats {
-    if (!this._stats) {
-      this._stats = new Stats(this);
-    }
+    this._stats ??= new Stats(this);
     return this._stats;
   }
 

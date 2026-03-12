@@ -7,7 +7,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { parseNumber } from "@/lib/utils/type-parsers";
-import { Pie, PieChart } from "recharts";
+import { Pie, PieChart, PieLabelRenderProps } from "recharts";
 
 const chartConfig = {
   submissions: {
@@ -24,16 +24,37 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+type SubmissionDataPieChartProps = {
+  submissionCount: number;
+  versionCount: number;
+};
+
+function renderPieSegmentLabel(props: PieLabelRenderProps) {
+  const value = typeof props.value === "number" ? props.value : 0;
+  return (
+    <text
+      cx={props.cx}
+      cy={props.cy}
+      x={props.x}
+      y={props.y}
+      textAnchor={
+        props.textAnchor as "end" | "start" | "middle" | "inherit" | undefined
+      }
+      dominantBaseline={props.dominantBaseline}
+      fill="hsla(var(--foreground))"
+    >
+      {value.toLocaleString()}
+    </text>
+  );
+}
+
 /**
  * Pie Chart Component for Data Composition (Submissions vs Versions)
  */
 export function SubmissionDataPieChart({
   submissionCount,
   versionCount,
-}: {
-  submissionCount: number;
-  versionCount: number;
-}) {
+}: Readonly<SubmissionDataPieChartProps>) {
   const storageDistribution = [
     {
       type: "submissions",
@@ -64,21 +85,7 @@ export function SubmissionDataPieChart({
           innerRadius={60}
           strokeWidth={5}
           labelLine={false}
-          label={({ payload, ...props }) => {
-            return (
-              <text
-                cx={props.cx}
-                cy={props.cy}
-                x={props.x}
-                y={props.y}
-                textAnchor={props.textAnchor}
-                dominantBaseline={props.dominantBaseline}
-                fill="hsla(var(--foreground))"
-              >
-                {payload.value.toLocaleString()}
-              </text>
-            );
-          }}
+          label={(props) => renderPieSegmentLabel(props)}
         />
         <ChartLegend
           content={<ChartLegendContent nameKey="type" />}

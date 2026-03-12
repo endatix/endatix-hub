@@ -52,7 +52,7 @@ function parseNumber(value: string | number | undefined | null, defaultValue: nu
   }
 
   const parsed = Number(value);
-  return isNaN(parsed) ? defaultValue : parsed;
+  return Number.isNaN(parsed) ? defaultValue : parsed;
 }
 
 export { parseBoolean, tryParseJson, parseNumber };

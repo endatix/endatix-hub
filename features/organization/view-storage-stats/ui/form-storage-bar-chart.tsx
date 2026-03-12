@@ -10,14 +10,15 @@ import { parseNumber } from "@/lib/utils/type-parsers";
 import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
+type FormsStorageBarChartProps = {
+  formStats: FormStorageStats[];
+};
 /**
  * Bar Chart Component for Form Storage Distribution
  */
 export function FormsStorageBarChart({
   formStats,
-}: {
-  formStats: FormStorageStats[];
-}) {
+}: Readonly<FormsStorageBarChartProps>) {
   const topForms = formStats.slice(0, 10).map((f) => {
     const formName =
       f.formName.length > 20 ? f.formName.substring(0, 20) + "..." : f.formName;
