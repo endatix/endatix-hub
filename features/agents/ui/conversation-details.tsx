@@ -20,7 +20,8 @@ import {
   TokenUsage,
   TokenUsageSchema,
 } from "@/lib/endatix-api/types";
-import { formatNumber, getFormattedDate } from "@/lib/utils";
+import { getFormattedDate } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils/formatters";
 import {
   ArrowLeftIcon,
   ChevronLeft,

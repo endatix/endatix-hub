@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use } from "react";
 import {
   Card,
   CardContent,
@@ -17,209 +17,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { formatBytes, formatNumber } from "@/lib/utils";
+import { formatBytes, formatNumber } from "@/lib/utils/formatters";
 import { parseNumber } from "@/lib/utils/type-parsers";
-import {
-  StorageDashboard as StorageDashboardData,
-  FormStorageStats as FormStorageStatsDto,
-} from "@/lib/endatix-api/stats/types";
-import { ApiResult } from "@/lib/endatix-api";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  PieChart,
-  Pie,
-} from "recharts";
 import { Database, FileText, History, Layers, AlertCircle } from "lucide-react";
-
-type StorageStatsPromise = Promise<ApiResult<StorageDashboardData>>;
+import { SubmissionDataPieChart } from "./submission-data-pie-chart";
+import { StorageStatsPromise } from "../types";
+import { FormsStorageBarChart } from "./form-storage-bar-chart";
 
 type StorageDashboardProps = {
   storageStatsPromise: StorageStatsPromise;
 };
-
-/**
- * Bar Chart Component for Form Storage Distribution
- */
-function FormsStorageBarChart({
-  formStats,
-}: {
-  formStats: FormStorageStatsDto[];
-}) {
-  const topForms = formStats.slice(0, 10).map((f) => {
-    const formName =
-      f.formName.length > 20 ? f.formName.substring(0, 20) + "..." : f.formName;
-    const formId = f.formId.toString();
-    return {
-      name: formName,
-      fullName: f.formName,
-      formId: formId,
-      value: parseNumber(f.estimatedStorageBytes),
-      fill: `var(--color-${formId})`,
-    };
-  });
-
-  const barChartConfig = useMemo(() => {
-    let count = 0;
-    const config: ChartConfig = {};
-
-    topForms.forEach((form) => {
-      const colorCount = (count % 5) + 1;
-      const color = `var(--color-chart-${colorCount})`;
-      config[form.formId] = {
-        label: form.name.slice(0, 1).toUpperCase() + form.name.slice(1),
-        color: color
-      };
-      count++;
-    });
-    return config;
-  }, [topForms]);
-
-  return (
-    <ChartContainer config={barChartConfig} className="h-[350px] w-full">
-      <BarChart
-        accessibilityLayer
-        data={topForms}
-        layout="vertical"
-        margin={{
-          left: 0,
-          right: 24,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" vertical={true} />
-        <YAxis
-          dataKey="name"
-          type="category"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-          width={200}
-        />
-        <XAxis
-          dataKey="value"
-          type="number"
-          hide
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value: number) => formatBytes(value, 0)}
-        />
-        <ChartTooltip
-          content={
-            <ChartTooltipContent
-              formatter={(value) => [formatBytes(value as number), " Storage"]}
-              labelFormatter={(_, payload) =>
-                payload.at(0)?.payload?.fullName || "Form"
-              }
-            />
-          }
-        />
-        <Bar
-          dataKey="value"
-          name="name"
-          layout="vertical"
-          radius={4}
-          activeIndex={0}
-          label={{
-            position: "right",
-            formatter: (value: number) => formatBytes(value, 0),
-          }}
-        />
-      </BarChart>
-    </ChartContainer>
-  );
-}
-
-/**
- * Pie Chart Component for Data Composition (Submissions vs Versions)
- */
-function DataCompositionPieChart({
-  submissionCount,
-  versionCount,
-}: {
-  submissionCount: number;
-  versionCount: number;
-}) {
-  const storageDistribution = [
-    {
-      type: "submissions",
-      value: parseNumber(submissionCount),
-      fill: "var(--color-submissions)",
-    },
-    {
-      type: "versions",
-      value: parseNumber(versionCount),
-      fill: "var(--color-versions)",
-    },
-  ];
-
-  const chartConfig = {
-    submissions: {
-      label: "Submissions",
-      color: "var(--color-chart-1)",
-    },
-    versions: {
-      label: "Versions",
-      color: "var(--color-chart-2)",
-    },
-    storage: {
-      label: "Storage",
-      color: "var(--color-chart-2)",
-    },
-  } satisfies ChartConfig;
-
-  return (
-    <ChartContainer
-      config={chartConfig}
-      className="mx-auto aspect-square max-h-[420px] min-h-[280px] w-full max-w-full p-2"
-    >
-      <PieChart margin={{ top: 8, right: 56, bottom: 8, left: 56 }}>
-        <ChartTooltip
-          cursor={false}
-          content={<ChartTooltipContent hideIndicator={false} />}
-        />
-        <Pie
-          data={storageDistribution}
-          dataKey="value"
-          nameKey="type"
-          innerRadius={60}
-          strokeWidth={5}
-          labelLine={false}
-          label={({ payload, ...props }) => {
-            return (
-              <text
-                cx={props.cx}
-                cy={props.cy}
-                x={props.x}
-                y={props.y}
-                textAnchor={props.textAnchor}
-                dominantBaseline={props.dominantBaseline}
-                fill="hsla(var(--foreground))"
-              >
-                {payload.value.toLocaleString()}
-              </text>
-            );
-          }}
-        />
-        <ChartLegend
-          content={<ChartLegendContent nameKey="type" />}
-          className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
-        />
-      </PieChart>
-    </ChartContainer>
-  );
-}
 
 export function StorageDashboard({
   storageStatsPromise,
@@ -334,7 +141,7 @@ export function StorageDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <DataCompositionPieChart
+                <SubmissionDataPieChart
                   submissionCount={tenantStats.submissionCount}
                   versionCount={tenantStats.versionCount}
                 />
@@ -355,7 +162,9 @@ export function StorageDashboard({
                   <TableRow>
                     <TableHead>Form Name</TableHead>
                     <TableHead className="text-right">Submissions</TableHead>
-                    <TableHead className="text-right">Submission Versions</TableHead>
+                    <TableHead className="text-right">
+                      Submission Versions
+                    </TableHead>
                     <TableHead className="text-right">
                       Estimated Storage
                     </TableHead>

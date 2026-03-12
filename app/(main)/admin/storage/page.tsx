@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
 import { storageStatsFlag } from "@/lib/feature-flags/flags";
 import { notFound } from "next/navigation";
-import { StorageDashboard } from "./storage-dashboard";
+import { StorageDashboard } from "@/features/organization/view-storage-stats";
 import { Loader2 } from "lucide-react";
 import { auth } from "@/auth";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -27,7 +27,9 @@ export default async function StorageStatsPage() {
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Storage Statistics</h2>
+        <h2 className="text-3xl font-bold tracking-tight">
+          Storage Statistics
+        </h2>
       </div>
       <Suspense
         fallback={

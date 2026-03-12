@@ -1,5 +1,5 @@
 import { EndatixApi } from "../endatix-api";
-import type { StorageDashboard } from "./types";
+import type { StorageDashboardData } from "./types";
 
 export default class Stats {
   constructor(private readonly endatix: EndatixApi) {}
@@ -9,6 +9,6 @@ export default class Stats {
    * @returns The storage statistics for the current tenant
    */
   async getStorageStats() {
-    return this.endatix.get<StorageDashboard>("/admin/storage");
+    return this.endatix.get<StorageDashboardData>("/admin/storage");
   }
 }

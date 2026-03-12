@@ -20,7 +20,7 @@ export type TableStorageStats = {
   totalSizeBytes: number;
 };
 
-export type StorageDashboard = {
+export type StorageDashboardData = {
   tenantStats: TenantStorageStats;
   formStats: FormStorageStats[];
   tableStats: TableStorageStats[];
