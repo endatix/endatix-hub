@@ -37,11 +37,10 @@ export function FormsStorageBarChart({
     const config: ChartConfig = {};
 
     topForms.forEach((form) => {
-      const colorCount = (count % 5) + 1;
-      const color = `var(--color-chart-${colorCount})`;
+      const colorCount = ((count % 5) + 1) as 1 | 2 | 3 | 4 | 5;
       config[form.formId] = {
         label: form.name.slice(0, 1).toUpperCase() + form.name.slice(1),
-        color: color,
+        color: `var(--color-chart-${colorCount})`,
       };
       count++;
     });
