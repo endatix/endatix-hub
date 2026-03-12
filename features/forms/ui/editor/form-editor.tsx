@@ -13,7 +13,9 @@ import {
 } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
+import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import {
   JsonEditorState,
   useJsonEditor,
@@ -21,8 +23,10 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
-import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { CreateCustomQuestionRequest } from "@/services/api";
+import "ace-builds/src-noconflict/ace";
+import "ace-builds/src-noconflict/ext-searchbox";
+import "ace-builds/src-noconflict/theme-github_light_default";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Question } from "survey-core";
 import {
@@ -35,7 +39,6 @@ import {
 } from "survey-core";
 import "survey-core/i18n";
 import "survey-core/survey-core.css";
-import "survey-creator-core/survey-creator-core.css";
 import { BorderlessLightPanelless, DefaultLight } from "survey-core/themes";
 import {
   getLocaleStrings,
@@ -46,16 +49,13 @@ import {
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import "survey-creator-core/i18n";
+import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
 import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
-import "ace-builds/src-noconflict/ace";
-import "ace-builds/src-noconflict/ext-searchbox";
-import "ace-builds/src-noconflict/theme-github_light_default";
-import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -76,6 +76,9 @@ Serializer.addProperty("survey", {
 
 registerAudioQuestionUI();
 addRandomizeGroupFeature();
+
+const DEFAULT_THEME_NAME = "default";
+const DEFAULT_THEME_ID = "0"; // Sentinel value for clearing/resetting theme
 
 const translations = getLocaleStrings("en");
 
@@ -282,10 +285,15 @@ function FormEditor({
 
     isFormUpdated = true;
 
-    if (theme.id !== themeId) {
+    const newThemeId = theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
+      ? DEFAULT_THEME_ID
+      : (theme?.id ?? themeId);
+    const currentThemeId = themeId ?? DEFAULT_THEME_ID;
+
+    if (newThemeId !== currentThemeId) {
       const updateThemeResult = await updateFormThemeAction({
         formId,
-        themeId: theme.id,
+        themeId: newThemeId,
       });
 
       if (updateThemeResult === undefined) {
@@ -627,3 +635,4 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
+

@@ -6,6 +6,6 @@ export interface UpdateFormRequest {
   name?: string;
   isEnabled?: boolean;
   isPublic?: boolean;
-  themeId?: string;
+  themeId?: string | null;
   webHookSettingsJson?: string;
 }
