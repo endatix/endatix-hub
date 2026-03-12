@@ -13,6 +13,7 @@ import Auth from "./auth/auth";
 import { Conversations } from "./conversations/conversations";
 import Tenant from "./tenant/tenant";
 import Users from "./users/users";
+import Stats from "./stats/stats";
 
 /**
  * Gets the validated and cached API URL
@@ -59,6 +60,7 @@ export class EndatixApi {
   private _conversations?: Conversations;
   private _tenant?: Tenant;
   private _users?: Users;
+  private _stats?: Stats;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -180,6 +182,16 @@ export class EndatixApi {
       this._users = new Users(this);
     }
     return this._users;
+  }
+
+  /**
+   * Lazy-loaded stats API - only creates instance when first accessed
+   */
+  get stats(): Stats {
+    if (!this._stats) {
+      this._stats = new Stats(this);
+    }
+    return this._stats;
   }
 
   /**

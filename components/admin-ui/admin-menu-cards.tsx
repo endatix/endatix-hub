@@ -9,10 +9,29 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 
-export function AdminMenuCards() {
+export function AdminMenuCards({ showStorage }: { showStorage?: boolean }) {
   const router = useRouter();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
+      {showStorage && (
+        <Card
+          className="@container/card cursor-pointer"
+          onClick={() => router.push("/admin/storage")}
+        >
+          <CardHeader>
+            <CardDescription>Database Usage</CardDescription>
+            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              Storage
+            </CardTitle>
+          </CardHeader>
+          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+            <div className="line-clamp-1 flex gap-2 font-medium">
+              View database storage statistics and form distribution.
+            </div>
+            <div className="text-muted-foreground"></div>
+          </CardFooter>
+        </Card>
+      )}
       <Card
         className="@container/card cursor-pointer"
         onClick={() => router.push("/admin/agents")}

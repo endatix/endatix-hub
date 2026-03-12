@@ -21,9 +21,9 @@ export function generateRandomNumber(min: number, max: number): number {
   const array = new Uint32Array(1);
   globalThis.crypto.getRandomValues(array);
   const normalized = array[0] / (0xffffffff + 1);
-  
+
   return Math.floor(normalized * (max - min + 1)) + min;
-} 
+}
 
 /**
  * Delays execution for specified milliseconds. Used for testing purposes.
@@ -128,6 +128,24 @@ export function formatNumber(number: number, fallback: string = "-"): string {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(number);
+}
+
+/**
+ * Formats bytes into a human-readable string (B, KB, MB, GB, TB)
+ * @param bytes - The number of bytes to format
+ * @param decimals - The number of decimal places to include, defaults to 2
+ * @returns Formatted string of the bytes (e.g. 1.23 MB)
+ */
+export function formatBytes(bytes: number, decimals: number = 2): string {
+  if (!+bytes) return "0 B";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
 /**
