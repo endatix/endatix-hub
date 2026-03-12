@@ -253,7 +253,7 @@ function ChartTooltipContent({
                     )}
                     <div
                       className={cn(
-                        "flex flex-1 justify-between leading-none",
+                        "flex flex-1 justify-between gap-2 leading-none",
                         nestLabel ? "items-end" : "items-center",
                       )}
                     >
@@ -332,7 +332,9 @@ function ChartLegendContent({
               )}
               <span>
                 {itemConfig?.label ??
-                  (typeof item.value === "string" ? item.value : String(item.dataKey ?? ""))}
+                  (typeof item.value === "string"
+                    ? item.value
+                    : String(item.dataKey ?? ""))}
               </span>
             </div>
           );
