@@ -526,9 +526,9 @@ export const useThemeManagement = ({
 
         // Only notify parent if theme actually changed (not during initialization)
         if (!wasDefaultTheme && originalThemeId !== undefined) {
-          queueMicrotask(() => {
+          setTimeout(() => {
             onThemeIdChanged?.(DEFAULT_THEME_ID);
-          });
+          }, 0);
         }
         return;
       }
@@ -541,9 +541,9 @@ export const useThemeManagement = ({
       setIsCurrentThemeModified(themeModifiedTracker[selectedThemeId] ?? false);
 
       if (selectedThemeId !== originalThemeId) {
-        queueMicrotask(() => {
+        setTimeout(() => {
           onThemeIdChanged?.(selectedThemeId);
-        });
+        }, 0);
       }
     },
     [themeModifiedTracker, originalThemeId, onThemeIdChanged, currentThemeId],
