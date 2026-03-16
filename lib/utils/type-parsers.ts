@@ -36,4 +36,23 @@ function parseBoolean(value: string | undefined | null): boolean {
   return normalizedValue === "true" || normalizedValue === "1";
 }
 
-export { parseBoolean, tryParseJson };
+/**
+ * Parses a string or number into a number
+ * @param value - The value to parse
+ * @param defaultValue - The default value if parsing fails
+ * @returns The parsed number or defaultValue
+ */
+function parseNumber(value: string | number | undefined | null, defaultValue: number = 0): number {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? defaultValue : parsed;
+}
+
+export { parseBoolean, tryParseJson, parseNumber };

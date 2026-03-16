@@ -9,10 +9,33 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 
-export function AdminMenuCards() {
+type AdminMenuCardsProps = {
+  showStorage?: boolean;
+};
+
+export function AdminMenuCards({ showStorage }: Readonly<AdminMenuCardsProps>) {
   const router = useRouter();
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+      {showStorage && (
+        <Card
+          className="@container/card cursor-pointer"
+          onClick={() => router.push("/admin/storage")}
+        >
+          <CardHeader>
+            <CardDescription>Database Usage</CardDescription>
+            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              Storage
+            </CardTitle>
+          </CardHeader>
+          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+            <div className="line-clamp-1 flex gap-2 font-medium">
+              View database storage statistics and form distribution.
+            </div>
+            <div className="text-muted-foreground"></div>
+          </CardFooter>
+        </Card>
+      )}
       <Card
         className="@container/card cursor-pointer"
         onClick={() => router.push("/admin/agents")}
@@ -60,8 +83,7 @@ export function AdminMenuCards() {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Debug environment variables e.g. NODE_ENV,
-            etc.
+            Debug environment variables e.g. NODE_ENV, etc.
           </div>
           <div className="text-muted-foreground"></div>
         </CardFooter>
