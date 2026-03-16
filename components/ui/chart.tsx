@@ -40,26 +40,33 @@ function useChart() {
   return context;
 }
 
-interface ChartContainerProps
-  extends
-    Omit<React.ComponentProps<"div">, "children">,
-    Pick<
-      React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>,
-      | "initialDimension"
-      | "aspect"
-      | "debounce"
-      | "minHeight"
-      | "minWidth"
-      | "maxHeight"
-      | "height"
-      | "width"
-      | "onResize"
-      | "children"
-    > {
+interface ChartContainerProps extends Omit<React.ComponentProps<"div">, "children"> {
   config: ChartConfig;
   innerResponsiveContainerStyle?: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >["style"];
+  initialDimension?: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["initialDimension"];
+  aspect?: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["aspect"];
+  debounce?: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["debounce"];
+  minHeight?: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["minHeight"];
+  minWidth?: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["minWidth"];
+  maxHeight?: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["maxHeight"];
+  height?: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["height"];
+  width?: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["width"];
+  onResize?: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["onResize"];
+  children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"];
 }
 
 function ChartContainer({
@@ -68,7 +75,16 @@ function ChartContainer({
   initialDimension = { width: 320, height: 200 },
   className,
   children,
-  ...props
+  aspect,
+  debounce,
+  minHeight,
+  minWidth,
+  maxHeight,
+  height,
+  width,
+  onResize,
+  innerResponsiveContainerStyle,
+  ...divProps
 }: Readonly<ChartContainerProps>) {
   const uniqueId = React.useId();
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`;
@@ -82,11 +98,20 @@ function ChartContainer({
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
           className,
         )}
-        {...props}
+        {...divProps}
       >
         <ChartStyle id={chartId} config={config} />
         <RechartsPrimitive.ResponsiveContainer
           initialDimension={initialDimension}
+          aspect={aspect}
+          debounce={debounce}
+          minHeight={minHeight}
+          minWidth={minWidth}
+          maxHeight={maxHeight}
+          height={height}
+          width={width}
+          onResize={onResize}
+          style={innerResponsiveContainerStyle}
         >
           {children}
         </RechartsPrimitive.ResponsiveContainer>

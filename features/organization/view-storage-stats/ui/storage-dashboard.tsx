@@ -121,8 +121,8 @@ export function StorageDashboard({
           <TabsTrigger value="tables">Tables Storage (DB)</TabsTrigger>
         </TabsList>
         <TabsContent value="forms" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+            <Card className="lg:col-span-4">
               <CardHeader>
                 <CardTitle>Top 10 Forms by Storage</CardTitle>
                 <CardDescription>
@@ -133,7 +133,7 @@ export function StorageDashboard({
                 <FormsStorageBarChart formStats={formStats} />
               </CardContent>
             </Card>
-            <Card className="col-span-3">
+            <Card className="lg:col-span-3">
               <CardHeader>
                 <CardTitle>Data Composition</CardTitle>
                 <CardDescription>

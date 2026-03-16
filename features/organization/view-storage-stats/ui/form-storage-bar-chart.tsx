@@ -48,7 +48,9 @@ export function FormsStorageBarChart({
   }, [topForms]);
 
   return (
-    <ChartContainer config={barChartConfig} className="h-[350px] w-full">
+    <ChartContainer config={barChartConfig}
+      className="h-[350px] w-full"
+    >
       <BarChart
         accessibilityLayer
         data={topForms}
@@ -79,8 +81,11 @@ export function FormsStorageBarChart({
         <ChartTooltip
           content={
             <ChartTooltipContent
-              formatter={(value) => [formatBytes(value as number), " Storage"]}
-              labelFormatter={(_, payload) =>
+              formatter={(value: any) => [
+                formatBytes(value as number),
+                " Storage",
+              ]}
+              labelFormatter={(_: any, payload: any) =>
                 payload.at(0)?.payload?.fullName || "Form"
               }
             />
@@ -89,12 +94,10 @@ export function FormsStorageBarChart({
         <Bar
           dataKey="value"
           name="name"
-          layout="vertical"
           radius={4}
-          activeIndex={0}
           label={{
             position: "right",
-            formatter: (value: number) => formatBytes(value, 0),
+            formatter: (value: any) => formatBytes(value, 0),
           }}
         />
       </BarChart>
