@@ -63,7 +63,7 @@ function FormDesignerContent({
   });
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <FormEditorHeader
         {...headerState}
         isCurrentThemeModified={isCurrentThemeModified}
@@ -77,6 +77,7 @@ function FormDesignerContent({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
+          isPublic={isPublic}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
@@ -88,6 +89,7 @@ function FormDesignerContent({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
+          isPublic={isPublic}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />

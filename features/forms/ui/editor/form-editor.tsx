@@ -21,7 +21,11 @@ import {
   useJsonEditor,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
-import { useSurveyAssessment } from "@/lib/survey-features/survey-assessment";
+import {
+  FORM_ASSESSMENT_PLUGIN_NAME,
+  FormAssessmentPlugin,
+  useFormAssessment,
+} from "@/lib/survey-features/form-assessment";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { CreateCustomQuestionRequest } from "@/services/api";
@@ -107,6 +111,7 @@ interface FormEditorProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
+  isPublic?: boolean;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
@@ -140,6 +145,7 @@ function FormEditor({
   options,
   slkVal,
   themeId,
+  isPublic,
   initialPropertyGridVisible = true,
   onThemeModificationChange,
   onSaveHandlerReady,
@@ -193,9 +199,9 @@ function FormEditor({
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
   const {
-    initGlobals: initSurveyAssessmentGlobals,
-    bindToCreator: bindSurveyAssessment,
-  } = useSurveyAssessment();
+    initGlobals: initFormAssessmentGlobals,
+    bindToCreator: bindFormAssessment,
+  } = useFormAssessment();
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -290,9 +296,10 @@ function FormEditor({
 
     isFormUpdated = true;
 
-    const newThemeId = theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
-      ? DEFAULT_THEME_ID
-      : (theme?.id ?? themeId);
+    const newThemeId =
+      theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
+        ? DEFAULT_THEME_ID
+        : (theme?.id ?? themeId);
     const currentThemeId = themeId ?? DEFAULT_THEME_ID;
 
     if (newThemeId !== currentThemeId) {
@@ -493,11 +500,11 @@ function FormEditor({
           showSidebar: initialPropertyGridVisible,
         };
         initQuestionLoopsGlobals();
-        initSurveyAssessmentGlobals();
+        initFormAssessmentGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
-        const cleanupSurveyAssessment = bindSurveyAssessment(newCreator);
+        const cleanupFormAssessment = bindFormAssessment(newCreator);
 
         onCreatorCreated(newCreator);
 
@@ -536,7 +543,7 @@ function FormEditor({
 
         return () => {
           cleanupQuestionLoops?.();
-          cleanupSurveyAssessment?.();
+          cleanupFormAssessment?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
@@ -574,6 +581,19 @@ function FormEditor({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!creator) return;
+    const tab = creator.tabs?.find(
+      (t: { id?: string; name?: string }) =>
+        t.id === FORM_ASSESSMENT_PLUGIN_NAME ||
+        t.name === FORM_ASSESSMENT_PLUGIN_NAME,
+    );
+    const plugin = tab?.plugin;
+    if (plugin instanceof FormAssessmentPlugin) {
+      plugin.isPublic = isPublic;
+    }
+  }, [creator, isPublic]);
 
   useEffect(() => {
     if (!creator) return;
@@ -643,4 +663,3 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
-

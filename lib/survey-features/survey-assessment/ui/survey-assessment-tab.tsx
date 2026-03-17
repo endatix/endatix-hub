@@ -89,7 +89,7 @@ export const SurveyAssessmentView = ({
     if (stats.maxDropdownChoicesCount > 200) {
       list.push({
         title: "Large Dropdown Choices",
-        description: `A dropdown has ${stats.maxDropdownChoicesCount} choices. Consider using a searchable dropdown or a different input type.`,
+        description: `A dropdown has ${formatNumber(stats.maxDropdownChoicesCount)} choices. Consider using a searchable dropdown or a different input type.`,
         severity: "info",
       });
     }
@@ -325,3 +325,7 @@ export function registerSurveyAssessmentTab() {
   isRegistered = true;
   console.debug("[SurveyAssessmentTab] Registered svc-tab-assessment");
 }
+function formatNumber(maxDropdownChoicesCount: any) {
+  throw new Error("Function not implemented.");
+}
+

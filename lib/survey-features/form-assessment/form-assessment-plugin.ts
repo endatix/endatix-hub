@@ -1,31 +1,36 @@
 import { Base, SvgRegistry } from "survey-core";
-import { ICreatorPlugin, SurveyCreatorModel, SurveyLogic } from "survey-creator-core";
-import { analyzeSurvey, SurveyStats } from "./survey-assessment-logic";
+import {
+  ICreatorPlugin,
+  SurveyCreatorModel,
+  SurveyLogic,
+} from "survey-creator-core";
+import {
+  analyzeSurvey,
+  analyzeSurveyModel,
+  FormAssessmentStats,
+} from "./form-assessment-logic";
 
-export const ASSESSMENT_PLUGIN_NAME = "assessment";
+export const FORM_ASSESSMENT_PLUGIN_NAME = "form-assessment";
 
 /**
- * Survey Creator plugin for the Survey Assessment feature.
+ * Survey Creator plugin for the Form Assessment feature.
  * Extends Base to provide reactive properties directly.
  */
-export class SurveyAssessmentPlugin extends Base implements ICreatorPlugin {
+export class FormAssessmentPlugin extends Base implements ICreatorPlugin {
   constructor(private creator: SurveyCreatorModel) {
     super();
     this.updateStats();
   }
 
-  /**
-   * The model for the tab component. In this case, the plugin itself.
-   */
-  public get model(): SurveyAssessmentPlugin {
+  public get model(): FormAssessmentPlugin {
     return this;
   }
 
-  public get stats(): SurveyStats {
+  public get stats(): FormAssessmentStats {
     return this.getPropertyValue("stats");
   }
 
-  public set stats(val: SurveyStats) {
+  public set stats(val: FormAssessmentStats) {
     this.setPropertyValue("stats", val);
   }
 
@@ -37,6 +42,15 @@ export class SurveyAssessmentPlugin extends Base implements ICreatorPlugin {
     this.setPropertyValue("requiresReCaptcha", val);
   }
 
+  /** Whether the form is public (anyone with link) or private (authenticated only). Set by the form editor when form context is available. */
+  public get isPublic(): boolean | undefined {
+    return this.getPropertyValue("isPublic");
+  }
+
+  public set isPublic(val: boolean | undefined) {
+    this.setPropertyValue("isPublic", val);
+  }
+
   public updateStats() {
     if (!this.creator) return;
 
@@ -44,10 +58,12 @@ export class SurveyAssessmentPlugin extends Base implements ICreatorPlugin {
 
     const survey = this.creator.survey;
     if (survey) {
+      const modelStats = analyzeSurveyModel(survey);
       const logic = new SurveyLogic(survey, this.creator);
       logic.update();
       this.stats = {
         ...baseStats,
+        ...modelStats,
         logicConditionsCount: logic.items.length + logic.invisibleItems.length,
         invisibleLogicItemsCount: logic.invisibleItems.length,
       };
@@ -60,23 +76,15 @@ export class SurveyAssessmentPlugin extends Base implements ICreatorPlugin {
       (this.creator.survey as any)?.requiresReCaptcha === true;
   }
 
-  /**
-   * Called when the tab is activated.
-   */
   public activate() {
     this.updateStats();
   }
 
-  /**
-   * Called when the tab is deactivated.
-   * @returns true to allow deactivation.
-   */
   public deactivate(): boolean {
     return true;
   }
 }
 
-// Register Icon for the tab
 const assessmentIcon =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>';
-SvgRegistry.registerIcon("icon-tab-assessment", assessmentIcon);
+SvgRegistry.registerIcon("icon-tab-form-assessment", assessmentIcon);
