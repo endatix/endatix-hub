@@ -90,8 +90,8 @@ const DeleteFormDialog = ({
           <AlertDialogTitle>
             Are you sure you want to delete form <strong>{formName}</strong>?
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4 mb-1">
-            <span className="flex items-center gap-2 text-destructive font-medium">
+          <AlertDialogDescription className="mb-1 space-y-4">
+            <span className="flex items-center gap-2 font-medium text-destructive">
               <AlertTriangle className="h-4 w-4" />
               This action will permanently delete the form, all its definitions
               and submissions, and cannot be undone.
@@ -109,7 +109,7 @@ const DeleteFormDialog = ({
             placeholder={`Type "${formName}"`}
             value={formNameInput}
             onChange={(e) => setFormNameInput(e.target.value)}
-            className="w-full mt-1"
+            className="mt-1 w-full"
           />
         </AlertDialogHeader>
 
@@ -267,7 +267,7 @@ const FormDetails = ({
 
   return (
     <div>
-      <div className="flex flex-wrap justify-between items-start gap-4 mb-8">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         {/* Header - conditionally rendered for flexibility */}
         {showHeader && (
           <div>
@@ -279,7 +279,7 @@ const FormDetails = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex space-x-2 justify-end ml-auto">
+        <div className="ml-auto flex justify-end space-x-2">
           <Button variant={"outline"} asChild>
             <Link href={{ pathname: `/forms/${form.id}/design` }}>
               <FilePen className="mr-2 h-4 w-4" />
@@ -299,7 +299,7 @@ const FormDetails = ({
                 pathname: `/forms/${form.id}/submissions`,
               }}
             >
-              <List className="w-4 h-4 mr-1" />
+              <List className="mr-1 h-4 w-4" />
               Submissions
             </Link>
           </Button>
@@ -327,7 +327,7 @@ const FormDetails = ({
                 Save as Template
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-destructive cursor-pointer"
+                className="cursor-pointer text-destructive"
                 onClick={handleOpenDeleteDialog}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -339,25 +339,25 @@ const FormDetails = ({
       </div>
 
       {/* Form Details */}
-      <div className="max-w-2xl mx-auto">
+      <div className="mx-auto max-w-2xl">
         <SectionTitle title="Form details" headingClassName="text-xl mt-4" />
       </div>
-      <div className="grid gap-2 py-4 max-w-2xl mx-auto">
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Created at</span>
-          <span className="text-sm text-muted-foreground col-span-3">
+      <div className="mx-auto grid max-w-2xl gap-2 py-4">
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Created at</span>
+          <span className="col-span-3 text-sm text-muted-foreground">
             {getFormattedDate(form.createdAt)}
           </span>
         </div>
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Modified on</span>
-          <span className="text-sm text-muted-foreground col-span-3">
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Modified on</span>
+          <span className="col-span-3 text-sm text-muted-foreground">
             {getFormattedDate(form.modifiedAt)}
           </span>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Status</span>
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Status</span>
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
               <>
@@ -378,8 +378,8 @@ const FormDetails = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Visibility</span>
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Visibility</span>
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
               <>
@@ -390,7 +390,10 @@ const FormDetails = ({
                   disabled={pending}
                   aria-readonly
                 />
-                <Label htmlFor="form-visibility" className="flex items-center gap-1">
+                <Label
+                  htmlFor="form-visibility"
+                  className="flex items-center gap-1"
+                >
                   {isPublic ? (
                     <Globe className="h-3 w-3" />
                   ) : (
@@ -400,7 +403,10 @@ const FormDetails = ({
                 </Label>
               </>
             ) : (
-              <Badge variant={isPublic ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+              <Badge
+                variant={isPublic ? "default" : "secondary"}
+                className="flex w-fit items-center gap-1"
+              >
                 {isPublic ? (
                   <Globe className="h-3 w-3" />
                 ) : (
@@ -412,9 +418,9 @@ const FormDetails = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="col-span-1 text-right self-start">Submissions</span>
-          <div className="text-sm text-muted-foreground col-span-3">
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="col-span-1 self-start text-right">Submissions</span>
+          <div className="col-span-3 text-sm text-muted-foreground">
             {getSubmissionsLabel()}
           </div>
         </div>

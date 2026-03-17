@@ -21,6 +21,7 @@ import {
   useJsonEditor,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
+import { useSurveyAssessment } from "@/lib/survey-features/survey-assessment";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { CreateCustomQuestionRequest } from "@/services/api";
@@ -191,6 +192,10 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
+  const {
+    initGlobals: initSurveyAssessmentGlobals,
+    bindToCreator: bindSurveyAssessment,
+  } = useSurveyAssessment();
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -488,9 +493,11 @@ function FormEditor({
           showSidebar: initialPropertyGridVisible,
         };
         initQuestionLoopsGlobals();
+        initSurveyAssessmentGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(endatixTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
+        const cleanupSurveyAssessment = bindSurveyAssessment(newCreator);
 
         onCreatorCreated(newCreator);
 
@@ -529,6 +536,7 @@ function FormEditor({
 
         return () => {
           cleanupQuestionLoops?.();
+          cleanupSurveyAssessment?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
