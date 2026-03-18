@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -25,15 +25,10 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ReactElementFactory } from "survey-react-ui";
-import { SurveyAssessmentPlugin } from "../survey-assessment-plugin";
-import { useBase } from "@/lib/survey-extensions/ui/use-base";
-
-export function useSurveyAssessmentStats(model: SurveyAssessmentPlugin) {
-  return useBase(model);
-}
+import { FormAssessmentPlugin } from "../../form-assessment";
 
 interface SurveyAssessmentViewProps {
-  model: SurveyAssessmentPlugin;
+  model: FormAssessmentPlugin;
 }
 
 function formatSize(bytes: number): string {
@@ -44,10 +39,9 @@ function formatSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-export const SurveyAssessmentView = ({
+export const FormAssessmentView = ({
   model,
 }: Readonly<SurveyAssessmentViewProps>) => {
-  // const assessment = model; //useSurveyAssessmentStats(model);
   const stats = model?.stats;
 
   const issues = useMemo(() => {
@@ -200,7 +194,7 @@ export const SurveyAssessmentView = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <EyeOff className="h-3 w-3" /> Hidden (invisible)
               </span>
@@ -283,12 +277,12 @@ export const SurveyAssessmentView = ({
   );
 };
 
-export function SurveyAssessmentTab(props: any) {
+export function FormAssessmentTab(props: any) {
   // SurveyJS might pass the plugin as 'plugin' or 'data'.
   // Since we pass 'plugin' as the 'data' prop in addTab, we should find our model there.
   const data = props.data;
 
-  console.debug("[SurveyAssessmentTab] Rendered with props:", {
+  console.debug("[FormAssessmentTab] Rendered with props:", {
     hasData: !!data,
     dataType: typeof data,
     hasStats: !!data?.stats,
@@ -297,7 +291,7 @@ export function SurveyAssessmentTab(props: any) {
 
   // Check if data is our SurveyAssessmentPlugin instance
   const model =
-    data instanceof SurveyAssessmentPlugin ? data : data?.model || data;
+    data instanceof FormAssessmentPlugin ? data : data?.model || data;
 
   if (!model || !model.stats) {
     return (
@@ -309,23 +303,22 @@ export function SurveyAssessmentTab(props: any) {
     );
   }
 
-  return <SurveyAssessmentView model={model} />;
+  return <FormAssessmentView model={model} />;
 }
 
 let isRegistered = false;
-export function registerSurveyAssessmentTab() {
+export function registerFormAssessmentTab() {
   if (isRegistered) return;
 
   ReactElementFactory.Instance.registerElement(
     "svc-tab-assessment",
     (props: any) => {
-      return <SurveyAssessmentTab {...props} />;
+      return <FormAssessmentTab {...props} />;
     },
   );
   isRegistered = true;
-  console.debug("[SurveyAssessmentTab] Registered svc-tab-assessment");
+  console.debug("[FormAssessmentTab] Registered svc-tab-assessment");
 }
 function formatNumber(maxDropdownChoicesCount: any) {
   throw new Error("Function not implemented.");
 }
-
