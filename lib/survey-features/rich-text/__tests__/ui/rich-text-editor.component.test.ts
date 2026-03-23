@@ -17,7 +17,7 @@ describe("normalizeAndSanitize - Security", () => {
     expect(result).toBe("");
   });
 
-  it("should return empty string for whitespace-only string", () => {
+  it("should return trimmed empty string for whitespace-only string", () => {
     // Arrange
     const value = "   ";
 
@@ -25,7 +25,7 @@ describe("normalizeAndSanitize - Security", () => {
     const result = normalizeAndSanitize(value);
 
     // Assert
-    expect(result).toBe("   ");
+    expect(result).toBe("");
   });
 
   it("should return sanitized HTML for safe content", () => {
