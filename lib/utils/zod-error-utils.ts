@@ -1,4 +1,4 @@
-import { z, ZodError } from "zod";
+import { ZodError } from "zod";
 
 // Utility to deeply map properties to string arrays
 export type DeepFieldErrors<T> = {

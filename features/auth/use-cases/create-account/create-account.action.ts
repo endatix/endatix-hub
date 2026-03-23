@@ -63,7 +63,7 @@ export async function createAccountAction(
         error?.cause &&
         typeof error.cause === "object" &&
         "code" in error.cause &&
-        error.cause.code == CONNECTION_REFUSED_CODE
+        error.cause.code === CONNECTION_REFUSED_CODE
       ) {
         errorMessage =
           "Failed to connect to the Endatix API. Ensure your network connection and app settings are correct";
