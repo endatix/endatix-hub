@@ -7,7 +7,10 @@ import { Label } from "@/components/ui/label";
 import { FC, useActionState } from "react";
 import Image from "next/image";
 import { AuthPresentation } from "@/features/auth/infrastructure";
-import { signInWithEndatixAction } from "../sign-in-with-endatix.action";
+import {
+  SignInFormState,
+  signInWithEndatixAction,
+} from "../sign-in-with-endatix.action";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
 
@@ -22,7 +25,9 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
   endatixAuthProvider,
   returnUrl,
 }) => {
-  const initialState = ServerActionState.emptyState({ returnUrl });
+  const initialState: SignInFormState = ServerActionState.emptyState({
+    returnUrl,
+  });
 
   const [state, formAction, isPending] = useActionState(
     signInWithEndatixAction,
