@@ -13,6 +13,11 @@ import {
   hideTooltipFromEditor,
 } from "./rich-text-editor.utils";
 
+const NON_BREAKING_SPACE_REGEX = /&nbsp;|\xA0/gi;
+const SINGLE_PARAGRAPH_REGEX = /^<p>(((?!<\/?p>).)*)<\/p>$/i;
+const WHITESPACE = " ";
+const QUILL_USER_EVENT_SOURCE = "user";
+
 /**
  * Toolbar options for the rich text editor.
  */
@@ -42,9 +47,19 @@ const modules = {
 };
 
 /** Normalizes HTML value for the question (empty -> '', else sanitized). Exported for tests. */
-export function normalizeHtmlValue(value: string): string {
+export function normalizeAndSanitize(value: string): string {
   if (!value) return "";
-  return htmlSanitizer.sanitize(value);
+
+  const processed = value.replace(NON_BREAKING_SPACE_REGEX, WHITESPACE);
+
+  const sanitized = htmlSanitizer.sanitize(processed);
+
+  const match = sanitized.match(SINGLE_PARAGRAPH_REGEX);
+  if (match) {
+    return match[1].trim();
+  }
+
+  return sanitized.trim();
 }
 
 export class RichTextEditorComponent extends SurveyQuestionElementBase {
@@ -59,12 +74,27 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
   get question() {
     return this.questionBase;
   }
+
   get value() {
     return this.question.value;
   }
-  handleValueChange = (val: string) => {
-    this.question.value = normalizeHtmlValue(val);
+
+  handleValueChange = (val: string, _: any, source: string) => {
+    if (source !== QUILL_USER_EVENT_SOURCE) {
+      return;
+    }
+
+    const normalizedNewValue = normalizeAndSanitize(val);
+
+    const normalizedCurrentValue = this.question.value
+      ? normalizeAndSanitize(this.question.value)
+      : "";
+
+    if (normalizedNewValue !== normalizedCurrentValue) {
+      this.question.value = normalizedNewValue;
+    }
   };
+
   get style() {
     return { height: this.question.height };
   }
@@ -96,7 +126,7 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
       <div
         ref={this.wrapperRef}
         aria-label="Rich text editor"
-        className={`relative border border-gray-300 rounded-md p-0 ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
+        className={`relative rounded-md border border-gray-300 p-0 ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
       >
         <ReactQuill
           ref={this.quillRef}

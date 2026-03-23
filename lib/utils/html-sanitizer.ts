@@ -5,6 +5,7 @@ import sanitize, { AllowedAttribute, IOptions } from "sanitize-html";
  */
 const ALLOWED_TAGS = [
   "a",
+  "p",
   "blockquote",
   "code",
   "del",

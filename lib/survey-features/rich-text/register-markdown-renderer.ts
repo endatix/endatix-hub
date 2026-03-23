@@ -9,7 +9,10 @@ const markdownIt = new MarkdownIt({
 
 export function registerMarkdownRenderer(surveyModel: SurveyModel): () => void {
   const handler = (_sender: unknown, options: TextMarkdownEvent) => {
-    const renderedString = markdownIt.renderInline(options.text);
+    if (!options?.text) return;
+
+    const renderedString = markdownIt.render(options.text);
+
     const sanitizedString = htmlSanitizer.sanitize(renderedString);
     options.html = sanitizedString;
   };
