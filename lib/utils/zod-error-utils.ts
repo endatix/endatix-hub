@@ -23,10 +23,10 @@ interface BaseFormState<TState = ActionStateData> {
 
 export interface EmptyFormState<TState = ActionStateData> {
   isSuccess: undefined;
-  message?: undefined;
-  data?: TState | undefined;
-  formErrors?: undefined;
-  errors?: undefined;
+  message?: never;
+  data?: TState;
+  formErrors?: never;
+  errors?: never;
 }
 
 export interface SuccessFormState<
@@ -123,8 +123,8 @@ function setFieldError(
     current = current[key] as MutableNode;
   }
 
-  const lastKey = path[path.length - 1];
-  if (isUnsafeKey(lastKey)) return;
+  const lastKey = path.at(-1);
+  if (lastKey === undefined || isUnsafeKey(lastKey)) return;
 
   if (!Array.isArray(current[lastKey])) {
     current[lastKey] = [];
