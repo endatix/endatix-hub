@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { resetPasswordAction } from "./reset-password.action";
+import {
+  resetPasswordAction,
+  ResetPasswordActionState,
+} from "./reset-password.action";
 import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,9 +21,9 @@ interface ResetPasswordFormProps {
   resetCode: string;
 }
 
-const initialState = {
-  isSuccess: false,
-};
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
+
+const initialState: ResetPasswordActionState = ServerActionState.emptyState();
 
 export default function ResetPasswordForm({
   email,
@@ -50,19 +53,19 @@ export default function ResetPasswordForm({
         name="email"
         value={email}
         autoComplete="email"
-        defaultValue={state?.values?.email}
+        defaultValue={state?.data?.email}
         readOnly
       />
       <input
         type="hidden"
         name="resetCode"
         value={resetCode}
-        defaultValue={state?.values?.resetCode}
+        defaultValue={state?.data?.resetCode}
         readOnly
       />
 
       <div className="grid gap-2 text-center">
-        <div className="flex justify-center mb-2">
+        <div className="mb-2 flex justify-center">
           <Image
             src="/assets/icons/endatix.svg"
             alt="Endatix logo"
@@ -87,7 +90,7 @@ export default function ResetPasswordForm({
             placeholder="Enter your new password"
             tabIndex={3}
             autoFocus
-            defaultValue={state?.values?.newPassword}
+            defaultValue={state?.data?.newPassword}
             autoComplete="new-password"
           />
           {state?.errors?.newPassword && (
@@ -103,7 +106,7 @@ export default function ResetPasswordForm({
             required
             placeholder="Confirm your new password"
             tabIndex={4}
-            defaultValue={state?.values?.confirmPassword}
+            defaultValue={state?.data?.confirmPassword}
             autoComplete="new-password"
           />
           {state?.errors?.confirmPassword && (
@@ -131,7 +134,7 @@ export default function ResetPasswordForm({
 export const InvalidResetLinkMessage = () => {
   return (
     <div className="grid gap-2 text-center">
-      <div className="flex justify-center mb-2">
+      <div className="mb-2 flex justify-center">
         <Image
           src="/assets/icons/endatix.svg"
           alt="Endatix logo"
@@ -141,11 +144,11 @@ export const InvalidResetLinkMessage = () => {
         />
       </div>
       <div className="space-y-4">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <CalendarX2 className="w-8 h-8 text-red-500" />
+        <div className="mb-2 flex items-center justify-center gap-3">
+          <CalendarX2 className="h-8 w-8 text-red-500" />
           <h2 className="text-2xl font-semibold">Invalid reset link</h2>
         </div>
-        <p className="text-muted-foreground text-center">
+        <p className="text-center text-muted-foreground">
           This password reset link is invalid or has expired. Please request a
           new password reset link.
         </p>

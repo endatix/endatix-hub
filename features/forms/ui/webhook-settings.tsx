@@ -36,9 +36,9 @@ const WEBHOOK_EVENTS = [
   { key: "FormDeleted", label: "Form Deleted" },
 ];
 
-const initialState = {
-  isSuccess: false,
-};
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
+
+const initialState = ServerActionState.emptyState();
 
 export function WebhookSettings({
   formId,
@@ -115,16 +115,16 @@ export function WebhookSettings({
   };
 
   const [useCustomSettings, setUseCustomSettings] = useState(
-    state?.values?.useCustomSettings ?? !!initialSettings,
+    state?.data?.useCustomSettings ?? !!initialSettings,
   );
   const [events, setEvents] = useState<WebhookEvent[]>(() => {
     // If there already are values, use those
-    if (state?.values) {
+    if (state?.data) {
       return WEBHOOK_EVENTS.map((event) => ({
         key: event.key,
         label: event.label,
-        enabled: state.values?.[`event-${event.key}-enabled`] as boolean || false,
-        url: state.values?.[`event-${event.key}-url`] as string || "",
+        enabled: state.data?.[`event-${event.key}-enabled`] as boolean || false,
+        url: state.data?.[`event-${event.key}-url`] as string || "",
       }));
     }
     return parseSettings(initialSettings);

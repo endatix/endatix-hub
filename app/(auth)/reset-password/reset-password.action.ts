@@ -2,24 +2,16 @@
 
 import { EndatixApi } from "@/lib/endatix-api";
 import { ApiResult, ResetPasswordRequestSchema } from "@/lib/endatix-api/types";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-export interface ResetPasswordActionState {
-  isSuccess?: boolean;
-  formErrors?: string[];
+export type ResetPasswordActionState = ServerActionState<{
+  email?: string;
+  resetCode?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}> & {
   errorCode?: string;
-  errors?: {
-    email?: string[];
-    resetCode?: string[];
-    newPassword?: string[];
-    confirmPassword?: string[];
-  };
-  values?: {
-    email?: string;
-    resetCode?: string;
-    newPassword?: string;
-    confirmPassword?: string;
-  };
-}
+};
 
 export async function resetPasswordAction(
   _prevState: ResetPasswordActionState,
@@ -34,14 +26,8 @@ export async function resetPasswordAction(
 
   const validatedData = ResetPasswordRequestSchema.safeParse(rawData);
 
-  const errors = validatedData.error?.flatten();
   if (!validatedData.success) {
-    return {
-      isSuccess: false,
-      formErrors: errors?.formErrors,
-      errors: errors?.fieldErrors,
-      values: rawData,
-    };
+    return ServerActionState.fromZodError(validatedData.error, rawData);
   }
 
   const endatix = new EndatixApi();
@@ -59,6 +45,6 @@ export async function resetPasswordAction(
     isSuccess: false,
     errorCode: resetPasswordResult.error.errorCode,
     formErrors: [resetPasswordResult.error.message],
-    values: rawData,
+    data: rawData,
   };
 }

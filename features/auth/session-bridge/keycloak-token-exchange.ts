@@ -1,5 +1,6 @@
 import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
 import { KeycloakTokenResponse, KeycloakTokenResponseSchema } from "./types";
+import { parseZodError } from "@/lib/utils/zod-error-utils";
 
 export async function exchangeKeycloakToken(
   mobileJWT: string,
@@ -64,7 +65,7 @@ export async function exchangeKeycloakToken(
         ERROR_CODE.VALIDATION_ERROR,
         {
           details: JSON.stringify(
-            keycloakTokenDataResult?.error?.flatten() || [],
+            parseZodError(keycloakTokenDataResult.error).fields || [],
           ),
         },
       );

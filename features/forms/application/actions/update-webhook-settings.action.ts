@@ -9,10 +9,11 @@ import {
   WebhookSettingsSchema,
 } from "./types/webhook-settings.types";
 import type { WebhookSettingsState } from "./types/webhook-settings.types";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
 export async function updateWebhookSettingsAction(
   _prevState: WebhookSettingsState,
-  formData: FormData
+  formData: FormData,
 ): Promise<WebhookSettingsState | never> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
@@ -32,15 +33,9 @@ export async function updateWebhookSettingsAction(
   });
 
   const validatedData = WebhookSettingsSchema.safeParse(rawData);
-  const errors = validatedData.error?.flatten();
 
   if (!validatedData.success) {
-    return {
-      isSuccess: false,
-      formErrors: errors?.formErrors,
-      errors: errors?.fieldErrors,
-      values: rawData,
-    };
+    return ServerActionState.fromZodError(validatedData.error, rawData);
   }
 
   const { formId, useCustomSettings } = validatedData.data;
@@ -50,8 +45,13 @@ export async function updateWebhookSettingsAction(
     const config: WebHookConfiguration = { Events: {} };
 
     EVENT_KEYS.forEach((eventKey) => {
-      const enabled = validatedData.data[`event-${eventKey}-enabled` as keyof typeof validatedData.data];
-      const url = validatedData.data[`event-${eventKey}-url` as keyof typeof validatedData.data] as string;
+      const enabled =
+        validatedData.data[
+          `event-${eventKey}-enabled` as keyof typeof validatedData.data
+        ];
+      const url = validatedData.data[
+        `event-${eventKey}-url` as keyof typeof validatedData.data
+      ] as string;
 
       if (enabled && url) {
         config.Events[eventKey] = {
@@ -72,8 +72,8 @@ export async function updateWebhookSettingsAction(
     return {
       isSuccess: false,
       formErrors: [result.error.message],
-      errors: errors?.fieldErrors,
-      values: rawData,
+      errors: undefined,
+      data: rawData,
     };
   }
 

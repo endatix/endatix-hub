@@ -4,6 +4,10 @@ import { getSessionCookieOptions } from "../infrastructure/session-utils";
 import { decodeJwt } from "jose";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { encode } from "next-auth/jwt";
+import {
+  flattenFieldErrors,
+  parseZodError,
+} from "@/lib/utils/zod-error-utils";
 import { authConfig } from "@/auth";
 import { KEYCLOAK_ID } from "../infrastructure/providers";
 import { invalidateUserAuthorizationCache } from "../authorization/application/authorization-data.provider";
@@ -44,11 +48,14 @@ export async function createSessionFromToken(
       AuthTokenSchema.safeParse(authTokenPayload);
 
     if (!validatedAuthTokenResult.success) {
+      const parsedAuthTokenErrors = parseZodError(
+        validatedAuthTokenResult.error,
+      );
       return apiResponses.badRequest({
         errorCode: "EXCHANGED_TOKEN_INVALID",
         detail:
           "Session bridge token exchange failed. Insufficient information to establish a session.",
-        fields: validatedAuthTokenResult.error.flatten().fieldErrors,
+        fields: flattenFieldErrors(parsedAuthTokenErrors.fields),
       });
     }
 

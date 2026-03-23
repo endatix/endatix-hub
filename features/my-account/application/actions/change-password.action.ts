@@ -7,22 +7,13 @@ import {
   ChangePasswordRequestSchema,
   ApiResult,
 } from "@/lib/endatix-api";
-import { parseZodError } from "@/lib/utils/zod-error-utils";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-export interface ChangePasswordState {
-  isSuccess?: boolean;
-  formErrors?: string[];
-  errors?: {
-    currentPassword?: string[];
-    newPassword?: string[];
-    confirmPassword?: string[];
-  };
-  values?: {
-    currentPassword?: string;
-    newPassword?: string;
-    confirmPassword?: string;
-  };
-}
+export type ChangePasswordState = ServerActionState<{
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}>;
 
 export async function changePasswordAction(
   _prevState: ChangePasswordState,
@@ -41,13 +32,7 @@ export async function changePasswordAction(
   const validatedData = ChangePasswordRequestSchema.safeParse(rawData);
 
   if (!validatedData.success) {
-    const parsedErrors = parseZodError(validatedData.error);
-    return {
-      isSuccess: false,
-      formErrors: parsedErrors.formErrors,
-      errors: parsedErrors.fields,
-      values: rawData,
-    };
+    return ServerActionState.fromZodError(validatedData.error, rawData);
   }
 
   const endatix = new EndatixApi(session?.accessToken);
@@ -63,6 +48,6 @@ export async function changePasswordAction(
     isSuccess: false,
     formErrors: [result.error.message],
     errors: undefined,
-    values: rawData,
+    data: rawData,
   };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { forgotPasswordAction } from "./forgot-password.action";
+import { forgotPasswordAction, type ForgotPasswordActionState } from "./forgot-password.action";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { CircleCheckBig } from "lucide-react";
 export default function ForgotPasswordForm() {
   const [state, formAction, isPending] = useActionState(
     forgotPasswordAction,
-    null,
+    ServerActionState.emptyState(),
   );
 
   if (state?.isSuccess) {
@@ -48,7 +49,7 @@ export default function ForgotPasswordForm() {
             required
             autoFocus
             tabIndex={1}
-            defaultValue={state?.values?.email}
+            defaultValue={state?.data?.email}
           />
           {state?.errors?.email && (
             <ErrorMessage message={state.errors.email.toString()} />

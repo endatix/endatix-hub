@@ -128,6 +128,47 @@ function setFieldError(fields: any, path: PropertyKey[], message: string) {
 }
 
 /**
+ * Normalizes deeply nested validation errors into a flat shape suitable for
+ * API `fields: Record<string, string[]>` responses.
+ *
+ * Example:
+ * `{ user: { firstName: ["Too short"] } }` -> `{ "user.firstName": ["Too short"] }`
+ */
+export function flattenFieldErrors<TState = ActionStateData>(
+  fieldErrors?: DeepFieldErrors<TState>, // Made optional to handle undefined gracefully
+  prefix: string = "",
+): Record<string, string[]> {
+  const result: Record<string, string[]> = {};
+
+  if (!fieldErrors) {
+    return result;
+  }
+
+  for (const [key, value] of Object.entries(fieldErrors)) {
+    if (isUnsafeKey(key)) continue;
+
+    const nextPrefix = prefix ? `${prefix}.${key}` : key;
+
+    // Leaf Node with multiple errors
+    if (Array.isArray(value)) {
+      result[nextPrefix] = value;
+      continue;
+    }
+
+    // Nested Node with child errors
+    if (value && typeof value === "object") {
+      const nestedErrors = flattenFieldErrors(
+        value as DeepFieldErrors<any>,
+        nextPrefix,
+      );
+      Object.assign(result, nestedErrors);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Parses a Zod validation error into a standardized message and fields mapping
  * suitable for `ApiResult.validationError()`.
  *

@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { parseZodError, ServerActionState } from "./zod-error-utils";
+import {
+  flattenFieldErrors,
+  parseZodError,
+  ServerActionState,
+} from "./zod-error-utils";
 
 describe("zod-error-utils", () => {
   describe("parseZodError", () => {
@@ -204,6 +208,234 @@ describe("zod-error-utils", () => {
         expect(state.data).toEqual(data);
         expect(state.formErrors).toBeUndefined();
         expect(state.errors).toBeUndefined();
+      });
+    });
+  });
+
+  describe("flattenFieldErrors", () => {
+    it("should flatten already flat objects", () => {
+      const out = flattenFieldErrors({
+        email: ["Email required"],
+        password: ["Password required"],
+      });
+
+      expect(out).toEqual({
+        email: ["Email required"],
+        password: ["Password required"],
+      });
+    });
+
+    it("should flatten deeply nested objects with dot paths", () => {
+      const out = flattenFieldErrors({
+        user: {
+          firstName: ["Too short"],
+          lastName: ["Too short"],
+        },
+      });
+
+      expect(out).toEqual({
+        "user.firstName": ["Too short"],
+        "user.lastName": ["Too short"],
+      });
+    });
+
+    it("should flatten array-index shaped objects", () => {
+      const out = flattenFieldErrors({
+        tags: {
+          0: ["Tag too short"],
+          2: ["Tag too short"],
+        },
+      });
+
+      expect(out).toEqual({
+        "tags.0": ["Tag too short"],
+        "tags.2": ["Tag too short"],
+      });
+    });
+
+    it("should protect against prototype pollution", () => {
+      const out = flattenFieldErrors({
+        __proto__: { polluted: ["should not leak"] },
+        normalField: ["ok"],
+      });
+
+      expect(out).toEqual({
+        normalField: ["ok"],
+      });
+      expect(({} as any).polluted).toBeUndefined();
+    });
+
+    it("should handle deeply nested objects (3+ levels)", () => {
+      const out = flattenFieldErrors({
+        user: {
+          profile: {
+            address: {
+              city: ["City required"],
+              country: ["Country required"],
+            },
+          },
+        },
+      });
+
+      expect(out).toEqual({
+        "user.profile.address.city": ["City required"],
+        "user.profile.address.country": ["Country required"],
+      });
+    });
+
+    it("should handle leaf nodes with multiple errors", () => {
+      const out = flattenFieldErrors({
+        email: ["Email is required", "Invalid email format"],
+        password: ["Password too short"],
+      });
+
+      expect(out).toEqual({
+        email: ["Email is required", "Invalid email format"],
+        password: ["Password too short"],
+      });
+    });
+
+    it("should handle deeply nested leaf nodes with multiple errors", () => {
+      const out = flattenFieldErrors({
+        user: {
+          profile: {
+            bio: ["Too short", "Contains forbidden words"],
+          },
+        },
+      });
+
+      expect(out).toEqual({
+        "user.profile.bio": ["Too short", "Contains forbidden words"],
+      });
+    });
+
+    it("should handle mixed nested depths in the same object", () => {
+      const out = flattenFieldErrors({
+        a: {
+          b: {
+            c: ["Deep error"],
+          },
+        },
+        d: ["Shallow error"],
+        e: {
+          f: ["Medium error"],
+        },
+      });
+
+      expect(out).toEqual({
+        "a.b.c": ["Deep error"],
+        d: ["Shallow error"],
+        "e.f": ["Medium error"],
+      });
+    });
+
+    it("should handle arrays of objects with deep nesting", () => {
+      const out = flattenFieldErrors({
+        users: {
+          0: {
+            profile: {
+              name: ["Name required"],
+            },
+          },
+          1: {
+            profile: {
+              name: ["Name required"],
+            },
+          },
+        },
+      });
+
+      expect(out).toEqual({
+        "users.0.profile.name": ["Name required"],
+        "users.1.profile.name": ["Name required"],
+      });
+    });
+
+    it("should handle prefix parameter correctly", () => {
+      const out = flattenFieldErrors(
+        {
+          name: ["Required"],
+          email: ["Invalid"],
+        },
+        "form",
+      );
+
+      expect(out).toEqual({
+        "form.name": ["Required"],
+        "form.email": ["Invalid"],
+      });
+    });
+
+    it("should handle prefix with nested objects", () => {
+      const out = flattenFieldErrors(
+        {
+          user: {
+            firstName: ["Required"],
+          },
+        },
+        "data",
+      );
+
+      expect(out).toEqual({
+        "data.user.firstName": ["Required"],
+      });
+    });
+
+    it("should handle empty fieldErrors object", () => {
+      const out = flattenFieldErrors({});
+
+      expect(out).toEqual({});
+    });
+
+    it("should handle undefined fieldErrors", () => {
+      const out = flattenFieldErrors(undefined);
+
+      expect(out).toEqual({});
+    });
+
+    it("should handle nested objects with null values gracefully", () => {
+      const out = flattenFieldErrors({
+        user: null as any,
+        name: ["Required"],
+      });
+
+      expect(out).toEqual({
+        name: ["Required"],
+      });
+    });
+
+    it("should handle deeply nested mixed with arrays and multiple errors", () => {
+      const out = flattenFieldErrors({
+        company: {
+          departments: {
+            0: {
+              employees: {
+                0: {
+                  name: ["Required", "Too short"],
+                  role: ["Invalid role"],
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(out).toEqual({
+        "company.departments.0.employees.0.name": ["Required", "Too short"],
+        "company.departments.0.employees.0.role": ["Invalid role"],
+      });
+    });
+
+    it("should handle constructor and prototype keys in nested objects", () => {
+      const out = flattenFieldErrors({
+        user: {
+          constructor: ["Should be filtered"],
+          normal: ["Valid error"],
+        },
+      } as any);
+
+      expect(out).toEqual({
+        "user.normal": ["Valid error"],
       });
     });
   });

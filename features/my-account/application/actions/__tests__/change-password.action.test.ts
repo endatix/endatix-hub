@@ -5,7 +5,7 @@ import {
   ApiResult,
   ChangePasswordRequestSchema,
 } from "@/lib/endatix-api";
-import { parseZodError } from "@/lib/utils/zod-error-utils";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import { auth } from "@/auth";
 import type { Session } from "next-auth";
 import { authorization } from "@/features/auth/authorization";
@@ -24,7 +24,16 @@ vi.mock("@/features/auth/authorization", () => ({
 }));
 
 vi.mock("@/lib/utils/zod-error-utils", () => ({
-  parseZodError: vi.fn(),
+  ServerActionState: {
+    fromZodError: vi.fn(),
+    emptyState: vi.fn().mockReturnValue({
+      isSuccess: undefined,
+      message: undefined,
+      data: undefined,
+      formErrors: undefined,
+      errors: undefined,
+    }),
+  },
 }));
 
 // Mock the EndatixApi class
@@ -100,10 +109,10 @@ describe("changePasswordAction", () => {
       success: false,
       error: {} as any,
     });
-    vi.mocked(parseZodError).mockReturnValue({
-      message: "All fields are required",
+    vi.mocked(ServerActionState.fromZodError).mockReturnValue({
+      isSuccess: false,
       formErrors: ["All fields are required"],
-      fields: {
+      errors: {
         currentPassword: ["Current password is required"],
         newPassword: ["New password is required"],
         confirmPassword: ["Confirm password is required"],
@@ -111,7 +120,7 @@ describe("changePasswordAction", () => {
     });
 
     const result = await changePasswordAction(
-      { isSuccess: false },
+      ServerActionState.emptyState(),
       mockFormData,
     );
 
@@ -136,10 +145,10 @@ describe("changePasswordAction", () => {
       success: false,
       error: {} as any,
     });
-    vi.mocked(parseZodError).mockReturnValue({
-      message: "Password validation failed",
+    vi.mocked(ServerActionState.fromZodError).mockReturnValue({
+      isSuccess: false,
       formErrors: ["Password validation failed"],
-      fields: {
+      errors: {
         currentPassword: ["Password must be at least 8 characters"],
         newPassword: ["Password must be at least 8 characters"],
         confirmPassword: ["Password must be at least 8 characters"],
@@ -147,7 +156,7 @@ describe("changePasswordAction", () => {
     });
 
     const result = await changePasswordAction(
-      { isSuccess: false },
+      ServerActionState.emptyState(),
       mockFormData,
     );
 
@@ -170,16 +179,16 @@ describe("changePasswordAction", () => {
       success: false,
       error: {} as any,
     });
-    vi.mocked(parseZodError).mockReturnValue({
-      message: "Password validation failed",
+    vi.mocked(ServerActionState.fromZodError).mockReturnValue({
+      isSuccess: false,
       formErrors: ["Password validation failed"],
-      fields: {
+      errors: {
         confirmPassword: ["Passwords do not match"],
       },
     });
 
     const result = await changePasswordAction(
-      { isSuccess: false },
+      ServerActionState.emptyState(),
       mockFormData,
     );
 
@@ -210,7 +219,7 @@ describe("changePasswordAction", () => {
     ).mockResolvedValue(mockApiResult);
 
     const result = await changePasswordAction(
-      { isSuccess: false },
+      ServerActionState.emptyState(),
       mockFormData,
     );
 
@@ -249,13 +258,13 @@ describe("changePasswordAction", () => {
     ).mockResolvedValue(mockApiResult);
 
     const result = await changePasswordAction(
-      { isSuccess: false },
+      ServerActionState.emptyState(),
       mockFormData,
     );
 
     expect(result.isSuccess).toBe(false);
     expect(result.formErrors).toContain("API Error");
-    expect(result.values).toEqual({
+    expect(result.data).toEqual({
       currentPassword: validPassword,
       newPassword: validPassword,
       confirmPassword: validPassword,
@@ -272,19 +281,24 @@ describe("changePasswordAction", () => {
       success: false,
       error: {} as any,
     });
-    vi.mocked(parseZodError).mockReturnValue({
-      message: "Validation failed",
+    vi.mocked(ServerActionState.fromZodError).mockReturnValue({
+      isSuccess: false,
       formErrors: ["Validation failed"],
-      fields: {},
+      errors: {},
+      data: {
+        currentPassword: "short",
+        newPassword: "short",
+        confirmPassword: "short",
+      },
     });
 
     const result = await changePasswordAction(
-      { isSuccess: false },
+      ServerActionState.emptyState(),
       mockFormData,
     );
 
     expect(result.isSuccess).toBe(false);
-    expect(result.values).toEqual({
+    expect(result.data).toEqual({
       currentPassword: "short",
       newPassword: "short",
       confirmPassword: "short",
