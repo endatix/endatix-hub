@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { forgotPasswordAction } from "./forgot-password.action";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { CircleCheckBig } from "lucide-react";
 export default function ForgotPasswordForm() {
   const [state, formAction, isPending] = useActionState(
     forgotPasswordAction,
-    null,
+    ServerActionState.emptyState(),
   );
 
   if (state?.isSuccess) {
@@ -24,7 +25,7 @@ export default function ForgotPasswordForm() {
   return (
     <form action={formAction}>
       <div className="grid gap-2 text-center">
-        <div className="flex justify-center mb-2">
+        <div className="mb-2 flex justify-center">
           <Image
             src="/assets/icons/endatix.svg"
             alt="Endatix logo"
@@ -48,7 +49,7 @@ export default function ForgotPasswordForm() {
             required
             autoFocus
             tabIndex={1}
-            defaultValue={state?.values?.email}
+            defaultValue={state?.data?.email}
           />
           {state?.errors?.email && (
             <ErrorMessage message={state.errors.email.toString()} />
@@ -75,15 +76,15 @@ export default function ForgotPasswordForm() {
 function ForgotPasswordSuccessMessage() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-center gap-3 mb-2">
-        <CircleCheckBig className="w-8 h-8 text-green-500" />
+      <div className="mb-2 flex items-center justify-center gap-3">
+        <CircleCheckBig className="h-8 w-8 text-green-500" />
         <h2 className="text-2xl font-semibold">Reset password link sent</h2>
       </div>
-      <p className="text-muted-foreground text-center">
+      <p className="text-center text-muted-foreground">
         If your email is correct, you will receive a link to reset your
         password.
       </p>
-      <p className="text-sm text-muted-foreground text-center">
+      <p className="text-center text-sm text-muted-foreground">
         If you don&apos;t see the email, check your spam folder.
       </p>
     </div>

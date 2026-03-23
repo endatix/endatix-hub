@@ -2,20 +2,12 @@
 
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { ForgotPasswordRequestSchema } from "@/lib/endatix-api/account/types";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-interface ForgotPasswordActionState {
-  isSuccess: boolean;
-  formErrors?: string[];
-  errors?: {
-    email?: string[];
-  };
-  values?: {
-    email?: string;
-  };
-}
+export type ForgotPasswordActionState = ServerActionState<{ email?: string }>;
 
 export async function forgotPasswordAction(
-  _prevState: ForgotPasswordActionState | null,
+  _prevState: ForgotPasswordActionState,
   formData: FormData,
 ): Promise<ForgotPasswordActionState> {
   const rawData = {
@@ -25,13 +17,7 @@ export async function forgotPasswordAction(
   const validatedFields = ForgotPasswordRequestSchema.safeParse(rawData);
 
   if (!validatedFields.success) {
-    const errors = validatedFields.error.flatten();
-    return {
-      isSuccess: false,
-      formErrors: errors?.formErrors,
-      errors: errors?.fieldErrors,
-      values: rawData,
-    };
+    return ServerActionState.fromZodError(validatedFields.error, rawData) as ForgotPasswordActionState;
   }
 
   const endatix = new EndatixApi();
@@ -45,6 +31,6 @@ export async function forgotPasswordAction(
   return {
     isSuccess: false,
     formErrors: [result.error.message],
-    values: rawData,
+    data: rawData,
   };
 }

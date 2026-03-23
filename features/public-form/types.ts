@@ -8,11 +8,11 @@ export const DynamicVariableSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
-  z.object({}).passthrough(),
+  z.looseObject({}),
   z.undefined(),
 ]);
 
-export const VariablesSchema = z.record(DynamicVariableSchema);
+export const VariablesSchema = z.record(z.string(), DynamicVariableSchema);
 
 export const MetadataSchema = z
   .object({

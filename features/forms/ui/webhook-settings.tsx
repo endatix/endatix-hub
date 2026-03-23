@@ -15,6 +15,8 @@ import { getTenantSettingsAction } from "../application/actions/get-tenant-setti
 import type { TenantSettings, WebHookConfiguration } from "@/types";
 import { Result } from "@/lib/result";
 import { ErrorMessage } from "@/components/forms/error-message";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { WebhookSettingsState } from "../application/actions/types/webhook-settings.types";
 
 interface WebhookSettingsProps {
   formId: string;
@@ -36,9 +38,7 @@ const WEBHOOK_EVENTS = [
   { key: "FormDeleted", label: "Form Deleted" },
 ];
 
-const initialState = {
-  isSuccess: false,
-};
+const initialState: WebhookSettingsState = ServerActionState.emptyState();
 
 export function WebhookSettings({
   formId,
@@ -46,7 +46,7 @@ export function WebhookSettings({
 }: WebhookSettingsProps) {
   const [state, formAction, isPending] = useActionState(
     updateWebhookSettingsAction,
-    initialState
+    initialState,
   );
 
   const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(
@@ -57,7 +57,9 @@ export function WebhookSettings({
     null,
   );
 
-  const parseSettings = (settingsJson: string | undefined | null): WebhookEvent[] => {
+  const parseSettings = (
+    settingsJson: string | undefined | null,
+  ): WebhookEvent[] => {
     if (!settingsJson) {
       return WEBHOOK_EVENTS.map((event) => ({
         key: event.key,
@@ -115,16 +117,17 @@ export function WebhookSettings({
   };
 
   const [useCustomSettings, setUseCustomSettings] = useState(
-    state?.values?.useCustomSettings ?? !!initialSettings,
+    state?.data?.useCustomSettings ?? !!initialSettings,
   );
   const [events, setEvents] = useState<WebhookEvent[]>(() => {
     // If there already are values, use those
-    if (state?.values) {
+    if (state?.data) {
       return WEBHOOK_EVENTS.map((event) => ({
         key: event.key,
         label: event.label,
-        enabled: state.values?.[`event-${event.key}-enabled`] as boolean || false,
-        url: state.values?.[`event-${event.key}-url`] as string || "",
+        enabled:
+          (state.data?.[`event-${event.key}-enabled`] as boolean) || false,
+        url: (state.data?.[`event-${event.key}-url`] as string) || "",
       }));
     }
     return parseSettings(initialSettings);
@@ -140,7 +143,9 @@ export function WebhookSettings({
         if (Result.isSuccess(result)) {
           setTenantSettings(result.value);
         } else {
-          setTenantSettingsError(result.message || "Failed to load tenant settings");
+          setTenantSettingsError(
+            result.message || "Failed to load tenant settings",
+          );
         }
       } catch (error) {
         console.error("Failed to fetch tenant settings", error);
@@ -181,7 +186,6 @@ export function WebhookSettings({
     );
   };
 
-
   const handleCustomSettingsToggle = (enabled: boolean) => {
     setUseCustomSettings(enabled);
     if (enabled) {
@@ -200,14 +204,15 @@ export function WebhookSettings({
     : parseTenantWebhookSettings(tenantSettings);
 
   return (
-    <form action={formAction} className="space-y-4 max-w-2xl mx-auto">
-      <SectionTitle
-        title="Webhooks"
-        headingClassName="text-xl mt-4"
-      />
+    <form action={formAction} className="mx-auto max-w-2xl space-y-4">
+      <SectionTitle title="Webhooks" headingClassName="text-xl mt-4" />
 
       <input type="hidden" name="formId" value={formId} />
-      <input type="hidden" name="useCustomSettings" value={String(useCustomSettings)} />
+      <input
+        type="hidden"
+        name="useCustomSettings"
+        value={String(useCustomSettings)}
+      />
       {events.map((event) => (
         <div key={event.key}>
           <input
@@ -229,7 +234,7 @@ export function WebhookSettings({
 
       {isLoadingTenantSettings && (
         <div className="py-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <p className="mt-2 text-sm text-muted-foreground">
             Loading settings...
           </p>
@@ -237,7 +242,7 @@ export function WebhookSettings({
       )}
 
       {tenantSettingsError && (
-        <div className="p-4 bg-destructive/10 border border-destructive rounded-md">
+        <div className="rounded-md border border-destructive bg-destructive/10 p-4">
           <p className="text-sm text-destructive">{tenantSettingsError}</p>
         </div>
       )}
@@ -245,7 +250,7 @@ export function WebhookSettings({
       {!isLoadingTenantSettings && !tenantSettingsError && (
         <>
           {useCustomSettings && (
-            <div className="flex items-center space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+            <div className="flex items-center space-x-2 rounded-md border border-amber-200 bg-amber-50 p-3">
               <div className="h-2 w-2 rounded-full bg-amber-500"></div>
               <span className="text-sm text-amber-800">
                 Using custom webhooks configuration for this form
@@ -254,7 +259,7 @@ export function WebhookSettings({
           )}
 
           {!useCustomSettings && (
-            <div className="flex items-center space-x-2 p-3 bg-muted rounded-md">
+            <div className="flex items-center space-x-2 rounded-md bg-muted p-3">
               <div className="h-2 w-2 rounded-full bg-blue-500"></div>
               <span className="text-sm text-muted-foreground">
                 Using tenant default webhooks configuration
@@ -313,7 +318,7 @@ export function WebhookSettings({
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label
                       htmlFor={`webhook-url-${event.key}`}
-                      className="text-right text-muted-foreground text-sm"
+                      className="text-right text-sm text-muted-foreground"
                     >
                       Webhook URL
                     </Label>

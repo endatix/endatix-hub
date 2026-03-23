@@ -2,6 +2,7 @@
 
 import { register, RegistrationResponse } from "@/services/api";
 import { RegistrationRequestSchema } from "../../shared/auth.schemas";
+import { parseZodError } from "@/lib/utils/zod-error-utils";
 
 const CONNECTION_REFUSED_CODE = "ECONNREFUSED";
 
@@ -32,8 +33,8 @@ export async function createAccountAction(
   if (!validatedFields.success) {
     return {
       success: false,
-      errors: validatedFields.error.flatten().fieldErrors,
-      formData
+      errors: parseZodError(validatedFields.error).fields,
+      formData,
     } as CreateAccountActionState;
   }
 
@@ -48,20 +49,24 @@ export async function createAccountAction(
       return {
         success: false,
         errorMessage: response.message,
-        formData
+        formData,
       };
     }
 
     return { success: true };
   } catch (error: unknown) {
-    let errorMessage = "We cannot create your account at this time. Please try again later.";
-    
+    let errorMessage =
+      "We cannot create your account at this time. Please try again later.";
+
     if (error instanceof Error) {
-      if (error?.cause &&
-          typeof error.cause === "object" &&
-          "code" in error.cause &&
-          error.cause.code == CONNECTION_REFUSED_CODE) {
-        errorMessage = "Failed to connect to the Endatix API. Ensure your network connection and app settings are correct";
+      if (
+        error?.cause &&
+        typeof error.cause === "object" &&
+        "code" in error.cause &&
+        error.cause.code === CONNECTION_REFUSED_CODE
+      ) {
+        errorMessage =
+          "Failed to connect to the Endatix API. Ensure your network connection and app settings are correct";
       } else {
         errorMessage = error.message;
       }
@@ -70,7 +75,7 @@ export async function createAccountAction(
     return {
       success: false,
       errorMessage: errorMessage,
-      formData
+      formData,
     } as CreateAccountActionState;
   }
 }

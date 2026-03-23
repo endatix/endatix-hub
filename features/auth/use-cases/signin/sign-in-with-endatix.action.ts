@@ -13,20 +13,13 @@ import {
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { AUTH_ERROR_PATH } from "../../infrastructure/auth-constants";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-interface SignInFormState {
-  isSuccess?: boolean;
-  formErrors?: string[];
-  errors?: {
-    email?: string[];
-    password?: string[];
-  };
-  values?: {
-    email?: string;
-    password?: string;
-    returnUrl?: string;
-  };
-}
+export type SignInFormState = ServerActionState<{
+  email?: string;
+  password?: string;
+  returnUrl?: string;
+}>;
 
 // This is the action that is used to sign in with Endatix internal auth provider
 export async function signInWithEndatixAction(
@@ -40,15 +33,9 @@ export async function signInWithEndatixAction(
   };
 
   const validatedData = SignInRequestSchema.safeParse(rawData);
-  const errors = validatedData.error?.flatten();
 
   if (!validatedData.success) {
-    return {
-      isSuccess: false,
-      formErrors: errors?.formErrors,
-      errors: errors?.fieldErrors,
-      values: rawData,
-    };
+    return ServerActionState.fromZodError(validatedData.error, rawData);
   }
 
   try {
@@ -91,7 +78,7 @@ export async function signInWithEndatixAction(
       isSuccess: false,
       formErrors: [errorMessage],
       errors: errors,
-      values: rawData,
+      data: rawData,
     };
   }
 

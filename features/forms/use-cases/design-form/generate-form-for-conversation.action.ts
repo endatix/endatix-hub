@@ -8,8 +8,8 @@ import { z } from "zod";
 type GenerateFormResult = ApiResult<string>;
 
 const GenerateFormForConversationRequestSchema = z.object({
-  formTitle: z.string().min(1, { message: "Form title is required" }),
-  formDefinitionSchema: z.object({}).passthrough(),
+  formTitle: z.string().min(1, { error: "Form title is required" }),
+  formDefinitionSchema: z.looseObject({}),
   conversationId: z.string(),
   agentId: z.string(),
 });

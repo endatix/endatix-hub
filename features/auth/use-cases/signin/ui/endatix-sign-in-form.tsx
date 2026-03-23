@@ -7,9 +7,14 @@ import { Label } from "@/components/ui/label";
 import { FC, useActionState } from "react";
 import Image from "next/image";
 import { AuthPresentation } from "@/features/auth/infrastructure";
-import { signInWithEndatixAction } from "../sign-in-with-endatix.action";
+import {
+  SignInFormState,
+  signInWithEndatixAction,
+} from "../sign-in-with-endatix.action";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
+
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
 interface EndatixSignInFormProps {
   endatixAuthProvider: AuthPresentation;
@@ -20,12 +25,9 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
   endatixAuthProvider,
   returnUrl,
 }) => {
-  const initialState = {
-    isSuccess: false,
-    values: {
-      returnUrl: returnUrl,
-    },
-  };
+  const initialState: SignInFormState = ServerActionState.emptyState({
+    returnUrl,
+  });
 
   const [state, formAction, isPending] = useActionState(
     signInWithEndatixAction,
@@ -36,7 +38,7 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
     <form action={formAction}>
       <input type="hidden" name="returnUrl" value={returnUrl} readOnly />
       <div className="grid gap-2 text-center">
-        <div className="flex justify-center mb-2">
+        <div className="mb-2 flex justify-center">
           <Image
             src="/assets/icons/endatix.svg"
             alt="Endatix logo"
@@ -61,7 +63,7 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
             required
             autoFocus
             tabIndex={1}
-            defaultValue={state?.values?.email}
+            defaultValue={state?.data?.email}
           />
           {state?.errors?.email && (
             <ErrorMessage message={state?.errors?.email} />
@@ -86,7 +88,7 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
             autoComplete="current-password"
             required
             tabIndex={2}
-            defaultValue={state?.values?.password}
+            defaultValue={state?.data?.password}
           />
           {state?.errors?.password && (
             <ErrorMessage message={state?.errors?.password} />

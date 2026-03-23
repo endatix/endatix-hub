@@ -36,7 +36,7 @@ export async function defineFormAction(
     const validationResult = DefineFormRequestSchema.safeParse(request);
     if (!validationResult.success) {
       return PromptResult.Error(
-        `Validation failed: ${validationResult.error.errors
+        `Validation failed: ${validationResult.error.issues
           .map((e) => e.message)
           .join(", ")}`,
       );

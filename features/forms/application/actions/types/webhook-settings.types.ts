@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
 export const EVENT_KEYS = [
   "SubmissionCompleted",
@@ -59,15 +60,8 @@ export const WebhookSettingsSchema = z
     });
   });
 
-export interface WebhookSettingsState {
-  isSuccess?: boolean;
-  formErrors?: string[];
-  errors?: {
-    [key: string]: string[];
-  };
-  values?: {
-    formId?: string;
-    useCustomSettings?: boolean;
-    [key: string]: string | boolean | undefined;
-  };
-}
+export type WebhookSettingsState = ServerActionState<{
+  formId?: string;
+  useCustomSettings?: boolean;
+  [key: string]: string | boolean | undefined;
+}>;

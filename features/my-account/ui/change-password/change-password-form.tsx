@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useActionState } from "react";
-import { changePasswordAction } from "@/features/my-account/application/actions";
+import { changePasswordAction, ChangePasswordState } from "@/features/my-account/application/actions";
 import { ErrorMessage } from "@/components/forms/error-message";
 import FormSuccessMessage from "@/components/forms/form-success-message";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-const initialState = {
-  isSuccess: false,
-};
+const initialState: ChangePasswordState = ServerActionState.emptyState();
 
 function ChangePasswordForm() {
   const [state, formAction, isPending] = useActionState(
@@ -41,7 +40,7 @@ function ChangePasswordForm() {
             type="password"
             autoComplete="current-password"
             placeholder="Enter your current password"
-            defaultValue={state?.values?.currentPassword}
+            defaultValue={state?.data?.currentPassword}
           />
           <p className="text-sm text-muted-foreground">
             Enter your current password to verify it&apos;s you
@@ -59,7 +58,7 @@ function ChangePasswordForm() {
             type="password"
             autoComplete="new-password"
             placeholder="Enter your new password"
-            defaultValue={state?.values?.newPassword}
+            defaultValue={state?.data?.newPassword}
           />
           <p className="text-sm text-muted-foreground">
             Password must be at least 8 characters long
@@ -77,7 +76,7 @@ function ChangePasswordForm() {
             type="password"
             autoComplete="new-password"
             placeholder="Confirm your new password"
-            defaultValue={state?.values?.confirmPassword}
+            defaultValue={state?.data?.confirmPassword}
           />
           <p className="text-sm text-muted-foreground">
             Re-enter your new password to confirm

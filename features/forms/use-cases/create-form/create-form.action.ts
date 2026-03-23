@@ -5,20 +5,14 @@ import { authorization } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { CreateFormRequestSchema } from "@/lib/form-types";
 import { revalidatePath } from "next/cache";
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-export interface CreateFormActionState {
-  isSuccess: boolean;
-  formErrors?: string[];
-  errors?: {
-    name?: string[];
-    description?: string[];
-  };
-  values?: {
-    name?: string;
-    description?: string;
-  };
+export type CreateFormActionState = ServerActionState<{
+  name?: string;
+  description?: string;
+}> & {
   formId?: string;
-}
+};
 
 const EMPTY_FORM_DEFINITION = {};
 
@@ -44,13 +38,7 @@ export async function createFormAction(
       CreateFormRequestSchema.safeParse(initialFormRequest);
 
     if (!validatedRequestData.success) {
-      const errors = validatedRequestData.error.flatten();
-      return {
-        isSuccess: false,
-        formErrors: errors.formErrors,
-        errors: errors.fieldErrors,
-        values: rawData,
-      };
+      return ServerActionState.fromZodError(validatedRequestData.error, rawData) as CreateFormActionState;
     }
 
     const endatix = new EndatixApi(session?.accessToken);
@@ -65,7 +53,7 @@ export async function createFormAction(
           createFormResult.error.message ||
             "Failed to create form. Please try again.",
         ],
-        values: rawData,
+        data: rawData,
       };
     }
 
@@ -85,7 +73,7 @@ export async function createFormAction(
           ? error.message
           : "An unexpected error occurred. Please try again.",
       ],
-      values: rawData,
+      data: rawData,
     };
   }
 }

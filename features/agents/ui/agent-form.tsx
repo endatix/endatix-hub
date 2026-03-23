@@ -62,7 +62,7 @@ export function AgentFormContainer({
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     } catch (e: unknown) {
       if (e instanceof z.ZodError) {
-        setErrors((prev) => ({ ...prev, [field]: e.errors[0]?.message }));
+        setErrors((prev) => ({ ...prev, [field]: e.issues[0]?.message }));
       }
     }
   };
@@ -89,7 +89,7 @@ export function AgentFormContainer({
       const fieldErrors: Partial<
         Record<keyof CreateUpdateAgentRequestSchema, string>
       > = {};
-      for (const err of result.error.errors) {
+      for (const err of result.error.issues) {
         fieldErrors[err.path[0] as keyof CreateUpdateAgentRequestSchema] =
           err.message;
       }
@@ -131,7 +131,7 @@ export function AgentFormContainer({
             </SelectContent>
           </Select>
           {errors.model && (
-            <div id="model-error" className="text-destructive text-sm">
+            <div id="model-error" className="text-sm text-destructive">
               {errors.model}
             </div>
           )}
@@ -164,7 +164,7 @@ export function AgentFormContainer({
             </SelectContent>
           </Select>
           {errors.model && (
-            <div id="model-error" className="text-destructive text-sm">
+            <div id="model-error" className="text-sm text-destructive">
               {errors.model}
             </div>
           )}
@@ -186,7 +186,10 @@ export function AgentFormContainer({
             aria-describedby="temperature-error"
           />
           {form.model === "o4-mini" && (
-            <Alert variant="default" className="text-sm p-2 align-center justify-center">
+            <Alert
+              variant="default"
+              className="align-center justify-center p-2 text-sm"
+            >
               <Brain className="h-4 w-4" />
               <AlertTitle>
                 <strong>Note:</strong> The temperature is NOT available for the
@@ -196,7 +199,7 @@ export function AgentFormContainer({
             </Alert>
           )}
           {errors.temperature && (
-            <div id="temperature-error" className="text-destructive text-sm">
+            <div id="temperature-error" className="text-sm text-destructive">
               {errors.temperature}
             </div>
           )}
@@ -217,7 +220,7 @@ export function AgentFormContainer({
             aria-describedby="systemPrompt-error"
           />
           {errors.systemPrompt && (
-            <div id="systemPrompt-error" className="text-destructive text-sm">
+            <div id="systemPrompt-error" className="text-sm text-destructive">
               {errors.systemPrompt}
             </div>
           )}
@@ -236,7 +239,7 @@ export function AgentFormContainer({
             aria-describedby="tenantId-error"
           />
           {errors.tenantId && (
-            <div id="tenantId-error" className="text-destructive text-sm">
+            <div id="tenantId-error" className="text-sm text-destructive">
               {errors.tenantId}
             </div>
           )}

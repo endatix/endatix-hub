@@ -16,9 +16,9 @@ import FormSuccessMessage from "@/components/forms/form-success-message";
 import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 
-const INITIAL_STATE: CreateFormActionState = {
-  isSuccess: false,
-};
+import { ServerActionState } from "@/lib/utils/zod-error-utils";
+
+const INITIAL_STATE: CreateFormActionState = ServerActionState.emptyState();
 
 export default function CreateFormWizard() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export default function CreateFormWizard() {
             id="name"
             name="name"
             placeholder="Enter form's name"
-            defaultValue={state?.values?.name}
+            defaultValue={state?.data?.name}
             required
             disabled={isPending}
           />
@@ -67,7 +67,7 @@ export default function CreateFormWizard() {
             id="description"
             name="description"
             placeholder="Enter form's description"
-            defaultValue={state?.values?.description}
+            defaultValue={state?.data?.description}
             rows={3}
             disabled={isPending}
           />
