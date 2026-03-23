@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useActionState } from "react";
-import { changePasswordAction } from "@/features/my-account/application/actions";
+import { changePasswordAction, ChangePasswordState } from "@/features/my-account/application/actions";
 import { ErrorMessage } from "@/components/forms/error-message";
 import FormSuccessMessage from "@/components/forms/form-success-message";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
-const initialState: ChangePasswordActionState = ServerActionState.emptyState();
+const initialState: ChangePasswordState = ServerActionState.emptyState();
 
 function ChangePasswordForm() {
   const [state, formAction, isPending] = useActionState(
