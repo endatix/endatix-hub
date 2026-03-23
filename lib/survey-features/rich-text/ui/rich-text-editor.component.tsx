@@ -16,7 +16,7 @@ import {
 const NON_BREAKING_SPACE_REGEX = /&nbsp;|\xA0/gi;
 const SINGLE_PARAGRAPH_REGEX = /^<p>(((?!<\/?p>).)*)<\/p>$/i;
 const WHITESPACE = " ";
-const QUILL_USER_EVENT_SOURCE = "user";
+const QUILL_USER_EVENT_SOURCE = "api";
 
 /**
  * Toolbar options for the rich text editor.
@@ -50,12 +50,13 @@ const modules = {
 export function normalizeAndSanitize(value: string): string {
   if (!value) return "";
 
-  const processed = value.replace(NON_BREAKING_SPACE_REGEX, WHITESPACE);
+  const processed = value.replaceAll(NON_BREAKING_SPACE_REGEX, WHITESPACE);
+  debugger;
 
   const sanitized = htmlSanitizer.sanitize(processed);
 
-  const match = sanitized.match(SINGLE_PARAGRAPH_REGEX);
-  if (match) {
+  const match = SINGLE_PARAGRAPH_REGEX.exec(sanitized);
+  if (match && match.length > 1) {
     return match[1].trim();
   }
 
