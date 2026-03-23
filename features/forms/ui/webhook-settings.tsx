@@ -37,8 +37,9 @@ const WEBHOOK_EVENTS = [
 ];
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { WebhookSettingsState } from "../application/actions/types/webhook-settings.types";
 
-const initialState = ServerActionState.emptyState();
+const initialState : WebhookSettingsState = ServerActionState.emptyState();
 
 export function WebhookSettings({
   formId,
