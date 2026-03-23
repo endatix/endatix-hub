@@ -5,6 +5,7 @@ import { authorization } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { CreateFormRequestSchema } from "@/lib/form-types";
 import { revalidatePath } from "next/cache";
+import { parseZodError } from "@/lib/utils/zod-error-utils";
 
 export interface CreateFormActionState {
   isSuccess: boolean;
@@ -44,11 +45,11 @@ export async function createFormAction(
       CreateFormRequestSchema.safeParse(initialFormRequest);
 
     if (!validatedRequestData.success) {
-      const errors = validatedRequestData.error.flatten();
+      const parsedErrors = parseZodError(validatedRequestData.error);
       return {
         isSuccess: false,
-        formErrors: errors.formErrors,
-        errors: errors.fieldErrors,
+        formErrors: parsedErrors.formErrors,
+        errors: parsedErrors.fields,
         values: rawData,
       };
     }

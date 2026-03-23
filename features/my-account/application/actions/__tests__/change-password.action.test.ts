@@ -5,6 +5,7 @@ import {
   ApiResult,
   ChangePasswordRequestSchema,
 } from "@/lib/endatix-api";
+import { parseZodError } from "@/lib/utils/zod-error-utils";
 import { auth } from "@/auth";
 import type { Session } from "next-auth";
 import { authorization } from "@/features/auth/authorization";
@@ -20,6 +21,10 @@ vi.mock("@/auth", () => ({
 // Mock the authorization service
 vi.mock("@/features/auth/authorization", () => ({
   authorization: vi.fn(),
+}));
+
+vi.mock("@/lib/utils/zod-error-utils", () => ({
+  parseZodError: vi.fn(),
 }));
 
 // Mock the EndatixApi class
@@ -93,17 +98,17 @@ describe("changePasswordAction", () => {
     // Mock validation failure for missing fields
     vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
       success: false,
-      error: {
-        flatten: () => ({
-          formErrors: ["All fields are required"],
-          fieldErrors: {
-            currentPassword: ["Current password is required"],
-            newPassword: ["New password is required"],
-            confirmPassword: ["Confirm password is required"],
-          },
-        }),
+      error: {} as any,
+    });
+    vi.mocked(parseZodError).mockReturnValue({
+      message: "All fields are required",
+      formErrors: ["All fields are required"],
+      fields: {
+        currentPassword: ["Current password is required"],
+        newPassword: ["New password is required"],
+        confirmPassword: ["Confirm password is required"],
       },
-    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
+    });
 
     const result = await changePasswordAction(
       { isSuccess: false },
@@ -129,17 +134,17 @@ describe("changePasswordAction", () => {
     // Mock validation failure for short passwords
     vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
       success: false,
-      error: {
-        flatten: () => ({
-          formErrors: ["Password validation failed"],
-          fieldErrors: {
-            currentPassword: ["Password must be at least 8 characters"],
-            newPassword: ["Password must be at least 8 characters"],
-            confirmPassword: ["Password must be at least 8 characters"],
-          },
-        }),
+      error: {} as any,
+    });
+    vi.mocked(parseZodError).mockReturnValue({
+      message: "Password validation failed",
+      formErrors: ["Password validation failed"],
+      fields: {
+        currentPassword: ["Password must be at least 8 characters"],
+        newPassword: ["Password must be at least 8 characters"],
+        confirmPassword: ["Password must be at least 8 characters"],
       },
-    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
+    });
 
     const result = await changePasswordAction(
       { isSuccess: false },
@@ -163,15 +168,15 @@ describe("changePasswordAction", () => {
     // Mock validation failure for password mismatch
     vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
       success: false,
-      error: {
-        flatten: () => ({
-          formErrors: ["Password validation failed"],
-          fieldErrors: {
-            confirmPassword: ["Passwords do not match"],
-          },
-        }),
+      error: {} as any,
+    });
+    vi.mocked(parseZodError).mockReturnValue({
+      message: "Password validation failed",
+      formErrors: ["Password validation failed"],
+      fields: {
+        confirmPassword: ["Passwords do not match"],
       },
-    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
+    });
 
     const result = await changePasswordAction(
       { isSuccess: false },
@@ -265,13 +270,13 @@ describe("changePasswordAction", () => {
     // Mock validation failure
     vi.mocked(ChangePasswordRequestSchema.safeParse).mockReturnValue({
       success: false,
-      error: {
-        flatten: () => ({
-          formErrors: ["Validation failed"],
-          fieldErrors: {},
-        }),
-      },
-    } as ReturnType<typeof ChangePasswordRequestSchema.safeParse>);
+      error: {} as any,
+    });
+    vi.mocked(parseZodError).mockReturnValue({
+      message: "Validation failed",
+      formErrors: ["Validation failed"],
+      fields: {},
+    });
 
     const result = await changePasswordAction(
       { isSuccess: false },

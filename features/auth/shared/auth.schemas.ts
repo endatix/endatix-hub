@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const RegistrationRequestSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }).trim(),
+  email: z.email({ error: "Please enter a valid email." }).trim(),
   password: z
     .string()
-    .min(8, { message: "Password must be at least 8 characters long" })
+    .min(8, { error: "Password must be at least 8 characters long" })
     .trim(),
 });

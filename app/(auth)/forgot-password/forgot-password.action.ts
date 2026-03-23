@@ -2,6 +2,7 @@
 
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { ForgotPasswordRequestSchema } from "@/lib/endatix-api/account/types";
+import { parseZodError } from "@/lib/utils/zod-error-utils";
 
 interface ForgotPasswordActionState {
   isSuccess: boolean;
@@ -25,11 +26,12 @@ export async function forgotPasswordAction(
   const validatedFields = ForgotPasswordRequestSchema.safeParse(rawData);
 
   if (!validatedFields.success) {
-    const errors = validatedFields.error.flatten();
+    const parsedErrors = parseZodError(validatedFields.error);
+
     return {
       isSuccess: false,
-      formErrors: errors?.formErrors,
-      errors: errors?.fieldErrors,
+      formErrors: parsedErrors.formErrors,
+      errors: parsedErrors.fields,
       values: rawData,
     };
   }

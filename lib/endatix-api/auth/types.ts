@@ -2,11 +2,10 @@ import z from "zod";
 
 export const SignInRequestSchema = z.object({
   email: z
-    .string()
+    .email({ error: "Please enter a valid email." })
     .min(1)
-    .email({ message: "Please enter a valid email." })
     .trim(),
-  password: z.string().min(1, { message: "Please enter a password." }),
+  password: z.string().min(1, { error: "Please enter a password." }),
   returnUrl: z.string().optional(),
 });
 
