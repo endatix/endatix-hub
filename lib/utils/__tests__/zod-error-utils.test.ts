@@ -4,7 +4,7 @@ import {
   flattenFieldErrors,
   parseZodError,
   ServerActionState,
-} from "./zod-error-utils";
+} from "../zod-error-utils";
 
 describe("zod-error-utils", () => {
   describe("parseZodError", () => {

@@ -95,10 +95,20 @@ export const ServerActionState = {
 const isUnsafeKey = (key: PropertyKey) =>
   key === "__proto__" || key === "constructor" || key === "prototype";
 
-function setFieldError(fields: any, path: PropertyKey[], message: string) {
+type MutableNode = Record<PropertyKey, unknown>;
+
+function isObjectNode(value: unknown): value is MutableNode {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function setFieldError(
+  fields: MutableNode,
+  path: PropertyKey[],
+  message: string,
+) {
   if (!path || path.length === 0) return;
 
-  let current = fields;
+  let current: MutableNode = fields;
 
   // Traverse up to the second-to-last key to build the nested object structure
   for (let i = 0; i < path.length - 1; i++) {
@@ -106,15 +116,11 @@ function setFieldError(fields: any, path: PropertyKey[], message: string) {
 
     if (isUnsafeKey(key)) return;
 
-    if (
-      typeof current[key] !== "object" ||
-      current[key] === null ||
-      Array.isArray(current[key])
-    ) {
+    if (!isObjectNode(current[key])) {
       current[key] = {};
     }
 
-    current = current[key];
+    current = current[key] as MutableNode;
   }
 
   const lastKey = path[path.length - 1];
@@ -124,7 +130,10 @@ function setFieldError(fields: any, path: PropertyKey[], message: string) {
     current[lastKey] = [];
   }
 
-  current[lastKey].push(message);
+  const fieldMessages = current[lastKey];
+  if (!Array.isArray(fieldMessages)) return;
+
+  fieldMessages.push(message);
 }
 
 /**
@@ -136,35 +145,32 @@ function setFieldError(fields: any, path: PropertyKey[], message: string) {
  */
 export function flattenFieldErrors<TState = ActionStateData>(
   fieldErrors?: DeepFieldErrors<TState>, // Made optional to handle undefined gracefully
-  prefix: string = "",
+  rootPrefix: string = "",
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {};
 
-  if (!fieldErrors) {
-    return result;
-  }
+  const flatten = (input: unknown, prefix: string): void => {
+    if (!isObjectNode(input)) return;
 
-  for (const [key, value] of Object.entries(fieldErrors)) {
-    if (isUnsafeKey(key)) continue;
+    for (const [key, value] of Object.entries(input)) {
+      if (isUnsafeKey(key)) continue;
 
-    const nextPrefix = prefix ? `${prefix}.${key}` : key;
+      const nextPrefix = prefix ? `${prefix}.${key}` : key;
 
-    // Leaf Node with multiple errors
-    if (Array.isArray(value)) {
-      result[nextPrefix] = value;
-      continue;
+      if (Array.isArray(value)) {
+        if (value.every((item) => typeof item === "string")) {
+          result[nextPrefix] = value;
+        }
+        continue;
+      }
+
+      if (isObjectNode(value)) {
+        flatten(value, nextPrefix);
+      }
     }
+  };
 
-    // Nested Node with child errors
-    if (value && typeof value === "object") {
-      const nestedErrors = flattenFieldErrors(
-        value as DeepFieldErrors<any>,
-        nextPrefix,
-      );
-      Object.assign(result, nestedErrors);
-    }
-  }
-
+  flatten(fieldErrors, rootPrefix);
   return result;
 }
 
@@ -176,10 +182,18 @@ export function flattenFieldErrors<TState = ActionStateData>(
  * @returns A parsed error object with `message`, `formErrors`, and `fields`.
  */
 export function parseZodError<TState = ActionStateData>(
-  error: ZodError,
+  error: ZodError | null | undefined,
 ): ParsedZodError<TState> {
   const formErrors: string[] = [];
-  const fields: any = {};
+  const fields: MutableNode = {};
+
+  if (!error || !Array.isArray(error.issues)) {
+    return {
+      message: "Validation failed",
+      formErrors,
+      fields: {} as DeepFieldErrors<TState>,
+    };
+  }
 
   for (const issue of error.issues) {
     if (!issue.path || issue.path.length === 0) {
