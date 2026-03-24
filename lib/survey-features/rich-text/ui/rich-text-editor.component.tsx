@@ -16,7 +16,7 @@ import {
 const NON_BREAKING_SPACE_REGEX = /&nbsp;|\xA0/gi;
 const SINGLE_PARAGRAPH_REGEX = /^<p>(((?!<\/?p>).)*)<\/p>$/i;
 const WHITESPACE = " ";
-const QUILL_USER_EVENT_SOURCE = "api";
+export const QUILL_USER_EVENT_SOURCE = "user";
 
 /**
  * Toolbar options for the rich text editor.

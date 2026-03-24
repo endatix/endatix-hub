@@ -3,7 +3,7 @@ import {
   hasActiveSelectionFromEditor,
   hideTooltipFromEditor,
 } from "../../ui/rich-text-editor.utils";
-import { normalizeAndSanitize } from "../../ui/rich-text-editor.component";
+import { normalizeAndSanitize, QUILL_USER_EVENT_SOURCE } from "../../ui/rich-text-editor.component";
 
 describe("normalizeAndSanitize - Security", () => {
   it("should return empty string for empty string", () => {
@@ -233,26 +233,8 @@ describe("hideTooltipFromEditor", () => {
 });
 
 describe("handleValueChange - Source Filtering Logic", () => {
-  const QUILL_USER_EVENT_SOURCE = "user";
-
   it("should return early when source is not 'user'", () => {
-    const source = "api";
-    expect(source !== QUILL_USER_EVENT_SOURCE).toBe(true);
-  });
-
-  it("should process when source is 'user'", () => {
-    const source = "user";
-    expect(source === QUILL_USER_EVENT_SOURCE).toBe(true);
-  });
-
-  it("should return early when source is 'silent'", () => {
-    const source = "silent";
-    expect(source !== QUILL_USER_EVENT_SOURCE).toBe(true);
-  });
-
-  it("should return early when source is 'render'", () => {
-    const source = "render";
-    expect(source !== QUILL_USER_EVENT_SOURCE).toBe(true);
+    expect(QUILL_USER_EVENT_SOURCE).toBe("user");
   });
 });
 
