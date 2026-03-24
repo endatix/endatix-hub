@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { SurveyCreator } from "survey-creator-react";
-import { registerMarkdownRenderer } from "./register-markdown-renderer";
+import { registerMarkdownRenderer } from "./markdown-renderer";
 import registerRichTextEditor from "@/lib/survey-features/rich-text/rich-text-editor";
 import { RICH_TEXT_EDITOR_TYPE } from "@/lib/survey-features/rich-text/ui/rich-text-editor.model";
 import { SurveyInstanceCreatedEvent } from "survey-creator-core";
@@ -43,7 +43,8 @@ export function useRichTextEditing(surveyCreator: SurveyCreator | null) {
       _: unknown,
       options: SurveyInstanceCreatedEvent,
     ) => {
-      if (options.area === "property-grid") {
+      console.log(options);
+      if (options.area === "property-grid" || options.area.startsWith("theme-tab")) {
         return;
       }
 

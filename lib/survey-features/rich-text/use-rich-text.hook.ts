@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { SurveyModel } from "survey-core";
-import { registerMarkdownRenderer } from "./register-markdown-renderer";
+import { registerMarkdownRenderer } from "./markdown-renderer";
 
 /**
  * Hook to register the markdown renderer for the survey model.

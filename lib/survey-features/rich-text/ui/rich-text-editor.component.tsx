@@ -12,10 +12,8 @@ import {
   hasActiveSelectionFromEditor,
   hideTooltipFromEditor,
 } from "./rich-text-editor.utils";
+import { normalizeWhitespace, unwrapSingleParagraph } from "../rich-text-utils";
 
-const NON_BREAKING_SPACE_REGEX = /&nbsp;|\xA0/gi;
-const SINGLE_PARAGRAPH_REGEX = /^<p>(((?!<\/?p>).)*)<\/p>$/i;
-const WHITESPACE = " ";
 export const QUILL_USER_EVENT_SOURCE = "user";
 
 /**
@@ -50,16 +48,11 @@ const modules = {
 export function normalizeAndSanitize(value: string): string {
   if (!value) return "";
 
-  const processed = value.replaceAll(NON_BREAKING_SPACE_REGEX, WHITESPACE);
+  const normalized = normalizeWhitespace(value);
 
-  const sanitized = htmlSanitizer.sanitize(processed);
+  const sanitized = htmlSanitizer.sanitize(normalized);
 
-  const match = SINGLE_PARAGRAPH_REGEX.exec(sanitized);
-  if (match && match.length > 1) {
-    return match[1].trim();
-  }
-
-  return sanitized.trim();
+  return unwrapSingleParagraph(sanitized);
 }
 
 export class RichTextEditorComponent extends SurveyQuestionElementBase {
