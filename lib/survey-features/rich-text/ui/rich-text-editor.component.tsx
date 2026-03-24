@@ -51,7 +51,6 @@ export function normalizeAndSanitize(value: string): string {
   if (!value) return "";
 
   const processed = value.replaceAll(NON_BREAKING_SPACE_REGEX, WHITESPACE);
-  debugger;
 
   const sanitized = htmlSanitizer.sanitize(processed);
 
