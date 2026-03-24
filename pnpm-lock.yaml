@@ -8,7 +8,7 @@ overrides:
   '@types/react': 19.2.3
   '@types/react-dom': 19.2.3
   preact: 10.27.3
-  fast-xml-parser: ^5.5.7
+  fast-xml-parser: ^5.5.9
   lodash: ^4.17.23
   lodash-es: ^4.17.23
   axios: ^1.13.5
