@@ -9,10 +9,54 @@ e2e/
 ├── pages/           # Page Object Model classes
 ├── tests/           # Test specifications
 │   ├── smoke/       # Smoke tests for production monitoring
+│   ├── embed/       # Embed form tests
 │   └── contact/     # Feature-specific tests
 ├── utils/           # Test helper functions
 └── README.md        # This file
 ```
+
+## Running Tests
+
+### All Tests (Excludes Smoke Tests)
+```bash
+cd hub
+pnpm test:e2e
+```
+
+### Embed Tests Only
+```bash
+cd hub
+pnpm test:e2e --grep "Embed Form"
+```
+
+### Debug Mode
+Add the `--debug` flag to the command to run the tests in debug mode or use the `--ui` flag to run the tests in interactive mode:
+```bash
+# Run with UI
+pnpm test:e2e --ui 
+# or
+pnpm test:e2e --debug
+```
+
+## Embed Tests
+
+### Prerequisites
+1. If oyu are running tests for the first time, you will be asked to install Playwright. If you do run `pnpm exec playwright install` 
+2. For local testing gainst your dev server, start it via: `pnpm dev`
+3. Set the `E2E_EMBED_FORM_ID` environment variable to a valid form ID
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `E2E_EMBED_FORM_ID` | Form ID to use for embed tests | `1480919870399840256` |
+| `BASE_URL` | Base URL for the app | `http://127.0.0.1:3000` |
+
+### What Embed Tests Verify
+- Form loads in embed mode at `/embed/{formId}`
+- Survey questions are rendered correctly
+- Navigation between pages works
+- Complete button appears on final page
 
 ## Smoke Tests
 
@@ -38,20 +82,3 @@ pnpm test:e2e:smoke
 | `SMOKE_TEST_EMAIL` | Test account email | Yes |
 | `SMOKE_TEST_PASSWORD` | Test account password | Yes |
 | `SMOKE_TEST_BASE_URL` | Production URL to test | Yes |
-
-## Running Tests
-
-### All Tests (Excludes Smoke Tests)
-```bash
-cd hub
-pnpm test:e2e
-```
-
-### Debug Mode
-Add the `--debug` flag to the command to run the tests in debug mode or use the `--ui` flag to run the tests in interactive mode. Example:
-```bash
-# Run with UI
-pnpm test:e2e --ui 
-# or
-pnpm test:e2e --debug
-```
