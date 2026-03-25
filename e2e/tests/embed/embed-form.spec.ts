@@ -9,7 +9,7 @@ declare global {
 
 test.describe("Embed Form Behavior (Real Environment)", () => {
   // Use an environment variable for the seeded form ID, or fallback to a known ID
-  const TEST_FORM_ID = process.env.E2E_EMBED_FORM_ID || "1480919870399840256";
+  const TEST_FORM_ID = process.env.E2E_EMBED_FORM_ID || "0";
 
   test.beforeEach(async ({ page, baseURL }) => {
     // 1. Set up the message interceptor BEFORE the page navigates
@@ -92,9 +92,9 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     // Scroll down the parent page slightly to test the scroll-to-top behavior
     await page.evaluate(() => window.scrollTo(0, 500));
 
-    // Click Next to go to Page 2
-    // Note: Adjust the locator based on your actual seeded form's "Next" button text/class
-    await frame.getByRole("button", { name: /Next/i }).click();
+    // Click Next to go to Page 2 - use more specific selector
+    const nextButton = frame.locator(".sd-navigation__next-btn, input[value='Next']").first();
+    await nextButton.click();
 
     // Verify the scroll message was sent to the parent
     // embed.js will catch this and execute scrollIntoView()
@@ -119,13 +119,15 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     await expect(frame.locator(".sd-root-modern")).toBeVisible();
 
     // If your seeded form has multiple pages, navigate to the end
-    const nextButton = frame.getByRole("button", { name: /Next/i });
-    if (await nextButton.isVisible()) {
+    const nextButton = frame.locator(".sd-navigation__next-btn, input[value='Next']").first();
+    while (await nextButton.isVisible().catch(() => false)) {
       await nextButton.click();
+      await page.waitForTimeout(500);
     }
 
-    // Submit the form
-    await frame.getByRole("button", { name: /Complete/i }).click();
+    // Submit the form - use more specific selector
+    const completeButton = frame.locator(".sd-navigation__complete-btn, input[value='Complete']").first();
+    await completeButton.click();
 
     // The iframe intercepts the navigation, sends 'endatix:navigate',
     // and embed.js executes window.location.href = url.
