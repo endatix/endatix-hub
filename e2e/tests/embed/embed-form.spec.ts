@@ -15,10 +15,10 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     // 1. Set up the message interceptor BEFORE the page navigates
     // addInitScript guarantees this runs before embed.js executes
     await page.addInitScript(() => {
-      window.__receivedEmbedMessages__ = [];
-      window.addEventListener("message", (event) => {
-        if (event.data && event.data.type?.startsWith("endatix:")) {
-          window.__receivedEmbedMessages__.push(event.data);
+      globalThis.window.__receivedEmbedMessages__ = [];
+      globalThis.window.addEventListener("message", (event) => {
+        if (event.data?.type?.startsWith("endatix:")) {
+          globalThis.window.__receivedEmbedMessages__.push(event.data);
         }
       });
     });
@@ -71,7 +71,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
 
     // 3. Verify the parent window received the load event
     const messages = await page.evaluate(
-      () => window.__receivedEmbedMessages__,
+      () => globalThis.window.__receivedEmbedMessages__,
     );
     expect(messages).toContainEqual(
       expect.objectContaining({
@@ -90,7 +90,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     await expect(frame.locator(".sd-root-modern")).toBeVisible();
 
     // Scroll down the parent page slightly to test the scroll-to-top behavior
-    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.evaluate(() => globalThis.window.scrollTo(0, 500));
 
     // Click Next to go to Page 2 - use more specific selector
     const nextButton = frame.locator(".sd-navigation__next-btn, input[value='Next']").first();
@@ -101,7 +101,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     await expect
       .poll(async () => {
         const messages = await page.evaluate(
-          () => window.__receivedEmbedMessages__,
+          () => globalThis.window.__receivedEmbedMessages__,
         );
         return messages.some(
           (m: EndatixEmbedMessage) => m.type === "endatix:scroll",
