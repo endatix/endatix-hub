@@ -72,4 +72,60 @@ function toSafeRelativeUrl(
   }
 }
 
-export { extractHostname, toSafeRelativeUrl };
+/**
+ * Checks if a URL is valid and safe (http/https only).
+ * Prevents dangerous protocols like javascript:, data:, vbscript:, etc.
+ * @param url - The URL to check.
+ * @returns True if the URL is valid, false otherwise.
+ */
+function isValidAbsoluteUrl(url: string): boolean {
+  if (!url || typeof url !== "string") {
+    return false;
+  }
+
+  const trimmedUrl = url.trim();
+
+  if (trimmedUrl.length === 0 || trimmedUrl.startsWith("//")) {
+    return false;
+  }
+
+  try {
+    const urlObj = new URL(trimmedUrl);
+    return urlObj.protocol === "http:" || urlObj.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks if a URL is a safe HTTP/HTTPS link, supporting both absolute and relative paths, so it supports relative redirects in embedded forms, where the host is not the same as the iframe.
+ * @param url - The URL to check (e.g., "https://example.com" or "/success").
+ * @returns True if the URL is safe, false if malformed or using an unsafe protocol.
+ */
+function isSafeRedirectUrl(url: string): boolean {
+  if (!url || typeof url !== "string") return false;
+
+  const trimmedUrl = url.trim();
+  if (trimmedUrl.length === 0 || trimmedUrl.startsWith("//")) return false;
+
+  if (!globalThis.window) return false;
+
+  // Relative path redirect (e.g., "/success" or "/thank-you?lang=en")
+  if (trimmedUrl.startsWith("/")) {
+    try {
+      const urlObj = new URL(trimmedUrl, globalThis.window.location.origin);
+      return urlObj.protocol === "http:" || urlObj.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  return isValidAbsoluteUrl(trimmedUrl);
+}
+
+export {
+  extractHostname,
+  toSafeRelativeUrl,
+  isSafeRedirectUrl,
+  isValidAbsoluteUrl,
+};
