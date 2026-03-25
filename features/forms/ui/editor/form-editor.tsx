@@ -285,9 +285,10 @@ function FormEditor({
 
     isFormUpdated = true;
 
-    const newThemeId = theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
-      ? DEFAULT_THEME_ID
-      : (theme?.id ?? themeId);
+    const newThemeId =
+      theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
+        ? DEFAULT_THEME_ID
+        : (theme?.id ?? themeId);
     const currentThemeId = themeId ?? DEFAULT_THEME_ID;
 
     if (newThemeId !== currentThemeId) {
@@ -559,7 +560,7 @@ function FormEditor({
 
     const setAsModified = (_: SurveyCreatorModel, options: ModifiedEvent) => {
       if (options.type === JSON_CHANGED_TYPE) return;
-
+      
       setHasUnsavedChanges(true);
     };
     creator.onModified.add(setAsModified);
@@ -635,4 +636,3 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
-

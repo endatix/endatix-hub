@@ -1,3 +1,3 @@
-export * from "./use-rich-text.hook";
-export * from "./use-rich-text-editing.hook";
-export * from "./ui/rich-text-editor.component";
+export { useRichText } from "./use-rich-text.hook";
+export { useRichTextEditing } from "./use-rich-text-editing.hook";
+export { RichTextEditorComponent } from "./ui/rich-text-editor.component";
