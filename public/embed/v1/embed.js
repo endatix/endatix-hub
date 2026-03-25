@@ -179,18 +179,25 @@
             return;
           }
 
+          console.debug("Endatix Embed: Message received", event.data);
           if (event.data && event.data.type === "endatix:resize") {
             var height = event.data.height;
             instance.iframe.style.height = height + "px";
           }
 
-          if (event.data && event.data.type === "endatix-scroll") {
+          if (event.data && event.data.type === "endatix:scroll") {
             requestAnimationFrame(function () {
               instance.iframe.scrollIntoView({
                 behavior: "smooth",
                 block: "start",
               });
             });
+          }
+
+          if (event.data && event.data.type === "endatix:navigate") {
+            if (event.data.url) {
+              window.location.href = event.data.url;
+            }
           }
         });
       },
