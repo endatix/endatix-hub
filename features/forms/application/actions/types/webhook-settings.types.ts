@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
 
 export const EVENT_KEYS = [
   "SubmissionCompleted",
@@ -8,15 +9,6 @@ export const EVENT_KEYS = [
   "FormEnabledStateChanged",
   "FormDeleted",
 ] as const;
-
-const isValidUrl = (url: string): boolean => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.protocol === "http:" || urlObj.protocol === "https:";
-  } catch {
-    return false;
-  }
-};
 
 export const WebhookSettingsSchema = z
   .object({
@@ -49,7 +41,7 @@ export const WebhookSettingsSchema = z
             message: "URL is required for enabled events",
             path: [urlField],
           });
-        } else if (!isValidUrl(url)) {
+        } else if (!isValidAbsoluteUrl(url)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Invalid URL format (must be http:// or https://)",

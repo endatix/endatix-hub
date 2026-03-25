@@ -68,8 +68,8 @@
     }
   };
 
-  if (!window.EndatixEmbed) {
-    window.EndatixEmbed = {
+  if (!globalThis.EndatixEmbed) {
+    globalThis.EndatixEmbed = {
       version: "1.0.0",
       loaded: true,
       instances: [],
@@ -118,7 +118,7 @@
 
         var embedProtocol = parsedUrl.protocol;
         if (
-          embedProtocol !== window.location.protocol &&
+          embedProtocol !== globalThis.window?.location?.protocol &&
           embedProtocol !== "https:"
         ) {
           console.warn(
@@ -169,7 +169,11 @@
       },
 
       setupMessageListener: function () {
-        window.addEventListener("message", (event) => {
+        if (!globalThis.window) return;
+        
+        globalThis.window.addEventListener("message", (event) => {
+          if (!event?.data || !event.source) return;
+
           var instance = this.findInstanceBySource(event.source);
           if (
             !instance ||
@@ -179,12 +183,13 @@
             return;
           }
 
-          if (event.data && event.data.type === "endatix:resize") {
+          console.debug("Endatix Embed: Message received", event.data);
+          if (event.data.type === "endatix:resize") {
             var height = event.data.height;
             instance.iframe.style.height = height + "px";
           }
 
-          if (event.data && event.data.type === "endatix-scroll") {
+          if (event.data.type === "endatix:scroll") {
             requestAnimationFrame(function () {
               instance.iframe.scrollIntoView({
                 behavior: "smooth",
@@ -192,12 +197,18 @@
               });
             });
           }
+
+          if (event.data.type === "endatix:navigate") {
+            if (event.data.url) {
+              globalThis.window.location.href = event.data.url;
+            }
+          }
         });
       },
     };
 
-    window.EndatixEmbed.setupMessageListener();
-    Object.seal(window.EndatixEmbed);
+    globalThis.EndatixEmbed.setupMessageListener();
+    Object.seal(globalThis.EndatixEmbed);
   }
 
   if (currentScript && currentScript.hasAttribute("data-form-id")) {
@@ -205,17 +216,17 @@
     var options = {
       baseUrl:
         currentScript.getAttribute("data-base-url") ||
-        window.EndatixEmbed.getDefaultBaseUrl(),
+        globalThis.EndatixEmbed.getDefaultBaseUrl(),
       prefill: currentScript.getAttribute("data-prefill") || "",
       token: currentScript.getAttribute("data-token") || "",
     };
 
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", function () {
-        window.EndatixEmbed.embedFormAt(formId, options, currentScript);
+        globalThis.EndatixEmbed.embedFormAt(formId, options, currentScript);
       });
     } else {
-      window.EndatixEmbed.embedFormAt(formId, options, currentScript);
+      globalThis.EndatixEmbed.embedFormAt(formId, options, currentScript);
     }
   }
 })();
