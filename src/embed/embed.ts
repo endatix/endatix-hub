@@ -160,7 +160,7 @@ const endatixEmbed: EndatixEmbedApi = {
 
     const embedProtocol = resolvedUrl.protocol;
     if (
-      embedProtocol !== window.location.protocol &&
+      embedProtocol !== globalThis.window.location.protocol &&
       embedProtocol !== "https:"
     ) {
       console.warn(
@@ -207,7 +207,7 @@ const endatixEmbed: EndatixEmbedApi = {
     return null;
   },
   setupMessageListener(): void {
-    window.addEventListener("message", (event) => {
+    globalThis.window.addEventListener("message", (event) => {
       if (!isRecord(event.data) || !event.source) {
         return;
       }
@@ -249,14 +249,14 @@ const endatixEmbed: EndatixEmbedApi = {
       if (type === "endatix:navigate") {
         const url = event.data.url;
         if (typeof url === "string" && url.length > 0) {
-          window.location.href = url;
+          globalThis.window.location.href = url;
         }
       }
     });
   },
 };
 
-if (!globalThis.EndatixEmbed) {
+if (!globalThis.EndatixEmbed && globalThis.window) {
   globalThis.EndatixEmbed = endatixEmbed;
   globalThis.EndatixEmbed.setupMessageListener();
 
