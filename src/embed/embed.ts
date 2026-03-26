@@ -132,8 +132,8 @@ const endatixEmbed: EndatixEmbedApi = {
     const validatedFormId = parsedFormId.id.toString();
 
     const container = document.createElement("div");
-    container.setAttribute("data-endatix-form", validatedFormId);
-    container.setAttribute("data-endatix-loaded", "true");
+    container.dataset.endatixForm = validatedFormId;
+    container.dataset.endatixLoaded = "true";
 
     if (targetScript?.parentNode) {
       targetScript.parentNode.insertBefore(container, targetScript.nextSibling);
@@ -145,7 +145,7 @@ const endatixEmbed: EndatixEmbedApi = {
 
     const iframe = document.createElement("iframe");
     iframe.id = instanceId;
-    iframe.setAttribute("data-form-id", validatedFormId);
+    iframe.dataset.formId = validatedFormId;
     const baseUrl = options.baseUrl || this.getDefaultBaseUrl();
 
     let resolvedUrl = parseUrl(baseUrl);
@@ -261,15 +261,13 @@ if (!globalThis.EndatixEmbed) {
   globalThis.EndatixEmbed.setupMessageListener();
 
   const currentScript = document.currentScript as HTMLScriptElement | null;
-  const formId = currentScript?.getAttribute("data-form-id");
+  const formId = currentScript?.dataset.formId;
   if (formId && currentScript) {
+    const { baseUrl, prefill, token } = currentScript.dataset;
     const options: EmbedOptions = {
-      baseUrl:
-        currentScript.getAttribute("data-base-url") ||
-        globalThis.EndatixEmbed.getDefaultBaseUrl() ||
-        "",
-      prefill: currentScript.getAttribute("data-prefill") || "",
-      token: currentScript.getAttribute("data-token") || "",
+      baseUrl: baseUrl || globalThis.EndatixEmbed.getDefaultBaseUrl() || "",
+      prefill: prefill || "",
+      token: token || "",
     };
 
     const embed = () => {
