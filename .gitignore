@@ -50,3 +50,6 @@ certificates
 /playwright/.cache/
 package-lock.json
 customizations/questions/question-registry.ts
+
+# embed bundle is produced by `pnpm build:embed` (also runs in predev/prebuild)
+/public/embed/v1/
