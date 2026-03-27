@@ -1,5 +1,5 @@
-/** Max positive signed 64-bit integer (typical snowflake upper bound). */
-const MAX_SNOWFLAKE_ID = BigInt("9223372036854775807");
+import { Result } from "@/lib/result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 
 interface EmbedOptions {
   baseUrl?: string;
@@ -63,50 +63,6 @@ export const parseUrl = (urlString: string): URL | null => {
   }
 };
 
-export const parseNumericId = (
-  idString: string,
-  paramName: string,
-): ParseResult => {
-  if (!paramName || typeof paramName !== "string") {
-    return {
-      isValid: false,
-      id: null,
-      error: "paramName must be a non-empty string",
-    };
-  }
-
-  if (!idString || typeof idString !== "string") {
-    return {
-      isValid: false,
-      id: null,
-      error: `${paramName} must be a non-empty string`,
-    };
-  }
-
-  try {
-    const id = BigInt(idString);
-    if (id <= 0 || id > MAX_SNOWFLAKE_ID) {
-      return {
-        isValid: false,
-        id: null,
-        error: `${paramName} must be a positive number and less than ${MAX_SNOWFLAKE_ID}`,
-      };
-    }
-
-    return {
-      isValid: true,
-      id,
-      error: null,
-    };
-  } catch {
-    return {
-      isValid: false,
-      id: null,
-      error: `${paramName} must be a valid numeric value`,
-    };
-  }
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -124,12 +80,12 @@ const endatixEmbed: EndatixEmbedApi = {
     options: EmbedOptions,
     targetScript: HTMLScriptElement | null,
   ): void {
-    const parsedFormId = parseNumericId(formId, "formId");
-    if (!parsedFormId.isValid || parsedFormId.id === null) {
-      console.error(parsedFormId.error);
+    const formIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(formIdResult)) {
+      console.error(formIdResult.message);
       return;
     }
-    const validatedFormId = parsedFormId.id.toString();
+    const validatedFormId = formIdResult.value;
 
     const container = document.createElement("div");
     container.dataset.endatixForm = validatedFormId;
