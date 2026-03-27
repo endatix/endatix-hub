@@ -13,12 +13,14 @@ import z from "zod";
 interface SubmissionDetailsViewOptions {
   showInvisibleItems: boolean;
   showDynamicVariables: boolean;
+  showCalculatedValues: boolean;
   useSubmissionLanguage: boolean;
 }
 
 const SubmissionDetailsViewOptionsSchema = z.object({
   showInvisibleItems: z.boolean(),
   showDynamicVariables: z.boolean(),
+  showCalculatedValues: z.boolean().optional(),
   useSubmissionLanguage: z.boolean().optional(),
 });
 
@@ -37,6 +39,7 @@ const LOCAL_STORAGE_KEY = "SubmissionDetailsViewOptions";
 const defaultOptions: SubmissionDetailsViewOptions = {
   showInvisibleItems: true,
   showDynamicVariables: true,
+  showCalculatedValues: true,
   useSubmissionLanguage: true,
 };
 

@@ -15,6 +15,13 @@ interface PdfSubmissionVariablesProps {
   stringifiedMetadata: string;
 }
 
+interface PdfCalculatedValue {
+  name: string;
+  value: unknown;
+  expression: string;
+  includeIntoResult: boolean;
+}
+
 export const PdfSubmissionVariables = ({
   surveyModel,
   stringifiedMetadata,
@@ -44,34 +51,77 @@ export const PdfSubmissionVariables = ({
 
   const dynamicVariableNames = surveyModel.getVariableNames?.() ?? [];
   const hasVariables = dynamicVariableNames.length > 0;
+  const calculatedValues = (surveyModel.calculatedValues ?? []).map((item) => ({
+    name: item.name ?? "",
+    value: surveyModel.getValue(item.name ?? ""),
+    expression: item.expression ?? "",
+    includeIntoResult: Boolean(item.includeIntoResult),
+  })) as PdfCalculatedValue[];
+  const hasCalculatedValues = calculatedValues.length > 0;
 
-  if (!hasVariables) {
+  if (!hasVariables && !hasCalculatedValues) {
     return null;
   }
 
   return (
-    <View style={styles.dynamicVariablesSection}>
-      <View style={PDF_STYLES.flexRow}>
-        <UserRoundSearchIcon />
-        <Text style={styles.dynamicVariablesTitle}>Dynamic Variables</Text>
-      </View>
-      <View style={styles.dynamicVariablesList}>
-        {dynamicVariableNames.map((name) => (
-          <View key={name} style={styles.dynamicVariableRow}>
-            <Text style={styles.dynamicVariableName}>{`@${name} =`}</Text>
-            <Text
-              style={styles.dynamicVariableValue}
-            >{` ${surveyModel.getVariable(name)}`}</Text>
+    <View style={styles.sectionsContainer}>
+      {hasVariables && (
+        <View style={styles.dynamicVariablesSection}>
+          <View style={PDF_STYLES.flexRow}>
+            <UserRoundSearchIcon />
+            <Text style={styles.dynamicVariablesTitle}>Dynamic Variables</Text>
           </View>
-        ))}
-      </View>
+          <View style={styles.dynamicVariablesList}>
+            {dynamicVariableNames.map((name) => (
+              <View key={name} style={styles.dynamicVariableRow}>
+                <View style={styles.calculatedNameRow}>
+                  <Text style={styles.dynamicVariableName}>{`@${name} =`}</Text>
+                  <Text
+                    style={styles.dynamicVariableValue}
+                  >{` ${surveyModel.getVariable(name)}`}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+      {hasCalculatedValues && (
+        <View style={styles.dynamicVariablesSection}>
+          <View style={PDF_STYLES.flexRow}>
+            <Text style={styles.dynamicVariablesTitle}>Calculated Values</Text>
+          </View>
+          <View style={styles.dynamicVariablesList}>
+            {calculatedValues.map((item) => (
+              <View key={item.name} style={styles.dynamicVariableRow}>
+                <View style={styles.calculatedNameRow}>
+                  <Text
+                    style={styles.dynamicVariableName}
+                  >{`${item.name} =`}</Text>
+                  <Text
+                    style={styles.dynamicVariableValue}
+                  >{` ${item.value ?? ""}`}</Text>
+                </View>
+                <Text style={styles.calculatedMeta}>
+                  {`includeIntoResult: ${item.includeIntoResult ? "true" : "false"}`}
+                </Text>
+                <Text style={styles.calculatedExpression}>
+                  {`expression: ${item.expression || "-"}`}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  dynamicVariablesSection: {
+  sectionsContainer: {
     marginBottom: 12,
+    gap: 8,
+  },
+  dynamicVariablesSection: {
     padding: 8,
     backgroundColor: "#f9f9f9",
     borderRadius: 4,
@@ -86,8 +136,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dynamicVariableRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column",
+    alignItems: "flex-start",
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 3,
@@ -95,6 +145,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     marginBottom: 2,
     backgroundColor: "#fff",
+  },
+  calculatedNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   dynamicVariableName: {
     fontSize: 10,
@@ -104,5 +158,15 @@ const styles = StyleSheet.create({
   dynamicVariableValue: {
     fontSize: 10,
     color: "#222",
+  },
+  calculatedMeta: {
+    marginTop: 2,
+    fontSize: 9,
+    color: "#555",
+  },
+  calculatedExpression: {
+    marginTop: 1,
+    fontSize: 9,
+    color: "#555",
   },
 });

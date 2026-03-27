@@ -10,6 +10,7 @@ import { CustomQuestion } from "@/services/api";
 import { Submission } from "@/lib/endatix-api";
 import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
 import DynamicVariablesList from "./dynamic-variables-list";
+import CalculatedValuesList from "./calculated-values-list";
 import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
 import { surveyLocalization } from "survey-core";
 import {
@@ -67,7 +68,7 @@ export function SubmissionAnswers({
       surveyModel.locale = surveyLocalization.defaultLocale;
     }
 
-    const surveyQuestions = surveyModel.getAllQuestions(false, false, false);
+    const surveyQuestions = surveyModel.getAllQuestions(false, true, true);
     setQuestions(surveyQuestions);
   }, [
     surveyModel,
@@ -90,6 +91,7 @@ export function SubmissionAnswers({
       <SectionTitle title="Submission Answers" headingClassName="py-2 my-0" />
       <div className="grid gap-4">
         <DynamicVariablesList surveyModel={surveyModel} />
+        <CalculatedValuesList surveyModel={surveyModel} />
         {questions.map((question) => (
           <SubmissionItemRow
             key={question.id}
@@ -112,11 +114,11 @@ const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
     return options.showInvisibleItems ? (
       <div
         key={question.id}
-        className="grid grid-cols-5 items-start gap-4 mb-6"
+        className="mb-6 grid grid-cols-5 items-start gap-4"
       >
         <QuestionLabel forQuestion={question} title={question.title} />
         <div className="col-span-3 flex items-center gap-2 pt-2">
-          <EyeOff className="w-4 h-4 text-muted-foreground" />
+          <EyeOff className="h-4 w-4 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             This question was not visible in the survey.
           </p>
@@ -128,7 +130,7 @@ const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
   return (
     <div
       key={question.id}
-      className="grid grid-cols-5 items-center align-middle gap-4 mb-6"
+      className="mb-6 grid grid-cols-5 items-center gap-4 align-middle"
     >
       <QuestionLabel forQuestion={question} title={question.title} />
       <AnswerViewer
