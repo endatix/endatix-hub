@@ -111,6 +111,7 @@ const CalculatedValuesList = ({ surveyModel }: CalculatedValuesListProps) => {
         <CollapsibleContent className="flex flex-col gap-2">
           {calculatedValues.map((item) => {
             const hasExpression = Boolean(item.expression?.trim());
+            const itemValue = typeof item.value === "string" ? item.value : "";
 
             return (
               <div
@@ -123,7 +124,7 @@ const CalculatedValuesList = ({ surveyModel }: CalculatedValuesListProps) => {
                       {`${item.name} =`}
                     </span>
                     <span className="truncate text-sm font-medium">
-                      {`${item.value ?? ""}`}
+                      {`${itemValue}`}
                     </span>
                   </div>
                 </div>

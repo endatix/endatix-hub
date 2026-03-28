@@ -55,6 +55,25 @@ export const copyValueToClipboard = (value: string): boolean => {
 };
 
 const ANIMATION_DURATION = 4000;
+const TOOLTIP_TEXT_DEFAULT = "Copy to clipboard";
+const TOOLTIP_TEXT_COPIED = "Copied to clipboard";
+
+const getTooltipContent = (
+  tooltipContent:
+    | ReactNode
+    | ((ctx: CopyToClipboardTooltipContext) => ReactNode),
+  isCopied: boolean,
+) => {
+  if (tooltipContent === undefined) {
+    return isCopied ? TOOLTIP_TEXT_COPIED : TOOLTIP_TEXT_DEFAULT;
+  }
+
+  if (typeof tooltipContent === "function") {
+    return tooltipContent({ isCopied });
+  }
+
+  return tooltipContent;
+};
 
 const CopyToClipboard = ({
   copyValue,
@@ -86,14 +105,7 @@ const CopyToClipboard = ({
     }
   };
 
-  const defaultTooltip = isCopied ? "Copied to clipboard" : "Copy to clipboard";
-  const tooltipBody =
-    tooltipContent === undefined
-      ? defaultTooltip
-      : typeof tooltipContent === "function"
-        ? tooltipContent({ isCopied })
-        : tooltipContent;
-
+  const tooltipBody = getTooltipContent(tooltipContent, isCopied);
   const cursorClassName = disabled ? "cursor-default" : "cursor-pointer";
   const layoutClassName =
     layout === "overlay"
