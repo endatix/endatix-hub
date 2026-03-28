@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   CollapsibleContent,
@@ -15,6 +17,12 @@ import { ChevronsUpDown, CircleHelp, UserRoundSearch } from "lucide-react";
 import { useState } from "react";
 import { Model } from "survey-react-ui";
 import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import {
+  submissionAnswerValueColumnClass,
+  submissionMetaRowClass,
+} from "./submission-details-value-column";
+import CopyToClipboard from "@/components/copy-to-clipboard";
+import { cn } from "@/lib/utils";
 
 interface DynamicVariablesListProps {
   surveyModel: Model;
@@ -84,19 +92,35 @@ const DynamicVariablesList = ({ surveyModel }: DynamicVariablesListProps) => {
           </Button>
         </CollapsibleTrigger>
       </div>
-      <div className="col-span-3">
+      <div className={submissionAnswerValueColumnClass}>
         <CollapsibleContent className="flex flex-col gap-2">
-          {Object.entries(variables).map(([name, value]) => (
-            <div
-              key={name}
-              className="flex items-center rounded-md border p-0.5 px-2"
-            >
-              <span className="pr-1 text-sm font-medium text-muted-foreground">
-                {`@${name} =`}
-              </span>
-              <span className="text-sm font-medium">{` ${value}`}</span>
-            </div>
-          ))}
+          {Object.entries(variables).map(([name, value]) => {
+            const valueToCopy =
+              typeof value === "string" && value.trim().length > 0 ? value : "";
+            const canCopy = valueToCopy.trim().length > 0;
+
+            return (
+              <div
+                key={name}
+                className={cn(submissionMetaRowClass, "relative")}
+              >
+                <CopyToClipboard
+                  className="mr-4"
+                  disabled={!canCopy}
+                  copyValue={() => valueToCopy}
+                  label="Copy value"
+                />
+                <div className="flex w-full min-w-0 items-center gap-1.5 pr-8">
+                  <span className="shrink-0 text-sm font-medium text-muted-foreground">
+                    {`@${name} =`}
+                  </span>
+                  <span className="truncate text-sm font-medium">
+                    {`${value}`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </CollapsibleContent>
       </div>
     </Collapsible>

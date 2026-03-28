@@ -9,7 +9,7 @@ interface TextAnswerProps extends React.HtmlHTMLAttributes<HTMLInputElement> {
 
 function TextAnswer({ question, className }: TextAnswerProps) {
   return (
-    <div className="relative">
+    <div className="relative w-full min-w-0">
       {question.value && (
         <CopyToClipboard
           copyValue={() => question.value ?? "N/A"}

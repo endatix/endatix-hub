@@ -46,7 +46,6 @@ import { useRouter } from "next/navigation";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
-import CopyToClipboard from "@/components/copy-to-clipboard";
 import { WebhookSettings } from "./webhook-settings";
 import { ShareDialog } from "./share-dialog";
 

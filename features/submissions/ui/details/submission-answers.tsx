@@ -18,6 +18,7 @@ import {
   isLocaleValid,
 } from "../../submission-localization";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import { submissionAnswerValueColumnClass } from "./submission-details-value-column";
 
 registerAudioQuestion();
 
@@ -117,7 +118,9 @@ const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
         className="mb-6 grid grid-cols-5 items-start gap-4"
       >
         <QuestionLabel forQuestion={question} title={question.title} />
-        <div className="col-span-3 flex items-center gap-2 pt-2">
+        <div
+          className={`${submissionAnswerValueColumnClass} flex items-center gap-2 pt-2`}
+        >
           <EyeOff className="h-4 w-4 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             This question was not visible in the survey.
@@ -133,11 +136,13 @@ const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
       className="mb-6 grid grid-cols-5 items-center gap-4 align-middle"
     >
       <QuestionLabel forQuestion={question} title={question.title} />
-      <AnswerViewer
-        key={question.id}
-        forQuestion={question}
-        className="col-span-3"
-      />
+      <div className={submissionAnswerValueColumnClass}>
+        <AnswerViewer
+          key={question.id}
+          forQuestion={question}
+          className="w-full min-w-0"
+        />
+      </div>
     </div>
   );
 };
