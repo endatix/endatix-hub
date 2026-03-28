@@ -127,4 +127,9 @@ describe("formatValue", () => {
   it("should handle unknown types with String()", () => {
     expect(formatValue(Symbol("test"))).toBe("Symbol(test)");
   });
+
+  it("should handle functions", () => {
+    const myFunc = () => {};
+    expect(formatValue(myFunc)).toBe("[function]");
+  });
 });

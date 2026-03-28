@@ -70,6 +70,10 @@ function formatValue(value: unknown): string {
     return `{${keys.length} keys}`;
   }
 
+  if (typeof value === "function") {
+    return "[function]";
+  }
+
   return String(value);
 }
 
