@@ -16,7 +16,9 @@ interface SubmissionViewOptionsProps {
   submissionLanguageName?: string;
 }
 
-export function SubmissionViewOptions({ submissionLanguageName }: SubmissionViewOptionsProps) {
+export function SubmissionViewOptions({
+  submissionLanguageName,
+}: SubmissionViewOptionsProps) {
   const { options, toggleOption, resetOptions } =
     useSubmissionDetailsViewOptions();
 
@@ -24,7 +26,7 @@ export function SubmissionViewOptions({ submissionLanguageName }: SubmissionView
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4" />
+          <Settings2 className="h-4 w-4" />
           View
         </Button>
       </DropdownMenuTrigger>
@@ -43,6 +45,12 @@ export function SubmissionViewOptions({ submissionLanguageName }: SubmissionView
         >
           Show Dynamic Variables
         </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={options.showCalculatedValues}
+          onCheckedChange={() => toggleOption("showCalculatedValues")}
+        >
+          Show Calculated Values
+        </DropdownMenuCheckboxItem>
         {submissionLanguageName && (
           <DropdownMenuCheckboxItem
             checked={options.useSubmissionLanguage}
@@ -55,7 +63,7 @@ export function SubmissionViewOptions({ submissionLanguageName }: SubmissionView
         <Button
           variant="ghost"
           size="sm"
-          className="w-full mt-1"
+          className="mt-1 w-full"
           onClick={resetOptions}
         >
           Reset to Default

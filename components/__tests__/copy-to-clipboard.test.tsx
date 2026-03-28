@@ -74,7 +74,7 @@ describe("CopyToClipboard", () => {
 
       expect(toast.success).toHaveBeenCalledWith({
         title: "Copied to clipboard",
-        duration: 2000,
+        duration: 4000,
       });
     });
   });
@@ -100,7 +100,7 @@ describe("CopyToClipboard", () => {
       fireEvent.click(button);
 
       act(() => {
-        vi.advanceTimersByTime(2000);
+        vi.advanceTimersByTime(4000);
       });
 
       // Should be back to clipboard icon
@@ -109,13 +109,53 @@ describe("CopyToClipboard", () => {
   });
 
   describe("Error Handling", () => {
-    it("should handle empty string value", () => {
+    it("should not write to clipboard when value is empty", () => {
       render(<CopyToClipboard copyValue="" />);
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
 
-      expect(mockWriteText).toHaveBeenCalledWith("");
+      expect(mockWriteText).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Layout and tooltip", () => {
+    it("should use inline layout without absolute positioning classes", () => {
+      const { container } = render(
+        <CopyToClipboard copyValue="x" layout="inline" />,
+      );
+      const root = container.firstChild as HTMLElement;
+      expect(root.className).not.toContain("absolute");
+      expect(root.className).toContain("inline-flex");
+    });
+
+    it("should attach tooltip trigger to the button when not disabled", () => {
+      render(<CopyToClipboard copyValue="x" />);
+      expect(screen.getByRole("button").getAttribute("data-slot")).toBe(
+        "tooltip-trigger",
+      );
+    });
+
+    it("should not render tooltip when disabled", () => {
+      const { container } = render(
+        <CopyToClipboard
+          copyValue="x"
+          disabled
+          tooltipContent={<span data-testid="tip-never">Hidden</span>}
+        />,
+      );
+
+      const button = screen.getByRole("button");
+      expect(button.getAttribute("data-slot")).toBe("button");
+      expect((button as HTMLButtonElement).disabled).toBe(true);
+      expect(container.querySelector('[data-slot="tooltip"]')).toBeNull();
+      expect(screen.queryByTestId("tip-never")).toBeNull();
+    });
+
+    it("should not copy when disabled", () => {
+      render(<CopyToClipboard copyValue="secret" disabled />);
+      fireEvent.click(screen.getByRole("button"));
+      expect(mockWriteText).not.toHaveBeenCalled();
     });
   });
 });

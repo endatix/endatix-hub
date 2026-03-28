@@ -33,4 +33,48 @@ function formatBytes(bytes: number, decimals: number = 2): string {
   return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
-export { formatNumber, formatBytes };
+/**
+ * Formats an unknown value into a display string
+ * @param value - The value to format (can be string, number, boolean, array, object, or null/undefined)
+ * @returns A human-readable string representation of the value
+ */
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return formatNumber(value);
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return "[]";
+    }
+    return `[${value.length} items]`;
+  }
+
+  if (typeof value === "object") {
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      return "{}";
+    }
+    return `{${keys.length} keys}`;
+  }
+
+  if (typeof value === "function") {
+    return "[function]";
+  }
+
+  return String(value);
+}
+
+export { formatNumber, formatBytes, formatValue };
