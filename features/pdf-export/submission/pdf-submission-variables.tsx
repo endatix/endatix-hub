@@ -91,24 +91,28 @@ export const PdfSubmissionVariables = ({
             <Text style={styles.dynamicVariablesTitle}>Calculated Values</Text>
           </View>
           <View style={styles.dynamicVariablesList}>
-            {calculatedValues.map((item) => (
-              <View key={item.name} style={styles.dynamicVariableRow}>
-                <View style={styles.calculatedNameRow}>
-                  <Text
-                    style={styles.dynamicVariableName}
-                  >{`${item.name} =`}</Text>
-                  <Text
-                    style={styles.dynamicVariableValue}
-                  >{` ${item.value ?? ""}`}</Text>
+            {calculatedValues.map((item) => {
+              const itemValue =
+                typeof item.value === "string" ? item.value : "";
+              return (
+                <View key={item.name} style={styles.dynamicVariableRow}>
+                  <View style={styles.calculatedNameRow}>
+                    <Text
+                      style={styles.dynamicVariableName}
+                    >{`${item.name} =`}</Text>
+                    <Text
+                      style={styles.dynamicVariableValue}
+                    >{` ${itemValue}`}</Text>
+                  </View>
+                  <Text style={styles.calculatedMeta}>
+                    {`includeIntoResult: ${item.includeIntoResult ? "true" : "false"}`}
+                  </Text>
+                  <Text style={styles.calculatedExpression}>
+                    {`expression: ${item.expression || "-"}`}
+                  </Text>
                 </View>
-                <Text style={styles.calculatedMeta}>
-                  {`includeIntoResult: ${item.includeIntoResult ? "true" : "false"}`}
-                </Text>
-                <Text style={styles.calculatedExpression}>
-                  {`expression: ${item.expression || "-"}`}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       )}
