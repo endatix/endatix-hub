@@ -162,7 +162,7 @@ describe("CalculatedValuesList", () => {
           },
         ],
       });
-      modelWithLowercase.setValue("lowercasevar", "test_value");
+      modelWithLowercase.setVariable("lowercasevar", "test_value");
 
       renderWithContext(
         <CalculatedValuesList surveyModel={modelWithLowercase} />,
@@ -182,13 +182,107 @@ describe("CalculatedValuesList", () => {
           },
         ],
       });
-      modelWithUppercase.setValue("UPPERCASEVAR", "test_value");
+      modelWithUppercase.setVariable("UPPERCASEVAR", "test_value");
 
       renderWithContext(
         <CalculatedValuesList surveyModel={modelWithUppercase} />,
       );
 
       expect(screen.getByText(/UPPERCASEVAR =/)).toBeDefined();
+    });
+  });
+
+  describe("Value type formatting", () => {
+    it("should handle string values in formatValue", () => {
+      const modelWithString = new SurveyModel({
+        elements: [{ type: "text", name: "test" }],
+        calculatedValues: [
+          {
+            name: "stringValue",
+            expression: "{test}",
+            includeIntoResult: true,
+          },
+        ],
+      });
+      modelWithString.setVariable("stringValue", "hello world");
+
+      renderWithContext(<CalculatedValuesList surveyModel={modelWithString} />);
+
+      expect(screen.getByText(/stringValue =/)).toBeDefined();
+    });
+
+    it("should handle number values in formatValue", () => {
+      const modelWithNumber = new SurveyModel({
+        elements: [{ type: "text", name: "test" }],
+        calculatedValues: [
+          {
+            name: "numberValue",
+            expression: "{test}",
+            includeIntoResult: true,
+          },
+        ],
+      });
+      modelWithNumber.setVariable("numberValue", 42);
+
+      renderWithContext(<CalculatedValuesList surveyModel={modelWithNumber} />);
+
+      expect(screen.getByText(/numberValue =/)).toBeDefined();
+    });
+
+    it("should handle boolean values in formatValue", () => {
+      const modelWithBoolean = new SurveyModel({
+        elements: [{ type: "text", name: "test" }],
+        calculatedValues: [
+          {
+            name: "boolValue",
+            expression: "{test}",
+            includeIntoResult: true,
+          },
+        ],
+      });
+      modelWithBoolean.setVariable("boolValue", true);
+
+      renderWithContext(
+        <CalculatedValuesList surveyModel={modelWithBoolean} />,
+      );
+
+      expect(screen.getByText(/boolValue =/)).toBeDefined();
+    });
+
+    it("should handle array values in formatValue", () => {
+      const modelWithArray = new SurveyModel({
+        elements: [{ type: "text", name: "test" }],
+        calculatedValues: [
+          {
+            name: "arrayValue",
+            expression: "{test}",
+            includeIntoResult: true,
+          },
+        ],
+      });
+      modelWithArray.setVariable("arrayValue", [1, 2, 3]);
+
+      renderWithContext(<CalculatedValuesList surveyModel={modelWithArray} />);
+
+      expect(screen.getByText(/arrayValue =/)).toBeDefined();
+    });
+
+    it("should handle object values in formatValue", () => {
+      const modelWithObject = new SurveyModel({
+        elements: [{ type: "text", name: "test" }],
+        calculatedValues: [
+          {
+            name: "objectValue",
+            expression: "{test}",
+            includeIntoResult: true,
+          },
+        ],
+      });
+      modelWithObject.setVariable("objectValue", { key1: "value1" });
+
+      renderWithContext(<CalculatedValuesList surveyModel={modelWithObject} />);
+
+      expect(screen.getByText(/objectValue =/)).toBeDefined();
     });
   });
 });

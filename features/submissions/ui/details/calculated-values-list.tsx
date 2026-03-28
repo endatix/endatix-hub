@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatValue } from "@/lib/utils/formatters";
 import { Collapsible } from "@radix-ui/react-collapsible";
 import { Calculator, ChevronsUpDown, CircleHelp } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -48,7 +49,7 @@ const CalculatedValuesList = ({ surveyModel }: CalculatedValuesListProps) => {
       const name = item.name ?? "";
       return {
         name,
-        value: surveyModel.getValue(name),
+        value: item.value,
         expression: item.expression ?? "",
         includeIntoResult: Boolean(item.includeIntoResult),
       };
@@ -111,7 +112,7 @@ const CalculatedValuesList = ({ surveyModel }: CalculatedValuesListProps) => {
         <CollapsibleContent className="flex flex-col gap-2">
           {calculatedValues.map((item) => {
             const hasExpression = Boolean(item.expression?.trim());
-            const itemValue = typeof item.value === "string" ? item.value : "";
+            const itemValue = formatValue(item.value);
 
             return (
               <div
