@@ -11,7 +11,6 @@ import { Model } from "survey-core";
 import { PDF_STYLES } from "./pdf-styles";
 import { PdfSubmissionAnswer } from "./pdf-submission-answer";
 import { PdfSubmissionProperties } from "./pdf-submission-properties";
-import { PdfSubmissionVariables } from "./pdf-submission-variables";
 
 Font.register({
   family: "Roboto",
@@ -52,10 +51,6 @@ export const SubmissionDetailsPdf = ({
         <PdfSubmissionProperties submission={submission} />
         <View style={PDF_STYLES.section}>
           <Text style={PDF_STYLES.sectionTitle}>Submission Answers</Text>
-          <PdfSubmissionVariables
-            surveyModel={surveyModel}
-            stringifiedMetadata={submission.metadata}
-          />
           <View style={{ marginTop: 8 }}>
             {questions?.map((question) => (
               <PdfSubmissionAnswer
