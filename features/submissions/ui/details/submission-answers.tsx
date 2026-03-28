@@ -69,7 +69,7 @@ export function SubmissionAnswers({
       surveyModel.locale = surveyLocalization.defaultLocale;
     }
 
-    const surveyQuestions = surveyModel.getAllQuestions(false, true, true);
+    const surveyQuestions = surveyModel.getAllQuestions(false, false, false);
     setQuestions(surveyQuestions);
   }, [
     surveyModel,
