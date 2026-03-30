@@ -50,6 +50,14 @@ export interface ExtensionDefinition {
    * @returns A Promise that resolves to the extension module.
    */
   load?: () => Promise<ExtensionModule>;
+
+  /**
+   * Synchronous init function for extensions that should be loaded immediately.
+   * Use this for always-on extensions that don't need lazy loading.
+   * @example
+   * init: () => { registerExpressionFormatting(); }
+   */
+  init?: () => void;
 }
 
 /**

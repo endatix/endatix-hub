@@ -9,6 +9,7 @@
  */
 
 import type { ExtensionDefinition } from "./types";
+import { registerExpressionFormatting } from "@/lib/survey-features/expression-formatting";
 
 /**
  * Core extensions that ship with the platform.
@@ -24,7 +25,19 @@ import type { ExtensionDefinition } from "./types";
  *       (module) => module.default,
  *     ),
  */
-export const coreExtensions: ExtensionDefinition[] = [];
+export const coreExtensions: ExtensionDefinition[] = [
+  {
+    id: "expression-formatting",
+    type: "feature",
+    metadata: {
+      name: "Expression Formatting",
+      description:
+        "Adds formatCurrency, formatNumber, formatDate, and smartFormat functions to SurveyJS expressions",
+    },
+    shouldLoad: () => true,
+    init: registerExpressionFormatting,
+  },
+];
 
 
 /**

@@ -11,6 +11,20 @@ const loadedModules = new Map<string, ExtensionModule>();
 const loadingPromises = new Map<string, Promise<ExtensionModule | undefined>>();
 const initializedKeys = new Set<string>();
 
+function initializeExtensions(extensions: ExtensionDefinition[]) {
+  const initExtensions = extensions.filter((ext) => ext.init);
+  initExtensions.forEach((ext) => {
+    if (!initializedKeys.has(ext.id)) {
+      try {
+        ext.init?.();
+        console.debug(`✓ [ExtensionLoader] Initialized extension: ${ext.id}`);
+      } catch (error) {
+        console.error(`✗ [ExtensionLoader] Error: ${ext.id}`, error);
+      }
+    }
+  });
+}
+
 export interface UseExtensionLoaderOptions {
   allExtensions: ExtensionDefinition[];
   extensionIdsToLoad: string[];
@@ -77,6 +91,9 @@ export function useExtensionLoader({
 
   useEffect(() => {
     mountedRef.current = true;
+
+    // Initialize any synchronous extensions
+    initializeExtensions(extensionsToLoad);
 
     // Guard to avoid unnecessary loading
     if (extensionsToLoad.length === 0 || initializedKeys.has(extensionIdsKey)) {
