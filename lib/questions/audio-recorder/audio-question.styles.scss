@@ -51,8 +51,7 @@
   --audio-loading-dot-color: #666;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root.dark {
     --audio-button-bg: #2d2d2d;
     --audio-button-border: #555;
     --audio-button-color: #e0e0e0;
@@ -101,7 +100,6 @@
     --audio-player-display-shadow: rgba(0, 0, 0, 0.3);
 
     --audio-loading-dot-color: #a5a8ac;
-  }
 }
 
 .endatix_audio_controls {

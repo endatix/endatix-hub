@@ -1,6 +1,5 @@
 "use client";
 
-import { endatixTheme } from "@/components/editors/endatix-theme";
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
@@ -23,6 +22,7 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -191,6 +191,10 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
+
+  const creatorTheme = useEndatixCreatorTheme();
+  const creatorThemeRef = useRef(creatorTheme);
+  creatorThemeRef.current = creatorTheme;
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -443,6 +447,7 @@ function FormEditor({
     });
   }, [creator, questionClasses]);
 
+
   useEffect(() => {
     const initializeNewCreator = async () => {
       if (creator || isCreatorInitializedRef.current) {
@@ -490,7 +495,7 @@ function FormEditor({
         };
         initQuestionLoopsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
-        newCreator.applyCreatorTheme(endatixTheme);
+        newCreator.applyCreatorTheme(creatorThemeRef.current);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
 
         onCreatorCreated(newCreator);
