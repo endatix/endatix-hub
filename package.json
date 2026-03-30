@@ -139,7 +139,8 @@
       "immutable": "^5.1.5",
       "flatted": "^3.4.2",
       "picomatch@>=2 <3": "^2.3.2",
-      "picomatch@>=4 <5": "^4.0.4"
+      "picomatch@>=4 <5": "^4.0.4",
+      "brace-expansion": "^5.0.5"
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
@@ -151,7 +152,7 @@
       "unrs-resolver"
     ],
     "comments": {
-      "overrides": "[@types/react] & [@types/react-dom] are managed by Next.js. |  [preact] 10.27.3 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump | [fast-xml-parser] 5.5.9 bump is to address CVE-2026-25128, CVE-2026-27942, CVE-2026-33036 & CVE-2026-33349. Remove once we upgrade @azure/storage-blob | [lodash] 4.17.23 bump is to address CVE-2025-13465. Multiple peer dependenices hold outdated versions | [lodash-es] 4.17.23 bump is to address CVE-2025-13465. Fix with quill & react-quill-new bump | [axios] 1.13.5 bump is to address CVE-2026-25639. Remove when @flags-sdk/posthog is updated | [minimatch] 10.2.4 bump is to address CVE-2026-27904. Remove with vitest 4x & eslint-config-next | [immutable] 5.1.5 bump is to address CVE-2026-29063. Multiple peer dependenices hold outdated versions. | [flatted] 3.4.2 bump is to address CVE-2026-33228. Remove with next vitest bump | [picomatch] 2.3.2 & 4.0.4 bump is to address CVE-2026-33671 & CVE-2026-33671. Multiple peer dependenices hold outdated versions."
+      "overrides": "[@types/react] & [@types/react-dom] are managed by Next.js. |  [preact] 10.27.3 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump | [fast-xml-parser] 5.5.9 bump is to address CVE-2026-25128, CVE-2026-27942, CVE-2026-33036 & CVE-2026-33349. Remove once we upgrade @azure/storage-blob | [lodash] 4.17.23 bump is to address CVE-2025-13465. Multiple peer dependenices hold outdated versions | [lodash-es] 4.17.23 bump is to address CVE-2025-13465. Fix with quill & react-quill-new bump | [axios] 1.13.5 bump is to address CVE-2026-25639. Remove when @flags-sdk/posthog is updated | [minimatch] 10.2.4 bump is to address CVE-2026-27904. Remove with vitest 4x & eslint-config-next | [immutable] 5.1.5 bump is to address CVE-2026-29063. Multiple peer dependenices hold outdated versions. | [flatted] 3.4.2 bump is to address CVE-2026-33228. Remove with next vitest bump | [picomatch] 2.3.2 & 4.0.4 bump is to address CVE-2026-33671 & CVE-2026-33671. Multiple peer dependenices hold outdated versions. | [brace-expansion] 5.0.5 bump is to address CVE-2026-33750. Fix with new minimatch& eslintbump"
     }
   }
 }
