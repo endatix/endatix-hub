@@ -1,6 +1,8 @@
 import { endatixThemeDark, endatixThemeLight } from "./endatix-creator-theme";
-import { endatixSurveyThemeDark } from "./endatix-survey-theme-dark";
-import { endatixSurveyThemeLight } from "./endatix-survey-theme-light";
+import {
+  endatixSurveyThemeDark,
+  endatixSurveyThemeLight,
+} from "./endatix-survey-theme";
 
 const DARK_THEME = "dark";
 /**

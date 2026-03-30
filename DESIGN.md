@@ -148,7 +148,7 @@ Our spacing is built on a tight 0.2rem increment for precision data-density, exp
 
 1. Update `:root` and/or `.dark` values in `app/globals.css` first.
 2. Verify creator variables in `lib/themes/endatix-creator-theme.ts` still map to existing app tokens (no hardcoded old hex leftovers).
-3. Verify submission survey variables in `lib/themes/endatix-survey-theme-light.ts` and `lib/themes/endatix-survey-theme-dark.ts` still map to the same token set.
+3. Verify submission survey variables in `lib/themes/endatix-survey-theme.ts` still map to the same token set.
 4. Ensure light/dark resolution stays tied to `next-themes` (same as `ThemeProvider`):
    - Creator: `useEndatixCreatorTheme()` (or `pickCreatorTheme(resolvedTheme)` for non-React code)
    - Survey model: `useEndatixSurveyTheme()` (or `pickSurveyTheme(resolvedTheme)`)
