@@ -102,7 +102,12 @@
   --chart-3: hsl(221, 97%, 53%);
   --chart-4: hsl(216, 100%, 41%);
   --chart-5: hsl(227, 76%, 41%);
-  
+
+  --success: hsl(152 55% 36%);
+  --success-foreground: hsl(0 0% 100%);
+  --warning: hsl(32 90% 46%);
+  --warning-foreground: hsl(0 0% 100%);
+
   --sidebar: hsl(0 0% 98%);
   --sidebar-foreground: hsl(240 5.3% 26.1%);
   --sidebar-primary: hsl(240 5.9% 10%);
@@ -114,50 +119,55 @@
 }
 
 .dark {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
+  --background: #000f21;
+  --foreground: #d7e6ff;
 
-  --card: hsl(222.2 84% 4.9%);
-  --card-foreground: hsl(210 40% 98%);
+  --card: #001a34;
+  --card-foreground: #d7e6ff;
 
-  --popover: hsl(222.2 84% 4.9%);
-  --popover-foreground: hsl(210 40% 98%);
+  --popover: #001a34;
+  --popover-foreground: #d7e6ff;
 
-  --primary: hsl(216 100% 51%);
-  --primary-foreground: hsl(222.2 47.4% 11.2%);
+  --primary: #b4c5ff;
+  --primary-foreground: #00389a;
 
-  --secondary: hsl(217.2 32.6% 17.5%);
-  --secondary-foreground: hsl(210 40% 98%);
+  --secondary: #9e9da1;
+  --secondary-foreground: #1f2023;
 
-  --muted: hsl(217.2 32.6% 17.5%);
-  --muted-foreground: hsl(215 20.2% 65.1%);
+  --muted: #00203e;
+  --muted-foreground: #7aaeef;
 
-  --accent: hsl(217.2 32.6% 17.5%);
-  --accent-foreground: hsl(210 40% 98%);
+  --accent: #00203e;
+  --accent-foreground: #d7e6ff;
 
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(210 40% 98%);
+  --destructive: #ee7d77;
+  --destructive-foreground: #490106;
 
-  --endatix: hsl(216 100% 51%);
+  --endatix: #b4c5ff;
 
-  --primary-dim: hsl(216 100% 30%);
-  --on-surface-variant: hsl(212 80% 65%);
+  --primary-dim: #a0b6ff;
+  --on-surface-variant: #7aaeef;
 
-  --surface-container-lowest: hsl(222.2 84% 4.9%);
-  --surface-container-low: hsl(217.2 32.6% 12%);
-  --surface-container: hsl(217.2 32.6% 15%);
-  --surface-container-high: hsl(217.2 32.6% 18%);
+  --surface-container-lowest: #000000;
+  --surface-container-low: #00142a;
+  --surface-container: #001a34;
+  --surface-container-high: #00203e;
 
-  --border: hsl(217.2 32.6% 17.5%);
-  --input: hsl(217.2 32.6% 17.5%);
-  --ring: hsl(216 100% 51%);
+  --border: #4178b5;
+  --input: #3b3b3f;
+  --ring: #b4c5ff;
 
   --chart-1: hsl(211, 100%, 78%);
   --chart-2: hsl(216, 100%, 58%);
   --chart-3: hsl(221, 97%, 53%);
   --chart-4: hsl(218, 85%, 60%);
   --chart-5: hsl(227, 76%, 41%);
-  
+
+  --success: hsl(152 55% 46%);
+  --success-foreground: hsl(0 0% 100%);
+  --warning: hsl(32 95% 50%);
+  --warning-foreground: hsl(0 0% 100%);
+
   --sidebar: hsl(240 5.9% 10%);
   --sidebar-foreground: hsl(240 4.8% 95.9%);
   --sidebar-primary: hsl(224.3 76.3% 48%);
@@ -184,7 +194,7 @@
 @layer components {
   [data-slot="content-wrapper"] {
     /* Default page padding classes */
-    @apply flex flex-1 flex-col gap-4 p-4 pt-0 md:p-6 md:pt-0 min-w-0;
+    @apply flex min-w-0 flex-1 flex-col gap-4 p-4 pt-0 md:p-6 md:pt-0;
 
     /* When we want full bleed content - e.g. using Survey Creator */
     &:has([data-full-bleed]) {
@@ -193,7 +203,7 @@
   }
 
   [data-slot="sidebar-inset"] {
-    @apply relative flex min-h-svh flex-1 flex-col bg-background min-w-0 md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2;
+    @apply relative flex min-h-svh min-w-0 flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2;
   }
 }
 

@@ -8,4 +8,5 @@ declare module "survey-core/themes" {
   export const BorderlessLight: any;
   export const BorderlessLightPanelless: any;
   export const SharpLightPanelless: any;
+  export const PlainLightPanelless: any;
 }
