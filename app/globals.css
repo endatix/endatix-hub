@@ -13,6 +13,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-dim: var(--primary-dim);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -25,6 +26,12 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-endatix: var(--endatix);
+  --color-on-surface-variant: var(--on-surface-variant);
+
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -76,6 +83,14 @@
 
   --endatix: hsl(216 100% 41%);
 
+  --primary-dim: hsl(216 100% 37%);
+  --on-surface-variant: hsl(209 48% 45%);
+
+  --surface-container-lowest: hsl(0 0% 100%);
+  --surface-container-low: hsl(212 100% 97%);
+  --surface-container: hsl(212 100% 94%);
+  --surface-container-high: hsl(212 100% 92%);
+
   --border: hsl(214.3 31.8% 91.4%);
   --input: hsl(214.3 31.8% 91.4%);
   --ring: hsl(216 100% 41%);
@@ -124,6 +139,14 @@
   --destructive-foreground: hsl(210 40% 98%);
 
   --endatix: hsl(216 100% 51%);
+
+  --primary-dim: hsl(216 100% 30%);
+  --on-surface-variant: hsl(212 80% 65%);
+
+  --surface-container-lowest: hsl(222.2 84% 4.9%);
+  --surface-container-low: hsl(217.2 32.6% 12%);
+  --surface-container: hsl(217.2 32.6% 15%);
+  --surface-container-high: hsl(217.2 32.6% 18%);
 
   --border: hsl(217.2 32.6% 17.5%);
   --input: hsl(217.2 32.6% 17.5%);
