@@ -1,5 +1,7 @@
-import MainHeader from "@/components/layout-ui/header/main-header";
-import { SubmissionTopNav } from "@/features/submissions/ui/details/submission-top-nav";
+import { SubmissionDetailsProvider } from "@/features/submissions/ui/details/submission-details-context";
+import { SubmissionDetailsHeader } from "@/features/submissions/ui/details/submission-details-header";
+import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
+import { Suspense } from "react";
 
 type Params = {
   params: Promise<{
@@ -9,11 +11,18 @@ type Params = {
 };
 
 export default async function SubmissionPageHeader({ params }: Params) {
-  const { formId } = await params;
+  const { formId, submissionId } = await params;
+
+  const submissionPromise = getSubmissionDetailsUseCase({
+    formId,
+    submissionId,
+  });
+
   return (
-    <>
-      <MainHeader showHeader={true} />
-      <SubmissionTopNav formId={formId} />
-    </>
+    <Suspense fallback={<div className="h-16 w-full" />}>
+      <SubmissionDetailsProvider submissionPromise={submissionPromise}>
+        <SubmissionDetailsHeader formId={formId} submissionId={submissionId} />
+      </SubmissionDetailsProvider>
+    </Suspense>
   );
 }

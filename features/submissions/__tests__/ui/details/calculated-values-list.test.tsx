@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
 import CalculatedValuesList from "../../../ui/details/calculated-values-list";
-import { SubmissionDetailsViewOptionsProvider } from "../../../ui/details/submission-details-view-options-context";
 
 vi.mock(
   "@/features/public-form/application/use-dynamic-variables.hook",
@@ -12,11 +11,7 @@ vi.mock(
 );
 
 const renderWithContext = (ui: React.ReactElement) => {
-  return render(
-    <SubmissionDetailsViewOptionsProvider>
-      {ui}
-    </SubmissionDetailsViewOptionsProvider>,
-  );
+  return render(ui);
 };
 
 describe("CalculatedValuesList", () => {
@@ -120,33 +115,6 @@ describe("CalculatedValuesList", () => {
       );
 
       expect(container.firstChild).toBeNull();
-    });
-
-    it("should return null when showCalculatedValues is false", () => {
-      const TestComponent = () => {
-        return (
-          <SubmissionDetailsViewOptionsProvider>
-            <CalculatedValuesList surveyModel={model} />
-          </SubmissionDetailsViewOptionsProvider>
-        );
-      };
-
-      vi.doMock("../submission-details-view-options-context", async () => {
-        const actual = await vi.importActual(
-          "../submission-details-view-options-context",
-        );
-        return {
-          ...actual,
-          useSubmissionDetailsViewOptions: () => ({
-            options: {
-              showCalculatedValues: false,
-              showDynamicVariables: true,
-              showInvisibleItems: true,
-              useSubmissionLanguage: true,
-            },
-          }),
-        };
-      });
     });
   });
 

@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
 import DynamicVariablesList from "../../../ui/details/dynamic-variables-list";
-import { SubmissionDetailsViewOptionsProvider } from "../../../ui/details/submission-details-view-options-context";
 
 vi.mock(
   "@/features/public-form/application/use-dynamic-variables.hook",
@@ -15,11 +14,7 @@ import { useDynamicVariables } from "@/features/public-form/application/use-dyna
 import { DynamicVariables } from "@/features/public-form/types";
 
 const renderWithContext = (ui: React.ReactElement) => {
-  return render(
-    <SubmissionDetailsViewOptionsProvider>
-      {ui}
-    </SubmissionDetailsViewOptionsProvider>,
-  );
+  return render(ui);
 };
 
 describe("DynamicVariablesList", () => {
@@ -100,39 +95,6 @@ describe("DynamicVariablesList", () => {
       );
 
       expect(container.firstChild).toBeNull();
-    });
-
-    it("should return null when showDynamicVariables is false", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          testVar: "test",
-        },
-      });
-
-      const TestWrapper = () => {
-        return (
-          <SubmissionDetailsViewOptionsProvider>
-            <DynamicVariablesList surveyModel={model} />
-          </SubmissionDetailsViewOptionsProvider>
-        );
-      };
-
-      vi.doMock("../submission-details-view-options-context", async () => {
-        const actual = await vi.importActual(
-          "../submission-details-view-options-context",
-        );
-        return {
-          ...actual,
-          useSubmissionDetailsViewOptions: () => ({
-            options: {
-              showCalculatedValues: true,
-              showDynamicVariables: false,
-              showInvisibleItems: true,
-              useSubmissionLanguage: true,
-            },
-          }),
-        };
-      });
     });
   });
 

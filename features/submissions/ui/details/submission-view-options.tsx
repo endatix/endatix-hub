@@ -1,16 +1,16 @@
 "use client";
 
-import { Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import { Settings2 } from "lucide-react";
+import { useSubmissionDetailsViewOptions } from "./submission-details-context";
 
 interface SubmissionViewOptionsProps {
   submissionLanguageName?: string;
@@ -40,16 +40,10 @@ export function SubmissionViewOptions({
           Show Invisible Items
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          checked={options.showDynamicVariables}
-          onCheckedChange={() => toggleOption("showDynamicVariables")}
+          checked={options.showReadOnly}
+          onCheckedChange={() => toggleOption("showReadOnly")}
         >
-          Show Dynamic Variables
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={options.showCalculatedValues}
-          onCheckedChange={() => toggleOption("showCalculatedValues")}
-        >
-          Show Calculated Values
+          Show Read-only Questions
         </DropdownMenuCheckboxItem>
         {submissionLanguageName && (
           <DropdownMenuCheckboxItem

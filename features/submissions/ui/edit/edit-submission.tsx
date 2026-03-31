@@ -1,15 +1,14 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
-import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import { Submission } from "@/lib/endatix-api";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { parseTokenExpiry } from "@/lib/utils";
 import { ActiveDefinition } from "@/types";
-import { Info } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -236,10 +235,6 @@ function EditSubmission({
         }
         readOnly={false}
       />
-      <div className="h-8 text-muted-foreground flex flex-row justify-center items-center gap-2">
-        <Info className="h-4 w-4" />
-        End of submission
-      </div>
       <EditSubmissionAlertDialog
         submission={submission}
         changes={changes}
