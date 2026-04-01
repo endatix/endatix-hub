@@ -8,14 +8,14 @@ import {
 } from "@/components/ui/tooltip";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
 import { Info } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   getLanguageDisplayName,
   getSubmissionLocale,
 } from "../../submission-localization";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
 import {
-  useSubmission,
+  useSubmissionDetails,
   useSubmissionDetailsViewOptions,
 } from "./submission-details-context";
 
@@ -44,7 +44,12 @@ const formatDate = (date?: Date): string => {
 /** 1px hairlines via gap; faint in light mode; dark theme uses neutral (not --border blue) */
 const metadataGridHairline = "bg-border/10 dark:bg-foreground/8";
 
-function MetaCell({ label, children }: { label: string; children: ReactNode }) {
+interface MetaCellProps {
+  label: string;
+  children: ReactNode;
+}
+
+function MetaCell({ label, children }: Readonly<MetaCellProps>) {
   return (
     <div className="flex h-full flex-col justify-between gap-3 bg-surface-container-lowest p-4 sm:p-6">
       <span className="text-[10px] leading-none font-bold tracking-widest text-slate-500 uppercase">
@@ -55,14 +60,14 @@ function MetaCell({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function ValueText({ children }: { children: ReactNode }) {
+function ValueText({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <span className="text-[13px] font-semibold text-slate-900">{children}</span>
   );
 }
 
 export function MetadataCard() {
-  const submission = useSubmission();
+  const { submission } = useSubmissionDetails();
   const { options } = useSubmissionDetailsViewOptions();
   const rawLocale = getSubmissionLocale(submission);
   const hasStoredLocale = Boolean(rawLocale?.trim());
@@ -71,11 +76,17 @@ export function MetadataCard() {
     : "default";
   const isUsingSubmissionLanguage = options.useSubmissionLanguage;
 
-  const languageTooltip = !hasStoredLocale
-    ? "No locale is stored for this submission; the default language is used."
-    : isUsingSubmissionLanguage
-      ? "Displaying in submission language"
-      : `Switch to "${getLanguageDisplayName(rawLocale) ?? rawLocale}" in View menu`;
+  const languageTooltip = useMemo(() => {
+    if (!hasStoredLocale) {
+      return "No locale is stored for this submission; the default language is used.";
+    }
+
+    if (isUsingSubmissionLanguage) {
+      return "Displaying in submission language";
+    }
+
+    return `Switch to "${getLanguageDisplayName(rawLocale) ?? rawLocale}" in View menu`;
+  }, [hasStoredLocale, isUsingSubmissionLanguage, rawLocale]);
 
   const completionTime =
     submission.isComplete &&

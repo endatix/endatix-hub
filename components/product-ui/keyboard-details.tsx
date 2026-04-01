@@ -31,7 +31,7 @@ export function KeyboardDetails({
   macOsSpecificKeys,
   keyClassName,
   ...props
-}: KeyboardDetailsProps) {
+}: Readonly<KeyboardDetailsProps>) {
   if (!macOsSpecificKeys || macOsSpecificKeys.length === 0) {
     return (
       <div className={cn(WRAPPER_CLASS, props.className)} {...props}>
@@ -65,11 +65,11 @@ function KeyboardKeyGroup({
   keys,
   keyClassName,
   groupClassName,
-}: {
+}: Readonly<{
   keys: string[];
   keyClassName?: string;
   groupClassName?: string;
-}) {
+}>) {
   return (
     <div className={cn("flex gap-1", groupClassName)}>
       {keys.map((key) => (
@@ -82,9 +82,9 @@ function KeyboardKeyGroup({
 function KeyboardKey({
   keyLiteral,
   className,
-}: {
+}: Readonly<{
   keyLiteral: string;
   className?: string;
-}) {
+}>) {
   return <kbd className={cn(KEYBOARD_KEY_CLASS, className)}>{keyLiteral}</kbd>;
 }
