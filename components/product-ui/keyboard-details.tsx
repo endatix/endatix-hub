@@ -1,9 +1,10 @@
 import { cn } from "@/lib/utils";
+import { OS_MACOS_CLASS } from "@/lib/utils/next-utils";
 
 const WRAPPER_CLASS =
   "absolute top-1/2 right-4 hidden -translate-y-1/2 gap-1 sm:flex";
 const KEYBOARD_KEY_CLASS =
-  "bg-slate-200 px-1.5 py-0.5 font-sans text-xs/4 text-[10px] font-bold text-gray-500 text-slate-500 dark:text-gray-400";
+  "bg-slate-200 px-1.5 py-0.5 font-sans text-xs/4 text-[10px] font-bold text-slate-500 dark:text-gray-400";
 /**
  * Kbd component for displaying keyboard shortcuts.
  * @param defaultKeys - The keys to display for non-macOS users.
@@ -48,13 +49,13 @@ export function KeyboardDetails({
       <KeyboardKeyGroup
         keys={defaultKeys}
         keyClassName={keyClassName}
-        groupClassName="hidden not-[.os-macos_&]:flex"
+        groupClassName={`hidden not-[.${OS_MACOS_CLASS}_&]:flex`}
       />
 
       <KeyboardKeyGroup
         keys={macOsSpecificKeys}
         keyClassName={keyClassName}
-        groupClassName="hidden [.os-macos_&]:flex"
+        groupClassName={`hidden [.${OS_MACOS_CLASS}_&]:flex`}
       />
     </div>
   );

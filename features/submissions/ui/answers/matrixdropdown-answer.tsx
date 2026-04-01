@@ -1,4 +1,3 @@
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -34,8 +33,8 @@ const MatrixDropdownAnswer = ({
   })();
 
   return (
-    <div className={cn(className, "flex flex-col gap-2")}>
-      <ScrollArea className="overflow-x-auto">
+    <div className={cn(className, "flex min-w-0 flex-col gap-2")}>
+      <div className="w-full overflow-x-auto">
         <Table className="table-auto">
           <TableCaption>
             Answers for the &quot;{question.title}&quot; question
@@ -44,7 +43,10 @@ const MatrixDropdownAnswer = ({
             <TableRow>
               {headerCells.map((cell, index) => (
                 <TableHead
-                  className={index === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : ""}
+                  className={cn(
+                    "break-words whitespace-normal",
+                    index === 0 ? FIRST_COLUMN_WIDTH_CSS_CLASSES : "",
+                  )}
                   key={index}
                 >
                   {cell.hasTitle ? cell.locTitle?.textOrHtml : null}
@@ -62,7 +64,10 @@ const MatrixDropdownAnswer = ({
                     return (
                       <TableCell
                         key={cellIndex}
-                        className={cn("justify-start", cellClass)}
+                        className={cn(
+                          "justify-start break-words whitespace-normal",
+                          cellClass,
+                        )}
                       >
                         <AnswerViewer forQuestion={cell.question} />
                       </TableCell>
@@ -72,7 +77,10 @@ const MatrixDropdownAnswer = ({
                   return (
                     <TableCell
                       key={cellIndex}
-                      className={cn("font-medium", cellClass)}
+                      className={cn(
+                        "font-medium break-words whitespace-normal",
+                        cellClass,
+                      )}
                     >
                       {cell.hasTitle ? cell.locTitle.textOrHtml : null}
                     </TableCell>
@@ -82,8 +90,7 @@ const MatrixDropdownAnswer = ({
             ))}
           </TableBody>
         </Table>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
     </div>
   );
 };
