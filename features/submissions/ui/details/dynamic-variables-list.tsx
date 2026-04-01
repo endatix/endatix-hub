@@ -15,10 +15,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
+import { formatValue } from "@/lib/utils/formatters";
 import { Info, Terminal, UserRoundSearch } from "lucide-react";
 import Link from "next/link";
 import { SurveyModel } from "survey-core";
-import { isSensitiveVariableName } from "../../submission-utils";
+import {
+  getMaskedValue,
+  isSensitiveVariableName,
+} from "../../submission-utils";
 
 export interface DynamicVariablesListProps {
   surveyModel: SurveyModel | null;
@@ -60,7 +64,7 @@ function DynamicVariablesList({
         </div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {Object.entries(variables).map(([name, value]) => {
-            const valueStr = String(value);
+            const valueStr = formatValue(value);
             const isSensitive = isSensitiveVariableName(name);
 
             return (
@@ -79,7 +83,7 @@ function DynamicVariablesList({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                            {"•".repeat(Math.min(String(value).length, 8))}
+                            {getMaskedValue(valueStr)}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
