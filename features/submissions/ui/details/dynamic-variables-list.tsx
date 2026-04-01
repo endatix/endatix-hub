@@ -1,10 +1,13 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import CopyToClipboard from "@/components/copy-to-clipboard";
 import {
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Tooltip,
   TooltipContent,
@@ -12,119 +15,153 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
-import { Collapsible } from "@radix-ui/react-collapsible";
-import { ChevronsUpDown, CircleHelp, UserRoundSearch } from "lucide-react";
-import { useState } from "react";
-import { Model } from "survey-react-ui";
-import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
-import {
-  submissionAnswerValueColumnClass,
-  submissionMetaRowClass,
-} from "./submission-details-value-column";
-import CopyToClipboard from "@/components/copy-to-clipboard";
-import { cn } from "@/lib/utils";
+import { Info, Terminal, UserRoundSearch } from "lucide-react";
+import Link from "next/link";
+import { SurveyModel } from "survey-core";
+import { isSensitiveVariableName } from "../../submission-utils";
 
-interface DynamicVariablesListProps {
-  surveyModel: Model;
+export interface DynamicVariablesListProps {
+  surveyModel: SurveyModel | null;
 }
 
-const DOCS_URL =
-  "https://surveyjs.io/form-library/documentation/design-survey/conditional-logic#variables-vs-calculated-values";
+function DynamicVariablesList({
+  surveyModel,
+}: Readonly<DynamicVariablesListProps>) {
+  const { variables, hasVariables } = useDynamicVariables(surveyModel);
 
-const DynamicVariablesList = ({ surveyModel }: DynamicVariablesListProps) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const { variables } = useDynamicVariables(surveyModel);
-  const { options } = useSubmissionDetailsViewOptions();
-
-  if (!variables || Object.keys(variables).length === 0) {
-    return null;
-  }
-
-  if (!options.showDynamicVariables) {
-    return null;
+  if (!hasVariables) {
+    return <EmptyDynamicVariablesList />;
   }
 
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className="mb-6 grid h-full grid-cols-5 items-start gap-4"
-    >
-      <div className="top-0 col-span-2 flex justify-end gap-1 text-right">
-        <div className="flex flex-col items-end">
-          <h4 className="flex items-center gap-2 text-sm font-semibold">
-            <UserRoundSearch /> Dynamic Variables
-          </h4>
-          <p className="text-xs text-muted-foreground">
-            Runtime values set from metadata or JavaScript.
-          </p>
-        </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="size-8 p-0">
-                <CircleHelp />
-                <span className="sr-only">
-                  Learn more about dynamic variables
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={8} className="max-w-[320px]">
-              <p className="mb-1">
-                Variables are set at runtime via API/JS and do not automatically
-                reevaluate like calculated values.
-              </p>
-              <a
-                href={DOCS_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                Variables vs Calculated Values
-              </a>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-9 p-0">
-            <ChevronsUpDown className="h-4 w-4" />
-            <span className="sr-only">Toggle</span>
-          </Button>
-        </CollapsibleTrigger>
+    <div className="flex-grow space-y-8">
+      <div className="space-y-1">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          Dynamic Variables
+        </h2>
+        <p className="text-sm text-slate-500">
+          These are runtime values set from the Submission metadata or
+          JavaScript. Here is a read-only view of the variables that were set
+          and used during the submission process.
+        </p>
       </div>
-      <div className={submissionAnswerValueColumnClass}>
-        <CollapsibleContent className="flex flex-col gap-2">
+
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+        <div className="grid grid-cols-12 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50">
+          <div className="col-span-5 text-[10px] font-bold tracking-widest text-slate-500 uppercase">
+            Variable Name
+          </div>
+          <div className="col-span-6 text-[10px] font-bold tracking-widest text-slate-500 uppercase">
+            Value
+          </div>
+          <div className="col-span-1 text-right text-[10px] font-bold tracking-widest text-slate-500 uppercase">
+            Action
+          </div>
+        </div>
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {Object.entries(variables).map(([name, value]) => {
-            const valueToCopy =
-              typeof value === "string" && value.trim().length > 0 ? value : "";
-            const canCopy = valueToCopy.trim().length > 0;
+            const valueStr = String(value);
+            const isSensitive = isSensitiveVariableName(name);
 
             return (
               <div
                 key={name}
-                className={cn(submissionMetaRowClass, "relative")}
+                className="group grid grid-cols-12 items-center px-4 py-3 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-900/30"
               >
-                <CopyToClipboard
-                  className="mr-4"
-                  disabled={!canCopy}
-                  copyValue={() => valueToCopy}
-                  label="Copy value"
-                />
-                <div className="flex w-full min-w-0 items-center gap-1.5 pr-8">
-                  <span className="shrink-0 text-sm font-medium text-muted-foreground">
-                    {`@${name} =`}
+                <div className="col-span-5 flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold text-amber-600 dark:text-amber-500">
+                    @{name}
                   </span>
-                  <span className="truncate text-sm font-medium">
-                    {`${value}`}
-                  </span>
+                </div>
+                <div className="col-span-6 truncate">
+                  {isSensitive ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            {"•".repeat(Math.min(String(value).length, 8))}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Cannot display sensitive variable:{" "}
+                            <code>{name}</code>
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <code className="truncate rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-900 dark:bg-slate-800 dark:text-slate-100">
+                      {valueStr}
+                    </code>
+                  )}
+                </div>
+                <div className="col-span-1 text-right">
+                  <CopyToClipboard
+                    copyValue={valueStr}
+                    layout="inline"
+                    className="opacity-0 transition-all group-hover:opacity-100"
+                    buttonClassName="size-7 hover:bg-white dark:hover:bg-slate-800"
+                    disabled={isSensitive}
+                  />
                 </div>
               </div>
             );
           })}
-        </CollapsibleContent>
+        </div>
       </div>
-    </Collapsible>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="relative col-span-2 overflow-hidden rounded-lg bg-slate-900 p-6 text-white dark:bg-slate-900">
+          <div className="relative z-10">
+            <h3 className="mb-2 text-sm font-bold">Advanced Logic Debugging</h3>
+            <p className="max-w-sm text-xs leading-relaxed text-slate-400">
+              Use these variables to trace conditional logic across the entire
+              submission workflow. Values are updated in real-time as background
+              scripts execute. More information about calculated values can be
+              found in the{" "}
+              <Link
+                href="https://surveyjs.io/form-library/documentation/design-survey/conditional-logic#variables"
+                target="_blank"
+                className="underline"
+              >
+                documentation
+              </Link>
+              .
+            </p>
+          </div>
+          <Terminal className="absolute -right-4 -bottom-4 size-32 text-white/5" />
+        </div>
+        <div className="col-span-1 flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950">
+          <Info className="size-5 text-amber-500" />
+          <div>
+            <h3 className="mt-4 text-xs font-bold text-slate-900 dark:text-slate-100">
+              Security Notice
+            </h3>
+            <p className="text-[10px] text-slate-500">
+              Sensitive variables are masked by default.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-};
+}
+
+function EmptyDynamicVariablesList(): React.ReactNode {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <UserRoundSearch className="size-6" />
+        </EmptyMedia>
+        <EmptyTitle>No dynamic variables</EmptyTitle>
+        <EmptyDescription>
+          This submission does not have any dynamic variables.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
 
 export default DynamicVariablesList;

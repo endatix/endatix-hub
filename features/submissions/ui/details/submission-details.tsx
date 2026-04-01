@@ -8,7 +8,7 @@ import { Result } from "@/lib/result";
 import { CustomQuestion } from "@/services/api";
 import { BackToSubmissionsButton } from "./back-to-submissions-button";
 import { MetadataCard } from "./metadata-card";
-import { SubmissionDetailsContent } from "./submission-details-client";
+import { SubmissionDetailsContent } from "./submission-details-content";
 import { SubmissionDetailsProvider } from "./submission-details-context";
 
 interface SubmissionDetailsProps {
