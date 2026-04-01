@@ -1,5 +1,5 @@
-import { SubmissionDetailsViewOptions } from "./submission-details-context";
 import { Model } from "survey-core";
+import { SubmissionDetailsViewOptions } from "./submission-details-context";
 
 export enum SubmissionDetailsActionType {
   INIT_VIEW_OPTIONS = "INIT_VIEW_OPTIONS",
@@ -26,8 +26,14 @@ export type SubmissionDetailsAction =
       type: SubmissionDetailsActionType.TOGGLE_VIEW_OPTION;
       payload: keyof SubmissionDetailsViewOptions;
     }
-  | { type: SubmissionDetailsActionType.RESET_VIEW_OPTIONS; payload: SubmissionDetailsViewOptions }
-  | { type: SubmissionDetailsActionType.SET_SURVEY_MODEL; payload: Model | null }
+  | {
+      type: SubmissionDetailsActionType.RESET_VIEW_OPTIONS;
+      payload: SubmissionDetailsViewOptions;
+    }
+  | {
+      type: SubmissionDetailsActionType.SET_SURVEY_MODEL;
+      payload: Model | null;
+    }
   | {
       type: SubmissionDetailsActionType.SET_HIGHLIGHTED_QUESTION;
       payload: string | null;
@@ -51,6 +57,7 @@ export function submissionDetailsReducer(
 ): SubmissionDetailsState {
   switch (action.type) {
     case SubmissionDetailsActionType.INIT_VIEW_OPTIONS:
+    case SubmissionDetailsActionType.RESET_VIEW_OPTIONS:
       return {
         ...state,
         viewOptions: action.payload,
@@ -70,11 +77,6 @@ export function submissionDetailsReducer(
           ...state.viewOptions,
           [action.payload]: !state.viewOptions[action.payload],
         },
-      };
-    case SubmissionDetailsActionType.RESET_VIEW_OPTIONS:
-      return {
-        ...state,
-        viewOptions: action.payload,
       };
     case SubmissionDetailsActionType.SET_SURVEY_MODEL:
       return {

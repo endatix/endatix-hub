@@ -75,13 +75,15 @@ const INITIAL_STATE: SubmissionDetailsState = {
   highlightedQuestionName: null,
 };
 
+interface SubmissionDetailsProviderProps {
+  children: ReactNode;
+  submissionPromise: Promise<SubmissionDetailsResult | null>;
+}
+
 export function SubmissionDetailsProvider({
   children,
   submissionPromise,
-}: {
-  children: ReactNode;
-  submissionPromise: Promise<SubmissionDetailsResult | null>;
-}) {
+}: Readonly<SubmissionDetailsProviderProps>) {
   const result = use(submissionPromise);
   const [state, dispatch] = useReducer(submissionDetailsReducer, INITIAL_STATE);
 

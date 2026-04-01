@@ -8,6 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
 import { cn } from "@/lib/utils";
@@ -19,7 +21,7 @@ import {
   FilePenLine,
   Files,
   MoreVertical,
-  Trash2
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -27,7 +29,7 @@ import { saveToFileHandler } from "survey-creator-core";
 import { StatusDropdownMenuItem } from "../../use-cases/change-status";
 import { DownloadFilesDropdownItem } from "../download-files-dropdown-item";
 import {
-  useSubmission,
+  useSubmissionDetails,
   useSubmissionDetailsViewOptions,
 } from "./submission-details-context";
 
@@ -39,13 +41,13 @@ interface SubmissionDetailsHeaderProps {
 export function SubmissionDetailsHeader({
   submissionId,
   formId,
-}: SubmissionDetailsHeaderProps) {
+}: Readonly<SubmissionDetailsHeaderProps>) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copying, setCopying] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
   const { trackEvent } = useTrackEvent();
   const { options } = useSubmissionDetailsViewOptions();
-  const submission = useSubmission();
+  const { submission } = useSubmissionDetails();
 
   const handleExportPdfClick = async () => {
     try {
@@ -112,17 +114,22 @@ export function SubmissionDetailsHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 flex w-full items-center justify-between border-b border-slate-200/50 bg-white/80 px-8 py-4 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:border-slate-800/50 dark:bg-slate-950/80">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-2 border-b border-slate-200/50 bg-white/80 px-3 py-3 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl sm:px-4 sm:py-4 lg:px-8 dark:border-slate-800/50 dark:bg-slate-950/80">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator
+          orientation="vertical"
+          className="mr-2 data-[orientation=vertical]:h-4"
+        />
         <Link
           href={`/forms/${formId}/submissions`}
           className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to submissions
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">Back to submissions</span>
         </Link>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <Button
           variant="outline"
           onClick={handleExportPdfClick}
@@ -180,7 +187,7 @@ function SubmissionActionsDropdown({
   formId,
   status,
   ...props
-}: SubmissionActionsDropdownProps) {
+}: Readonly<SubmissionActionsDropdownProps>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
