@@ -15,14 +15,14 @@ import {
 import { Model, Question } from "survey-core";
 import z from "zod";
 import {
+  buildSubmissionNavPages,
+  SubmissionNavPage,
+} from "./submission-details-nav";
+import {
   SubmissionDetailsActionType,
   submissionDetailsReducer,
   SubmissionDetailsState,
 } from "./submission-details.reducer";
-import {
-  buildSubmissionNavPages,
-  SubmissionNavPage,
-} from "./submission-details-nav";
 
 export const ViewOption = {
   ShowInvisible: "showInvisibleItems",
@@ -127,11 +127,46 @@ const DEFAULT_VIEW_OPTIONS: SubmissionDetailsViewOptions = {
   useSubmissionLanguage: true,
 };
 
-const INITIAL_STATE: SubmissionDetailsState = {
-  viewOptions: DEFAULT_VIEW_OPTIONS,
-  surveyModel: null,
-  highlightedQuestionName: null,
-};
+function getInitialState(): SubmissionDetailsState {
+  if (globalThis.window === undefined) {
+    return {
+      viewOptions: DEFAULT_VIEW_OPTIONS,
+      surveyModel: null,
+      highlightedQuestionName: null,
+    };
+  }
+
+  const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (!stored) {
+    return {
+      viewOptions: DEFAULT_VIEW_OPTIONS,
+      surveyModel: null,
+      highlightedQuestionName: null,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(stored);
+    const resultSchema = viewOptionsStateSchema.safeParse(parsed);
+    if (resultSchema.success) {
+      return {
+        viewOptions: { ...DEFAULT_VIEW_OPTIONS, ...resultSchema.data },
+        surveyModel: null,
+        highlightedQuestionName: null,
+      };
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  return {
+    viewOptions: DEFAULT_VIEW_OPTIONS,
+    surveyModel: null,
+    highlightedQuestionName: null,
+  };
+}
+
+const INITIAL_STATE: SubmissionDetailsState = getInitialState();
 
 interface SubmissionDetailsProviderProps {
   children: ReactNode;
@@ -144,30 +179,6 @@ export function SubmissionDetailsProvider({
 }: Readonly<SubmissionDetailsProviderProps>) {
   const result = use(submissionPromise);
   const [state, dispatch] = useReducer(submissionDetailsReducer, INITIAL_STATE);
-
-  useEffect(() => {
-    if (globalThis.window === undefined) {
-      return;
-    }
-
-    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!stored) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      const resultSchema = viewOptionsStateSchema.safeParse(parsed);
-      if (resultSchema.success) {
-        dispatch({
-          type: SubmissionDetailsActionType.INIT_VIEW_OPTIONS,
-          payload: { ...DEFAULT_VIEW_OPTIONS, ...resultSchema.data },
-        });
-      }
-    } catch {
-      return;
-    }
-  }, []);
 
   useEffect(() => {
     if (globalThis.window === undefined) {

@@ -15,7 +15,10 @@ import { cn } from "@/lib/utils";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { useMemo } from "react";
 import { Question } from "survey-core";
-import { useSubmissionDetailsViewOptions, ViewOption } from "./submission-details-context";
+import {
+  useSubmissionDetailsViewOptions,
+  ViewOption,
+} from "./submission-details-context";
 
 interface QuestionLabelProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
   forQuestion: Question;
@@ -38,7 +41,7 @@ export function QuestionLabel({
     processedTitle?.length > 0 && processedTitle !== originalTitle;
 
   return (
-    <div className={cn("col-span-2 justify-items-end", className)} {...props}>
+    <div className={cn("w-full min-w-0", className)} {...props}>
       {isPersonalized && viewOptions[ViewOption.ShowPersonalized] ? (
         <PersonalizedTextLabel question={forQuestion} />
       ) : (
