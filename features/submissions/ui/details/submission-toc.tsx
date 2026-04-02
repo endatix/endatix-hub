@@ -6,18 +6,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown } from "lucide-react";
-import { useEffect, useMemo } from "react";
-import {
-  Action,
-  ComputedUpdater,
-  Model,
-  PageModel,
-  Question,
-} from "survey-core";
+import { cn } from "@/lib/utils";
+import { ChevronDown, EyeOff } from "lucide-react";
 import { useSubmissionDetails } from "./submission-details-context";
-
-const AUTO_GENERATED_PAGE_TITLE_REGEX = /^page\d+$/i;
+import { formatPageTitle } from "./submission-details-nav";
 
 type TabChangeHandler = (tabId: "answers") => void;
 
@@ -27,68 +19,9 @@ export function setSubmissionDetailsTabHandler(handler: TabChangeHandler) {
   globalTabChangeHandler = handler;
 }
 
-export interface ToCItem {
-  name: string;
-  title: string;
-  questions: ToCQuestion[];
-}
-
-export interface ToCQuestion {
-  name: string;
-  title: string;
-}
-
-export function buildTocItemsFromActions(
-  surveyModel: Model,
-  pageActions: Action[],
-): ToCItem[] {
-  return pageActions
-    .filter((action) => action.isVisible)
-    .map((action) => {
-      const page = surveyModel.getPageByName(action.id!);
-      if (!page) {
-        return null;
-      }
-      return {
-        name: page.name,
-        title: action.title,
-        questions: getTocQuestionsVisibleOnPage(page).map((q) => ({
-          name: q.name,
-          title: q.title || q.name,
-        })),
-      };
-    })
-    .filter((row): row is ToCItem => row !== null);
-}
-
-export function formatPageTitle(index: number, title: string): string {
-  if (AUTO_GENERATED_PAGE_TITLE_REGEX.test(title)) {
-    return title;
-  }
-
-  return `Page: ${String(index + 1).padStart(2, "0")}: ${title}`;
-}
-
 export function SubmissionToC() {
-  const { surveyModel, setHighlightedQuestionName } = useSubmissionDetails();
-
-  const tocPageActions = useMemo(() => {
-    if (!surveyModel) return [];
-
-    return createSubmissionTocPageActions(surveyModel);
-  }, [surveyModel]);
-
-  useEffect(() => {
-    return () => {
-      tocPageActions.forEach((a) => a.dispose());
-    };
-  }, [tocPageActions]);
-
-  const tocItems = useMemo<ToCItem[]>(() => {
-    if (!surveyModel) return [];
-
-    return buildTocItemsFromActions(surveyModel, tocPageActions);
-  }, [surveyModel, tocPageActions]);
+  const { submissionNavPages, setHighlightedQuestionName } =
+    useSubmissionDetails();
 
   const handleQuestionClick = (questionName: string) => {
     if (globalThis.window !== undefined) {
@@ -99,15 +32,15 @@ export function SubmissionToC() {
     globalTabChangeHandler?.("answers");
 
     setTimeout(() => {
-      const element = document.getElementById(`${questionName}`);
+      const element = globalThis.window ? document.getElementById(`${questionName}`) : null;
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 0);
   };
 
-  if (tocItems.length === 0) {
-    return null;
+  if (submissionNavPages.length === 0) {
+    return <EmptyToC />;
   }
 
   return (
@@ -120,19 +53,37 @@ export function SubmissionToC() {
 
       <ScrollArea className="h-[calc(100vh-120px)] rounded-md p-4">
         <nav className="space-y-1">
-          {tocItems.map((page, index) => (
-            <Collapsible key={page.name} defaultOpen>
-              <CollapsibleTrigger className="mt-4 flex w-full items-center gap-2 border-l-2 border-slate-200 px-3 py-2 text-left text-xs font-bold text-slate-800 transition-all first:mt-0 hover:border-slate-300 hover:bg-slate-50">
+          {submissionNavPages.map((page, index) => (
+            <Collapsible key={page.pageName} defaultOpen>
+              <CollapsibleTrigger
+                className={cn(
+                  "mt-4 flex w-full items-center gap-2 border-l-2 px-3 py-2 text-left text-xs font-bold transition-all first:mt-0",
+                  page.isPageInvisible
+                    ? "border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50"
+                    : "border-slate-200 text-slate-800 hover:border-slate-300 hover:bg-slate-50",
+                )}
+              >
                 <ChevronDown className="size-4 shrink-0" />
-                {formatPageTitle(index, page.title)}
+                {page.isPageInvisible && (
+                  <EyeOff className="size-3 shrink-0 text-slate-400" />
+                )}
+                {formatPageTitle(index, page.pageTitle)}
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-0.5">
                 {page.questions.map((question) => (
                   <button
                     key={question.name}
                     onClick={() => handleQuestionClick(question.name)}
-                    className="block w-full px-6 py-1.5 text-left text-xs text-slate-500 transition-colors hover:text-primary"
+                    className={cn(
+                      "block w-full px-6 py-1.5 text-left text-xs transition-colors",
+                      question.isInvisible
+                        ? "text-slate-400 hover:text-slate-500"
+                        : "text-slate-500 hover:text-primary",
+                    )}
                   >
+                    {question.isInvisible && (
+                      <EyeOff className="mr-1 inline-block size-3" />
+                    )}
                     {question.title}
                   </button>
                 ))}
@@ -145,19 +96,20 @@ export function SubmissionToC() {
   );
 }
 
-export function createSubmissionTocPageActions(survey: Model): Action[] {
-  const pages = survey.pages ?? [];
-  return pages.map(
-    (page) =>
-      new Action({
-        id: page.name,
-        locTitle: page.locNavigationTitle,
-        action: () => {},
-        visible: new ComputedUpdater(() => page.isVisible && !page.isStartPage),
-      }),
-  );
-}
+function EmptyToC(): React.ReactNode {
+  return (
+    <aside className="sticky top-24 hidden h-[calc(100vh-120px)] w-72 flex-shrink-0 space-y-6 pr-4 xl:flex xl:flex-col">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold tracking-widest text-slate-400 uppercase">
+          Quick Navigation
+        </h3>
+      </div>
 
-export function getTocQuestionsVisibleOnPage(page: PageModel): Question[] {
-  return page.questions.filter((q) => q.isVisibleInSurvey);
+      <nav className="space-y-1">
+        <div className="mt-4 flex w-full items-center gap-2 border-l-2 border-slate-200 px-3 py-2 text-left text-xs font-bold text-slate-800 transition-all first:mt-0 hover:border-slate-300 hover:bg-slate-50">
+          No questions found
+        </div>
+      </nav>
+    </aside>
+  );
 }

@@ -19,6 +19,10 @@ import {
   submissionDetailsReducer,
   SubmissionDetailsState,
 } from "./submission-details.reducer";
+import {
+  buildSubmissionNavPages,
+  SubmissionNavPage,
+} from "./submission-details-nav";
 
 export const ViewOption = {
   ShowInvisible: "showInvisibleItems",
@@ -64,6 +68,11 @@ interface SubmissionDetailsContextType {
    * @returns The questions in the survey.
    */
   allQuestions: Question[];
+
+  /**
+   * The navigation pages derived from survey model and view options.
+   */
+  submissionNavPages: SubmissionNavPage[];
 
   /**
    * The view options.
@@ -176,6 +185,13 @@ export function SubmissionDetailsProvider({
     return state.surveyModel.getAllQuestions(false, false, false);
   }, [state.surveyModel]);
 
+  const submissionNavPages = useMemo(() => {
+    return buildSubmissionNavPages(
+      state.surveyModel,
+      state.viewOptions.showInvisibleItems,
+    );
+  }, [state.surveyModel, state.viewOptions.showInvisibleItems]);
+
   const submission =
     result && Result.isSuccess(result) ? result.value : undefined;
 
@@ -232,6 +248,7 @@ export function SubmissionDetailsProvider({
       surveyModel: state.surveyModel,
       setSurveyModel,
       allQuestions,
+      submissionNavPages,
       highlightedQuestionName: state.highlightedQuestionName,
       setHighlightedQuestionName,
     };
@@ -241,6 +258,7 @@ export function SubmissionDetailsProvider({
     state.surveyModel,
     state.highlightedQuestionName,
     allQuestions,
+    submissionNavPages,
   ]);
 
   if (!contextValue) {
@@ -285,6 +303,7 @@ export function useSubmissionDetails() {
     submission,
     surveyModel,
     allQuestions,
+    submissionNavPages,
     setSurveyModel,
     highlightedQuestionName,
     setHighlightedQuestionName,
@@ -293,6 +312,7 @@ export function useSubmissionDetails() {
     submission,
     surveyModel,
     allQuestions,
+    submissionNavPages,
     setSurveyModel,
     highlightedQuestionName,
     setHighlightedQuestionName,
