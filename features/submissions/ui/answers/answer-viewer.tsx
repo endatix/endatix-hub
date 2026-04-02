@@ -13,6 +13,7 @@ import {
   QuestionMultipleTextModel,
   QuestionPanelDynamicModel,
   QuestionSignaturePadModel,
+  QuestionSliderModel,
 } from "survey-core";
 import CommentAnswer from "./comment-answer";
 import DropdownAnswer from "./dropdown-answer";
@@ -22,6 +23,7 @@ import MultipleTextAnswer from "./multipletext-answer";
 import RadioGroupAnswer from "./radiogroup-answer";
 import RankingAnswer from "./ranking-answer";
 import RatingAnswer from "./rating-answer";
+import SliderAnswer from "./slider-answer";
 import { SignaturePadAnswer } from "./signaturepad-answer";
 import UnknownAnswerViewer from "./unknown-answer";
 import PanelDynamicAnswer from "./paneldynamic-answer";
@@ -85,6 +87,13 @@ const AnswerViewer = ({
 
   const renderRatingAnswer = () => (
     <RatingAnswer question={forQuestion} className={className} />
+  );
+
+  const renderSliderAnswer = () => (
+    <SliderAnswer
+      question={forQuestion as QuestionSliderModel}
+      className={className}
+    />
   );
 
   const renderRadiogroupAnswer = () => (
@@ -163,6 +172,8 @@ const AnswerViewer = ({
       return renderCheckboxAnswer();
     case QuestionType.Rating:
       return renderRatingAnswer();
+    case QuestionType.Slider:
+      return renderSliderAnswer();
     case QuestionType.Radiogroup:
       return renderRadiogroupAnswer();
     case QuestionType.Dropdown:

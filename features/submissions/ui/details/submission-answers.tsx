@@ -11,6 +11,7 @@ import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
+import { getQuestionNumber } from "../../submission-utils";
 import AnswerViewer from "../answers/answer-viewer";
 import {
   useSubmissionDetails,
@@ -122,6 +123,7 @@ const SubmissionItemCard = ({ question, isInvisible }: SubmissionItemCardProps) 
   const { highlightedQuestionName } = useSubmissionDetails();
   const { viewOptions } = useSubmissionDetailsViewOptions();
   const isSelected = highlightedQuestionName === question.name;
+  const questionNumber = getQuestionNumber(question) > 0 ? `#${getQuestionNumber(question)}` : "—";
 
   if (isInvisible && !viewOptions.showInvisibleItems) {
     return null;
@@ -140,7 +142,7 @@ const SubmissionItemCard = ({ question, isInvisible }: SubmissionItemCardProps) 
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
-              Question {question.no} • {question.getType()}
+              Question {questionNumber} • {question.getType()}
             </span>
             <h3 className="text-lg font-bold tracking-tight text-foreground">
               {question.title}
@@ -171,7 +173,7 @@ const SubmissionItemCard = ({ question, isInvisible }: SubmissionItemCardProps) 
       <div className="mb-4 flex items-start justify-between">
         <div className="space-y-1">
           <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
-            Question {question.no} • {question.getType()}
+            Question {questionNumber} • {question.getType()}
           </span>
           <h3 className="text-lg leading-snug font-bold tracking-tight text-foreground">
             {question.title}
