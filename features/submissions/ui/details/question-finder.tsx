@@ -38,8 +38,8 @@ interface PageGroup {
 function syncHighlightFromHash(
   setHighlightedQuestionName: (name: string | null) => void,
 ) {
-  const hash = window.location.hash;
-  if (hash.startsWith("#")) {
+  const hash = globalThis.window?.location.hash;
+  if (hash?.startsWith("#")) {
     setHighlightedQuestionName(decodeURIComponent(hash.slice(3)));
   } else {
     setHighlightedQuestionName(null);
@@ -108,7 +108,7 @@ export function QuestionFinder() {
       const element = document.getElementById(`${questionName}`);
       if (element) {
         const url = `#${questionName}`;
-        window.history.pushState(null, "", url);
+        globalThis.window?.history.pushState(null, "", url);
         element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     },
@@ -130,7 +130,7 @@ export function QuestionFinder() {
   useEffect(() => {
     const handleHashChange = () => {
       syncHighlightFromHash(setHighlightedQuestionName);
-      const hash = window.location.hash;
+      const hash = globalThis.window?.location.hash;
       if (hash.startsWith("#")) {
         const questionName = decodeURIComponent(hash.slice(3));
         const element = document.getElementById(`${questionName}`);
@@ -141,8 +141,8 @@ export function QuestionFinder() {
     };
 
     syncHighlightFromHash(setHighlightedQuestionName);
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
+    globalThis.window?.addEventListener("hashchange", handleHashChange);
+    return () => globalThis.window?.removeEventListener("hashchange", handleHashChange);
   }, [setHighlightedQuestionName]);
 
   return (

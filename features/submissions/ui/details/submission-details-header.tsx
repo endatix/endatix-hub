@@ -46,14 +46,14 @@ export function SubmissionDetailsHeader({
   const [copying, setCopying] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
   const { trackEvent } = useTrackEvent();
-  const { options } = useSubmissionDetailsViewOptions();
+  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { submission } = useSubmissionDetails();
 
   const handleExportPdfClick = async () => {
     try {
       setPdfLoading(true);
       const params = new URLSearchParams();
-      if (!options.useSubmissionLanguage) {
+      if (!viewOptions.useSubmissionLanguage) {
         params.set("defaultLocale", "true");
       }
       const query = params.toString() ? `?${params.toString()}` : "";

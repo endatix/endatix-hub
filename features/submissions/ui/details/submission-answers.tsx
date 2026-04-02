@@ -24,7 +24,7 @@ interface SubmissionAnswersProps {
   customQuestions: CustomQuestion[];
 }
 
-export function SubmissionAnswers({ customQuestions }: SubmissionAnswersProps) {
+export function SubmissionAnswers({ customQuestions }: Readonly<SubmissionAnswersProps>) {
   const { submission, submissionNavPages } = useSubmissionDetails();
   const formId = submission.formId;
   const formDefinition = submission.formDefinition?.jsonData ?? "";
@@ -119,7 +119,7 @@ interface SubmissionItemCardProps {
 
 const selectedQuestionCardClass = "selected ring-2 ring-primary/80 ring-inset";
 
-const SubmissionItemCard = ({ question, isInvisible }: SubmissionItemCardProps) => {
+const SubmissionItemCard = ({ question, isInvisible }: Readonly<SubmissionItemCardProps>) => {
   const { highlightedQuestionName } = useSubmissionDetails();
   const { viewOptions } = useSubmissionDetailsViewOptions();
   const isSelected = highlightedQuestionName === question.name;

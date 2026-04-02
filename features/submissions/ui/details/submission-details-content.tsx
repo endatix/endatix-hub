@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { CustomQuestion } from "@/services/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { getSubmissionLocale } from "../../submission-localization";
 import CalculatedValuesList from "./calculated-values-list";
 import DynamicVariablesList from "./dynamic-variables-list";
@@ -29,7 +29,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 export function SubmissionDetailsContent({
   customQuestions,
-}: SubmissionDetailsContentProps) {
+}: Readonly<SubmissionDetailsContentProps>) {
   const { submission, surveyModel } = useSubmissionDetails();
   const submissionLocale = getSubmissionLocale(submission);
   const [activeTab, setActiveTab] = useState<TabId>("answers");
@@ -57,11 +57,29 @@ export function SubmissionDetailsContent({
 
     syncTabWithHash();
     globalThis.window.addEventListener("hashchange", syncTabWithHash);
-    return () => window.removeEventListener("hashchange", syncTabWithHash);
+    return () =>
+      globalThis.window.removeEventListener("hashchange", syncTabWithHash);
   }, []);
 
   if (!submission.formDefinition) {
     return <div>Form definition not found</div>;
+  }
+
+  let tabPanel: ReactNode = null;
+  if (activeTab === "answers") {
+    tabPanel = (
+      <>
+        <div className="sticky top-[73px] z-30 flex flex-wrap items-center justify-between gap-3 bg-background/95 py-4 backdrop-blur">
+          <QuestionFinder />
+          <SubmissionViewOptions submissionLanguageName={submissionLocale} />
+        </div>
+        <SubmissionAnswers customQuestions={customQuestions} />
+      </>
+    );
+  } else if (activeTab === "variables") {
+    tabPanel = <DynamicVariablesList surveyModel={surveyModel} />;
+  } else if (activeTab === "calculated") {
+    tabPanel = <CalculatedValuesList surveyModel={surveyModel} />;
   }
 
   return (
@@ -84,23 +102,7 @@ export function SubmissionDetailsContent({
               </button>
             ))}
           </nav>
-          <div className="mt-6">
-            {activeTab === "answers" ? (
-              <>
-                <div className="sticky top-[73px] z-30 flex flex-wrap items-center justify-between gap-3 bg-background/95 py-4 backdrop-blur">
-                  <QuestionFinder />
-                  <SubmissionViewOptions
-                    submissionLanguageName={submissionLocale}
-                  />
-                </div>
-                <SubmissionAnswers customQuestions={customQuestions} />
-              </>
-            ) : activeTab === "variables" ? (
-              <DynamicVariablesList surveyModel={surveyModel} />
-            ) : activeTab === "calculated" ? (
-              <CalculatedValuesList surveyModel={surveyModel} />
-            ) : null}
-          </div>
+          <div className="mt-6">{tabPanel}</div>
         </div>
       </div>
       <SubmissionToC />
