@@ -10,7 +10,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Settings2 } from "lucide-react";
-import { useSubmissionDetailsViewOptions } from "./submission-details-context";
+import {
+  useSubmissionDetailsViewOptions,
+  ViewOption,
+} from "./submission-details-context";
 
 interface SubmissionViewOptionsProps {
   submissionLanguageName?: string;
@@ -35,20 +38,28 @@ export function SubmissionViewOptions({
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
           checked={options.showInvisibleItems}
-          onCheckedChange={() => toggleOption("showInvisibleItems")}
+          onCheckedChange={() => toggleOption(ViewOption.ShowInvisible)}
         >
           Show Invisible Items
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={options.showReadOnly}
-          onCheckedChange={() => toggleOption("showReadOnly")}
+          onCheckedChange={() => toggleOption(ViewOption.ShowReadOnly)}
         >
           Show Read-only Questions
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={options.showPersonalizedItems}
+          onCheckedChange={() => toggleOption(ViewOption.ShowPersonalized)}
+        >
+          Show Personalized Items
         </DropdownMenuCheckboxItem>
         {submissionLanguageName && (
           <DropdownMenuCheckboxItem
             checked={options.useSubmissionLanguage}
-            onCheckedChange={() => toggleOption("useSubmissionLanguage")}
+            onCheckedChange={() =>
+              toggleOption(ViewOption.UseSubmissionLanguage)
+            }
           >
             {`Display in ${submissionLanguageName}`}
           </DropdownMenuCheckboxItem>

@@ -252,6 +252,7 @@ describe("SubmissionDetailsContext", () => {
 
       expect(result.current.options).toEqual({
         showInvisibleItems: true,
+        showPersonalizedItems: true,
         showReadOnly: true,
         useSubmissionLanguage: true,
       });
@@ -375,6 +376,7 @@ describe("SubmissionDetailsContext", () => {
     it("should load view options from localStorage on mount", async () => {
       const storedOptions = {
         showInvisibleItems: false,
+        showPersonalizedItems: false,
         showReadOnly: false,
         useSubmissionLanguage: false,
       };
@@ -447,6 +449,7 @@ describe("SubmissionDetailsContext", () => {
         "SubmissionDetailsViewOptions",
         JSON.stringify({
           showInvisibleItems: false,
+          showPersonalizedItems: true,
           showReadOnly: true,
           useSubmissionLanguage: true,
         }),

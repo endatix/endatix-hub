@@ -20,14 +20,24 @@ import {
   SubmissionDetailsState,
 } from "./submission-details.reducer";
 
-export const SubmissionDetailsViewOptionsSchema = z.object({
-  showInvisibleItems: z.boolean(),
-  showReadOnly: z.boolean().optional(),
-  useSubmissionLanguage: z.boolean().optional(),
+export const ViewOption = {
+  ShowInvisible: "showInvisibleItems",
+  ShowPersonalized: "showPersonalizedItems",
+  ShowReadOnly: "showReadOnly",
+  UseSubmissionLanguage: "useSubmissionLanguage",
+} as const;
+
+export type ViewOptionKey = (typeof ViewOption)[keyof typeof ViewOption];
+
+export const viewOptionsStateSchema = z.object({
+  [ViewOption.ShowInvisible]: z.boolean(),
+  [ViewOption.ShowPersonalized]: z.boolean(),
+  [ViewOption.ShowReadOnly]: z.boolean(),
+  [ViewOption.UseSubmissionLanguage]: z.boolean().optional(),
 });
 
 export type SubmissionDetailsViewOptions = z.infer<
-  typeof SubmissionDetailsViewOptionsSchema
+  typeof viewOptionsStateSchema
 >;
 
 /**
@@ -65,6 +75,7 @@ const LOCAL_STORAGE_KEY = "SubmissionDetailsViewOptions";
 
 const DEFAULT_VIEW_OPTIONS: SubmissionDetailsViewOptions = {
   showInvisibleItems: true,
+  showPersonalizedItems: true,
   showReadOnly: true,
   useSubmissionLanguage: true,
 };
@@ -99,7 +110,7 @@ export function SubmissionDetailsProvider({
 
     try {
       const parsed = JSON.parse(stored);
-      const resultSchema = SubmissionDetailsViewOptionsSchema.safeParse(parsed);
+      const resultSchema = viewOptionsStateSchema.safeParse(parsed);
       if (resultSchema.success) {
         dispatch({
           type: SubmissionDetailsActionType.INIT_VIEW_OPTIONS,
