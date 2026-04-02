@@ -48,12 +48,12 @@ describe("SubmissionViewOptions", () => {
 
   it("should use submission details view options hook", async () => {
     const TestComponent = () => {
-      const { options } = useSubmissionDetailsViewOptions();
+      const { viewOptions } = useSubmissionDetailsViewOptions();
       return (
         <div>
-          <span data-testid="showInvisible">{String(options.showInvisibleItems)}</span>
-          <span data-testid="showPersonalized">{String(options.showPersonalizedItems)}</span>
-          <span data-testid="showReadOnly">{String(options.showReadOnly)}</span>
+          <span data-testid="showInvisible">{String(viewOptions.showInvisibleItems)}</span>
+          <span data-testid="showPersonalized">{String(viewOptions.showPersonalizedItems)}</span>
+          <span data-testid="showReadOnly">{String(viewOptions.showReadOnly)}</span>
         </div>
       );
     };
