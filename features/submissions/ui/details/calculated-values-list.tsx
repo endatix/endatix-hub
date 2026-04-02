@@ -92,7 +92,7 @@ export default function CalculatedValuesList({
                   </span>
                 </div>
                 <div className="col-span-5 flex items-center gap-2">
-                  <code className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-900 dark:bg-slate-800 dark:text-slate-100">
+                  <code className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-900 dark:bg-slate-800 dark:text-slate-100 truncate">
                     {itemValue}
                   </code>
                   <CopyToClipboard
