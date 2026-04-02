@@ -172,7 +172,7 @@ describe("submission-toc", () => {
         true,
         false,
         "Personal Info",
-        questions,
+        questions as unknown as Question[],
       );
       const action = createMockAction("page1", "Personal Info", true);
 

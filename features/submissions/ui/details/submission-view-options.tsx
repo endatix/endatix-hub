@@ -22,7 +22,7 @@ interface SubmissionViewOptionsProps {
 export function SubmissionViewOptions({
   submissionLanguageName,
 }: SubmissionViewOptionsProps) {
-  const { options, toggleOption, resetOptions } =
+  const { viewOptions, toggleOption, resetOptions } =
     useSubmissionDetailsViewOptions();
 
   return (
@@ -37,26 +37,26 @@ export function SubmissionViewOptions({
         <DropdownMenuLabel>View Options</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          checked={options.showInvisibleItems}
+          checked={viewOptions.showInvisibleItems}
           onCheckedChange={() => toggleOption(ViewOption.ShowInvisible)}
         >
           Show Invisible Items
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          checked={options.showReadOnly}
+          checked={viewOptions.showReadOnly}
           onCheckedChange={() => toggleOption(ViewOption.ShowReadOnly)}
         >
           Show Read-only Questions
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          checked={options.showPersonalizedItems}
+          checked={viewOptions.showPersonalizedItems}
           onCheckedChange={() => toggleOption(ViewOption.ShowPersonalized)}
         >
           Show Personalized Items
         </DropdownMenuCheckboxItem>
         {submissionLanguageName && (
           <DropdownMenuCheckboxItem
-            checked={options.useSubmissionLanguage}
+            checked={viewOptions.useSubmissionLanguage}
             onCheckedChange={() =>
               toggleOption(ViewOption.UseSubmissionLanguage)
             }

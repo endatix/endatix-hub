@@ -68,13 +68,13 @@ function ValueText({ children }: Readonly<{ children: ReactNode }>) {
 
 export function MetadataCard() {
   const { submission } = useSubmissionDetails();
-  const { options } = useSubmissionDetailsViewOptions();
+  const { viewOptions } = useSubmissionDetailsViewOptions();
   const rawLocale = getSubmissionLocale(submission);
   const hasStoredLocale = Boolean(rawLocale?.trim());
   const languageLabel = hasStoredLocale
     ? (getLanguageDisplayName(rawLocale) ?? rawLocale)
     : "default";
-  const isUsingSubmissionLanguage = options.useSubmissionLanguage;
+  const isUsingSubmissionLanguage = viewOptions.useSubmissionLanguage;
 
   const languageTooltip = useMemo(() => {
     if (!hasStoredLocale) {

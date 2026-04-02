@@ -12,7 +12,7 @@ import {
   useMemo,
   useReducer,
 } from "react";
-import { Model } from "survey-core";
+import { Model, Question } from "survey-core";
 import z from "zod";
 import {
   SubmissionDetailsActionType,
@@ -44,22 +44,60 @@ export type SubmissionDetailsViewOptions = z.infer<
  * The context type for the submission details context.
  */
 interface SubmissionDetailsContextType {
+  /**
+   * The submission.
+   */
   submission: Submission;
 
+  /**
+   * The survey model.
+   */
   surveyModel: Model | null;
+  /**
+   * Sets the survey model.
+   * @param model - The survey model.
+   */
   setSurveyModel: (model: Model | null) => void;
 
+  /**
+   * Gets all the questions in the survey.
+   * @returns The questions in the survey.
+   */
+  allQuestions: Question[];
+
+  /**
+   * The view options.
+   */
   viewOptions: SubmissionDetailsViewOptions;
+  /**
+   * Updates the view option.
+   * @param key - The key of the view option.
+   * @param value - The value of the view option.
+   */
   updateViewOption: <K extends keyof SubmissionDetailsViewOptions>(
     key: K,
     value: SubmissionDetailsViewOptions[K],
   ) => void;
+  /**
+   * Toggles the view option.
+   * @param key - The key of the view option.
+   */
   toggleViewOption: <K extends keyof SubmissionDetailsViewOptions>(
     key: K,
   ) => void;
+  /**
+   * Resets the view options.
+   */
   resetViewOptions: () => void;
 
+  /**
+   * The highlighted question name.
+   */
   highlightedQuestionName: string | null;
+  /**
+   * Sets the highlighted question name.
+   * @param name - The name of the highlighted question.
+   */
   setHighlightedQuestionName: (name: string | null) => void;
 }
 
@@ -130,6 +168,14 @@ export function SubmissionDetailsProvider({
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.viewOptions));
   }, [state.viewOptions]);
 
+  const allQuestions = useMemo(() => {
+    if (!state.surveyModel) {
+      return [];
+    }
+
+    return state.surveyModel.getAllQuestions(false, false, false);
+  }, [state.surveyModel]);
+
   const submission =
     result && Result.isSuccess(result) ? result.value : undefined;
 
@@ -185,10 +231,17 @@ export function SubmissionDetailsProvider({
       resetViewOptions,
       surveyModel: state.surveyModel,
       setSurveyModel,
+      allQuestions,
       highlightedQuestionName: state.highlightedQuestionName,
       setHighlightedQuestionName,
     };
-  }, [submission, state]);
+  }, [
+    submission,
+    state.viewOptions,
+    state.surveyModel,
+    state.highlightedQuestionName,
+    allQuestions,
+  ]);
 
   if (!contextValue) {
     return null;
@@ -216,12 +269,12 @@ function useSubmissionDetailsContext() {
  */
 export function useSubmissionDetailsViewOptions() {
   const {
-    viewOptions: options,
+    viewOptions,
     updateViewOption: updateOption,
     toggleViewOption: toggleOption,
     resetViewOptions: resetOptions,
   } = useSubmissionDetailsContext();
-  return { options, updateOption, toggleOption, resetOptions };
+  return { viewOptions, updateOption, toggleOption, resetOptions };
 }
 
 /**
@@ -231,6 +284,7 @@ export function useSubmissionDetails() {
   const {
     submission,
     surveyModel,
+    allQuestions,
     setSurveyModel,
     highlightedQuestionName,
     setHighlightedQuestionName,
@@ -238,6 +292,7 @@ export function useSubmissionDetails() {
   return {
     submission,
     surveyModel,
+    allQuestions,
     setSurveyModel,
     highlightedQuestionName,
     setHighlightedQuestionName,
