@@ -78,22 +78,20 @@ interface SubmissionDetailsContextType {
    * The view options.
    */
   viewOptions: SubmissionDetailsViewOptions;
+
   /**
    * Updates the view option.
    * @param key - The key of the view option.
    * @param value - The value of the view option.
    */
-  updateViewOption: <K extends keyof SubmissionDetailsViewOptions>(
-    key: K,
-    value: SubmissionDetailsViewOptions[K],
-  ) => void;
+  updateViewOption: (key: ViewOptionKey, value: boolean) => void;
+
   /**
    * Toggles the view option.
    * @param key - The key of the view option.
    */
-  toggleViewOption: <K extends keyof SubmissionDetailsViewOptions>(
-    key: K,
-  ) => void;
+  toggleViewOption: (key: ViewOptionKey) => void;
+
   /**
    * Resets the view options.
    */
@@ -121,28 +119,26 @@ const SubmissionDetailsContext = createContext<
 const LOCAL_STORAGE_KEY = "SubmissionDetailsViewOptions";
 
 const DEFAULT_VIEW_OPTIONS: SubmissionDetailsViewOptions = {
-  showInvisibleItems: true,
-  showPersonalizedItems: true,
-  showReadOnly: true,
-  useSubmissionLanguage: true,
+  [ViewOption.ShowInvisible]: true,
+  [ViewOption.ShowPersonalized]: true,
+  [ViewOption.ShowReadOnly]: true,
+  [ViewOption.UseSubmissionLanguage]: true,
 };
 
-function getInitialState(): SubmissionDetailsState {
+const DEFAULT_STATE: SubmissionDetailsState = {
+  viewOptions: DEFAULT_VIEW_OPTIONS,
+  surveyModel: null,
+  highlightedQuestionName: null,
+};
+
+export function getStoredViewOptions(): SubmissionDetailsViewOptions | null {
   if (globalThis.window === undefined) {
-    return {
-      viewOptions: DEFAULT_VIEW_OPTIONS,
-      surveyModel: null,
-      highlightedQuestionName: null,
-    };
+    return null;
   }
 
   const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (!stored) {
-    return {
-      viewOptions: DEFAULT_VIEW_OPTIONS,
-      surveyModel: null,
-      highlightedQuestionName: null,
-    };
+    return null;
   }
 
   try {
@@ -150,23 +146,16 @@ function getInitialState(): SubmissionDetailsState {
     const resultSchema = viewOptionsStateSchema.safeParse(parsed);
     if (resultSchema.success) {
       return {
-        viewOptions: { ...DEFAULT_VIEW_OPTIONS, ...resultSchema.data },
-        surveyModel: null,
-        highlightedQuestionName: null,
+        ...DEFAULT_VIEW_OPTIONS,
+        ...resultSchema.data,
       };
     }
   } catch {
     // ignore parse errors
   }
 
-  return {
-    viewOptions: DEFAULT_VIEW_OPTIONS,
-    surveyModel: null,
-    highlightedQuestionName: null,
-  };
+  return null;
 }
-
-const INITIAL_STATE: SubmissionDetailsState = getInitialState();
 
 interface SubmissionDetailsProviderProps {
   children: ReactNode;
@@ -178,7 +167,17 @@ export function SubmissionDetailsProvider({
   submissionPromise,
 }: Readonly<SubmissionDetailsProviderProps>) {
   const result = use(submissionPromise);
-  const [state, dispatch] = useReducer(submissionDetailsReducer, INITIAL_STATE);
+  const [state, dispatch] = useReducer(submissionDetailsReducer, DEFAULT_STATE);
+
+  useEffect(() => {
+    const storedViewOptions = getStoredViewOptions();
+    if (storedViewOptions) {
+      dispatch({
+        type: SubmissionDetailsActionType.INIT_VIEW_OPTIONS,
+        payload: storedViewOptions,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (globalThis.window === undefined) {
@@ -218,19 +217,14 @@ export function SubmissionDetailsProvider({
       });
     };
 
-    const updateViewOption = <K extends keyof SubmissionDetailsViewOptions>(
-      key: K,
-      value: SubmissionDetailsViewOptions[K],
-    ) => {
+    const updateViewOption = (key: ViewOptionKey, value: boolean) => {
       dispatch({
         type: SubmissionDetailsActionType.UPDATE_VIEW_OPTION,
         payload: { key, value },
       });
     };
 
-    const toggleViewOption = <K extends keyof SubmissionDetailsViewOptions>(
-      key: K,
-    ) => {
+    const toggleViewOption = (key: ViewOptionKey) => {
       dispatch({
         type: SubmissionDetailsActionType.TOGGLE_VIEW_OPTION,
         payload: key,

@@ -20,6 +20,7 @@ vi.stubGlobal("localStorage", createLocalStorageMock());
 
 import {
   SubmissionDetailsProvider,
+  getStoredViewOptions,
   useSubmissionDetails,
   useSubmissionDetailsViewOptions,
 } from "../../../ui/details/submission-details-context";
@@ -423,6 +424,149 @@ describe("SubmissionDetailsContext", () => {
           useSubmissionLanguage: true,
         }),
       );
+    });
+
+    it("should load stored view options from localStorage on mount", async () => {
+      vi.mocked(localStorage.getItem).mockReturnValue(
+        JSON.stringify({
+          showInvisibleItems: false,
+          showPersonalizedItems: false,
+          showReadOnly: false,
+          useSubmissionLanguage: false,
+        }),
+      );
+
+      const { result } = await act(async () => {
+        return renderHook(() => useSubmissionDetailsViewOptions(), {
+          wrapper: ({ children }) => (
+            <Suspense fallback={<div>Loading...</div>}>
+              <SubmissionDetailsProvider
+                submissionPromise={mockSubmissionPromise}
+              >
+                {children}
+              </SubmissionDetailsProvider>
+            </Suspense>
+          ),
+        });
+      });
+
+      expect(vi.mocked(localStorage.getItem)).toHaveBeenCalledWith(
+        "SubmissionDetailsViewOptions",
+      );
+      expect(result.current.viewOptions).toEqual({
+        showInvisibleItems: false,
+        showPersonalizedItems: false,
+        showReadOnly: false,
+        useSubmissionLanguage: false,
+      });
+    });
+
+    it("should call getStoredViewOptions when localStorage returns invalid data", async () => {
+      vi.mocked(localStorage.getItem).mockReturnValue("invalid-json");
+
+      const { result } = await act(async () => {
+        return renderHook(() => useSubmissionDetailsViewOptions(), {
+          wrapper: ({ children }) => (
+            <Suspense fallback={<div>Loading...</div>}>
+              <SubmissionDetailsProvider
+                submissionPromise={mockSubmissionPromise}
+              >
+                {children}
+              </SubmissionDetailsProvider>
+            </Suspense>
+          ),
+        });
+      });
+
+      expect(vi.mocked(localStorage.getItem)).toHaveBeenCalledWith(
+        "SubmissionDetailsViewOptions",
+      );
+      expect(result.current.viewOptions).toEqual({
+        showInvisibleItems: true,
+        showPersonalizedItems: true,
+        showReadOnly: true,
+        useSubmissionLanguage: true,
+      });
+    });
+  });
+
+  describe("getStoredViewOptions", () => {
+    it("should return null when window is undefined", () => {
+      const originalWindow = globalThis.window;
+      vi.stubGlobal("window", undefined);
+
+      const result = getStoredViewOptions();
+
+      expect(result).toBeNull();
+      vi.stubGlobal("window", originalWindow);
+    });
+
+    it("should return null when localStorage returns null", () => {
+      vi.mocked(localStorage.getItem).mockReturnValue(null);
+
+      const result = getStoredViewOptions();
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when localStorage returns empty string", () => {
+      vi.mocked(localStorage.getItem).mockReturnValue("");
+
+      const result = getStoredViewOptions();
+
+      expect(result).toBeNull();
+    });
+
+    it("should return parsed view options when valid data exists", () => {
+      vi.mocked(localStorage.getItem).mockReturnValue(
+        JSON.stringify({
+          showInvisibleItems: false,
+          showPersonalizedItems: false,
+          showReadOnly: false,
+          useSubmissionLanguage: false,
+        }),
+      );
+
+      const result = getStoredViewOptions();
+
+      expect(result).toEqual({
+        showInvisibleItems: false,
+        showPersonalizedItems: false,
+        showReadOnly: false,
+        useSubmissionLanguage: false,
+      });
+    });
+
+    it("should return null when localStorage contains partial data that fails schema validation", () => {
+      vi.mocked(localStorage.getItem).mockReturnValue(
+        JSON.stringify({
+          showInvisibleItems: false,
+        }),
+      );
+
+      const result = getStoredViewOptions();
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when localStorage contains invalid JSON", () => {
+      vi.mocked(localStorage.getItem).mockReturnValue("invalid-json");
+
+      const result = getStoredViewOptions();
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when localStorage contains invalid schema", () => {
+      vi.mocked(localStorage.getItem).mockReturnValue(
+        JSON.stringify({
+          showInvisibleItems: "not-a-boolean",
+        }),
+      );
+
+      const result = getStoredViewOptions();
+
+      expect(result).toBeNull();
     });
   });
 });

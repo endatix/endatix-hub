@@ -24,7 +24,9 @@ interface SubmissionAnswersProps {
   customQuestions: CustomQuestion[];
 }
 
-export function SubmissionAnswers({ customQuestions }: Readonly<SubmissionAnswersProps>) {
+export function SubmissionAnswers({
+  customQuestions,
+}: Readonly<SubmissionAnswersProps>) {
   const { submission, submissionNavPages } = useSubmissionDetails();
   const formId = submission.formId;
   const formDefinition = submission.formDefinition?.jsonData ?? "";
@@ -58,11 +60,7 @@ export function SubmissionAnswers({ customQuestions }: Readonly<SubmissionAnswer
     }
 
     surveyModel.showQuestionNumbers = true;
-  }, [
-    surveyModel,
-    viewOptions.useSubmissionLanguage,
-    submission,
-  ]);
+  }, [surveyModel, viewOptions.useSubmissionLanguage, submission]);
 
   if (!surveyModel) {
     return <div>Loading...</div>;
@@ -75,14 +73,16 @@ export function SubmissionAnswers({ customQuestions }: Readonly<SubmissionAnswer
   return (
     <div className="space-y-12">
       {submissionNavPages.map((page, pageIndex) => (
-        <div key={page.pageName} id={`page-${page.pageName}`} className="space-y-6">
+        <div
+          key={page.pageName}
+          id={`page-${page.pageName}`}
+          className="space-y-6"
+        >
           <div className="mb-4 flex items-center gap-4">
             <div
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white",
-                page.isPageInvisible
-                  ? "bg-slate-400"
-                  : "bg-primary",
+                page.isPageInvisible ? "bg-slate-400" : "bg-primary",
               )}
             >
               {pageIndex + 1}
@@ -119,11 +119,17 @@ interface SubmissionItemCardProps {
 
 const selectedQuestionCardClass = "selected ring-2 ring-primary/80 ring-inset";
 
-const SubmissionItemCard = ({ question, isInvisible }: Readonly<SubmissionItemCardProps>) => {
+const SubmissionItemCard = ({
+  question,
+  isInvisible,
+}: Readonly<SubmissionItemCardProps>) => {
   const { highlightedQuestionName } = useSubmissionDetails();
   const { viewOptions } = useSubmissionDetailsViewOptions();
   const isSelected = highlightedQuestionName === question.name;
-  const questionNumber = getQuestionNumber(question) > 0 ? `#${getQuestionNumber(question)}` : "—";
+  const questionLabel =
+    getQuestionNumber(question) > 0
+      ? `Question #${getQuestionNumber(question)}`
+      : "Question";
 
   if (isInvisible && !viewOptions.showInvisibleItems) {
     return null;
@@ -142,7 +148,7 @@ const SubmissionItemCard = ({ question, isInvisible }: Readonly<SubmissionItemCa
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
-              Question {questionNumber} • {question.getType()}
+              {questionLabel} • {question.getType()}
             </span>
             <h3 className="text-lg font-bold tracking-tight text-foreground">
               {question.title}
@@ -173,7 +179,7 @@ const SubmissionItemCard = ({ question, isInvisible }: Readonly<SubmissionItemCa
       <div className="mb-4 flex items-start justify-between">
         <div className="space-y-1">
           <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
-            Question {questionNumber} • {question.getType()}
+            {questionLabel} • {question.getType()}
           </span>
           <h3 className="text-lg leading-snug font-bold tracking-tight text-foreground">
             {question.title}
