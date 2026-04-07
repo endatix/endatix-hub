@@ -4,6 +4,8 @@ import { Submission } from "@/lib/endatix-api";
 import { LocalizationWrapper } from "@/lib/survey-features/infrastructure/localization-wrapper";
 import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
 import { PropertyDisplay } from "../details/property-display";
+import { tryParseJson } from "@/lib/utils/type-parsers";
+import { Result } from "@/lib/result";
 
 interface EditSubmissionHeaderProps {
   submission: Submission;
@@ -15,6 +17,9 @@ interface EditSubmissionHeaderProps {
   minutesRemaining?: number | null;
 }
 
+const DEFAULT_TITLE = "Untitled Form";
+type SurveySchema = Record<string, unknown> | undefined;
+
 function EditSubmissionHeader({
   submission,
   onSaveClick,
@@ -24,11 +29,18 @@ function EditSubmissionHeader({
   isPublicMode = false,
   minutesRemaining,
 }: EditSubmissionHeaderProps) {
-  const formDefinition = JSON.parse(
-    submission.formDefinition?.jsonData ?? "{}",
+  const formDefinitionResult = tryParseJson<SurveySchema>(
+    submission.formDefinition?.jsonData,
   );
-  
-  const locTitle = new LocalizationWrapper(formDefinition.title);
+
+  let title: string | unknown = DEFAULT_TITLE;
+
+  if (Result.isSuccess(formDefinitionResult)) {
+    const formDefinition = formDefinitionResult.value;
+    title = formDefinition?.title ?? DEFAULT_TITLE;
+  }
+
+  const locTitle = new LocalizationWrapper(title);
 
   return (
     <>
