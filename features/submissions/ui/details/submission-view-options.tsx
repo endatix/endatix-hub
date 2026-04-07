@@ -1,16 +1,19 @@
 "use client";
 
-import { Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import { Settings2 } from "lucide-react";
+import {
+  useSubmissionDetailsViewOptions,
+  ViewOption,
+} from "./submission-details-context";
 
 interface SubmissionViewOptionsProps {
   submissionLanguageName?: string;
@@ -19,7 +22,7 @@ interface SubmissionViewOptionsProps {
 export function SubmissionViewOptions({
   submissionLanguageName,
 }: SubmissionViewOptionsProps) {
-  const { options, toggleOption, resetOptions } =
+  const { viewOptions, toggleOption, resetOptions } =
     useSubmissionDetailsViewOptions();
 
   return (
@@ -34,27 +37,29 @@ export function SubmissionViewOptions({
         <DropdownMenuLabel>View Options</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          checked={options.showInvisibleItems}
-          onCheckedChange={() => toggleOption("showInvisibleItems")}
+          checked={viewOptions.showInvisibleItems}
+          onCheckedChange={() => toggleOption(ViewOption.ShowInvisible)}
         >
           Show Invisible Items
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          checked={options.showDynamicVariables}
-          onCheckedChange={() => toggleOption("showDynamicVariables")}
+          checked={viewOptions.showReadOnly}
+          onCheckedChange={() => toggleOption(ViewOption.ShowReadOnly)}
         >
-          Show Dynamic Variables
+          Show Read-only Questions
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          checked={options.showCalculatedValues}
-          onCheckedChange={() => toggleOption("showCalculatedValues")}
+          checked={viewOptions.showPersonalizedItems}
+          onCheckedChange={() => toggleOption(ViewOption.ShowPersonalized)}
         >
-          Show Calculated Values
+          Show Personalized Items
         </DropdownMenuCheckboxItem>
         {submissionLanguageName && (
           <DropdownMenuCheckboxItem
-            checked={options.useSubmissionLanguage}
-            onCheckedChange={() => toggleOption("useSubmissionLanguage")}
+            checked={viewOptions.useSubmissionLanguage}
+            onCheckedChange={() =>
+              toggleOption(ViewOption.UseSubmissionLanguage)
+            }
           >
             {`Display in ${submissionLanguageName}`}
           </DropdownMenuCheckboxItem>

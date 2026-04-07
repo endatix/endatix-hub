@@ -1,49 +1,49 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
+import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import { Result } from "@/lib/result";
+import { useSurveyExtensions } from "@/lib/survey-extensions";
+import {
+  DesignSurveyProvider,
+  useSurveyDesigner,
+} from "@/lib/survey-features/designer/design-survey.context";
+import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
+import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor.hook";
+import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
 } from "@/lib/survey-features/survey-design/ui";
+import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
+import "ace-builds/src-noconflict/ace";
+import "ace-builds/src-noconflict/ext-searchbox";
+import "ace-builds/src-noconflict/theme-github_light_default";
+import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
-  useLayoutEffect,
 } from "react";
 import { slk } from "survey-core";
+import "survey-core/i18n";
 import "survey-core/survey-core.css";
 import {
   ICreatorOptions,
   ModifiedEvent,
   SurveyCreatorModel,
 } from "survey-creator-core";
+import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { updateTemplateJsonAction } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
-import { endatixTheme } from "@/components/editors/endatix-theme";
-import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { Result } from "@/lib/result";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
-import "survey-core/i18n";
-import "survey-creator-core/i18n";
-import {
-  DesignSurveyProvider,
-  useSurveyDesigner,
-} from "@/lib/survey-features/designer/design-survey.context";
-import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useStorageWithCreator } from "@/features/asset-storage/client";
-import "ace-builds/src-noconflict/ace";
-import "ace-builds/src-noconflict/ext-searchbox";
-import "ace-builds/src-noconflict/theme-github_light_default";
-import { useSurveyExtensions } from "@/lib/survey-extensions";
-import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor.hook";
-import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon } from "lucide-react";
-import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 
 export interface FormTemplateEditorProps {
   templateId: string;
@@ -109,6 +109,10 @@ function FormTemplateEditorContent({
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
 
+  const creatorTheme = useEndatixCreatorTheme();
+  const creatorThemeRef = useRef(creatorTheme);
+  creatorThemeRef.current = creatorTheme;
+
   useEffect(() => {
     if (creator === null) return;
 
@@ -122,6 +126,7 @@ function FormTemplateEditorContent({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
+
 
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
@@ -197,7 +202,7 @@ function FormTemplateEditorContent({
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
 
         onCreatorCreated(newCreator);
-        newCreator.applyCreatorTheme(endatixTheme);
+        newCreator.applyCreatorTheme(creatorThemeRef.current);
         const unregisterStorage = registerStorageHandlers(newCreator);
         const unregisterJsonEditor = registerJsonEditor(newCreator);
 

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { DynamicVariables, MetadataSchema } from "../types";
+import { useEffect, useMemo, useState } from "react";
 import { SurveyModel } from "survey-react-ui";
+import { DynamicVariables, MetadataSchema } from "../types";
 
 /**
  * Pure function to apply variables from metadata to a SurveyJS model.
@@ -30,14 +30,28 @@ export const applyVariablesToModel = (model: SurveyModel, metadata: string) => {
 };
 
 /**
+ * Result of the useDynamicVariables hook.
+ */
+interface UseDynamicVariablesResult {
+  variables: DynamicVariables;
+  hasVariables: boolean;
+}
+
+/**
  * Reactive hook to observe variables in a SurveyJS model.
  * Use this in your component to get the current state of variables.
  *
  * @param model The SurveyModel instance to observe.
- * @returns Object containing the current variables state.
+ * @returns Object containing the current variables state and a boolean indicating if there are any variables.
  */
-export const useDynamicVariables = (model: SurveyModel | null) => {
+export const useDynamicVariables = (
+  model: SurveyModel | null,
+): UseDynamicVariablesResult => {
   const [variables, setVariables] = useState<DynamicVariables>({});
+
+  const hasVariables = useMemo(() => {
+    return variables && Object.keys(variables).length > 0;
+  }, [variables]);
 
   useEffect(() => {
     if (!model) {
@@ -62,5 +76,8 @@ export const useDynamicVariables = (model: SurveyModel | null) => {
     };
   }, [model]);
 
-  return { variables };
+  return {
+    variables,
+    hasVariables,
+  };
 };

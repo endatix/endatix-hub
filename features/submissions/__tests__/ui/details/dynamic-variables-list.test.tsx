@@ -1,28 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import * as useDynamicVariablesModule from "@/features/public-form/application/use-dynamic-variables.hook";
+import { render, screen } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import DynamicVariablesList from "../../../ui/details/dynamic-variables-list";
-import { SubmissionDetailsViewOptionsProvider } from "../../../ui/details/submission-details-view-options-context";
 
-vi.mock(
-  "@/features/public-form/application/use-dynamic-variables.hook",
-  () => ({
-    useDynamicVariables: vi.fn(),
-  }),
-);
+vi.mock("@/features/public-form/application/use-dynamic-variables.hook");
 
-import { useDynamicVariables } from "@/features/public-form/application/use-dynamic-variables.hook";
-import { DynamicVariables } from "@/features/public-form/types";
+const mockUseDynamicVariables =
+  useDynamicVariablesModule.useDynamicVariables as ReturnType<typeof vi.fn>;
 
 const renderWithContext = (ui: React.ReactElement) => {
-  return render(
-    <SubmissionDetailsViewOptionsProvider>
-      {ui}
-    </SubmissionDetailsViewOptionsProvider>,
-  );
+  return render(ui);
 };
 
-describe("DynamicVariablesList", () => {
+describe("DynamicVariablesListComponent", () => {
   let model: SurveyModel;
 
   beforeEach(() => {
@@ -30,13 +21,44 @@ describe("DynamicVariablesList", () => {
     vi.clearAllMocks();
   });
 
-  describe("Rendering with variables", () => {
+  describe("Empty state", () => {
+    it("should render empty state when hasVariables is false", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: {},
+        hasVariables: false,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("No dynamic variables")).toBeDefined();
+    });
+
+    it("should render empty state when variables is empty object", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: {},
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("No dynamic variables")).toBeDefined();
+    });
+
+    it("should render empty state when variables is null", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: null as any,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("No dynamic variables")).toBeDefined();
+    });
+  });
+
+  describe("Variable table rendering", () => {
     it("should render dynamic variables section when variables exist", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          utmSource: "google",
-          utmRoute: "home",
-        },
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { firstName: "John" },
+        hasVariables: true,
       });
 
       renderWithContext(<DynamicVariablesList surveyModel={model} />);
@@ -44,211 +66,124 @@ describe("DynamicVariablesList", () => {
       expect(screen.getByText("Dynamic Variables")).toBeDefined();
     });
 
-    it("should display all variables from the hook", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          utmSource: "google",
-          utmRoute: "home",
-          utmCampaign: "spring_sale",
-        },
+    it("should display variable name with @ prefix", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { firstName: "John" },
+        hasVariables: true,
       });
 
       renderWithContext(<DynamicVariablesList surveyModel={model} />);
 
-      expect(screen.getByText(/@utmSource =/)).toBeDefined();
-      expect(screen.getByText(/@utmRoute =/)).toBeDefined();
-      expect(screen.getByText(/@utmCampaign =/)).toBeDefined();
+      expect(screen.getByText(/@firstName/)).toBeDefined();
     });
 
-    it("should display variable values correctly", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          utmSource: "google",
-          utmRoute: "home",
-        },
+    it("should display variable value for non-sensitive variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { firstName: "John", age: 25, isActive: true },
+        hasVariables: true,
       });
 
       renderWithContext(<DynamicVariablesList surveyModel={model} />);
 
-      expect(screen.getByText("@utmSource =")).toBeDefined();
-      expect(screen.getByText("google")).toBeDefined();
-      expect(screen.getByText("@utmRoute =")).toBeDefined();
-      expect(screen.getByText("home")).toBeDefined();
-    });
-  });
-
-  describe("Empty states", () => {
-    it("should return null when variables is empty", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {},
-      });
-
-      const { container } = renderWithContext(
-        <DynamicVariablesList surveyModel={model} />,
-      );
-
-      expect(container.firstChild).toBeNull();
-    });
-
-    it("should return null when variables is null", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: null as unknown as DynamicVariables,
-      });
-
-      const { container } = renderWithContext(
-        <DynamicVariablesList surveyModel={model} />,
-      );
-
-      expect(container.firstChild).toBeNull();
-    });
-
-    it("should return null when showDynamicVariables is false", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          testVar: "test",
-        },
-      });
-
-      const TestWrapper = () => {
-        return (
-          <SubmissionDetailsViewOptionsProvider>
-            <DynamicVariablesList surveyModel={model} />
-          </SubmissionDetailsViewOptionsProvider>
-        );
-      };
-
-      vi.doMock("../submission-details-view-options-context", async () => {
-        const actual = await vi.importActual(
-          "../submission-details-view-options-context",
-        );
-        return {
-          ...actual,
-          useSubmissionDetailsViewOptions: () => ({
-            options: {
-              showCalculatedValues: true,
-              showDynamicVariables: false,
-              showInvisibleItems: true,
-              useSubmissionLanguage: true,
-            },
-          }),
-        };
-      });
-    });
-  });
-
-  describe("Variable names with different cases", () => {
-    it("should handle lowercase variable names", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          lowercasevar: "value1",
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
-      expect(screen.getByText(/@lowercasevar =/)).toBeDefined();
-    });
-
-    it("should handle uppercase variable names", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          UPPERCASEVAR: "value1",
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
-      expect(screen.getByText(/@UPPERCASEVAR =/)).toBeDefined();
-    });
-
-    it("should handle camelCase variable names", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          camelCaseVar: "value1",
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
-      expect(screen.getByText(/@camelCaseVar =/)).toBeDefined();
-    });
-
-    it("should handle pascalCase variable names", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          PascalCaseVar: "value1",
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
-      expect(screen.getByText(/@PascalCaseVar =/)).toBeDefined();
-    });
-
-    it("should handle mixed case variable names", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          utmSource: "google",
-          utmRoute: "home",
-          utmCampaign: "spring_sale",
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
-      expect(screen.getByText(/@utmSource =/)).toBeDefined();
-      expect(screen.getByText(/@utmRoute =/)).toBeDefined();
-      expect(screen.getByText(/@utmCampaign =/)).toBeDefined();
-    });
-  });
-
-  describe("Variable values", () => {
-    it("should handle string values", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          testVar: "string_value",
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
-      expect(screen.getByText("string_value")).toBeDefined();
-    });
-
-    it("should handle number values", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          testVar: 42,
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
-      expect(screen.getByText("42")).toBeDefined();
-    });
-
-    it("should handle boolean values", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          testVar: true,
-        },
-      });
-
-      renderWithContext(<DynamicVariablesList surveyModel={model} />);
-
+      expect(screen.getByText("John")).toBeDefined();
+      expect(screen.getByText("25")).toBeDefined();
       expect(screen.getByText("true")).toBeDefined();
     });
 
-    it("should handle empty string values", () => {
-      vi.mocked(useDynamicVariables).mockReturnValue({
-        variables: {
-          testVar: "",
-        },
+    it("should render variable table structure", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { testVar: "value" },
+        hasVariables: true,
       });
 
       renderWithContext(<DynamicVariablesList surveyModel={model} />);
 
-      expect(screen.getByText(/@testVar =/)).toBeDefined();
+      const tableContainer = document.querySelector(".grid.grid-cols-12");
+      expect(tableContainer).toBeDefined();
+    });
+  });
+
+  describe("Sensitive variable masking", () => {
+    it("should mask password variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { password: "secretpassword" },
+        hasVariables: true,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("••••••••")).toBeDefined();
+    });
+
+    it("should mask token variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { authToken: "mytokenvalue" },
+        hasVariables: true,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("••••••••")).toBeDefined();
+    });
+
+    it("should mask secret variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { apiSecret: "mysecretvalue" },
+        hasVariables: true,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("••••••••")).toBeDefined();
+    });
+
+    it("should mask key variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { apiKey: "mykeyvalue" },
+        hasVariables: true,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("••••••••")).toBeDefined();
+    });
+
+    it("should mask email variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { userEmail: "test@test.com" },
+        hasVariables: true,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("••••••••")).toBeDefined();
+    });
+
+    it("should mask phone variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { phoneNumber: "1234567890" },
+        hasVariables: true,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      expect(screen.getByText("••••••••")).toBeDefined();
+    });
+  });
+
+  describe("Copy button", () => {
+    it("should render copy button for non-sensitive variables", () => {
+      mockUseDynamicVariables.mockReturnValue({
+        variables: { firstName: "John" },
+        hasVariables: true,
+      });
+
+      renderWithContext(<DynamicVariablesList surveyModel={model} />);
+
+      const copyButton = document.querySelector(
+        'button[aria-label="Copy to clipboard"]',
+      );
+      expect(copyButton).toBeDefined();
     });
   });
 });

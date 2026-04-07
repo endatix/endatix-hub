@@ -1,9 +1,10 @@
 import "@/app/globals.css";
-import { AppProvider } from "@/components/providers";
 import { auth } from "@/auth";
-import { cookies } from "next/headers";
-import localFont from "next/font/local";
+import { AppProvider } from "@/components/providers";
+import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
+import localFont from "next/font/local";
+import { cookies, headers } from "next/headers";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -42,13 +43,15 @@ export default async function RootLayout({
   header,
   nav,
 }: RootLayoutProps) {
+  const requestHeaders = await headers();
+  const osClass = getOsClass(requestHeaders);
   const session = await auth();
   const cookieStore = await cookies();
   const sidebarValue = cookieStore.get("sidebar_state");
   const defaultSidebarOpen = sidebarValue?.value === "true";
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={osClass} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
       </head>

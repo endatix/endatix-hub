@@ -17,6 +17,7 @@ import {
   QuestionRankingModel,
   QuestionRadiogroupModel,
   QuestionDropdownModel,
+  QuestionSliderModel,
 } from "survey-core";
 import PdfFileAnswer from "./answers/pdf-file-answer";
 import { QuestionType } from "@/lib/questions";
@@ -30,6 +31,7 @@ import PdfBooleanAnswer from "./answers/pdf-boolean-answer";
 import PdfMatrixAnswer from "./answers/pdf-matrix-answer";
 import PdfCustomAnswer from "./answers/pdf-custom-answer";
 import PdfRankingAnswer from "./answers/pdf-ranking-answer";
+import PdfSliderAnswer from "./answers/pdf-slider-answer";
 
 export interface ViewAnswerProps {
   forQuestion: Question;
@@ -87,6 +89,13 @@ const PdfAnswerViewer = ({
       <Text style={VIEWER_STYLES.answerText}>
         {forQuestion.value || "No Answer"}
       </Text>
+    </View>
+  );
+
+  const renderSliderAnswer = () => (
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+      {renderTitle()}
+      <PdfSliderAnswer question={forQuestion as QuestionSliderModel} />
     </View>
   );
 
@@ -246,6 +255,8 @@ const PdfAnswerViewer = ({
       return renderBooleanAnswer();
     case QuestionType.Rating:
       return renderRatingAnswer();
+    case QuestionType.Slider:
+      return renderSliderAnswer();
     case QuestionType.Radiogroup:
       return renderRadiogroupAnswer();
     case QuestionType.Dropdown:

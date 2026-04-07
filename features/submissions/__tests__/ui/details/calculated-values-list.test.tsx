@@ -1,288 +1,112 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { SurveyModel } from "survey-core";
+import { beforeEach, describe, expect, it } from "vitest";
 import CalculatedValuesList from "../../../ui/details/calculated-values-list";
-import { SubmissionDetailsViewOptionsProvider } from "../../../ui/details/submission-details-view-options-context";
-
-vi.mock(
-  "@/features/public-form/application/use-dynamic-variables.hook",
-  () => ({
-    useDynamicVariables: vi.fn(() => ({ variables: {} })),
-  }),
-);
 
 const renderWithContext = (ui: React.ReactElement) => {
-  return render(
-    <SubmissionDetailsViewOptionsProvider>
-      {ui}
-    </SubmissionDetailsViewOptionsProvider>,
-  );
+  return render(ui);
 };
 
-describe("CalculatedValuesList", () => {
+describe("CalculatedValuesListComponent", () => {
   let model: SurveyModel;
 
   const surveyJsonWithCalculatedValues = {
-    elements: [
-      {
-        type: "text",
-        name: "utmSource",
-      },
-      {
-        type: "text",
-        name: "utmroute",
-      },
-      {
-        type: "text",
-        name: "utmCampaign",
-      },
-    ],
+    elements: [{ type: "text", name: "source" }],
     calculatedValues: [
       {
-        name: "utmSource",
-        expression: "{utmSource}",
+        name: "computedField",
+        expression: "{source}",
         includeIntoResult: true,
       },
-      {
-        name: "utmRoute",
-        expression: "{utmroute}",
-        includeIntoResult: true,
-      },
-      {
-        name: "utmCampaign",
-        includeIntoResult: false,
-      },
+      { name: "hiddenField", expression: "{source}", includeIntoResult: false },
     ],
   };
 
   beforeEach(() => {
     model = new SurveyModel(surveyJsonWithCalculatedValues);
-    model.setVariable("utmSource", "google");
-    model.setVariable("utmroute", "home");
-    model.setVariable("utmCampaign", "spring_sale");
+    model.setVariable("computedField", "test_value");
+    model.setVariable("hiddenField", "hidden_value");
   });
 
-  describe("Rendering", () => {
-    it("should render calculated values section", () => {
+  describe("Empty state", () => {
+    it("should render empty state when surveyModel is null", () => {
+      const { container } = renderWithContext(
+        <CalculatedValuesList surveyModel={null} />,
+      );
+      expect(container.firstChild).toBeNull();
+    });
+
+    it("should render empty state when no calculated values", () => {
+      const modelWithoutCalculatedValues = new SurveyModel({
+        elements: [{ type: "text", name: "question1" }],
+      });
+
+      renderWithContext(
+        <CalculatedValuesList surveyModel={modelWithoutCalculatedValues} />,
+      );
+
+      expect(screen.getByText("No calculated values")).toBeDefined();
+    });
+  });
+
+  describe("Calculated values table rendering", () => {
+    it("should render calculated values section when values exist", () => {
       renderWithContext(<CalculatedValuesList surveyModel={model} />);
 
       expect(screen.getByText("Calculated Values")).toBeDefined();
     });
 
-    it("should display all calculated values from the survey model", () => {
+    it("should display all calculated value names", () => {
       renderWithContext(<CalculatedValuesList surveyModel={model} />);
 
-      expect(screen.getByText(/utmSource =/)).toBeDefined();
-      expect(screen.getByText(/utmRoute =/)).toBeDefined();
-      expect(screen.getByText(/utmCampaign =/)).toBeDefined();
+      expect(screen.getByText("computedField")).toBeDefined();
+      expect(screen.getByText("hiddenField")).toBeDefined();
     });
   });
 
-  describe("includeIntoResult handling", () => {
-    it("should show 'In result' badge for calculated values with includeIntoResult: true", () => {
+  describe("includeIntoResult badge", () => {
+    it("should show 'In result' badge for includeIntoResult: true", () => {
       renderWithContext(<CalculatedValuesList surveyModel={model} />);
 
-      const inResultBadges = screen.getAllByText("In result");
-      expect(inResultBadges).toHaveLength(2);
+      expect(screen.getByText("In result")).toBeDefined();
     });
 
-    it("should show 'Not in result' badge for calculated values with includeIntoResult: false", () => {
+    it("should show 'Not in result' badge for includeIntoResult: false", () => {
       renderWithContext(<CalculatedValuesList surveyModel={model} />);
 
       expect(screen.getByText("Not in result")).toBeDefined();
     });
 
-    it("should handle mixed case names (pascalCase, camelCase)", () => {
+    it("should show correct number of badges", () => {
       renderWithContext(<CalculatedValuesList surveyModel={model} />);
 
-      expect(screen.getByText(/utmSource/)).toBeDefined();
-      expect(screen.getByText(/utmRoute/)).toBeDefined();
+      expect(screen.getAllByText("In result")).toHaveLength(1);
+      expect(screen.getAllByText("Not in result")).toHaveLength(1);
     });
   });
 
-  describe("Expression display", () => {
-    it("should have copy buttons for calculated values with expression", () => {
+  describe("Expression handling", () => {
+    it("should render copy button for values with expression", () => {
       renderWithContext(<CalculatedValuesList surveyModel={model} />);
 
-      const copyButtons = screen.getAllByLabelText("Copy expression");
-      expect(copyButtons).toHaveLength(3);
-    });
-  });
-
-  describe("Empty states", () => {
-    it("should return null when calculatedValues is empty", () => {
-      const modelWithoutCalculatedValues = new SurveyModel({
-        elements: [{ type: "text", name: "question1" }],
-      });
-
-      const { container } = renderWithContext(
-        <CalculatedValuesList surveyModel={modelWithoutCalculatedValues} />,
+      const copyButtons = document.querySelectorAll(
+        'button[aria-label="Copy to clipboard"]',
       );
-
-      expect(container.firstChild).toBeNull();
+      expect(copyButtons.length).toBeGreaterThan(0);
     });
 
-    it("should return null when showCalculatedValues is false", () => {
-      const TestComponent = () => {
-        return (
-          <SubmissionDetailsViewOptionsProvider>
-            <CalculatedValuesList surveyModel={model} />
-          </SubmissionDetailsViewOptionsProvider>
-        );
-      };
-
-      vi.doMock("../submission-details-view-options-context", async () => {
-        const actual = await vi.importActual(
-          "../submission-details-view-options-context",
-        );
-        return {
-          ...actual,
-          useSubmissionDetailsViewOptions: () => ({
-            options: {
-              showCalculatedValues: false,
-              showDynamicVariables: true,
-              showInvisibleItems: true,
-              useSubmissionLanguage: true,
-            },
-          }),
-        };
-      });
-    });
-  });
-
-  describe("Case sensitivity", () => {
-    it("should handle lowercase calculated value names", () => {
-      const modelWithLowercase = new SurveyModel({
+    it("should handle calculated value without expression", () => {
+      const modelWithoutExpression = new SurveyModel({
         elements: [{ type: "text", name: "test" }],
-        calculatedValues: [
-          {
-            name: "lowercasevar",
-            expression: "{test}",
-            includeIntoResult: true,
-          },
-        ],
+        calculatedValues: [{ name: "noExpression", includeIntoResult: true }],
       });
-      modelWithLowercase.setVariable("lowercasevar", "test_value");
+      modelWithoutExpression.setVariable("noExpression", "value");
 
       renderWithContext(
-        <CalculatedValuesList surveyModel={modelWithLowercase} />,
+        <CalculatedValuesList surveyModel={modelWithoutExpression} />,
       );
 
-      expect(screen.getByText(/lowercasevar =/)).toBeDefined();
-    });
-
-    it("should handle uppercase calculated value names", () => {
-      const modelWithUppercase = new SurveyModel({
-        elements: [{ type: "text", name: "test" }],
-        calculatedValues: [
-          {
-            name: "UPPERCASEVAR",
-            expression: "{test}",
-            includeIntoResult: true,
-          },
-        ],
-      });
-      modelWithUppercase.setVariable("UPPERCASEVAR", "test_value");
-
-      renderWithContext(
-        <CalculatedValuesList surveyModel={modelWithUppercase} />,
-      );
-
-      expect(screen.getByText(/UPPERCASEVAR =/)).toBeDefined();
-    });
-  });
-
-  describe("Value type formatting", () => {
-    it("should handle string values in formatValue", () => {
-      const modelWithString = new SurveyModel({
-        elements: [{ type: "text", name: "test" }],
-        calculatedValues: [
-          {
-            name: "stringValue",
-            expression: "{test}",
-            includeIntoResult: true,
-          },
-        ],
-      });
-      modelWithString.setVariable("stringValue", "hello world");
-
-      renderWithContext(<CalculatedValuesList surveyModel={modelWithString} />);
-
-      expect(screen.getByText(/stringValue =/)).toBeDefined();
-    });
-
-    it("should handle number values in formatValue", () => {
-      const modelWithNumber = new SurveyModel({
-        elements: [{ type: "text", name: "test" }],
-        calculatedValues: [
-          {
-            name: "numberValue",
-            expression: "{test}",
-            includeIntoResult: true,
-          },
-        ],
-      });
-      modelWithNumber.setVariable("numberValue", 42);
-
-      renderWithContext(<CalculatedValuesList surveyModel={modelWithNumber} />);
-
-      expect(screen.getByText(/numberValue =/)).toBeDefined();
-    });
-
-    it("should handle boolean values in formatValue", () => {
-      const modelWithBoolean = new SurveyModel({
-        elements: [{ type: "text", name: "test" }],
-        calculatedValues: [
-          {
-            name: "boolValue",
-            expression: "{test}",
-            includeIntoResult: true,
-          },
-        ],
-      });
-      modelWithBoolean.setVariable("boolValue", true);
-
-      renderWithContext(
-        <CalculatedValuesList surveyModel={modelWithBoolean} />,
-      );
-
-      expect(screen.getByText(/boolValue =/)).toBeDefined();
-    });
-
-    it("should handle array values in formatValue", () => {
-      const modelWithArray = new SurveyModel({
-        elements: [{ type: "text", name: "test" }],
-        calculatedValues: [
-          {
-            name: "arrayValue",
-            expression: "{test}",
-            includeIntoResult: true,
-          },
-        ],
-      });
-      modelWithArray.setVariable("arrayValue", [1, 2, 3]);
-
-      renderWithContext(<CalculatedValuesList surveyModel={modelWithArray} />);
-
-      expect(screen.getByText(/arrayValue =/)).toBeDefined();
-    });
-
-    it("should handle object values in formatValue", () => {
-      const modelWithObject = new SurveyModel({
-        elements: [{ type: "text", name: "test" }],
-        calculatedValues: [
-          {
-            name: "objectValue",
-            expression: "{test}",
-            includeIntoResult: true,
-          },
-        ],
-      });
-      modelWithObject.setVariable("objectValue", { key1: "value1" });
-
-      renderWithContext(<CalculatedValuesList surveyModel={modelWithObject} />);
-
-      expect(screen.getByText(/objectValue =/)).toBeDefined();
+      expect(screen.getByText("noExpression")).toBeDefined();
     });
   });
 });
