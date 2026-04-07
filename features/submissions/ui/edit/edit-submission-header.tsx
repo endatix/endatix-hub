@@ -33,7 +33,7 @@ function EditSubmissionHeader({
     submission.formDefinition?.jsonData,
   );
 
-  let title: string | unknown = DEFAULT_TITLE;
+  let title: unknown = DEFAULT_TITLE;
 
   if (Result.isSuccess(formDefinitionResult)) {
     const formDefinition = formDefinitionResult.value;
