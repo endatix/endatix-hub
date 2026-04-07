@@ -28,7 +28,7 @@ const mockRenderButtons = vi.fn(() => {
 });
 
 vi.mock("survey-react-ui", async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const React = await import("react");
   const actual = await importOriginal<typeof import("survey-react-ui")>();
   return {
@@ -47,7 +47,7 @@ vi.mock("survey-react-ui", async (importOriginal) => {
 });
 
 vi.mock("survey-creator-react", async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const React = await import("react");
   const actual = await importOriginal<typeof import("survey-creator-react")>();
   return {

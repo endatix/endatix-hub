@@ -151,7 +151,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       expect((model as any).readTokens).toEqual({
         userFiles: resolvedUserFilesTokenResult.value,
         content: resolvedTokenResult.value,
@@ -177,7 +177,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       expect((model as any).readTokens).toBeUndefined();
     });
 
@@ -199,7 +199,7 @@ describe("useStorageView", () => {
       const hookResult = result!.current as ReturnType<typeof useStorageView>;
       hookResult.setModelMetadata(model);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       expect((model as any).readTokens).toBeUndefined();
     });
   });

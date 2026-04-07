@@ -132,7 +132,7 @@ export const useSearchParamsVariables = (
       ? `${window.location.pathname}?${newSearchParams.toString()}`
       : window.location.pathname;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     router.replace(newUrl as any, { scroll: false });
     hasCleanedUpRef.current = true;
   }, [searchParams, router, removeAfterProcessing, debugMode]);

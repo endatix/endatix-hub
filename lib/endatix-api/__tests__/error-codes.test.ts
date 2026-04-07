@@ -77,7 +77,7 @@ describe("ERROR_CODES", () => {
 
     // Act
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       (ERROR_CODES as any).form_not_found = "Modified message";
     } catch {
       // Expected in strict mode
@@ -125,7 +125,7 @@ describe("ERROR_CODE", () => {
 
     // Act
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       (ERROR_CODE as any).FORM_NOT_FOUND = "modified_value";
     } catch {
       // Expected in strict mode
@@ -219,7 +219,7 @@ describe("getErrorMessage", () => {
 
   it("should return null for null input", () => {
     // Arrange
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const input = null as any;
 
     // Act
@@ -303,7 +303,7 @@ describe("getErrorMessageWithFallback", () => {
 
   it("should return default message for null error code with no fallback", () => {
     // Arrange
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const errorCode = null as any;
 
     // Act
