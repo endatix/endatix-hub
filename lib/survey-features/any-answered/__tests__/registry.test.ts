@@ -8,7 +8,7 @@ describe("registerAnyAnsweredGlobals", () => {
     registerAnyAnsweredGlobals();
   });
 
-  it("evaluates anyAnswered(...) with explicit question names", () => {
+  it("evaluates anyAnswered(...) with reactive value references", () => {
     const survey = new Model({
       elements: [
         { type: "checkbox", name: "qAB101_C103_D_E4_F5", choices: ["Item 1"] },
@@ -24,7 +24,7 @@ describe("registerAnyAnsweredGlobals", () => {
     };
 
     const result = survey.runCondition(
-      "anyAnswered('qAB101_C103_D_E4_F5', 'qAB101_C103_D_E4_F7', 'qAB101_Z001_D_E4_F17')",
+      "anyAnswered({qAB101_C103_D_E4_F5}, {qAB101_C103_D_E4_F7}, {qAB101_Z001_D_E4_F17})",
     );
 
     expect(result).toBe(true);
