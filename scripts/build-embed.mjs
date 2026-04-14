@@ -1,10 +1,11 @@
 import * as esbuild from "esbuild";
-import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const configPath = join(__dirname, "..", "esbuild.embed.config.js");
-const config = await import(configPath).then(m => m.default || m);
+
+const config = await import(pathToFileURL(configPath).href).then(m => m.default || m);
 
 const isWatch = process.argv.includes("--watch");
 
