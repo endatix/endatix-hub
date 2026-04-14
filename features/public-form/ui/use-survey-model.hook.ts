@@ -12,6 +12,7 @@ import { useSearchParamsVariables } from "../application/use-search-params-varia
 import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
+import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 
 interface UseSurveyModelProps {
   formId: string;
@@ -41,6 +42,7 @@ export function useSurveyModel({
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const { variables } = useDynamicVariables(surveyModel);
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
+  const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
   const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
   const isInitializedRef = useRef(false);
   const submissionRef = useInitOnly(submission);
@@ -82,6 +84,7 @@ export function useSurveyModel({
       return;
     }
 
+    initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
 
@@ -114,6 +117,7 @@ export function useSurveyModel({
     cleanupUrl,
     submissionRef,
     onModelCreated,
+    initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);

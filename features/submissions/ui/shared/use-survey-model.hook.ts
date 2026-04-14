@@ -6,6 +6,7 @@ import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { Result } from "@/lib/result";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
+import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useEndatixSurveyTheme } from "@/lib/themes/use-endatix-themes";
 import { useEffect, useRef, useState } from "react";
 import { Model } from "survey-core";
@@ -27,6 +28,7 @@ export function useSurveyModel(
     initGlobals: initQuestionLoopsGlobals,
     bindToSurvey: bindQuestionLoops,
   } = useQuestionLoops();
+  const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
   const surveyTheme = useEndatixSurveyTheme();
   const surveyThemeRef = useRef(surveyTheme);
@@ -64,6 +66,7 @@ export function useSurveyModel(
           initializeCustomQuestions(questionsList);
         }
 
+        initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         const definitionJson = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
@@ -121,6 +124,7 @@ export function useSurveyModel(
     customQuestions,
     readOnly,
     onModelCreated,
+    initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);

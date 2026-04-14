@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
+import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { FormTemplate } from "@/types";
@@ -24,6 +25,7 @@ export default function SurveyPreviewComponent({
   const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions();
   useRichText(model);
   useLoopAwareSummaryTable(model);
+  const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
   const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
 
   const { setModelMetadata, registerViewHandlers } = useStorageView();
@@ -32,6 +34,7 @@ export default function SurveyPreviewComponent({
     if (!template || !isExtensionsReady) return;
 
     try {
+      initAnyAnsweredGlobals();
       initQuestionLoopsGlobals();
       const survey = new Model(template.jsonData);
       const unbindQuestionLoops = bindQuestionLoops(survey);
@@ -71,6 +74,7 @@ export default function SurveyPreviewComponent({
     onModelCreated,
     isExtensionsReady,
     setModelMetadata,
+    initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);

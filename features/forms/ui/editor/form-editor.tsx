@@ -13,6 +13,7 @@ import {
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
+import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import {
@@ -191,6 +192,7 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
+  const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);
@@ -493,6 +495,7 @@ function FormEditor({
           ...(options || defaultCreatorOptions),
           showSidebar: initialPropertyGridVisible,
         };
+        initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         newCreator.applyCreatorTheme(creatorThemeRef.current);
@@ -557,6 +560,7 @@ function FormEditor({
     isExtensionsReady,
     onCreatorCreated,
     bindQuestionLoops,
+    initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
   ]);
 
