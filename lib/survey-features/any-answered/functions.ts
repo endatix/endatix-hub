@@ -25,7 +25,7 @@ export function anyAnsweredByPrefixFunction(
     return false;
   }
 
-  const questions = survey.getAllQuestions();
+  const questions = survey.getAllQuestions(false, false, false);
 
   for (let i = 0; i < questions.length; i++) {
     const question = questions[i];
