@@ -65,7 +65,6 @@ const FormsList = ({ forms }: FormDataProps) => {
       </div>
 
       <FormSheet
-        modal={false}
         open={isSheetOpen}
         onOpenChange={handleOnOpenChange}
         selectedForm={selectedForm ?? null}

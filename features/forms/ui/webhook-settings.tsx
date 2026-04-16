@@ -30,9 +30,9 @@ type WebhookEvent = {
   url: string;
 };
 
+/** Form-level webhook UI: Form Created is tenant-only (fires before per-form config exists). */
 const WEBHOOK_EVENTS = [
   { key: "SubmissionCompleted", label: "Submission Completed" },
-  { key: "FormCreated", label: "Form Created" },
   { key: "FormUpdated", label: "Form Updated" },
   { key: "FormEnabledStateChanged", label: "Form Enabled State Changed" },
   { key: "FormDeleted", label: "Form Deleted" },
@@ -120,7 +120,6 @@ export function WebhookSettings({
     state?.data?.useCustomSettings ?? !!initialSettings,
   );
   const [events, setEvents] = useState<WebhookEvent[]>(() => {
-    // If there already are values, use those
     if (state?.data) {
       return WEBHOOK_EVENTS.map((event) => ({
         key: event.key,
@@ -283,9 +282,9 @@ export function WebhookSettings({
             {displayEvents.map((event) => (
               <div key={event.key} className="space-y-2">
                 {!useCustomSettings && (
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-[minmax(15rem,42%)_1fr] items-center gap-4">
                     <span className="text-right">{event.label}</span>
-                    <div className="col-span-3">
+                    <div className="min-w-0">
                       {event.enabled ? (
                         <Badge variant="default">Enabled</Badge>
                       ) : (
@@ -296,9 +295,9 @@ export function WebhookSettings({
                 )}
 
                 {useCustomSettings && (
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-[minmax(15rem,42%)_1fr] items-center gap-4">
                     <span className="text-right">{event.label}</span>
-                    <div className="col-span-3 flex items-center space-x-2">
+                    <div className="flex min-w-0 items-center space-x-2">
                       <Switch
                         id={`webhook-${event.key}`}
                         checked={event.enabled}
@@ -315,14 +314,14 @@ export function WebhookSettings({
                 )}
 
                 {event.enabled && (
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-[minmax(15rem,42%)_1fr] items-center gap-4">
                     <Label
                       htmlFor={`webhook-url-${event.key}`}
                       className="text-right text-sm text-muted-foreground"
                     >
                       Webhook URL
                     </Label>
-                    <div className="col-span-3 space-y-1">
+                    <div className="min-w-0 space-y-1">
                       <Input
                         id={`webhook-url-${event.key}`}
                         type="url"

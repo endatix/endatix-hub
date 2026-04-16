@@ -2,9 +2,9 @@ import { z } from "zod";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
 
+/** Events that can be overridden per form (excludes FormCreated — fires before per-form config exists). */
 export const EVENT_KEYS = [
   "SubmissionCompleted",
-  "FormCreated",
   "FormUpdated",
   "FormEnabledStateChanged",
   "FormDeleted",
@@ -16,8 +16,6 @@ export const WebhookSettingsSchema = z
     useCustomSettings: z.boolean(),
     "event-SubmissionCompleted-enabled": z.boolean().optional(),
     "event-SubmissionCompleted-url": z.string().optional(),
-    "event-FormCreated-enabled": z.boolean().optional(),
-    "event-FormCreated-url": z.string().optional(),
     "event-FormUpdated-enabled": z.boolean().optional(),
     "event-FormUpdated-url": z.string().optional(),
     "event-FormEnabledStateChanged-enabled": z.boolean().optional(),
