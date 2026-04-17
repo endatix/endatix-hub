@@ -124,9 +124,13 @@ export function useExtensionLoader({
   const mountedRef = useRef(true);
 
   const normalizedExtensionIds = useMemo(
-    () => Array.from(new Set(extensionIdsToLoad)).sort(),
+    () =>
+      Array.from(new Set(extensionIdsToLoad)).sort((a, b) =>
+        a.localeCompare(b, "en", { sensitivity: "base" }),
+      ),
     [extensionIdsToLoad],
   );
+  
   const extensionIdsKey = normalizedExtensionIds.join(",");
   const extensionsToLoad = useMemo(() => {
     const extensionIdSet = new Set(normalizedExtensionIds);
