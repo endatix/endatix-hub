@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import { getStringParam, getNumberParam } from "../expression-utils";
 
 describe("getStringParam", () => {
+  it("should return undefined for negative index", () => {
+    expect(getStringParam(["hello", "world"], -1)).toBeUndefined();
+  });
+
   it("should return string at valid index", () => {
     expect(getStringParam(["hello", "world"], 0)).toBe("hello");
     expect(getStringParam(["hello", "world"], 1)).toBe("world");
@@ -17,11 +21,6 @@ describe("getStringParam", () => {
     expect(getStringParam([null, "world"], 0)).toBeUndefined();
     expect(getStringParam([undefined, "world"], 0)).toBeUndefined();
     expect(getStringParam([{}, "world"], 0)).toBeUndefined();
-  });
-
-  it("should handle String object instances", () => {
-    const strObj = new String("wrapped");
-    expect(getStringParam([strObj], 0)).toBe("wrapped");
   });
 
   it("should return undefined for empty params array", () => {

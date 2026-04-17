@@ -10,12 +10,16 @@ function getStringParam(
   params: ReadonlyArray<unknown>,
   index: number,
 ): string | undefined {
-  if (!Array.isArray(params) || params.length <= index) return undefined;
+  if (!Array.isArray(params) || index < 0 || params.length <= index) {
+    return undefined;
+  }
 
   const param = params[index];
-  if (typeof param !== "string" && !(param instanceof String)) return undefined;
+  if (typeof param !== "string") {
+    return undefined;
+  }
 
-  return String(param);
+  return param;
 }
 
 /**
