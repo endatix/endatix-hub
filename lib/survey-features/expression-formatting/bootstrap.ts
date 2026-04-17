@@ -1,5 +1,5 @@
 import { FunctionFactory } from "survey-core";
-import { expressionFormattingRegistry, formatCurrency } from "./formatters";
+import { expressionFormattingRegistry } from "./formatters";
 
 let areFunctionsRegistered = false;
 const IS_ASYNC = false;
