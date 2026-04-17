@@ -7,6 +7,14 @@ import {
 } from "@/lib/utils/formatters";
 import type { FormattingFunc } from "./types";
 
+/**
+ * Formats a number as currency.
+ * @param params - The parameters for the function.
+ *  [0] - The number to format. 
+ *  [1] - The currency code to format to. 
+ *  [2] - The locale to format to.
+ * @returns The formatted currency
+ */
 function formatCurrencyExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 1) return "";
 
@@ -20,6 +28,15 @@ function formatCurrencyExpressionFunc(params: unknown[]): string {
   return formatCurrency(value, currencyCode, locale);
 }
 
+/**
+ * Formats a number with specified decimal places.
+ * @param params - The parameters for the function.
+ *  [0] - The number to format. 
+ *  [1] - The number of decimal places to format to. 
+ *  [2] - The locale to format to.
+ *  The third parameter is the locale to format to.
+ * @returns The formatted number
+ */
 function formatNumberExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 1) return "";
 
@@ -33,6 +50,14 @@ function formatNumberExpressionFunc(params: unknown[]): string {
   return formatDecimalNumber(value, decimalPlaces, locale);
 }
 
+/**
+ * Formats a date value.
+ * @param params - The parameters for the function.
+ *  [0] - The date to format. 
+ *  [1] - The style to format to. Can be "full", "long", "medium", or "short".
+ *  [2] - The locale to format to.
+ * @returns The formatted date
+ */
 function formatDateExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 1) return "";
 
@@ -48,6 +73,14 @@ function formatDateExpressionFunc(params: unknown[]): string {
   return formatDateTime(params[0], dateStyle, locale);
 }
 
+/**
+ * Formats a value based on the format type.
+ * @param params - The parameters for the function.
+ *  [0] - The value to format.
+ *  [1] - The format type. Can be "currency", "percent", "date", or "number".
+ *  [2] - The currency code to format to.
+ *  [3] - The locale to format to.
+ */
 function smartFormatExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 2) {
     return params?.[0] !== undefined ? String(params[0]) : "";
@@ -95,8 +128,5 @@ const expressionFormattingRegistry = Object.freeze(
 
 export {
   expressionFormattingRegistry,
-  formatCurrencyExpressionFunc as formatCurrency,
-  formatDateExpressionFunc as formatDate,
-  formatNumberExpressionFunc as formatNumber,
-  smartFormatExpressionFunc as smartFormat,
+  formatCurrencyExpressionFunc as formatCurrency
 };

@@ -2,6 +2,19 @@
 
 This directory contains the core infrastructure for the "Zero-Overhead" extension system.
 
+## Loading Modes
+
+Extensions now define explicit loading behavior:
+
+- `loading: 'static'` + `bootstrap`: synchronous, always-on registration.
+- `loading: 'dynamic'` + `load`: async dynamic import for code-splitting.
+- Runtime remains deterministic: survey rendering waits until selected dynamic extensions finish loading.
+
+Registry placement is consumer-defined:
+
+- Entries in `core-registry.ts` are considered "core" for that consumer.
+- Entries in `hub/extensions/user-extensions.ts` are consumer-owned and can follow the same model.
+
 ## Components
 
 - **`types.ts`**: Core interfaces (`ExtensionDefinition`, `ExtensionModule`).
@@ -16,6 +29,7 @@ This directory contains the core infrastructure for the "Zero-Overhead" extensio
 
 By default, extensions are loaded based on **Form Content** (e.g. if the JSON has `type: "country"`).
 However, you often need to filter extensions based on **Context** (User Plan, Tenant ID, Feature Flags).
+For future optimization, prefer passing server-selected IDs via `extensionIdsToLoad` so dynamic loading can start as early as possible.
 
 ### 1. Update your Wrapper
 
@@ -46,8 +60,8 @@ Instead of repeating the filtering logic in every page (`/view`, `/share`, `/emb
 Create a helper in `hub/features/public-form/application/get-authorized-extensions.ts`:
 
 ```typescript
-import { getRequiredExtensionIds } from "@/lib/survey-extensions/server/analyzer";
-import { ALL_EXTENSIONS } from "@/lib/survey-extensions";
+import { getRequiredExtensionIds } from '@/lib/survey-extensions/server/analyzer';
+import { ALL_EXTENSIONS } from '@/lib/survey-extensions';
 
 export async function getAuthorizedExtensions(
   form: Form,
@@ -61,12 +75,12 @@ export async function getAuthorizedExtensions(
     const ext = ALL_EXTENSIONS.find((e) => e.id === id);
 
     // Rule: AI Features require Enterprise
-    if (ext?.id === "ai-helper" && tenant.plan !== "enterprise") {
+    if (ext?.id === 'ai-helper' && tenant.plan !== 'enterprise') {
       return false;
     }
 
     // Rule: Beta Features
-    if (ext?.metadata?.category === "beta" && !tenant.features.beta) {
+    if (ext?.metadata?.category === 'beta' && !tenant.features.beta) {
       return false;
     }
 
@@ -96,3 +110,28 @@ export default async function Page({ params }) {
 ```
 
 This ensures that if you add a new restriction rule, it applies to all public-facing pages instantly.
+
+## Extension Definition Examples
+
+```typescript
+import type { ExtensionDefinition } from '@/lib/survey-extensions/types';
+import { registerExpressionFormatting } from '@/lib/survey-features/expression-formatting';
+
+export const coreExtensions: ExtensionDefinition[] = [
+  {
+    id: 'expression-formatting',
+    type: 'feature',
+    loading: 'static',
+    shouldLoad: () => true,
+    bootstrap: registerExpressionFormatting,
+  },
+  {
+    id: 'hello-world',
+    type: 'question',
+    loading: 'dynamic',
+    shouldLoad: (_, analyzer) => analyzer.usesQuestionType('hello-world'),
+    load: () =>
+      import('@/extensions/questions/hello-world').then((module) => module.default),
+  },
+];
+```

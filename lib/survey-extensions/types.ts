@@ -7,16 +7,19 @@ import type { SurveyCreatorModel } from "survey-creator-core";
  * - question: Add new question types to the survey form
  */
 export type ExtensionType = "feature" | "question";
+export type ExtensionLoading = "static" | "dynamic";
 
 import type { FormAnalyzer } from "./extension-utils";
 
-/**
- * Survey extension definition
- *
- * This is the metadata about an extension. It describes what the extension is,
- * where it runs, and how to load it. The actual implementation is loaded lazily.
- */
-export interface ExtensionDefinition {
+interface ExtensionMetadata {
+  name: string;
+  title?: string;
+  description?: string;
+  icon?: string;
+  category?: string;
+}
+
+interface ExtensionDefinitionBase {
   /**
    * Unique identifier for the extension (e.g. "audio-recorder", "camera-fix")
    */
@@ -27,13 +30,7 @@ export interface ExtensionDefinition {
    */
   type: ExtensionType;
 
-  metadata?: {
-    name: string;
-    title?: string;
-    description?: string;
-    icon?: string;
-    category?: string;
-  };
+  metadata?: ExtensionMetadata;
 
   /**
    * Server-side detection function. Determines if the extension should be loaded for the form.
@@ -41,24 +38,41 @@ export interface ExtensionDefinition {
    * @param analyzer - optimized analyzer with cached string representation
    */
   shouldLoad?: (formJson: any, analyzer: FormAnalyzer) => boolean;
+}
+
+/**
+ * Static extension definition.
+ * Use for always-on lightweight bootstrap registrations.
+ */
+export interface StaticExtensionDefinition extends ExtensionDefinitionBase {
+  loading: "static";
 
   /**
-   * Dynamic import function for lazy loading.
-   * Used for preloading the extension chunk before rendering.
+   * Synchronous bootstrap function for static extension loading.
+   * @example
+   * bootstrap: () => { registerExpressionFormatting(); }
+   */
+  bootstrap: () => void;
+}
+
+/**
+ * Dynamic extension definition.
+ * Use for lazily loaded code-split extension modules.
+ */
+export interface DynamicExtensionDefinition extends ExtensionDefinitionBase {
+  loading: "dynamic";
+
+  /**
+   * Dynamic import function for dynamic loading.
    * @example
    * load: () => import("@/customizations/questions/hello-world").then((module) => module.default)
-   * @returns A Promise that resolves to the extension module.
    */
-  load?: () => Promise<ExtensionModule>;
-
-  /**
-   * Synchronous init function for extensions that should be loaded immediately.
-   * Use this for always-on extensions that don't need lazy loading.
-   * @example
-   * init: () => { registerExpressionFormatting(); }
-   */
-  init?: () => void;
+  load: () => Promise<ExtensionModule>;
 }
+
+export type ExtensionDefinition =
+  | StaticExtensionDefinition
+  | DynamicExtensionDefinition;
 
 /**
  * Extension module. This is the actual extension code.

@@ -19,6 +19,7 @@ function createExtension(
   return {
     id,
     type: "question",
+    loading: "dynamic",
     metadata,
     load: vi.fn().mockResolvedValue(loadResult),
   };
@@ -26,6 +27,7 @@ function createExtension(
 
 describe("useExtensionLoader", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -133,6 +135,7 @@ describe("useExtensionLoader", () => {
       {
         id: "ext-rejects",
         type: "question",
+        loading: "dynamic",
         load: vi.fn().mockRejectedValue(new Error("load failed")),
       },
     ];
@@ -180,5 +183,99 @@ describe("useExtensionLoader", () => {
     // Assert – only A was loaded and only A's onModelReady is called
     expect(onModelReadyA).toHaveBeenCalledWith(mockModel);
     expect(onModelReadyB).not.toHaveBeenCalled();
+  });
+
+  it("runs static bootstrap only once for the same extension id", async () => {
+    // Arrange
+    const bootstrap = vi.fn();
+    const allExtensions: ExtensionDefinition[] = [
+      {
+        id: "ext-static",
+        type: "feature",
+        loading: "static",
+        bootstrap,
+      },
+    ];
+
+    const { result, rerender } = renderHook(
+      ({ ids }: { ids: string[] }) =>
+        useExtensionLoader({ allExtensions, extensionIdsToLoad: ids }),
+      {
+        initialProps: { ids: ["ext-static"] },
+      },
+    );
+
+    // Act
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+    rerender({ ids: ["ext-static"] });
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    // Assert
+    expect(bootstrap).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload dynamic extensions when ids order changes", async () => {
+    // Arrange
+    const loadA = vi.fn().mockResolvedValue({ onModelReady: vi.fn() });
+    const loadB = vi.fn().mockResolvedValue({ onModelReady: vi.fn() });
+    const allExtensions: ExtensionDefinition[] = [
+      { id: "ext-order-a", type: "question", loading: "dynamic", load: loadA },
+      { id: "ext-order-b", type: "question", loading: "dynamic", load: loadB },
+    ];
+
+    const { result, rerender } = renderHook(
+      ({ ids }: { ids: string[] }) =>
+        useExtensionLoader({ allExtensions, extensionIdsToLoad: ids }),
+      {
+        initialProps: { ids: ["ext-order-a", "ext-order-b"] },
+      },
+    );
+
+    // Act
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+    rerender({ ids: ["ext-order-b", "ext-order-a"] });
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    // Assert
+    expect(loadA).toHaveBeenCalledTimes(1);
+    expect(loadB).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps readiness false until required dynamic modules resolve", async () => {
+    // Arrange
+    let resolveLoad: ((value: ExtensionModule) => void) | undefined;
+    const slowLoad = vi.fn().mockImplementation(
+      () =>
+        new Promise<ExtensionModule>((resolve) => {
+          resolveLoad = resolve;
+        }),
+    );
+    const allExtensions: ExtensionDefinition[] = [
+      { id: "ext-slow", type: "question", loading: "dynamic", load: slowLoad },
+    ];
+
+    const { result } = renderHook(() =>
+      useExtensionLoader({ allExtensions, extensionIdsToLoad: ["ext-slow"] }),
+    );
+
+    // Assert
+    expect(result.current.isReady).toBe(false);
+
+    // Act
+    act(() => {
+      resolveLoad?.({ onModelReady: vi.fn() });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
   });
 });
