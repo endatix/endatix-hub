@@ -1,16 +1,19 @@
+"use client";
+
 import { toast } from "@/components/ui/toast";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
 import { Result } from "@/lib/result";
-import { Model } from "survey-core";
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
+import { useAnyAnswered } from "@/lib/survey-features/any-answered";
+import { useEndatixSurveyTheme } from "@/lib/themes/use-endatix-themes";
 import { useEffect, useRef, useState } from "react";
-import { SharpLightPanelless } from "survey-core/themes";
+import { Model } from "survey-core";
 import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
-import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 
 export function useSurveyModel(
   submission: Submission,
@@ -21,7 +24,15 @@ export function useSurveyModel(
   const cleanUpFuncRef = useRef<(() => void) | null>(null);
   const modelRef = useRef<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
+  const {
+    initGlobals: initQuestionLoopsGlobals,
+    bindToSurvey: bindQuestionLoops,
+  } = useQuestionLoops();
+  const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
+
+  const surveyTheme = useEndatixSurveyTheme();
+  const surveyThemeRef = useRef(surveyTheme);
+  surveyThemeRef.current = surveyTheme;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -55,13 +66,13 @@ export function useSurveyModel(
           initializeCustomQuestions(questionsList);
         }
 
+        initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
-        const json = JSON.parse(submission.formDefinition.jsonData);
+        const definitionJson = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
-        const model = new Model();
+        const model = new Model(definitionJson);
         const unbindQuestionLoops = bindQuestionLoops(model);
 
-        model.JSON = json;
         onModelCreated?.(model);
 
         model.data = submissionData;
@@ -75,20 +86,17 @@ export function useSurveyModel(
         model.validationEnabled = false;
         model.showPageTitles = true;
         model.showPageNumbers = false;
-        model.questionsOnPageMode = "singlePage";
         model.showCompleteButton = false;
-        model.navigationMode = "singlePage" as const;
+        model.readOnly = readOnly;
+        model.showTOC = true;
+        model.showQuestionNumbers = true;
         model.showProgressBar = "off" as const;
         model.showTitle = false;
         model.getAllPanels().forEach((panel) => {
           panel.expand();
         });
 
-        model.applyTheme(SharpLightPanelless);
-
-        if (readOnly) {
-          model.mode = "display";
-        }
+        model.applyTheme(surveyThemeRef.current);
 
         modelRef.current = model;
 
@@ -116,9 +124,15 @@ export function useSurveyModel(
     customQuestions,
     readOnly,
     onModelCreated,
+    initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);
+
+  useEffect(() => {
+    if (!modelRef.current) return;
+    modelRef.current.applyTheme(surveyTheme);
+  }, [surveyTheme]);
 
   return { model: modelRef.current, isLoading };
 }

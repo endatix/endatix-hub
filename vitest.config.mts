@@ -16,6 +16,7 @@ export default defineConfig({
         "features/**/*.ts",
         "lib/**/*.{ts,tsx}",
         "types/**/*.ts",
+        "src/**/*.ts",
       ],
       exclude: [
         "**/*.d.ts",

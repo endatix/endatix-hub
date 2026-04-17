@@ -7,7 +7,7 @@ import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 interface PdfQuestionLabelProps {
   question: Question;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   style?: any; // react-pdf expects its own Style type
 }
 

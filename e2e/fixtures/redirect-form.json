@@ -1,0 +1,29 @@
+{
+  "title": "E2E Embed Test Form",
+  "description": "This form is used by Playwright to verify iframe embedding and cross-window communication.",
+  "pages": [
+    {
+      "name": "page1",
+      "title": "Page 1: Scroll Test",
+      "elements": [
+        {
+          "type": "text",
+          "name": "q1",
+          "title": "Please enter some text to proceed"
+        }
+      ]
+    },
+    {
+      "name": "page2",
+      "title": "Page 2: Navigation Test",
+      "elements": [
+        {
+          "type": "boolean",
+          "name": "q2",
+          "title": "Are you ready to complete the form and trigger the redirect?"
+        }
+      ]
+    }
+  ],
+  "navigateToUrl": "https://endatix.com"
+}

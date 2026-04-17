@@ -9,6 +9,8 @@ export function generateTestData(traceToken?: string) {
     name: `Test User ${traceText}`,
     email: `test-${traceText}@example.com`,
     message: `This is a test message generated. ${traceText}`,
+    company: "Endatix Test",
+    industry: "Field Services"
   };
 }
 

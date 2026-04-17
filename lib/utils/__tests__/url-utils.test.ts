@@ -1,6 +1,22 @@
-import { describe, it, expect } from "vitest";
-import { extractHostname, toSafeRelativeUrl } from "../url-utils";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { extractHostname, toSafeRelativeUrl, isValidAbsoluteUrl, isSafeRedirectUrl } from "../url-utils";
 import { Result } from "../../result";
+
+const originalWindow = globalThis.window;
+
+beforeAll(() => {
+  Object.defineProperty(globalThis, "window", {
+    value: { location: { origin: "https://example.com" } },
+    writable: true,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(globalThis, "window", {
+    value: originalWindow,
+    writable: true,
+  });
+});
 
 const BASE_ORIGIN = "https://example.com";
 const DEFAULT_RETURN_PATH = "/forms";
@@ -333,6 +349,158 @@ describe("extractHostname", () => {
       if (Result.isError(result)) {
         expect(result.message).toBe("Invalid URL string to extract hostname");
       }
+    });
+  });
+});
+
+describe("isValidAbsoluteUrl", () => {
+  describe("valid absolute URLs", () => {
+    it("returns true for valid https URLs", () => {
+      expect(isValidAbsoluteUrl("https://example.com")).toBe(true);
+      expect(isValidAbsoluteUrl("https://example.com/path")).toBe(true);
+      expect(isValidAbsoluteUrl("https://example.com/path?query=value")).toBe(true);
+    });
+
+    it("returns true for valid http URLs", () => {
+      expect(isValidAbsoluteUrl("http://example.com")).toBe(true);
+      expect(isValidAbsoluteUrl("http://example.com/path")).toBe(true);
+    });
+  });
+
+  describe("invalid/malicious URLs - security tests", () => {
+    it("returns false for javascript: protocol", () => {
+      expect(isValidAbsoluteUrl("javascript:alert(1)")).toBe(false);
+      expect(isValidAbsoluteUrl("javascript:alert('xss')")).toBe(false);
+      expect(isValidAbsoluteUrl("javascript:void(0)")).toBe(false);
+    });
+
+    it("returns false for data: protocol", () => {
+      expect(isValidAbsoluteUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+      expect(isValidAbsoluteUrl("data:,Hello%2C%20World!")).toBe(false);
+    });
+
+    it("returns false for vbscript: protocol", () => {
+      expect(isValidAbsoluteUrl("vbscript:msgbox('xss')")).toBe(false);
+    });
+
+    it("returns false for file: protocol", () => {
+      expect(isValidAbsoluteUrl("file:///etc/passwd")).toBe(false);
+    });
+
+    it("returns false for ftp: protocol", () => {
+      expect(isValidAbsoluteUrl("ftp://example.com")).toBe(false);
+    });
+
+    it("returns false for mailto: protocol", () => {
+      expect(isValidAbsoluteUrl("mailto:admin@example.com")).toBe(false);
+    });
+
+    it("returns false for tel: protocol", () => {
+      expect(isValidAbsoluteUrl("tel:+1234567890")).toBe(false);
+    });
+
+    it("returns false for empty string", () => {
+      expect(isValidAbsoluteUrl("")).toBe(false);
+    });
+
+    it("returns false for null input", () => {
+      expect(isValidAbsoluteUrl(null as unknown as string)).toBe(false);
+    });
+
+    it("returns false for undefined input", () => {
+      expect(isValidAbsoluteUrl(undefined as unknown as string)).toBe(false);
+    });
+
+    it("returns false for whitespace-only string", () => {
+      expect(isValidAbsoluteUrl("   ")).toBe(false);
+    });
+
+    it("returns false for protocol-relative URLs", () => {
+      expect(isValidAbsoluteUrl("//evil.com")).toBe(false);
+    });
+
+    it("returns false for URLs with invalid protocol", () => {
+      expect(isValidAbsoluteUrl("hack://example.com")).toBe(false);
+      expect(isValidAbsoluteUrl("fake://malicious.com")).toBe(false);
+    });
+
+    it("returns false for relative URLs (requires absolute)", () => {
+      expect(isValidAbsoluteUrl("/path")).toBe(false);
+      expect(isValidAbsoluteUrl("/path?query=value")).toBe(false);
+    });
+  });
+});
+
+describe("isSafeRedirectUrl", () => {
+  describe("valid URLs (absolute and relative)", () => {
+    it("returns true for valid https URLs", () => {
+      expect(isSafeRedirectUrl("https://example.com")).toBe(true);
+      expect(isSafeRedirectUrl("https://example.com/path")).toBe(true);
+      expect(isSafeRedirectUrl("https://example.com/path?query=value")).toBe(true);
+    });
+
+    it("returns true for valid http URLs", () => {
+      expect(isSafeRedirectUrl("http://example.com")).toBe(true);
+      expect(isSafeRedirectUrl("http://example.com/path")).toBe(true);
+    });
+
+    it("returns true for relative URLs", () => {
+      expect(isSafeRedirectUrl("/path")).toBe(true);
+      expect(isSafeRedirectUrl("/path?query=value")).toBe(true);
+      expect(isSafeRedirectUrl("/")).toBe(true);
+    });
+  });
+
+  describe("requires window context", () => {
+    it("returns false when window is not available (SSR)", () => {
+      const originalWindow = globalThis.window;
+      // @ts-expect-error - intentionally removing window for test
+      delete globalThis.window;
+      expect(isSafeRedirectUrl("https://example.com")).toBe(false);
+      globalThis.window = originalWindow;
+    });
+  });
+
+  describe("invalid/malicious URLs - security tests", () => {
+    it("returns false for javascript: protocol", () => {
+      expect(isSafeRedirectUrl("javascript:alert(1)")).toBe(false);
+      expect(isSafeRedirectUrl("javascript:alert('xss')")).toBe(false);
+    });
+
+    it("returns false for data: protocol", () => {
+      expect(isSafeRedirectUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+    });
+
+    it("returns false for vbscript: protocol", () => {
+      expect(isSafeRedirectUrl("vbscript:msgbox('xss')")).toBe(false);
+    });
+
+    it("returns false for file: protocol", () => {
+      expect(isSafeRedirectUrl("file:///etc/passwd")).toBe(false);
+    });
+
+    it("returns false for ftp: protocol", () => {
+      expect(isSafeRedirectUrl("ftp://example.com")).toBe(false);
+    });
+
+    it("returns false for empty string", () => {
+      expect(isSafeRedirectUrl("")).toBe(false);
+    });
+
+    it("returns false for null input", () => {
+      expect(isSafeRedirectUrl(null as unknown as string)).toBe(false);
+    });
+
+    it("returns false for undefined input", () => {
+      expect(isSafeRedirectUrl(undefined as unknown as string)).toBe(false);
+    });
+
+    it("returns false for whitespace-only string", () => {
+      expect(isSafeRedirectUrl("   ")).toBe(false);
+    });
+
+    it("returns false for protocol-relative URLs", () => {
+      expect(isSafeRedirectUrl("//evil.com")).toBe(false);
     });
   });
 });

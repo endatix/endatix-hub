@@ -120,3 +120,62 @@ describe("formatBytes", () => {
     expect(formatBytes(1536, -1)).toBe("2 KB");
   });
 });
+
+describe("formatValue", () => {
+  it("should return empty string for null", () => {
+    expect(formatValue(null)).toBe("");
+  });
+
+  it("should return empty string for undefined", () => {
+    expect(formatValue(undefined)).toBe("");
+  });
+
+  it("should return the string unchanged", () => {
+    expect(formatValue("hello")).toBe("hello");
+    expect(formatValue("")).toBe("");
+  });
+
+  it("should convert numbers to string", () => {
+    expect(formatValue(42)).toBe(formatNumber(42));
+    expect(formatValue(1000)).toBe(formatNumber(1000));
+    expect(formatValue(0)).toBe(formatNumber(0));
+    expect(formatValue(-3.14)).toBe(formatNumber(-3.14));
+  });
+
+  it("should convert booleans to string", () => {
+    expect(formatValue(true)).toBe("true");
+    expect(formatValue(false)).toBe("false");
+  });
+
+  it("should format empty arrays", () => {
+    expect(formatValue([])).toBe("[]");
+  });
+
+  it("should format arrays with items", () => {
+    expect(formatValue([1, 2, 3])).toBe("[3 items]");
+    expect(formatValue(["a", "b"])).toBe("[2 items]");
+  });
+
+  it("should format empty objects", () => {
+    expect(formatValue({})).toBe("{}");
+  });
+
+  it("should format objects with keys", () => {
+    expect(formatValue({ key: "value" })).toBe("{1 keys}");
+    expect(formatValue({ a: 1, b: 2 })).toBe("{2 keys}");
+  });
+
+  it("should handle nested objects and arrays", () => {
+    expect(formatValue({ items: [1, 2] })).toBe("{1 keys}");
+    expect(formatValue([{ a: 1 }])).toBe("[1 items]");
+  });
+
+  it("should handle unknown types with String()", () => {
+    expect(formatValue(Symbol("test"))).toBe("Symbol(test)");
+  });
+
+  it("should handle functions", () => {
+    const myFunc = () => {};
+    expect(formatValue(myFunc)).toBe("[function]");
+  });
+});

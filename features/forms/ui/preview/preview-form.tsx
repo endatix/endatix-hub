@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
+import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useEffect, useState } from "react";
@@ -29,6 +30,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
+  const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
   const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
 
   useEffect(() => {
@@ -43,6 +45,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
       slk(slkVal);
     }
 
+    initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
     const newCreator = new SurveyCreator(creatorOptions);
     const cleanupQuestionLoops = bindQuestionLoops(newCreator);
@@ -56,7 +59,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     return () => {
       cleanupQuestionLoops?.();
     }
-  }, [creator, model, slkVal, initQuestionLoopsGlobals, bindQuestionLoops]);
+  }, [creator, model, slkVal, initAnyAnsweredGlobals, initQuestionLoopsGlobals, bindQuestionLoops]);
 
   return creator && <SurveyCreatorComponent creator={creator} />;
 };

@@ -1,56 +1,48 @@
 "use client";
 
-import { SectionTitle } from "@/components/headings/section-title";
-import { EyeOff } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Question, QuestionNonValue } from "survey-core";
-import AnswerViewer from "../answers/answer-viewer";
-import { QuestionLabel } from "./question-label";
-import { CustomQuestion } from "@/services/api";
-import { Submission } from "@/lib/endatix-api";
 import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
-import DynamicVariablesList from "./dynamic-variables-list";
-import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
-import { surveyLocalization } from "survey-core";
+import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import { cn } from "@/lib/utils";
+import { CustomQuestion } from "@/services/api";
+import { EyeOff } from "lucide-react";
+import { useEffect } from "react";
+import { Question, surveyLocalization } from "survey-core";
 import {
   getSubmissionLocale,
   isLocaleValid,
 } from "../../submission-localization";
-import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import { getQuestionNumber } from "../../submission-utils";
+import AnswerViewer from "../answers/answer-viewer";
+import {
+  useSubmissionDetails,
+  useSubmissionDetailsViewOptions,
+} from "./submission-details-context";
 
 registerAudioQuestion();
 
-interface SubmissionItemRowProps {
-  question: Question;
-  customQuestionTypes: string[];
-}
-
 interface SubmissionAnswersProps {
-  formDefinition: string;
-  submission: Submission;
-  formId: string;
   customQuestions: CustomQuestion[];
 }
 
 export function SubmissionAnswers({
-  formDefinition,
-  submission,
-  formId,
   customQuestions,
-}: SubmissionAnswersProps) {
-  const [questions, setQuestions] = useState<Question[]>([]);
+}: Readonly<SubmissionAnswersProps>) {
+  const { submission, submissionNavPages } = useSubmissionDetails();
+  const formId = submission.formId;
+  const formDefinition = submission.formDefinition?.jsonData ?? "";
   const { surveyModel, error } = useSurveyModel({
     formId,
     definition: formDefinition,
     submission,
     customQuestions: customQuestions.map((q: CustomQuestion) => q.jsonData),
   });
-  const customQuestionTypes = useMemo(
-    () => customQuestions.map((q: CustomQuestion) => q.name),
-    [customQuestions],
-  );
 
-  const { options } = useSubmissionDetailsViewOptions();
+  const { setSurveyModel } = useSubmissionDetails();
+  const { viewOptions } = useSubmissionDetailsViewOptions();
+
+  useEffect(() => {
+    setSurveyModel(surveyModel);
+  }, [surveyModel, setSurveyModel]);
 
   useEffect(() => {
     if (!surveyModel) {
@@ -59,7 +51,7 @@ export function SubmissionAnswers({
 
     const submissionLocale = getSubmissionLocale(submission);
     if (
-      options.useSubmissionLanguage &&
+      viewOptions.useSubmissionLanguage &&
       isLocaleValid(submissionLocale, surveyModel)
     ) {
       surveyModel.locale = submissionLocale!;
@@ -67,15 +59,8 @@ export function SubmissionAnswers({
       surveyModel.locale = surveyLocalization.defaultLocale;
     }
 
-    const surveyQuestions = surveyModel.getAllQuestions(false, false, false);
-    setQuestions(surveyQuestions);
-  }, [
-    surveyModel,
-    submission.metadata,
-    options.useSubmissionLanguage,
-    surveyModel?.locale,
-    submission,
-  ]);
+    surveyModel.showQuestionNumbers = true;
+  }, [surveyModel, viewOptions.useSubmissionLanguage, submission]);
 
   if (!surveyModel) {
     return <div>Loading...</div>;
@@ -86,57 +71,129 @@ export function SubmissionAnswers({
   }
 
   return (
-    <>
-      <SectionTitle title="Submission Answers" headingClassName="py-2 my-0" />
-      <div className="grid gap-4">
-        <DynamicVariablesList surveyModel={surveyModel} />
-        {questions.map((question) => (
-          <SubmissionItemRow
-            key={question.id}
-            question={question}
-            customQuestionTypes={customQuestionTypes}
-          />
-        ))}
-      </div>
-    </>
+    <div className="space-y-12">
+      {submissionNavPages.map((page, pageIndex) => (
+        <div
+          key={page.pageName}
+          id={`page-${page.pageName}`}
+          className="space-y-6"
+        >
+          <div className="mb-4 flex items-center gap-4">
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white",
+                page.isPageInvisible ? "bg-slate-400" : "bg-primary",
+              )}
+            >
+              {pageIndex + 1}
+            </div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-black tracking-tight text-foreground">
+                {page.pageTitle}
+              </h2>
+              {page.isPageInvisible && (
+                <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                  <EyeOff className="size-3" />
+                  Invisible
+                </span>
+              )}
+            </div>
+          </div>
+          {page.questions.map((q) => (
+            <SubmissionItemCard
+              key={q.question.id}
+              question={q.question}
+              isInvisible={q.isInvisible}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 
-const SubmissionItemRow = ({ question }: SubmissionItemRowProps) => {
-  const { options } = useSubmissionDetailsViewOptions();
-  if (question instanceof QuestionNonValue) {
+interface SubmissionItemCardProps {
+  question: Question;
+  isInvisible: boolean;
+}
+
+const selectedQuestionCardClass = "selected ring-2 ring-primary/80 ring-inset";
+
+const SubmissionItemCard = ({
+  question,
+  isInvisible,
+}: Readonly<SubmissionItemCardProps>) => {
+  const { highlightedQuestionName } = useSubmissionDetails();
+  const { viewOptions } = useSubmissionDetailsViewOptions();
+  const isSelected = highlightedQuestionName === question.name;
+  const questionLabel =
+    getQuestionNumber(question) > 0
+      ? `Question #${getQuestionNumber(question)}`
+      : "Question";
+
+  if (isInvisible && !viewOptions.showInvisibleItems) {
     return null;
   }
 
-  if (!question.isVisibleInSurvey) {
-    return options.showInvisibleItems ? (
-      <div
-        key={question.id}
-        className="grid grid-cols-5 items-start gap-4 mb-6"
+  if (isInvisible) {
+    return (
+      <article
+        id={`${question.name}`}
+        className={cn(
+          "rounded-xl border border-slate-200/40 bg-surface-container-lowest p-8 shadow-sm transition-all hover:shadow-md dark:border-slate-700/40 dark:bg-surface-container-low",
+          isSelected && selectedQuestionCardClass,
+        )}
+        data-selected={isSelected ? true : undefined}
       >
-        <QuestionLabel forQuestion={question} title={question.title} />
-        <div className="col-span-3 flex items-center gap-2 pt-2">
-          <EyeOff className="w-4 h-4 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">
-            This question was not visible in the survey.
-          </p>
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
+              {questionLabel} • {question.getType()}
+            </span>
+            <h3 className="text-lg font-bold tracking-tight text-foreground">
+              {question.title}
+            </h3>
+          </div>
         </div>
-      </div>
-    ) : null;
+        <div className="mt-4 rounded-xl border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
+          <div className="flex items-center gap-2">
+            <EyeOff className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              This question was not visible in the survey.
+            </p>
+          </div>
+        </div>
+      </article>
+    );
   }
 
   return (
-    <div
-      key={question.id}
-      className="grid grid-cols-5 items-center align-middle gap-4 mb-6"
+    <article
+      id={`${question.name}`}
+      className={cn(
+        "rounded-xl border border-slate-200/40 bg-surface-container-lowest p-8 shadow-sm transition-all hover:shadow-md dark:border-slate-700/40 dark:bg-surface-container-low",
+        isSelected && selectedQuestionCardClass,
+      )}
+      data-selected={isSelected ? true : undefined}
     >
-      <QuestionLabel forQuestion={question} title={question.title} />
-      <AnswerViewer
-        key={question.id}
-        forQuestion={question}
-        className="col-span-3"
-      />
-    </div>
+      <div className="mb-4 flex items-start justify-between">
+        <div className="space-y-1">
+          <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
+            {questionLabel} • {question.getType()}
+          </span>
+          <h3 className="text-lg leading-snug font-bold tracking-tight text-foreground">
+            {question.title}
+          </h3>
+        </div>
+      </div>
+      <div className="rounded-xl border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
+        <AnswerViewer
+          key={question.id}
+          forQuestion={question}
+          className="w-full min-w-0"
+        />
+      </div>
+    </article>
   );
 };
 

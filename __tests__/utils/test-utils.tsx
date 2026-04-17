@@ -79,7 +79,6 @@ export function renderSurveyJsComponent<TContextValue = unknown>(
     const ContextProvider = options.ContextProvider!;
 
     // Type assertion needed because ContextProvider is generic and accepts different value types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Provider = ContextProvider as React.ComponentType<{
       value: unknown;
       children: React.ReactNode;

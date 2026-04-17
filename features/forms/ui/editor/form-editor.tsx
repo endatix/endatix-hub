@@ -1,6 +1,5 @@
 "use client";
 
-import { endatixTheme } from "@/components/editors/endatix-theme";
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
@@ -14,6 +13,7 @@ import {
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
+import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import {
@@ -23,6 +23,7 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -191,6 +192,11 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
+  const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
+
+  const creatorTheme = useEndatixCreatorTheme();
+  const creatorThemeRef = useRef(creatorTheme);
+  creatorThemeRef.current = creatorTheme;
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -285,9 +291,10 @@ function FormEditor({
 
     isFormUpdated = true;
 
-    const newThemeId = theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
-      ? DEFAULT_THEME_ID
-      : (theme?.id ?? themeId);
+    const newThemeId =
+      theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
+        ? DEFAULT_THEME_ID
+        : (theme?.id ?? themeId);
     const currentThemeId = themeId ?? DEFAULT_THEME_ID;
 
     if (newThemeId !== currentThemeId) {
@@ -442,6 +449,7 @@ function FormEditor({
     });
   }, [creator, questionClasses]);
 
+
   useEffect(() => {
     const initializeNewCreator = async () => {
       if (creator || isCreatorInitializedRef.current) {
@@ -487,9 +495,10 @@ function FormEditor({
           ...(options || defaultCreatorOptions),
           showSidebar: initialPropertyGridVisible,
         };
+        initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
-        newCreator.applyCreatorTheme(endatixTheme);
+        newCreator.applyCreatorTheme(creatorThemeRef.current);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
 
         onCreatorCreated(newCreator);
@@ -551,6 +560,7 @@ function FormEditor({
     isExtensionsReady,
     onCreatorCreated,
     bindQuestionLoops,
+    initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
   ]);
 
@@ -559,7 +569,7 @@ function FormEditor({
 
     const setAsModified = (_: SurveyCreatorModel, options: ModifiedEvent) => {
       if (options.type === JSON_CHANGED_TYPE) return;
-
+      
       setHasUnsavedChanges(true);
     };
     creator.onModified.add(setAsModified);
@@ -635,4 +645,3 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
-

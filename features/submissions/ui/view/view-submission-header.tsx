@@ -1,4 +1,5 @@
 import { Submission } from "@/lib/endatix-api";
+import { LocalizationWrapper } from "@/lib/survey-features/infrastructure/localization-wrapper";
 import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
 import { PropertyDisplay } from "../details/property-display";
 
@@ -11,11 +12,13 @@ function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
     submission.formDefinition?.jsonData ?? "{}",
   );
 
+  const locTitle = new LocalizationWrapper(formDefinition.title);
+
   return (
     <>
       <div className="sticky top-0 py-4 z-50 w-full bg-background/10 backdrop-blur supports-[backdrop-filter]:bg-background/30 hover:bg-background/95 transition-colors duration-200">
         <div className="w-full md:w-1/2 mx-auto text-center">
-          <h1 className="text-2xl font-bold">{formDefinition.title}</h1>
+          <h1 className="text-2xl font-bold">{locTitle.text}</h1>
           <p className="text-lg font-semibold text-muted-foreground mt-2">
             Viewing submission
           </p>

@@ -1,7 +1,5 @@
 "use client";
 
-/* eslint-disable */
-
 import { cn } from "@/lib/utils";
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";

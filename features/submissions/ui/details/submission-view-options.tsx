@@ -1,30 +1,35 @@
 "use client";
 
-import { Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSubmissionDetailsViewOptions } from "./submission-details-view-options-context";
+import { Settings2 } from "lucide-react";
+import {
+  useSubmissionDetailsViewOptions,
+  ViewOption,
+} from "./submission-details-context";
 
 interface SubmissionViewOptionsProps {
   submissionLanguageName?: string;
 }
 
-export function SubmissionViewOptions({ submissionLanguageName }: SubmissionViewOptionsProps) {
-  const { options, toggleOption, resetOptions } =
+export function SubmissionViewOptions({
+  submissionLanguageName,
+}: SubmissionViewOptionsProps) {
+  const { viewOptions, toggleOption, resetOptions } =
     useSubmissionDetailsViewOptions();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4" />
+          <Settings2 className="h-4 w-4" />
           View
         </Button>
       </DropdownMenuTrigger>
@@ -32,21 +37,29 @@ export function SubmissionViewOptions({ submissionLanguageName }: SubmissionView
         <DropdownMenuLabel>View Options</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          checked={options.showInvisibleItems}
-          onCheckedChange={() => toggleOption("showInvisibleItems")}
+          checked={viewOptions.showInvisibleItems}
+          onCheckedChange={() => toggleOption(ViewOption.ShowInvisible)}
         >
           Show Invisible Items
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          checked={options.showDynamicVariables}
-          onCheckedChange={() => toggleOption("showDynamicVariables")}
+          checked={viewOptions.showReadOnly}
+          onCheckedChange={() => toggleOption(ViewOption.ShowReadOnly)}
         >
-          Show Dynamic Variables
+          Show Read-only Questions
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={viewOptions.showPersonalizedItems}
+          onCheckedChange={() => toggleOption(ViewOption.ShowPersonalized)}
+        >
+          Show Personalized Items
         </DropdownMenuCheckboxItem>
         {submissionLanguageName && (
           <DropdownMenuCheckboxItem
-            checked={options.useSubmissionLanguage}
-            onCheckedChange={() => toggleOption("useSubmissionLanguage")}
+            checked={viewOptions.useSubmissionLanguage}
+            onCheckedChange={() =>
+              toggleOption(ViewOption.UseSubmissionLanguage)
+            }
           >
             {`Display in ${submissionLanguageName}`}
           </DropdownMenuCheckboxItem>
@@ -55,7 +68,7 @@ export function SubmissionViewOptions({ submissionLanguageName }: SubmissionView
         <Button
           variant="ghost"
           size="sm"
-          className="w-full mt-1"
+          className="mt-1 w-full"
           onClick={resetOptions}
         >
           Reset to Default

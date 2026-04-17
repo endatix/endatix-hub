@@ -42,7 +42,10 @@ function parseBoolean(value: string | undefined | null): boolean {
  * @param defaultValue - The default value if parsing fails
  * @returns The parsed number or defaultValue
  */
-function parseNumber(value: string | number | undefined | null, defaultValue: number = 0): number {
+function parseNumber(
+  value: string | number | undefined | null,
+  defaultValue: number = 0,
+): number {
   if (value === undefined || value === null || value === "") {
     return defaultValue;
   }

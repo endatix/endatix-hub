@@ -41,6 +41,7 @@ const eslintConfig = defineConfig([
     "**/examples/",
     "**/package.json",
     "**/tsconfig.json",
+    "**/playwright-report/",
   ]),
   {
     settings: {

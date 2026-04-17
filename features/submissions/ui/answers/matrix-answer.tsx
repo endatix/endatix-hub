@@ -1,12 +1,11 @@
-import React from "react";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  TableCaption,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
@@ -58,28 +57,38 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
   }
 
   return (
-    <Table className={cn("table-auto", className)}>
-      <TableCaption>
-        Answers for the &quot;{question.title}&quot; question
-      </TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-1/3">Question</TableHead>
-          <TableHead>Answer</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {matrixAnswers.map((answer) => (
-          <TableRow key={answer.question}>
-            <TableCell className="font-medium">{answer.question}</TableCell>
-            <TableCell className="flex flex-row items-center gap-2">
-              {answer.answer}
-              <ValueTooltip value={answer.answer} />
-            </TableCell>
+    <div className={cn("w-full min-w-0 overflow-x-auto", className)}>
+      <Table className="table-auto">
+        <TableCaption>
+          Answers for the &quot;{question.title}&quot; question
+        </TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-1/3 break-words whitespace-normal">
+              Question
+            </TableHead>
+            <TableHead className="break-words whitespace-normal">
+              Answer
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {matrixAnswers.map((answer) => (
+            <TableRow key={answer.question}>
+              <TableCell className="font-medium break-words whitespace-normal">
+                {answer.question}
+              </TableCell>
+              <TableCell className="break-words whitespace-normal">
+                <div className="flex items-start gap-2">
+                  {answer.answer}
+                  <ValueTooltip value={answer.answer} />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

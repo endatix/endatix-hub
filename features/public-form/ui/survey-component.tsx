@@ -2,6 +2,7 @@
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
+import { useSurveyEmbedBehavior } from "@/features/embed-form";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
@@ -94,65 +95,16 @@ export default function SurveyComponent({
 
   const isModelReady = surveyModel && isStorageReady;
 
+  const { sendEmbedMessage, registerEmbedHandlers } = useSurveyEmbedBehavior({
+    isEmbed: isEmbed ?? false,
+    formId,
+  });
 
   useEffect(() => {
     if (submission?.id) {
       setSubmissionId(submission.id);
     }
   }, [submission?.id]);
-
-  const sendEmbedMessage = useCallback(
-    (type: string, data?: Record<string, unknown>) => {
-      if (
-        isEmbed &&
-        globalThis.window !== undefined &&
-        window.parent !== globalThis.window
-      ) {
-        window.parent.postMessage(
-          {
-            type: `endatix-${type}`,
-            formId,
-            ...data,
-          },
-          "*",
-        );
-      }
-    },
-    [isEmbed, formId],
-  );
-
-  useEffect(() => {
-    if (surveyModel && isEmbed) {
-      sendEmbedMessage("form-loaded");
-    }
-  }, [surveyModel, isEmbed, sendEmbedMessage]);
-
-  const pageNavigationOccurred = useRef(false);
-
-  useEffect(() => {
-    if (!surveyModel || !isEmbed) {
-      return;
-    }
-
-    const handlePageChanged = () => {
-      pageNavigationOccurred.current = true;
-    };
-
-    const handlePageRendered = () => {
-      if (pageNavigationOccurred.current) {
-        pageNavigationOccurred.current = false;
-        sendEmbedMessage("scroll");
-      }
-    };
-
-    surveyModel.onCurrentPageChanged.add(handlePageChanged);
-    surveyModel.onAfterRenderPage.add(handlePageRendered);
-
-    return () => {
-      surveyModel.onCurrentPageChanged.remove(handlePageChanged);
-      surveyModel.onAfterRenderPage.remove(handlePageRendered);
-    };
-  }, [surveyModel, isEmbed, sendEmbedMessage]);
 
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];
@@ -259,6 +211,7 @@ export default function SurveyComponent({
     }
 
     const unregisterStorage = registerStorageHandlers(surveyModel);
+    const unregisterEmbed = registerEmbedHandlers(surveyModel);
     surveyModel.onComplete.add(submitForm);
     surveyModel.onValueChanged.add(updatePartial);
     surveyModel.onCurrentPageChanged.add(updatePartial);
@@ -267,13 +220,20 @@ export default function SurveyComponent({
 
     return () => {
       unregisterStorage();
+      unregisterEmbed();
       surveyModel.onComplete.remove(submitForm);
       surveyModel.onValueChanged.remove(updatePartial);
       surveyModel.onCurrentPageChanged.remove(updatePartial);
       surveyModel.onDynamicPanelValueChanged.remove(updatePartial);
       surveyModel.onMatrixCellValueChanged.remove(updatePartial);
     };
-  }, [surveyModel, submitForm, updatePartial, registerStorageHandlers]);
+  }, [
+    surveyModel,
+    submitForm,
+    updatePartial,
+    registerStorageHandlers,
+    registerEmbedHandlers,
+  ]);
 
   if (!isModelReady) {
     return <div>Loading...</div>;
