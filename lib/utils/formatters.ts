@@ -79,6 +79,10 @@ function formatDateTime(
   dateStyle: DateStyle = "short",
   locale?: string,
 ): string {
+  if (value === "" || value === null || value === undefined) {
+    return "";
+  }
+
   let dateValue: Date | null = null;
 
   if (isValidDate(value)) {

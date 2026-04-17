@@ -5,8 +5,9 @@ import {
   parseNumberValue,
   type DateStyle,
 } from "@/lib/utils/formatters";
+import type { FormattingFunc } from "./types";
 
-function formatCurrencyExpression(params: unknown[]): string {
+function formatCurrencyExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 1) return "";
 
   const value = parseNumberValue(params[0]);
@@ -14,32 +15,28 @@ function formatCurrencyExpression(params: unknown[]): string {
 
   const currencyCode =
     params.length > 1 && params[1] ? String(params[1]) : "USD";
-  const locale =
-    params.length > 2 && params[2] ? String(params[2]) : undefined;
+  const locale = params.length > 2 && params[2] ? String(params[2]) : undefined;
 
   return formatCurrency(value, currencyCode, locale);
 }
 
-function formatNumberExpression(params: unknown[]): string {
+function formatNumberExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 1) return "";
 
   const value = parseNumberValue(params[0]);
   if (value === null) return String(params[0]);
 
   const decimalPlaces =
-    params.length > 1 && params[1] !== undefined
-      ? Number(params[1])
-      : 2;
+    params.length > 1 && params[1] !== undefined ? Number(params[1]) : 2;
   const locale = params.length > 2 && params[2] ? String(params[2]) : undefined;
 
   return formatDecimalNumber(value, decimalPlaces, locale);
 }
 
-function formatDateExpression(params: unknown[]): string {
+function formatDateExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 1) return "";
 
-  const styleStr =
-    params.length > 1 && params[1] ? String(params[1]) : "short";
+  const styleStr = params.length > 1 && params[1] ? String(params[1]) : "short";
   const locale = params.length > 2 && params[2] ? String(params[2]) : undefined;
 
   const dateStyle: DateStyle = ["full", "long", "medium", "short"].includes(
@@ -51,7 +48,7 @@ function formatDateExpression(params: unknown[]): string {
   return formatDateTime(params[0], dateStyle, locale);
 }
 
-function smartFormat(params: unknown[]): string {
+function smartFormatExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 2) {
     return params?.[0] !== undefined ? String(params[0]) : "";
   }
@@ -63,7 +60,7 @@ function smartFormat(params: unknown[]): string {
     case "currency": {
       const currency = params.length > 2 ? String(params[2]) : "USD";
       const locale = params.length > 3 ? String(params[3]) : undefined;
-      return formatCurrencyExpression([value, currency, locale]);
+      return formatCurrencyExpressionFunc([value, currency, locale]);
     }
     case "percent": {
       const num = parseNumberValue(value);
@@ -72,24 +69,34 @@ function smartFormat(params: unknown[]): string {
     }
     case "date": {
       const style = params.length > 2 ? String(params[2]) : "medium";
-      return formatDateExpression([value, style]);
+      return formatDateExpressionFunc([value, style]);
     }
     case "number": {
       const decimals =
-        params.length > 2 && params[2] !== undefined
-          ? Number(params[2])
-          : 2;
+        params.length > 2 && params[2] !== undefined ? Number(params[2]) : 2;
       const locale = params.length > 3 ? String(params[3]) : undefined;
-      return formatNumberExpression([value, decimals, locale]);
+      return formatNumberExpressionFunc([value, decimals, locale]);
     }
     default:
       return String(value);
   }
 }
 
+const formattingFunctions = Object.freeze([
+  Object.freeze({ name: "formatCurrency", func: formatCurrencyExpressionFunc }),
+  Object.freeze({ name: "formatNumber", func: formatNumberExpressionFunc }),
+  Object.freeze({ name: "formatDate", func: formatDateExpressionFunc }),
+  Object.freeze({ name: "format", func: smartFormatExpressionFunc }),
+] as const satisfies readonly FormattingFunc[]);
+
+const expressionFormattingRegistry = Object.freeze(
+  formattingFunctions.map((entry) => Object.freeze(entry)),
+);
+
 export {
-  formatCurrencyExpression as formatCurrency,
-  formatNumberExpression as formatNumber,
-  formatDateExpression as formatDate,
-  smartFormat,
+  expressionFormattingRegistry,
+  formatCurrencyExpressionFunc as formatCurrency,
+  formatDateExpressionFunc as formatDate,
+  formatNumberExpressionFunc as formatNumber,
+  smartFormatExpressionFunc as smartFormat,
 };

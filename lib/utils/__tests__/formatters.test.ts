@@ -4,12 +4,27 @@ import {
   formatCurrency,
   formatDecimalNumber,
   formatDateTime,
+  formatValue,
+  parseNumberValue,
 } from "@/lib/utils/formatters";
 import { describe, expect, it } from "vitest";
 
 describe("formatNumber", () => {
   it("should return fallback for 0", () => {
     expect(formatNumber(0)).toBe("-");
+  });
+
+  it("should return fallback for null", () => {
+    expect(formatNumber(null as any)).toBe("-");
+  });
+
+  it("should return fallback for undefined", () => {
+    expect(formatNumber(undefined as any)).toBe("-");
+  });
+
+  it("should format negative numbers", () => {
+    expect(formatNumber(-1000)).toBe("-1K");
+    expect(formatNumber(-500)).toBe("-500");
   });
 
   it("should format thousands with k suffix", () => {
@@ -56,10 +71,20 @@ describe("formatDecimalNumber", () => {
 });
 
 describe("formatDateTime", () => {
+  it("should return empty string for empty string", () => {
+    expect(formatDateTime("")).toBe("");
+  });
+
+  it("should return empty string for null", () => {
+    expect(formatDateTime(null)).toBe("");
+  });
+
+  it("should return empty string for undefined", () => {
+    expect(formatDateTime(undefined)).toBe("");
+  });
+
   it("should format date string with short style by default", () => {
-    const result = formatDateTime("2024-01-15");
-    expect(result).toBeTruthy();
-    expect(result).toContain("15");
+    expect(formatDateTime("2024-01-15")).toBe("1/15/24");
   });
 
   it("should format with specified date style", () => {
@@ -68,10 +93,10 @@ describe("formatDateTime", () => {
     const long = formatDateTime("2024-01-15", "long");
     const full = formatDateTime("2024-01-15", "full");
 
-    expect(short).toBeTruthy();
-    expect(medium).toBeTruthy();
-    expect(long).toBeTruthy();
-    expect(full).toBeTruthy();
+    expect(short).toBe("1/15/24");
+    expect(medium).toBe("Jan 15, 2024");
+    expect(long).toContain("January");
+    expect(full).toContain("Monday");
   });
 
   it("should return string value for invalid date", () => {
@@ -177,5 +202,42 @@ describe("formatValue", () => {
   it("should handle functions", () => {
     const myFunc = () => {};
     expect(formatValue(myFunc)).toBe("[function]");
+  });
+});
+
+describe("parseNumberValue", () => {
+  it("should return number as-is", () => {
+    expect(parseNumberValue(42)).toBe(42);
+    expect(parseNumberValue(0)).toBe(0);
+    expect(parseNumberValue(-3.14)).toBe(-3.14);
+  });
+
+  it("should parse valid number strings", () => {
+    expect(parseNumberValue("42")).toBe(42);
+    expect(parseNumberValue("3.14")).toBe(3.14);
+    expect(parseNumberValue("-100")).toBe(-100);
+  });
+
+  it("should return null for invalid number strings", () => {
+    expect(parseNumberValue("abc")).toBeNull();
+  });
+
+  it("should return 0 for empty string (Number behavior)", () => {
+    expect(parseNumberValue("")).toBe(0);
+  });
+
+  it("should convert booleans to numbers", () => {
+    expect(parseNumberValue(true)).toBe(1);
+    expect(parseNumberValue(false)).toBe(0);
+  });
+
+  it("should return null for objects and arrays", () => {
+    expect(parseNumberValue({})).toBeNull();
+    expect(parseNumberValue([])).toBeNull();
+    expect(parseNumberValue([1, 2])).toBeNull();
+  });
+
+  it("should return null for undefined", () => {
+    expect(parseNumberValue(undefined)).toBeNull();
   });
 });
