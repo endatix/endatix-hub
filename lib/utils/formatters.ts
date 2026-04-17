@@ -1,14 +1,14 @@
 type DateStyle = "full" | "long" | "medium" | "short";
 
 function isValidDate(value: unknown): value is Date {
-  return value instanceof Date && !isNaN(value.getTime());
+  return value instanceof Date && !Number.isNaN(value.getTime());
 }
 
 function parseNumberValue(value: unknown): number | null {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
     const parsed = Number(value);
-    return isNaN(parsed) ? null : parsed;
+    return Number.isNaN(parsed) ? null : parsed;
   }
   if (typeof value === "boolean") return value ? 1 : 0;
   return null;
@@ -94,7 +94,13 @@ function formatDateTime(
     }
   }
 
-  if (!dateValue) return String(value);
+  if (!dateValue) {
+    if (typeof value === "object" || typeof value === "function") {
+      return ""; 
+    }
+    
+    return String(value);
+  }
 
   return new Intl.DateTimeFormat(locale, { dateStyle }).format(dateValue);
 }
