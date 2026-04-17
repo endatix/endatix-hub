@@ -1,8 +1,2 @@
-export { registerExpressionFormatting } from "./bootstrap";
-export {
-  formatCurrency,
-  formatNumber,
-  formatDate,
-  smartFormat,
-} from "./formatters";
+export { registerFormattingExtension } from "./formatting.extension";
 export { getStringParam, getNumberParam } from "./expression-utils";

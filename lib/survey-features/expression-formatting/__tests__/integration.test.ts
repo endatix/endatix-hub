@@ -1,9 +1,13 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SurveyModel } from "survey-core";
-import "@/lib/survey-features/expression-formatting";
+import { registerFormattingExtension } from "@/lib/survey-features/expression-formatting";
 
 describe("Expression Formatting Integration", () => {
   let survey: SurveyModel;
+
+  beforeAll(() => {
+    registerFormattingExtension();
+  });
 
   beforeEach(() => {
     survey = new SurveyModel();

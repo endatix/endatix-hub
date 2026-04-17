@@ -8,7 +8,7 @@
  * to avoid merge conflicts when updating from upstream.
  */
 import type { ExtensionDefinition } from "./types";
-import { registerExpressionFormatting } from "@/lib/survey-features/expression-formatting";
+import { registerFormattingExtension } from "@/lib/survey-features/expression-formatting";
 /**
  * Core extensions that ship with the platform.
  * Developers should add their extensions to hub/extensions/user-extensions.ts
@@ -35,9 +35,8 @@ export const coreExtensions: ExtensionDefinition[] = [
       description:
         "Adds formatCurrency, formatNumber, formatDate, and smartFormat functions to SurveyJS expressions",
     },
-    shouldLoad: () => true,
-    bootstrap: registerExpressionFormatting,
-  }
+    bootstrap: registerFormattingExtension,
+  },
 ];
 
 /**

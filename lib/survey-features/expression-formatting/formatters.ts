@@ -4,17 +4,10 @@ import {
   formatDateTime,
   parseNumberValue,
   type DateStyle,
+  VALID_DATE_STYLES,
 } from "@/lib/utils/formatters";
-import type { FormattingFunc } from "./types";
 import { getNumberParam, getStringParam } from "./expression-utils";
-
-const VALID_DATE_STYLES: ReadonlyArray<string> = [
-  "full",
-  "long",
-  "medium",
-  "short",
-] as const;
-type DataStyle = (typeof VALID_DATE_STYLES)[number];
+import { FormattingFunc } from "./types";
 
 const DEFAULT_DATE_STYLE: DateStyle = "short";
 const EMPTY_STRING = "";
@@ -77,15 +70,17 @@ function formatNumberExpressionFunc(params: unknown[]): string {
 function formatDateExpressionFunc(params: unknown[]): string {
   if (!params || params.length < 1) return EMPTY_STRING;
 
-  const dataStyleValue = getStringParam(params, 1);
+  const dateStyleValue = getStringParam(params, 1);
   const locale = getStringParam(params, 2);
 
-  const normalizedDataStyle = dataStyleValue
-    ? dataStyleValue.toLowerCase()
+  const normalizedDateStyle = dateStyleValue
+    ? dateStyleValue.toLowerCase()
     : DEFAULT_DATE_STYLE;
 
-  const dateStyle: DateStyle = VALID_DATE_STYLES.includes(normalizedDataStyle)
-    ? (normalizedDataStyle as DateStyle)
+  const dateStyle: DateStyle = VALID_DATE_STYLES.includes(
+    normalizedDateStyle as DateStyle,
+  )
+    ? (normalizedDateStyle as DateStyle)
     : DEFAULT_DATE_STYLE;
 
   return formatDateTime(params[0], dateStyle, locale);
@@ -96,8 +91,9 @@ function formatDateExpressionFunc(params: unknown[]): string {
  * @param params - The parameters for the function.
  *  [0] - The value to format.
  *  [1] - The format type. Can be "currency", "percent", "date", or "number".
- *  [2] - The currency code to format to.
- *  [3] - The locale to format to.
+ *  [2] - First additional parameter for the format type.
+ *  [3] - Second additional parameter for the format type, usually the locale.
+ * @returns The formatted value
  */
 function smartFormatExpressionFunc(params: unknown[]): string {
   if (!params) return EMPTY_STRING;
@@ -114,11 +110,7 @@ function smartFormatExpressionFunc(params: unknown[]): string {
     case "currency": {
       const currency = getStringParam(params, 2) ?? DEFAULT_CURRENCY_CODE;
       const locale = getStringParam(params, 3);
-      return formatCurrencyExpressionFunc([
-        valueParam,
-        currency,
-        locale,
-      ]);
+      return formatCurrencyExpressionFunc([valueParam, currency, locale]);
     }
     case "percent": {
       const num = parseNumberValue(valueParam);
@@ -128,8 +120,9 @@ function smartFormatExpressionFunc(params: unknown[]): string {
       return new Intl.NumberFormat(undefined, { style: "percent" }).format(num);
     }
     case "date": {
-      const dataStyle = getStringParam(params, 3) ?? DEFAULT_DATE_STYLE;
-      return formatDateExpressionFunc([valueParam, dataStyle]);
+      const dateStyle = getStringParam(params, 2) ?? DEFAULT_DATE_STYLE;
+      const locale = getStringParam(params, 3);
+      return formatDateExpressionFunc([valueParam, dateStyle, locale]);
     }
     case "number": {
       const decimals = getNumberParam(params, 2) ?? DEFAULT_DECIMAL_PLACES;

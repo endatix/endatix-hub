@@ -5,7 +5,10 @@ let areFunctionsRegistered = false;
 const IS_ASYNC = false;
 const USE_CACHE = false;
 
-export function registerExpressionFormatting(): void {
+/**
+ * Registers the formatting extension.
+ */
+export function registerFormattingExtension(): void {
   if (areFunctionsRegistered) return;
 
   const factory = FunctionFactory.Instance;
@@ -15,5 +18,3 @@ export function registerExpressionFormatting(): void {
 
   areFunctionsRegistered = true;
 }
-
-registerExpressionFormatting();

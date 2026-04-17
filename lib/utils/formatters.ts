@@ -1,16 +1,35 @@
-type DateStyle = "full" | "long" | "medium" | "short";
+const VALID_DATE_STYLES = Object.freeze([
+  "full",
+  "long",
+  "medium",
+  "short",
+] as const);
 
+type DateStyle = (typeof VALID_DATE_STYLES)[number];
+
+/**
+ * Checks if a value is a valid Date object.
+ * @param value - The value to check
+ * @returns True if the value is a valid Date object, false otherwise
+ */
 function isValidDate(value: unknown): value is Date {
   return value instanceof Date && !Number.isNaN(value.getTime());
 }
 
+/**
+ * Parses a number value into a number.
+ * @param value - The value to parse
+ * @returns The parsed number, or null if the value is not a number
+ */
 function parseNumberValue(value: unknown): number | null {
   if (typeof value === "number") return value;
-  if (typeof value === "string") {
+  if (typeof value === "string" && value.trim().length > 0) {
     const parsed = Number(value);
     return Number.isNaN(parsed) ? null : parsed;
   }
+
   if (typeof value === "boolean") return value ? 1 : 0;
+
   return null;
 }
 
@@ -96,9 +115,9 @@ function formatDateTime(
 
   if (!dateValue) {
     if (typeof value === "object" || typeof value === "function") {
-      return ""; 
+      return "";
     }
-    
+
     return String(value);
   }
 
@@ -175,5 +194,5 @@ export {
   formatValue,
   parseNumberValue,
   type DateStyle,
+  VALID_DATE_STYLES,
 };
-

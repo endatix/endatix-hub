@@ -222,8 +222,12 @@ describe("parseNumberValue", () => {
     expect(parseNumberValue("abc")).toBeNull();
   });
 
-  it("should return 0 for empty string (Number behavior)", () => {
-    expect(parseNumberValue("")).toBe(0);
+  it("should return null for empty string (Number behavior)", () => {
+    expect(parseNumberValue("")).toBeNull();
+  });
+
+  it("should return null for whitespace string", () => {
+    expect(parseNumberValue("   ")).toBeNull();
   });
 
   it("should convert booleans to numbers", () => {
