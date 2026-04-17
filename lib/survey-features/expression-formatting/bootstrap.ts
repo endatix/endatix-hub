@@ -12,7 +12,6 @@ export function registerExpressionFormatting(): void {
   for (const { name, func } of expressionFormattingRegistry) {
     factory.register(name, func, IS_ASYNC, USE_CACHE);
   }
-  factory.register("formatCurrency", formatCurrency, IS_ASYNC, USE_CACHE);
 
   areFunctionsRegistered = true;
 }
