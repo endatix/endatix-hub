@@ -10,7 +10,7 @@ import { createFormAnalyzer } from "@/lib/survey-extensions/extension-utils";
  */
 export function getRequiredExtensionIds(
   formDefinition: any,
-  availableExtensions: ExtensionDefinition[],
+  availableExtensions: ReadonlyArray<ExtensionDefinition>,
 ): string[] {
   if (!formDefinition) {
     return [];

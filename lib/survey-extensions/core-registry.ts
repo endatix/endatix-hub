@@ -7,25 +7,37 @@
  * Developers should add their extensions to hub/extensions/user-extensions.ts
  * to avoid merge conflicts when updating from upstream.
  */
-
 import type { ExtensionDefinition } from "./types";
-
+import { registerFormattingExtension } from "@/lib/survey-features/expression-formatting";
 /**
  * Core extensions that ship with the platform.
  * Developers should add their extensions to hub/extensions/user-extensions.ts
  * to avoid merge conflicts when updating from upstream.
  * @example
  * {
- *   id: "camera-fix",
- *   type: "feature",
+ *   id: 'camera-fix',
+ *   type: 'feature',
+ *   loading: 'dynamic',
  *   shouldLoad: (_) => true,
  *   load: () =>
- *     import("@/extensions/camera-fix").then(
+ *     import('@/extensions/camera-fix').then(
  *       (module) => module.default,
  *     ),
+ * },
  */
-export const coreExtensions: ExtensionDefinition[] = [];
-
+export const coreExtensions: ExtensionDefinition[] = [
+  {
+    id: "expression-formatting",
+    type: "feature",
+    loading: "static",
+    metadata: {
+      name: "Expression Formatting",
+      description:
+        "Adds formatCurrency, formatNumber, formatDate, and smartFormat functions to SurveyJS expressions",
+    },
+    bootstrap: registerFormattingExtension,
+  },
+];
 
 /**
  * Get extension by ID from core registry

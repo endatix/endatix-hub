@@ -1,3 +1,38 @@
+const VALID_DATE_STYLES = Object.freeze([
+  "full",
+  "long",
+  "medium",
+  "short",
+] as const);
+
+type DateStyle = (typeof VALID_DATE_STYLES)[number];
+
+/**
+ * Checks if a value is a valid Date object.
+ * @param value - The value to check
+ * @returns True if the value is a valid Date object, false otherwise
+ */
+function isValidDate(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
+/**
+ * Parses a number value into a number.
+ * @param value - The value to parse
+ * @returns The parsed number, or null if the value is not a number
+ */
+function parseNumberValue(value: unknown): number | null {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  if (typeof value === "boolean") return value ? 1 : 0;
+
+  return null;
+}
+
 /**
  * Formats a number into a string in the format of 1.2k, 1.2m, 1.2b, etc.
  * @param number - The number to format
@@ -13,6 +48,80 @@ function formatNumber(number: number, fallback: string = "-"): string {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(number);
+}
+
+/**
+ * Formats a number as currency.
+ * @param value - The number to format
+ * @param currencyCode - The currency code (default: USD)
+ * @param locale - The locale to use (default: browser locale)
+ * @returns Formatted currency string
+ */
+function formatCurrency(
+  value: number,
+  currencyCode: string = "USD",
+  locale?: string,
+): string {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currencyCode,
+  }).format(value);
+}
+
+/**
+ * Formats a number with specified decimal places.
+ * @param value - The number to format
+ * @param decimalPlaces - Number of decimal places (default: 2)
+ * @param locale - The locale to use (default: browser locale)
+ * @returns Formatted number string
+ */
+function formatDecimalNumber(
+  value: number,
+  decimalPlaces: number = 2,
+  locale?: string,
+): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
+  }).format(value);
+}
+
+/**
+ * Formats a date using Intl.DateTimeFormat.
+ * @param value - The date to format (Date, string, or number)
+ * @param dateStyle - The date style: 'full', 'long', 'medium', 'short' (default: short)
+ * @param locale - The locale to use (default: browser locale)
+ * @returns Formatted date string
+ */
+function formatDateTime(
+  value: unknown,
+  dateStyle: DateStyle = "short",
+  locale?: string,
+): string {
+  if (value === "" || value === null || value === undefined) {
+    return "";
+  }
+
+  let dateValue: Date | null = null;
+
+  if (isValidDate(value)) {
+    dateValue = value;
+  } else {
+    const parsed = new Date(value as string | number);
+    if (isValidDate(parsed)) {
+      dateValue = parsed;
+    }
+  }
+
+  if (!dateValue) {
+    if (typeof value === "object" || typeof value === "function") {
+      return "";
+    }
+
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat(locale, { dateStyle }).format(dateValue);
 }
 
 /**
@@ -32,7 +141,6 @@ function formatBytes(bytes: number, decimals: number = 2): string {
 
   return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
-
 /**
  * Formats an unknown value into a display string
  * @param value - The value to format (can be string, number, boolean, array, object, or null/undefined)
@@ -77,4 +185,14 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-export { formatNumber, formatBytes, formatValue };
+export {
+  formatNumber,
+  formatCurrency,
+  formatDecimalNumber,
+  formatDateTime,
+  formatBytes,
+  formatValue,
+  parseNumberValue,
+  type DateStyle,
+  VALID_DATE_STYLES,
+};

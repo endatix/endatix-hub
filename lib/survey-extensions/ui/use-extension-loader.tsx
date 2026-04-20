@@ -9,10 +9,62 @@ import type { ExtensionDefinition, ExtensionModule } from "../types";
 // Global state stays outside to persist across renders/mounts
 const loadedModules = new Map<string, ExtensionModule>();
 const loadingPromises = new Map<string, Promise<ExtensionModule | undefined>>();
-const initializedKeys = new Set<string>();
+const initializedExtensionIds = new Set<string>();
+const initializedLoadSets = new Set<string>();
+
+function getLoadingMode(extension: ExtensionDefinition): "static" | "dynamic" {
+  return extension.loading;
+}
+
+function getBootstrap(
+  extension: ExtensionDefinition,
+): (() => void) | undefined {
+  if (extension.loading === "static") {
+    return extension.bootstrap;
+  }
+
+  return undefined;
+}
+
+function getLoader(
+  extension: ExtensionDefinition,
+): (() => Promise<ExtensionModule>) | undefined {
+  if (extension.loading === "dynamic") {
+    return extension.load;
+  }
+
+  return undefined;
+}
+
+function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
+  extensions.forEach((extension) => {
+    if (getLoadingMode(extension) !== "static") {
+      return;
+    }
+
+    if (initializedExtensionIds.has(extension.id)) {
+      return;
+    }
+
+    const bootstrap = getBootstrap(extension);
+    if (!bootstrap) {
+      return;
+    }
+
+    try {
+      bootstrap();
+      initializedExtensionIds.add(extension.id);
+      console.debug(
+        `✓ [ExtensionLoader] Initialized extension: ${extension.id}`,
+      );
+    } catch (error) {
+      console.error(`✗ [ExtensionLoader] Error: ${extension.id}`, error);
+    }
+  });
+}
 
 export interface UseExtensionLoaderOptions {
-  allExtensions: ExtensionDefinition[];
+  allExtensions: ReadonlyArray<ExtensionDefinition>;
   extensionIdsToLoad: string[];
 }
 
@@ -21,6 +73,11 @@ export interface UseExtensionLoaderOptions {
  * This flattens the nested 'ifs' from the original hook.
  */
 async function loadSingleExtension(ext: ExtensionDefinition) {
+  const loader = getLoader(ext);
+  if (!loader) {
+    return undefined;
+  }
+
   if (loadedModules.has(ext.id)) return loadedModules.get(ext.id);
 
   // Check for an existing flight
@@ -29,7 +86,7 @@ async function loadSingleExtension(ext: ExtensionDefinition) {
 
   promise = (async () => {
     try {
-      const mod = await ext.load?.();
+      const mod = await loader();
       if (!mod) {
         return undefined;
       }
@@ -66,29 +123,46 @@ export function useExtensionLoader({
   const [isReady, setIsReady] = useState(false);
   const mountedRef = useRef(true);
 
-  const extensionIdsKey = extensionIdsToLoad.join(",");
-  const extensionsToLoad = useMemo(
+  const normalizedExtensionIds = useMemo(
     () =>
-      allExtensions.filter((ext: ExtensionDefinition) =>
-        extensionIdsToLoad.includes(ext.id),
+      Array.from(new Set(extensionIdsToLoad)).sort((a, b) =>
+        a.localeCompare(b, "en", { sensitivity: "base" }),
       ),
-    [allExtensions, extensionIdsToLoad],
+    [extensionIdsToLoad],
   );
+  
+  const extensionIdsKey = normalizedExtensionIds.join(",");
+  const extensionsToLoad = useMemo(() => {
+    const extensionIdSet = new Set(normalizedExtensionIds);
+    return allExtensions.filter((ext: ExtensionDefinition) =>
+      extensionIdSet.has(ext.id),
+    );
+  }, [allExtensions, normalizedExtensionIds]);
 
   useEffect(() => {
     mountedRef.current = true;
 
-    // Guard to avoid unnecessary loading
-    if (extensionsToLoad.length === 0 || initializedKeys.has(extensionIdsKey)) {
+    // Initialize static extensions synchronously.
+    initializeStaticExtensions(extensionsToLoad);
+
+    const dynamicExtensions = extensionsToLoad.filter(
+      (extension) => getLoadingMode(extension) === "dynamic",
+    );
+
+    // Guard to avoid unnecessary dynamic loading
+    if (
+      dynamicExtensions.length === 0 ||
+      initializedLoadSets.has(extensionIdsKey)
+    ) {
       setIsReady(true);
       return;
     }
 
     const init = async () => {
-      await Promise.all(extensionsToLoad.map(loadSingleExtension));
+      await Promise.all(dynamicExtensions.map(loadSingleExtension));
 
       if (mountedRef.current) {
-        initializedKeys.add(extensionIdsKey);
+        initializedLoadSets.add(extensionIdsKey);
         setIsReady(true);
       }
     };

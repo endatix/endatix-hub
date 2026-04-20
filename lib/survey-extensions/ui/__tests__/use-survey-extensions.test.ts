@@ -55,6 +55,24 @@ describe("useSurveyExtensions", () => {
     expect(mockGetRequiredExtensionIds).not.toHaveBeenCalled();
   });
 
+  it("prefers extensionIdsToLoad over formJson analysis when both are provided", () => {
+    // Arrange – server-provided whitelist should short-circuit client detection
+    process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
+    const extensionIdsToLoad = ["server-ext-a"];
+    const formJson = { pages: [{ elements: [{ type: "country" }] }] };
+
+    // Act
+    renderHook(() => useSurveyExtensions({ extensionIdsToLoad, formJson }));
+
+    // Assert
+    expect(mockUseExtensionLoader).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extensionIdsToLoad: ["server-ext-a"],
+      }),
+    );
+    expect(mockGetRequiredExtensionIds).not.toHaveBeenCalled();
+  });
+
   it("calls getRequiredExtensionIds when formJson provided and extensions enabled", () => {
     // Arrange
     process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
