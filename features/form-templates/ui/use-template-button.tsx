@@ -6,9 +6,7 @@ import { FilePlus2 } from "lucide-react";
 import { FormTemplate } from "@/types";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { useTemplateAction } from "../application/use-template.action";
-import { Result } from "@/lib/result";
-import { toast } from "@/components/ui/toast";
+import { runCreateFormFromTemplate } from "../application/run-create-form-from-template.client";
 
 interface UseTemplateButtonProps {
   template: FormTemplate | null;
@@ -28,18 +26,7 @@ export function UseTemplateButton({
     if (!template) return;
 
     startCreateFormTransition(async () => {
-      // this is not a hook, but an action, so adding this rule to avoid the false eslint error
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const result = await useTemplateAction({
-        templateId: template.id,
-      });
-
-      if (Result.isSuccess(result)) {
-        toast.success("Form created from template successfully");
-        router.push(`/forms/${result.value}/design`);
-      } else {
-        toast.error(result.message || "Failed to create form from template");
-      }
+      await runCreateFormFromTemplate(template.id, router);
     });
   };
 
