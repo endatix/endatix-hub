@@ -54,7 +54,10 @@ import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
-import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
+import {
+  customizeQuestionClassesOnCreator,
+  loadBuiltInCustomQuestionClasses,
+} from "./survey-creator-custom-questions";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
@@ -443,13 +446,8 @@ function FormEditor({
   );
 
   useEffect(() => {
-    if (!creator) return;
-
-    questionClasses.forEach((QuestionClass) => {
-      QuestionClass.customizeEditor(creator);
-    });
+    customizeQuestionClassesOnCreator(creator, questionClasses);
   }, [creator, questionClasses]);
-
 
   useEffect(() => {
     const initializeNewCreator = async () => {
@@ -465,23 +463,12 @@ function FormEditor({
         slk(slkVal);
       }
 
-      // Load built-in custom questions (from database)
-      const result = await getCustomQuestionsAction();
-
-      if (result === undefined) {
-        toast.error("Could not proceed with fetching custom questions");
+      const newQuestionClasses = await loadBuiltInCustomQuestionClasses();
+      if (newQuestionClasses === null) {
         return;
       }
 
       try {
-        if (Result.isError(result)) {
-          throw new Error(result.message);
-        }
-
-        const newQuestionClasses = initializeCustomQuestions(
-          result.value.map((q) => q.jsonData),
-        );
-
         // Load dynamic questions using greedy loading strategy (load all custom questions for now)
         for (const questionName of customQuestions) {
           try {

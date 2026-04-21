@@ -3,8 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
-import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import {
+  customizeQuestionClassesOnCreator,
+  loadBuiltInCustomQuestionClasses,
+} from "@/features/forms/ui/editor/survey-creator-custom-questions";
 import { Result } from "@/lib/result";
 import { useSurveyExtensions } from "@/lib/survey-extensions";
 import {
@@ -163,11 +165,7 @@ function FormTemplateEditorContent({
   }, [templateId, name, originalName]);
 
   useLayoutEffect(() => {
-    if (!creator) return;
-
-    questionClasses.forEach((QuestionClass) => {
-      QuestionClass.customizeEditor(creator);
-    });
+    customizeQuestionClassesOnCreator(creator, questionClasses);
   }, [creator, questionClasses]);
 
   useEffect(() => {
@@ -184,22 +182,12 @@ function FormTemplateEditorContent({
         slk(slkVal);
       }
 
-      const result = await getCustomQuestionsAction();
-
-      if (result === undefined) {
-        toast.error("Could not proceed with fetching custom questions");
+      const newQuestionClasses = await loadBuiltInCustomQuestionClasses();
+      if (newQuestionClasses === null) {
         return;
       }
 
       try {
-        if (Result.isError(result)) {
-          throw new Error(result.message);
-        }
-
-        const newQuestionClasses = initializeCustomQuestions(
-          result.value.map((q) => q.jsonData),
-        );
-
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
 
         onCreatorCreated(newCreator);
