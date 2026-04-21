@@ -21,22 +21,35 @@ export function resolveCreatorThemeCssVariables<T extends CreatorThemeCssPayload
   }
 
   const probe = document.createElement("div");
-  probe.style.cssText = "display:none;position:absolute;";
+  probe.style.cssText =
+    "visibility:hidden;position:absolute;width:0;height:0;pointer-events:none;overflow:hidden;";
   mountRoot.appendChild(probe);
 
   const resolvedVariables: Record<string, string> = {};
 
   try {
     for (const [key, originalValue] of Object.entries(theme.cssVariables)) {
-      probe.style.color = "";
+      const sentinelColor = "rgb(1, 2, 3)";
+      probe.style.color = sentinelColor;
       probe.style.color = originalValue;
 
-      const browserAccepted = probe.style.color !== "";
-      const resolvedColor = browserAccepted
-        ? getComputedStyle(probe).color
-        : originalValue;
+      const inlineColor = probe.style.color;
+      const browserRejected = inlineColor === "" || inlineColor === sentinelColor;
 
-      resolvedVariables[key] = resolvedColor || originalValue;
+      if (browserRejected) {
+        continue;
+      }
+
+      const computedColor = getComputedStyle(probe).color;
+      if (!computedColor || computedColor === sentinelColor) {
+        continue;
+      }
+
+      if (computedColor.includes("var(")) {
+        continue;
+      }
+
+      resolvedVariables[key] = computedColor;
     }
   } finally {
     probe.remove();

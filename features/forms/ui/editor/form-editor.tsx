@@ -572,11 +572,23 @@ function FormEditor({
   useEffect(() => {
     if (!creator) return;
 
-    const resolvedTheme = resolveCreatorThemeCssVariables(
-      creatorTheme,
-      document.getElementById("creator") ?? undefined,
-    );
-    creator.applyCreatorTheme(resolvedTheme);
+    // Delay re-apply until after theme class/token updates settle in the DOM.
+    let frame1 = 0;
+    let frame2 = 0;
+    frame1 = window.requestAnimationFrame(() => {
+      frame2 = window.requestAnimationFrame(() => {
+        const resolvedTheme = resolveCreatorThemeCssVariables(
+          creatorTheme,
+          document.getElementById("creator") ?? undefined,
+        );
+        creator.applyCreatorTheme(resolvedTheme);
+      });
+    });
+
+    return () => {
+      if (frame1) window.cancelAnimationFrame(frame1);
+      if (frame2) window.cancelAnimationFrame(frame2);
+    };
   }, [creator, creatorTheme]);
 
   useEffect(() => {
