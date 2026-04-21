@@ -18,7 +18,7 @@ exports[`Submission files page > matches snapshot 1`] = `
     </a>
   </div>
   <div
-    class="bg-card text-card-foreground flex flex-col gap-6 rounded-sm border shadow-sm py-6"
+    class="bg-card text-card-foreground flex flex-col gap-6 rounded-[6px] border shadow-sm py-6"
     data-slot="card"
   >
     <div
