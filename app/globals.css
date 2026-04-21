@@ -210,10 +210,10 @@
     @apply relative flex min-h-svh min-w-0 flex-1 flex-col bg-content-canvas md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2;
   }
 
-  /* Submission grid: theme-colored horizontal scrollbar (native overflow on table container) */
+  /* Submission grid: neutral grey scrollbar in light mode */
   [data-slot="submission-data-table"] [data-slot="table-container"] {
     scrollbar-width: thin;
-    scrollbar-color: var(--primary) var(--muted);
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 38%, var(--muted)) var(--muted);
   }
 
   [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar {
@@ -226,12 +226,26 @@
   }
 
   [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb {
-    background: var(--primary);
+    background: color-mix(in oklab, var(--muted-foreground) 38%, var(--muted));
     border-radius: 9999px;
     border: 2px solid var(--muted);
   }
 
   [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted-foreground) 52%, var(--muted));
+  }
+
+  /* Submission grid: blue-tinted scrollbar in dark mode */
+  .dark [data-slot="submission-data-table"] [data-slot="table-container"] {
+    scrollbar-color: var(--primary) var(--muted);
+  }
+
+  .dark [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border: 2px solid var(--muted);
+  }
+
+  .dark [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
     background: var(--ring);
   }
 }
