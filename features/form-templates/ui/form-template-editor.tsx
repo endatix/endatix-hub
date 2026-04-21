@@ -18,6 +18,7 @@ import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
 } from "@/lib/survey-features/survey-design/ui";
+import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -202,7 +203,11 @@ function FormTemplateEditorContent({
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
 
         onCreatorCreated(newCreator);
-        newCreator.applyCreatorTheme(creatorThemeRef.current);
+        const resolvedTheme = resolveCreatorThemeCssVariables(
+          creatorThemeRef.current,
+          document.getElementById("surveyCreatorContainer") ?? undefined,
+        );
+        newCreator.applyCreatorTheme(resolvedTheme);
         const unregisterStorage = registerStorageHandlers(newCreator);
         const unregisterJsonEditor = registerJsonEditor(newCreator);
 
@@ -242,6 +247,18 @@ function FormTemplateEditorContent({
 
     creator.JSON = templateJson;
   }, [creator, templateJson]);
+
+  useEffect(() => {
+    if (!creator) {
+      return;
+    }
+
+    const resolvedTheme = resolveCreatorThemeCssVariables(
+      creatorTheme,
+      document.getElementById("surveyCreatorContainer") ?? undefined,
+    );
+    creator.applyCreatorTheme(resolvedTheme);
+  }, [creator, creatorTheme]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

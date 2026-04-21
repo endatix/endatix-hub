@@ -23,6 +23,7 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
@@ -498,7 +499,11 @@ function FormEditor({
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
-        newCreator.applyCreatorTheme(creatorThemeRef.current);
+        const resolvedTheme = resolveCreatorThemeCssVariables(
+          creatorThemeRef.current,
+          document.getElementById("creator") ?? undefined,
+        );
+        newCreator.applyCreatorTheme(resolvedTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
 
         onCreatorCreated(newCreator);
@@ -563,6 +568,16 @@ function FormEditor({
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
   ]);
+
+  useEffect(() => {
+    if (!creator) return;
+
+    const resolvedTheme = resolveCreatorThemeCssVariables(
+      creatorTheme,
+      document.getElementById("creator") ?? undefined,
+    );
+    creator.applyCreatorTheme(resolvedTheme);
+  }, [creator, creatorTheme]);
 
   useEffect(() => {
     if (!creator) return;
