@@ -137,7 +137,8 @@ Our spacing is built on a tight 0.2rem increment for precision data-density, exp
 
 | App token (`globals.css`)                              | Survey Creator var (`lib/themes/endatix-creator-theme.ts`)   | Survey Model var (`lib/themes/endatix-survey-theme-*.ts`) |
 | :----------------------------------------------------- | :------------------------------------------------------------ | :--------------------------------------------- |
-| `--background` / `--surface-container-*`               | `--sjs-layer-*-background-*`, `--sjs-special-background`      | `--sjs-general-backcolor*`                     |
+| `--background` / `--surface-container-lowest`        | `--sjs-layer-1-background-500`, other layer tokens (see `--content-canvas` row) | `--sjs-general-backcolor*`                     |
+| `--content-canvas`                                     | `--sjs-special-background`, `--sjs-layer-1-background-400`, `--sjs-layer-2-background-*`, `--sjs-layer-3-background-*`, `--sjs-code-gray-700`, `--sjs-code-gray-500` | - |
 | `--foreground` / `--muted-foreground`                  | `--sjs-layer-*-foreground-*`, `--sjs-special-shadow`          | `--sjs-general-forecolor*`                     |
 | `--primary` / `--primary-dim` / `--primary-foreground` | `--sjs-primary-*`, `--sjs-secondary-*`, `--sjs-code-blue-500` | `--sjs-primary-*`                              |
 | `--border`                                             | `--sjs-border-*`                                              | `--sjs-border-*`                               |
@@ -147,12 +148,13 @@ Our spacing is built on a tight 0.2rem increment for precision data-density, exp
 ### Update Checklist (When Palette Changes)
 
 1. Update `:root` and/or `.dark` values in `app/globals.css` first.
-2. Verify creator variables in `lib/themes/endatix-creator-theme.ts` still map to existing app tokens (no hardcoded old hex leftovers).
-3. Verify submission survey variables in `lib/themes/endatix-survey-theme.ts` still map to the same token set.
-4. Ensure light/dark resolution stays tied to `next-themes` (same as `ThemeProvider`):
+2. If adjusting page canvas tone, update `--content-canvas` and confirm `[data-slot="sidebar-inset"]` still uses that token. Sparse admin pages (e.g. Settings) should use a foreground panel (`bg-card` + border) on the canvas instead of opting the route out of the canvas.
+3. Verify creator variables in `lib/themes/endatix-creator-theme.ts` still map to existing app tokens (no hardcoded old hex leftovers).
+4. Verify submission survey variables in `lib/themes/endatix-survey-theme.ts` still map to the same token set.
+5. Ensure light/dark resolution stays tied to `next-themes` (same as `ThemeProvider`):
    - Creator: `useEndatixCreatorTheme()` (or `pickCreatorTheme(resolvedTheme)` for non-React code)
    - Survey model: `useEndatixSurveyTheme()` (or `pickSurveyTheme(resolvedTheme)`)
-5. Run lint checks and manually verify contrast for:
+6. Run lint checks and manually verify contrast for:
    - primary CTA text/background
    - muted metadata text on nested surfaces
    - error and warning banners/chips

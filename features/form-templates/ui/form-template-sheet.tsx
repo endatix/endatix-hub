@@ -48,7 +48,6 @@ interface FormTemplateSheetProps
   extends Omit<React.ComponentProps<typeof Sheet>, "open" | "onOpenChange" | "modal"> {
   selectedTemplate: FormTemplate | null;
   open?: boolean;
-  modal?: boolean;
   onOpenChange?: (open: boolean) => void;
   enableEditing?: boolean;
   onPreviewClick?: (templateId: string) => void;
@@ -158,7 +157,7 @@ const FormTemplateSheet = ({
 
   return (
     selectedTemplate && (
-      <Sheet {...props}>
+      <Sheet {...props} modal>
         <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none">
           <SheetHeader>
             <SheetTitle className="text-2xl font-bold">

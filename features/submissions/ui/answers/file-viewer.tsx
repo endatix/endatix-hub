@@ -82,7 +82,7 @@ export function FileContentView({
 
   return (
     <div className={cn("space-y-3", config.container, className)} {...props}>
-      <div className="overflow-hidden rounded-md">
+      <div className="overflow-hidden rounded-[6px]">
         {fileType === FileType.Image && (
           <div className={config.imageContainer}>
             <Image
@@ -118,7 +118,7 @@ export function FileContentView({
             <object
               data={src}
               type={contentType ?? "application/pdf"}
-              className="min-h-[400px] w-full rounded border"
+              className="min-h-[400px] w-full rounded-[6px] border"
               aria-label={name ?? "PDF document"}
             >
               <div className="flex h-[230px] items-center justify-center gap-2 bg-muted">
@@ -136,7 +136,7 @@ export function FileContentView({
           </div>
         )}
         {fileType === FileType.Document && !showPdfObject && (
-          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded border bg-muted">
+          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded-[6px] border bg-muted">
             <FileText className={config.pdfIcon} />
             <Link
               href={{ pathname: src }}
@@ -149,7 +149,7 @@ export function FileContentView({
           </div>
         )}
         {fileType === FileType.Unknown && (
-          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded border bg-muted">
+          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded-[6px] border bg-muted">
             <FileX2 className={config.unknownIcon} />
             <Link
               href={{ pathname: src }}

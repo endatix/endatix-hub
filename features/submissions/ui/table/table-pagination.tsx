@@ -20,7 +20,7 @@ interface TablePagination<TData> {
 
 export function TablePagination<TData>({ table }: TablePagination<TData>) {
   return (
-    <div className="flex items-center justify-between px-2">
+    <div className="flex items-center justify-between border-t border-sidebar-border/50 px-4 py-3">
       <div className="flex-1 text-sm text-muted-foreground">
         {table.getFilteredSelectedRowModel().rows.length} of{" "}
         {table.getCoreRowModel().rows.length} row(s) selected.

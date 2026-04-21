@@ -61,55 +61,61 @@ const FormTemplateCard = ({
   return (
     <Card
       className={cn(
-        "group flex min-w-[280px] flex-col justify-between gap-1 py-0 hover:bg-accent",
+        "group flex h-[230px] min-w-[420px] w-full max-w-full flex-col gap-0 py-0 hover:bg-accent",
         isSelected ? "border-primary bg-accent" : "",
         className,
       )}
       {...props}
     >
-      <div className="min-w-0 cursor-pointer">
-        <CardHeader className="flex flex-row justify-between p-4 pt-6">
-          <CardTitle className="tracking-tigher min-w-0 font-sans text-2xl font-normal">
+      <div className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col">
+        <CardHeader className="shrink-0 p-4 pt-4 pb-2">
+          <CardTitle
+            title={template.name}
+            className="line-clamp-2 min-w-0 break-words font-sans text-2xl font-normal leading-snug tracking-tigher"
+          >
             {template.name}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 p-4">
-          <p className="text-sm text-muted-foreground truncate">
+        <div className="min-h-0 flex-1 shrink" aria-hidden />
+        <CardContent className="shrink-0 p-4 pt-2">
+          <p className="line-clamp-2 text-sm text-muted-foreground">
             {template.description}
           </p>
         </CardContent>
       </div>
       <CardFooter
-        className="mt-auto flex cursor-default items-center rounded-b-lg border-t bg-muted p-4"
+        className="mt-auto flex h-16 min-w-0 cursor-default items-center overflow-hidden rounded-b-[6px] border-t bg-muted px-4 py-0 [.border-t]:pt-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex w-full items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex h-full w-full min-w-0 flex-nowrap items-center gap-x-3 overflow-x-auto overflow-y-hidden opacity-0 transition-opacity group-hover:opacity-100">
           <Link
             href={`/forms/templates/${template.id}`}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm leading-none text-muted-foreground hover:text-foreground"
           >
-            <FilePen className="size-4" />
+            <FilePen className="size-4 shrink-0" />
             Design
           </Link>
           <button
+            type="button"
             onClick={handlePreviewClick}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 text-sm leading-none text-muted-foreground hover:text-foreground"
           >
-            <Eye className="size-4" />
+            <Eye className="size-4 shrink-0" />
             Preview
           </button>
           <button
+            type="button"
             onClick={handleUseTemplate}
             disabled={isPending}
             className={cn(
-              "inline-flex shrink-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-sm text-muted-foreground hover:text-foreground",
+              "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-none bg-transparent p-0 text-sm leading-none text-muted-foreground hover:text-foreground",
               isPending && "cursor-not-allowed opacity-50",
             )}
           >
             {isPending ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2 className="size-4 shrink-0 animate-spin" />
             ) : (
-              <FilePlus2 className="size-4" />
+              <FilePlus2 className="size-4 shrink-0" />
             )}
             <span className="whitespace-nowrap">
               {isPending ? "Creating..." : "Use Template"}

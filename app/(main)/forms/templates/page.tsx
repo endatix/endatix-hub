@@ -1,11 +1,8 @@
 import PageTitle from "@/components/headings/page-title";
-import { Button } from "@/components/ui/button";
-import { FilePlus2 } from "lucide-react";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
 import { getFormTemplates } from "@/services/api";
-import Link from "next/link";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
@@ -17,16 +14,8 @@ export default async function FormTemplatesPage() {
 
   return (
     <>
-      <PageTitle title="Form Templates" />
-      <div className="flex flex-1 flex-col gap-4">
-        <div className="flex justify-end">
-          <Link href="/forms/templates/create">
-            <Button variant="default">
-              <FilePlus2 data-icon="inline-start" />
-              Create a Form Template
-            </Button>
-          </Link>
-        </div>
+      <PageTitle title="Form Templates" className="mt-2 mb-4" />
+      <div className="flex flex-1 flex-col">
         <Suspense fallback={<FormTemplatesSkeleton />}>
           <FormTemplatesContent />
         </Suspense>

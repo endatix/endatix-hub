@@ -62,8 +62,10 @@ async function SubmissionDetails({
   return (
     <SubmissionDetailsProvider submissionPromise={submissionPromise}>
       <AssetStorageProvider>
-        <MetadataCard />
-        <SubmissionDetailsContent customQuestions={customQuestions} />
+        <div className="flex w-full flex-col gap-6">
+          <MetadataCard />
+          <SubmissionDetailsContent customQuestions={customQuestions} />
+        </div>
       </AssetStorageProvider>
     </SubmissionDetailsProvider>
   );

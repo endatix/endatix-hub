@@ -100,7 +100,7 @@ export function MetadataCard() {
       : DASH_NO_DATA;
 
   return (
-    <section className="mt-8 overflow-hidden rounded-xl border border-border/25 bg-surface-container-lowest shadow-sm">
+    <section className="mt-8 overflow-hidden rounded-[6px] border border-border/25 bg-surface-container-lowest shadow-sm">
       <div className={`flex flex-col gap-px ${metadataGridHairline}`}>
         <div
           className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}

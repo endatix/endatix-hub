@@ -46,12 +46,14 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
 
   if (submissionsCount == 0) {
     return (
-      <span className="text-sm text-muted-foreground">No submissions yet</span>
+      <span className="block min-w-0 truncate text-sm text-muted-foreground">
+        No submissions yet
+      </span>
     );
   }
 
   return (
-    <div>
+    <div className="min-w-0 truncate">
       <span className="text-2xl font-medium text-muted-foreground">
         {getFormattedSubmissionsCount()}
       </span>
@@ -81,25 +83,31 @@ const FormCard = ({
   return (
     <Card
       className={cn(
-        "flex flex-col gap-1 hover:bg-accent justify-between group py-0",
+        "group flex h-[230px] min-w-[420px] w-full max-w-full flex-col gap-0 py-0 hover:bg-accent",
         isSelected ? "bg-accent border-primary" : "",
         className,
       )}
       {...props}
     >
-      <div className="flex flex-col justify-between h-full cursor-pointer">
-        <CardHeader className="flex flex-row justify-between p-4 pt-6">
-          <CardTitle className="text-2xl font-normal font-sans tracking-tigher">
+      <div className="flex min-h-0 flex-1 cursor-pointer flex-col">
+        <CardHeader className="shrink-0 p-4 pt-4 pb-2">
+          <CardTitle
+            title={form.name}
+            className="line-clamp-2 min-w-0 break-words font-sans text-2xl font-normal leading-snug tracking-tigher"
+          >
             {form.name}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 p-4">
-          <div className="flex justify-between items-center">
-            <SubmissionsLabel
-              formId={form.id}
-              submissionsCount={form?.submissionsCount}
-            />
-            <div className="flex items-center gap-1">
+        <div className="min-h-0 flex-1 shrink" aria-hidden />
+        <CardContent className="shrink-0 p-4 pt-2">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <SubmissionsLabel
+                formId={form.id}
+                submissionsCount={form?.submissionsCount}
+              />
+            </div>
+            <div className="flex shrink-0 flex-nowrap items-center gap-1">
               <Badge
                 className="text-xs font-normal pointer-events-none"
                 variant={form.isEnabled ? "default" : "secondary"}
@@ -122,24 +130,24 @@ const FormCard = ({
         </CardContent>
       </div>
       <CardFooter
-        className="pb-2 p-4 bg-muted mt-auto border-t rounded-b-lg cursor-default"
+        className="mt-auto flex h-16 min-w-0 cursor-default items-center overflow-hidden rounded-b-[6px] border-t bg-muted px-4 py-0 [.border-t]:pt-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between w-full">
-          <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-x-3 overflow-x-auto overflow-y-hidden opacity-0 transition-opacity group-hover:opacity-100">
             <Link
               href={{ pathname: `/forms/${form.id}/design` }}
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm leading-none text-muted-foreground hover:text-foreground"
             >
-              <FilePen className="w-4 h-4 mr-1" />
+              <FilePen className="size-4 shrink-0" />
               Design
             </Link>
             <Link
               href={`/share/${form.id}`}
               target="_blank"
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm leading-none text-muted-foreground hover:text-foreground"
             >
-              <Link2 className="w-4 h-4 mr-1" />
+              <Link2 className="size-4 shrink-0" />
               Share Link
             </Link>
             <Link
@@ -149,24 +157,27 @@ const FormCard = ({
                   : "/",
               }}
               className={cn(
-                "text-sm text-muted-foreground inline-flex items-center",
+                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm leading-none text-muted-foreground",
                 form?.submissionsCount
-                  ? "hover:text-foreground cursor-pointer"
-                  : "opacity-50 pointer-events-none cursor-default",
+                  ? "cursor-pointer hover:text-foreground"
+                  : "pointer-events-none cursor-default opacity-50",
               )}
             >
-              <List className="w-4 h-4 mr-1" />
+              <List className="size-4 shrink-0" />
               Submissions
             </Link>
           </div>
-          <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="relative flex h-full shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
             <DropdownMenu
               open={isDropdownOpen}
               onOpenChange={setIsDropdownOpen}
             >
               <DropdownMenuTrigger asChild>
-                <button className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer">
-                  <MoreVertical className="w-4 h-4" />
+                <button
+                  type="button"
+                  className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <MoreVertical className="size-4" />
                   <span className="sr-only">More options</span>
                 </button>
               </DropdownMenuTrigger>

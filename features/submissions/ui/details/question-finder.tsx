@@ -151,7 +151,7 @@ export function QuestionFinder() {
         <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
         <Button
           variant="outline"
-          className="w-full justify-start rounded-xl border-none bg-surface-container-low py-3 pr-4 pl-12 text-left text-sm text-slate-400 transition-all focus-visible:ring-2 focus-visible:ring-primary/20"
+          className="w-full justify-start rounded-[6px] border-none bg-surface-container-low py-3 pr-4 pl-12 text-left text-sm text-slate-400 transition-all focus-visible:ring-2 focus-visible:ring-primary/20"
           onClick={() => setOpen(true)}
         >
           Jump to Question...

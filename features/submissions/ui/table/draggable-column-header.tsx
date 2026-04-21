@@ -45,11 +45,11 @@ export function DraggableColumnHeader<TData extends Submission>({
       {!isActionsColumn && (
         <button
           type="button"
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded touch-none"
+          className="cursor-grab active:cursor-grabbing rounded p-1 text-muted-foreground/55 hover:bg-accent/40 hover:text-muted-foreground/75 touch-none"
           {...attributes}
           {...listeners}
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <GripVertical className="h-4 w-4" />
         </button>
       )}
 
