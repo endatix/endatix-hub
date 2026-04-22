@@ -210,8 +210,14 @@
     @apply relative flex min-h-svh min-w-0 flex-1 flex-col bg-content-canvas md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2;
   }
 
-  /* Submission grid: neutral grey scrollbar in light mode */
+  /*
+   * Submission grid: bounded scroll + themed scrollbar.
+   * Scoped here so components/ui/table.tsx stays stock shadcn (no containerClassName prop).
+   */
   [data-slot="submission-data-table"] [data-slot="table-container"] {
+    max-height: min(65dvh, calc(100dvh - 17rem));
+    width: 100%;
+    overflow: auto;
     scrollbar-width: thin;
     scrollbar-color: color-mix(in oklab, var(--muted-foreground) 38%, var(--muted)) var(--muted);
   }

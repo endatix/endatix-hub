@@ -156,10 +156,7 @@ export function DataTable<TData extends Submission>({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <Table
-            className="border-separate border-spacing-0"
-            containerClassName="max-h-[min(65dvh,calc(100dvh-17rem))] w-full overflow-auto"
-          >
+          <Table className="border-separate border-spacing-0">
               <TableHeader className="bg-muted/70 border-b border-sidebar-border/50">
                 <SortableContext
                   items={columnOrder.filter(id => id !== 'actions')}
