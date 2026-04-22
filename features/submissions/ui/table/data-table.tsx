@@ -157,7 +157,7 @@ export function DataTable<TData extends Submission>({
           onDragEnd={handleDragEnd}
         >
           <Table className="border-separate border-spacing-0">
-              <TableHeader className="bg-muted/70 border-b border-sidebar-border/50">
+              <TableHeader className="border-b border-sidebar-border/50 bg-muted">
                 <SortableContext
                   items={columnOrder.filter(id => id !== 'actions')}
                   strategy={horizontalListSortingStrategy}
@@ -171,7 +171,7 @@ export function DataTable<TData extends Submission>({
                             key={header.id}
                             colSpan={header.colSpan}
                             className={cn(
-                              "h-14 sticky top-0 bg-muted/70 shadow-[inset_0_-1px_0_0] shadow-border/40 backdrop-blur-sm",
+                              "h-14 sticky top-0 bg-muted shadow-[inset_0_-1px_0_0] shadow-border/40",
                               isPinned === "left"
                                 ? "left-0 z-30"
                                 : "z-10",
