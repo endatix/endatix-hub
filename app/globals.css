@@ -59,7 +59,7 @@
 
 :root {
   --background: hsl(0 0% 100%);
-  --content-canvas: hsl(212 100% 96%);
+  --content-canvas: hsl(214, 88%, 97%);
   --foreground: hsl(222.2 84% 4.9%);
 
   --card: hsl(0 0% 100%);

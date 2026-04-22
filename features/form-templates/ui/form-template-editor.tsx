@@ -244,8 +244,8 @@ function FormTemplateEditorContent({
     // Delay re-apply until after theme class/token updates settle in the DOM.
     let frame1 = 0;
     let frame2 = 0;
-    frame1 = window.requestAnimationFrame(() => {
-      frame2 = window.requestAnimationFrame(() => {
+    frame1 = globalThis.requestAnimationFrame(() => {
+      frame2 = globalThis.requestAnimationFrame(() => {
         const resolvedTheme = resolveCreatorThemeCssVariables(
           creatorTheme,
           document.getElementById("surveyCreatorContainer") ?? undefined,
@@ -255,8 +255,8 @@ function FormTemplateEditorContent({
     });
 
     return () => {
-      if (frame1) window.cancelAnimationFrame(frame1);
-      if (frame2) window.cancelAnimationFrame(frame2);
+      if (frame1) globalThis.cancelAnimationFrame(frame1);
+      if (frame2) globalThis.cancelAnimationFrame(frame2);
     };
   }, [creator, creatorTheme]);
 
@@ -288,14 +288,14 @@ function FormTemplateEditorContent({
       }
     };
 
-    globalThis.window.addEventListener("beforeunload", handleBeforeUnload);
+    globalThis.addEventListener("beforeunload", handleBeforeUnload);
     return () =>
-      globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
+      globalThis.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
   const handleSaveAndGoBack = () => {
     if (hasUnsavedChanges || isJsonModified) {
-      const confirm = window.confirm(
+      const confirm = globalThis.confirm(
         "There are unsaved changes. Are you sure you want to leave?",
       );
       if (confirm) {
