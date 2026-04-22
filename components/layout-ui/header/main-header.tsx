@@ -26,7 +26,7 @@ export default async function MainHeader({
     <header
       data-slot="main-header"
       className={cn(
-        "flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 dark:shadow-none",
+        "flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl transition-[width,height] ease-linear dark:shadow-none",
         sticky && "sticky top-0 z-40",
       )}
     >
