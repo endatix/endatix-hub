@@ -49,7 +49,7 @@ function SubmissionDataSkeleton() {
   return (
     <div className="flex w-full flex-col gap-6">
       {/* Metadata skeleton */}
-      <section className="mt-8 overflow-hidden rounded-[6px] border border-border/25 bg-surface-container-lowest shadow-sm">
+      <section className="mt-8 overflow-hidden rounded-md border border-border/25 bg-surface-container-lowest shadow-sm">
         <div className={`flex flex-col gap-px ${metadataGridHairline}`}>
           <div
             className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
@@ -80,7 +80,7 @@ function SubmissionDataSkeleton() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[6px] border border-border/25 bg-surface-container-lowest shadow-sm">
+      <section className="overflow-hidden rounded-md border border-border/25 bg-surface-container-lowest shadow-sm">
         <div className="flex flex-col gap-10 p-4 sm:p-6 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1 space-y-6">
             <div className="w-full min-w-0">
@@ -101,19 +101,19 @@ function SubmissionDataSkeleton() {
                   {pageBlocks.map((page) => (
                     <div key={page} className="space-y-6">
                       <div className="mb-4 flex items-center gap-4">
-                        <Skeleton className="h-10 w-10 shrink-0 rounded-[6px]" />
+                        <Skeleton className="h-10 w-10 shrink-0 rounded-md" />
                         <Skeleton className="h-8 w-full max-w-xs sm:max-w-md" />
                       </div>
                       {questionsPerPage.map((q) => (
                         <div
                           key={q}
-                          className="rounded-[6px] border border-slate-200/40 bg-surface-container-lowest p-8 dark:border-slate-700/40 dark:bg-surface-container-low"
+                          className="rounded-md border border-slate-200/40 bg-surface-container-lowest p-8 dark:border-slate-700/40 dark:bg-surface-container-low"
                         >
                           <div className="mb-4 space-y-2">
                             <Skeleton className="h-3 w-52" />
                             <Skeleton className="h-6 w-full max-w-lg" />
                           </div>
-                          <div className="rounded-[6px] border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
+                          <div className="rounded-md border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
                             <Skeleton className="h-28 w-full" />
                           </div>
                         </div>
@@ -127,7 +127,7 @@ function SubmissionDataSkeleton() {
 
           <aside className="hidden w-72 shrink-0 space-y-6 pr-4 xl:flex xl:flex-col">
             <Skeleton className="h-3 w-32" />
-            <div className="rounded-[6px] border border-border/20 p-4">
+            <div className="rounded-md border border-border/20 p-4">
               <div className="space-y-3">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-3 w-[85%]" />

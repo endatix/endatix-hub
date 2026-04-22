@@ -33,7 +33,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
         </p>
         <Separator className="my-4" />
       </div>
-      <section className="overflow-hidden rounded-[6px] border border-border/25 bg-card shadow-sm">
+      <section className="overflow-hidden rounded-md border border-border/25 bg-card shadow-sm">
         <div className="flex flex-col gap-8 overflow-x-hidden p-4 sm:p-6 lg:flex-row lg:items-start lg:gap-12">
           <SettingsSidebarNav items={sidebarNavItems} />
           <div className="min-w-0 flex-1 overflow-x-auto">{children}</div>

@@ -81,7 +81,7 @@ export function SubmissionAnswers({
           <div className="mb-4 flex items-center gap-4">
             <div
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-[6px] text-sm font-bold text-white",
+                "flex h-10 w-10 items-center justify-center rounded-md text-sm font-bold text-white",
                 page.isPageInvisible ? "bg-slate-400" : "bg-primary",
               )}
             >
@@ -140,7 +140,7 @@ const SubmissionItemCard = ({
       <article
         id={`${question.name}`}
         className={cn(
-          "rounded-[6px] border border-slate-200/40 bg-surface-container-lowest p-8 transition-colors hover:border-primary dark:border-slate-700/40 dark:bg-surface-container-low",
+          "rounded-md border border-slate-200/40 bg-surface-container-lowest p-8 transition-colors hover:border-primary dark:border-slate-700/40 dark:bg-surface-container-low",
           isSelected && selectedQuestionCardClass,
         )}
         data-selected={isSelected ? true : undefined}
@@ -155,7 +155,7 @@ const SubmissionItemCard = ({
             </h3>
           </div>
         </div>
-        <div className="mt-4 rounded-[6px] border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
+        <div className="mt-4 rounded-md border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
           <div className="flex items-center gap-2">
             <EyeOff className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -171,7 +171,7 @@ const SubmissionItemCard = ({
     <article
       id={`${question.name}`}
       className={cn(
-        "rounded-[6px] border border-slate-200/40 bg-surface-container-lowest p-8 transition-colors hover:border-primary dark:border-slate-700/40 dark:bg-surface-container-low",
+        "rounded-md border border-slate-200/40 bg-surface-container-lowest p-8 transition-colors hover:border-primary dark:border-slate-700/40 dark:bg-surface-container-low",
         isSelected && selectedQuestionCardClass,
       )}
       data-selected={isSelected ? true : undefined}
@@ -186,7 +186,7 @@ const SubmissionItemCard = ({
           </h3>
         </div>
       </div>
-      <div className="rounded-[6px] border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
+      <div className="rounded-md border border-slate-100 bg-surface-container-low p-5 dark:border-slate-800 dark:bg-surface-container">
         <AnswerViewer
           key={question.id}
           forQuestion={question}

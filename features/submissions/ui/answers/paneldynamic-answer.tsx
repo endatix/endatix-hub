@@ -16,7 +16,7 @@ interface PanelDynamicAnswerProps {
 }
 
 const panelSubgroupClass =
-  "w-full min-w-0 rounded-[6px] bg-surface-container-lowest/60 p-4 shadow-[0_1px_0_rgb(0,52,94,0.04)] dark:bg-surface-container-high/25 dark:shadow-none";
+  "w-full min-w-0 rounded-md bg-surface-container-lowest/60 p-4 shadow-[0_1px_0_rgb(0,52,94,0.04)] dark:bg-surface-container-high/25 dark:shadow-none";
 
 const PanelDynamicAnswer = ({
   question,
@@ -62,7 +62,7 @@ const PanelDynamicAnswer = ({
         <AccordionItem value={panel.id} key={panel.id} className="border-0">
           <AccordionTrigger
             className={cn(
-              "rounded-[6px] bg-surface-container-low/70 px-4 py-3 hover:no-underline",
+              "rounded-md bg-surface-container-low/70 px-4 py-3 hover:no-underline",
               "dark:bg-surface-container/40",
               "data-[state=open]:rounded-b-none data-[state=open]:bg-surface-container-low",
               "dark:data-[state=open]:bg-surface-container",

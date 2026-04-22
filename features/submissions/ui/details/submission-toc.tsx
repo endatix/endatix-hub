@@ -51,7 +51,7 @@ export function SubmissionToC() {
         </h3>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-120px)] rounded-[6px] p-4">
+      <ScrollArea className="h-[calc(100vh-120px)] rounded-md p-4">
         <nav className="space-y-1">
           {submissionNavPages.map((page, index) => (
             <Collapsible key={page.pageName} defaultOpen>

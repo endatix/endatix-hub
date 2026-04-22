@@ -87,7 +87,7 @@ function PersonalizedTextLabel({ question }: { question: Question }) {
             <Tooltip key={token.id}>
               <TooltipTrigger asChild>
                 <span
-                  className="rounded-[6px] bg-primary/10 p-1.5 font-bold"
+                  className="rounded-md bg-primary/10 p-1.5 font-bold"
                   tabIndex={0}
                   role="button"
                   aria-describedby={`${question.name}-tooltip`}

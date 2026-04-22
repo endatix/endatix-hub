@@ -83,7 +83,7 @@ export function SubmissionDetailsContent({
   }
 
   return (
-    <section className="overflow-hidden rounded-[6px] border border-border/25 bg-surface-container-lowest shadow-sm">
+    <section className="overflow-hidden rounded-md border border-border/25 bg-surface-container-lowest shadow-sm">
       <div className="flex flex-col gap-10 p-4 sm:p-6 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-6">
           <div className="w-full min-w-0">
