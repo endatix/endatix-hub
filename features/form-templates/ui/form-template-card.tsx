@@ -48,13 +48,13 @@ const FormTemplateCard = ({
   return (
     <Card
       className={cn(
-        "group flex h-[230px] min-w-[420px] w-full max-w-full flex-col gap-0 py-0 hover:bg-accent",
+        "group flex h-[230px] min-w-[420px] w-full max-w-full flex-col gap-0 py-0",
         isSelected ? "border-primary bg-accent" : "",
         className,
       )}
       {...props}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45">
         <CardHeader className="shrink-0 p-4 pt-4 pb-2">
           <CardTitle
             title={template.name}
