@@ -14,9 +14,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
-import { useTemplateAction } from "@/features/form-templates/application/use-template.action";
+import { runCreateFormFromTemplate } from "@/features/form-templates/application/run-create-form-from-template.client";
 import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
-import { Result } from "@/lib/result";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import {
@@ -118,22 +117,12 @@ const CreateFormSheet: FC = () => {
     if (!selectedTemplate || isPending) return;
 
     startTransition(async () => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const result = await useTemplateAction({
-        templateId: selectedTemplate.id,
-      });
-
-      if (Result.isSuccess(result)) {
-        toast.success("Form created from template successfully");
-        router.push(`/forms/${result.value}/design`);
-      } else {
-        toast.error(result.message || "Failed to create form from template");
-      }
+      await runCreateFormFromTemplate(selectedTemplate.id, router);
     });
   };
 
   return (
-    <Sheet modal={false}>
+    <Sheet modal>
       <SheetTrigger asChild>
         <Button variant="default">
           <FilePlus2 className="h-4 w-4" />

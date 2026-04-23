@@ -3,8 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
-import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
-import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specialized-survey-question";
+import {
+  customizeQuestionClassesOnCreator,
+  loadBuiltInCustomQuestionClasses,
+} from "@/features/forms/ui/editor/survey-creator-custom-questions";
 import { Result } from "@/lib/result";
 import { useSurveyExtensions } from "@/lib/survey-extensions";
 import {
@@ -18,6 +20,7 @@ import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
 } from "@/lib/survey-features/survey-design/ui";
+import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -162,11 +165,7 @@ function FormTemplateEditorContent({
   }, [templateId, name, originalName]);
 
   useLayoutEffect(() => {
-    if (!creator) return;
-
-    questionClasses.forEach((QuestionClass) => {
-      QuestionClass.customizeEditor(creator);
-    });
+    customizeQuestionClassesOnCreator(creator, questionClasses);
   }, [creator, questionClasses]);
 
   useEffect(() => {
@@ -183,26 +182,20 @@ function FormTemplateEditorContent({
         slk(slkVal);
       }
 
-      const result = await getCustomQuestionsAction();
-
-      if (result === undefined) {
-        toast.error("Could not proceed with fetching custom questions");
+      const newQuestionClasses = await loadBuiltInCustomQuestionClasses();
+      if (newQuestionClasses === null) {
         return;
       }
 
       try {
-        if (Result.isError(result)) {
-          throw new Error(result.message);
-        }
-
-        const newQuestionClasses = initializeCustomQuestions(
-          result.value.map((q) => q.jsonData),
-        );
-
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
 
         onCreatorCreated(newCreator);
-        newCreator.applyCreatorTheme(creatorThemeRef.current);
+        const resolvedTheme = resolveCreatorThemeCssVariables(
+          creatorThemeRef.current,
+          document.getElementById("surveyCreatorContainer") ?? undefined,
+        );
+        newCreator.applyCreatorTheme(resolvedTheme);
         const unregisterStorage = registerStorageHandlers(newCreator);
         const unregisterJsonEditor = registerJsonEditor(newCreator);
 
@@ -244,6 +237,30 @@ function FormTemplateEditorContent({
   }, [creator, templateJson]);
 
   useEffect(() => {
+    if (!creator) {
+      return;
+    }
+
+    // Delay re-apply until after theme class/token updates settle in the DOM.
+    let frame1 = 0;
+    let frame2 = 0;
+    frame1 = globalThis.requestAnimationFrame(() => {
+      frame2 = globalThis.requestAnimationFrame(() => {
+        const resolvedTheme = resolveCreatorThemeCssVariables(
+          creatorTheme,
+          document.getElementById("surveyCreatorContainer") ?? undefined,
+        );
+        creator.applyCreatorTheme(resolvedTheme);
+      });
+    });
+
+    return () => {
+      if (frame1) globalThis.cancelAnimationFrame(frame1);
+      if (frame2) globalThis.cancelAnimationFrame(frame2);
+    };
+  }, [creator, creatorTheme]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
         console.log("Clicked outside, waiting to save name...");
@@ -271,14 +288,14 @@ function FormTemplateEditorContent({
       }
     };
 
-    globalThis.window.addEventListener("beforeunload", handleBeforeUnload);
+    globalThis.addEventListener("beforeunload", handleBeforeUnload);
     return () =>
-      globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
+      globalThis.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
   const handleSaveAndGoBack = () => {
     if (hasUnsavedChanges || isJsonModified) {
-      const confirm = window.confirm(
+      const confirm = globalThis.confirm(
         "There are unsaved changes. Are you sure you want to leave?",
       );
       if (confirm) {

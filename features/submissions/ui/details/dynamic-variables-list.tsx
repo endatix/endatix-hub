@@ -50,7 +50,7 @@ function DynamicVariablesList({
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+      <div className="overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <div className="grid grid-cols-12 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50">
           <div className="col-span-5 text-[10px] font-bold tracking-widest text-slate-500 uppercase">
             Variable Name
@@ -95,7 +95,7 @@ function DynamicVariablesList({
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
-                    <code className="truncate rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-900 dark:bg-slate-800 dark:text-slate-100">
+                    <code className="truncate rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-900 dark:bg-slate-800 dark:text-slate-100">
                       {valueStr}
                     </code>
                   )}
@@ -116,7 +116,7 @@ function DynamicVariablesList({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="relative col-span-2 overflow-hidden rounded-lg bg-slate-900 p-6 text-white dark:bg-slate-900">
+        <div className="relative col-span-2 overflow-hidden rounded-md bg-slate-900 p-6 text-white dark:bg-slate-900">
           <div className="relative z-10">
             <h3 className="mb-2 text-sm font-bold">Advanced Logic Debugging</h3>
             <p className="max-w-sm text-xs leading-relaxed text-slate-400">
@@ -136,7 +136,7 @@ function DynamicVariablesList({
           </div>
           <Terminal className="absolute -right-4 -bottom-4 size-32 text-white/5" />
         </div>
-        <div className="col-span-1 flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950">
+        <div className="col-span-1 flex flex-col justify-between rounded-md border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950">
           <Info className="size-5 text-amber-500" />
           <div>
             <h3 className="mt-4 text-xs font-bold text-slate-900 dark:text-slate-100">

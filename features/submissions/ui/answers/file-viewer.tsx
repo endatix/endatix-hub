@@ -118,7 +118,7 @@ export function FileContentView({
             <object
               data={src}
               type={contentType ?? "application/pdf"}
-              className="min-h-[400px] w-full rounded border"
+              className="min-h-[400px] w-full rounded-md border"
               aria-label={name ?? "PDF document"}
             >
               <div className="flex h-[230px] items-center justify-center gap-2 bg-muted">
@@ -136,7 +136,7 @@ export function FileContentView({
           </div>
         )}
         {fileType === FileType.Document && !showPdfObject && (
-          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded border bg-muted">
+          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded-md border bg-muted">
             <FileText className={config.pdfIcon} />
             <Link
               href={{ pathname: src }}
@@ -149,7 +149,7 @@ export function FileContentView({
           </div>
         )}
         {fileType === FileType.Unknown && (
-          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded border bg-muted">
+          <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded-md border bg-muted">
             <FileX2 className={config.unknownIcon} />
             <Link
               href={{ pathname: src }}

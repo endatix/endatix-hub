@@ -6,6 +6,7 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-content-canvas: var(--content-canvas);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -58,6 +59,7 @@
 
 :root {
   --background: hsl(0 0% 100%);
+  --content-canvas: hsl(214, 88%, 97%);
   --foreground: hsl(222.2 84% 4.9%);
 
   --card: hsl(0 0% 100%);
@@ -120,6 +122,7 @@
 
 .dark {
   --background: #000f21;
+  --content-canvas: #001225;
   --foreground: #d7e6ff;
 
   --card: #001a34;
@@ -168,7 +171,8 @@
   --warning: hsl(32 95% 50%);
   --warning-foreground: hsl(0 0% 100%);
 
-  --sidebar: hsl(240 5.9% 10%);
+  /* Match main chrome (--background); inset content uses --content-canvas separately */
+  --sidebar: var(--background);
   --sidebar-foreground: hsl(240 4.8% 95.9%);
   --sidebar-primary: hsl(224.3 76.3% 48%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
@@ -194,7 +198,7 @@
 @layer components {
   [data-slot="content-wrapper"] {
     /* Default page padding classes */
-    @apply flex min-w-0 flex-1 flex-col gap-4 p-4 pt-0 md:p-6 md:pt-0;
+    @apply flex min-w-0 flex-1 flex-col gap-4 px-10 pt-4 pb-6 md:px-14 md:pt-4 md:pb-6 lg:px-16;
 
     /* When we want full bleed content - e.g. using Survey Creator */
     &:has([data-full-bleed]) {
@@ -203,7 +207,52 @@
   }
 
   [data-slot="sidebar-inset"] {
-    @apply relative flex min-h-svh min-w-0 flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2;
+    @apply relative flex min-h-svh min-w-0 flex-1 flex-col bg-content-canvas md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2;
+  }
+
+  /*
+   * Submission grid: bounded scroll + themed scrollbar.
+   * Scoped here so components/ui/table.tsx stays stock shadcn (no containerClassName prop).
+   */
+  [data-slot="submission-data-table"] [data-slot="table-container"] {
+    max-height: min(65dvh, calc(100dvh - 17rem));
+    width: 100%;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 38%, var(--muted)) var(--muted);
+  }
+
+  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-track {
+    background: var(--muted);
+    border-radius: 9999px;
+  }
+
+  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted-foreground) 38%, var(--muted));
+    border-radius: 9999px;
+    border: 2px solid var(--muted);
+  }
+
+  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted-foreground) 52%, var(--muted));
+  }
+
+  /* Submission grid: blue-tinted scrollbar in dark mode */
+  .dark [data-slot="submission-data-table"] [data-slot="table-container"] {
+    scrollbar-color: var(--primary) var(--muted);
+  }
+
+  .dark [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border: 2px solid var(--muted);
+  }
+
+  .dark [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
+    background: var(--ring);
   }
 }
 

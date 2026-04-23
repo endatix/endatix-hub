@@ -146,98 +146,106 @@ export function DataTable<TData extends Submission>({
 
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
+      <div
+        data-slot="submission-data-table"
+        className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
       >
-        <div className="w-full overflow-x-auto">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
           <Table className="border-separate border-spacing-0">
-            <TableHeader>
-              <SortableContext
-                items={columnOrder.filter(id => id !== 'actions')}
-                strategy={horizontalListSortingStrategy}
-              >
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      const isPinned = header.column.getIsPinned();
-                      return (
-                        <TableHead
-                          key={header.id}
-                          colSpan={header.colSpan}
-                          className={cn(
-                            isPinned && "sticky bg-background z-10",
-                            isPinned === 'left' && "left-0"
-                          )}
-                        >
-                          {header.isPlaceholder ? null : (
-                            <DraggableColumnHeader
-                              header={header}
-                              column={header.column}
-                            />
-                          )}
-                        </TableHead>
-                      );
-                    })}
+              <TableHeader className="border-b border-sidebar-border/50 bg-muted">
+                <SortableContext
+                  items={columnOrder.filter(id => id !== 'actions')}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        const isPinned = header.column.getIsPinned();
+                        return (
+                          <TableHead
+                            key={header.id}
+                            colSpan={header.colSpan}
+                            className={cn(
+                              "h-14 sticky top-0 bg-muted shadow-[inset_0_-1px_0_0] shadow-border/40",
+                              isPinned === "left"
+                                ? "left-0 z-30"
+                                : "z-10",
+                            )}
+                          >
+                            {header.isPlaceholder ? null : (
+                              <DraggableColumnHeader
+                                header={header}
+                                column={header.column}
+                              />
+                            )}
+                          </TableHead>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </SortableContext>
+              </TableHeader>
+              <TableBody>
+                {rows.length > 0 ? (
+                  rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className={cn("group cursor-pointer", getRowClassName(row))}
+                      onClick={() => handleRowSelectionChange(row)}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const isPinned = cell.column.getIsPinned();
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              isPinned &&
+                                "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
+                              isPinned === 'left' && "left-0",
+                              isPinned &&
+                                row.getIsSelected() &&
+                                "bg-accent group-hover:bg-accent"
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      No results.
+                    </TableCell>
                   </TableRow>
-                ))}
-              </SortableContext>
-            </TableHeader>
-            <TableBody>
-              {rows.length > 0 ? (
-                rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className={cn("group", getRowClassName(row))}
-                    onClick={() => handleRowSelectionChange(row)}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const isPinned = cell.column.getIsPinned();
-                      return (
-                        <TableCell
-                          key={cell.id}
-                          className={cn(
-                            isPinned && "sticky bg-background group-hover:bg-slate-50 z-10 transition-colors duration-150",
-                            isPinned === 'left' && "left-0",
-                            isPinned && row.getIsSelected() && "bg-accent"
-                          )}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <DragOverlay>
-          {activeColumn ? (
-            <div className="px-4 py-2 cursor-grabbing opacity-60">
-              {(() => {
-                const column = table.getAllColumns().find(col => col.id === activeColumn);
-                const header = table.getHeaderGroups()[0]?.headers.find(h => h.column.id === activeColumn);
+                )}
+              </TableBody>
+            </Table>
+          <DragOverlay>
+            {activeColumn ? (
+              <div className="px-4 py-2 cursor-grabbing opacity-60">
+                {(() => {
+                  const column = table.getAllColumns().find(col => col.id === activeColumn);
+                  const header = table.getHeaderGroups()[0]?.headers.find(h => h.column.id === activeColumn);
 
-                if (column?.columnDef.header && header) {
-                  return flexRender(column.columnDef.header, header.getContext());
-                }
-                return null;
-              })()}
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-      <TablePagination table={table} />
+                  if (column?.columnDef.header && header) {
+                    return flexRender(column.columnDef.header, header.getContext());
+                  }
+                  return null;
+                })()}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+        <TablePagination table={table} />
+      </div>
       <Sheet modal={true} open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none flex flex-col h-screen justify-between">
           <SheetHeader>

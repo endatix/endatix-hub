@@ -3,44 +3,31 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import FormsList from "@/features/forms/ui/forms-list";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
-import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { Session } from "next-auth";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
-import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 
 export default async function FormsPage() {
-  const [session, aiFeatureFlag] = await Promise.all([
-    auth(),
-    aiFeaturesFlag(),
-  ]);
+  const session = await auth();
 
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   return (
     <>
-      <PageTitle title="Forms" />
-      <div className="flex-1 space-y-2">
-        <FormAssistantProvider isAssistantEnabled={aiFeatureFlag}>
-          <AssetStorageProvider>
-            <Tabs defaultValue="all" className="space-y-0">
-              <div className="mb-4 flex items-center justify-end space-y-0">
-                <div className="flex items-center space-x-2">
-                  <CreateFormSheet />
-                </div>
-              </div>
-              <Suspense fallback={<FormsSkeleton />}>
-                <FormsTabsContent session={session} />
-              </Suspense>
-            </Tabs>
-          </AssetStorageProvider>
-        </FormAssistantProvider>
+      <PageTitle title="Forms" className="mt-2 mb-4" />
+      <div className="flex-1">
+        <AssetStorageProvider>
+          <Tabs defaultValue="all" className="space-y-0">
+            <Suspense fallback={<FormsSkeleton />}>
+              <FormsTabsContent session={session} />
+            </Suspense>
+          </Tabs>
+        </AssetStorageProvider>
       </div>
     </>
   );

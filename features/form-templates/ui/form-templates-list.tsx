@@ -69,7 +69,7 @@ const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(420px,1fr))] gap-6">
         {templates.map((template) => (
           <FormTemplateCard
             key={template.id}
@@ -82,7 +82,6 @@ const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
       </div>
 
       <FormTemplateSheet
-        modal={false}
         selectedTemplate={selectedTemplate ?? null}
         open={isSheetOpen}
         onOpenChange={handleSheetOpenChange}

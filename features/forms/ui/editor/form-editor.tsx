@@ -23,6 +23,7 @@ import {
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
@@ -53,7 +54,10 @@ import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
-import { getCustomQuestionsAction } from "../../application/actions/get-custom-questions.action";
+import {
+  customizeQuestionClassesOnCreator,
+  loadBuiltInCustomQuestionClasses,
+} from "./survey-creator-custom-questions";
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
@@ -442,13 +446,8 @@ function FormEditor({
   );
 
   useEffect(() => {
-    if (!creator) return;
-
-    questionClasses.forEach((QuestionClass) => {
-      QuestionClass.customizeEditor(creator);
-    });
+    customizeQuestionClassesOnCreator(creator, questionClasses);
   }, [creator, questionClasses]);
-
 
   useEffect(() => {
     const initializeNewCreator = async () => {
@@ -464,23 +463,12 @@ function FormEditor({
         slk(slkVal);
       }
 
-      // Load built-in custom questions (from database)
-      const result = await getCustomQuestionsAction();
-
-      if (result === undefined) {
-        toast.error("Could not proceed with fetching custom questions");
+      const newQuestionClasses = await loadBuiltInCustomQuestionClasses();
+      if (newQuestionClasses === null) {
         return;
       }
 
       try {
-        if (Result.isError(result)) {
-          throw new Error(result.message);
-        }
-
-        const newQuestionClasses = initializeCustomQuestions(
-          result.value.map((q) => q.jsonData),
-        );
-
         // Load dynamic questions using greedy loading strategy (load all custom questions for now)
         for (const questionName of customQuestions) {
           try {
@@ -498,7 +486,11 @@ function FormEditor({
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
-        newCreator.applyCreatorTheme(creatorThemeRef.current);
+        const resolvedTheme = resolveCreatorThemeCssVariables(
+          creatorThemeRef.current,
+          document.getElementById("creator") ?? undefined,
+        );
+        newCreator.applyCreatorTheme(resolvedTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
 
         onCreatorCreated(newCreator);
@@ -563,6 +555,28 @@ function FormEditor({
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
   ]);
+
+  useEffect(() => {
+    if (!creator) return;
+
+    // Delay re-apply until after theme class/token updates settle in the DOM.
+    let frame1 = 0;
+    let frame2 = 0;
+    frame1 = window.requestAnimationFrame(() => {
+      frame2 = window.requestAnimationFrame(() => {
+        const resolvedTheme = resolveCreatorThemeCssVariables(
+          creatorTheme,
+          document.getElementById("creator") ?? undefined,
+        );
+        creator.applyCreatorTheme(resolvedTheme);
+      });
+    });
+
+    return () => {
+      if (frame1) window.cancelAnimationFrame(frame1);
+      if (frame2) window.cancelAnimationFrame(frame2);
+    };
+  }, [creator, creatorTheme]);
 
   useEffect(() => {
     if (!creator) return;

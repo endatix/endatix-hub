@@ -317,7 +317,7 @@ export function WebhookSettings({
                   <div className="grid grid-cols-[minmax(15rem,42%)_1fr] items-center gap-4">
                     <Label
                       htmlFor={`webhook-url-${event.key}`}
-                      className="text-right text-sm text-muted-foreground"
+                      className="w-full justify-end text-right text-sm font-normal text-muted-foreground"
                     >
                       Webhook URL
                     </Label>

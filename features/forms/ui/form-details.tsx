@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteFormAction } from "../application/actions/delete-form.action";
 import { Result } from "@/lib/result";
+import { getFormattedDate } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 import { AlertTriangle } from "lucide-react";
@@ -151,30 +152,6 @@ const FormDetails = ({
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const router = useRouter();
-
-  const getFormattedDate = (date?: Date) => {
-    if (!date) {
-      return;
-    }
-
-    return new Date(date).toLocaleString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour12: true,
-    });
-  };
-
-  const getSubmissionsLabel = () => {
-    const count = form?.submissionsCount ?? 0;
-    if (count === 0) {
-      return "No submissions yet";
-    }
-
-    return `${count}`;
-  };
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
@@ -413,8 +390,14 @@ const FormDetails = ({
 
         <div className="grid grid-cols-4 py-2 items-center gap-4">
           <span className="col-span-1 text-right self-start">Submissions</span>
-          <div className="text-sm text-muted-foreground col-span-3">
-            {getSubmissionsLabel()}
+          <div className="col-span-3 text-sm">
+            {(form?.submissionsCount ?? 0) === 0 ? (
+              <span className="text-muted-foreground">No submissions yet</span>
+            ) : (
+              <span className="text-base font-medium">
+                {form.submissionsCount ?? 0}
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -69,7 +69,7 @@ export function SubmissionDetailsContent({
   if (activeTab === "answers") {
     tabPanel = (
       <>
-        <div className="sticky top-[73px] z-30 flex flex-wrap items-center justify-between gap-3 bg-background/95 py-4 backdrop-blur">
+        <div className="sticky top-[73px] z-30 flex flex-wrap items-center justify-between gap-3 bg-surface-container-lowest/95 py-4 backdrop-blur">
           <QuestionFinder />
           <SubmissionViewOptions submissionLanguageName={submissionLocale} />
         </div>
@@ -83,29 +83,31 @@ export function SubmissionDetailsContent({
   }
 
   return (
-    <div className="flex flex-col gap-10 lg:flex-row">
-      <div className="flex-1 space-y-6">
-        <div className="w-full min-w-0">
-          <nav className="flex w-full flex-wrap border-b border-slate-200 dark:border-slate-700">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "-mb-px flex-1 border-b-2 px-3 py-3 text-center text-sm font-medium whitespace-nowrap transition-colors sm:flex-none sm:px-6 sm:text-left",
-                  activeTab === tab.id
-                    ? "border-primary font-semibold text-primary"
-                    : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-          <div className="mt-6">{tabPanel}</div>
+    <section className="overflow-hidden rounded-md border border-border/25 bg-surface-container-lowest shadow-sm">
+      <div className="flex flex-col gap-10 p-4 sm:p-6 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1 space-y-6">
+          <div className="w-full min-w-0">
+            <nav className="flex w-full flex-wrap border-b border-slate-200 dark:border-slate-700">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "-mb-px flex-1 border-b-2 px-3 py-3 text-center text-sm font-medium whitespace-nowrap transition-colors sm:flex-none sm:px-6 sm:text-left",
+                    activeTab === tab.id
+                      ? "border-primary font-semibold text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+            <div className="mt-6">{tabPanel}</div>
+          </div>
         </div>
+        <SubmissionToC />
       </div>
-      <SubmissionToC />
-    </div>
+    </section>
   );
 }

@@ -42,7 +42,7 @@ export function UsersTable({
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border border-border/25 bg-background">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

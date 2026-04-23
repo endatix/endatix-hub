@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
+import { getFormattedDate } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import {
   AlertTriangle,
@@ -41,14 +42,13 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, useRef } from "react";
-import { useTemplateAction } from "../application/use-template.action";
 import { deleteTemplateAction } from "../application/delete-template.action";
+import { runCreateFormFromTemplate } from "../application/run-create-form-from-template.client";
 
 interface FormTemplateSheetProps
   extends Omit<React.ComponentProps<typeof Sheet>, "open" | "onOpenChange" | "modal"> {
   selectedTemplate: FormTemplate | null;
   open?: boolean;
-  modal?: boolean;
   onOpenChange?: (open: boolean) => void;
   enableEditing?: boolean;
   onPreviewClick?: (templateId: string) => void;
@@ -73,18 +73,7 @@ const FormTemplateSheet = ({
 
   const handleUseTemplate = () => {
     startCreateFormTransition(async () => {
-      // this is not a hook, but an action, so adding this rule to avoid the false eslint error
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const result = await useTemplateAction({
-        templateId: selectedTemplate.id,
-      });
-
-      if (Result.isSuccess(result)) {
-        toast.success("Form created from template successfully");
-        router.push(`/forms/${result.value}/design`);
-      } else {
-        toast.error(result.message || "Failed to create form from template");
-      }
+      await runCreateFormFromTemplate(selectedTemplate.id, router);
     });
   };
 
@@ -93,21 +82,6 @@ const FormTemplateSheet = ({
     if (onPreviewClick) {
       onPreviewClick(selectedTemplate.id);
     }
-  };
-
-  const getFormattedDate = (date?: Date) => {
-    if (!date) {
-      return;
-    }
-
-    return new Date(date).toLocaleString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour12: true,
-    });
   };
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -158,7 +132,7 @@ const FormTemplateSheet = ({
 
   return (
     selectedTemplate && (
-      <Sheet {...props}>
+      <Sheet {...props} modal>
         <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none">
           <SheetHeader>
             <SheetTitle className="text-2xl font-bold">
