@@ -185,15 +185,15 @@ describe("useExtensionLoader", () => {
     expect(onModelReadyB).not.toHaveBeenCalled();
   });
 
-  it("runs static bootstrap only once for the same extension id", async () => {
+  it("initializes static module only once for the same extension id", async () => {
     // Arrange
-    const bootstrap = vi.fn();
+    const onInit = vi.fn();
     const allExtensions: ExtensionDefinition[] = [
       {
         id: "ext-static",
         type: "feature",
         loading: "static",
-        bootstrap,
+        module: { onInit },
       },
     ];
 
@@ -215,7 +215,45 @@ describe("useExtensionLoader", () => {
     });
 
     // Assert
-    expect(bootstrap).toHaveBeenCalledTimes(1);
+    expect(onInit).toHaveBeenCalledTimes(1);
+  });
+
+  it("invokes static module runtime hooks", async () => {
+    const onModelReady = vi.fn();
+    const onCreatorReady = vi.fn();
+    const allExtensions: ExtensionDefinition[] = [
+      {
+        id: "ext-static-module",
+        type: "feature",
+        loading: "static",
+        module: {
+          onInit: vi.fn(),
+          onModelReady,
+          onCreatorReady,
+        } satisfies ExtensionModule,
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useExtensionLoader({
+        allExtensions,
+        extensionIdsToLoad: ["ext-static-module"],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    const mockModel = {} as any;
+    const mockCreator = {} as any;
+    act(() => {
+      result.current.onModelCreated(mockModel);
+      result.current.onCreatorCreated(mockCreator);
+    });
+
+    expect(onModelReady).toHaveBeenCalledWith(mockModel);
+    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator);
   });
 
   it("does not reload dynamic extensions when ids order changes", async () => {

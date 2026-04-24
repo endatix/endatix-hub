@@ -25,6 +25,10 @@ import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
+import { useDataLists } from "@/lib/survey-features/data-lists";
+import { createDataListRuntimeContext } from "@/lib/survey-features/data-lists";
+import { RUNTIME_DATA_LIST_CONTEXT_KEY } from "@/lib/survey-features/data-lists";
+import { DataListSummary } from "@/lib/endatix-api/data-lists/types";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -61,6 +65,7 @@ import {
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
+import { getDataListsAction } from "@/features/data-lists/list/get-data-lists.action";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -152,6 +157,7 @@ function FormEditor({
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dataLists, setDataLists] = useState<DataListSummary[]>([]);
 
   const {
     hasUnsavedChanges,
@@ -196,11 +202,32 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
+  const {
+    initGlobals: initDataListsGlobals,
+    setAvailableDataLists,
+  } = useDataLists();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);
   creatorThemeRef.current = creatorTheme;
+
+  useEffect(() => {
+    const loadDataLists = async () => {
+      const result = await getDataListsAction();
+      if (result === undefined || Result.isError(result)) {
+        console.error("Failed to fetch data lists for creator.");
+        return;
+      }
+      setDataLists(result.value);
+    };
+
+    loadDataLists();
+  }, []);
+
+  useEffect(() => {
+    setAvailableDataLists(dataLists);
+  }, [dataLists, setAvailableDataLists]);
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -485,7 +512,11 @@ function FormEditor({
         };
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
+        initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
+        (newCreator as unknown as SurveyCreatorModel & Record<string, unknown>)[
+          RUNTIME_DATA_LIST_CONTEXT_KEY
+        ] = createDataListRuntimeContext(formId);
         const resolvedTheme = resolveCreatorThemeCssVariables(
           creatorThemeRef.current,
           document.getElementById("creator") ?? undefined,
@@ -542,6 +573,7 @@ function FormEditor({
 
     initializeNewCreator();
   }, [
+    formId,
     options,
     slkVal,
     creator,
@@ -553,6 +585,7 @@ function FormEditor({
     onCreatorCreated,
     bindQuestionLoops,
     initAnyAnsweredGlobals,
+    initDataListsGlobals,
     initQuestionLoopsGlobals,
   ]);
 

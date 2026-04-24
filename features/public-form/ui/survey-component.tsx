@@ -10,6 +10,7 @@ import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
+import { createDataListRuntimeContext } from "@/lib/survey-features/data-lists/runtime-context";
 import {
   useCallback,
   useEffect,
@@ -65,12 +66,18 @@ export default function SurveyComponent({
   urlToken,
   onModelCreated,
 }: SurveyComponentProps) {
+  const dataListContext = useMemo(
+    () => createDataListRuntimeContext(formId, urlToken),
+    [formId, urlToken],
+  );
+
   const { surveyModel } = useSurveyModel({
     formId,
     definition,
     submission,
     customQuestions,
     onModelCreated,
+    dataListContext,
   });
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(
     formId,

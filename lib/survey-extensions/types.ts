@@ -42,17 +42,17 @@ interface ExtensionDefinitionBase {
 
 /**
  * Static extension definition.
- * Use for always-on lightweight bootstrap registrations.
+ * Use for always-on lightweight initialization registrations.
  */
 export interface StaticExtensionDefinition extends ExtensionDefinitionBase {
   loading: "static";
 
   /**
-   * Synchronous bootstrap function for static extension loading.
+   * Eager extension module for static loading.
    * @example
-   * bootstrap: () => { registerExpressionFormatting(); }
+   * module: { onInit: () => { registerExpressionFormatting(); } }
    */
-  bootstrap: () => void;
+  module: ExtensionModule;
 }
 
 /**

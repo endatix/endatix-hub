@@ -16,11 +16,11 @@ function getLoadingMode(extension: ExtensionDefinition): "static" | "dynamic" {
   return extension.loading;
 }
 
-function getBootstrap(
+function getStaticModule(
   extension: ExtensionDefinition,
-): (() => void) | undefined {
+): ExtensionModule | undefined {
   if (extension.loading === "static") {
-    return extension.bootstrap;
+    return extension.module;
   }
 
   return undefined;
@@ -36,6 +36,31 @@ function getLoader(
   return undefined;
 }
 
+function registerLoadedModule(
+  extension: ExtensionDefinition,
+  mod: ExtensionModule,
+): ExtensionModule {
+  const ExtensionComponent = mod.Component;
+  if (ExtensionComponent && extension.metadata) {
+    ReactElementFactory.Instance.registerElement(
+      extension.metadata.name,
+      (props) => <ExtensionComponent {...props} key={extension.id} />,
+    );
+  }
+
+  loadedModules.set(extension.id, mod);
+  return mod;
+}
+
+function initializeModule(
+  extension: ExtensionDefinition,
+  mod: ExtensionModule,
+): ExtensionModule {
+  mod.onInit?.();
+  console.debug(`✓ [ExtensionLoader] Initialized extension: ${extension.id}`);
+  return registerLoadedModule(extension, mod);
+}
+
 function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
   extensions.forEach((extension) => {
     if (getLoadingMode(extension) !== "static") {
@@ -46,17 +71,14 @@ function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
       return;
     }
 
-    const bootstrap = getBootstrap(extension);
-    if (!bootstrap) {
+    const mod = getStaticModule(extension);
+    if (!mod) {
       return;
     }
 
     try {
-      bootstrap();
+      initializeModule(extension, mod);
       initializedExtensionIds.add(extension.id);
-      console.debug(
-        `✓ [ExtensionLoader] Initialized extension: ${extension.id}`,
-      );
     } catch (error) {
       console.error(`✗ [ExtensionLoader] Error: ${extension.id}`, error);
     }
@@ -90,20 +112,7 @@ async function loadSingleExtension(ext: ExtensionDefinition) {
       if (!mod) {
         return undefined;
       }
-
-      mod.onInit?.();
-      console.debug(`✓ [ExtensionLoader] Initialized extension: ${ext.id}`);
-
-      const ExtensionComponent = mod.Component;
-      if (ExtensionComponent && ext.metadata) {
-        ReactElementFactory.Instance.registerElement(
-          ext.metadata.name,
-          (props) => <ExtensionComponent {...props} key={ext.id} />,
-        );
-      }
-
-      loadedModules.set(ext.id, mod);
-      return mod;
+      return initializeModule(ext, mod);
     } catch (error) {
       console.error(`✗ [ExtensionLoader] Error: ${ext.id}`, error);
       return undefined;
@@ -130,7 +139,7 @@ export function useExtensionLoader({
       ),
     [extensionIdsToLoad],
   );
-  
+
   const extensionIdsKey = normalizedExtensionIds.join(",");
   const extensionsToLoad = useMemo(() => {
     const extensionIdSet = new Set(normalizedExtensionIds);

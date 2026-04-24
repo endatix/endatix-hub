@@ -34,6 +34,9 @@ _For features that primarily attach to a `SurveyModel` at runtime (e.g., REST-ba
 - _Register extensions in:_ `hub/lib/survey-extensions/core-registry.ts` _(platform-owned; default for first-party features shipped in this monorepo)_ **or** `hub/extensions/user-extensions.ts` _(customer-owned; preferred for forks/custom deployments to reduce merge conflicts)_.
 - _Load extensions through:_ `hub/lib/survey-extensions/ui/use-extension-loader.tsx` _(and pass `extensionIdsToLoad` from server components when possible)._
 - _Keep `survey-features` for vertical slices that include Serializer / FunctionFactory globals, but avoid scattering `survey.on*` handlers across random UI files._
+- _For hybrid features (creator + runtime), keep domain logic in_ `hub/lib/survey-features/<feature>/` _(registry/bindings/hook), then expose runtime by calling those bindings from an extension module’s_ `onModelReady` _(and creator path via_ `onCreatorReady` _when creator wiring is globally enabled)._
+- _When creator wiring is page-specific (for example needs tenant check, form check or other runtime data), call the feature hook from the creator page/component instead of forcing all creator behavior into static extension_ `onInit` _._
+- _Use_ `hub/lib/endatix-public-api` _for browser/runtime public endpoint calls. Keep_ `hub/lib/endatix-api` _for server-side authenticated flows (session/JWT/cookies)._
 
 ### _2. Isolate Global Logic (_`registry.ts`_)_
 
@@ -73,6 +76,9 @@ _When implementing large choice sets, prefer **lazy loading** via `SurveyModel.o
 - _In the handler, use `options.skip`, `options.take`, and `options.filter` to call your API, then:_ `options.setItems(items, totalCount)` _._
 - _Do **not** assume SurveyJS will automatically fetch `choicesByUrl` when lazy loading is enabled. In modern SurveyJS versions, lazy loading is the driver; treat `choicesByUrl` as optional metadata at most (some versions ignore automatic `choicesByUrl` fetching when lazy loading is enabled)._
 - _If respondents can have prefilled selected values before opening the dropdown, also implement `SurveyModel.onGetChoiceDisplayValue` to resolve labels for known values._
+- _For REST-backed options, wire both handlers in one binding module and ensure cleanup removes both listeners:_
+  - _`survey.onChoicesLazyLoad` → call paged endpoint with `skip`/`take`/`filter`, then `options.setItems(items, total)`._
+  - _`survey.onGetChoiceDisplayValue` → resolve labels for persisted/default values, then `options.setItems(displayValues)`._
 
 ## _Templates & Examples_
 

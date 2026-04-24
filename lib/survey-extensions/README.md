@@ -6,7 +6,7 @@ This directory contains the core infrastructure for the "Zero-Overhead" extensio
 
 Extensions now define explicit loading behavior:
 
-- `loading: 'static'` + `bootstrap`: synchronous, always-on registration.
+- `loading: 'static'` + `module`: eager `ExtensionModule` (always installed).
 - `loading: 'dynamic'` + `load`: async dynamic import for code-splitting.
 - Runtime remains deterministic: survey rendering waits until selected dynamic extensions finish loading.
 
@@ -123,7 +123,7 @@ export const coreExtensions: ExtensionDefinition[] = [
     type: 'feature',
     loading: 'static',
     shouldLoad: () => true,
-    bootstrap: registerExpressionFormatting,
+    module: { onInit: registerExpressionFormatting },
   },
   {
     id: 'hello-world',

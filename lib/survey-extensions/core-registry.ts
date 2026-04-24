@@ -8,7 +8,9 @@
  * to avoid merge conflicts when updating from upstream.
  */
 import type { ExtensionDefinition } from "./types";
-import { registerFormattingExtension } from "@/lib/survey-features/expression-formatting";
+import { expressionFormattingExtension } from "@/lib/survey-features/expression-formatting";
+import { dataListsExtension } from "@/lib/survey-features/data-lists";
+
 /**
  * Core extensions that ship with the platform.
  * Developers should add their extensions to hub/extensions/user-extensions.ts
@@ -35,7 +37,18 @@ export const coreExtensions: ExtensionDefinition[] = [
       description:
         "Adds formatCurrency, formatNumber, formatDate, and smartFormat functions to SurveyJS expressions",
     },
-    bootstrap: registerFormattingExtension,
+    module: expressionFormattingExtension,
+  },
+  {
+    id: "data-lists-runtime",
+    type: "feature",
+    loading: "static",
+    metadata: {
+      name: "Data Lists Runtime",
+      description:
+        "Loads dropdown/choice options through Endatix public data-list endpoints.",
+    },
+    module: dataListsExtension,
   },
 ];
 

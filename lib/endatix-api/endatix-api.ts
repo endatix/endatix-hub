@@ -2,6 +2,7 @@ import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
 import { ApiResult, ApiErrorDetails, ApiErrorType } from "./shared/api-result";
 import { ERROR_CODE, getErrorMessageWithFallback } from "./shared/error-codes";
 import { Definitions } from "./definitions/definitions";
+import { DataLists } from "./data-lists/data-lists";
 import { Forms } from "./forms/forms";
 import { Submissions } from "./submissions/submissions";
 import type { SessionData } from "@/features/auth";
@@ -51,6 +52,7 @@ export class EndatixApi {
   private readonly defaultHeaders: Record<string, string>;
   private readonly session?: SessionData;
   private _definitions?: Definitions;
+  private _dataLists?: DataLists;
   private _forms?: Forms;
   private _submissions?: Submissions;
   private _agents?: Agents;
@@ -92,6 +94,16 @@ export class EndatixApi {
       this._definitions = new Definitions(this);
     }
     return this._definitions;
+  }
+
+  /**
+   * Lazy-loaded data lists API - only creates instance when first accessed
+   */
+  get dataLists(): DataLists {
+    if (!this._dataLists) {
+      this._dataLists = new DataLists(this);
+    }
+    return this._dataLists;
   }
 
   /**
