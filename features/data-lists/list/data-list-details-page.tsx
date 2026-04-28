@@ -55,8 +55,8 @@ export function DataListDetailsPage({
               {details.description || 'No description'}
             </p>
             <div className='flex gap-4 text-xs text-muted-foreground'>
-              <span>Created: {getFormattedDate(details.createdAt ?? null)}</span>
-              <span>Modified: {getFormattedDate(details.modifiedAt ?? null)}</span>
+              <span>Created: {getFormattedDate(details.createdAt as Date | null | undefined)}</span>
+              <span>Modified: {getFormattedDate(details.modifiedAt as Date | null)}</span>
             </div>
           </div>
 
