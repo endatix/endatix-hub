@@ -10,8 +10,6 @@ import React, {
 
 import { Model } from "survey-core";
 
-export const ENDATIX_FORM_RUNTIME_CONTEXT = "ENDATIX_FORM_RUNTIME_CONTEXT";
-
 export interface FormRuntimeState {
   formId: string;
   token?: string;

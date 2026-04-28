@@ -13,10 +13,7 @@ import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
-import {
-  ENDATIX_FORM_RUNTIME_CONTEXT,
-  FormRuntimeContextValue,
-} from "@/lib/form-runtime/form-runtime.context";
+import { FormRuntimeContextValue } from "@/lib/form-runtime/form-runtime.context";
 
 interface UseSurveyModelProps {
   formId: string;
@@ -93,10 +90,6 @@ export function useSurveyModel({
     initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
-    if (formRuntime) {
-      (model as Model & Record<string, unknown>)[ENDATIX_FORM_RUNTIME_CONTEXT] =
-        formRuntime;
-    }
 
     const initialSubmission = submissionRef.current;
     if (initialSubmission) {
