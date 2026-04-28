@@ -100,10 +100,7 @@ export class EndatixApi {
    * Lazy-loaded data lists API - only creates instance when first accessed
    */
   get dataLists(): DataLists {
-    if (!this._dataLists) {
-      this._dataLists = new DataLists(this);
-    }
-    return this._dataLists;
+    return this._dataLists ?? new DataLists(this);
   }
 
   /**

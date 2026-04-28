@@ -136,7 +136,7 @@ export function useExtensionLoader({
   runtimeDeps,
 }: UseExtensionLoaderOptions) {
   if (typeof runtimeDeps.getRuntimeState !== "function") {
-    throw new Error(
+    throw new TypeError(
       "useExtensionLoader requires runtimeDeps.getRuntimeState function.",
     );
   }

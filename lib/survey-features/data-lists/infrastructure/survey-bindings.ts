@@ -89,14 +89,14 @@ export function bindDataListsToSurvey(
     const response = await api.getDisplayValues({
       formId: context.formId,
       dataListId,
-      values: options.values.map((value) => String(value)),
+      values: options.values.map(String),
       token: context.token,
       tokenType: toPublicTokenType(context.tokenType),
     });
 
     if (!response.success) {
       console.error("Failed to resolve data list display values.", response.error);
-      options.setItems(options.values.map((value) => String(value)));
+      options.setItems(options.values.map(String));
       return;
     }
 
