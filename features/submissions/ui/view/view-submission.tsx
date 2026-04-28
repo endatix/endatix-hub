@@ -34,6 +34,12 @@ function ViewSubmission({ submission }: ViewSubmissionProps) {
 
   const { isReady, onModelCreated } = useSurveyExtensions({
     formJson: submission.formDefinition?.jsonData,
+    runtimeDeps: {
+      getRuntimeState: () => ({
+        formId: submission.formId,
+        submissionId: submission.id,
+      }),
+    },
   });
 
   if (!isReady) {

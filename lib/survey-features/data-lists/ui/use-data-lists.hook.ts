@@ -7,11 +7,18 @@ import { Model } from "survey-core";
 import { bindDataListsToCreator, setDataListPropertyChoices } from "../infrastructure/creator-bindings";
 import { registerDataListGlobals } from "../infrastructure/registry";
 import { bindDataListsToSurvey } from "../infrastructure/survey-bindings";
+import { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 
 interface UseDataListsApi {
   initGlobals: () => void;
-  bindToCreator: (creator: SurveyCreatorModel) => (() => void) | undefined;
-  bindToSurvey: (model: Model) => (() => void) | undefined;
+  bindToCreator: (
+    creator: SurveyCreatorModel,
+    getRuntimeState: () => FormRuntimeState,
+  ) => (() => void) | undefined;
+  bindToSurvey: (
+    model: Model,
+    getRuntimeState: () => FormRuntimeState,
+  ) => (() => void) | undefined;
   setAvailableDataLists: (dataLists: DataListSummary[]) => void;
 }
 
@@ -27,13 +34,16 @@ export function useDataLists(): UseDataListsApi {
     setDataListPropertyChoices(dataLists);
   }, []);
 
-  const bindToCreator = useCallback((creator: SurveyCreatorModel) => {
+  const bindToCreator = useCallback((
+    creator: SurveyCreatorModel,
+    getRuntimeState: () => FormRuntimeState,
+  ) => {
     if (!creator || creatorBoundRef.current) {
       return;
     }
 
     creatorBoundRef.current = true;
-    const unbind = bindDataListsToCreator(creator);
+    const unbind = bindDataListsToCreator(creator, getRuntimeState);
 
     return () => {
       unbind();
@@ -41,13 +51,16 @@ export function useDataLists(): UseDataListsApi {
     };
   }, []);
 
-  const bindToSurvey = useCallback((model: Model) => {
+  const bindToSurvey = useCallback((
+    model: Model,
+    getRuntimeState: () => FormRuntimeState,
+  ) => {
     if (!model || surveyBoundRef.current) {
       return;
     }
 
     surveyBoundRef.current = true;
-    const unbind = bindDataListsToSurvey(model);
+    const unbind = bindDataListsToSurvey(model, getRuntimeState);
 
     return () => {
       unbind();

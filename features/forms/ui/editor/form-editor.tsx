@@ -31,7 +31,6 @@ import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import type { Question } from "survey-core";
 import {
   JsonObject,
@@ -63,10 +62,7 @@ import {
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
-import {
-  ENDATIX_FORM_RUNTIME_CONTEXT,
-  useFormRuntime,
-} from "@/lib/form-runtime/form-runtime.context";
+import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -187,9 +183,11 @@ function FormEditor({
   const { registerJsonEditor, getJsonModel } = useJsonEditor({
     onJsonStateChange,
   });
-  const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions(
-    {},
-  );
+  const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
+    runtimeDeps: {
+      getRuntimeState: () => formRuntime.stateRef.current,
+    },
+  });
 
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
@@ -509,13 +507,7 @@ function FormEditor({
         newCreator.applyCreatorTheme(resolvedTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
 
-        flushSync(() => {
-          setCreator(newCreator);
-        });
-
-        (newCreator as unknown as Record<string, unknown>)[
-          ENDATIX_FORM_RUNTIME_CONTEXT
-        ] = formRuntime;
+        setCreator(newCreator);
 
         onCreatorCreated(newCreator);
 

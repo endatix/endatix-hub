@@ -1,26 +1,20 @@
 import { createPublicDataListsClient } from "@/lib/endatix-public-api";
+import { PublicDataListTokenType } from "@/lib/endatix-public-api/data-lists/types";
 import { ChoicesLazyLoadEvent, GetChoiceDisplayValueEvent, Model } from "survey-core";
 import {
   DATA_LIST_PROPERTY_NAME,
 } from "../constants";
 import { registerDataListGlobals } from "./registry";
-import {
-  ENDATIX_FORM_RUNTIME_CONTEXT,
-  FormRuntimeContextValue,
-  FormRuntimeState,
-} from "@/lib/form-runtime/form-runtime.context";
+import { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
 
-function getRuntimeContext(model: Model): FormRuntimeState | null {
-  const context = (model as Model & Record<string, unknown>)[
-    ENDATIX_FORM_RUNTIME_CONTEXT
-  ];
-  if (!context || typeof context !== "object") {
-    return null;
+function toPublicTokenType(tokenType?: string): PublicDataListTokenType | undefined {
+  if (tokenType === "AccessToken" || tokenType === "SubmissionToken") {
+    return tokenType;
   }
 
-  return (context as FormRuntimeContextValue).stateRef.current;
+  return undefined;
 }
 
 function getDataListIdFromQuestion(
@@ -37,7 +31,10 @@ function getDataListIdFromQuestion(
   return null;
 }
 
-export function bindDataListsToSurvey(model: Model): () => void {
+export function bindDataListsToSurvey(
+  model: Model,
+  getRuntimeState: () => FormRuntimeState,
+): () => void {
   // Ensure custom property metadata is registered before reading question properties at runtime.
   registerDataListGlobals();
 
@@ -50,7 +47,7 @@ export function bindDataListsToSurvey(model: Model): () => void {
   const api = createPublicDataListsClient();
 
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {
-    const context = getRuntimeContext(model);
+    const context = getRuntimeState();
     const dataListId = getDataListIdFromQuestion(options.question);
     if (!context || !dataListId) {
       options.setItems([], 0);
@@ -64,7 +61,7 @@ export function bindDataListsToSurvey(model: Model): () => void {
       skip: options.skip,
       take: options.take,
       token: context.token,
-      tokenType: context.tokenType,
+      tokenType: toPublicTokenType(context.tokenType),
     });
 
     if (!response.success) {
@@ -83,7 +80,7 @@ export function bindDataListsToSurvey(model: Model): () => void {
     _: Model,
     options: GetChoiceDisplayValueEvent,
   ) => {
-    const context = getRuntimeContext(model);
+    const context = getRuntimeState();
     const dataListId = getDataListIdFromQuestion(options.question);
     if (!context || !dataListId || options.values.length === 0) {
       return;
@@ -94,7 +91,7 @@ export function bindDataListsToSurvey(model: Model): () => void {
       dataListId,
       values: options.values.map((value) => String(value)),
       token: context.token,
-      tokenType: context.tokenType,
+      tokenType: toPublicTokenType(context.tokenType),
     });
 
     if (!response.success) {

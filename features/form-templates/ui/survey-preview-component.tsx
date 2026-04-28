@@ -22,7 +22,13 @@ export default function SurveyPreviewComponent({
 }: SurveyPreviewComponentProps) {
   const [model, setModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions();
+  const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions({
+    runtimeDeps: {
+      getRuntimeState: () => ({
+        formId: template.id,
+      }),
+    },
+  });
   useRichText(model);
   useLoopAwareSummaryTable(model);
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();

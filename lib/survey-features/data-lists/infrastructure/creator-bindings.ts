@@ -7,10 +7,7 @@ import {
 } from "survey-creator-core";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
 import { bindDataListsToSurvey } from "./survey-bindings";
-import {
-  ENDATIX_FORM_RUNTIME_CONTEXT,
-  FormRuntimeContextValue,
-} from "@/lib/form-runtime/form-runtime.context";
+import { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
@@ -31,6 +28,7 @@ export function setDataListPropertyChoices(dataLists: DataListSummary[]): void {
 
 export function bindDataListsToCreator(
   creator: SurveyCreatorModel,
+  getRuntimeState: () => FormRuntimeState,
 ): () => void {
   registerDataListGlobals();
   const creatorWithFlags = creator as SurveyCreatorModel &
@@ -41,23 +39,6 @@ export function bindDataListsToCreator(
   creatorWithFlags[DATA_LIST_CREATOR_BOUND_KEY] = true;
 
   const creatorSurveyDisposers: Array<() => void> = [];
-
-  /** Read runtime on each attach: it is set asynchronously (e.g. CreatorFormRuntimeBinder) after bindDataListsToCreator runs. */
-  const readCreatorRuntimeContext = (): FormRuntimeContextValue | undefined => {
-    return creatorWithFlags[
-      ENDATIX_FORM_RUNTIME_CONTEXT
-    ] as FormRuntimeContextValue | undefined;
-  };
-
-  const attachRuntimeContext = (survey: unknown) => {
-    const runtime = readCreatorRuntimeContext();
-    if (!runtime || !survey || typeof survey !== "object") {
-      return;
-    }
-
-    (survey as Record<string, unknown>)[ENDATIX_FORM_RUNTIME_CONTEXT] =
-      runtime;
-  };
 
   const onDataListChanged = (
     _: SurveyCreatorModel,
@@ -93,8 +74,7 @@ export function bindDataListsToCreator(
       return;
     }
 
-    attachRuntimeContext(options.survey);
-    const dispose = bindDataListsToSurvey(options.survey);
+    const dispose = bindDataListsToSurvey(options.survey, getRuntimeState);
     creatorSurveyDisposers.push(dispose);
   };
 
@@ -102,8 +82,7 @@ export function bindDataListsToCreator(
   creator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
 
   if (creator.survey) {
-    attachRuntimeContext(creator.survey);
-    const dispose = bindDataListsToSurvey(creator.survey);
+    const dispose = bindDataListsToSurvey(creator.survey, getRuntimeState);
     creatorSurveyDisposers.push(dispose);
   }
 

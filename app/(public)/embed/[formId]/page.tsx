@@ -11,6 +11,7 @@ import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
 import { ApiResult, Submission } from "@/lib/endatix-api";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { cookies } from "next/headers";
@@ -132,18 +133,26 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
       <EmbedHeightReporter />
 
       <Suspense fallback={<div>Loading...</div>}>
-        <AssetStorageProvider>
-          <SurveyJsWrapper
-            formId={formId}
-            definition={activeDefinition.jsonData}
-            submission={submission}
-            theme={activeDefinition.themeModel}
-            customQuestions={activeDefinition.customQuestions}
-            requiresReCaptcha={activeDefinition.requiresReCaptcha}
-            isEmbed={true}
-            urlToken={urlToken}
-          />
-        </AssetStorageProvider>
+        <FormRuntimeProvider
+          initialState={{
+            formId,
+            token: urlToken,
+            submissionId: submission?.id,
+          }}
+        >
+          <AssetStorageProvider>
+            <SurveyJsWrapper
+              formId={formId}
+              definition={activeDefinition.jsonData}
+              submission={submission}
+              theme={activeDefinition.themeModel}
+              customQuestions={activeDefinition.customQuestions}
+              requiresReCaptcha={activeDefinition.requiresReCaptcha}
+              isEmbed={true}
+              urlToken={urlToken}
+            />
+          </AssetStorageProvider>
+        </FormRuntimeProvider>
       </Suspense>
     </div>
   );

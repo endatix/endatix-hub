@@ -4,7 +4,11 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { ReactElementFactory } from "survey-react-ui";
 import type { Model } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
-import type { ExtensionDefinition, ExtensionModule } from "../types";
+import type {
+  ExtensionDefinition,
+  ExtensionModule,
+  ExtensionRuntimeDeps,
+} from "../types";
 
 // Global state stays outside to persist across renders/mounts
 const loadedModules = new Map<string, ExtensionModule>();
@@ -88,6 +92,7 @@ function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
 export interface UseExtensionLoaderOptions {
   allExtensions: ReadonlyArray<ExtensionDefinition>;
   extensionIdsToLoad: string[];
+  runtimeDeps: ExtensionRuntimeDeps;
 }
 
 /**
@@ -128,7 +133,14 @@ async function loadSingleExtension(ext: ExtensionDefinition) {
 export function useExtensionLoader({
   allExtensions,
   extensionIdsToLoad,
+  runtimeDeps,
 }: UseExtensionLoaderOptions) {
+  if (typeof runtimeDeps.getRuntimeState !== "function") {
+    throw new Error(
+      "useExtensionLoader requires runtimeDeps.getRuntimeState function.",
+    );
+  }
+
   const [isReady, setIsReady] = useState(false);
   const mountedRef = useRef(true);
 
@@ -187,19 +199,19 @@ export function useExtensionLoader({
   const onModelCreated = useCallback(
     (model: Model) => {
       extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onModelReady?.(model);
+        loadedModules.get(ext.id)?.onModelReady?.(model, runtimeDeps);
       });
     },
-    [extensionsToLoad],
+    [extensionsToLoad, runtimeDeps],
   );
 
   const onCreatorCreated = useCallback(
     (creator: SurveyCreatorModel) => {
       extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onCreatorReady?.(creator);
+        loadedModules.get(ext.id)?.onCreatorReady?.(creator, runtimeDeps);
       });
     },
-    [extensionsToLoad],
+    [extensionsToLoad, runtimeDeps],
   );
 
   return { isReady, onModelCreated, onCreatorCreated };
