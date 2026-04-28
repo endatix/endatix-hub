@@ -12,6 +12,18 @@ import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
 
+function toDataListId(value: unknown): string | null {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return null;
+}
+
 export function setDataListPropertyChoices(dataLists: DataListSummary[]): void {
   registerDataListGlobals();
   const choices = dataLists.map((item) => ({
@@ -19,10 +31,16 @@ export function setDataListPropertyChoices(dataLists: DataListSummary[]): void {
     text: item.name,
   }));
 
-  const dropdownProperty = Serializer.findProperty("dropdown", DATA_LIST_PROPERTY_NAME);
+  const dropdownProperty = Serializer.findProperty(
+    "dropdown",
+    DATA_LIST_PROPERTY_NAME,
+  );
   dropdownProperty?.setChoices(choices);
 
-  const tagboxProperty = Serializer.findProperty("tagbox", DATA_LIST_PROPERTY_NAME);
+  const tagboxProperty = Serializer.findProperty(
+    "tagbox",
+    DATA_LIST_PROPERTY_NAME,
+  );
   tagboxProperty?.setChoices(choices);
 }
 
@@ -53,12 +71,7 @@ export function bindDataListsToCreator(
       return;
     }
 
-    const dataListId =
-      typeof options.value === "string" && options.value.length > 0
-        ? options.value
-        : typeof options.value === "number" && Number.isFinite(options.value)
-          ? String(options.value)
-          : null;
+    const dataListId = toDataListId(options.value);
     const creatorQuestion = question as unknown as Record<string, unknown>;
     creatorQuestion.choicesLazyLoadEnabled = Boolean(dataListId);
     if (dataListId) {
