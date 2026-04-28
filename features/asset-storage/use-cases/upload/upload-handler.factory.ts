@@ -15,7 +15,6 @@ const USER_RESIZE_URL = "/api/public/v0/storage/resize-image";
 
 export interface UserUploadConfig {
   formId: string;
-  submissionId?: string;
   getSubmissionId?: () => string | undefined;
   surveyModel: SurveyModel | null;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
@@ -30,7 +29,6 @@ export interface UserUploadConfig {
 export function createUserUpload(config: UserUploadConfig) {
   const {
     formId,
-    submissionId,
     getSubmissionId,
     surveyModel,
     onSubmissionIdChange,
@@ -46,7 +44,7 @@ export function createUserUpload(config: UserUploadConfig) {
       return;
     }
 
-    const currentSubmissionId = getSubmissionId?.() ?? submissionId;
+    const currentSubmissionId = getSubmissionId?.();
     const sasResult = await fetchUploadUrls(USER_SAS_URL, {
       fileNames: options.files.map((f) => f.name),
       submissionId: currentSubmissionId,

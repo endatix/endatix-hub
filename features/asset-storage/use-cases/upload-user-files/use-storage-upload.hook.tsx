@@ -11,7 +11,6 @@ import { createUserUpload } from "../upload/upload-handler.factory";
 
 interface UseStorageUploadProps {
   formId: string;
-  submissionId?: string;
   surveyModel: SurveyModel | null;
   getSubmissionId?: () => string | undefined;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
@@ -35,7 +34,6 @@ const DEFAULT_READ_TOKEN_PROMISE = Promise.resolve(DEFAULT_READ_TOKEN_RESULT);
  */
 export function useStorageUpload({
   formId,
-  submissionId,
   getSubmissionId,
   onSubmissionIdChange,
   surveyModel,
@@ -48,7 +46,6 @@ export function useStorageUpload({
   const onUploadFiles = useMemo(() => {
     return createUserUpload({
       formId,
-      submissionId,
       getSubmissionId,
       surveyModel,
       onSubmissionIdChange,
@@ -56,7 +53,6 @@ export function useStorageUpload({
     });
   }, [
     formId,
-    submissionId,
     getSubmissionId,
     surveyModel,
     onSubmissionIdChange,
@@ -89,7 +85,7 @@ export function useStorageUpload({
 
         console.debug(`Deleting ${fileUrls.length} files:`, fileUrls);
 
-        const currentSubmissionId = getSubmissionId?.() ?? submissionId;
+        const currentSubmissionId = getSubmissionId?.();
         const deleteResponse = await fetch("/api/public/v0/storage/delete", {
           method: "DELETE",
           headers: {
@@ -138,7 +134,7 @@ export function useStorageUpload({
         options.callback("error");
       }
     },
-    [formId, submissionId, getSubmissionId],
+    [formId, getSubmissionId],
   );
 
   const onDownloadFile = useCallback(
