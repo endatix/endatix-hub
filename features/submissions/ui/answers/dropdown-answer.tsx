@@ -22,11 +22,6 @@ function resolveDisplayText(question: QuestionDropdownModel): string {
     return selectedItem.text;
   }
 
-  const displayValue = question.getDisplayValue(false, selectedValue);
-  if (typeof displayValue === "string" && displayValue.trim().length > 0) {
-    return displayValue;
-  }
-
   return String(selectedValue ?? "");
 }
 

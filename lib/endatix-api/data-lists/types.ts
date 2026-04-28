@@ -1,8 +1,16 @@
 export interface DataListSummary {
-  id: number;
+  id: string;
   name: string;
   description?: string | null;
   isActive: boolean;
+}
+
+export interface DataListsPageResponse {
+  page: string | number;
+  pageSize: string | number;
+  totalRecords: string | number;
+  totalPages: string | number;
+  items: DataListSummary[];
 }
 
 export interface DataListChoiceItem {

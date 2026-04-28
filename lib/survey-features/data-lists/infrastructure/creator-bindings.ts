@@ -56,7 +56,7 @@ export function bindDataListsToCreator(
   }
   creatorWithFlags[DATA_LIST_CREATOR_BOUND_KEY] = true;
 
-  const creatorSurveyDisposers: Array<() => void> = [];
+  const creatorSurveyDisposers = new Map<string, () => void>();
 
   const onDataListChanged = (
     _: SurveyCreatorModel,
@@ -87,22 +87,30 @@ export function bindDataListsToCreator(
       return;
     }
 
+    const previousDispose = creatorSurveyDisposers.get(options.area);
+    previousDispose?.();
+
     const dispose = bindDataListsToSurvey(options.survey, getRuntimeState);
-    creatorSurveyDisposers.push(dispose);
+    creatorSurveyDisposers.set(options.area, dispose);
   };
 
   creator.onAfterPropertyChanged.add(onDataListChanged);
   creator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
 
   if (creator.survey) {
+    const initialSurveyArea = "__creator-initial-survey";
+    const previousDispose = creatorSurveyDisposers.get(initialSurveyArea);
+    previousDispose?.();
+
     const dispose = bindDataListsToSurvey(creator.survey, getRuntimeState);
-    creatorSurveyDisposers.push(dispose);
+    creatorSurveyDisposers.set(initialSurveyArea, dispose);
   }
 
   return () => {
     creator.onAfterPropertyChanged.remove(onDataListChanged);
     creator.onSurveyInstanceCreated.remove(handleSurveyInstanceCreated);
     creatorSurveyDisposers.forEach((dispose) => dispose?.());
+    creatorSurveyDisposers.clear();
     creatorWithFlags[DATA_LIST_CREATOR_BOUND_KEY] = false;
   };
 }

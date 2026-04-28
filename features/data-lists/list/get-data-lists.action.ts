@@ -16,12 +16,26 @@ export async function getDataListsAction(): Promise<
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.dataLists.list({ page: 1, pageSize: 200 });
+  const pageSize = 100;
+  const allItems: DataListSummary[] = [];
+  let currentPage = 1;
+  let totalPages = 1;
 
-  if (!result.success) {
-    console.error("Failed to fetch data lists", result.error);
-    return Result.error("Failed to fetch data lists");
+  while (currentPage <= totalPages) {
+    const result = await api.dataLists.list({
+      page: currentPage,
+      pageSize,
+    });
+
+    if (!result.success) {
+      console.error("Failed to fetch data lists", result.error);
+      return Result.error("Failed to fetch data lists");
+    }
+
+    allItems.push(...result.data.items);
+    totalPages = Math.max(result.data.totalPages, 1);
+    currentPage += 1;
   }
 
-  return Result.success(result.data);
+  return Result.success(allItems);
 }

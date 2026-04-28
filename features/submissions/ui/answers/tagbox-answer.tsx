@@ -23,12 +23,7 @@ function resolveTagDisplayItems(question: QuestionTagboxModel): TagDisplayItem[]
 
   return selectedValues.map((value) => {
     const selectedItem = question.selectedItems.find((item) => item?.value === value);
-    const displayValue = question.getDisplayValue(false, value);
     let text = value.toString();
-
-    if (typeof displayValue === "string" && displayValue.trim().length > 0) {
-      text = displayValue;
-    }
 
     if (selectedItem?.text) {
       text = selectedItem.text;
