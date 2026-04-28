@@ -91,12 +91,18 @@ export default function SurveyComponent({
   const getSubmissionId = useCallback(() => {
     return stateRef.current.submissionId;
   }, [stateRef]);
+  const handleSubmissionIdChange = useCallback(
+    (id: string) => {
+      updateState({ submissionId: id });
+    },
+    [updateState],
+  );
 
   const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
     model: surveyModel,
     formId,
     getSubmissionId,
-    onSubmissionIdChange: (id) => updateState({ submissionId: id }),
+    onSubmissionIdChange: handleSubmissionIdChange,
   });
 
   const isModelReady = surveyModel && isStorageReady;
