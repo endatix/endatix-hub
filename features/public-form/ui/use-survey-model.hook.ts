@@ -90,10 +90,6 @@ export function useSurveyModel({
     initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
-    if (formRuntime) {
-      (model as Model & Record<string, unknown>)[ENDATIX_FORM_RUNTIME_CONTEXT] =
-        formRuntime;
-    }
 
     const initialSubmission = submissionRef.current;
     if (initialSubmission) {
