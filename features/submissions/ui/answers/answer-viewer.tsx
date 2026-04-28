@@ -14,6 +14,7 @@ import {
   QuestionPanelDynamicModel,
   QuestionSignaturePadModel,
   QuestionSliderModel,
+  QuestionTagboxModel,
 } from "survey-core";
 import CommentAnswer from "./comment-answer";
 import DropdownAnswer from "./dropdown-answer";
@@ -148,7 +149,7 @@ const AnswerViewer = ({
   );
 
   const renderTagBoxAnswer = () => (
-    <TagBoxAnswer question={forQuestion} className={className} />
+    <TagBoxAnswer question={forQuestion as QuestionTagboxModel} className={className} />
   );
 
   const renderAudioRecorderAnswer = () => (
