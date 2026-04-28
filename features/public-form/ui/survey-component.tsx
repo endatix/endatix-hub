@@ -208,6 +208,7 @@ export default function SurveyComponent({
     [
       formId,
       isSubmitting,
+      updateState,
       clearQueue,
       startSubmitting,
       trackException,
