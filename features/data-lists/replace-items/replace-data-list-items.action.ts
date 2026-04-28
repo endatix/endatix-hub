@@ -1,14 +1,16 @@
-'use server';
+"use server";
 
-import { auth } from '@/auth';
-import { authorization } from '@/features/auth/authorization';
-import { EndatixApi } from '@/lib/endatix-api';
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import { TelemetryLogger } from "@/features/telemetry";
+import { EndatixApi } from "@/lib/endatix-api";
 import type {
   DataListDetails,
   DataListItem,
-} from '@/lib/endatix-api/data-lists/types';
-import { Result } from '@/lib/result';
+} from "@/lib/endatix-api/data-lists/types";
+import { Result } from "@/lib/result";
 
+const LOGGER_NAME = "data-lists";
 export type ReplaceDataListItemsResult = Result<DataListDetails>;
 
 export async function replaceDataListItemsAction(
@@ -23,7 +25,10 @@ export async function replaceDataListItemsAction(
   const result = await api.dataLists.replaceItems(dataListId, items);
 
   if (!result.success) {
-    return Result.error(result.error.message || 'Failed to replace data list items');
+    const errorMessage =
+      result.error.message || "Failed to replace data list items";
+    TelemetryLogger.error(errorMessage, result.error, {}, LOGGER_NAME);
+    return Result.error(errorMessage);
   }
 
   return Result.success(result.data);

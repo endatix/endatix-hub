@@ -16,13 +16,13 @@ import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { DataListJsonSourceInput } from "./data-list-json-source-input";
-import { replaceDataListItemsAction } from "./replace-data-list-items.action";
 import {
   MAX_FILE_SIZE_BYTES,
   parseAndValidateJson,
   type ParsedValidation,
-} from "./json-import-validation";
+} from "../json-import-validation";
+import { replaceDataListItemsAction } from "../replace-data-list-items.action";
+import { DataListJsonSourceInput } from "../../list/data-list-json-source-input";
 
 const MAX_PREVIEW_ERRORS = 20;
 

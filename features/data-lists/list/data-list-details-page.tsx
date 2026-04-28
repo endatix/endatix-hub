@@ -16,7 +16,7 @@ import { getFormattedDate } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ReplaceItemsDialog } from './replace-items-dialog';
+import { ReplaceItemsDialog } from '../replace-items/ui/replace-items-dialog';
 
 interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
