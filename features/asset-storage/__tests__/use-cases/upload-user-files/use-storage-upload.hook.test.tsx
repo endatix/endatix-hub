@@ -99,12 +99,21 @@ describe("useStorageUpload", () => {
   };
 
   const createHookProps = (
-    overrides?: Partial<Parameters<typeof useStorageUpload>[0]>,
-  ) => ({
-    formId: mockFormId,
-    surveyModel: mockSurveyModel,
-    ...overrides,
-  });
+    overrides?: Partial<Parameters<typeof useStorageUpload>[0]> & {
+      submissionId?: string;
+    },
+  ) => {
+    const { submissionId, ...restOverrides } = overrides ?? {};
+
+    return {
+      formId: mockFormId,
+      surveyModel: mockSurveyModel,
+      ...(submissionId
+        ? { getSubmissionId: () => submissionId }
+        : {}),
+      ...restOverrides,
+    };
+  };
 
   const mockFile = new File(["test content"], "test.jpg", {
     type: "image/jpeg",
