@@ -22,11 +22,21 @@ import {
 import { getCurrentUserInfo } from "@/features/users/user-utils";
 import { SidebarNavItem } from "./sidebar-nav-item";
 
-const SidebarNav = () => {
+interface SidebarNavProps {
+  dataListsEnabled?: boolean;
+}
+
+const SidebarNav = ({ dataListsEnabled = false }: SidebarNavProps) => {
   const { data: session } = useSession();
   const { state } = useSidebar();
   const isSidebarCollapsed = state === "collapsed";
-  const mainNavItems = SitemapService.getTopLevelSitemap();
+  const mainNavItems = SitemapService.getTopLevelSitemap().filter((item) => {
+    if (item.key !== "dataLists") {
+      return true;
+    }
+
+    return dataListsEnabled;
+  });
   const secondaryNavItems = SitemapService.getSecondarySitemap();
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);

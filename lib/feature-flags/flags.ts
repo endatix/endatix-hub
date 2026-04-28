@@ -27,6 +27,11 @@ export const storageStatsFlag = flag<boolean>({
   defaultValue: false,
 });
 
+export const dataListsFlag = flag<boolean>({
+  key: "data-lists",
+  defaultValue: false,
+});
+
 // Get all flags at once (async version)
 export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   experimentalFeatures: await experimentalFeaturesFlag(),
@@ -34,4 +39,5 @@ export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   aiFeatures: await aiFeaturesFlag(),
   formAnalytics: await formAnalyticsFlag(),
   storageStats: await storageStatsFlag(),
+  dataLists: await dataListsFlag(),
 });

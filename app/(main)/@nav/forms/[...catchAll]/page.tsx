@@ -1,5 +1,8 @@
 import SidebarNav from "@/components/layout-ui/sidebar/sidebar-nav";
+import { dataListsFlag } from "@/lib/feature-flags";
 
 export default async function NavSlot() {
-  return <SidebarNav />;
+  const dataListsEnabled = await dataListsFlag();
+
+  return <SidebarNav dataListsEnabled={dataListsEnabled} />;
 }
