@@ -5,6 +5,7 @@ import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import dynamic from "next/dynamic";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -46,17 +47,25 @@ const SurveyJsWrapper = ({
   }
 
   return (
-    <SurveyComponent
-      formId={formId}
-      definition={definition}
-      submission={submission}
-      theme={theme}
-      customQuestions={customQuestions}
-      requiresReCaptcha={requiresReCaptcha}
-      isEmbed={isEmbed}
-      urlToken={urlToken}
-      onModelCreated={onModelCreated}
-    />
+    <FormRuntimeProvider
+      initialState={{
+        formId,
+        token: urlToken,
+        submissionId: submission?.id,
+      }}
+    >
+      <SurveyComponent
+        formId={formId}
+        definition={definition}
+        submission={submission}
+        theme={theme}
+        customQuestions={customQuestions}
+        requiresReCaptcha={requiresReCaptcha}
+        isEmbed={isEmbed}
+        urlToken={urlToken}
+        onModelCreated={onModelCreated}
+      />
+    </FormRuntimeProvider>
   );
 };
 

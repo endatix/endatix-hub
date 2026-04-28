@@ -283,6 +283,43 @@ describe("useStorageUpload", () => {
       );
     });
 
+    it("should resolve submissionId from getSubmissionId when submissionId prop is omitted", async () => {
+      const runtimeSubmissionId = "runtime-submission-456";
+
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              getSubmissionId: () => runtimeSubmissionId,
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        await result.current!.uploadFiles(mockSurveyModel, mockUploadOptions);
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/public/v0/storage/sas-token",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            fileNames: ["test.jpg"],
+            submissionId: runtimeSubmissionId,
+            formId: mockFormId,
+            formLocale: "en",
+          }),
+        }),
+      );
+    });
+
     it("should upload large files directly to blob storage", async () => {
       const largeFileOptions: UploadFilesEvent = {
         files: [mockLargeFile],

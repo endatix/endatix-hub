@@ -1,5 +1,7 @@
 import { DataListSummary } from "@/lib/endatix-api/data-lists/types";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Result } from "@/lib/result";
+import { getDataListsAction } from "@/features/data-lists/list/get-data-lists.action";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { Model } from "survey-core";
 import { bindDataListsToCreator, setDataListPropertyChoices } from "../infrastructure/creator-bindings";
@@ -59,4 +61,29 @@ export function useDataLists(): UseDataListsApi {
     bindToSurvey,
     setAvailableDataLists,
   };
+}
+
+export function useDataListsLoader() {
+  const [dataLists, setDataLists] = useState<DataListSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDataLists = async () => {
+      setIsLoading(true);
+      try {
+        const result = await getDataListsAction();
+        if (result === undefined || Result.isError(result)) {
+          console.error("Failed to fetch data lists for creator.");
+          return;
+        }
+        setDataLists(result.value);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDataLists();
+  }, []);
+
+  return { dataLists, isLoading };
 }

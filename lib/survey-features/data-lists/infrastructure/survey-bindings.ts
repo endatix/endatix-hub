@@ -2,22 +2,25 @@ import { createPublicDataListsClient } from "@/lib/endatix-public-api";
 import { ChoicesLazyLoadEvent, GetChoiceDisplayValueEvent, Model } from "survey-core";
 import {
   DATA_LIST_PROPERTY_NAME,
-  RUNTIME_DATA_LIST_CONTEXT_KEY,
 } from "../constants";
 import { registerDataListGlobals } from "./registry";
-import { DataListRuntimeContext } from "../runtime-context";
+import {
+  ENDATIX_FORM_RUNTIME_CONTEXT,
+  FormRuntimeContextValue,
+  FormRuntimeState,
+} from "@/lib/form-runtime/form-runtime.context";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
 
-function getRuntimeContext(model: Model): DataListRuntimeContext | null {
+function getRuntimeContext(model: Model): FormRuntimeState | null {
   const context = (model as Model & Record<string, unknown>)[
-    RUNTIME_DATA_LIST_CONTEXT_KEY
+    ENDATIX_FORM_RUNTIME_CONTEXT
   ];
   if (!context || typeof context !== "object") {
     return null;
   }
 
-  return context as DataListRuntimeContext;
+  return (context as FormRuntimeContextValue).stateRef.current;
 }
 
 function getDataListIdFromQuestion(

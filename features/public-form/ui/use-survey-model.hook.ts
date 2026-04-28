@@ -13,8 +13,10 @@ import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
-import { RUNTIME_DATA_LIST_CONTEXT_KEY } from "@/lib/survey-features/data-lists/constants";
-import { DataListRuntimeContext } from "@/lib/survey-features/data-lists/runtime-context";
+import {
+  ENDATIX_FORM_RUNTIME_CONTEXT,
+  FormRuntimeContextValue,
+} from "@/lib/form-runtime/form-runtime.context";
 
 interface UseSurveyModelProps {
   formId: string;
@@ -22,7 +24,7 @@ interface UseSurveyModelProps {
   submission?: Submission;
   customQuestions?: string[];
   onModelCreated?: (model: Model) => void;
-  dataListContext?: DataListRuntimeContext;
+  formRuntime?: FormRuntimeContextValue;
 }
 
 /**
@@ -39,7 +41,7 @@ export function useSurveyModel({
   customQuestions,
   submission,
   onModelCreated,
-  dataListContext,
+  formRuntime,
 }: UseSurveyModelProps) {
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
@@ -91,9 +93,9 @@ export function useSurveyModel({
     initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
-    if (dataListContext) {
-      (model as Model & Record<string, unknown>)[RUNTIME_DATA_LIST_CONTEXT_KEY] =
-        dataListContext;
+    if (formRuntime) {
+      (model as Model & Record<string, unknown>)[ENDATIX_FORM_RUNTIME_CONTEXT] =
+        formRuntime;
     }
 
     const initialSubmission = submissionRef.current;
@@ -114,6 +116,10 @@ export function useSurveyModel({
 
     cleanupUrl();
 
+    if (formRuntime) {
+      formRuntime.updateState({ surveyModel: model });
+    }
+
     return () => {
       unbindQuestionLoops?.();
       isInitializedRef.current = false;
@@ -128,7 +134,7 @@ export function useSurveyModel({
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
-    dataListContext,
+    formRuntime,
   ]);
 
   return {

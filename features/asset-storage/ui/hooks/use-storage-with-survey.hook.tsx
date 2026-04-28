@@ -11,6 +11,7 @@ interface UseSurveyStorageProps {
   model: SurveyModel | null;
   formId: string;
   submissionId?: string;
+  getSubmissionId?: () => string | undefined;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
   readTokenPromises?: AssetStorageTokens;
 }
@@ -23,6 +24,7 @@ export function useStorageWithSurvey({
   model,
   formId,
   submissionId,
+  getSubmissionId,
   onSubmissionIdChange,
   readTokenPromises: propsReadTokenPromises,
 }: UseSurveyStorageProps) {
@@ -36,6 +38,7 @@ export function useStorageWithSurvey({
     surveyModel: model ?? null,
     formId,
     submissionId,
+    getSubmissionId,
     onSubmissionIdChange,
     readTokenPromises,
   });

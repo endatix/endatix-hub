@@ -5,12 +5,12 @@ import {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
-import {
-  DATA_LIST_PROPERTY_NAME,
-  RUNTIME_DATA_LIST_CONTEXT_KEY,
-} from "../constants";
+import { DATA_LIST_PROPERTY_NAME } from "../constants";
 import { bindDataListsToSurvey } from "./survey-bindings";
-import { DataListRuntimeContext } from "../runtime-context";
+import {
+  ENDATIX_FORM_RUNTIME_CONTEXT,
+  FormRuntimeContextValue,
+} from "@/lib/form-runtime/form-runtime.context";
 import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
@@ -39,19 +39,24 @@ export function bindDataListsToCreator(
     return () => {};
   }
   creatorWithFlags[DATA_LIST_CREATOR_BOUND_KEY] = true;
-  const creatorRuntimeContext = creatorWithFlags[
-    RUNTIME_DATA_LIST_CONTEXT_KEY
-  ] as DataListRuntimeContext | undefined;
 
   const creatorSurveyDisposers: Array<() => void> = [];
 
+  /** Read runtime on each attach: it is set asynchronously (e.g. CreatorFormRuntimeBinder) after bindDataListsToCreator runs. */
+  const readCreatorRuntimeContext = (): FormRuntimeContextValue | undefined => {
+    return creatorWithFlags[
+      ENDATIX_FORM_RUNTIME_CONTEXT
+    ] as FormRuntimeContextValue | undefined;
+  };
+
   const attachRuntimeContext = (survey: unknown) => {
-    if (!creatorRuntimeContext || !survey || typeof survey !== "object") {
+    const runtime = readCreatorRuntimeContext();
+    if (!runtime || !survey || typeof survey !== "object") {
       return;
     }
 
-    (survey as Record<string, unknown>)[RUNTIME_DATA_LIST_CONTEXT_KEY] =
-      creatorRuntimeContext;
+    (survey as Record<string, unknown>)[ENDATIX_FORM_RUNTIME_CONTEXT] =
+      runtime;
   };
 
   const onDataListChanged = (
