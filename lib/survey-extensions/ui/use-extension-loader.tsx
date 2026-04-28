@@ -143,6 +143,8 @@ export function useExtensionLoader({
 
   const [isReady, setIsReady] = useState(false);
   const mountedRef = useRef(true);
+  const runtimeDepsRef = useRef(runtimeDeps);
+  runtimeDepsRef.current = runtimeDeps;
 
   const normalizedExtensionIds = useMemo(
     () =>
@@ -198,20 +200,22 @@ export function useExtensionLoader({
 
   const onModelCreated = useCallback(
     (model: Model) => {
+      const currentRuntimeDeps = runtimeDepsRef.current;
       extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onModelReady?.(model, runtimeDeps);
+        loadedModules.get(ext.id)?.onModelReady?.(model, currentRuntimeDeps);
       });
     },
-    [extensionsToLoad, runtimeDeps],
+    [extensionsToLoad],
   );
 
   const onCreatorCreated = useCallback(
     (creator: SurveyCreatorModel) => {
+      const currentRuntimeDeps = runtimeDepsRef.current;
       extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onCreatorReady?.(creator, runtimeDeps);
+        loadedModules.get(ext.id)?.onCreatorReady?.(creator, currentRuntimeDeps);
       });
     },
-    [extensionsToLoad, runtimeDeps],
+    [extensionsToLoad],
   );
 
   return { isReady, onModelCreated, onCreatorCreated };
