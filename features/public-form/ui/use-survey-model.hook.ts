@@ -90,6 +90,10 @@ export function useSurveyModel({
     initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
+    if (dataListContext) {
+      (model as Model & Record<string, unknown>)[RUNTIME_DATA_LIST_CONTEXT_KEY] =
+        dataListContext;
+    }
 
     const initialSubmission = submissionRef.current;
     if (initialSubmission) {

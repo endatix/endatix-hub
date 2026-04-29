@@ -8,7 +8,7 @@ const USE_CACHE = false;
 /**
  * Registers the formatting extension.
  */
-export function registerFormattingExtension(): void {
+function registerFormattingExtension(): void {
   if (areFunctionsRegistered) return;
 
   const factory = FunctionFactory.Instance;
