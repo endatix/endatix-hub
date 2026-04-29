@@ -236,7 +236,7 @@ describe("ShareForm Page", () => {
       jsonData: { title: "Test Form" },
       hasUserSubmitted: true,
       metadata: JSON.stringify({
-        alreadyRespondedMessage: "You already completed this survey.",
+        alreadyResponded: { message: "You already completed this survey." },
       }),
     };
 
@@ -300,7 +300,7 @@ describe("ShareForm Page", () => {
       jsonData: { title: "Test Form" },
       hasUserSubmitted: true,
       metadata: JSON.stringify({
-        alreadyRespondedMessage: "",
+        alreadyResponded: { message: "" },
       }),
     };
 
@@ -332,7 +332,7 @@ describe("ShareForm Page", () => {
       jsonData: { title: "Test Form" },
       hasUserSubmitted: true,
       metadata: JSON.stringify({
-        alreadyRespondedMessage: "You already completed this survey.",
+        alreadyResponded: { message: "You already completed this survey." },
       }),
       themeModel: {},
       customQuestions: [],

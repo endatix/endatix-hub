@@ -20,34 +20,6 @@ import { notFound } from "next/navigation";
 import Script from "next/script";
 import { Suspense } from "react";
 
-const DEFAULT_ALREADY_RESPONDED_MESSAGE =
-  "You have already submitted a response for this form.";
-
-function getAlreadyRespondedMessage(metadata?: string): string {
-  if (!metadata) {
-    return DEFAULT_ALREADY_RESPONDED_MESSAGE;
-  }
-
-  try {
-    const parsedMetadata = JSON.parse(metadata) as unknown;
-
-    if (typeof parsedMetadata !== "object" || parsedMetadata === null) {
-      return DEFAULT_ALREADY_RESPONDED_MESSAGE;
-    }
-
-    const parsedMetadataObject = parsedMetadata as {
-      alreadyRespondedMessage?: string;
-      alreadyResponded?: { message?: string };
-    };
-    const nestedMessage = parsedMetadataObject.alreadyResponded?.message?.trim();
-    const directMessage = parsedMetadataObject.alreadyRespondedMessage?.trim();
-
-    return nestedMessage || directMessage || DEFAULT_ALREADY_RESPONDED_MESSAGE;
-  } catch {
-    return DEFAULT_ALREADY_RESPONDED_MESSAGE;
-  }
-}
-
 type ShareSurveyPage = {
   params: Promise<{ formId: string }>;
   searchParams: Promise<{ token?: string }>;
@@ -157,9 +129,7 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
     return (
       <div className={styles.surveyPage}>
         <div className={styles.surveyContent}>
-          <AlreadyResponded
-            message={getAlreadyRespondedMessage(activeDefinition.metadata)}
-          />
+          <AlreadyResponded metadata={activeDefinition.metadata} />
         </div>
       </div>
     );
