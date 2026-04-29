@@ -76,9 +76,12 @@ _When implementing large choice sets, prefer **lazy loading** via `SurveyModel.o
 - _In the handler, use `options.skip`, `options.take`, and `options.filter` to call your API, then:_ `options.setItems(items, totalCount)` _._
 - _Do **not** assume SurveyJS will automatically fetch `choicesByUrl` when lazy loading is enabled. In modern SurveyJS versions, lazy loading is the driver; treat `choicesByUrl` as optional metadata at most (some versions ignore automatic `choicesByUrl` fetching when lazy loading is enabled)._
 - _If respondents can have prefilled selected values before opening the dropdown, also implement `SurveyModel.onGetChoiceDisplayValue` to resolve labels for known values._
+<<<<<<< HEAD
 - _For REST-backed options, wire both handlers in one binding module and ensure cleanup removes both listeners:_
   - _`survey.onChoicesLazyLoad` → call paged endpoint with `skip`/`take`/`filter`, then `options.setItems(items, total)`._
   - _`survey.onGetChoiceDisplayValue` → resolve labels for persisted/default values, then `options.setItems(displayValues)`._
+=======
+>>>>>>> fd9e6080 (Update add survey SKILL with new plan)
 
 ## _Templates & Examples_
 
