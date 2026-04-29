@@ -93,12 +93,14 @@ describe("FormDetails", () => {
     // Assert
     expect(
       screen.getByText(
-        "After this is enabled, each authenticated user can submit this form only once. This setting cannot be disabled later.",
+        "After you turn this on, each signed-in person can submit this form only once.\n" +
+             "To protect the integrity of collected responses, this setting is permanent.\n" +
+             "You will also not be able to make the form public later.",
       ),
     ).toBeDefined();
     expect(mockUpdateFormSettingsAction).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText("Enable single submission gate"));
+    fireEvent.click(screen.getByText("Enable permanently"));
 
     await waitFor(() => {
       expect(mockUpdateFormSettingsAction).toHaveBeenCalledWith("form-1", {
