@@ -6,7 +6,7 @@ This directory contains the core infrastructure for the "Zero-Overhead" extensio
 
 Extensions now define explicit loading behavior:
 
-- `loading: 'static'` + `bootstrap`: synchronous, always-on registration.
+- `loading: 'static'` + `module`: eager `ExtensionModule` (always installed).
 - `loading: 'dynamic'` + `load`: async dynamic import for code-splitting.
 - Runtime remains deterministic: survey rendering waits until selected dynamic extensions finish loading.
 
@@ -111,6 +111,12 @@ export default async function Page({ params }) {
 
 This ensures that if you add a new restriction rule, it applies to all public-facing pages instantly.
 
+### Guidance for future extension authors
+
+1. Keep extension registration in extension modules (`onInit`, `onModelReady`, `onCreatorReady`).
+2. Read runtime via `deps.getRuntimeState()` inside lifecycle hooks; do not attach runtime sentinels to SurveyJS model objects.
+3. For backend/public ReBAC differences, prefer injected function boundaries (similar to upload handler factory pattern) over branching deep inside event handlers.
+
 ## Extension Definition Examples
 
 ```typescript
@@ -123,7 +129,7 @@ export const coreExtensions: ExtensionDefinition[] = [
     type: 'feature',
     loading: 'static',
     shouldLoad: () => true,
-    bootstrap: registerExpressionFormatting,
+    module: { onInit: registerExpressionFormatting },
   },
   {
     id: 'hello-world',

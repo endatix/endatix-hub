@@ -4,6 +4,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getCustomQuestionsAction } from "@/features/forms/application/actions/get-custom-questions.action";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { Result } from "@/lib/result";
 import { CustomQuestion } from "@/services/api";
 import { BackToSubmissionsButton } from "./back-to-submissions-button";
@@ -61,12 +62,19 @@ async function SubmissionDetails({
 
   return (
     <SubmissionDetailsProvider submissionPromise={submissionPromise}>
-      <AssetStorageProvider>
-        <div className="flex w-full flex-col gap-6">
-          <MetadataCard />
-          <SubmissionDetailsContent customQuestions={customQuestions} />
-        </div>
-      </AssetStorageProvider>
+      <FormRuntimeProvider
+        initialState={{
+          formId,
+          submissionId,
+        }}
+      >
+        <AssetStorageProvider>
+          <div className="flex w-full flex-col gap-6">
+            <MetadataCard />
+            <SubmissionDetailsContent customQuestions={customQuestions} />
+          </div>
+        </AssetStorageProvider>
+      </FormRuntimeProvider>
     </SubmissionDetailsProvider>
   );
 }

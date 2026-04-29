@@ -207,6 +207,13 @@ function EditSubmission({
 
   const { isReady, onModelCreated } = useSurveyExtensions({
     formJson: submission.formDefinition?.jsonData,
+    runtimeDeps: {
+      getRuntimeState: () => ({
+        formId: submission.formId,
+        submissionId: submission.id,
+        token,
+      }),
+    },
   });
 
   if (!isReady) {

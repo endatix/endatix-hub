@@ -10,6 +10,7 @@ import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
+import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import {
   useCallback,
   useEffect,
@@ -65,32 +66,43 @@ export default function SurveyComponent({
   urlToken,
   onModelCreated,
 }: SurveyComponentProps) {
+  const formRuntime = useFormRuntime();
+  const { stateRef, updateState } = formRuntime;
+
   const { surveyModel } = useSurveyModel({
     formId,
     definition,
     submission,
     customQuestions,
     onModelCreated,
+    formRuntime,
   });
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(
     formId,
     urlToken,
   );
   const [isSubmitting, startSubmitting] = useTransition();
-  const [submissionId, setSubmissionId] = useState<string>(
-    submission?.id ?? "",
-  );
   useSurveyTheme(theme, surveyModel);
   useRichText(surveyModel);
   useLoopAwareSummaryTable(surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
 
+  const getSubmissionId = useCallback(() => {
+    return stateRef.current.submissionId;
+  }, [stateRef]);
+  const handleSubmissionIdChange = useCallback(
+    (id: string) => {
+      updateState({ submissionId: id });
+    },
+    [updateState],
+  );
+
   const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
     model: surveyModel,
     formId,
-    submissionId,
-    onSubmissionIdChange: setSubmissionId,
+    getSubmissionId,
+    onSubmissionIdChange: handleSubmissionIdChange,
   });
 
   const isModelReady = surveyModel && isStorageReady;
@@ -102,9 +114,9 @@ export default function SurveyComponent({
 
   useEffect(() => {
     if (submission?.id) {
-      setSubmissionId(submission.id);
+      updateState({ submissionId: submission.id });
     }
-  }, [submission?.id]);
+  }, [submission?.id, updateState]);
 
   const surveyLocales = useMemo(() => {
     return surveyModel?.getUsedLocales() ?? [];
@@ -170,6 +182,7 @@ export default function SurveyComponent({
 
         const result = await submitFormAction(formId, submissionData, urlToken);
         if (ApiResult.isSuccess(result)) {
+          updateState({ submissionId: result.data.submissionId });
           event.showSaveSuccess("The results were saved successfully!");
           sendEmbedMessage("form-complete", {
             submissionId: result.data.submissionId,
@@ -195,6 +208,7 @@ export default function SurveyComponent({
     [
       formId,
       isSubmitting,
+      updateState,
       clearQueue,
       startSubmitting,
       trackException,

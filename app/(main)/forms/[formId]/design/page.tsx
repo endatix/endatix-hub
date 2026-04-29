@@ -7,6 +7,7 @@ import { authorization } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
@@ -76,14 +77,16 @@ export default async function FormDesignerPage({ params }: Params) {
   return (
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
-        <AssetStorageProvider>
-          <FormAssistantProvider
-            isAssistantEnabled={aiFeaturesEnabled}
-            getConversationPromise={chatContextPromise}
-          >
-            <FormDesignerWrapper {...props} />
-          </FormAssistantProvider>
-        </AssetStorageProvider>
+        <FormRuntimeProvider initialState={{ formId }}>
+          <AssetStorageProvider>
+            <FormAssistantProvider
+              isAssistantEnabled={aiFeaturesEnabled}
+              getConversationPromise={chatContextPromise}
+            >
+              <FormDesignerWrapper {...props} />
+            </FormAssistantProvider>
+          </AssetStorageProvider>
+        </FormRuntimeProvider>
       </Suspense>
     </div>
   );

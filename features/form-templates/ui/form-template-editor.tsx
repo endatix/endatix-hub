@@ -85,8 +85,13 @@ function FormTemplateEditorContent({
     setIsOnJsonTab,
     setIsJsonModified,
   } = useSurveyDesigner();
-  const { isReady: isExtensionsReady, onCreatorCreated } =
-    useSurveyExtensions();
+  const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
+    runtimeDeps: {
+      getRuntimeState: () => ({
+        formId: templateId,
+      }),
+    },
+  });
   const { registerStorageHandlers } = useStorageWithCreator({
     itemId: templateId,
     itemType: "template",

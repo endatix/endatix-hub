@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ClearFilesEvent, DownloadFileEvent, SurveyModel } from "survey-core";
 import { Result } from "@/lib/result";
 import {
@@ -11,8 +11,8 @@ import { createUserUpload } from "../upload/upload-handler.factory";
 
 interface UseStorageUploadProps {
   formId: string;
-  submissionId?: string;
   surveyModel: SurveyModel | null;
+  getSubmissionId?: () => string | undefined;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
   readTokenPromises?: AssetStorageTokens;
 }
@@ -34,7 +34,7 @@ const DEFAULT_READ_TOKEN_PROMISE = Promise.resolve(DEFAULT_READ_TOKEN_RESULT);
  */
 export function useStorageUpload({
   formId,
-  submissionId = "",
+  getSubmissionId,
   onSubmissionIdChange,
   surveyModel,
   readTokenPromises: propsReadTokenPromises,
@@ -46,14 +46,14 @@ export function useStorageUpload({
   const onUploadFiles = useMemo(() => {
     return createUserUpload({
       formId,
-      submissionId,
+      getSubmissionId,
       surveyModel,
       onSubmissionIdChange,
       isResizeEnabled: Boolean(storageConfig?.imageConfig?.isResizeEnabled),
     });
   }, [
     formId,
-    submissionId,
+    getSubmissionId,
     surveyModel,
     onSubmissionIdChange,
     storageConfig?.imageConfig?.isResizeEnabled,
@@ -85,6 +85,7 @@ export function useStorageUpload({
 
         console.debug(`Deleting ${fileUrls.length} files:`, fileUrls);
 
+        const currentSubmissionId = getSubmissionId?.();
         const deleteResponse = await fetch("/api/public/v0/storage/delete", {
           method: "DELETE",
           headers: {
@@ -92,7 +93,7 @@ export function useStorageUpload({
           },
           body: JSON.stringify({
             formId,
-            submissionId,
+            submissionId: currentSubmissionId,
             fileUrls,
           }),
         });
@@ -133,7 +134,7 @@ export function useStorageUpload({
         options.callback("error");
       }
     },
-    [formId, submissionId],
+    [formId, getSubmissionId],
   );
 
   const onDownloadFile = useCallback(

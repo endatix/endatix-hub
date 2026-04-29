@@ -14,19 +14,29 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
         </div>
       }
     >
-      <AssetStorageProvider>
-        <default
-          customQuestions={[]}
-          definition={
-            {
-              "title": "Test Form",
-            }
+      <FormRuntimeProvider
+        initialState={
+          {
+            "formId": "valid-id",
+            "submissionId": undefined,
+            "token": undefined,
           }
-          formId="valid-id"
-          requiresReCaptcha={false}
-          theme={{}}
-        />
-      </AssetStorageProvider>
+        }
+      >
+        <AssetStorageProvider>
+          <default
+            customQuestions={[]}
+            definition={
+              {
+                "title": "Test Form",
+              }
+            }
+            formId="valid-id"
+            requiresReCaptcha={false}
+            theme={{}}
+          />
+        </AssetStorageProvider>
+      </FormRuntimeProvider>
     </React.Suspense>
   </div>
 </div>

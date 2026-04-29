@@ -54,17 +54,28 @@ export function parseProblemDetails(data: unknown): ProblemDetails | null {
 
 /**
  * Parse the response body as JSON and return a ProblemDetails object if the response is a valid ProblemDetails.
+ * Uses `text()` first to avoid throwing on empty 404s and other minimal responses.
  * @param response - The response to parse.
  * @returns The ProblemDetails object if the response is a valid ProblemDetails, otherwise null.
  */
 export async function parseErrorResponse(
   response: Response,
 ): Promise<ProblemDetails | null> {
+  const raw = await response.text();
+  const trimmed = raw.trim();
+
+  if (trimmed.length === 0) {
+    return null;
+  }
+
   try {
-    const data = await response.json();
+    const data: unknown = JSON.parse(trimmed);
     return parseProblemDetails(data);
   } catch (error) {
-    console.error("Error parsing error response:", error);
+    console.warn(
+      'Error response body was not valid JSON or problem details:',
+      error instanceof Error ? error.message : String(error),
+    );
     return null;
   }
 }

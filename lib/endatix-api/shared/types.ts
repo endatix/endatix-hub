@@ -24,6 +24,11 @@ export interface ITenantOwned {
   tenantId: string;
 }
 
+export interface IPagedRequest {
+  page?: number;
+  pageSize?: number;
+}
+
 export interface PaginationQuery {
   page?: number;
   pageSize?: number;
