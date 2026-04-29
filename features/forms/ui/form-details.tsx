@@ -155,11 +155,13 @@ const FormDetails = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isEnableLimitWarningOpen, setIsEnableLimitWarningOpen] = useState(false);
   const router = useRouter();
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
-  const limitOnePerUserDisabled = isPublic || pending;
+  const limitOnePerUserDisabled = limitOnePerUser || isPublic || pending;
+  const visibilityDisabled = pending || limitOnePerUser;
 
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
@@ -183,18 +185,10 @@ const FormDetails = ({
   };
 
   const toggleVisibility = async (publicValue: boolean) => {
-    const nextLimitOnePerUser = publicValue ? false : limitOnePerUser;
     setIsPublic(publicValue);
-    if (publicValue) {
-      setLimitOnePerUser(false);
-    }
 
     startTransition(async () => {
-      const result = await updateFormVisibilityAction(
-        form.id,
-        publicValue,
-        publicValue ? false : undefined,
-      );
+      const result = await updateFormVisibilityAction(form.id, publicValue);
       if (result === undefined) {
         toast.error("Could not proceed with updating form visibility");
         return;
@@ -202,7 +196,6 @@ const FormDetails = ({
 
       if (Result.isError(result)) {
         setIsPublic(!publicValue);
-        setLimitOnePerUser(nextLimitOnePerUser);
         toast.error(
           "Failed to update form visibility. Error: " + result.message,
         );
@@ -213,7 +206,7 @@ const FormDetails = ({
     });
   };
 
-  const handleLimitOnePerUserChange = async (checked: boolean) => {
+  const updateLimitOnePerUser = async (checked: boolean) => {
     setLimitOnePerUser(checked);
     startTransition(async () => {
       const result = await updateFormSettingsAction(form.id, {
@@ -235,6 +228,20 @@ const FormDetails = ({
           : "Single response per user is disabled",
       );
     });
+  };
+
+  const handleLimitOnePerUserChange = async (checked: boolean) => {
+    if (checked && !limitOnePerUser) {
+      setIsEnableLimitWarningOpen(true);
+      return;
+    }
+
+    await updateLimitOnePerUser(checked);
+  };
+
+  const handleConfirmEnableLimitOnePerUser = async () => {
+    setIsEnableLimitWarningOpen(false);
+    await updateLimitOnePerUser(true);
   };
 
   const handleSaveMetadata = async () => {
@@ -433,7 +440,7 @@ const FormDetails = ({
                   id="form-visibility"
                   checked={isPublic}
                   onCheckedChange={toggleVisibility}
-                  disabled={pending}
+                  disabled={visibilityDisabled}
                   aria-readonly
                 />
                 <Label htmlFor="form-visibility" className="flex items-center gap-1">
@@ -530,6 +537,28 @@ const FormDetails = ({
         submissionsCount={form.submissionsCount || 0}
         onDelete={handleDelete}
       />
+
+      <AlertDialog
+        open={isEnableLimitWarningOpen}
+        onOpenChange={setIsEnableLimitWarningOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enable "one response per person"?</AlertDialogTitle>
+            <AlertDialogDescription>
+            After you turn this on, each signed-in person can submit this form only once.
+             To protect the integrity of collected responses, this setting is permanent.
+             You will also not be able to make the form public later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmEnableLimitOnePerUser}>
+            Enable permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

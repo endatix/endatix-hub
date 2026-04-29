@@ -169,4 +169,43 @@ describe("EmbedForm Page", () => {
     expect(screen.queryByText("Already Responded")).toBeNull();
     expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
   });
+
+  it("does not gate cookie draft flow when user already submitted but current draft exists", async () => {
+    // Arrange
+    const mockDefinition = {
+      jsonData: { title: "Test Form" },
+      hasUserSubmitted: true,
+      metadata: JSON.stringify({
+        alreadyResponded: { message: "You already completed this survey." },
+      }),
+      requiresReCaptcha: false,
+    };
+    const mockSubmission = {
+      id: "submission-1",
+      data: { q1: "draft answer" },
+      timestamp: "2024-01-01T00:00:00Z",
+    };
+
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(mockDefinition as unknown as ActiveDefinition),
+    );
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.success(mockSubmission as unknown as Submission),
+    );
+
+    const props = {
+      params: Promise.resolve({ formId: "valid-id" }),
+      searchParams: Promise.resolve({}),
+    };
+
+    // Act
+    const component = await EmbedFormPage(props);
+    render(component);
+
+    // Assert
+    expect(notFound).not.toHaveBeenCalled();
+    expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
+    expect(screen.queryByText("Already Responded")).toBeNull();
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
+  });
 });

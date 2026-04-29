@@ -11,14 +11,13 @@ export type UpdateFormVisibilityResult = Result<string>;
 export async function updateFormVisibilityAction(
   formId: string,
   isPublic: boolean,
-  limitOnePerUser?: boolean,
 ): Promise<UpdateFormVisibilityResult | never> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.forms.update(formId, { isPublic, limitOnePerUser });
+  const result = await api.forms.update(formId, { isPublic });
 
   if (!result.success) {
     console.error("Failed to update form visibility", result.error);
