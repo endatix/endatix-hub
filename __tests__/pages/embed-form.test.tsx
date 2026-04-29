@@ -128,6 +128,7 @@ describe("EmbedForm Page", () => {
       screen.getByText("You already completed this survey."),
     ).toBeDefined();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
   });
 
   it("does not gate token edit flow when user already submitted", async () => {
@@ -166,5 +167,6 @@ describe("EmbedForm Page", () => {
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
     expect(screen.queryByText("Already Responded")).toBeNull();
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
   });
 });

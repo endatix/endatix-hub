@@ -132,27 +132,25 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
         </>
       )}
 
+      <EmbedHeightReporter />
+
       {shouldShowAlreadyResponded ? (
         <AlreadyResponded metadata={activeDefinition.metadata} />
       ) : (
-        <>
-      <EmbedHeightReporter />
-
-      <Suspense fallback={<div>Loading...</div>}>
-        <AssetStorageProvider>
-          <SurveyJsWrapper
-            formId={formId}
-            definition={activeDefinition.jsonData}
-            submission={submission}
-            theme={activeDefinition.themeModel}
-            customQuestions={activeDefinition.customQuestions}
-            requiresReCaptcha={activeDefinition.requiresReCaptcha}
-            isEmbed={true}
-            urlToken={urlToken}
-          />
-        </AssetStorageProvider>
-      </Suspense>
-        </>
+        <Suspense fallback={<div>Loading...</div>}>
+          <AssetStorageProvider>
+            <SurveyJsWrapper
+              formId={formId}
+              definition={activeDefinition.jsonData}
+              submission={submission}
+              theme={activeDefinition.themeModel}
+              customQuestions={activeDefinition.customQuestions}
+              requiresReCaptcha={activeDefinition.requiresReCaptcha}
+              isEmbed={true}
+              urlToken={urlToken}
+            />
+          </AssetStorageProvider>
+        </Suspense>
       )}
     </div>
   );
