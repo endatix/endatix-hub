@@ -27,7 +27,7 @@ export class DataLists {
     const pageSize = request?.pageSize ?? 200;
 
     const response = await this.endatix.get<
-      DataListSummary[] | DataListsPageResponse
+      DataListsPageResponse
     >(
       `/data-lists?page=${page}&pageSize=${pageSize}`,
     );
@@ -36,16 +36,7 @@ export class DataLists {
       return response;
     }
 
-    const rawData = response.data;
-    const envelope: PagedItemsEnvelope<DataListSummary> = Array.isArray(rawData)
-      ? {
-          page,
-          pageSize,
-          totalRecords: rawData.length,
-          totalPages: 1,
-          items: rawData,
-        }
-      : rawData;
+    const envelope: PagedItemsEnvelope<DataListSummary> = response.data;
 
     return ApiResult.success(normalizePagedItemsResponse(envelope));
   }
