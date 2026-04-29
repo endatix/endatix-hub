@@ -24,6 +24,7 @@ import { updateFormVisibilityAction } from "../application/actions/update-form-v
 import { toast } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +50,7 @@ import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
 import { WebhookSettings } from "./webhook-settings";
 import { ShareDialog } from "./share-dialog";
+import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -147,6 +149,8 @@ const FormDetails = ({
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
   const [isPublic, setIsPublic] = useState(form?.isPublic);
+  const [limitOnePerUser, setLimitOnePerUser] = useState(form?.limitOnePerUser ?? false);
+  const [metadata, setMetadata] = useState(form?.metadata ?? "");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
@@ -155,6 +159,7 @@ const FormDetails = ({
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
+  const limitOnePerUserDisabled = isPublic || pending;
 
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
@@ -178,9 +183,18 @@ const FormDetails = ({
   };
 
   const toggleVisibility = async (publicValue: boolean) => {
+    const nextLimitOnePerUser = publicValue ? false : limitOnePerUser;
     setIsPublic(publicValue);
+    if (publicValue) {
+      setLimitOnePerUser(false);
+    }
+
     startTransition(async () => {
-      const result = await updateFormVisibilityAction(form.id, publicValue);
+      const result = await updateFormVisibilityAction(
+        form.id,
+        publicValue,
+        publicValue ? false : undefined,
+      );
       if (result === undefined) {
         toast.error("Could not proceed with updating form visibility");
         return;
@@ -188,6 +202,7 @@ const FormDetails = ({
 
       if (Result.isError(result)) {
         setIsPublic(!publicValue);
+        setLimitOnePerUser(nextLimitOnePerUser);
         toast.error(
           "Failed to update form visibility. Error: " + result.message,
         );
@@ -195,6 +210,48 @@ const FormDetails = ({
       }
 
       toast.success(`Form is now ${publicValue ? "public" : "private"}`);
+    });
+  };
+
+  const handleLimitOnePerUserChange = async (checked: boolean) => {
+    setLimitOnePerUser(checked);
+    startTransition(async () => {
+      const result = await updateFormSettingsAction(form.id, {
+        limitOnePerUser: checked,
+      });
+
+      if (result === undefined || Result.isError(result)) {
+        setLimitOnePerUser(!checked);
+        toast.error(
+          "Failed to update single-response setting. Error: " +
+            (result && Result.isError(result) ? result.message : ""),
+        );
+        return;
+      }
+
+      toast.success(
+        checked
+          ? "Single response per user is enabled"
+          : "Single response per user is disabled",
+      );
+    });
+  };
+
+  const handleSaveMetadata = async () => {
+    startTransition(async () => {
+      const result = await updateFormSettingsAction(form.id, {
+        metadata: metadata.trim() === "" ? null : metadata,
+      });
+
+      if (result === undefined || Result.isError(result)) {
+        toast.error(
+          "Failed to update metadata. Error: " +
+            (result && Result.isError(result) ? result.message : ""),
+        );
+        return;
+      }
+
+      toast.success("Form metadata updated");
     });
   };
 
@@ -333,6 +390,19 @@ const FormDetails = ({
         </div>
 
         <div className="grid grid-cols-4 py-2 items-center gap-4">
+          <span className="col-span-1 text-right self-start">Submissions</span>
+          <div className="col-span-3 text-sm">
+            {(form?.submissionsCount ?? 0) === 0 ? (
+              <span className="text-muted-foreground">No submissions yet</span>
+            ) : (
+              <span className="text-base font-medium">
+                {form.submissionsCount ?? 0}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 py-2 items-center gap-4">
           <span className="text-right self-start">Status</span>
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
@@ -389,17 +459,49 @@ const FormDetails = ({
         </div>
 
         <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="col-span-1 text-right self-start">Submissions</span>
-          <div className="col-span-3 text-sm">
-            {(form?.submissionsCount ?? 0) === 0 ? (
-              <span className="text-muted-foreground">No submissions yet</span>
-            ) : (
-              <span className="text-base font-medium">
-                {form.submissionsCount ?? 0}
+          <span className="text-right self-start">Limit one per user</span>
+          <div className="col-span-3 flex flex-col gap-1">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="form-limit-one"
+                checked={limitOnePerUser}
+                onCheckedChange={handleLimitOnePerUserChange}
+                disabled={limitOnePerUserDisabled}
+                aria-readonly
+              />
+              <Label htmlFor="form-limit-one">
+                {limitOnePerUser ? "Enabled" : "Disabled"}
+              </Label>
+            </div>
+            {isPublic && (
+              <span className="text-xs text-muted-foreground">
+                This option is available only for private forms.
               </span>
             )}
           </div>
         </div>
+
+        <div className="grid grid-cols-4 py-2 items-start gap-4">
+          <span className="text-right self-start pt-2">Metadata (JSON)</span>
+          <div className="col-span-3 space-y-2">
+            <Textarea
+              value={metadata}
+              onChange={(event) => setMetadata(event.target.value)}
+              rows={6}
+              disabled={pending}
+              placeholder='{"key":"value"}'
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveMetadata}
+              disabled={pending}
+            >
+              Save metadata
+            </Button>
+          </div>
+        </div>
+
       </div>
 
       {/* Webhook Configuration Section */}

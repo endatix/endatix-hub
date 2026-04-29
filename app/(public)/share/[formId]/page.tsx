@@ -119,8 +119,11 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   }
 
   const activeDefinition = activeDefinitionResult.value;
+  const hasCurrentDraftSubmission = Boolean(submission?.id);
   const shouldShowAlreadyResponded =
-    !urlToken && (activeDefinition.hasUserSubmitted ?? false);
+    !urlToken &&
+    (activeDefinition.hasUserSubmitted ?? false) &&
+    !hasCurrentDraftSubmission;
 
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();

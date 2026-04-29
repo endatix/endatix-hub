@@ -2,27 +2,31 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { Result } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 import { revalidatePath } from "next/cache";
 
-export type UpdateFormVisibilityResult = Result<string>;
+export type UpdateFormSettingsResult = Result<string>;
 
-export async function updateFormVisibilityAction(
+interface UpdateFormSettingsPayload {
+  limitOnePerUser?: boolean;
+  metadata?: string | null;
+}
+
+export async function updateFormSettingsAction(
   formId: string,
-  isPublic: boolean,
-  limitOnePerUser?: boolean,
-): Promise<UpdateFormVisibilityResult | never> {
+  payload: UpdateFormSettingsPayload,
+): Promise<UpdateFormSettingsResult | never> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.forms.update(formId, { isPublic, limitOnePerUser });
+  const result = await api.forms.update(formId, payload);
 
   if (!result.success) {
-    console.error("Failed to update form visibility", result.error);
-    return Result.error("Failed to update form visibility");
+    console.error("Failed to update form settings", result.error);
+    return Result.error("Failed to update form settings");
   }
 
   revalidatePath("/(main)/forms");
