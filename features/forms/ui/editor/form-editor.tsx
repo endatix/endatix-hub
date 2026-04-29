@@ -31,7 +31,6 @@ import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import type { Question } from "survey-core";
 import {
   JsonObject,

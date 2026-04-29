@@ -205,7 +205,7 @@ export function useExtensionLoader({
         loadedModules.get(ext.id)?.onModelReady?.(model, currentRuntimeDeps);
       });
     },
-    [extensionsToLoad],
+    [extensionsToLoad, runtimeDeps],
   );
 
   const onCreatorCreated = useCallback(
@@ -215,7 +215,7 @@ export function useExtensionLoader({
         loadedModules.get(ext.id)?.onCreatorReady?.(creator, currentRuntimeDeps);
       });
     },
-    [extensionsToLoad],
+    [extensionsToLoad, runtimeDeps],
   );
 
   return { isReady, onModelCreated, onCreatorCreated };
