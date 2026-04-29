@@ -546,9 +546,7 @@ const FormDetails = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Enable "one response per person"?</AlertDialogTitle>
             <AlertDialogDescription>
-            After you turn this on, each signed-in person can submit this form only once.
-             To protect the integrity of collected responses, this setting is permanent.
-             You will also not be able to make the form public later.
+            After you turn this on, each signed-in person can submit this form only once. To protect the integrity of collected responses, this setting is permanent. You will also not be able to make the form public later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
