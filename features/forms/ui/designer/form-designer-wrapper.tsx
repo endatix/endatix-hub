@@ -5,6 +5,7 @@ import FormEditorHeader from "../editor/form-editor-header";
 import FormEditorContainer from "../editor/form-editor-container";
 import FormEditorWithChat from "../editor/form-editor-with-chat";
 import { DesignSurveyProvider } from "@/lib/survey-features/designer/design-survey.context";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { ICreatorOptions } from "survey-creator-core";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
@@ -109,19 +110,21 @@ export default function FormDesignerWrapper({
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
 
   return (
-    <DesignSurveyProvider>
-      <FormDesignerContent
-        formId={formId}
-        formJson={formJson}
-        formName={formName}
-        options={options}
-        slkVal={slkVal}
-        themeId={themeId}
-        isPublic={isPublic}
-        isCurrentThemeModified={isCurrentThemeModified}
-        setIsCurrentThemeModified={setIsCurrentThemeModified}
-        formSaveHandlerRef={formSaveHandlerRef}
-      />
-    </DesignSurveyProvider>
+    <FormRuntimeProvider initialState={{ formId }}>
+      <DesignSurveyProvider>
+        <FormDesignerContent
+          formId={formId}
+          formJson={formJson}
+          formName={formName}
+          options={options}
+          slkVal={slkVal}
+          themeId={themeId}
+          isPublic={isPublic}
+          isCurrentThemeModified={isCurrentThemeModified}
+          setIsCurrentThemeModified={setIsCurrentThemeModified}
+          formSaveHandlerRef={formSaveHandlerRef}
+        />
+      </DesignSurveyProvider>
+    </FormRuntimeProvider>
   );
 }

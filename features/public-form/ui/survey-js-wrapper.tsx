@@ -51,17 +51,25 @@ const SurveyJsWrapper = ({
   }
 
   return (
-    <SurveyComponent
-      formId={formId}
-      definition={definition}
-      submission={submission}
-      theme={theme}
-      customQuestions={customQuestions}
-      requiresReCaptcha={requiresReCaptcha}
-      isEmbed={isEmbed}
-      urlToken={urlToken}
-      onModelCreated={onModelCreated}
-    />
+    <FormRuntimeProvider
+      initialState={{
+        formId,
+        token: urlToken,
+        submissionId: submission?.id,
+      }}
+    >
+      <SurveyComponent
+        formId={formId}
+        definition={definition}
+        submission={submission}
+        theme={theme}
+        customQuestions={customQuestions}
+        requiresReCaptcha={requiresReCaptcha}
+        isEmbed={isEmbed}
+        urlToken={urlToken}
+        onModelCreated={onModelCreated}
+      />
+    </FormRuntimeProvider>
   );
 };
 

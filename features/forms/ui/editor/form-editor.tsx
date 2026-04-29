@@ -31,6 +31,7 @@ import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { Question } from "survey-core";
 import {
   JsonObject,
@@ -155,7 +156,6 @@ function FormEditor({
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [dataLists, setDataLists] = useState<DataListSummary[]>([]);
 
   const {
     hasUnsavedChanges,
@@ -501,9 +501,6 @@ function FormEditor({
         initQuestionLoopsGlobals();
         initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
-        (newCreator as unknown as SurveyCreatorModel & Record<string, unknown>)[
-          RUNTIME_DATA_LIST_CONTEXT_KEY
-        ] = createDataListRuntimeContext(formId);
         const resolvedTheme = resolveCreatorThemeCssVariables(
           creatorThemeRef.current,
           document.getElementById("creator") ?? undefined,
