@@ -4,6 +4,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found/not-fou
 import "@/components/error-handling/not-found/not-found-styles-standalone.css";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
+import AlreadyResponded from "@/features/public-form/ui/already-responded";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import styles from "./page.module.css";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
@@ -18,6 +19,30 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { Suspense } from "react";
+
+const DEFAULT_ALREADY_RESPONDED_MESSAGE =
+  "You have already submitted a response for this form.";
+
+function getAlreadyRespondedMessage(metadata?: string): string {
+  if (!metadata) {
+    return DEFAULT_ALREADY_RESPONDED_MESSAGE;
+  }
+
+  try {
+    const parsedMetadata = JSON.parse(metadata) as {
+      alreadyRespondedMessage?: string;
+      alreadyResponded?: { message?: string };
+    };
+
+    return (
+      parsedMetadata.alreadyResponded?.message ??
+      parsedMetadata.alreadyRespondedMessage ??
+      DEFAULT_ALREADY_RESPONDED_MESSAGE
+    );
+  } catch {
+    return DEFAULT_ALREADY_RESPONDED_MESSAGE;
+  }
+}
 
 type ShareSurveyPage = {
   params: Promise<{ formId: string }>;
@@ -118,9 +143,19 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
   }
 
   const activeDefinition = activeDefinitionResult.value;
+  const shouldShowAlreadyResponded =
+    !urlToken && (activeDefinition.hasUserSubmitted ?? false);
 
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
+
+  if (shouldShowAlreadyResponded) {
+    return (
+      <AlreadyResponded
+        message={getAlreadyRespondedMessage(activeDefinition.metadata)}
+      />
+    );
+  }
 
   return (
     <div className={styles.surveyPage}>

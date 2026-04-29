@@ -26,6 +26,8 @@ export type ActiveDefinition = FormDefinition & {
   themeModel?: string;
   requiresReCaptcha?: boolean;
   customQuestions?: string[];
+  hasUserSubmitted?: boolean;
+  metadata?: string;
 };
 
 export type FormTemplate = {

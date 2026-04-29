@@ -229,4 +229,77 @@ describe("ShareForm Page", () => {
       JSON.stringify(mockDefinition.customQuestions),
     );
   });
+
+  it("renders already responded state when user has submitted", async () => {
+    // Arrange
+    const mockDefinition = {
+      jsonData: { title: "Test Form" },
+      hasUserSubmitted: true,
+      metadata: JSON.stringify({
+        alreadyRespondedMessage: "You already completed this survey.",
+      }),
+    };
+
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(mockDefinition as unknown as ActiveDefinition),
+    );
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
+    );
+
+    const props = {
+      params: Promise.resolve({ formId: "valid-id" }),
+      searchParams: Promise.resolve({}),
+    };
+
+    // Act
+    const component = await ShareFormPage(props);
+    render(component);
+
+    // Assert
+    expect(screen.getByText("Already Responded")).toBeDefined();
+    expect(
+      screen.getByText("You already completed this survey."),
+    ).toBeDefined();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+  });
+
+  it("does not gate token edit flow when user already submitted", async () => {
+    // Arrange
+    const mockDefinition = {
+      jsonData: { title: "Test Form" },
+      hasUserSubmitted: true,
+      metadata: JSON.stringify({
+        alreadyRespondedMessage: "You already completed this survey.",
+      }),
+      themeModel: {},
+      customQuestions: [],
+      requiresReCaptcha: false,
+    };
+    const mockSubmission = {
+      data: { q1: "existing answer" },
+      timestamp: "2024-01-01T00:00:00Z",
+    };
+    const validAccessToken = "123.1705824000.rw.abc123def456";
+
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(mockDefinition as unknown as ActiveDefinition),
+    );
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.success(mockSubmission as unknown as Submission),
+    );
+
+    const props = {
+      params: Promise.resolve({ formId: "valid-id" }),
+      searchParams: Promise.resolve({ token: validAccessToken }),
+    };
+
+    // Act
+    const component = await ShareFormPage(props);
+    render(component);
+
+    // Assert
+    expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
+    expect(screen.queryByText("Already Responded")).toBeNull();
+  });
 });
