@@ -264,6 +264,68 @@ describe("ShareForm Page", () => {
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
 
+  it("falls back to default already responded message for null metadata JSON", async () => {
+    // Arrange
+    const mockDefinition = {
+      jsonData: { title: "Test Form" },
+      hasUserSubmitted: true,
+      metadata: "null",
+    };
+
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(mockDefinition as unknown as ActiveDefinition),
+    );
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
+    );
+
+    const props = {
+      params: Promise.resolve({ formId: "valid-id" }),
+      searchParams: Promise.resolve({}),
+    };
+
+    // Act
+    const component = await ShareFormPage(props);
+    render(component);
+
+    // Assert
+    expect(
+      screen.getByText("You have already submitted a response for this form."),
+    ).toBeDefined();
+  });
+
+  it("falls back to default message for empty configured value", async () => {
+    // Arrange
+    const mockDefinition = {
+      jsonData: { title: "Test Form" },
+      hasUserSubmitted: true,
+      metadata: JSON.stringify({
+        alreadyRespondedMessage: "",
+      }),
+    };
+
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(mockDefinition as unknown as ActiveDefinition),
+    );
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
+    );
+
+    const props = {
+      params: Promise.resolve({ formId: "valid-id" }),
+      searchParams: Promise.resolve({}),
+    };
+
+    // Act
+    const component = await ShareFormPage(props);
+    render(component);
+
+    // Assert
+    expect(
+      screen.getByText("You have already submitted a response for this form."),
+    ).toBeDefined();
+  });
+
   it("does not gate token edit flow when user already submitted", async () => {
     // Arrange
     const mockDefinition = {

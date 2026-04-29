@@ -29,16 +29,20 @@ function getAlreadyRespondedMessage(metadata?: string): string {
   }
 
   try {
-    const parsedMetadata = JSON.parse(metadata) as {
+    const parsedMetadata = JSON.parse(metadata) as unknown;
+
+    if (typeof parsedMetadata !== "object" || parsedMetadata === null) {
+      return DEFAULT_ALREADY_RESPONDED_MESSAGE;
+    }
+
+    const parsedMetadataObject = parsedMetadata as {
       alreadyRespondedMessage?: string;
       alreadyResponded?: { message?: string };
     };
+    const nestedMessage = parsedMetadataObject.alreadyResponded?.message?.trim();
+    const directMessage = parsedMetadataObject.alreadyRespondedMessage?.trim();
 
-    return (
-      parsedMetadata.alreadyResponded?.message ??
-      parsedMetadata.alreadyRespondedMessage ??
-      DEFAULT_ALREADY_RESPONDED_MESSAGE
-    );
+    return nestedMessage || directMessage || DEFAULT_ALREADY_RESPONDED_MESSAGE;
   } catch {
     return DEFAULT_ALREADY_RESPONDED_MESSAGE;
   }
@@ -151,9 +155,13 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
 
   if (shouldShowAlreadyResponded) {
     return (
-      <AlreadyResponded
-        message={getAlreadyRespondedMessage(activeDefinition.metadata)}
-      />
+      <div className={styles.surveyPage}>
+        <div className={styles.surveyContent}>
+          <AlreadyResponded
+            message={getAlreadyRespondedMessage(activeDefinition.metadata)}
+          />
+        </div>
+      </div>
     );
   }
 
