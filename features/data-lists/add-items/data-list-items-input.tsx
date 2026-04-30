@@ -4,7 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileUp } from "lucide-react";
 import { JsonEditor } from "./json-editor";
 
-export type TabValue = "upload" | "paste";
+const tabValues = ["upload", "paste"] as const;
+export type TabValue = (typeof tabValues)[number];
+
+const isTabValue = (value: string): value is TabValue =>
+  (tabValues as readonly string[]).includes(value);
 
 interface DataListItemsInputProps {
   tabValue: TabValue;
@@ -26,15 +30,20 @@ export function DataListItemsInput({
   fileInputId,
 }: DataListItemsInputProps) {
   const isPasteTab = tabValue === "paste";
+  const pasteJsonTabName = selectedFileName ? "File JSON" : "Paste JSON";
 
   return (
     <Tabs
       value={tabValue}
-      onValueChange={(tab) => onTabChange(tab as TabValue)}
+      onValueChange={(tab) => {
+        if (isTabValue(tab)) {
+          onTabChange(tab);
+        }
+      }}
     >
       <TabsList variant="line" className="w-full justify-start">
         <TabsTrigger value="upload">Upload JSON</TabsTrigger>
-        <TabsTrigger value="paste">Paste JSON</TabsTrigger>
+        <TabsTrigger value="paste">{pasteJsonTabName}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="upload" className="space-y-4 pt-2">

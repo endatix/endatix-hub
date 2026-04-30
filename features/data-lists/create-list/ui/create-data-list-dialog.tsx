@@ -42,7 +42,7 @@ export function CreateDataListDialog({
   const [step, setStep] = useState<CreateStep>(1);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [tabValue, setTabValue] = useState("upload");
+  const [tabValue, setTabValue] = useState<TabValue>("upload");
   const [validation, setValidation] = useState<ParsedValidation | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -66,6 +66,13 @@ export function CreateDataListDialog({
       resetFileHandler();
     }
   }, [open, resetFileHandler]);
+
+  useEffect(() => {
+    if (selectedFileName && jsonInput.trim().length > 0) {
+      setTabValue("paste");
+      setValidationError(null);
+    }
+  }, [jsonInput, selectedFileName]);
 
   const canProceedToReview = useMemo(() => {
     return (
@@ -162,7 +169,7 @@ export function CreateDataListDialog({
               </div>
 
               <DataListItemsInput
-                tabValue={tabValue as TabValue}
+                tabValue={tabValue}
                 onTabChange={setTabValue}
                 jsonInput={jsonInput}
                 onJsonInputChange={setJsonInput}

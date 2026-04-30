@@ -63,7 +63,7 @@ export function parseAndValidateJson(value: string): ParsedValidation {
 
   parsed.forEach((item, index) => {
     if (!item || typeof item !== "object") {
-      errors.push(`Row ${index + 1}: item must be an object.`);
+      errors.push(`Choice item ${index + 1}: item must be an object.`);
       return;
     }
 
@@ -72,22 +72,22 @@ export function parseAndValidateJson(value: string): ParsedValidation {
     const valueField = typeof row.value === "string" ? row.value.trim() : "";
 
     if (!label) {
-      errors.push(`Row ${index + 1}: label is required.`);
+      errors.push(`Choice item ${index + 1}: label is required.`);
     }
 
     if (!valueField) {
-      errors.push(`Row ${index + 1}: value is required.`);
+      errors.push(`Choice item ${index + 1}: value is required.`);
     }
 
     if (label.length > MAX_FIELD_LENGTH) {
       errors.push(
-        `Row ${index + 1}: label exceeds ${MAX_FIELD_LENGTH} characters.`,
+        `Choice item ${index + 1}: label exceeds ${MAX_FIELD_LENGTH} characters.`,
       );
     }
 
     if (valueField.length > MAX_FIELD_LENGTH) {
       errors.push(
-        `Row ${index + 1}: value exceeds ${MAX_FIELD_LENGTH} characters.`,
+        `Choice item ${index + 1}: value exceeds ${MAX_FIELD_LENGTH} characters.`,
       );
     }
 

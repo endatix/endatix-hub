@@ -16,7 +16,7 @@ import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { replaceDataListItemsAction } from "../replace-data-list-items.action";
-import { DataListItemsInput } from "../../add-items/data-list-items-input";
+import { DataListItemsInput, TabValue } from "../../add-items/data-list-items-input";
 import { DataListValidationPreview } from "../../add-items/data-list-validation-preview";
 import { useJsonFileSource } from "../../add-items/use-json-file-source.hook";
 import {
@@ -39,7 +39,7 @@ export function ReplaceItemsDialog({
   title,
   onReplaced,
 }: ReplaceItemsDialogProps) {
-  const [tabValue, setTabValue] = useState("upload");
+  const [tabValue, setTabValue] = useState<TabValue>("upload");
   const [isPending, startTransition] = useTransition();
 
   const {
@@ -47,6 +47,7 @@ export function ReplaceItemsDialog({
     validationError,
     selectedFileName,
     setJsonInput,
+    setValidationError,
     handleFileSelected,
     reset: resetFileHandler,
   } = useJsonFileSource();
@@ -65,6 +66,13 @@ export function ReplaceItemsDialog({
       setTabValue("upload");
     }
   }, [open, resetFileHandler]);
+
+  useEffect(() => {
+    if (selectedFileName && jsonInput.trim().length > 0) {
+      setTabValue("paste");
+      setValidationError(null);
+    }
+  }, [jsonInput, selectedFileName, setValidationError]);
 
   const canSubmit = useMemo(() => {
     return (
