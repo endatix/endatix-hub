@@ -5,8 +5,8 @@ import { authorization } from "@/features/auth/authorization";
 import { TelemetryLogger } from "@/features/telemetry";
 import { EndatixApi } from "@/lib/endatix-api";
 import type {
+  DataListChoiceItem,
   DataListDetails,
-  DataListItem,
 } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 
@@ -15,7 +15,7 @@ export type ReplaceDataListItemsResult = Result<DataListDetails>;
 
 export async function replaceDataListItemsAction(
   dataListId: string,
-  items: DataListItem[],
+  items: DataListChoiceItem[],
 ): Promise<ReplaceDataListItemsResult | never> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);

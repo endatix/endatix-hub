@@ -1,12 +1,28 @@
-import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
-import { z } from "zod";
+import type {
+  DataListChoiceItem,
+  DataListItem,
+} from "@/lib/endatix-api/data-lists/types";
 
-export const MAX_FIELD_LENGTH = 255;
 export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+export const MAX_FIELD_LENGTH = 255;
+export const MAX_PREVIEW_ERRORS = 20;
+
+export const FILE_SIZE_ERROR = "File is too large. Max file size is 5MB.";
+export const READ_ERROR = "Failed to read the selected file.";
+export const JSON_REQUIRED_ERROR = "JSON content is required.";
+export const INVALID_JSON_ERROR = "Invalid JSON format.";
+export const ARRAY_REQUIRED_ERROR = "JSON root must be an array of objects.";
+export const AT_LEAST_ONE_ERROR = "At least one item is required.";
 
 export interface ParsedValidation {
-  validItems: DataListItem[];
+  validItems: DataListChoiceItem[];
   errors: string[];
+}
+
+export interface JsonFileHandlerState {
+  jsonInput: string;
+  validationError: string | null;
+  selectedFileName: string | null;
 }
 
 export function parseAndValidateJson(value: string): ParsedValidation {
@@ -14,7 +30,7 @@ export function parseAndValidateJson(value: string): ParsedValidation {
   if (!trimmed) {
     return {
       validItems: [],
-      errors: ["JSON content is required."],
+      errors: [JSON_REQUIRED_ERROR],
     };
   }
 
@@ -24,31 +40,28 @@ export function parseAndValidateJson(value: string): ParsedValidation {
   } catch {
     return {
       validItems: [],
-      errors: ["Invalid JSON format."],
+      errors: [INVALID_JSON_ERROR],
     };
   }
 
   if (!Array.isArray(parsed)) {
     return {
       validItems: [],
-      errors: ["JSON root must be an array of objects."],
+      errors: [ARRAY_REQUIRED_ERROR],
     };
   }
 
   if (parsed.length === 0) {
     return {
       validItems: [],
-      errors: ["At least one item is required."],
+      errors: [AT_LEAST_ONE_ERROR],
     };
   }
 
   const errors: string[] = [];
-  const validItems: DataListItem[] = [];
+  const validItems: DataListChoiceItem[] = [];
 
   parsed.forEach((item, index) => {
-    // TODO: Why not using zod client to validate and also extract to seperate method and test; make sure to add more info to the error output so users can see what was wrong with details
-    // Common types push to ../types.ts
-    // Shared utils push to ../utils.ts
     if (!item || typeof item !== "object") {
       errors.push(`Row ${index + 1}: item must be an object.`);
       return;

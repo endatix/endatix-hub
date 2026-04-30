@@ -114,7 +114,7 @@ importers:
         specifier: ^1.5.2
         version: 1.6.0
       ace-builds:
-        specifier: ^1.43.6
+        specifier: ^1.5.0
         version: 1.43.6
       class-variance-authority:
         specifier: ^0.7.1

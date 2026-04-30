@@ -17,13 +17,13 @@ import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createDataListAction } from "../create-data-list.action";
-import { DataListItemsInput } from "../../ui/data-list-items-input";
-import { DataListValidationPreview } from "../../ui/data-list-validation-preview";
-import { useJsonFileHandler } from "../../ui/use-json-file-handler";
+import { DataListItemsInput, TabValue } from "../../add-items/data-list-items-input";
+import { DataListValidationPreview } from "../../add-items/data-list-validation-preview";
+import { useJsonFileSource } from "../../add-items/use-json-file-source.hook";
 import {
   parseAndValidateJson,
   type ParsedValidation,
-} from "../../ui/types";
+} from "../../add-items/types";
 import { replaceDataListItemsAction } from "../../replace-list-items/replace-data-list-items.action";
 
 interface CreateDataListDialogProps {
@@ -47,8 +47,13 @@ export function CreateDataListDialog({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const { jsonInput, selectedFileName, handleFileSelected, reset: resetFileHandler } =
-    useJsonFileHandler();
+  const {
+    jsonInput,
+    selectedFileName,
+    setJsonInput,
+    handleFileSelected,
+    reset: resetFileHandler,
+  } = useJsonFileSource();
 
   useEffect(() => {
     if (!open) {
@@ -129,7 +134,7 @@ export function CreateDataListDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4">
           <DialogTitle>Create Data List</DialogTitle>
@@ -157,7 +162,7 @@ export function CreateDataListDialog({
               </div>
 
               <DataListItemsInput
-                tabValue={tabValue}
+                tabValue={tabValue as TabValue}
                 onTabChange={setTabValue}
                 jsonInput={jsonInput}
                 onJsonInputChange={setJsonInput}
@@ -169,63 +174,11 @@ export function CreateDataListDialog({
           )}
 
           {step === 2 && validation && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Validation Preview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-md bg-muted p-2">
-                    <div className="text-xs text-muted-foreground">
-                      Total rows
-                    </div>
-                    <div className="font-semibold">
-                      {validation.validItems.length + validation.errors.length}
-                    </div>
-                  </div>
-                  <div className="rounded-md bg-muted p-2">
-                    <div className="text-xs text-muted-foreground">
-                      Valid rows
-                    </div>
-                    <div className="font-semibold text-primary">
-                      {validation.validItems.length}
-                    </div>
-                  </div>
-                  <div className="rounded-md bg-muted p-2">
-                    <div className="text-xs text-muted-foreground">
-                      Rows with errors
-                    </div>
-                    <div className="font-semibold text-destructive">
-                      {validation.errors.length}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-md border p-3 text-xs">
-                  <div className="font-medium">{name}</div>
-                  {description && (
-                    <div className="mt-1 text-muted-foreground">
-                      {description}
-                    </div>
-                  )}
-                </div>
-
-                {validation.errors.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-destructive">
-                      Fix these issues before creating:
-                    </p>
-                    <ul className="list-disc space-y-1 pl-4 text-xs text-destructive">
-                      {validation.errors
-                        .slice(0, MAX_PREVIEW_ERRORS)
-                        .map((error) => (
-                          <li key={error}>{error}</li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <DataListValidationPreview
+              validation={validation}
+              name={name}
+              description={description}
+            />
           )}
 
           {validationError && step === 1 && (

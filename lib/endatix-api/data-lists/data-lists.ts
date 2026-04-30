@@ -9,8 +9,8 @@ import {
 import { IPagedRequest, PagedResponse } from "../shared/types";
 import {
   CreateDataListRequest,
+  DataListChoiceItem,
   DataListDetails,
-  DataListItem,
   DataList,
   FormDependencySummary,
 } from "./types";
@@ -56,7 +56,7 @@ export class DataLists {
 
   async replaceItems(
     dataListId: string,
-    items: DataListItem[],
+    items: DataListChoiceItem[],
   ): Promise<ApiResult<DataListDetails>> {
     const validationResult = validateEndatixId(dataListId, "dataListId");
     if (Result.isError(validationResult)) {

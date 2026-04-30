@@ -29,7 +29,7 @@ export interface CreateDataListRequest {
 }
 
 export interface ReplaceDataListItemsRequest {
-  items: DataListItem[];
+  items: DataListChoiceItem[];
 }
 
 export interface FormDependencySummary {

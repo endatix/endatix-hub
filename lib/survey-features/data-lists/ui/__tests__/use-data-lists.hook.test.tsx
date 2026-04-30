@@ -7,7 +7,7 @@ const { mockGetDataListsAction } = vi.hoisted(() => ({
   mockGetDataListsAction: vi.fn(),
 }));
 
-vi.mock("@/features/data-lists/list/get-data-lists.action", () => ({
+vi.mock("@/features/data-lists/view-lists/get-data-lists.action", () => ({
   getDataListsAction: mockGetDataListsAction,
 }));
 

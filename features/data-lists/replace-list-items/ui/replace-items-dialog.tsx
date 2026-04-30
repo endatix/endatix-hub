@@ -2,7 +2,6 @@
 
 import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -16,15 +15,14 @@ import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { replaceDataListItemsAction } from "../replace-data-list-items.action";
+import { DataListItemsInput } from "../../add-items/data-list-items-input";
+import { DataListValidationPreview } from "../../add-items/data-list-validation-preview";
+import { useJsonFileSource } from "../../add-items/use-json-file-source.hook";
 import {
-  MAX_FILE_SIZE_BYTES,
   parseAndValidateJson,
   type ParsedValidation,
-} from "../json-import-validation";
-import { replaceDataListItemsAction } from "../replace-data-list-items.action";
-import { DataListItemsInput } from "../../ui/data-list-items-input";
-
-const MAX_PREVIEW_ERRORS = 20;
+} from "../../add-items/types";
 
 interface ReplaceItemsDialogProps {
   open: boolean;
@@ -41,11 +39,17 @@ export function ReplaceItemsDialog({
   title,
   onReplaced,
 }: ReplaceItemsDialogProps) {
-  const [jsonInput, setJsonInput] = useState("");
   const [tabValue, setTabValue] = useState("upload");
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const {
+    jsonInput,
+    validationError,
+    selectedFileName,
+    setJsonInput,
+    handleFileSelected,
+    reset: resetFileHandler,
+  } = useJsonFileSource();
 
   const validation = useMemo<ParsedValidation | null>(() => {
     if (!jsonInput.trim()) {
@@ -57,12 +61,10 @@ export function ReplaceItemsDialog({
 
   useEffect(() => {
     if (!open) {
-      setJsonInput("");
-      setValidationError(null);
-      setSelectedFileName(null);
+      resetFileHandler();
       setTabValue("upload");
     }
-  }, [open]);
+  }, [open, resetFileHandler]);
 
   const canSubmit = useMemo(() => {
     return (
@@ -71,30 +73,6 @@ export function ReplaceItemsDialog({
       validation.errors.length === 0
     );
   }, [validation]);
-
-  const handleFileSelected = (file: File | null) => {
-    if (!file) {
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setJsonInput("");
-      setValidationError("File is too large. Max file size is 5MB.");
-      setSelectedFileName(file.name);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const content = String(reader.result ?? "");
-      setSelectedFileName(file.name);
-      setJsonInput(content);
-    };
-    reader.onerror = () => {
-      setValidationError("Failed to read the selected file.");
-    };
-    reader.readAsText(file);
-  };
 
   const handleReplace = () => {
     if (validation === null) {
@@ -154,56 +132,7 @@ export function ReplaceItemsDialog({
             </div>
           )}
 
-          {validation && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Validation Preview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-md bg-muted p-2">
-                    <div className="text-xs text-muted-foreground">
-                      Total rows
-                    </div>
-                    <div className="font-semibold">
-                      {validation.validItems.length + validation.errors.length}
-                    </div>
-                  </div>
-                  <div className="rounded-md bg-muted p-2">
-                    <div className="text-xs text-muted-foreground">
-                      Valid rows
-                    </div>
-                    <div className="font-semibold text-primary">
-                      {validation.validItems.length}
-                    </div>
-                  </div>
-                  <div className="rounded-md bg-muted p-2">
-                    <div className="text-xs text-muted-foreground">
-                      Rows with errors
-                    </div>
-                    <div className="font-semibold text-destructive">
-                      {validation.errors.length}
-                    </div>
-                  </div>
-                </div>
-
-                {validation.errors.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-destructive">
-                      Fix these issues before replacing:
-                    </p>
-                    <ul className="list-disc space-y-1 pl-4 text-xs text-destructive">
-                      {validation.errors
-                        .slice(0, MAX_PREVIEW_ERRORS)
-                        .map((error) => (
-                          <li key={error}>{error}</li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {validation && <DataListValidationPreview validation={validation} />}
         </div>
 
         <DialogFooter className="border-t px-6 py-4">

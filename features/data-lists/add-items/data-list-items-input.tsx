@@ -1,12 +1,14 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Download, FileUp } from "lucide-react";
+import { JsonEditor } from "./json-editor";
 
-interface DataListItemsSourcesInputProps {
-  tabValue: string;
-  onTabChange: (tab: string) => void;
+export type TabValue = "upload" | "paste";
+
+interface DataListItemsInputProps {
+  tabValue: TabValue;
+  onTabChange: (tab: TabValue) => void;
   jsonInput: string;
   onJsonInputChange: (value: string) => void;
   onFileSelected: (file: File | null) => void;
@@ -14,16 +16,6 @@ interface DataListItemsSourcesInputProps {
   fileInputId: string;
 }
 
-/**
- * A component that allows the user to upload or paste a JSON file to replace the items of a data list.
- * @param tabValue - The value of the tab to display.
- * @param onTabChange - A function to call when the tab value changes.
- * @param jsonInput - The JSON input to display.
- * @param onJsonInputChange - A function to call when the JSON input changes.
- * @param onFileSelected - A function to call when a file is selected.
- * @param selectedFileName - The name of the selected file.
- * @param fileInputId - The ID of the file input.
- */
 export function DataListItemsInput({
   tabValue,
   onTabChange,
@@ -32,9 +24,14 @@ export function DataListItemsInput({
   onFileSelected,
   selectedFileName,
   fileInputId,
-}: DataListItemsSourcesInputProps) {
+}: DataListItemsInputProps) {
+  const isPasteTab = tabValue === "paste";
+
   return (
-    <Tabs value={tabValue} onValueChange={onTabChange}>
+    <Tabs
+      value={tabValue}
+      onValueChange={(tab) => onTabChange(tab as TabValue)}
+    >
       <TabsList variant="line" className="w-full justify-start">
         <TabsTrigger value="upload">Upload JSON</TabsTrigger>
         <TabsTrigger value="paste">Paste JSON</TabsTrigger>
@@ -53,6 +50,7 @@ export function DataListItemsInput({
             Max file size: 5MB
           </span>
         </label>
+
         <input
           id={fileInputId}
           type="file"
@@ -62,11 +60,13 @@ export function DataListItemsInput({
             onFileSelected(event.target.files?.item(0) ?? null)
           }
         />
+
         {selectedFileName && (
           <p className="text-xs text-muted-foreground">
             Selected: {selectedFileName}
           </p>
         )}
+
         <a
           href="/templates/data-list-template.json"
           download
@@ -77,13 +77,10 @@ export function DataListItemsInput({
         </a>
       </TabsContent>
 
-      <TabsContent value="paste" className="space-y-3 pt-2">
-        <Textarea
-          value={jsonInput}
-          onChange={(event) => onJsonInputChange(event.target.value)}
-          className="max-h-[360px] min-h-[220px] overflow-y-auto font-mono text-xs"
-          placeholder='[{"label":"Option A","value":"option-a"}]'
-        />
+      <TabsContent value="paste" className="mt-2 space-y-3 pt-2">
+        {isPasteTab && (
+          <JsonEditor value={jsonInput} onChange={onJsonInputChange} />
+        )}
       </TabsContent>
     </Tabs>
   );
