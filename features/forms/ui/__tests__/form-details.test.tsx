@@ -93,7 +93,20 @@ describe("FormDetails", () => {
     // Assert
     expect(
       screen.getByText(
-        "After you turn this on, each signed-in person can submit this form only once. To protect the integrity of collected responses, this setting is permanent. You will also not be able to make the form public later.",
+        /After you turn this on, each signed-in person can submit this form only once\./,
+        { selector: "p" },
+      ),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        "To protect the integrity of collected responses, this setting is permanent.",
+        { selector: "strong" },
+      ),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        "You will also not be able to make the form public later.",
+        { selector: "strong" },
       ),
     ).toBeDefined();
     expect(mockUpdateFormSettingsAction).not.toHaveBeenCalled();

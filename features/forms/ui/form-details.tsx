@@ -51,6 +51,12 @@ import PageTitle from "@/components/headings/page-title";
 import { WebhookSettings } from "./webhook-settings";
 import { ShareDialog } from "./share-dialog";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -162,6 +168,18 @@ const FormDetails = ({
   const visibilityLabel = isPublic ? "Public" : "Private";
   const limitOnePerUserDisabled = limitOnePerUser || isPublic || pending;
   const visibilityDisabled = pending || limitOnePerUser;
+  const visibilityDisabledReason = limitOnePerUser
+    ? 'Visibility cannot be changed while "one response per person" is enabled.'
+    : pending
+      ? "Please wait for the current update to finish."
+      : undefined;
+  const limitOnePerUserDisabledReason = limitOnePerUser
+    ? "This setting is permanent once enabled."
+    : isPublic
+      ? "This option is available only for private forms."
+      : pending
+        ? "Please wait for the current update to finish."
+        : undefined;
 
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
@@ -436,13 +454,29 @@ const FormDetails = ({
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
               <>
-                <Switch
-                  id="form-visibility"
-                  checked={isPublic}
-                  onCheckedChange={toggleVisibility}
-                  disabled={visibilityDisabled}
-                  aria-readonly
-                />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="inline-flex"
+                        data-testid="form-visibility-tooltip-trigger"
+                      >
+                        <Switch
+                          id="form-visibility"
+                          checked={isPublic}
+                          onCheckedChange={toggleVisibility}
+                          disabled={visibilityDisabled}
+                          aria-readonly
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    {visibilityDisabled && visibilityDisabledReason && (
+                      <TooltipContent side="top" sideOffset={6}>
+                        {visibilityDisabledReason}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 <Label htmlFor="form-visibility" className="flex items-center gap-1">
                   {isPublic ? (
                     <Globe className="h-3 w-3" />
@@ -469,13 +503,29 @@ const FormDetails = ({
           <span className="text-right self-start">Limit one per user</span>
           <div className="col-span-3 flex flex-col gap-1">
             <div className="flex items-center space-x-2">
-              <Switch
-                id="form-limit-one"
-                checked={limitOnePerUser}
-                onCheckedChange={handleLimitOnePerUserChange}
-                disabled={limitOnePerUserDisabled}
-                aria-readonly
-              />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex"
+                      data-testid="form-limit-one-tooltip-trigger"
+                    >
+                      <Switch
+                        id="form-limit-one"
+                        checked={limitOnePerUser}
+                        onCheckedChange={handleLimitOnePerUserChange}
+                        disabled={limitOnePerUserDisabled}
+                        aria-readonly
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  {limitOnePerUserDisabled && limitOnePerUserDisabledReason && (
+                    <TooltipContent side="top" sideOffset={6}>
+                      {limitOnePerUserDisabledReason}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               <Label htmlFor="form-limit-one">
                 {limitOnePerUser ? "Enabled" : "Disabled"}
               </Label>
@@ -546,7 +596,15 @@ const FormDetails = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Enable "one response per person"?</AlertDialogTitle>
             <AlertDialogDescription>
-            After you turn this on, each signed-in person can submit this form only once. To protect the integrity of collected responses, this setting is permanent. You will also not be able to make the form public later.
+              After you turn this on, each signed-in person can submit this form
+              only once.{" "}
+              <strong>
+                To protect the integrity of collected responses, this setting is
+                permanent.
+              </strong>{" "}
+              <strong>
+                You will also not be able to make the form public later.
+              </strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
