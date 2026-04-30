@@ -1,10 +1,13 @@
-import { DataListSummary } from "@/lib/endatix-api/data-lists/types";
+import { DataList } from "@/lib/endatix-api/data-lists/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Result } from "@/lib/result";
-import { getDataListsAction } from "@/features/data-lists/list/get-data-lists.action";
+import { getDataListsAction } from "@/features/data-lists/view-lists/get-data-lists.action";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { Model } from "survey-core";
-import { bindDataListsToCreator, setDataListPropertyChoices } from "../infrastructure/creator-bindings";
+import {
+  bindDataListsToCreator,
+  setDataListPropertyChoices,
+} from "../infrastructure/creator-bindings";
 import { registerDataListGlobals } from "../infrastructure/registry";
 import { bindDataListsToSurvey } from "../infrastructure/survey-bindings";
 import { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
@@ -19,7 +22,7 @@ interface UseDataListsApi {
     model: Model,
     getRuntimeState: () => FormRuntimeState,
   ) => (() => void) | undefined;
-  setAvailableDataLists: (dataLists: DataListSummary[]) => void;
+  setAvailableDataLists: (dataLists: DataList[]) => void;
 }
 
 export function useDataLists(): UseDataListsApi {
@@ -30,43 +33,43 @@ export function useDataLists(): UseDataListsApi {
     registerDataListGlobals();
   }, []);
 
-  const setAvailableDataLists = useCallback((dataLists: DataListSummary[]) => {
+  const setAvailableDataLists = useCallback((dataLists: DataList[]) => {
     setDataListPropertyChoices(dataLists);
   }, []);
 
-  const bindToCreator = useCallback((
-    creator: SurveyCreatorModel,
-    getRuntimeState: () => FormRuntimeState,
-  ) => {
-    if (!creator || creatorBoundRef.current) {
-      return;
-    }
+  const bindToCreator = useCallback(
+    (creator: SurveyCreatorModel, getRuntimeState: () => FormRuntimeState) => {
+      if (!creator || creatorBoundRef.current) {
+        return;
+      }
 
-    creatorBoundRef.current = true;
-    const unbind = bindDataListsToCreator(creator, getRuntimeState);
+      creatorBoundRef.current = true;
+      const unbind = bindDataListsToCreator(creator, getRuntimeState);
 
-    return () => {
-      unbind();
-      creatorBoundRef.current = false;
-    };
-  }, []);
+      return () => {
+        unbind();
+        creatorBoundRef.current = false;
+      };
+    },
+    [],
+  );
 
-  const bindToSurvey = useCallback((
-    model: Model,
-    getRuntimeState: () => FormRuntimeState,
-  ) => {
-    if (!model || surveyBoundRef.current) {
-      return;
-    }
+  const bindToSurvey = useCallback(
+    (model: Model, getRuntimeState: () => FormRuntimeState) => {
+      if (!model || surveyBoundRef.current) {
+        return;
+      }
 
-    surveyBoundRef.current = true;
-    const unbind = bindDataListsToSurvey(model, getRuntimeState);
+      surveyBoundRef.current = true;
+      const unbind = bindDataListsToSurvey(model, getRuntimeState);
 
-    return () => {
-      unbind();
-      surveyBoundRef.current = false;
-    };
-  }, []);
+      return () => {
+        unbind();
+        surveyBoundRef.current = false;
+      };
+    },
+    [],
+  );
 
   return {
     initGlobals,
@@ -77,7 +80,7 @@ export function useDataLists(): UseDataListsApi {
 }
 
 export function useDataListsLoader() {
-  const [dataLists, setDataLists] = useState<DataListSummary[]>([]);
+  const [dataLists, setDataLists] = useState<DataList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

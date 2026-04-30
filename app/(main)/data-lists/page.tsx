@@ -2,8 +2,8 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { dataListsFlag } from "@/lib/feature-flags";
 import { redirect } from "next/navigation";
-import { DataListsPage } from "@/features/data-lists/list/data-lists-page";
-import { getDataListsAction } from "@/features/data-lists/list/get-data-lists.action";
+import { DataListsPage } from "@/features/data-lists/view-lists/ui/data-lists-page";
+import { getDataListsAction } from "@/features/data-lists/view-lists/get-data-lists.action";
 import { Result } from "@/lib/result";
 
 interface DataListsRoutePageProps {

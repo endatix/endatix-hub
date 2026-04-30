@@ -2,9 +2,9 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { dataListsFlag } from "@/lib/feature-flags";
 import { redirect } from "next/navigation";
-import { getDataListByIdAction } from "@/features/data-lists/list/get-data-list-by-id.action";
+import { getDataListByIdAction } from "@/features/data-lists/view-list-details/get-data-list-by-id.action";
 import { Result } from "@/lib/result";
-import { DataListDetailsPage } from "@/features/data-lists/list/data-list-details-page";
+import { DataListDetailsPage } from "@/features/data-lists/view-list-details/ui/data-list-details-page";
 
 interface DataListDetailsRoutePageProps {
   params: Promise<{ dataListId: string }>;

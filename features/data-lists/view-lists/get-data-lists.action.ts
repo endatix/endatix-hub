@@ -3,11 +3,16 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import { DataListSummary } from "@/lib/endatix-api/data-lists/types";
+import { DataList } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 
-export type GetDataListsResult = Result<DataListSummary[]>;
+export type GetDataListsResult = Result<DataList[]>;
 
+/**
+ * Gets all data lists via server-side aggregation.
+ * TODO: We will add lazy laoding and paging support in a future PR.
+ * @returns The data lists.
+ */
 export async function getDataListsAction(): Promise<
   GetDataListsResult | never
 > {
@@ -17,7 +22,7 @@ export async function getDataListsAction(): Promise<
 
   const api = new EndatixApi(session?.accessToken);
   const pageSize = 100;
-  const allItems: DataListSummary[] = [];
+  const allItems: DataList[] = [];
   let currentPage = 1;
   let totalPages = 1;
 

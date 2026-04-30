@@ -13,20 +13,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
 import type {
-  DataListSummary,
+  DataList,
   FormDependencySummary,
 } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import { useEffect, useState, useTransition } from "react";
-import { CreateDataListDialog } from "./create-data-list-dialog";
+import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";
-import { getDataListFormDependenciesAction } from "./get-data-list-form-dependencies.action";
-import { getDataListsAction } from "./get-data-lists.action";
-import { deleteDataListAction } from "../delete-list-item/delete-data-list.action";
+import { getDataListFormDependenciesAction } from "../get-data-list-form-dependencies.action";
+import { getDataListsAction } from "../get-data-lists.action";
+import { deleteDataListAction } from "../../delete-list/delete-data-list.action";
+import Link from "next/link";
 
 interface DataListsPageProps {
-  initialDataLists: DataListSummary[];
+  initialDataLists: DataList[];
   openCreateOnLoad?: boolean;
 }
 
@@ -34,16 +35,13 @@ export function DataListsPage({
   initialDataLists,
   openCreateOnLoad = false,
 }: DataListsPageProps) {
-  const toDate = (value?: string | Date | null): Date | null | undefined =>
-    typeof value === "string" ? new Date(value) : value;
-
   const [dataLists, setDataLists] =
-    useState<DataListSummary[]>(initialDataLists);
+    useState<DataList[]>(initialDataLists);
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
     useState(openCreateOnLoad);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedForDelete, setSelectedForDelete] =
-    useState<DataListSummary | null>(null);
+    useState<DataList | null>(null);
   const [dependencies, setDependencies] = useState<FormDependencySummary[]>([]);
   const [isDeleteBlocked, setIsDeleteBlocked] = useState(false);
   const [isDeletePending, startDeleteTransition] = useTransition();
@@ -65,7 +63,7 @@ export function DataListsPage({
     setDataLists(result.value);
   };
 
-  const handleOpenDelete = (dataList: DataListSummary) => {
+  const handleOpenDelete = (dataList: DataList) => {
     setSelectedForDelete(dataList);
     setDependencies([]);
     setIsDeleteBlocked(false);
@@ -120,11 +118,12 @@ export function DataListsPage({
       </section>
 
       <div className="mt-6 flex flex-col gap-2">
-        <div className="grid grid-cols-[2fr_2fr_1.2fr_1.2fr_64px] items-center px-4 py-1 text-xs text-muted-foreground">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_64px] items-center px-4 py-1 text-xs text-muted-foreground md:grid-cols-[2fr_2fr_1.2fr_1.2fr_0.8fr_64px]">
           <span>Friendly Name</span>
           <span>Status</span>
-          <span>Created</span>
-          <span>Modified</span>
+          <span className="hidden md:block">Created</span>
+          <span className="hidden md:block">Modified</span>
+          <span className="hidden text-center md:block">Items Count</span>
           <span className="text-right">Actions</span>
         </div>
 
@@ -136,7 +135,7 @@ export function DataListsPage({
           dataLists.map((dataList) => (
             <div
               key={dataList.id}
-              className="grid grid-cols-[2fr_2fr_1.2fr_1.2fr_64px] items-center gap-4 rounded-xl border bg-card px-4 py-4 transition-colors hover:bg-muted/20"
+              className="grid grid-cols-[minmax(0,1fr)_auto_64px] items-center gap-4 rounded-xl border bg-card px-4 py-4 transition-colors hover:bg-muted/20 md:grid-cols-[2fr_2fr_1.2fr_1.2fr_0.8fr_64px]"
             >
               <div className="min-w-0">
                 <p className="truncate text-base font-semibold">
@@ -151,11 +150,20 @@ export function DataListsPage({
                 <StatusPill isActive={dataList.isActive} />
               </div>
 
-              <div className="text-sm text-muted-foreground">
-                {getFormattedDate(toDate(dataList.createdAt))}
+              <div className="hidden text-sm text-muted-foreground md:block">
+                {getFormattedDate(dataList.createdAt)}
               </div>
-              <div className="text-sm text-muted-foreground">
-                {getFormattedDate(toDate(dataList.modifiedAt))}
+              <div className="hidden text-sm text-muted-foreground md:block">
+                {getFormattedDate(dataList.modifiedAt)}
+              </div>
+
+              <div className="hidden justify-center text-sm text-muted-foreground md:flex">
+                <Link
+                  href={`/data-lists/${dataList.id}`}
+                  className="flex items-center gap-1"
+                >
+                  {dataList.itemsCount} 
+                </Link>
               </div>
 
               <div className="flex justify-end">

@@ -1,19 +1,15 @@
-export interface DataListSummary {
-  id: number;
+export interface DataList {
+  id: string;
   name: string;
-  description?: string | null;
+  description?: string;
   isActive: boolean;
-  createdAt?: string | Date | null;
-  modifiedAt?: string | Date | null;
-  items?: DataListItem[];
+  createdAt: Date;
+  modifiedAt?: Date;
+  itemsCount: number;
 }
 
-export interface DataListsPageResponse {
-  page: string | number;
-  pageSize: string | number;
-  totalRecords: string | number;
-  totalPages: string | number;
-  items: DataListSummary[];
+export interface DataListDetails extends DataList {
+  items: DataListItem[];
 }
 
 export interface DataListChoiceItem {
@@ -22,19 +18,9 @@ export interface DataListChoiceItem {
 }
 
 export interface DataListItem {
-  id?: number;
+  id: string;
   label: string;
   value: string;
-}
-
-export interface DataListDetails {
-  id: number;
-  name: string;
-  description?: string | null;
-  isActive: boolean;
-  createdAt?: Date;
-  modifiedAt?: Date;
-  items: DataListItem[];
 }
 
 export interface CreateDataListRequest {

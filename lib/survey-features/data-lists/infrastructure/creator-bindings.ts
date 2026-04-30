@@ -1,4 +1,4 @@
-import { DataListSummary } from "@/lib/endatix-api/data-lists/types";
+import { DataList } from "@/lib/endatix-api/data-lists/types";
 import { Serializer } from "survey-core";
 import {
   AfterPropertyChangedEvent,
@@ -24,7 +24,7 @@ function toDataListId(value: unknown): string | null {
   return null;
 }
 
-export function setDataListPropertyChoices(dataLists: DataListSummary[]): void {
+export function setDataListPropertyChoices(dataLists: DataList[]): void {
   registerDataListGlobals();
   const choices = dataLists.map((item) => ({
     value: String(item.id),

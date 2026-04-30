@@ -1,34 +1,30 @@
-import { Result } from '@/lib/result';
-import { validateEndatixId } from '@/lib/utils/type-validators';
-import { EndatixApi } from '../endatix-api';
-import { ApiResult } from '../shared/api-result';
+import { Result } from "@/lib/result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
+import { EndatixApi } from "../endatix-api";
+import { ApiResult } from "../shared/api-result";
 import {
-  normalizePagedItemsResponse,
+  normalizePagedResponse,
   NormalizedPagedResponse,
-  PagedItemsEnvelope,
-} from '../shared/paged-response';
-import { IPagedRequest } from '../shared/types';
+} from "../shared/paged-response";
+import { IPagedRequest, PagedResponse } from "../shared/types";
 import {
   CreateDataListRequest,
   DataListDetails,
   DataListItem,
-  DataListsPageResponse,
-  DataListSummary,
+  DataList,
   FormDependencySummary,
-} from './types';
+} from "./types";
 
-export type DataListsPage = NormalizedPagedResponse<DataListSummary>;
+export type DataListsPage = NormalizedPagedResponse<DataList>;
 
 export class DataLists {
   constructor(private readonly endatix: EndatixApi) {}
 
   async list(request?: IPagedRequest): Promise<ApiResult<DataListsPage>> {
     const page = request?.page ?? 1;
-    const pageSize = request?.pageSize ?? 200;
+    const pageSize = request?.pageSize ?? 20;
 
-    const response = await this.endatix.get<
-      DataListsPageResponse
-    >(
+    const response = await this.endatix.get<PagedResponse<DataList>>(
       `/data-lists?page=${page}&pageSize=${pageSize}`,
     );
 
@@ -36,13 +32,13 @@ export class DataLists {
       return response;
     }
 
-    const envelope: PagedItemsEnvelope<DataListSummary> = response.data;
+    const data: DataListsPage = normalizePagedResponse(response.data);
 
-    return ApiResult.success(normalizePagedItemsResponse(envelope));
+    return ApiResult.success(data);
   }
 
   async getById(dataListId: string): Promise<ApiResult<DataListDetails>> {
-    const validationResult = validateEndatixId(dataListId, 'dataListId');
+    const validationResult = validateEndatixId(dataListId, "dataListId");
     if (Result.isError(validationResult)) {
       return ApiResult.validationError(validationResult.message);
     }
@@ -55,14 +51,14 @@ export class DataLists {
   async create(
     request: CreateDataListRequest,
   ): Promise<ApiResult<DataListDetails>> {
-    return this.endatix.post<DataListDetails>('/data-lists', request);
+    return this.endatix.post<DataListDetails>("/data-lists", request);
   }
 
   async replaceItems(
     dataListId: string,
     items: DataListItem[],
   ): Promise<ApiResult<DataListDetails>> {
-    const validationResult = validateEndatixId(dataListId, 'dataListId');
+    const validationResult = validateEndatixId(dataListId, "dataListId");
     if (Result.isError(validationResult)) {
       return ApiResult.validationError(validationResult.message);
     }
@@ -76,7 +72,7 @@ export class DataLists {
   async listFormDependencies(
     dataListId: string,
   ): Promise<ApiResult<FormDependencySummary[]>> {
-    const validationResult = validateEndatixId(dataListId, 'dataListId');
+    const validationResult = validateEndatixId(dataListId, "dataListId");
     if (Result.isError(validationResult)) {
       return ApiResult.validationError(validationResult.message);
     }
@@ -87,7 +83,7 @@ export class DataLists {
   }
 
   async delete(dataListId: string): Promise<ApiResult<string>> {
-    const validationResult = validateEndatixId(dataListId, 'dataListId');
+    const validationResult = validateEndatixId(dataListId, "dataListId");
     if (Result.isError(validationResult)) {
       return ApiResult.validationError(validationResult.message);
     }

@@ -7,13 +7,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { DataListSummary } from '@/lib/endatix-api/data-lists/types';
+import type { DataList } from '@/lib/endatix-api/data-lists/types';
 import { Eye, MoreHorizontal, PencilLine, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface DataListRowActionsProps {
-  dataList: DataListSummary;
-  onDelete: (dataList: DataListSummary) => void;
+  dataList: DataList;
+  onDelete: (dataList: DataList) => void;
 }
 
 export function DataListRowActions({

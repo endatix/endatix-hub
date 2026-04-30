@@ -1,59 +1,79 @@
+import { PagedResponse } from "./types";
+
+const DEFAULT_PAGE_SIZE = 20;
+const MIN_PAGE = 1;
+const MIN_PAGE_SIZE = 1;
+
+/**
+ * Calculates total pages from total records and page size.
+ * Mirrors C#: (totalRecords + pageSize - 1) / pageSize
+ */
+function calculateTotalPages(totalRecords: number, pageSize: number): number {
+  if (totalRecords <= 0 || pageSize <= 0) {
+    return 0;
+  }
+  return Math.ceil(totalRecords / pageSize);
+}
+
+/**
+ * A normalized wrapper for paginated API responses. Focused on UI friendly properties.
+ * @template T - The type of data contained in the items array.
+ */
 export interface NormalizedPagedResponse<T> {
   page: number;
   pageSize: number;
   totalRecords: number;
   totalPages: number;
-  items: T[];
+  items: ReadonlyArray<T>;
   hasNextPage: boolean;
 }
 
-export interface PagedItemsEnvelope<T> {
-  page: string | number;
-  pageSize: string | number;
-  totalRecords?: string | number;
-  totalPages?: string | number;
-  items: T[];
-}
-
-function toNumber(value: string | number | undefined, fallback = 0): number {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : fallback;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number.parseInt(value, 10);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }
-
-  return fallback;
-}
-
-export function normalizePagedItemsResponse<T>(
-  response: PagedItemsEnvelope<T>,
+/**
+ * Normalizes a paged response to a UI friendly format.
+ * @template T - The type of data contained in the items array.
+ * @param response - The paged response to normalize.
+ * @returns The normalized paged response.
+ */
+export function normalizePagedResponse<T>(
+  response: PagedResponse<T>,
 ): NormalizedPagedResponse<T> {
-  const page = Math.max(toNumber(response.page, 1), 1);
+  if (!response || !Array.isArray(response.items)) {
+    return {
+      page: MIN_PAGE,
+      pageSize: DEFAULT_PAGE_SIZE,
+      totalRecords: 0,
+      totalPages: 0,
+      items: [],
+      hasNextPage: false,
+    };
+  }
+
+  const page = Math.max(
+    Number.isFinite(response.page) ? response.page : MIN_PAGE,
+    MIN_PAGE,
+  );
   const pageSize = Math.max(
-    toNumber(response.pageSize, response.items.length),
-    1,
+    Number.isFinite(response.pageSize) ? response.pageSize : MIN_PAGE_SIZE,
+    MIN_PAGE_SIZE,
   );
   const totalRecords = Math.max(
-    toNumber(response.totalRecords, response.items.length),
-    response.items.length,
+    Number.isFinite(response.totalRecords) ? response.totalRecords : 0,
+    0,
   );
-  const totalPages = Math.max(
-    toNumber(
-      response.totalPages,
-      totalRecords > 0 ? Math.ceil(totalRecords / pageSize) : 1,
-    ),
-    1,
-  );
+  const expectedTotalPages = calculateTotalPages(totalRecords, pageSize);
+  const totalPages =
+    Number.isFinite(response.totalPages) && response.totalPages > 0
+      ? response.totalPages
+      : expectedTotalPages;
+
+  const hasNextPage = totalPages > 0 && page < totalPages;
 
   return {
     page,
     pageSize,
     totalRecords,
     totalPages,
-    items: response.items ?? [],
-    hasNextPage: page < totalPages,
+    items: response.items,
+    hasNextPage,
   };
 }

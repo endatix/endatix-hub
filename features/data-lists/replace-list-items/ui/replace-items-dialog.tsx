@@ -22,7 +22,7 @@ import {
   type ParsedValidation,
 } from "../json-import-validation";
 import { replaceDataListItemsAction } from "../replace-data-list-items.action";
-import { DataListJsonSourceInput } from "../../list/data-list-json-source-input";
+import { DataListItemsInput } from "../../ui/data-list-items-input";
 
 const MAX_PREVIEW_ERRORS = 20;
 
@@ -138,7 +138,7 @@ export function ReplaceItemsDialog({
         </DialogHeader>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-          <DataListJsonSourceInput
+          <DataListItemsInput
             tabValue={tabValue}
             onTabChange={setTabValue}
             jsonInput={jsonInput}

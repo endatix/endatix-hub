@@ -2,7 +2,6 @@
 
 import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -17,16 +16,15 @@ import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { createDataListAction } from "./create-data-list.action";
-import { DataListJsonSourceInput } from "./data-list-json-source-input";
+import { createDataListAction } from "../create-data-list.action";
+import { DataListItemsInput } from "../../ui/data-list-items-input";
+import { DataListValidationPreview } from "../../ui/data-list-validation-preview";
+import { useJsonFileHandler } from "../../ui/use-json-file-handler";
 import {
-  MAX_FILE_SIZE_BYTES,
   parseAndValidateJson,
   type ParsedValidation,
-} from "../replace-items/json-import-validation";
-import { replaceDataListItemsAction } from "../replace-items/replace-data-list-items.action";
-
-const MAX_PREVIEW_ERRORS = 20;
+} from "../../ui/types";
+import { replaceDataListItemsAction } from "../../replace-list-items/replace-data-list-items.action";
 
 interface CreateDataListDialogProps {
   open: boolean;
@@ -44,25 +42,25 @@ export function CreateDataListDialog({
   const [step, setStep] = useState<CreateStep>(1);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [jsonInput, setJsonInput] = useState("");
   const [tabValue, setTabValue] = useState("upload");
   const [validation, setValidation] = useState<ParsedValidation | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const { jsonInput, selectedFileName, handleFileSelected, reset: resetFileHandler } =
+    useJsonFileHandler();
 
   useEffect(() => {
     if (!open) {
       setStep(1);
       setName("");
       setDescription("");
-      setJsonInput("");
       setTabValue("upload");
       setValidation(null);
       setValidationError(null);
-      setSelectedFileName(null);
+      resetFileHandler();
     }
-  }, [open]);
+  }, [open, resetFileHandler]);
 
   const canProceedToReview = useMemo(() => {
     return (
@@ -79,30 +77,6 @@ export function CreateDataListDialog({
       validation.errors.length === 0
     );
   }, [canProceedToReview, validation]);
-
-  const handleFileSelected = (file: File | null) => {
-    if (!file) {
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setValidation(null);
-      setValidationError("File is too large. Max file size is 5MB.");
-      setSelectedFileName(file.name);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const content = String(reader.result ?? "");
-      setSelectedFileName(file.name);
-      setJsonInput(content);
-    };
-    reader.onerror = () => {
-      setValidationError("Failed to read the selected file.");
-    };
-    reader.readAsText(file);
-  };
 
   const handleContinue = () => {
     const parsed = parseAndValidateJson(jsonInput);
@@ -182,7 +156,7 @@ export function CreateDataListDialog({
                 />
               </div>
 
-              <DataListJsonSourceInput
+              <DataListItemsInput
                 tabValue={tabValue}
                 onTabChange={setTabValue}
                 jsonInput={jsonInput}
