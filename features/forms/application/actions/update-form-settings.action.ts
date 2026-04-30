@@ -26,7 +26,9 @@ export async function updateFormSettingsAction(
 
   if (!result.success) {
     console.error("Failed to update form settings", result.error);
-    return Result.error("Failed to update form settings");
+    return Result.error(
+      result.error.message || "Failed to update form settings",
+    );
   }
 
   revalidatePath("/(main)/forms");

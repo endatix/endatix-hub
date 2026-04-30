@@ -162,6 +162,8 @@ const FormDetails = ({
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isEnableLimitWarningOpen, setIsEnableLimitWarningOpen] = useState(false);
+  const [isEnableLimitErrorOpen, setIsEnableLimitErrorOpen] = useState(false);
+  const [enableLimitErrorMessage, setEnableLimitErrorMessage] = useState("");
   const router = useRouter();
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
@@ -233,6 +235,16 @@ const FormDetails = ({
 
       if (result === undefined || Result.isError(result)) {
         setLimitOnePerUser(!checked);
+        if (checked) {
+          setEnableLimitErrorMessage(
+            result && Result.isError(result)
+              ? result.message
+              : "Could not proceed with updating single-response setting.",
+          );
+          setIsEnableLimitErrorOpen(true);
+          return;
+        }
+
         toast.error(
           "Failed to update single-response setting. Error: " +
             (result && Result.isError(result) ? result.message : ""),
@@ -612,6 +624,25 @@ const FormDetails = ({
             <AlertDialogAction onClick={handleConfirmEnableLimitOnePerUser}>
             Enable permanently
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isEnableLimitErrorOpen}
+        onOpenChange={setIsEnableLimitErrorOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Could not enable "one response per person"
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {enableLimitErrorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Dismiss</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

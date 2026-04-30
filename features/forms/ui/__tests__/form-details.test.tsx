@@ -138,4 +138,44 @@ describe("FormDetails", () => {
     expect(switchElement).toBeDefined();
     expect(switchElement?.hasAttribute("disabled")).toBe(true);
   });
+
+  it("shows dismiss-required modal with backend message when enabling fails", async () => {
+    // Arrange
+    const backendMessage =
+      "Cannot enable single submission gate because this form already has duplicate submissions.";
+    mockUpdateFormSettingsAction.mockResolvedValue({
+      kind: 1,
+      errorType: 1,
+      message: backendMessage,
+    });
+    const form = {
+      id: "form-1",
+      name: "Form",
+      isEnabled: true,
+      isPublic: false,
+      limitOnePerUser: false,
+      createdAt: new Date(),
+    };
+
+    render(<FormDetails form={form} enableEditing />);
+    const switchElement = document.getElementById("form-limit-one");
+
+    // Act
+    fireEvent.click(switchElement!);
+    fireEvent.click(screen.getByText("Enable permanently"));
+
+    // Assert
+    expect(
+      await screen.findByText('Could not enable "one response per person"'),
+    ).toBeDefined();
+    expect(await screen.findByText(backendMessage)).toBeDefined();
+
+    fireEvent.click(screen.getByText("Dismiss"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Could not enable "one response per person"'),
+      ).toBeNull();
+    });
+  });
 });
