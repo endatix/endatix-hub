@@ -606,7 +606,9 @@ const FormDetails = ({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Enable "one response per person"?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Enable &quot;one response per person&quot;?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               After you turn this on, each signed-in person can submit this form
               only once.{" "}
@@ -635,7 +637,7 @@ const FormDetails = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Could not enable "one response per person"
+              Could not enable &quot;one response per person&quot;
             </AlertDialogTitle>
             <AlertDialogDescription>
               {enableLimitErrorMessage}
