@@ -26,6 +26,7 @@ interface SubmissionsWithFiltersProps {
   definitionFields?: DefinitionField[];
   initialIsComplete?: string[];
   initialStatus?: string[];
+  initialIsTestSubmission?: string[];
 }
 
 function SubmissionsContent({
@@ -34,8 +35,10 @@ function SubmissionsContent({
   definitionFields,
   isCompleteFilter,
   statusFilter,
+  testSubmissionFilter,
   onIsCompleteChange,
   onStatusChange,
+  onTestSubmissionChange,
   onResetFilters,
   isPending,
   tableKey,
@@ -49,8 +52,10 @@ function SubmissionsContent({
   definitionFields: DefinitionField[];
   isCompleteFilter: Set<string>;
   statusFilter: Set<string>;
+  testSubmissionFilter: Set<string>;
   onIsCompleteChange: (values: Set<string>) => void;
   onStatusChange: (values: Set<string>) => void;
+  onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
   isPending: boolean;
   tableKey: string;
@@ -120,8 +125,10 @@ function SubmissionsContent({
         <SubmissionsFilterToolbar
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
+          testSubmissionFilter={testSubmissionFilter}
           onIsCompleteChange={onIsCompleteChange}
           onStatusChange={onStatusChange}
+          onTestSubmissionChange={onTestSubmissionChange}
           onResetFilters={onResetFilters}
         />
         <div className="flex items-center gap-2">
@@ -156,6 +163,7 @@ export function SubmissionsWithFilters({
   definitionFields = [],
   initialIsComplete = [],
   initialStatus = [],
+  initialIsTestSubmission = [],
 }: SubmissionsWithFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -166,9 +174,16 @@ export function SubmissionsWithFilters({
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
     new Set(initialStatus)
   );
+  const [testSubmissionFilter, setTestSubmissionFilter] = useState<Set<string>>(
+    new Set(initialIsTestSubmission),
+  );
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const updateURL = (isComplete: Set<string>, status: Set<string>) => {
+  const updateURL = (
+    isComplete: Set<string>,
+    status: Set<string>,
+    isTestSubmission: Set<string>,
+  ) => {
     const params = new URLSearchParams();
 
     if (isComplete.size > 0) {
@@ -176,6 +191,9 @@ export function SubmissionsWithFilters({
     }
     if (status.size > 0) {
       params.set("status", Array.from(status).join(","));
+    }
+    if (isTestSubmission.size > 0) {
+      params.set("isTestSubmission", Array.from(isTestSubmission).join(","));
     }
 
     const queryString = params.toString();
@@ -188,19 +206,25 @@ export function SubmissionsWithFilters({
 
   const handleIsCompleteChange = (values: Set<string>) => {
     setIsCompleteFilter(values);
-    updateURL(values, statusFilter);
+    updateURL(values, statusFilter, testSubmissionFilter);
   };
 
   const handleStatusChange = (values: Set<string>) => {
     setStatusFilter(values);
-    updateURL(isCompleteFilter, values);
+    updateURL(isCompleteFilter, values, testSubmissionFilter);
+  };
+
+  const handleTestSubmissionChange = (values: Set<string>) => {
+    setTestSubmissionFilter(values);
+    updateURL(isCompleteFilter, statusFilter, values);
   };
 
   const handleResetFilters = () => {
     const emptySet = new Set<string>();
     setIsCompleteFilter(emptySet);
     setStatusFilter(emptySet);
-    updateURL(emptySet, emptySet);
+    setTestSubmissionFilter(emptySet);
+    updateURL(emptySet, emptySet, emptySet);
   };
 
   const handleResetSorting = () => {
@@ -208,7 +232,7 @@ export function SubmissionsWithFilters({
   };
 
   // Create a key that changes when filters change to force table re-mount
-  const tableKey = `${Array.from(isCompleteFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(statusFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${data.length}`;
+  const tableKey = `${Array.from(isCompleteFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(statusFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(testSubmissionFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${data.length}`;
 
   const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
 
@@ -221,8 +245,10 @@ export function SubmissionsWithFilters({
           definitionFields={definitionFields}
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
+          testSubmissionFilter={testSubmissionFilter}
           onIsCompleteChange={handleIsCompleteChange}
           onStatusChange={handleStatusChange}
+          onTestSubmissionChange={handleTestSubmissionChange}
           onResetFilters={handleResetFilters}
           isPending={isPending}
           tableKey={tableKey}

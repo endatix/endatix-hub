@@ -170,6 +170,7 @@ export class Submissions {
     filters?: {
       isComplete?: string[];
       status?: string[];
+      isTestSubmission?: string[];
     },
   ): Promise<ApiResult<Submission[]>> {
     const validateFormIdResult = validateEndatixId(formId, "formId");
@@ -185,6 +186,12 @@ export class Submissions {
     }
     if (filters?.status && filters.status.length > 0) {
       params.append("filter", `status:${filters.status.join("|")}`);
+    }
+    if (filters?.isTestSubmission && filters.isTestSubmission.length > 0) {
+      params.append(
+        "filter",
+        `isTestSubmission:${filters.isTestSubmission.join("|")}`,
+      );
     }
 
     const queryString = params.toString();

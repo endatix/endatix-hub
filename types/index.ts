@@ -4,6 +4,8 @@ export type Form = {
   description?: string;
   isEnabled: boolean;
   isPublic: boolean;
+  limitOnePerUser?: boolean;
+  metadata?: string;
   createdAt: Date;
   modifiedAt?: Date;
   submissionsCount?: number;

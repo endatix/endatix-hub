@@ -24,6 +24,7 @@ import { updateFormVisibilityAction } from "../application/actions/update-form-v
 import { toast } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +50,13 @@ import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
 import { WebhookSettings } from "./webhook-settings";
 import { ShareDialog } from "./share-dialog";
+import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -147,14 +155,33 @@ const FormDetails = ({
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
   const [isPublic, setIsPublic] = useState(form?.isPublic);
+  const [limitOnePerUser, setLimitOnePerUser] = useState(form?.limitOnePerUser ?? false);
+  const [metadata, setMetadata] = useState(form?.metadata ?? "");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isEnableLimitWarningOpen, setIsEnableLimitWarningOpen] = useState(false);
+  const [isEnableLimitErrorOpen, setIsEnableLimitErrorOpen] = useState(false);
+  const [enableLimitErrorMessage, setEnableLimitErrorMessage] = useState("");
   const router = useRouter();
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
+  const limitOnePerUserDisabled = limitOnePerUser || isPublic || pending;
+  const visibilityDisabled = pending || limitOnePerUser;
+  const visibilityDisabledReason = limitOnePerUser
+    ? 'Visibility cannot be changed while "one response per person" is enabled.'
+    : pending
+      ? "Please wait for the current update to finish."
+      : undefined;
+  const limitOnePerUserDisabledReason = limitOnePerUser
+    ? "This setting is permanent once enabled."
+    : isPublic
+      ? "This option is available only for private forms."
+      : pending
+        ? "Please wait for the current update to finish."
+        : undefined;
 
   const toggleEnabled = async (enabled: boolean) => {
     setIsEnabled(enabled);
@@ -179,6 +206,7 @@ const FormDetails = ({
 
   const toggleVisibility = async (publicValue: boolean) => {
     setIsPublic(publicValue);
+
     startTransition(async () => {
       const result = await updateFormVisibilityAction(form.id, publicValue);
       if (result === undefined) {
@@ -195,6 +223,72 @@ const FormDetails = ({
       }
 
       toast.success(`Form is now ${publicValue ? "public" : "private"}`);
+    });
+  };
+
+  const updateLimitOnePerUser = async (checked: boolean) => {
+    setLimitOnePerUser(checked);
+    startTransition(async () => {
+      const result = await updateFormSettingsAction(form.id, {
+        limitOnePerUser: checked,
+      });
+
+      if (result === undefined || Result.isError(result)) {
+        setLimitOnePerUser(!checked);
+        if (checked) {
+          setEnableLimitErrorMessage(
+            result && Result.isError(result)
+              ? result.message
+              : "Could not proceed with updating single-response setting.",
+          );
+          setIsEnableLimitErrorOpen(true);
+          return;
+        }
+
+        toast.error(
+          "Failed to update single-response setting. Error: " +
+            (result && Result.isError(result) ? result.message : ""),
+        );
+        return;
+      }
+
+      toast.success(
+        checked
+          ? "Single response per user is enabled"
+          : "Single response per user is disabled",
+      );
+    });
+  };
+
+  const handleLimitOnePerUserChange = async (checked: boolean) => {
+    if (checked && !limitOnePerUser) {
+      setIsEnableLimitWarningOpen(true);
+      return;
+    }
+
+    await updateLimitOnePerUser(checked);
+  };
+
+  const handleConfirmEnableLimitOnePerUser = async () => {
+    setIsEnableLimitWarningOpen(false);
+    await updateLimitOnePerUser(true);
+  };
+
+  const handleSaveMetadata = async () => {
+    startTransition(async () => {
+      const result = await updateFormSettingsAction(form.id, {
+        metadata: metadata.trim() === "" ? null : metadata,
+      });
+
+      if (result === undefined || Result.isError(result)) {
+        toast.error(
+          "Failed to update metadata. Error: " +
+            (result && Result.isError(result) ? result.message : ""),
+        );
+        return;
+      }
+
+      toast.success("Form metadata updated");
     });
   };
 
@@ -333,6 +427,19 @@ const FormDetails = ({
         </div>
 
         <div className="grid grid-cols-4 py-2 items-center gap-4">
+          <span className="col-span-1 text-right self-start">Submissions</span>
+          <div className="col-span-3 text-sm">
+            {(form?.submissionsCount ?? 0) === 0 ? (
+              <span className="text-muted-foreground">No submissions yet</span>
+            ) : (
+              <span className="text-base font-medium">
+                {form.submissionsCount ?? 0}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 py-2 items-center gap-4">
           <span className="text-right self-start">Status</span>
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
@@ -359,13 +466,29 @@ const FormDetails = ({
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
               <>
-                <Switch
-                  id="form-visibility"
-                  checked={isPublic}
-                  onCheckedChange={toggleVisibility}
-                  disabled={pending}
-                  aria-readonly
-                />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="inline-flex"
+                        data-testid="form-visibility-tooltip-trigger"
+                      >
+                        <Switch
+                          id="form-visibility"
+                          checked={isPublic}
+                          onCheckedChange={toggleVisibility}
+                          disabled={visibilityDisabled}
+                          aria-readonly
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    {visibilityDisabled && visibilityDisabledReason && (
+                      <TooltipContent side="top" sideOffset={6}>
+                        {visibilityDisabledReason}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 <Label htmlFor="form-visibility" className="flex items-center gap-1">
                   {isPublic ? (
                     <Globe className="h-3 w-3" />
@@ -389,17 +512,65 @@ const FormDetails = ({
         </div>
 
         <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="col-span-1 text-right self-start">Submissions</span>
-          <div className="col-span-3 text-sm">
-            {(form?.submissionsCount ?? 0) === 0 ? (
-              <span className="text-muted-foreground">No submissions yet</span>
-            ) : (
-              <span className="text-base font-medium">
-                {form.submissionsCount ?? 0}
+          <span className="text-right self-start">Limit one per user</span>
+          <div className="col-span-3 flex flex-col gap-1">
+            <div className="flex items-center space-x-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex"
+                      data-testid="form-limit-one-tooltip-trigger"
+                    >
+                      <Switch
+                        id="form-limit-one"
+                        checked={limitOnePerUser}
+                        onCheckedChange={handleLimitOnePerUserChange}
+                        disabled={limitOnePerUserDisabled}
+                        aria-readonly
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  {limitOnePerUserDisabled && limitOnePerUserDisabledReason && (
+                    <TooltipContent side="top" sideOffset={6}>
+                      {limitOnePerUserDisabledReason}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+              <Label htmlFor="form-limit-one">
+                {limitOnePerUser ? "Enabled" : "Disabled"}
+              </Label>
+            </div>
+            {isPublic && (
+              <span className="text-xs text-muted-foreground">
+                This option is available only for private forms.
               </span>
             )}
           </div>
         </div>
+
+        <div className="grid grid-cols-4 py-2 items-start gap-4">
+          <span className="text-right self-start pt-2">Metadata (JSON)</span>
+          <div className="col-span-3 space-y-2">
+            <Textarea
+              value={metadata}
+              onChange={(event) => setMetadata(event.target.value)}
+              rows={6}
+              disabled={pending}
+              placeholder='{"key":"value"}'
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveMetadata}
+              disabled={pending}
+            >
+              Save metadata
+            </Button>
+          </div>
+        </div>
+
       </div>
 
       {/* Webhook Configuration Section */}
@@ -428,6 +599,55 @@ const FormDetails = ({
         submissionsCount={form.submissionsCount || 0}
         onDelete={handleDelete}
       />
+
+      <AlertDialog
+        open={isEnableLimitWarningOpen}
+        onOpenChange={setIsEnableLimitWarningOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Enable &quot;one response per person&quot;?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              After you turn this on, each signed-in person can submit this form
+              only once.{" "}
+              <strong>
+                To protect the integrity of collected responses, this setting is
+                permanent.
+              </strong>{" "}
+              <strong>
+                You will also not be able to make the form public later.
+              </strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmEnableLimitOnePerUser}>
+            Enable permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isEnableLimitErrorOpen}
+        onOpenChange={setIsEnableLimitErrorOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Could not enable &quot;one response per person&quot;
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {enableLimitErrorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Dismiss</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
