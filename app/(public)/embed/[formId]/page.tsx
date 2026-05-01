@@ -3,6 +3,7 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
+import AlreadyResponded from "@/features/public-form/ui/already-responded";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
@@ -112,6 +113,11 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
   }
 
   const activeDefinition = activeDefinitionResult.value;
+  const hasCurrentDraftSubmission = Boolean(submission?.id);
+  const shouldShowAlreadyResponded =
+    !urlToken &&
+    (activeDefinition.hasUserSubmitted ?? false) &&
+    !hasCurrentDraftSubmission;
 
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
@@ -131,20 +137,24 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
 
       <EmbedHeightReporter />
 
-      <Suspense fallback={<div>Loading...</div>}>
-        <AssetStorageProvider>
-          <SurveyJsWrapper
-            formId={formId}
-            definition={activeDefinition.jsonData}
-            submission={submission}
-            theme={activeDefinition.themeModel}
-            customQuestions={activeDefinition.customQuestions}
-            requiresReCaptcha={activeDefinition.requiresReCaptcha}
-            isEmbed={true}
-            urlToken={urlToken}
-          />
-        </AssetStorageProvider>
-      </Suspense>
+      {shouldShowAlreadyResponded ? (
+        <AlreadyResponded metadata={activeDefinition.metadata} />
+      ) : (
+        <Suspense fallback={<div>Loading...</div>}>
+          <AssetStorageProvider>
+            <SurveyJsWrapper
+              formId={formId}
+              definition={activeDefinition.jsonData}
+              submission={submission}
+              theme={activeDefinition.themeModel}
+              customQuestions={activeDefinition.customQuestions}
+              requiresReCaptcha={activeDefinition.requiresReCaptcha}
+              isEmbed={true}
+              urlToken={urlToken}
+            />
+          </AssetStorageProvider>
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -4,6 +4,8 @@ export type Form = {
   description?: string;
   isEnabled: boolean;
   isPublic: boolean;
+  limitOnePerUser?: boolean;
+  metadata?: string;
   createdAt: Date;
   modifiedAt?: Date;
   submissionsCount?: number;
@@ -26,6 +28,8 @@ export type ActiveDefinition = FormDefinition & {
   themeModel?: string;
   requiresReCaptcha?: boolean;
   customQuestions?: string[];
+  hasUserSubmitted?: boolean;
+  metadata?: string;
 };
 
 export type FormTemplate = {

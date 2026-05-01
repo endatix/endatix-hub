@@ -96,6 +96,8 @@ export const updateForm = async (
     name?: string;
     isEnabled?: boolean;
     isPublic?: boolean;
+    limitOnePerUser?: boolean;
+    metadata?: string | null;
     themeId?: string;
     webHookSettingsJson?: string | null;
   },
@@ -520,6 +522,7 @@ export const getSubmissions = async (
   filters?: {
     isComplete?: string[];
     status?: string[];
+    isTestSubmission?: string[];
   }
 ): Promise<Submission[]> => {
   const session = await getSession();
@@ -538,6 +541,9 @@ export const getSubmissions = async (
   }
   if (filters?.status && filters.status.length > 0) {
     params.append("filter", `status:${filters.status.join("|")}`);
+  }
+  if (filters?.isTestSubmission && filters.isTestSubmission.length > 0) {
+    params.append("filter", `isTestSubmission:${filters.isTestSubmission.join("|")}`);
   }
 
   const url = `${API_BASE_URL}/forms/${formId}/submissions?${params.toString()}`;
