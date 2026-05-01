@@ -9,7 +9,7 @@ import { isNotFoundError } from "@/lib/endatix-api";
 
 interface DataListDetailsRoutePageProps {
   params: Promise<{ dataListId: string }>;
-  searchParams?: Promise<{ replace?: string }>;
+  searchParams?: Promise<{ action?: string }>;
 }
 
 export default async function DataListDetailsRoutePage({
@@ -32,7 +32,7 @@ export default async function DataListDetailsRoutePage({
   }
 
   const resolvedSearchParams = (await searchParams) || {};
-  const openReplaceOnLoad = resolvedSearchParams.replace === "1";
+  const openReplaceOnLoad = resolvedSearchParams.action === "replace";
 
   return (
     <DataListDetailsPage

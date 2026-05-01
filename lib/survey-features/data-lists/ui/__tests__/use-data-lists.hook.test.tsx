@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { Result } from "@/lib/result";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useDataLists, useDataListsLoader } from "../use-data-lists.hook";
+import { ApiResult } from "@/lib/endatix-api";
 
 const { mockGetDataListsAction } = vi.hoisted(() => ({
   mockGetDataListsAction: vi.fn(),
@@ -27,7 +27,7 @@ describe("useDataLists hooks", () => {
   it("fetches data lists in loader hook and exposes loading state", async () => {
     // Arrange
     const dataLists = [{ id: 1, name: "Countries" }];
-    mockGetDataListsAction.mockResolvedValue(Result.success(dataLists));
+    mockGetDataListsAction.mockResolvedValue(ApiResult.success(dataLists));
 
     // Act
     const { result } = renderHook(() => useDataListsLoader());

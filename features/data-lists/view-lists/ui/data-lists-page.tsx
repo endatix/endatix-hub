@@ -55,12 +55,12 @@ export function DataListsPage({
 
   const refreshDataLists = async () => {
     const result = await getDataListsAction();
-    if (Result.isError(result)) {
-      toast.error(result.message || "Failed to refresh data lists");
+    if (!result.success) {
+      toast.error(result.error.message || "Failed to refresh data lists");
       return;
     }
 
-    setDataLists(result.value);
+    setDataLists(result.data);
   };
 
   const handleOpenDelete = (dataList: DataList) => {

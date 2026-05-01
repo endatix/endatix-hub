@@ -1,6 +1,5 @@
 import { DataList } from "@/lib/endatix-api/data-lists/types";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Result } from "@/lib/result";
 import { getDataListsAction } from "@/features/data-lists/view-lists/get-data-lists.action";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { Model } from "survey-core";
@@ -88,11 +87,11 @@ export function useDataListsLoader() {
       setIsLoading(true);
       try {
         const result = await getDataListsAction();
-        if (result === undefined || Result.isError(result)) {
+        if (!result.success) {
           console.error("Failed to fetch data lists for creator.");
           return;
         }
-        setDataLists(result.value);
+        setDataLists(result.data);
       } finally {
         setIsLoading(false);
       }

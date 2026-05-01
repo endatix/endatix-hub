@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import type { DataList } from '@/lib/endatix-api/data-lists/types';
-import { Eye, MoreHorizontal, PencilLine, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+} from "@/components/ui/dropdown-menu";
+import type { DataList } from "@/lib/endatix-api/data-lists/types";
+import { Eye, MoreHorizontal, PencilLine, Trash2 } from "lucide-react";
+import Link from "next/link";
 
 interface DataListRowActionsProps {
   dataList: DataList;
@@ -23,29 +23,29 @@ export function DataListRowActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size='icon' variant='ghost'>
-          <MoreHorizontal className='h-4 w-4' />
-          <span className='sr-only'>Open data list actions</span>
+        <Button size="icon" variant="ghost">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open data list actions</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end'>
+      <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
           <Link href={`/data-lists/${dataList.id}`}>
-            <Eye className='mr-2 h-4 w-4' />
+            <Eye className="mr-2 h-4 w-4" />
             View
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={`/data-lists/${dataList.id}?replace=1`}>
-            <PencilLine className='mr-2 h-4 w-4' />
+          <Link href={`/data-lists/${dataList.id}?action=replace`}>
+            <PencilLine className="mr-2 h-4 w-4" />
             Replace Items
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
-          className='text-destructive focus:text-destructive'
+          className="text-destructive focus:text-destructive"
           onClick={() => onDelete(dataList)}
         >
-          <Trash2 className='mr-2 h-4 w-4' />
+          <Trash2 className="mr-2 h-4 w-4" />
           Delete
         </DropdownMenuItem>
       </DropdownMenuContent>

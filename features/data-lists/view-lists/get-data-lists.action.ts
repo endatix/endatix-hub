@@ -2,11 +2,8 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { EndatixApi } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { DataList } from "@/lib/endatix-api/data-lists/types";
-import { Result } from "@/lib/result";
-
-export type GetDataListsResult = Result<DataList[]>;
 
 /**
  * Gets all data lists via server-side aggregation.
@@ -14,7 +11,7 @@ export type GetDataListsResult = Result<DataList[]>;
  * @returns The data lists.
  */
 export async function getDataListsAction(): Promise<
-  GetDataListsResult | never
+  ApiResult<DataList[]> | never
 > {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
@@ -33,8 +30,7 @@ export async function getDataListsAction(): Promise<
     });
 
     if (!result.success) {
-      console.error("Failed to fetch data lists", result.error);
-      return Result.error("Failed to fetch data lists");
+      return result;
     }
 
     allItems.push(...result.data.items);
@@ -42,5 +38,5 @@ export async function getDataListsAction(): Promise<
     currentPage += 1;
   }
 
-  return Result.success(allItems);
+  return ApiResult.success(allItems);
 }
