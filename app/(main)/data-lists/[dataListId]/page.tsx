@@ -1,38 +1,34 @@
+import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { dataListsFlag } from "@/lib/feature-flags";
-import { redirect } from "next/navigation";
-import { getDataListByIdAction } from "@/features/data-lists/view-list-details/get-data-list-by-id.action";
-import { Result } from "@/lib/result";
-import { DataListDetailsPage } from "@/features/data-lists/view-list-details/ui/data-list-details-page";
+import {
+  getDataListByIdAction,
+  DataListDetailsPage,
+} from "@/features/data-lists/view-list-details";
+import { isNotFoundError } from "@/lib/endatix-api";
 
 interface DataListDetailsRoutePageProps {
   params: Promise<{ dataListId: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<{ replace?: string }>;
 }
 
 export default async function DataListDetailsRoutePage({
   params,
   searchParams,
-}: DataListDetailsRoutePageProps) {
+}: Readonly<DataListDetailsRoutePageProps>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  const enabled = await dataListsFlag();
-  if (!enabled) {
-    redirect("/forms");
-  }
-
   const { dataListId } = await params;
   const dataListResult = await getDataListByIdAction(dataListId);
 
-  if (Result.isError(dataListResult)) {
-    return (
-      <div className="rounded-lg border bg-card p-6 text-sm text-destructive">
-        {dataListResult.message}
-      </div>
-    );
+  if (!dataListResult.success) {
+    if (isNotFoundError(dataListResult)) {
+      notFound();
+    }
+
+    throw new Error(dataListResult.error.message);
   }
 
   const resolvedSearchParams = (await searchParams) || {};
@@ -40,7 +36,7 @@ export default async function DataListDetailsRoutePage({
 
   return (
     <DataListDetailsPage
-      initialDetails={dataListResult.value}
+      initialDetails={dataListResult.data}
       openReplaceOnLoad={openReplaceOnLoad}
     />
   );

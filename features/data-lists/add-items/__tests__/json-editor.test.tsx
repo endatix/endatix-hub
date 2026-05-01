@@ -92,4 +92,51 @@ describe("JsonEditor", () => {
 
     expect(handleChange).toBeDefined();
   });
+
+  it("accepts errors prop with annotations", () => {
+    const errors = [
+      { row: 0, column: 0, text: "Error 1", type: "error" },
+      { row: 1, column: 5, text: "Error 2", type: "error" },
+    ];
+
+    const { container } = render(
+      <JsonEditor value="" onChange={vi.fn()} errors={errors} />,
+    );
+
+    vi.runAllTimers();
+
+    const div = container.querySelector("div.overflow-hidden");
+    expect(div).not.toBeNull();
+  });
+
+  it("accepts activeError prop", () => {
+    const activeError = { row: 2, column: 5 };
+
+    render(
+      <JsonEditor value="" onChange={vi.fn()} activeError={activeError} />,
+    );
+
+    vi.runAllTimers();
+
+    expect(activeError).toBeDefined();
+  });
+
+  it("accepts errors and activeError together", () => {
+    const errors = [{ row: 0, column: 0, text: "Error 1", type: "error" }];
+    const activeError = { row: 0, column: 0 };
+
+    const { container } = render(
+      <JsonEditor
+        value="[{}]"
+        onChange={vi.fn()}
+        errors={errors}
+        activeError={activeError}
+      />,
+    );
+
+    vi.runAllTimers();
+
+    const div = container.querySelector("div.overflow-hidden");
+    expect(div).not.toBeNull();
+  });
 });

@@ -2,11 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MAX_PREVIEW_ERRORS, type ParsedValidation } from "./types";
+import type { JsonErrorAnnotation } from "./json-editor";
 
 interface DataListValidationPreviewProps {
   validation: ParsedValidation;
   name?: string;
   description?: string;
+  onErrorClick?: (row: number, column: number) => void;
 }
 
 /**
@@ -19,8 +21,13 @@ export function DataListValidationPreview({
   validation,
   name,
   description,
+  onErrorClick,
 }: DataListValidationPreviewProps) {
   const totalItems = validation.validItems.length + validation.errors.length;
+
+  const handleErrorClick = (annotation: JsonErrorAnnotation) => {
+    onErrorClick?.(annotation.row, annotation.column);
+  };
 
   return (
     <Card className="gap-0">
@@ -59,14 +66,22 @@ export function DataListValidationPreview({
         )}
 
         {validation.errors.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-1">
             <p className="text-xs font-medium text-destructive">
               Fix these issues before submitting:
             </p>
-            <ul className="list-disc space-y-1 pl-4 text-xs text-destructive">
-              {validation.errors.slice(0, MAX_PREVIEW_ERRORS).map((error) => (
-                <li key={error}>{error}</li>
-              ))}
+            <ul className="list-disc space-y-0 pl-4 text-xs text-destructive">
+              {validation.annotations
+                .slice(0, MAX_PREVIEW_ERRORS)
+                .map((annotation, index) => (
+                  <li
+                    key={`${annotation.row}-${annotation.column}-${index}`}
+                    className="cursor-pointer hover:underline"
+                    onClick={() => handleErrorClick(annotation)}
+                  >
+                    {annotation.text}
+                  </li>
+                ))}
             </ul>
           </div>
         )}

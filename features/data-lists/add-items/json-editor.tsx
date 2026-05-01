@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import type { Editor } from "ace-builds";
 import type { CSSProperties } from "react";
@@ -13,25 +13,39 @@ const DEFAULT_STYLE: CSSProperties = {
 const ACE_DARK_THEME = "ace/theme/clouds_midnight";
 const ACE_LIGHT_THEME = "ace/theme/chrome";
 
+export interface JsonErrorAnnotation {
+  row: number;
+  column: number;
+  text: string;
+  type: string;
+}
+
 interface JsonEditorProps {
   value: string;
   onChange: (value: string) => void;
   style?: CSSProperties;
+  errors?: JsonErrorAnnotation[];
+  activeError?: { row: number; column: number } | null;
 }
 
-export function JsonEditor({ value, onChange, style }: JsonEditorProps) {
+export function JsonEditor({
+  value,
+  onChange,
+  style,
+  errors,
+  activeError,
+}: JsonEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
 
   const { theme, resolvedTheme } = useTheme();
   const activeAceTheme =
-    (resolvedTheme ?? theme) === "dark"
-      ? ACE_DARK_THEME
-      : ACE_LIGHT_THEME;
+    (resolvedTheme ?? theme) === "dark" ? ACE_DARK_THEME : ACE_LIGHT_THEME;
 
   const onChangeRef = useRef(onChange);
   const lastSyncedValueRef = useRef(value ?? "");
   const isSilentRef = useRef(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -66,6 +80,7 @@ export function JsonEditor({ value, onChange, style }: JsonEditorProps) {
         maxLines: 20,
         showGutter: true,
         showPrintMargin: false,
+        showLineNumbers: false,
         tabSize: 2,
         highlightActiveLine: true,
         highlightGutterLine: true,
@@ -103,6 +118,8 @@ export function JsonEditor({ value, onChange, style }: JsonEditorProps) {
 
       editor.on("change", handleChange);
 
+      setIsReady(true);
+
       return () => {
         editor.off("change", handleChange);
       };
@@ -138,7 +155,27 @@ export function JsonEditor({ value, onChange, style }: JsonEditorProps) {
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor) return;
+    if (!editor || !isReady) return;
+
+    const annotations = errors ?? [];
+    editor.getSession().setAnnotations(annotations);
+  }, [errors, isReady]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !isReady || !activeError) return;
+
+    editor.focus();
+    editor.renderer.scrollCursorIntoView(
+      { row: activeError.row, column: activeError.column },
+      0.5,
+    );
+    editor.gotoLine(activeError.row, activeError.column + 1);
+  }, [activeError, isReady]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !isReady) return;
 
     const incomingValue = value ?? "";
     const currentValue = editor.getValue();
@@ -159,7 +196,7 @@ export function JsonEditor({ value, onChange, style }: JsonEditorProps) {
 
       lastSyncedValueRef.current = incomingValue;
     }
-  }, [value]);
+  }, [value, isReady]);
 
   return (
     <div

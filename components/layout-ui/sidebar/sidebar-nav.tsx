@@ -22,21 +22,11 @@ import {
 import { getCurrentUserInfo } from "@/features/users/user-utils";
 import { SidebarNavItem } from "./sidebar-nav-item";
 
-interface SidebarNavProps {
-  dataListsEnabled?: boolean;
-}
-
-const SidebarNav = ({ dataListsEnabled = false }: SidebarNavProps) => {
+const SidebarNav = () => {
   const { data: session } = useSession();
   const { state } = useSidebar();
   const isSidebarCollapsed = state === "collapsed";
-  const mainNavItems = SitemapService.getTopLevelSitemap().filter((item) => {
-    if (item.key !== "dataLists") {
-      return true;
-    }
-
-    return dataListsEnabled;
-  });
+  const mainNavItems = SitemapService.getTopLevelSitemap();
   const secondaryNavItems = SitemapService.getSecondarySitemap();
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
@@ -50,7 +40,11 @@ const SidebarNav = ({ dataListsEnabled = false }: SidebarNavProps) => {
         <SidebarGroup>
           <SidebarMenu>
             {mainNavItems.map((item) => (
-              <SidebarNavItem key={item.title} item={item} isCollapsed={isSidebarCollapsed} />
+              <SidebarNavItem
+                key={item.title}
+                item={item}
+                isCollapsed={isSidebarCollapsed}
+              />
             ))}
           </SidebarMenu>
         </SidebarGroup>
@@ -58,7 +52,12 @@ const SidebarNav = ({ dataListsEnabled = false }: SidebarNavProps) => {
           <SidebarGroupContent>
             <SidebarMenu>
               {secondaryNavItems.map((item) => (
-                <SidebarNavItem key={item.title} item={item} isCollapsed={isSidebarCollapsed} size="sm" />
+                <SidebarNavItem
+                  key={item.title}
+                  item={item}
+                  isCollapsed={isSidebarCollapsed}
+                  size="sm"
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>

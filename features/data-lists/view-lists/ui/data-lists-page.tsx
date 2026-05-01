@@ -35,13 +35,13 @@ export function DataListsPage({
   initialDataLists,
   openCreateOnLoad = false,
 }: DataListsPageProps) {
-  const [dataLists, setDataLists] =
-    useState<DataList[]>(initialDataLists);
+  const [dataLists, setDataLists] = useState<DataList[]>(initialDataLists);
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
     useState(openCreateOnLoad);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedForDelete, setSelectedForDelete] =
-    useState<DataList | null>(null);
+  const [selectedForDelete, setSelectedForDelete] = useState<DataList | null>(
+    null,
+  );
   const [dependencies, setDependencies] = useState<FormDependencySummary[]>([]);
   const [isDeleteBlocked, setIsDeleteBlocked] = useState(false);
   const [isDeletePending, startDeleteTransition] = useTransition();
@@ -106,6 +106,10 @@ export function DataListsPage({
     });
   };
 
+  const handleCreateDialogClose = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+  };
+
   return (
     <>
       <section className="space-y-1">
@@ -162,7 +166,7 @@ export function DataListsPage({
                   href={`/data-lists/${dataList.id}`}
                   className="flex items-center gap-1"
                 >
-                  {dataList.itemsCount} 
+                  {dataList.itemsCount}
                 </Link>
               </div>
 
@@ -179,7 +183,7 @@ export function DataListsPage({
 
       <CreateDataListDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
+        onOpenChange={handleCreateDialogClose}
         onCreated={() => {
           void refreshDataLists();
         }}

@@ -1,12 +1,12 @@
-'use server';
+"use server";
 
-import { auth } from '@/auth';
-import { authorization } from '@/features/auth/authorization';
-import { EndatixApi } from '@/lib/endatix-api';
-import type { DataListDetails } from '@/lib/endatix-api/data-lists/types';
-import { Result } from '@/lib/result';
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
+import { Result } from "@/lib/result";
 
-export type GetDataListByIdResult = Result<DataListDetails>;
+export type GetDataListByIdResult = ApiResult<DataListDetails>;
 
 export async function getDataListByIdAction(
   dataListId: string,
@@ -18,9 +18,9 @@ export async function getDataListByIdAction(
   const api = new EndatixApi(session?.accessToken);
   const result = await api.dataLists.getById(dataListId);
 
-  if (!result.success) {
-    return Result.error(result.error.message || 'Failed to load data list details');
+  if (ApiResult.isError(result)) {
+    return result;
   }
 
-  return Result.success(result.data);
+  return ApiResult.success(result.data);
 }

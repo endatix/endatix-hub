@@ -16,13 +16,12 @@ import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { replaceDataListItemsAction } from "../replace-data-list-items.action";
-import { DataListItemsInput, TabValue } from "../../add-items/data-list-items-input";
+import {
+  DataListItemsInput,
+  TabValue,
+} from "../../add-items/data-list-items-input";
 import { DataListValidationPreview } from "../../add-items/data-list-validation-preview";
 import { useJsonFileSource } from "../../add-items/use-json-file-source.hook";
-import {
-  parseAndValidateJson,
-  type ParsedValidation,
-} from "../../add-items/types";
 
 interface ReplaceItemsDialogProps {
   open: boolean;
@@ -32,6 +31,15 @@ interface ReplaceItemsDialogProps {
   onReplaced?: (details: DataListDetails) => void;
 }
 
+/**
+ * A dialog for replacing the items of a data list.
+ * @param open - Whether the dialog is open.
+ * @param onOpenChange - A callback function to call when the dialog is opened or closed.
+ * @param dataListId - The ID of the data list to replace the items of.
+ * @param title - The title of the data list.
+ * @param onReplaced - A callback function to call when the items are replaced.
+ * @returns The ReplaceItemsDialog component.
+ */
 export function ReplaceItemsDialog({
   open,
   onOpenChange,
@@ -44,21 +52,21 @@ export function ReplaceItemsDialog({
 
   const {
     jsonInput,
-    validationError,
+    validation,
+    validationError: fileValidationError,
     selectedFileName,
+    activeError,
     setJsonInput,
     setValidationError,
     handleFileSelected,
+    handleErrorClick: hookHandleErrorClick,
     reset: resetFileHandler,
   } = useJsonFileSource();
 
-  const validation = useMemo<ParsedValidation | null>(() => {
-    if (!jsonInput.trim()) {
-      return null;
-    }
-
-    return parseAndValidateJson(jsonInput);
-  }, [jsonInput]);
+  const handleErrorClick = (row: number, column: number) => {
+    setTabValue("paste");
+    hookHandleErrorClick(row, column);
+  };
 
   useEffect(() => {
     if (!open) {
@@ -66,13 +74,6 @@ export function ReplaceItemsDialog({
       setTabValue("upload");
     }
   }, [open, resetFileHandler]);
-
-  useEffect(() => {
-    if (selectedFileName && jsonInput.trim().length > 0) {
-      setTabValue("paste");
-      setValidationError(null);
-    }
-  }, [jsonInput, selectedFileName, setValidationError]);
 
   const canSubmit = useMemo(() => {
     return (
@@ -132,15 +133,23 @@ export function ReplaceItemsDialog({
             onFileSelected={handleFileSelected}
             selectedFileName={selectedFileName}
             fileInputId="replace-data-list-file-upload"
+            errors={validation?.annotations}
+            activeError={activeError}
+            onErrorClick={handleErrorClick}
           />
 
-          {validationError && (
+          {fileValidationError && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              {validationError}
+              {fileValidationError}
             </div>
           )}
 
-          {validation && <DataListValidationPreview validation={validation} />}
+          {validation && (
+            <DataListValidationPreview
+              validation={validation}
+              onErrorClick={handleErrorClick}
+            />
+          )}
         </div>
 
         <DialogFooter className="border-t px-6 py-4">

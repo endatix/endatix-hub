@@ -2,6 +2,7 @@ import type {
   DataListChoiceItem,
   DataListItem,
 } from "@/lib/endatix-api/data-lists/types";
+import type { JsonErrorAnnotation } from "./json-editor";
 
 export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 export const MAX_FIELD_LENGTH = 255;
@@ -17,6 +18,7 @@ export const AT_LEAST_ONE_ERROR = "At least one item is required.";
 export interface ParsedValidation {
   validItems: DataListChoiceItem[];
   errors: string[];
+  annotations: JsonErrorAnnotation[];
 }
 
 export interface JsonFileHandlerState {
@@ -31,6 +33,9 @@ export function parseAndValidateJson(value: string): ParsedValidation {
     return {
       validItems: [],
       errors: [JSON_REQUIRED_ERROR],
+      annotations: [
+        { row: 0, column: 0, text: JSON_REQUIRED_ERROR, type: "error" },
+      ],
     };
   }
 
@@ -41,6 +46,9 @@ export function parseAndValidateJson(value: string): ParsedValidation {
     return {
       validItems: [],
       errors: [INVALID_JSON_ERROR],
+      annotations: [
+        { row: 0, column: 0, text: INVALID_JSON_ERROR, type: "error" },
+      ],
     };
   }
 
@@ -48,6 +56,9 @@ export function parseAndValidateJson(value: string): ParsedValidation {
     return {
       validItems: [],
       errors: [ARRAY_REQUIRED_ERROR],
+      annotations: [
+        { row: 0, column: 0, text: ARRAY_REQUIRED_ERROR, type: "error" },
+      ],
     };
   }
 
@@ -55,43 +66,101 @@ export function parseAndValidateJson(value: string): ParsedValidation {
     return {
       validItems: [],
       errors: [AT_LEAST_ONE_ERROR],
+      annotations: [
+        { row: 0, column: 0, text: AT_LEAST_ONE_ERROR, type: "error" },
+      ],
     };
   }
 
+  const findItemLineNumber = (
+    text: string,
+    item: unknown,
+    itemIndex: number,
+  ): number => {
+    const itemJson = JSON.stringify(item);
+    const startStr = '"label":';
+
+    const lines = text.split("\n");
+    let charCount = 0;
+
+    for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+      const line = lines[lineIdx];
+      const lineEndCharIdx = charCount + line.length;
+
+      if (text.includes(itemJson, charCount)) {
+        let searchPos = charCount;
+        let braceCount = 0;
+        let foundBraceStart = false;
+
+        for (let i = searchPos; i < text.length; i++) {
+          if (text[i] === "{") {
+            braceCount++;
+            foundBraceStart = true;
+          } else if (text[i] === "}") {
+            braceCount--;
+            if (foundBraceStart && braceCount === 0) {
+              return lineIdx;
+            }
+          }
+        }
+      }
+      charCount = lineEndCharIdx + 1;
+    }
+
+    return itemIndex + 1;
+  };
+
   const errors: string[] = [];
+  const annotations: JsonErrorAnnotation[] = [];
   const validItems: DataListChoiceItem[] = [];
+  const seenValues = new Set<string>();
 
   parsed.forEach((item, index) => {
+    const row = findItemLineNumber(trimmed, item, index);
+    const col = 0;
+
     if (!item || typeof item !== "object") {
-      errors.push(`Choice item ${index + 1}: item must be an object.`);
+      const err = `Choice item ${index + 1}: item must be an object.`;
+      errors.push(err);
+      annotations.push({ row: row, column: col, text: err, type: "error" });
       return;
     }
 
-    const row = item as { label?: unknown; value?: unknown };
-    const label = typeof row.label === "string" ? row.label.trim() : "";
-    const valueField = typeof row.value === "string" ? row.value.trim() : "";
+    const itemObj = item as { label?: unknown; value?: unknown };
+    const label = typeof itemObj.label === "string" ? itemObj.label.trim() : "";
+    const valueField = typeof itemObj.value === "string" ? itemObj.value.trim() : "";
 
     if (!label) {
-      errors.push(`Choice item ${index + 1}: label is required.`);
+      const err = `Choice item ${index + 1}: label is required.`;
+      errors.push(err);
+      annotations.push({ row: row, column: col, text: err, type: "error" });
     }
 
     if (!valueField) {
-      errors.push(`Choice item ${index + 1}: value is required.`);
+      const err = `Choice item ${index + 1}: value is required.`;
+      errors.push(err);
+      annotations.push({ row: row, column: col, text: err, type: "error" });
+    } else if (seenValues.has(valueField)) {
+      const err = `Choice item ${index + 1}: value must be unique.`;
+      errors.push(err);
+      annotations.push({ row: row, column: col, text: err, type: "error" });
+    } else {
+      seenValues.add(valueField);
     }
 
     if (label.length > MAX_FIELD_LENGTH) {
-      errors.push(
-        `Choice item ${index + 1}: label exceeds ${MAX_FIELD_LENGTH} characters.`,
-      );
+      const err = `Choice item ${index + 1}: label exceeds ${MAX_FIELD_LENGTH} characters.`;
+      errors.push(err);
+      annotations.push({ row: row, column: col, text: err, type: "error" });
     }
 
     if (valueField.length > MAX_FIELD_LENGTH) {
-      errors.push(
-        `Choice item ${index + 1}: value exceeds ${MAX_FIELD_LENGTH} characters.`,
-      );
+      const err = `Choice item ${index + 1}: value exceeds ${MAX_FIELD_LENGTH} characters.`;
+      errors.push(err);
+      annotations.push({ row: row, column: col, text: err, type: "error" });
     }
 
-    if (label && valueField) {
+    if (label && valueField && !errors.some((e) => e.includes(`Choice item ${index + 1}`))) {
       validItems.push({
         label,
         value: valueField,
@@ -99,5 +168,5 @@ export function parseAndValidateJson(value: string): ParsedValidation {
     }
   });
 
-  return { validItems, errors };
+  return { validItems, errors, annotations };
 }

@@ -17,14 +17,13 @@ import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createDataListAction } from "../create-data-list.action";
-import { DataListItemsInput, TabValue } from "../../add-items/data-list-items-input";
+import {
+  DataListItemsInput,
+  TabValue,
+} from "../../add-items/data-list-items-input";
 import { DataListValidationPreview } from "../../add-items/data-list-validation-preview";
 import { useJsonFileSource } from "../../add-items/use-json-file-source.hook";
-import {
-  parseAndValidateJson,
-  type ParsedValidation,
-} from "../../add-items/types";
-import { replaceDataListItemsAction } from "../../replace-list-items/replace-data-list-items.action";
+import { replaceDataListItemsAction } from "../../replace-items/replace-data-list-items.action";
 
 interface CreateDataListDialogProps {
   open: boolean;
@@ -34,6 +33,13 @@ interface CreateDataListDialogProps {
 
 type CreateStep = 1 | 2;
 
+/**
+ * A dialog for creating a new data list.
+ * @param open - Whether the dialog is open.
+ * @param onOpenChange - A callback function to call when the dialog is opened or closed.
+ * @param onCreated - A callback function to call when the data list is created.
+ * @returns The CreateDataListDialog component.
+ */
 export function CreateDataListDialog({
   open,
   onOpenChange,
@@ -43,15 +49,17 @@ export function CreateDataListDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [tabValue, setTabValue] = useState<TabValue>("upload");
-  const [validation, setValidation] = useState<ParsedValidation | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const {
     jsonInput,
+    validation,
     selectedFileName,
+    activeError,
     setJsonInput,
     handleFileSelected,
+    handleErrorClick: hookHandleErrorClick,
     reset: resetFileHandler,
   } = useJsonFileSource();
 
@@ -61,18 +69,10 @@ export function CreateDataListDialog({
       setName("");
       setDescription("");
       setTabValue("upload");
-      setValidation(null);
       setValidationError(null);
       resetFileHandler();
     }
   }, [open, resetFileHandler]);
-
-  useEffect(() => {
-    if (selectedFileName && jsonInput.trim().length > 0) {
-      setTabValue("paste");
-      setValidationError(null);
-    }
-  }, [jsonInput, selectedFileName]);
 
   const canProceedToReview = useMemo(() => {
     return (
@@ -90,13 +90,16 @@ export function CreateDataListDialog({
     );
   }, [canProceedToReview, validation]);
 
-  const handleContinue = () => {
-    const parsed = parseAndValidateJson(jsonInput);
-    setValidation(parsed);
+  const handleErrorClick = (row: number, column: number) => {
+    setStep(1);
+    setTabValue("paste");
+    hookHandleErrorClick(row, column);
+  };
 
-    if (parsed.validItems.length === 0) {
+  const handleContinue = () => {
+    if (!validation || validation.validItems.length === 0) {
       setValidationError(
-        parsed.errors[0] || "Please provide valid JSON items.",
+        validation?.errors[0] || "Please provide valid JSON items.",
       );
       return;
     }
@@ -176,7 +179,17 @@ export function CreateDataListDialog({
                 onFileSelected={handleFileSelected}
                 selectedFileName={selectedFileName}
                 fileInputId="create-data-list-file-upload"
+                errors={validation?.annotations}
+                activeError={activeError}
+                onErrorClick={handleErrorClick}
               />
+
+              {validation && step === 1 && (
+                <DataListValidationPreview
+                  validation={validation}
+                  onErrorClick={handleErrorClick}
+                />
+              )}
             </>
           )}
 
@@ -185,6 +198,7 @@ export function CreateDataListDialog({
               validation={validation}
               name={name}
               description={description}
+              onErrorClick={handleErrorClick}
             />
           )}
 

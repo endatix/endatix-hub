@@ -35,6 +35,8 @@ describe("useJsonFileSource", () => {
     expect(result.current.jsonInput).toBe("");
     expect(result.current.validationError).toBeNull();
     expect(result.current.selectedFileName).toBeNull();
+    expect(result.current.validation).toBeNull();
+    expect(result.current.activeError).toBeNull();
   });
 
   describe("setJsonInput", () => {
@@ -131,6 +133,72 @@ describe("useJsonFileSource", () => {
       expect(result.current.jsonInput).toBe("");
       expect(result.current.validationError).toBeNull();
       expect(result.current.selectedFileName).toBeNull();
+      expect(result.current.validation).toBeNull();
+      expect(result.current.activeError).toBeNull();
+    });
+  });
+
+  describe("handleErrorClick", () => {
+    it("sets activeError when called", () => {
+      const { result } = renderHook(() => useJsonFileSource());
+
+      act(() => {
+        result.current.handleErrorClick(2, 5);
+      });
+
+      expect(result.current.activeError).toEqual({ row: 2, column: 5 });
+    });
+
+    it("allows setting same error again", () => {
+      const { result } = renderHook(() => useJsonFileSource());
+
+      act(() => {
+        result.current.handleErrorClick(1, 0);
+      });
+      act(() => {
+        result.current.handleErrorClick(1, 0);
+      });
+
+      expect(result.current.activeError).toEqual({ row: 1, column: 0 });
+    });
+  });
+
+  describe("validation auto-computation", () => {
+    it("computes validation from jsonInput", () => {
+      const { result } = renderHook(() => useJsonFileSource());
+
+      act(() => {
+        result.current.setJsonInput('[{"label": "A", "value": "a"}]');
+      });
+
+      expect(result.current.validation).not.toBeNull();
+      expect(result.current.validation?.validItems).toHaveLength(1);
+    });
+
+    it("computes validation errors for invalid JSON", () => {
+      const { result } = renderHook(() => useJsonFileSource());
+
+      act(() => {
+        result.current.setJsonInput("[not valid json]");
+      });
+
+      expect(result.current.validation).not.toBeNull();
+      expect(result.current.validation?.errors.length).toBeGreaterThan(0);
+    });
+
+    it("clears activeError when jsonInput changes", () => {
+      const { result } = renderHook(() => useJsonFileSource());
+
+      act(() => {
+        result.current.handleErrorClick(1, 0);
+      });
+      expect(result.current.activeError).not.toBeNull();
+
+      act(() => {
+        result.current.setJsonInput('[{"label": "A", "value": "a"}]');
+      });
+
+      expect(result.current.activeError).toBeNull();
     });
   });
 });
