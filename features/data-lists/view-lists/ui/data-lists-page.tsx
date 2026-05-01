@@ -18,6 +18,7 @@ import type {
 } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";
@@ -35,6 +36,7 @@ export function DataListsPage({
   initialDataLists,
   openCreateOnLoad = false,
 }: DataListsPageProps) {
+  const router = useRouter();
   const [dataLists, setDataLists] = useState<DataList[]>(initialDataLists);
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
     useState(openCreateOnLoad);
@@ -108,6 +110,9 @@ export function DataListsPage({
 
   const handleCreateDialogClose = (open: boolean) => {
     setIsCreateDialogOpen(open);
+    if (!open) {
+      router.push("/data-lists");
+    }
   };
 
   return (
