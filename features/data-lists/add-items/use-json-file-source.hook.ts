@@ -9,17 +9,22 @@ import {
   READ_ERROR,
 } from "../utils";
 
+interface ErrorPointer {
+  row: number;
+  column: number;
+}
+
 interface UseJsonFileSourceOptions {
   maxFileSizeBytes?: number;
 }
 
 interface UseJsonFileSourceReturn extends JsonFileHandlerState {
   validation: ParsedValidation | null;
-  activeError: { row: number; column: number } | null;
+  activeError: ErrorPointer | null;
   setJsonInput: (value: string) => void;
   setValidationError: (error: string | null) => void;
   handleFileSelected: (file: File | null) => void;
-  handleErrorClick: (row: number, column: number) => void;
+  handleErrorClick: (error: ErrorPointer) => void;
   reset: () => void;
 }
 
@@ -39,19 +44,14 @@ export function useJsonFileSource(
 ): UseJsonFileSourceReturn {
   const maxFileSize = options.maxFileSizeBytes ?? MAX_FILE_SIZE_BYTES;
 
-  const [jsonInput, setJsonInputState] = useState<string>(
-    initialState.jsonInput,
-  );
+  const [jsonInput, setJsonInput] = useState<string>(initialState.jsonInput);
   const [validationError, setValidationError] = useState<string | null>(
     initialState.validationError,
   );
   const [selectedFileName, setSelectedFileName] = useState<string | null>(
     initialState.selectedFileName,
   );
-  const [activeError, setActiveError] = useState<{
-    row: number;
-    column: number;
-  } | null>(null);
+  const [activeError, setActiveError] = useState<ErrorPointer | null>(null);
 
   const validation = useMemo(() => {
     if (!jsonInput.trim()) {
@@ -60,20 +60,20 @@ export function useJsonFileSource(
     return validateJsonInput(jsonInput);
   }, [jsonInput]);
 
-  const setJsonInput = useCallback((value: string) => {
-    setJsonInputState(value);
+  const setJsonInputInternal = useCallback((value: string) => {
+    setJsonInput(value);
     setActiveError(null);
   }, []);
 
   const reset = useCallback(() => {
-    setJsonInputState(initialState.jsonInput);
+    setJsonInput(initialState.jsonInput);
     setValidationError(initialState.validationError);
     setSelectedFileName(initialState.selectedFileName);
     setActiveError(null);
   }, []);
 
-  const handleErrorClick = useCallback((row: number, column: number) => {
-    setActiveError({ row, column });
+  const handleErrorClick = useCallback((error: ErrorPointer) => {
+    setActiveError(error);
   }, []);
 
   const handleFileSelected = useCallback(
@@ -83,7 +83,7 @@ export function useJsonFileSource(
       }
 
       if (file.size > maxFileSize) {
-        setJsonInputState(initialState.jsonInput);
+        setJsonInput(initialState.jsonInput);
         setValidationError(FILE_SIZE_ERROR);
         setSelectedFileName(file.name);
         return;
@@ -92,7 +92,7 @@ export function useJsonFileSource(
       try {
         const content = await file.text();
         setSelectedFileName(file.name);
-        setJsonInputState(content);
+        setJsonInput(content);
         setActiveError(null);
       } catch {
         setValidationError(READ_ERROR);
@@ -107,7 +107,7 @@ export function useJsonFileSource(
     validationError,
     selectedFileName,
     activeError,
-    setJsonInput,
+    setJsonInput: setJsonInputInternal,
     setValidationError,
     handleFileSelected,
     handleErrorClick,

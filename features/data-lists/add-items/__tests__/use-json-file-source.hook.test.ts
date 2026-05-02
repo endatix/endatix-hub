@@ -143,7 +143,7 @@ describe("useJsonFileSource", () => {
       const { result } = renderHook(() => useJsonFileSource());
 
       act(() => {
-        result.current.handleErrorClick(2, 5);
+        result.current.handleErrorClick({ row: 2, column: 5 });
       });
 
       expect(result.current.activeError).toEqual({ row: 2, column: 5 });
@@ -153,10 +153,10 @@ describe("useJsonFileSource", () => {
       const { result } = renderHook(() => useJsonFileSource());
 
       act(() => {
-        result.current.handleErrorClick(1, 0);
+        result.current.handleErrorClick({ row: 1, column: 0 });
       });
       act(() => {
-        result.current.handleErrorClick(1, 0);
+        result.current.handleErrorClick({ row: 1, column: 0 });
       });
 
       expect(result.current.activeError).toEqual({ row: 1, column: 0 });
@@ -190,7 +190,7 @@ describe("useJsonFileSource", () => {
       const { result } = renderHook(() => useJsonFileSource());
 
       act(() => {
-        result.current.handleErrorClick(1, 0);
+        result.current.handleErrorClick({ row: 1, column: 0 });
       });
       expect(result.current.activeError).not.toBeNull();
 
