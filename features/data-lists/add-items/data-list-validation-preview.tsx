@@ -1,8 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MAX_PREVIEW_ERRORS, type ParsedValidation } from "./types";
-import type { JsonErrorAnnotation } from "./json-editor";
+import { MAX_PREVIEW_ERRORS } from "../utils";
+import type { ParsedValidation, JsonErrorAnnotation } from "../types";
 
 interface DataListValidationPreviewProps {
   validation: ParsedValidation;
@@ -22,7 +22,7 @@ export function DataListValidationPreview({
   name,
   description,
   onErrorClick,
-}: DataListValidationPreviewProps) {
+}: Readonly<DataListValidationPreviewProps>) {
   const totalItems = validation.validItems.length + validation.errors.length;
 
   const handleErrorClick = (annotation: JsonErrorAnnotation) => {
@@ -74,12 +74,14 @@ export function DataListValidationPreview({
               {validation.annotations
                 .slice(0, MAX_PREVIEW_ERRORS)
                 .map((annotation, index) => (
-                  <li
-                    key={`${annotation.row}-${annotation.column}-${index}`}
-                    className="cursor-pointer hover:underline"
-                    onClick={() => handleErrorClick(annotation)}
-                  >
-                    {annotation.text}
+                  <li key={`${annotation.row}-${annotation.column}-${index}`}>
+                    <button
+                      type="button"
+                      className="cursor-pointer text-left hover:underline"
+                      onClick={() => handleErrorClick(annotation)}
+                    >
+                      {annotation.text}
+                    </button>
                   </li>
                 ))}
             </ul>

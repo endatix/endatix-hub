@@ -1,20 +1,19 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { type JsonFileHandlerState, type ParsedValidation } from "../types";
 import {
-  FILE_SIZE_ERROR,
   MAX_FILE_SIZE_BYTES,
   parseAndValidateJson,
+  FILE_SIZE_ERROR,
   READ_ERROR,
-  type JsonFileHandlerState as JsonFileSourceHookState,
-  type ParsedValidation,
-} from "./types";
+} from "../utils";
 
 interface UseJsonFileSourceOptions {
   maxFileSizeBytes?: number;
 }
 
-interface UseJsonFileSourceReturn extends JsonFileSourceHookState {
+interface UseJsonFileSourceReturn extends JsonFileHandlerState {
   validation: ParsedValidation | null;
   activeError: { row: number; column: number } | null;
   setJsonInput: (value: string) => void;
@@ -24,7 +23,7 @@ interface UseJsonFileSourceReturn extends JsonFileSourceHookState {
   reset: () => void;
 }
 
-const initialState: JsonFileSourceHookState = {
+const initialState: JsonFileHandlerState = {
   jsonInput: "",
   validationError: null,
   selectedFileName: null,

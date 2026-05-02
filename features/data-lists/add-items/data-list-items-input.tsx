@@ -2,8 +2,8 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileUp } from "lucide-react";
-import type { JsonErrorAnnotation } from "./json-editor";
-import { JsonEditor } from "./json-editor";
+import type { JsonErrorAnnotation } from "../types";
+import { JsonEditor } from "../ui/json-editor";
 
 const tabValues = ["upload", "paste"] as const;
 export type TabValue = (typeof tabValues)[number];
@@ -34,8 +34,7 @@ export function DataListItemsInput({
   fileInputId,
   errors,
   activeError,
-  onErrorClick,
-}: DataListItemsInputProps) {
+}: Readonly<DataListItemsInputProps>) {
   const isPasteTab = tabValue === "paste";
 
   return (

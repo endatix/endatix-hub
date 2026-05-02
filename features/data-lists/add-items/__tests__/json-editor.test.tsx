@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
-import { JsonEditor } from "../json-editor";
+import { JsonEditor } from "../../ui/json-editor";
 
 vi.mock("next-themes", () => ({
   useTheme: vi.fn(() => ({

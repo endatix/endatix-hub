@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import type { Editor } from "ace-builds";
 import type { CSSProperties } from "react";
+import { JsonErrorAnnotation } from "../types";
 
 const DEFAULT_STYLE: CSSProperties = {
   height: "250px",
@@ -12,13 +13,6 @@ const DEFAULT_STYLE: CSSProperties = {
 
 const ACE_DARK_THEME = "ace/theme/clouds_midnight";
 const ACE_LIGHT_THEME = "ace/theme/chrome";
-
-export interface JsonErrorAnnotation {
-  row: number;
-  column: number;
-  text: string;
-  type: string;
-}
 
 interface JsonEditorProps {
   value: string;
@@ -34,7 +28,7 @@ export function JsonEditor({
   style,
   errors,
   activeError,
-}: JsonEditorProps) {
+}: Readonly<JsonEditorProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
 
@@ -54,8 +48,9 @@ export function JsonEditor({
   useEffect(() => {
     let cancelled = false;
     const container = containerRef.current;
+    const currentEditor = editorRef.current;
 
-    if (!container || editorRef.current) return;
+    if (!container || currentEditor) return;
 
     const initEditor = async () => {
       const ace = (await import("ace-builds/src-noconflict/ace")).default;
