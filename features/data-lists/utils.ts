@@ -100,13 +100,6 @@ export function validateJsonInput(value: string): ParsedValidation {
     },
   ];
 
-  const uniqueValidation = {
-    check: (_item: unknown, _label: string, valueField: string) =>
-      !valueField ? false : seenValues.has(valueField),
-    getError: (_item: unknown, index: number) =>
-      `Choice item ${index + 1}: value must be unique.`,
-  };
-
   parsed.forEach((item, index) => {
     const row = findItemLineNumber(trimmed, item, index);
 
