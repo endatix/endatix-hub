@@ -15,7 +15,7 @@ export type GetDataListFormDependenciesResult = Result<FormDependencySummary[]>;
  */
 export async function getDataListFormDependenciesAction(
   dataListId: string,
-): Promise<GetDataListFormDependenciesResult | never> {
+): Promise<GetDataListFormDependenciesResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

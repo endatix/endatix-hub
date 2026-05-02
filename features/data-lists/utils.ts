@@ -12,19 +12,13 @@ export const INVALID_JSON_ERROR = "Invalid JSON format.";
 export const ARRAY_REQUIRED_ERROR = "JSON root must be an array of objects.";
 export const AT_LEAST_ONE_ERROR = "At least one item is required.";
 
-const createErrorResponse = (
-  error: string,
-  row = 0,
-): ParsedValidation => ({
+const createErrorResponse = (error: string, row = 0): ParsedValidation => ({
   validItems: [],
   errors: [error],
   annotations: [{ row, column: 0, text: error, type: "error" }],
 });
 
-const createAnnotation = (
-  text: string,
-  row: number,
-): JsonErrorAnnotation => ({
+const createAnnotation = (text: string, row: number): JsonErrorAnnotation => ({
   row,
   column: 0,
   text,
@@ -35,36 +29,13 @@ const findItemLineNumber = (
   text: string,
   item: unknown,
   itemIndex: number,
+  startPos = 0,
 ): number => {
   const itemJson = JSON.stringify(item);
-  const lines = text.split("\n");
-  let charCount = 0;
+  const pos = text.indexOf(itemJson, startPos);
+  if (pos === -1) return itemIndex + 1;
 
-  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-    const line = lines[lineIdx];
-    const lineEndCharIdx = charCount + line.length;
-
-    if (text.includes(itemJson, charCount)) {
-      const searchPos = charCount;
-      let braceCount = 0;
-      let foundBraceStart = false;
-
-      for (let i = searchPos; i < text.length; i++) {
-        if (text[i] === "{") {
-          braceCount++;
-          foundBraceStart = true;
-        } else if (text[i] === "}") {
-          braceCount--;
-          if (foundBraceStart && braceCount === 0) {
-            return lineIdx;
-          }
-        }
-      }
-    }
-    charCount = lineEndCharIdx + 1;
-  }
-
-  return itemIndex + 1;
+  return text.slice(0, pos).split("\n").length;
 };
 
 /**
@@ -111,7 +82,8 @@ export function validateJsonInput(value: string): ParsedValidation {
         `Choice item ${index + 1}: label is required.`,
     },
     {
-      check: (_item: unknown, _label: string, valueField: string) => !valueField,
+      check: (_item: unknown, _label: string, valueField: string) =>
+        !valueField,
       getError: (_item: unknown, index: number) =>
         `Choice item ${index + 1}: value is required.`,
     },

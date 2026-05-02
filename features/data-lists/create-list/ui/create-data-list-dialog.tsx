@@ -93,7 +93,7 @@ export function CreateDataListDialog({
   const handleErrorClick = (row: number, column: number) => {
     setStep(1);
     setTabValue("paste");
-    hookHandleErrorClick(row, column);
+    hookHandleErrorClick({ row, column });
   };
 
   const handleContinue = () => {

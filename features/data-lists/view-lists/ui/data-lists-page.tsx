@@ -264,7 +264,7 @@ function StatusPill({ isActive }: Readonly<{ isActive: boolean }>) {
   if (isActive) {
     return (
       <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-        <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+        <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-primary"></span>
         Active
       </span>
     );

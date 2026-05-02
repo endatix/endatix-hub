@@ -65,7 +65,7 @@ export function ReplaceItemsDialog({
 
   const handleErrorClick = (row: number, column: number) => {
     setTabValue("paste");
-    hookHandleErrorClick(row, column);
+    hookHandleErrorClick({ row, column });
   };
 
   useEffect(() => {
