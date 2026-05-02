@@ -4,9 +4,10 @@ import { DataListsPage } from "@/features/data-lists/view-lists/ui/data-lists-pa
 import { getDataListsAction } from "@/features/data-lists/view-lists/get-data-lists.action";
 import { isNotFoundError } from "@/lib/endatix-api";
 import { notFound } from "next/navigation";
+import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 
 interface DataListsRoutePageProps {
-  searchParams?: Promise<{ action?: string }>;
+  searchParams: Promise<{ action: SearchParam }>;
 }
 
 export default async function DataListsRoutePage({
@@ -25,8 +26,8 @@ export default async function DataListsRoutePage({
     throw new Error(dataListsResult.error.message);
   }
 
-  const resolvedSearchParams = (await searchParams) || {};
-  const openCreateOnLoad = resolvedSearchParams.action === "create";
+  const { action } = await searchParams;
+  const openCreateOnLoad = hasValue(action, "create");
 
   return (
     <DataListsPage

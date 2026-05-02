@@ -18,7 +18,7 @@ import type {
 } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";

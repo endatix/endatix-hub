@@ -6,10 +6,11 @@ import {
   DataListDetailsPage,
 } from "@/features/data-lists/view-list-details";
 import { isNotFoundError } from "@/lib/endatix-api";
+import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 
 interface DataListDetailsRoutePageProps {
   params: Promise<{ dataListId: string }>;
-  searchParams?: Promise<{ action?: string }>;
+  searchParams: Promise<{ action: SearchParam }>;
 }
 
 export default async function DataListDetailsRoutePage({
@@ -31,8 +32,8 @@ export default async function DataListDetailsRoutePage({
     throw new Error(dataListResult.error.message);
   }
 
-  const resolvedSearchParams = (await searchParams) || {};
-  const openReplaceOnLoad = resolvedSearchParams.action === "replace";
+  const { action } = await searchParams;
+  const openReplaceOnLoad = hasValue(action, "replace");
 
   return (
     <DataListDetailsPage

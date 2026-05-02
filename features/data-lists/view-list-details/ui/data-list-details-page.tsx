@@ -17,6 +17,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog";
+import { useRouter } from "next/navigation";
+import { validateEndatixId } from "@/lib/utils/type-validators";
+import { Result } from "@/lib/result";
 
 interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
@@ -30,12 +33,25 @@ export function DataListDetailsPage({
   const [details, setDetails] = useState(initialDetails);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] =
     useState(openReplaceOnLoad);
+  const router = useRouter();
 
   useEffect(() => {
     if (openReplaceOnLoad) {
       setIsReplaceDialogOpen(true);
     }
   }, [openReplaceOnLoad]);
+
+  const handleOpenCloseReplaceDialog = (open: boolean): void => {
+    setIsReplaceDialogOpen(open);
+    if (!open) {
+      const validationResult = validateEndatixId(details.id, "dataListId");
+      const routerAction = (): void => Result.isError(validationResult)
+      ? router.back()
+      : router.push(`/data-lists/${validationResult.value}`);
+      
+      routerAction();
+    }
+  };
 
   return (
     <>
@@ -101,7 +117,7 @@ export function DataListDetailsPage({
 
       <ReplaceItemsDialog
         open={isReplaceDialogOpen}
-        onOpenChange={setIsReplaceDialogOpen}
+        onOpenChange={handleOpenCloseReplaceDialog}
         dataListId={String(details.id)}
         title={details.name}
         onReplaced={(updated) => {
