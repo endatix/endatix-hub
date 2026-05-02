@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { type JsonFileHandlerState, type ParsedValidation } from "../types";
 import {
   MAX_FILE_SIZE_BYTES,
-  parseAndValidateJson,
+  validateJsonInput,
   FILE_SIZE_ERROR,
   READ_ERROR,
 } from "../utils";
@@ -57,7 +57,7 @@ export function useJsonFileSource(
     if (!jsonInput.trim()) {
       return null;
     }
-    return parseAndValidateJson(jsonInput);
+    return validateJsonInput(jsonInput);
   }, [jsonInput]);
 
   const setJsonInput = useCallback((value: string) => {

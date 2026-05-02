@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseAndValidateJson } from "../../utils";
+import { validateJsonInput } from "../../utils";
 
-describe("parseAndValidateJson", () => {
+describe("validateJsonInput", () => {
   it("returns error for empty input", () => {
-    const result = parseAndValidateJson("");
+    const result = validateJsonInput("");
 
     expect(result.validItems).toEqual([]);
     expect(result.errors).toContain("JSON content is required.");
@@ -12,7 +12,7 @@ describe("parseAndValidateJson", () => {
   });
 
   it("returns error for invalid JSON", () => {
-    const result = parseAndValidateJson("{ invalid }");
+    const result = validateJsonInput("{ invalid }");
 
     expect(result.validItems).toEqual([]);
     expect(result.errors).toContain("Invalid JSON format.");
@@ -20,21 +20,21 @@ describe("parseAndValidateJson", () => {
   });
 
   it("returns error when root is not array", () => {
-    const result = parseAndValidateJson('{"key": "value"}');
+    const result = validateJsonInput('{"key": "value"}');
 
     expect(result.validItems).toEqual([]);
     expect(result.errors).toContain("JSON root must be an array of objects.");
   });
 
   it("returns error for empty array", () => {
-    const result = parseAndValidateJson("[]");
+    const result = validateJsonInput("[]");
 
     expect(result.validItems).toEqual([]);
     expect(result.errors).toContain("At least one item is required.");
   });
 
   it("validates items and returns structured annotations", () => {
-    const result = parseAndValidateJson(
+    const result = validateJsonInput(
       '[{"label": "Option 1", "value": "opt1"}, {"value": "opt2"}]',
     );
 
@@ -48,7 +48,7 @@ describe("parseAndValidateJson", () => {
   });
 
   it("returns valid items with all required fields", () => {
-    const result = parseAndValidateJson(
+    const result = validateJsonInput(
       '[{"label": "A", "value": "a"}, {"label": "B", "value": "b"}]',
     );
 
@@ -59,7 +59,7 @@ describe("parseAndValidateJson", () => {
 
   it("validates field length constraints", () => {
     const longLabel = "x".repeat(256);
-    const result = parseAndValidateJson(
+    const result = validateJsonInput(
       `[{"label": "${longLabel}", "value": "a"}]`,
     );
 
@@ -70,7 +70,7 @@ describe("parseAndValidateJson", () => {
   });
 
   it("uses row indexing accounting for array bracket", () => {
-    const result = parseAndValidateJson(
+    const result = validateJsonInput(
       '[{"label": "Good", "value": "g"}, {"label": "", "value": "x"}]',
     );
 
@@ -86,7 +86,7 @@ describe("parseAndValidateJson", () => {
   {"label": "First", "value": "a"},
   {"label": "", "value": "b"}
 ]`;
-    const result = parseAndValidateJson(multilineJson);
+    const result = validateJsonInput(multilineJson);
 
     const missingLabelError = result.annotations.find((a) =>
       a.text.includes("label is required"),
@@ -96,7 +96,7 @@ describe("parseAndValidateJson", () => {
   });
 
   it("validates unique values", () => {
-    const result = parseAndValidateJson(
+    const result = validateJsonInput(
       '[{"label": "A", "value": "opt1"}, {"label": "B", "value": "opt1"}]',
     );
 
@@ -105,7 +105,7 @@ describe("parseAndValidateJson", () => {
   });
 
   it("marks second duplicate as error but first item remains valid", () => {
-    const result = parseAndValidateJson(
+    const result = validateJsonInput(
       '[{"label": "A", "value": "opt1"}, {"label": "B", "value": "opt1"}]',
     );
 
@@ -114,7 +114,7 @@ describe("parseAndValidateJson", () => {
   });
 
   it("allows duplicate labels but not values", () => {
-    const result = parseAndValidateJson(
+    const result = validateJsonInput(
       '[{"label": "Option", "value": "a"}, {"label": "Option", "value": "b"}]',
     );
 

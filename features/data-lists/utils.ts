@@ -12,148 +12,163 @@ export const INVALID_JSON_ERROR = "Invalid JSON format.";
 export const ARRAY_REQUIRED_ERROR = "JSON root must be an array of objects.";
 export const AT_LEAST_ONE_ERROR = "At least one item is required.";
 
-export function parseAndValidateJson(value: string): ParsedValidation {
+const createErrorResponse = (
+  error: string,
+  row = 0,
+): ParsedValidation => ({
+  validItems: [],
+  errors: [error],
+  annotations: [{ row, column: 0, text: error, type: "error" }],
+});
+
+const createAnnotation = (
+  text: string,
+  row: number,
+): JsonErrorAnnotation => ({
+  row,
+  column: 0,
+  text,
+  type: "error",
+});
+
+const findItemLineNumber = (
+  text: string,
+  item: unknown,
+  itemIndex: number,
+): number => {
+  const itemJson = JSON.stringify(item);
+  const lines = text.split("\n");
+  let charCount = 0;
+
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const line = lines[lineIdx];
+    const lineEndCharIdx = charCount + line.length;
+
+    if (text.includes(itemJson, charCount)) {
+      const searchPos = charCount;
+      let braceCount = 0;
+      let foundBraceStart = false;
+
+      for (let i = searchPos; i < text.length; i++) {
+        if (text[i] === "{") {
+          braceCount++;
+          foundBraceStart = true;
+        } else if (text[i] === "}") {
+          braceCount--;
+          if (foundBraceStart && braceCount === 0) {
+            return lineIdx;
+          }
+        }
+      }
+    }
+    charCount = lineEndCharIdx + 1;
+  }
+
+  return itemIndex + 1;
+};
+
+/**
+ * Validates a JSON string containing data list items.
+ * @param value - The JSON string to validate.
+ * @returns The validation result.
+ */
+export function validateJsonInput(value: string): ParsedValidation {
   const trimmed = value.trim();
+
   if (!trimmed) {
-    return {
-      validItems: [],
-      errors: [JSON_REQUIRED_ERROR],
-      annotations: [
-        { row: 0, column: 0, text: JSON_REQUIRED_ERROR, type: "error" },
-      ],
-    };
+    return createErrorResponse(JSON_REQUIRED_ERROR);
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(trimmed);
   } catch {
-    return {
-      validItems: [],
-      errors: [INVALID_JSON_ERROR],
-      annotations: [
-        { row: 0, column: 0, text: INVALID_JSON_ERROR, type: "error" },
-      ],
-    };
+    return createErrorResponse(INVALID_JSON_ERROR);
   }
 
   if (!Array.isArray(parsed)) {
-    return {
-      validItems: [],
-      errors: [ARRAY_REQUIRED_ERROR],
-      annotations: [
-        { row: 0, column: 0, text: ARRAY_REQUIRED_ERROR, type: "error" },
-      ],
-    };
+    return createErrorResponse(ARRAY_REQUIRED_ERROR);
   }
 
   if (parsed.length === 0) {
-    return {
-      validItems: [],
-      errors: [AT_LEAST_ONE_ERROR],
-      annotations: [
-        { row: 0, column: 0, text: AT_LEAST_ONE_ERROR, type: "error" },
-      ],
-    };
+    return createErrorResponse(AT_LEAST_ONE_ERROR);
   }
-
-  const findItemLineNumber = (
-    text: string,
-    item: unknown,
-    itemIndex: number,
-  ): number => {
-    const itemJson = JSON.stringify(item);
-
-    const lines = text.split("\n");
-    let charCount = 0;
-
-    for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-      const line = lines[lineIdx];
-      const lineEndCharIdx = charCount + line.length;
-
-      if (text.includes(itemJson, charCount)) {
-        const searchPos = charCount;
-        let braceCount = 0;
-        let foundBraceStart = false;
-
-        for (let i = searchPos; i < text.length; i++) {
-          if (text[i] === "{") {
-            braceCount++;
-            foundBraceStart = true;
-          } else if (text[i] === "}") {
-            braceCount--;
-            if (foundBraceStart && braceCount === 0) {
-              return lineIdx;
-            }
-          }
-        }
-      }
-      charCount = lineEndCharIdx + 1;
-    }
-
-    return itemIndex + 1;
-  };
 
   const errors: string[] = [];
   const annotations: JsonErrorAnnotation[] = [];
   const validItems: DataListChoiceItem[] = [];
   const seenValues = new Set<string>();
 
+  const validationRules = [
+    {
+      check: (item: unknown) => !item || typeof item !== "object",
+      getError: (_item: unknown, index: number) =>
+        `Choice item ${index + 1}: item must be an object.`,
+    },
+    {
+      check: (_item: unknown, label: string) => !label,
+      getError: (_item: unknown, index: number) =>
+        `Choice item ${index + 1}: label is required.`,
+    },
+    {
+      check: (_item: unknown, _label: string, valueField: string) => !valueField,
+      getError: (_item: unknown, index: number) =>
+        `Choice item ${index + 1}: value is required.`,
+    },
+    {
+      check: (_item: unknown, _label: string, valueField: string) =>
+        valueField.length > MAX_FIELD_LENGTH,
+      getError: (_item: unknown, index: number) =>
+        `Choice item ${index + 1}: value exceeds ${MAX_FIELD_LENGTH} characters.`,
+    },
+    {
+      check: (_item: unknown, label: string) => label.length > MAX_FIELD_LENGTH,
+      getError: (_item: unknown, index: number) =>
+        `Choice item ${index + 1}: label exceeds ${MAX_FIELD_LENGTH} characters.`,
+    },
+  ];
+
+  const uniqueValidation = {
+    check: (_item: unknown, _label: string, valueField: string) =>
+      !valueField ? false : seenValues.has(valueField),
+    getError: (_item: unknown, index: number) =>
+      `Choice item ${index + 1}: value must be unique.`,
+  };
+
   parsed.forEach((item, index) => {
     const row = findItemLineNumber(trimmed, item, index);
-    const col = 0;
-
-    if (!item || typeof item !== "object") {
-      const err = `Choice item ${index + 1}: item must be an object.`;
-      errors.push(err);
-      annotations.push({ row: row, column: col, text: err, type: "error" });
-      return;
-    }
 
     const itemObj = item as { label?: unknown; value?: unknown };
     const label = typeof itemObj.label === "string" ? itemObj.label.trim() : "";
     const valueField =
       typeof itemObj.value === "string" ? itemObj.value.trim() : "";
 
-    if (!label) {
-      const err = `Choice item ${index + 1}: label is required.`;
-      errors.push(err);
-      annotations.push({ row: row, column: col, text: err, type: "error" });
+    const hasError = (errText: string) =>
+      errors.some((e) => e.includes(errText));
+
+    // Standard validation rules
+    for (const rule of validationRules) {
+      if (rule.check(item, label, valueField)) {
+        const err = rule.getError(item, index);
+        errors.push(err);
+        annotations.push(createAnnotation(err, row));
+      }
     }
 
-    if (!valueField) {
-      const err = `Choice item ${index + 1}: value is required.`;
-      errors.push(err);
-      annotations.push({ row: row, column: col, text: err, type: "error" });
-    } else if (seenValues.has(valueField)) {
-      const err = `Choice item ${index + 1}: value must be unique.`;
-      errors.push(err);
-      annotations.push({ row: row, column: col, text: err, type: "error" });
-    } else {
-      seenValues.add(valueField);
+    // Unique value check - must check BEFORE adding to seenValues
+    if (valueField) {
+      if (seenValues.has(valueField)) {
+        const err = `Choice item ${index + 1}: value must be unique.`;
+        errors.push(err);
+        annotations.push(createAnnotation(err, row));
+      } else {
+        seenValues.add(valueField);
+      }
     }
 
-    if (label.length > MAX_FIELD_LENGTH) {
-      const err = `Choice item ${index + 1}: label exceeds ${MAX_FIELD_LENGTH} characters.`;
-      errors.push(err);
-      annotations.push({ row: row, column: col, text: err, type: "error" });
-    }
-
-    if (valueField.length > MAX_FIELD_LENGTH) {
-      const err = `Choice item ${index + 1}: value exceeds ${MAX_FIELD_LENGTH} characters.`;
-      errors.push(err);
-      annotations.push({ row: row, column: col, text: err, type: "error" });
-    }
-
-    if (
-      label &&
-      valueField &&
-      !errors.some((e) => e.includes(`Choice item ${index + 1}`))
-    ) {
-      validItems.push({
-        label,
-        value: valueField,
-      });
+    // Add valid item if no errors for this item
+    if (label && valueField && !hasError(`Choice item ${index + 1}`)) {
+      validItems.push({ label, value: valueField });
     }
   });
 
