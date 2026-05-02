@@ -141,7 +141,7 @@ export function JsonEditor({
         editorRef.current = null;
       }
 
-      containerRef.current?.replaceChildren();
+      container?.replaceChildren();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

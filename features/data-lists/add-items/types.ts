@@ -88,7 +88,7 @@ export function parseAndValidateJson(value: string): ParsedValidation {
       const lineEndCharIdx = charCount + line.length;
 
       if (text.includes(itemJson, charCount)) {
-        let searchPos = charCount;
+        const searchPos = charCount;
         let braceCount = 0;
         let foundBraceStart = false;
 
