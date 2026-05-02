@@ -9,7 +9,7 @@ export type GetDataListByIdResult = ApiResult<DataListDetails>;
 
 export async function getDataListByIdAction(
   dataListId: string,
-): Promise<GetDataListByIdResult | never> {
+): Promise<GetDataListByIdResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

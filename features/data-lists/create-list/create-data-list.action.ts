@@ -15,7 +15,7 @@ interface CreateDataListInput {
 
 export async function createDataListAction(
   input: CreateDataListInput,
-): Promise<CreateDataListResult | never> {
+): Promise<CreateDataListResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

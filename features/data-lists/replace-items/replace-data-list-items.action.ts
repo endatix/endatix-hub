@@ -16,7 +16,7 @@ export type ReplaceDataListItemsResult = Result<DataListDetails>;
 export async function replaceDataListItemsAction(
   dataListId: string,
   items: DataListChoiceItem[],
-): Promise<ReplaceDataListItemsResult | never> {
+): Promise<ReplaceDataListItemsResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

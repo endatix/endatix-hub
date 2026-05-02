@@ -10,9 +10,7 @@ import { DataList } from "@/lib/endatix-api/data-lists/types";
  * TODO: We will add lazy laoding and paging support in a future PR.
  * @returns The data lists.
  */
-export async function getDataListsAction(): Promise<
-  ApiResult<DataList[]> | never
-> {
+export async function getDataListsAction(): Promise<ApiResult<DataList[]>> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

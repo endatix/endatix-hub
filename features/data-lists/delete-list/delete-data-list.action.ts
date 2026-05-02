@@ -13,7 +13,7 @@ export type DeleteDataListResult = Result<string>;
 
 export async function deleteDataListAction(
   dataListId: string,
-): Promise<DeleteDataListResult | never> {
+): Promise<DeleteDataListResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
