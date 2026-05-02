@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAndValidateJson } from "../types";
+import { parseAndValidateJson } from "../../utils";
 
 describe("parseAndValidateJson", () => {
   it("returns error for empty input", () => {
@@ -69,7 +69,7 @@ describe("parseAndValidateJson", () => {
     );
   });
 
-it("uses row indexing accounting for array bracket", () => {
+  it("uses row indexing accounting for array bracket", () => {
     const result = parseAndValidateJson(
       '[{"label": "Good", "value": "g"}, {"label": "", "value": "x"}]',
     );

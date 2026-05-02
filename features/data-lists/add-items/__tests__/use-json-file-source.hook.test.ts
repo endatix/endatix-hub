@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useJsonFileSource } from "../use-json-file-source.hook";
-import { FILE_SIZE_ERROR, MAX_FILE_SIZE_BYTES } from "../types";
+import { FILE_SIZE_ERROR, MAX_FILE_SIZE_BYTES } from "../../utils";
 
 class MockFileReader {
   onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => void) | null =

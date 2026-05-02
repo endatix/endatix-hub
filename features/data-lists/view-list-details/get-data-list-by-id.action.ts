@@ -4,7 +4,6 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
-import { Result } from "@/lib/result";
 
 export type GetDataListByIdResult = ApiResult<DataListDetails>;
 

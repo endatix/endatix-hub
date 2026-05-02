@@ -29,7 +29,7 @@ interface DataListDetailsPageProps {
 export function DataListDetailsPage({
   initialDetails,
   openReplaceOnLoad = false,
-}: DataListDetailsPageProps) {
+}: Readonly<DataListDetailsPageProps>) {
   const [details, setDetails] = useState(initialDetails);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] =
     useState(openReplaceOnLoad);
@@ -45,10 +45,11 @@ export function DataListDetailsPage({
     setIsReplaceDialogOpen(open);
     if (!open) {
       const validationResult = validateEndatixId(details.id, "dataListId");
-      const routerAction = (): void => Result.isError(validationResult)
-      ? router.back()
-      : router.push(`/data-lists/${validationResult.value}`);
-      
+      const routerAction = (): void =>
+        Result.isError(validationResult)
+          ? router.back()
+          : router.push(`/data-lists/${validationResult.value}`);
+
       routerAction();
     }
   };

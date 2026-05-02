@@ -42,7 +42,7 @@ export function useJsonFileSource(
   const [jsonInput, setJsonInputState] = useState<string>(
     initialState.jsonInput,
   );
-  const [validationError, setValidationErrorState] = useState<string | null>(
+  const [validationError, setValidationError] = useState<string | null>(
     initialState.validationError,
   );
   const [selectedFileName, setSelectedFileName] = useState<string | null>(
@@ -67,13 +67,9 @@ export function useJsonFileSource(
 
   const reset = useCallback(() => {
     setJsonInputState(initialState.jsonInput);
-    setValidationErrorState(initialState.validationError);
+    setValidationError(initialState.validationError);
     setSelectedFileName(initialState.selectedFileName);
     setActiveError(null);
-  }, []);
-
-  const setValidationError = useCallback((error: string | null) => {
-    setValidationErrorState(error);
   }, []);
 
   const handleErrorClick = useCallback((row: number, column: number) => {
@@ -81,31 +77,28 @@ export function useJsonFileSource(
   }, []);
 
   const handleFileSelected = useCallback(
-    (file: File | null) => {
+    async (file: File | null) => {
       if (!file) {
         return;
       }
 
       if (file.size > maxFileSize) {
         setJsonInputState(initialState.jsonInput);
-        setValidationErrorState(FILE_SIZE_ERROR);
+        setValidationError(FILE_SIZE_ERROR);
         setSelectedFileName(file.name);
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        const content = String(reader.result ?? "");
+      try {
+        const content = await file.text();
         setSelectedFileName(file.name);
         setJsonInputState(content);
         setActiveError(null);
-      };
-      reader.onerror = () => {
-        setValidationErrorState(READ_ERROR);
-      };
-      reader.readAsText(file);
+      } catch {
+        setValidationError(READ_ERROR);
+      }
     },
-    [maxFileSize, setValidationErrorState, setSelectedFileName],
+    [maxFileSize, setValidationError, setSelectedFileName],
   );
 
   return {

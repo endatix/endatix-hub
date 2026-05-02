@@ -46,7 +46,7 @@ export function ReplaceItemsDialog({
   dataListId,
   title,
   onReplaced,
-}: ReplaceItemsDialogProps) {
+}: Readonly<ReplaceItemsDialogProps>) {
   const [tabValue, setTabValue] = useState<TabValue>("upload");
   const [isPending, startTransition] = useTransition();
 

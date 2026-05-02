@@ -19,7 +19,7 @@ interface DataListRowActionsProps {
 export function DataListRowActions({
   dataList,
   onDelete,
-}: DataListRowActionsProps) {
+}: Readonly<DataListRowActionsProps>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

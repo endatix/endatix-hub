@@ -44,7 +44,7 @@ export function CreateDataListDialog({
   open,
   onOpenChange,
   onCreated,
-}: CreateDataListDialogProps) {
+}: Readonly<CreateDataListDialogProps>) {
   const [step, setStep] = useState<CreateStep>(1);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

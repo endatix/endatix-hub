@@ -35,7 +35,7 @@ interface DataListsPageProps {
 export function DataListsPage({
   initialDataLists,
   openCreateOnLoad = false,
-}: DataListsPageProps) {
+}: Readonly<DataListsPageProps>) {
   const router = useRouter();
   const [dataLists, setDataLists] = useState<DataList[]>(initialDataLists);
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
@@ -260,7 +260,7 @@ export function DataListsPage({
   );
 }
 
-function StatusPill({ isActive }: { isActive: boolean }) {
+function StatusPill({ isActive }: Readonly<{ isActive: boolean }>) {
   if (isActive) {
     return (
       <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
