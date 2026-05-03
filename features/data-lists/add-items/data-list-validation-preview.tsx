@@ -68,7 +68,7 @@ export function DataListValidationPreview({
         {validation.errors.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs font-medium text-destructive">
-              Fix these issues before submitting:
+              Following items will be skipped. Click on the errors to fix them.
             </p>
             <ul className="list-disc space-y-0 pl-4 text-xs text-destructive">
               {validation.annotations

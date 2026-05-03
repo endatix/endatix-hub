@@ -152,7 +152,10 @@ export function JsonEditor({
     const editor = editorRef.current;
     if (!editor || !isReady) return;
 
-    const annotations = errors ?? [];
+    const annotations = (errors ?? []).map((error) => ({
+      ...error,
+      row: error.row,
+    }));
     editor.getSession().setAnnotations(annotations);
   }, [errors, isReady]);
 
@@ -165,7 +168,7 @@ export function JsonEditor({
       { row: activeError.row, column: activeError.column },
       0.5,
     );
-    editor.gotoLine(activeError.row, activeError.column + 1);
+    editor.gotoLine(activeError.row + 1, activeError.column);
   }, [activeError, isReady]);
 
   useEffect(() => {

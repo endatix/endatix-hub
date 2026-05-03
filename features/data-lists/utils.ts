@@ -101,7 +101,14 @@ export function validateJsonInput(value: string): ParsedValidation {
   ];
 
   parsed.forEach((item, index) => {
-    const row = findItemLineNumber(trimmed, item, index);
+    const row = findItemLineNumber(value, item, index);
+
+    if (item === null) {
+      const err = `Choice item ${index + 1}: item cannot be null.`;
+      errors.push(err);
+      annotations.push(createAnnotation(err, row));
+      return;
+    }
 
     const itemObj = item as { label?: unknown; value?: unknown };
     const label = typeof itemObj.label === "string" ? itemObj.label.trim() : "";

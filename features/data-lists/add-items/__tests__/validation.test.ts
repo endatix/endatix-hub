@@ -121,4 +121,55 @@ describe("validateJsonInput", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.validItems).toHaveLength(2);
   });
+
+  it("handles null items in array", () => {
+    const result = validateJsonInput(
+      '[{"label": "France", "value": "fr"}, null, {"label": "Germany", "value": "de"}]',
+    );
+
+    expect(result.validItems).toHaveLength(2);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("item cannot be null");
+    expect(result.errors[0]).toContain("2");
+  });
+
+  it("returns correct line numbers for null items with multiline input", () => {
+    const result = validateJsonInput(
+      `[
+  {"label": "First", "value": "a"},
+  null,
+  {"label": "Third", "value": "c"}
+]`,
+    );
+
+    const nullError = result.annotations.find((a) =>
+      a.text.includes("cannot be null"),
+    );
+    expect(nullError).toBeDefined();
+    expect(nullError?.row).toBe(3);
+  });
+
+  it("validates complex input with multiple errors", () => {
+    const result = validateJsonInput(
+      `[
+  { "label": "foo", "value": "foo1" },
+  null,
+  { "label": "bar", "value": "bar" },
+  { "label": "foo2", "value": "foo1" },
+  { "noLabel": "{baz}", "value": "baz" },
+  { "label": "{baz}", "noValue": "baz" },
+  { "label": { "noLabel": "{baz}", "value": "baz" }, "noValue": "baz" }
+]`,
+    );
+
+    expect(result.validItems).toHaveLength(2);
+    expect(result.validItems[0].label).toBe("foo");
+    expect(result.validItems[1].label).toBe("bar");
+
+    expect(result.errors).toHaveLength(6);
+    expect(result.errors.some((e) => e.includes("cannot be null"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("label is required"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("value is required"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("must be unique"))).toBe(true);
+  });
 });
