@@ -40,7 +40,11 @@ const SidebarNav = () => {
         <SidebarGroup>
           <SidebarMenu>
             {mainNavItems.map((item) => (
-              <SidebarNavItem key={item.title} item={item} isCollapsed={isSidebarCollapsed} />
+              <SidebarNavItem
+                key={item.title}
+                item={item}
+                isCollapsed={isSidebarCollapsed}
+              />
             ))}
           </SidebarMenu>
         </SidebarGroup>
@@ -48,7 +52,12 @@ const SidebarNav = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {secondaryNavItems.map((item) => (
-                <SidebarNavItem key={item.title} item={item} isCollapsed={isSidebarCollapsed} size="sm" />
+                <SidebarNavItem
+                  key={item.title}
+                  item={item}
+                  isCollapsed={isSidebarCollapsed}
+                  size="sm"
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>

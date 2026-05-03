@@ -1,16 +1,15 @@
-export interface DataListSummary {
+export interface DataList {
   id: string;
   name: string;
-  description?: string | null;
+  description?: string;
   isActive: boolean;
+  createdAt: Date;
+  modifiedAt?: Date;
+  itemsCount: number;
 }
 
-export interface DataListsPageResponse {
-  page: string | number;
-  pageSize: string | number;
-  totalRecords: string | number;
-  totalPages: string | number;
-  items: DataListSummary[];
+export interface DataListDetails extends DataList {
+  items: DataListItem[];
 }
 
 export interface DataListChoiceItem {
@@ -18,12 +17,40 @@ export interface DataListChoiceItem {
   value: string;
 }
 
-export interface DataListPublicSearchResult {
-  dataListId: number;
-  total: number;
-  skip: number;
-  take: number;
+export interface DataListItem {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface CreateDataListRequest {
+  name: string;
+  description?: string;
+}
+
+export interface ReplaceDataListItemsRequest {
   items: DataListChoiceItem[];
+}
+
+export interface FormDependencySummary {
+  id: string;
+  name?: string | null;
+  description?: string | null;
+  isEnabled: boolean;
+  isPublic: boolean;
+}
+
+export interface DataListPublicChoiceItem {
+  label: string;
+  value: string;
+}
+
+export interface DataListPublicSearchResult {
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
+  items: DataListPublicChoiceItem[];
 }
 
 export type PublicDataListTokenType = "AccessToken" | "SubmissionToken";
@@ -41,7 +68,6 @@ export interface PublicDataListSearchRequest extends PublicDataListRequestBase {
   take?: number;
 }
 
-export interface PublicDataListDisplayValuesRequest
-  extends PublicDataListRequestBase {
+export interface PublicDataListDisplayValuesRequest extends PublicDataListRequestBase {
   values: string[];
 }

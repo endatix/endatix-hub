@@ -57,7 +57,7 @@
     "@swc/helpers": "^0.5.15",
     "@tanstack/react-table": "^8.20.6",
     "@vercel/functions": "^1.5.2",
-    "ace-builds": "^1.43.6",
+    "ace-builds": "^1.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",

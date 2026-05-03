@@ -2,6 +2,7 @@ import { INavItem } from "@/types/navigation-models";
 import {
   BookOpen,
   ClipboardList,
+  DatabaseZap,
   LayoutTemplate,
   LifeBuoy,
   LineChart,
@@ -24,6 +25,12 @@ const sitemapArray: INavItem[] = [
     title: "Form Templates",
     url: "/forms/templates",
     icon: LayoutTemplate,
+  },
+  {
+    key: "dataLists",
+    title: "Data Lists",
+    url: "/data-lists",
+    icon: DatabaseZap,
   },
   {
     key: "documentation",
