@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { PaginationState, Updater } from "@tanstack/react-table";
@@ -158,7 +158,16 @@ describe("SubmissionsWithFilters", () => {
     screen.getByText("No submissions match these filters");
     expect(screen.queryByText("No submissions yet")).toBeNull();
 
-    fireEvent.click(screen.getAllByRole("button", { name: /reset filters/i })[1]);
+    const emptyState = screen
+      .getByRole("heading", { name: "No submissions match these filters" })
+      .closest("div");
+
+    expect(emptyState).not.toBeNull();
+    fireEvent.click(
+      within(emptyState as HTMLElement).getByRole("button", {
+        name: /reset filters/i,
+      }),
+    );
 
     expect(navigationMocks.push).toHaveBeenCalledWith(
       "/forms/form-1/submissions",

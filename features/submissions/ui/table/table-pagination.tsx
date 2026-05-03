@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 
 interface TablePagination<TData> {
-  table: Table<TData>;
-  totalRows?: number;
+  readonly table: Table<TData>;
+  readonly totalRows?: number;
 }
 
 export function TablePagination<TData>({ table, totalRows }: TablePagination<TData>) {
