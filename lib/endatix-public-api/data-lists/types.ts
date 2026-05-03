@@ -4,10 +4,10 @@ export interface DataListChoiceItem {
 }
 
 export interface DataListPublicSearchResult {
-  dataListId: number;
-  total: number;
-  skip: number;
-  take: number;
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
   items: DataListChoiceItem[];
 }
 

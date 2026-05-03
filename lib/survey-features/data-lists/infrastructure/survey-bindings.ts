@@ -72,7 +72,7 @@ export function bindDataListsToSurvey(
 
     options.setItems(
       response.data.items.map((item) => ({ value: item.value, text: item.label })),
-      response.data.total,
+      response.data.totalRecords,
     );
   };
 
