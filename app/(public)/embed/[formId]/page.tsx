@@ -3,6 +3,7 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
+import AlreadyResponded from "@/features/public-form/ui/already-responded";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
@@ -82,7 +83,10 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
         );
       }
 
-      if (errorMessage.includes("permission") || errorMessage.includes("forbidden")) {
+      if (
+        errorMessage.includes("permission") ||
+        errorMessage.includes("forbidden")
+      ) {
         return (
           <NotFoundComponent
             notFoundTitle="Access Denied"
@@ -105,7 +109,9 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
     submission = accessTokenResult.value;
   } else {
     const partialResult = submissionResult as ApiResult<Submission>;
-    submission = ApiResult.isSuccess(partialResult) ? partialResult.data : undefined;
+    submission = ApiResult.isSuccess(partialResult)
+      ? partialResult.data
+      : undefined;
   }
 
   if (Result.isError(activeDefinitionResult)) {
@@ -113,9 +119,27 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
   }
 
   const activeDefinition = activeDefinitionResult.value;
+  const hasCurrentDraftSubmission = Boolean(submission?.id);
+  const shouldShowAlreadyResponded =
+    !urlToken &&
+    (activeDefinition.hasUserSubmitted ?? false) &&
+    !hasCurrentDraftSubmission;
 
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
+
+  if (shouldShowAlreadyResponded) {
+    return (
+      <div
+        style={{
+          width: "100%",
+        }}
+      >
+        <EmbedHeightReporter />
+        <AlreadyResponded metadata={activeDefinition.metadata} />
+      </div>
+    );
+  }
 
   return (
     <div

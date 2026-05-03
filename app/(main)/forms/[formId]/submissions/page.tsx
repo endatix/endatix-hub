@@ -15,6 +15,7 @@ type Params = {
     pageSize?: string;
     isComplete?: string;
     status?: string;
+    isTestSubmission?: string;
   }>;
 };
 
@@ -76,6 +77,7 @@ async function SubmissionsTableData({
   searchParams: {
     isComplete?: string;
     status?: string;
+    isTestSubmission?: string;
   };
 }) {
   const isCompleteFilter = searchParams.isComplete
@@ -85,6 +87,9 @@ async function SubmissionsTableData({
   const statusFilter = searchParams.status
     ? searchParams.status.split(",")
     : [];
+  const isTestSubmissionFilter = searchParams.isTestSubmission
+    ? searchParams.isTestSubmission.split(",")
+    : [];
 
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
@@ -93,6 +98,7 @@ async function SubmissionsTableData({
     api.submissions.list(formId, {
       isComplete: isCompleteFilter,
       status: statusFilter,
+      isTestSubmission: isTestSubmissionFilter,
     }),
     api.definitions.getFields(formId),
   ]);
@@ -107,6 +113,7 @@ async function SubmissionsTableData({
       definitionFields={definitionFields}
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}
+      initialIsTestSubmission={isTestSubmissionFilter}
     />
   );
 }

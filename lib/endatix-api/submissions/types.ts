@@ -33,6 +33,7 @@ export interface Submission extends ApiEntity {
   formId: EntityId;
   formDefinitionId: EntityId;
   isComplete: boolean;
+  isTestSubmission?: boolean;
   jsonData: JsonData;
   currentPage: number;
   metadata: JsonData;
@@ -117,6 +118,7 @@ export type ExportSubmissionsResponse = ApiResult<Response>;
 export interface SubmissionQuery extends PaginationQuery {
   status?: SubmissionStatus;
   isComplete?: boolean;
+  isTestSubmission?: boolean;
   dateRange?: {
     from: Date;
     to: Date;
