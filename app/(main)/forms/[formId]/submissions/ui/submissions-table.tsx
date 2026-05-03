@@ -7,7 +7,7 @@ import {
   ParsedSubmission,
 } from "@/features/submissions/ui/table";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
-import { SortingState } from "@tanstack/react-table";
+import { PaginationState, SortingState } from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type SubmissionsTableProps = {
@@ -16,6 +16,10 @@ type SubmissionsTableProps = {
   definitionFields?: DefinitionField[];
   sorting?: SortingState;
   onSortingChange?: Dispatch<SetStateAction<SortingState>>;
+  pagination?: PaginationState;
+  onPaginationChange?: Dispatch<SetStateAction<PaginationState>>;
+  totalRecords?: number;
+  totalPages?: number;
 };
 
 const SubmissionsTable = ({
@@ -24,6 +28,10 @@ const SubmissionsTable = ({
   definitionFields = [],
   sorting,
   onSortingChange,
+  pagination,
+  onPaginationChange,
+  totalRecords,
+  totalPages,
 }: SubmissionsTableProps) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<
     string | null
@@ -75,6 +83,10 @@ const SubmissionsTable = ({
       formId={formId}
       sorting={sorting}
       onSortingChange={onSortingChange}
+      pagination={pagination}
+      onPaginationChange={onPaginationChange}
+      rowCount={totalRecords}
+      pageCount={totalPages}
     />
   );
 };

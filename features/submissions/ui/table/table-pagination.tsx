@@ -16,14 +16,15 @@ import {
 
 interface TablePagination<TData> {
   table: Table<TData>;
+  totalRows?: number;
 }
 
-export function TablePagination<TData>({ table }: TablePagination<TData>) {
+export function TablePagination<TData>({ table, totalRows }: TablePagination<TData>) {
   return (
     <div className="flex items-center justify-between border-t border-sidebar-border/50 px-4 py-3">
       <div className="flex-1 text-sm text-muted-foreground">
         {table.getFilteredSelectedRowModel().rows.length} of{" "}
-        {table.getCoreRowModel().rows.length} row(s) selected.
+        {totalRows ?? table.getCoreRowModel().rows.length} row(s) selected.
       </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">

@@ -75,6 +75,8 @@ async function SubmissionsTableData({
 }: {
   formId: string;
   searchParams: {
+    page?: string;
+    pageSize?: string;
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
@@ -94,13 +96,16 @@ async function SubmissionsTableData({
     isCompleteFilter.length > 0 ||
     statusFilter.length > 0 ||
     isTestSubmissionFilter.length > 0;
+  const page = parsePositiveInteger(searchParams.page, 1);
+  const pageSize = parsePositiveInteger(searchParams.pageSize, 10);
 
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
 
   const [submissionsResult, fieldsResult, unfilteredSubmissionsResult] = await Promise.all([
     api.submissions.list(formId, {
-      pageSize: 10000,
+      page,
+      pageSize,
       isComplete: isCompleteFilter,
       status: statusFilter,
       isTestSubmission: isTestSubmissionFilter,
@@ -143,11 +148,20 @@ async function SubmissionsTableData({
       formId={formId}
       hasAnySubmissions={hasAnySubmissions}
       definitionFields={definitionFields}
+      initialPage={submissionsResult.data.page}
+      initialPageSize={submissionsResult.data.pageSize}
+      totalRecords={submissionsResult.data.totalRecords}
+      totalPages={submissionsResult.data.totalPages}
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}
       initialIsTestSubmission={isTestSubmissionFilter}
     />
   );
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function SubmissionsLoadError({ children }: { children: ReactNode }) {

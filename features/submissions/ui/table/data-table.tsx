@@ -36,6 +36,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  PaginationState,
   Row,
   RowSelectionState,
   SortingState,
@@ -71,17 +72,26 @@ export function DataTable<TData extends Submission>({
   formId,
   sorting: externalSorting,
   onSortingChange: externalOnSortingChange,
+  pagination: externalPagination,
+  onPaginationChange: externalOnPaginationChange,
+  rowCount,
+  pageCount,
 }: {
   data: TData[];
   columns: ColumnDef<TData>[];
   formId: string;
   sorting?: SortingState;
   onSortingChange?: Dispatch<SetStateAction<SortingState>>;
+  pagination?: PaginationState;
+  onPaginationChange?: Dispatch<SetStateAction<PaginationState>>;
+  rowCount?: number;
+  pageCount?: number;
 }) {
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
 
   const sorting = externalSorting !== undefined ? externalSorting : internalSorting;
   const setSorting = externalOnSortingChange !== undefined ? externalOnSortingChange : setInternalSorting;
+  const manualPagination = externalPagination !== undefined;
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const router = useRouter();
@@ -126,14 +136,19 @@ export function DataTable<TData extends Submission>({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualFiltering: true,
+    manualPagination,
+    rowCount,
+    pageCount,
     enableRowSelection: true,
     enableMultiRowSelection: false,
     enableColumnPinning: true,
     onSortingChange: setSorting,
+    onPaginationChange: externalOnPaginationChange,
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       rowSelection,
+      ...(externalPagination ? { pagination: externalPagination } : {}),
       columnOrder,
       columnVisibility,
       columnPinning: {
@@ -153,6 +168,9 @@ export function DataTable<TData extends Submission>({
         <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
           No rows to display.
         </div>
+        {manualPagination && rowCount && rowCount > 0 ? (
+          <TablePagination table={table} totalRows={rowCount} />
+        ) : null}
       </div>
     );
   }
@@ -249,7 +267,7 @@ export function DataTable<TData extends Submission>({
             ) : null}
           </DragOverlay>
         </DndContext>
-        <TablePagination table={table} />
+        <TablePagination table={table} totalRows={rowCount} />
       </div>
       <Sheet modal={true} open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="w-[600px] sm:w-[480px] sm:max-w-none flex flex-col h-screen justify-between">

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
+import type { PaginationState, Updater } from "@tanstack/react-table";
 import type { Submission } from "@/lib/endatix-api/submissions/types";
 import { SubmissionsWithFilters } from "./submissions-with-filters";
 
@@ -66,8 +67,23 @@ vi.mock("@/features/submissions/ui/table", () => ({
 }));
 
 vi.mock("./submissions-table", () => ({
-  default: ({ data }: { data: Submission[] }) => (
-    <div data-testid="submissions-table">Rows: {data.length}</div>
+  default: ({
+    data,
+    onPaginationChange,
+  }: {
+    data: Submission[];
+    onPaginationChange?: (updater: Updater<PaginationState>) => void;
+  }) => (
+    <div data-testid="submissions-table">
+      Rows: {data.length}
+      <button
+        onClick={() =>
+          onPaginationChange?.({ pageIndex: 1, pageSize: 20 })
+        }
+      >
+        Go page 2
+      </button>
+    </div>
   ),
 }));
 
@@ -86,6 +102,22 @@ const submission: Submission = {
   status: "completed",
 };
 
+const renderSubmissionsWithFilters = (
+  props: Partial<React.ComponentProps<typeof SubmissionsWithFilters>> = {},
+) =>
+  render(
+    <SubmissionsWithFilters
+      data={[]}
+      formId="form-1"
+      hasAnySubmissions={false}
+      initialPage={1}
+      initialPageSize={10}
+      totalRecords={0}
+      totalPages={0}
+      {...props}
+    />,
+  );
+
 describe("SubmissionsWithFilters", () => {
   beforeEach(() => {
     navigationMocks.push.mockClear();
@@ -94,14 +126,10 @@ describe("SubmissionsWithFilters", () => {
 
   it("shows the true empty state when deep-linked filters exist but the form has no submissions", () => {
     // Act
-    render(
-      <SubmissionsWithFilters
-        data={[]}
-        formId="form-1"
-        hasAnySubmissions={false}
-        initialStatus={["new"]}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      hasAnySubmissions: false,
+      initialStatus: ["new"],
+    });
 
     // Assert
     screen.getByText("No submissions yet");
@@ -119,14 +147,12 @@ describe("SubmissionsWithFilters", () => {
 
   it("shows the filtered empty state when submissions exist but filters match no rows", () => {
     // Act
-    render(
-      <SubmissionsWithFilters
-        data={[]}
-        formId="form-1"
-        hasAnySubmissions
-        initialStatus={["new"]}
-      />,
-    );
+    renderSubmissionsWithFilters({
+      hasAnySubmissions: true,
+      initialStatus: ["new"],
+      totalRecords: 2,
+      totalPages: 1,
+    });
 
     // Assert
     screen.getByText("No submissions match these filters");
@@ -142,17 +168,34 @@ describe("SubmissionsWithFilters", () => {
 
   it("renders the table path when rows are available", () => {
     // Act
-    render(
-      <SubmissionsWithFilters
-        data={[submission]}
-        formId="form-1"
-        hasAnySubmissions
-      />,
-    );
+    renderSubmissionsWithFilters({
+      data: [submission],
+      hasAnySubmissions: true,
+      totalRecords: 1,
+      totalPages: 1,
+    });
 
     // Assert
     screen.getByTestId("submissions-table");
     expect(screen.queryByText("No submissions yet")).toBeNull();
     expect(screen.queryByText("No submissions match these filters")).toBeNull();
+  });
+
+  it("updates the URL when server pagination changes", () => {
+    // Act
+    renderSubmissionsWithFilters({
+      data: [submission],
+      hasAnySubmissions: true,
+      totalRecords: 25,
+      totalPages: 3,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /go page 2/i }));
+
+    // Assert
+    expect(navigationMocks.push).toHaveBeenCalledWith(
+      "/forms/form-1/submissions?page=2&pageSize=20",
+      { scroll: false },
+    );
   });
 });
