@@ -1,7 +1,12 @@
 "use client";
 
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
+import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
+import {
+  NoMatchingSubmissionsEmptyState,
+  NoSubmissionsEmptyState,
+} from "@/features/submissions/ui/submissions-empty-state";
 import {
   buildSubmissionDataColumns,
   ColumnOrderProvider,
@@ -23,6 +28,7 @@ import SubmissionsTable from "./submissions-table";
 interface SubmissionsWithFiltersProps {
   data: Submission[];
   formId: string;
+  hasAnySubmissions: boolean;
   definitionFields?: DefinitionField[];
   initialIsComplete?: string[];
   initialStatus?: string[];
@@ -32,6 +38,7 @@ interface SubmissionsWithFiltersProps {
 function SubmissionsContent({
   data,
   formId,
+  hasAnySubmissions,
   definitionFields,
   isCompleteFilter,
   statusFilter,
@@ -49,6 +56,7 @@ function SubmissionsContent({
 }: {
   data: Submission[];
   formId: string;
+  hasAnySubmissions: boolean;
   definitionFields: DefinitionField[];
   isCompleteFilter: Set<string>;
   statusFilter: Set<string>;
@@ -67,8 +75,16 @@ function SubmissionsContent({
   const { resetToDefault: resetOrder, hasCustomOrder } = useColumnOrder();
   const { resetToDefault: resetVisibility, hasCustomVisibility } = useColumnVisibility();
   const [isClient, setIsClient] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const hasSorting = sorting.length > 0;
+  const hasActiveFilters =
+    isCompleteFilter.size > 0 ||
+    statusFilter.size > 0 ||
+    testSubmissionFilter.size > 0;
+  const isTrueEmptyState = !hasAnySubmissions;
+  const isFilteredEmptyState = hasAnySubmissions && hasActiveFilters && data.length === 0;
+  const disableTableControls = isTrueEmptyState;
 
   useEffect(() => {
     setIsClient(true);
@@ -130,29 +146,52 @@ function SubmissionsContent({
           onStatusChange={onStatusChange}
           onTestSubmissionChange={onTestSubmissionChange}
           onResetFilters={onResetFilters}
+          disabled={disableTableControls}
         />
         <div className="flex items-center gap-2">
-          <ColumnViewOptionsDropdown columns={columnHeaders} />
+          <ColumnViewOptionsDropdown
+            columns={columnHeaders}
+            disabled={disableTableControls}
+          />
           {isClient && (
             <ResetOptionsDropdown
               options={resetOptions}
               onResetAll={handleResetAll}
+              disabled={disableTableControls}
             />
           )}
-          <ExportSubmissionsButton formId={formId} />
+          <ExportSubmissionsButton
+            formId={formId}
+            disabled={disableTableControls}
+          />
         </div>
       </div>
       {isPending && (
         <div className="text-sm text-muted-foreground">Updating...</div>
       )}
-      <SubmissionsTable
-        key={tableKey}
-        data={data}
-        formId={formId}
-        definitionFields={definitionFields}
-        sorting={sorting}
-        onSortingChange={onSortingChange}
-      />
+      {isTrueEmptyState ? (
+        <>
+          <NoSubmissionsEmptyState
+            onShareForm={() => setIsShareDialogOpen(true)}
+          />
+          <ShareDialog
+            formId={formId}
+            open={isShareDialogOpen}
+            onOpenChange={setIsShareDialogOpen}
+          />
+        </>
+      ) : isFilteredEmptyState ? (
+        <NoMatchingSubmissionsEmptyState onClearFilters={onResetFilters} />
+      ) : (
+        <SubmissionsTable
+          key={tableKey}
+          data={data}
+          formId={formId}
+          definitionFields={definitionFields}
+          sorting={sorting}
+          onSortingChange={onSortingChange}
+        />
+      )}
     </>
   );
 }
@@ -160,6 +199,7 @@ function SubmissionsContent({
 export function SubmissionsWithFilters({
   data,
   formId,
+  hasAnySubmissions,
   definitionFields = [],
   initialIsComplete = [],
   initialStatus = [],
@@ -242,6 +282,7 @@ export function SubmissionsWithFilters({
         <SubmissionsContent
           data={data}
           formId={formId}
+          hasAnySubmissions={hasAnySubmissions}
           definitionFields={definitionFields}
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}

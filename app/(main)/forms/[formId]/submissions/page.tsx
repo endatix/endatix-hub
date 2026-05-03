@@ -90,26 +90,61 @@ async function SubmissionsTableData({
   const isTestSubmissionFilter = searchParams.isTestSubmission
     ? searchParams.isTestSubmission.split(",")
     : [];
+  const hasActiveFilters =
+    isCompleteFilter.length > 0 ||
+    statusFilter.length > 0 ||
+    isTestSubmissionFilter.length > 0;
 
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
 
-  const [submissionsResult, fieldsResult] = await Promise.all([
+  const [submissionsResult, fieldsResult, unfilteredSubmissionsResult] = await Promise.all([
     api.submissions.list(formId, {
+      pageSize: 10000,
       isComplete: isCompleteFilter,
       status: statusFilter,
       isTestSubmission: isTestSubmissionFilter,
     }),
     api.definitions.getFields(formId),
+    hasActiveFilters
+      ? api.submissions.list(formId, { pageSize: 1 })
+      : Promise.resolve(null),
   ]);
 
-  const submissions = submissionsResult.success ? submissionsResult.data : [];
+  if (!submissionsResult.success) {
+    return (
+      <div
+        role="alert"
+        className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
+      >
+        Unable to load submissions. Please try again.
+      </div>
+    );
+  }
+
+  if (unfilteredSubmissionsResult && !unfilteredSubmissionsResult.success) {
+    return (
+      <div
+        role="alert"
+        className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
+      >
+        Unable to load submissions. Please try again.
+      </div>
+    );
+  }
+
+  const submissions = submissionsResult.data.items;
+  const hasAnySubmissions = hasActiveFilters
+    ? unfilteredSubmissionsResult?.success === true &&
+      unfilteredSubmissionsResult.data.totalRecords > 0
+    : submissionsResult.data.totalRecords > 0;
   const definitionFields = fieldsResult.success ? fieldsResult.data : [];
 
   return (
     <SubmissionsWithFilters
       data={submissions}
       formId={formId}
+      hasAnySubmissions={hasAnySubmissions}
       definitionFields={definitionFields}
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}

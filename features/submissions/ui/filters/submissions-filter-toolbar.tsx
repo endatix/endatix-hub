@@ -12,6 +12,7 @@ interface SubmissionsFilterToolbarProps {
   onStatusChange: (values: Set<string>) => void;
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
+  disabled?: boolean;
 }
 
 const isCompleteOptions = [
@@ -38,6 +39,7 @@ export function SubmissionsFilterToolbar({
   onStatusChange,
   onTestSubmissionChange,
   onResetFilters,
+  disabled = false,
 }: SubmissionsFilterToolbarProps) {
   const hasActiveFilters =
     isCompleteFilter.size > 0 || statusFilter.size > 0 || testSubmissionFilter.size > 0;
@@ -49,21 +51,29 @@ export function SubmissionsFilterToolbar({
         options={isCompleteOptions}
         selectedValues={isCompleteFilter}
         onValueChange={onIsCompleteChange}
+        disabled={disabled}
       />
       <FacetedFilter
         title="Status"
         options={statusOptions}
         selectedValues={statusFilter}
         onValueChange={onStatusChange}
+        disabled={disabled}
       />
       <FacetedFilter
         title="Submission Type"
         options={testSubmissionOptions}
         selectedValues={testSubmissionFilter}
         onValueChange={onTestSubmissionChange}
+        disabled={disabled}
       />
       {hasActiveFilters && (
-        <Button variant="ghost" onClick={onResetFilters} className="px-2 lg:px-3">
+        <Button
+          variant="ghost"
+          onClick={onResetFilters}
+          disabled={disabled}
+          className="px-2 lg:px-3"
+        >
           Reset Filters
           <X className="ml-2 h-4 w-4" />
         </Button>

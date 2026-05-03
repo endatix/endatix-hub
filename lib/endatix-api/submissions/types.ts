@@ -95,6 +95,22 @@ export interface ExportSubmissionsRequest{
   exportId?: string;
 }
 
+export interface ListSubmissionsRequest {
+  page?: number;
+  pageSize?: number;
+  isComplete?: string[];
+  status?: string[];
+  isTestSubmission?: string[];
+}
+
+export interface ListSubmissionsResponse {
+  items: Submission[];
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
+}
+
 // ============================================================================
 // API Method Responses (using ApiResult)
 // ============================================================================
@@ -102,7 +118,7 @@ export interface ExportSubmissionsRequest{
 export type CreateSubmissionResponse = ApiResult<Submission>;
 export type UpdateSubmissionResponse = ApiResult<Submission>;
 export type GetSubmissionResponse = ApiResult<Submission>;
-export type GetSubmissionsResponse = ApiResult<Submission[]>;
+export type GetSubmissionsResponse = ApiResult<ListSubmissionsResponse>;
 export type UpdateSubmissionStatusResponse = ApiResult<{
   status: SubmissionStatus;
   formId: EntityId;

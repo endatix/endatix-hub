@@ -16,11 +16,13 @@ interface ResetOption {
 interface ResetOptionsDropdownProps {
   options: ResetOption[];
   onResetAll: () => void;
+  disabled?: boolean;
 }
 
 export function ResetOptionsDropdown({
   options,
   onResetAll,
+  disabled = false,
 }: ResetOptionsDropdownProps) {
   if (options.length === 0) {
     return null;
@@ -33,6 +35,7 @@ export function ResetOptionsDropdown({
         variant="outline"
         size="sm"
         onClick={options[0].onClick}
+        disabled={disabled}
         className="px-2 lg:px-3"
       >
         <RotateCcw className="mr-2 h-4 w-4" />
@@ -45,7 +48,7 @@ export function ResetOptionsDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="px-2 lg:px-3">
+        <Button variant="outline" size="sm" disabled={disabled} className="px-2 lg:px-3">
           <RotateCcw className="mr-2 h-4 w-4" />
           Reset
           <ChevronDown className="ml-2 h-4 w-4" />
@@ -53,12 +56,12 @@ export function ResetOptionsDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
         {options.map((option) => (
-          <DropdownMenuItem key={option.label} onClick={option.onClick}>
+          <DropdownMenuItem key={option.label} onClick={option.onClick} disabled={disabled}>
             {option.label}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onResetAll}>Reset All</DropdownMenuItem>
+        <DropdownMenuItem onClick={onResetAll} disabled={disabled}>Reset All</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -12,17 +12,19 @@ import { useColumnVisibility } from "./column-visibility-context";
 
 interface ColumnViewOptionsDropdownProps {
   columns: Array<{ id: string; header: string }>;
+  disabled?: boolean;
 }
 
 export function ColumnViewOptionsDropdown({
   columns,
+  disabled = false,
 }: ColumnViewOptionsDropdownProps) {
   const { columnVisibility, toggleColumnVisibility } = useColumnVisibility();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" disabled={disabled}>
           <Settings2 className="mr-2 h-4 w-4" />
           View
         </Button>
@@ -35,6 +37,7 @@ export function ColumnViewOptionsDropdown({
             key={column.id}
             checked={columnVisibility[column.id] ?? true}
             onCheckedChange={() => toggleColumnVisibility(column.id)}
+            disabled={disabled}
           >
             {column.header}
           </DropdownMenuCheckboxItem>
