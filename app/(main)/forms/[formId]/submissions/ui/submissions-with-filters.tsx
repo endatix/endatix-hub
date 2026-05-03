@@ -149,6 +149,13 @@ function SubmissionsContent({
           disabled={disableTableControls}
         />
         <div className="flex items-center gap-2">
+          <div
+            role="status"
+            aria-live="polite"
+            className="min-w-[5rem] text-right text-sm text-muted-foreground"
+          >
+            {isPending ? "Updating..." : null}
+          </div>
           <ColumnViewOptionsDropdown
             columns={columnHeaders}
             disabled={disableTableControls}
@@ -166,9 +173,6 @@ function SubmissionsContent({
           />
         </div>
       </div>
-      {isPending && (
-        <div className="text-sm text-muted-foreground">Updating...</div>
-      )}
       {isTrueEmptyState ? (
         <>
           <NoSubmissionsEmptyState

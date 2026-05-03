@@ -15,16 +15,14 @@ describe("Submissions empty states", () => {
     fireEvent.click(screen.getByRole("button", { name: /share form/i }));
 
     // Assert
-    expect(screen.getByText("No submissions yet")).toBeDefined();
-    expect(
-      screen.getByText(
-        "Responses will appear here as soon as someone submits this form.",
-      ),
-    ).toBeDefined();
+    screen.getByText("No submissions yet");
+    screen.getByText(
+      "Responses will appear here as soon as someone submits this form.",
+    );
     expect(onShareForm).toHaveBeenCalledOnce();
   });
 
-  it("renders filtered empty copy with clear filters action", () => {
+  it("renders filtered empty copy with reset filters action", () => {
     // Arrange
     const onClearFilters = vi.fn();
 
@@ -32,10 +30,10 @@ describe("Submissions empty states", () => {
     render(
       <NoMatchingSubmissionsEmptyState onClearFilters={onClearFilters} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /clear filters/i }));
+    fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
 
     // Assert
-    expect(screen.getByText("No submissions match these filters")).toBeDefined();
+    screen.getByText("No submissions match these filters");
     expect(onClearFilters).toHaveBeenCalledOnce();
   });
 });

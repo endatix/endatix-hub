@@ -39,7 +39,7 @@ export function NoMatchingSubmissionsEmptyState({
   onClearFilters,
 }: NoMatchingSubmissionsEmptyStateProps) {
   return (
-    <div className="flex min-h-[14rem] flex-col items-center justify-center rounded-xl border border-sidebar-border/70 bg-background/90 px-6 py-12 text-center shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none">
+    <div className="flex min-h-[14rem] flex-col items-center justify-center px-6 py-12 text-center">
       <h2 className="text-lg font-semibold text-foreground">
         No submissions match these filters
       </h2>
@@ -48,7 +48,7 @@ export function NoMatchingSubmissionsEmptyState({
       </p>
       <Button variant="outline" onClick={onClearFilters} className="mt-5">
         <RotateCcw className="mr-2 h-4 w-4" />
-        Clear filters
+        Reset Filters
       </Button>
     </div>
   );

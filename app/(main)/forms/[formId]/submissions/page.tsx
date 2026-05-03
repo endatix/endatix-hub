@@ -5,7 +5,7 @@ import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata } from "next";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { SubmissionsWithFilters } from "./ui/submissions-with-filters";
 
 type Params = {
@@ -111,25 +111,22 @@ async function SubmissionsTableData({
       : Promise.resolve(null),
   ]);
 
-  if (!submissionsResult.success) {
+  if (
+    !submissionsResult.success ||
+    (unfilteredSubmissionsResult && !unfilteredSubmissionsResult.success)
+  ) {
     return (
-      <div
-        role="alert"
-        className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
-      >
+      <SubmissionsLoadError>
         Unable to load submissions. Please try again.
-      </div>
+      </SubmissionsLoadError>
     );
   }
 
-  if (unfilteredSubmissionsResult && !unfilteredSubmissionsResult.success) {
+  if (!fieldsResult.success) {
     return (
-      <div
-        role="alert"
-        className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
-      >
-        Unable to load submissions. Please try again.
-      </div>
+      <SubmissionsLoadError>
+        Unable to load submission fields. Please try again.
+      </SubmissionsLoadError>
     );
   }
 
@@ -138,7 +135,7 @@ async function SubmissionsTableData({
     ? unfilteredSubmissionsResult?.success === true &&
       unfilteredSubmissionsResult.data.totalRecords > 0
     : submissionsResult.data.totalRecords > 0;
-  const definitionFields = fieldsResult.success ? fieldsResult.data : [];
+  const definitionFields = fieldsResult.data;
 
   return (
     <SubmissionsWithFilters
@@ -150,6 +147,17 @@ async function SubmissionsTableData({
       initialStatus={statusFilter}
       initialIsTestSubmission={isTestSubmissionFilter}
     />
+  );
+}
+
+function SubmissionsLoadError({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="alert"
+      className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
+    >
+      {children}
+    </div>
   );
 }
 

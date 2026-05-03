@@ -144,6 +144,19 @@ export function DataTable<TData extends Submission>({
 
   const rows = table.getRowModel().rows;
 
+  if (rows.length === 0) {
+    return (
+      <div
+        data-slot="submission-data-table"
+        className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
+      >
+        <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+          No rows to display.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div
@@ -191,41 +204,33 @@ export function DataTable<TData extends Submission>({
                 </SortableContext>
               </TableHeader>
               <TableBody>
-                {rows.length > 0 ? (
-                  rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className={cn("group cursor-pointer", getRowClassName(row))}
-                      onClick={() => handleRowSelectionChange(row)}
-                      data-state={row.getIsSelected() && "selected"}
-                    >
-                      {row.getVisibleCells().map((cell) => {
-                        const isPinned = cell.column.getIsPinned();
-                        return (
-                          <TableCell
-                            key={cell.id}
-                            className={cn(
-                              isPinned &&
-                                "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
-                              isPinned === 'left' && "left-0",
-                              isPinned &&
-                                row.getIsSelected() &&
-                                "bg-accent group-hover:bg-accent"
-                            )}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      No results.
-                    </TableCell>
+                {rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className={cn("group cursor-pointer", getRowClassName(row))}
+                    onClick={() => handleRowSelectionChange(row)}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const isPinned = cell.column.getIsPinned();
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            isPinned &&
+                              "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
+                            isPinned === 'left' && "left-0",
+                            isPinned &&
+                              row.getIsSelected() &&
+                              "bg-accent group-hover:bg-accent"
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
-                )}
+                ))}
               </TableBody>
             </Table>
           <DragOverlay>
