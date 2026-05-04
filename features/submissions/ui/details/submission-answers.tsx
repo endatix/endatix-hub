@@ -1,11 +1,13 @@
 "use client";
 
 import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
+import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import { cn } from "@/lib/utils";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { CustomQuestion } from "@/services/api";
 import { EyeOff } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Question, surveyLocalization } from "survey-core";
 import {
   getSubmissionLocale,
@@ -28,13 +30,24 @@ export function SubmissionAnswers({
   customQuestions,
 }: Readonly<SubmissionAnswersProps>) {
   const { submission, submissionNavPages } = useSubmissionDetails();
+  const formRuntime = useFormRuntime();
+  const getRuntimeState = useCallback(() => {
+    return formRuntime.stateRef.current;
+  }, [formRuntime]);
   const formId = submission.formId;
   const formDefinition = submission.formDefinition?.jsonData ?? "";
+  const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions({
+    formJson: formDefinition,
+    runtimeDeps: {
+      getRuntimeState,
+    },
+  });
   const { surveyModel, error } = useSurveyModel({
     formId,
     definition: formDefinition,
     submission,
     customQuestions: customQuestions.map((q: CustomQuestion) => q.jsonData),
+    onModelCreated,
   });
 
   const { setSurveyModel } = useSubmissionDetails();
@@ -61,6 +74,10 @@ export function SubmissionAnswers({
 
     surveyModel.showQuestionNumbers = true;
   }, [surveyModel, viewOptions.useSubmissionLanguage, submission]);
+
+  if (!isExtensionsReady) {
+    return <div>Loading...</div>;
+  }
 
   if (!surveyModel) {
     return <div>Loading...</div>;

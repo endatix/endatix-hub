@@ -33,5 +33,5 @@ export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   advancedAnalytics: await advancedAnalyticsFlag(),
   aiFeatures: await aiFeaturesFlag(),
   formAnalytics: await formAnalyticsFlag(),
-  storageStats: await storageStatsFlag(),
+  storageStats: await storageStatsFlag()
 });

@@ -99,12 +99,21 @@ describe("useStorageUpload", () => {
   };
 
   const createHookProps = (
-    overrides?: Partial<Parameters<typeof useStorageUpload>[0]>,
-  ) => ({
-    formId: mockFormId,
-    surveyModel: mockSurveyModel,
-    ...overrides,
-  });
+    overrides?: Partial<Parameters<typeof useStorageUpload>[0]> & {
+      submissionId?: string;
+    },
+  ) => {
+    const { submissionId, ...restOverrides } = overrides ?? {};
+
+    return {
+      formId: mockFormId,
+      surveyModel: mockSurveyModel,
+      ...(submissionId
+        ? { getSubmissionId: () => submissionId }
+        : {}),
+      ...restOverrides,
+    };
+  };
 
   const mockFile = new File(["test content"], "test.jpg", {
     type: "image/jpeg",
@@ -280,6 +289,43 @@ describe("useStorageUpload", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/public/v0/storage/resize-image",
         expect.objectContaining({ method: "POST" }),
+      );
+    });
+
+    it("should resolve submissionId from getSubmissionId when submissionId prop is omitted", async () => {
+      const runtimeSubmissionId = "runtime-submission-456";
+
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              getSubmissionId: () => runtimeSubmissionId,
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        await result.current!.uploadFiles(mockSurveyModel, mockUploadOptions);
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/public/v0/storage/sas-token",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            fileNames: ["test.jpg"],
+            submissionId: runtimeSubmissionId,
+            formId: mockFormId,
+            formLocale: "en",
+          }),
+        }),
       );
     });
 

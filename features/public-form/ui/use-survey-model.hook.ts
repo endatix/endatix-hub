@@ -13,6 +13,7 @@ import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
+import { FormRuntimeContextValue } from "@/lib/form-runtime/form-runtime.context";
 
 interface UseSurveyModelProps {
   formId: string;
@@ -20,6 +21,7 @@ interface UseSurveyModelProps {
   submission?: Submission;
   customQuestions?: string[];
   onModelCreated?: (model: Model) => void;
+  formRuntime?: FormRuntimeContextValue;
 }
 
 /**
@@ -36,6 +38,7 @@ export function useSurveyModel({
   customQuestions,
   submission,
   onModelCreated,
+  formRuntime,
 }: UseSurveyModelProps) {
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
@@ -106,6 +109,10 @@ export function useSurveyModel({
 
     cleanupUrl();
 
+    if (formRuntime) {
+      formRuntime.updateState({ surveyModel: model });
+    }
+
     return () => {
       unbindQuestionLoops?.();
       isInitializedRef.current = false;
@@ -120,6 +127,7 @@ export function useSurveyModel({
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
+    formRuntime,
   ]);
 
   return {

@@ -1,11 +1,12 @@
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
-import { ApiResult, ApiErrorDetails, ApiErrorType } from "./shared/api-result";
-import { ERROR_CODE, getErrorMessageWithFallback } from "./shared/error-codes";
+import { ApiResult, ApiErrorDetails } from "./shared/api-result";
+import { ERROR_CODE } from "./shared/error-codes";
+import { mapResponseToApiError } from "./shared/http-error-mapper";
 import { Definitions } from "./definitions/definitions";
+import { DataLists } from "./data-lists/data-lists";
 import { Forms } from "./forms/forms";
 import { Submissions } from "./submissions/submissions";
 import type { SessionData } from "@/features/auth";
-import { parseErrorResponse } from "./shared/problem-details";
 import Agents from "./agents/agents";
 import Account from "./account/account";
 import MyAccount from "./my-account/my-account";
@@ -51,6 +52,7 @@ export class EndatixApi {
   private readonly defaultHeaders: Record<string, string>;
   private readonly session?: SessionData;
   private _definitions?: Definitions;
+  private _dataLists?: DataLists;
   private _forms?: Forms;
   private _submissions?: Submissions;
   private _agents?: Agents;
@@ -92,6 +94,13 @@ export class EndatixApi {
       this._definitions = new Definitions(this);
     }
     return this._definitions;
+  }
+
+  /**
+   * Lazy-loaded data lists API - only creates instance when first accessed
+   */
+  get dataLists(): DataLists {
+    return this._dataLists ?? new DataLists(this);
   }
 
   /**
@@ -361,154 +370,15 @@ export class EndatixApi {
 
   /**
    * Handles the error response and converts it to an ApiResult.
+   * Delegates to the shared mapper so browser and Node clients behave consistently.
    */
   private async handleErrorResponse<T>(
     response: Response,
     details: ApiErrorDetails,
   ): Promise<ApiResult<T>> {
     try {
-      if (response.status === 401) {
-        return ApiResult.authError(
-          "Authentication required",
-          ERROR_CODE.AUTHENTICATION_REQUIRED,
-          details,
-        );
-      }
-
-      const problemDetails = await parseErrorResponse(response);
-
-      if (problemDetails?.errorCode) {
-        details.details = problemDetails.detail;
-      }
-
-      const message = getErrorMessageWithFallback(
-        problemDetails?.errorCode,
-        problemDetails?.detail,
-      );
-
-      if (problemDetails?.errorCode) {
-        const errorCode = problemDetails.errorCode;
-        switch (response.status) {
-          case 400:
-            return {
-              success: false,
-              error: {
-                type: ApiErrorType.ValidationError,
-                message,
-                errorCode,
-                details,
-                fields: problemDetails.fields,
-              },
-            };
-          case 401:
-            return {
-              success: false,
-              error: {
-                type: ApiErrorType.AuthError,
-                message,
-                errorCode,
-                details,
-              },
-            };
-          case 403:
-            return {
-              success: false,
-              error: {
-                type: ApiErrorType.ForbiddenError,
-                message,
-                errorCode,
-                details,
-              },
-            };
-          case 404:
-            return {
-              success: false,
-              error: {
-                type: ApiErrorType.NotFoundError,
-                message,
-                errorCode,
-                details,
-              },
-            };
-          case 429:
-            const retryAfter = response.headers.get("Retry-After");
-            return {
-              success: false,
-              error: {
-                type: ApiErrorType.RateLimitError,
-                message,
-                errorCode,
-                details: {
-                  ...details,
-                  retryAfter: retryAfter ? parseInt(retryAfter) : undefined,
-                },
-              },
-            };
-          case 500:
-          case 502:
-          case 503:
-          case 504:
-            return {
-              success: false,
-              error: {
-                type: ApiErrorType.ServerError,
-                message,
-                errorCode,
-                details,
-              },
-            };
-          default:
-            return {
-              success: false,
-              error: {
-                type: ApiErrorType.UnknownError,
-                message,
-                errorCode,
-                details,
-              },
-            };
-        }
-      }
-
-      // Use factory methods when no specific errorCode from server
-      switch (response.status) {
-        case 400:
-          return ApiResult.validationError(
-            message,
-            ERROR_CODE.VALIDATION_ERROR,
-            details,
-            problemDetails?.fields,
-          );
-        case 401:
-          return ApiResult.authError(
-            message,
-            ERROR_CODE.AUTHENTICATION_REQUIRED,
-            details,
-          );
-        case 403:
-          return ApiResult.forbiddenError(
-            message,
-            ERROR_CODE.ACCESS_FORBIDDEN,
-            details,
-          );
-        case 404:
-          return ApiResult.notFoundError(message, details);
-        case 429:
-          const retryAfter = response.headers.get("Retry-After");
-          return ApiResult.rateLimitError(message, {
-            ...details,
-            retryAfter: retryAfter ? parseInt(retryAfter) : undefined,
-          });
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-          return ApiResult.serverError(message, details);
-        default:
-          return ApiResult.unknownError(message, details);
-      }
+      return await mapResponseToApiError<T>(response, details);
     } catch {
-      // Fallback when we can't parse the error response
       return ApiResult.unknownError(
         `HTTP ${response.status}: ${response.statusText}`,
         details,

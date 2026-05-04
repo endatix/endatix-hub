@@ -262,6 +262,7 @@ app/
 4. **Use feature exports** - Import from `features/{name}/index.ts`
 5. **Move to lib/ when reusable** - Extract to lib/ when used across projects
 6. **Move to packages/ when publishable** - Extract to packages/ when ready for npm
+7. **Document Architecture Updates** - Any new architectural items, patterns, or cross-cutting features discovered during planning or development must be documented in a dedicated `ARCHITECTURE.md` file in the root of the project.
 
 ## Package Evolution Path
 

@@ -12,6 +12,7 @@ import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ReCaptchaStyleFix } from "@/features/recaptcha/ui/recaptcha-style-fix";
 import { ApiResult, Submission } from "@/lib/endatix-api";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { cookies } from "next/headers";
@@ -82,7 +83,10 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
         );
       }
 
-      if (errorMessage.includes("permission") || errorMessage.includes("forbidden")) {
+      if (
+        errorMessage.includes("permission") ||
+        errorMessage.includes("forbidden")
+      ) {
         return (
           <NotFoundComponent
             notFoundTitle="Access Denied"
@@ -105,7 +109,9 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
     submission = accessTokenResult.value;
   } else {
     const partialResult = submissionResult as ApiResult<Submission>;
-    submission = ApiResult.isSuccess(partialResult) ? partialResult.data : undefined;
+    submission = ApiResult.isSuccess(partialResult)
+      ? partialResult.data
+      : undefined;
   }
 
   if (Result.isError(activeDefinitionResult)) {
@@ -122,6 +128,19 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
   const shouldLoadReCaptcha =
     activeDefinition.requiresReCaptcha && recaptchaConfig.isReCaptchaEnabled();
 
+  if (shouldShowAlreadyResponded) {
+    return (
+      <div
+        style={{
+          width: "100%",
+        }}
+      >
+        <EmbedHeightReporter />
+        <AlreadyResponded metadata={activeDefinition.metadata} />
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -137,10 +156,15 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
 
       <EmbedHeightReporter />
 
-      {shouldShowAlreadyResponded ? (
-        <AlreadyResponded metadata={activeDefinition.metadata} />
-      ) : (
-        <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<div>Loading...</div>}>
+        <FormRuntimeProvider
+          initialState={{
+            formId,
+            token: urlToken,
+            tokenType: urlToken ? "AccessToken" : undefined,
+            submissionId: submission?.id,
+          }}
+        >
           <AssetStorageProvider>
             <SurveyJsWrapper
               formId={formId}
@@ -153,8 +177,8 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
               urlToken={urlToken}
             />
           </AssetStorageProvider>
-        </Suspense>
-      )}
+        </FormRuntimeProvider>
+      </Suspense>
     </div>
   );
 }

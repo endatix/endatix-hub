@@ -4,6 +4,7 @@ import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
 import { Result } from "@/lib/result";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import {
   validateEndatixId,
@@ -124,11 +125,20 @@ export default async function PublicEditSubmissionPage({
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
-        <EditSubmission
-          submission={submission}
-          formId={validateFormIdResult.value}
-          token={token}
-        />
+        <FormRuntimeProvider
+          initialState={{
+            formId: validateFormIdResult.value,
+            submissionId: submission.id,
+            token,
+            tokenType: 'AccessToken',
+          }}
+        >
+          <EditSubmission
+            submission={submission}
+            formId={validateFormIdResult.value}
+            token={token}
+          />
+        </FormRuntimeProvider>
       </AssetStorageProvider>
     </Suspense>
   );
