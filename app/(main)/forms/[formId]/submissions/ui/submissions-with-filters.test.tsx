@@ -26,9 +26,12 @@ vi.mock("@/auth", () => ({
   unstable_update: vi.fn(),
 }));
 
-vi.mock("@/features/forms/application/actions/get-tenant-settings.action", () => ({
-  getTenantSettingsAction: vi.fn(),
-}));
+vi.mock(
+  "@/features/forms/application/actions/get-tenant-settings.action",
+  () => ({
+    getTenantSettingsAction: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/submissions/ui/export", () => ({
   ExportSubmissionsButton: ({ disabled }: { disabled?: boolean }) => (
@@ -38,6 +41,36 @@ vi.mock("@/features/submissions/ui/export", () => ({
 
 vi.mock("@/features/submissions/ui/table", () => ({
   buildSubmissionDataColumns: () => [],
+  buildSubmissionSystemColumns: ({
+    dateFilters,
+    onDateFilterChange,
+  }: {
+    dateFilters?: {
+      createdAt: { from?: string; to?: string };
+      completedAt: { from?: string; to?: string };
+    };
+    onDateFilterChange?: (
+      columnId: "createdAt" | "completedAt",
+      value: { from?: string; to?: string },
+    ) => void;
+  } = {}) => [
+    {
+      id: "createdAt",
+      meta: {
+        displayName: "Created at",
+        testDateFilter: dateFilters?.createdAt,
+        testOnDateFilterChange: onDateFilterChange,
+      },
+    },
+    {
+      id: "completedAt",
+      meta: {
+        displayName: "Completed at",
+        testDateFilter: dateFilters?.completedAt,
+        testOnDateFilterChange: onDateFilterChange,
+      },
+    },
+  ],
   COLUMNS_DEFINITION: [
     {
       id: "createdAt",
@@ -46,6 +79,10 @@ vi.mock("@/features/submissions/ui/table", () => ({
       },
     },
   ],
+  EMPTY_SUBMISSION_DATE_FILTERS: {
+    createdAt: {},
+    completedAt: {},
+  },
   ColumnOrderProvider: ({ children }: { children: ReactNode }) => (
     <>{children}</>
   ),
@@ -69,22 +106,62 @@ vi.mock("@/features/submissions/ui/table", () => ({
 vi.mock("./submissions-table", () => ({
   default: ({
     data,
+    columns,
     onPaginationChange,
   }: {
     data: Submission[];
+    columns: Array<{
+      id: string;
+      meta?: {
+        testDateFilter?: { from?: string; to?: string };
+        testOnDateFilterChange?: (
+          columnId: "createdAt" | "completedAt",
+          value: { from?: string; to?: string },
+        ) => void;
+      };
+    }>;
     onPaginationChange?: (updater: Updater<PaginationState>) => void;
-  }) => (
-    <div data-testid="submissions-table">
-      Rows: {data.length}
-      <button
-        onClick={() =>
-          onPaginationChange?.({ pageIndex: 1, pageSize: 20 })
-        }
-      >
-        Go page 2
-      </button>
-    </div>
-  ),
+  }) => {
+    const createdAtColumn = columns.find((column) => column.id === "createdAt");
+    const completedAtColumn = columns.find(
+      (column) => column.id === "completedAt",
+    );
+
+    return (
+      <div data-testid="submissions-table">
+        Rows: {data.length}
+        <div>
+          Created from: {createdAtColumn?.meta?.testDateFilter?.from ?? ""}
+        </div>
+        <div>
+          Completed to: {completedAtColumn?.meta?.testDateFilter?.to ?? ""}
+        </div>
+        <button
+          onClick={() => onPaginationChange?.({ pageIndex: 1, pageSize: 20 })}
+        >
+          Go page 2
+        </button>
+        <button
+          onClick={() =>
+            createdAtColumn?.meta?.testOnDateFilterChange?.("createdAt", {
+              from: "2026-02-03",
+            })
+          }
+        >
+          Set created from
+        </button>
+        <button
+          onClick={() =>
+            completedAtColumn?.meta?.testOnDateFilterChange?.("completedAt", {
+              to: "2026-03-04",
+            })
+          }
+        >
+          Set completed to
+        </button>
+      </div>
+    );
+  },
 }));
 
 const submission: Submission = {
@@ -139,9 +216,11 @@ describe("SubmissionsWithFilters", () => {
         .disabled,
     ).toBe(true);
     expect(
-      (screen.getByRole("button", {
-        name: /export submissions/i,
-      }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: /export submissions/i,
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
 
@@ -204,6 +283,89 @@ describe("SubmissionsWithFilters", () => {
     // Assert
     expect(navigationMocks.push).toHaveBeenCalledWith(
       "/forms/form-1/submissions?page=2&pageSize=20",
+      { scroll: false },
+    );
+  });
+
+  it("initializes date filter state from props", () => {
+    // Act
+    renderSubmissionsWithFilters({
+      data: [submission],
+      hasAnySubmissions: true,
+      totalRecords: 1,
+      totalPages: 1,
+      initialCreatedAtFrom: "2026-01-01",
+      initialCompletedAtTo: "2026-01-31",
+    });
+
+    // Assert
+    screen.getByText("Created from: 2026-01-01");
+    screen.getByText("Completed to: 2026-01-31");
+  });
+
+  it("updates the URL and resets to page 1 when created date filters change", () => {
+    // Act
+    renderSubmissionsWithFilters({
+      data: [submission],
+      hasAnySubmissions: true,
+      initialPage: 3,
+      initialPageSize: 20,
+      totalRecords: 25,
+      totalPages: 3,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /set created from/i }));
+
+    // Assert
+    expect(navigationMocks.push).toHaveBeenCalledWith(
+      "/forms/form-1/submissions?pageSize=20&createdAtFrom=2026-02-03",
+      { scroll: false },
+    );
+  });
+
+  it("updates the URL and resets to page 1 when completed date filters change", () => {
+    // Act
+    renderSubmissionsWithFilters({
+      data: [submission],
+      hasAnySubmissions: true,
+      initialPage: 2,
+      totalRecords: 25,
+      totalPages: 3,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /set completed to/i }));
+
+    // Assert
+    expect(navigationMocks.push).toHaveBeenCalledWith(
+      "/forms/form-1/submissions?completedAtTo=2026-03-04",
+      { scroll: false },
+    );
+  });
+
+  it("resets status and date filters together", () => {
+    // Act
+    renderSubmissionsWithFilters({
+      hasAnySubmissions: true,
+      initialStatus: ["new"],
+      initialCreatedAtFrom: "2026-01-01",
+      totalRecords: 2,
+      totalPages: 1,
+    });
+
+    const emptyState = screen
+      .getByRole("heading", { name: "No submissions match these filters" })
+      .closest("div");
+
+    expect(emptyState).not.toBeNull();
+    fireEvent.click(
+      within(emptyState as HTMLElement).getByRole("button", {
+        name: /reset filters/i,
+      }),
+    );
+
+    // Assert
+    expect(navigationMocks.push).toHaveBeenCalledWith(
+      "/forms/form-1/submissions",
       { scroll: false },
     );
   });

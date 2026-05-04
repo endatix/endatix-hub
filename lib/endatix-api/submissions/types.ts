@@ -43,7 +43,7 @@ export interface Submission extends ApiEntity {
 
   // Optional navigation properties
   formDefinition?: FormDefinition;
-}  
+}
 
 export interface SubmissionFile {
   id: EntityId;
@@ -89,7 +89,7 @@ export type ExportSubmissionsDto = {
   };
 };
 
-export interface ExportSubmissionsRequest{
+export interface ExportSubmissionsRequest {
   formId: string;
   exportFormat?: string;
   exportId?: string;
@@ -101,6 +101,10 @@ export interface ListSubmissionsRequest {
   isComplete?: string[];
   status?: string[];
   isTestSubmission?: string[];
+  createdAtFrom?: string;
+  createdAtTo?: string;
+  completedAtFrom?: string;
+  completedAtTo?: string;
 }
 
 export interface ListSubmissionsResponse {

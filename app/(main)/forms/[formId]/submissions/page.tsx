@@ -22,6 +22,10 @@ type Params = {
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
   }>;
 };
 
@@ -88,6 +92,10 @@ async function SubmissionsTableData({
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
   };
 }) {
   const isCompleteFilter = searchParams.isComplete
@@ -100,10 +108,15 @@ async function SubmissionsTableData({
   const isTestSubmissionFilter = searchParams.isTestSubmission
     ? searchParams.isTestSubmission.split(",")
     : [];
+  const createdAtFrom = parseDateParam(searchParams.createdAtFrom);
+  const createdAtTo = parseDateParam(searchParams.createdAtTo);
+  const completedAtFrom = parseDateParam(searchParams.completedAtFrom);
+  const completedAtTo = parseDateParam(searchParams.completedAtTo);
   const hasActiveFilters =
     isCompleteFilter.length > 0 ||
     statusFilter.length > 0 ||
-    isTestSubmissionFilter.length > 0;
+    isTestSubmissionFilter.length > 0 ||
+    Boolean(createdAtFrom || createdAtTo || completedAtFrom || completedAtTo);
   const page = parsePage(searchParams.page);
   const pageSize = parsePageSize(searchParams.pageSize);
   if (
@@ -112,6 +125,16 @@ async function SubmissionsTableData({
       searchParams.pageSize,
       page,
       pageSize,
+      {
+        rawCreatedAtFrom: searchParams.createdAtFrom,
+        rawCreatedAtTo: searchParams.createdAtTo,
+        rawCompletedAtFrom: searchParams.completedAtFrom,
+        rawCompletedAtTo: searchParams.completedAtTo,
+        createdAtFrom,
+        createdAtTo,
+        completedAtFrom,
+        completedAtTo,
+      },
     )
   ) {
     redirect(
@@ -120,6 +143,7 @@ async function SubmissionsTableData({
         isCompleteFilter,
         statusFilter,
         isTestSubmissionFilter,
+        { createdAtFrom, createdAtTo, completedAtFrom, completedAtTo },
         page,
         pageSize,
       ),
@@ -137,6 +161,10 @@ async function SubmissionsTableData({
         isComplete: isCompleteFilter,
         status: statusFilter,
         isTestSubmission: isTestSubmissionFilter,
+        createdAtFrom,
+        createdAtTo,
+        completedAtFrom,
+        completedAtTo,
       }),
       api.definitions.getFields(formId),
       hasActiveFilters
@@ -175,6 +203,7 @@ async function SubmissionsTableData({
         isCompleteFilter,
         statusFilter,
         isTestSubmissionFilter,
+        { createdAtFrom, createdAtTo, completedAtFrom, completedAtTo },
         canonicalPage,
         pageSize,
       ),
@@ -201,6 +230,10 @@ async function SubmissionsTableData({
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}
       initialIsTestSubmission={isTestSubmissionFilter}
+      initialCreatedAtFrom={createdAtFrom}
+      initialCreatedAtTo={createdAtTo}
+      initialCompletedAtFrom={completedAtFrom}
+      initialCompletedAtTo={completedAtTo}
     />
   );
 }
@@ -219,11 +252,36 @@ function parsePageSize(value: string | undefined) {
   return PAGE_SIZE_OPTIONS.find((option) => parsed <= option) ?? MAX_PAGE_SIZE;
 }
 
+function parseDateParam(value: string | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return undefined;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+    ? value
+    : undefined;
+}
+
 function isCanonicalPageRequest(
   rawPage: string | undefined,
   rawPageSize: string | undefined,
   page: number,
   pageSize: number,
+  dateParams: {
+    rawCreatedAtFrom?: string;
+    rawCreatedAtTo?: string;
+    rawCompletedAtFrom?: string;
+    rawCompletedAtTo?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
+  },
 ) {
   const canonicalPage =
     page === DEFAULT_PAGE ? rawPage === undefined : rawPage === String(page);
@@ -232,7 +290,14 @@ function isCanonicalPageRequest(
       ? rawPageSize === undefined
       : rawPageSize === String(pageSize);
 
-  return canonicalPage && canonicalPageSize;
+  return (
+    canonicalPage &&
+    canonicalPageSize &&
+    dateParams.rawCreatedAtFrom === dateParams.createdAtFrom &&
+    dateParams.rawCreatedAtTo === dateParams.createdAtTo &&
+    dateParams.rawCompletedAtFrom === dateParams.completedAtFrom &&
+    dateParams.rawCompletedAtTo === dateParams.completedAtTo
+  );
 }
 
 function getCanonicalPage(
@@ -260,6 +325,12 @@ function buildSubmissionsUrl(
   isCompleteFilter: string[],
   statusFilter: string[],
   isTestSubmissionFilter: string[],
+  dateFilters: {
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
+  },
   page: number,
   pageSize: number,
 ) {
@@ -279,6 +350,18 @@ function buildSubmissionsUrl(
   }
   if (isTestSubmissionFilter.length > 0) {
     params.set("isTestSubmission", isTestSubmissionFilter.join(","));
+  }
+  if (dateFilters.createdAtFrom) {
+    params.set("createdAtFrom", dateFilters.createdAtFrom);
+  }
+  if (dateFilters.createdAtTo) {
+    params.set("createdAtTo", dateFilters.createdAtTo);
+  }
+  if (dateFilters.completedAtFrom) {
+    params.set("completedAtFrom", dateFilters.completedAtFrom);
+  }
+  if (dateFilters.completedAtTo) {
+    params.set("completedAtTo", dateFilters.completedAtTo);
   }
 
   const queryString = params.toString();
