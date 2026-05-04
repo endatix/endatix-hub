@@ -43,7 +43,10 @@ export function DataListRowActions({
         </DropdownMenuItem>
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
-          onClick={() => onDelete(dataList)}
+          onSelect={(event) => {
+            event.preventDefault();
+            onDelete(dataList);
+          }}
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
