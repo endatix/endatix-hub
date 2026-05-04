@@ -50,9 +50,7 @@ export function DataListsPage({
   const [isLoadingDependencies, startDependenciesTransition] = useTransition();
 
   useEffect(() => {
-    if (openCreateOnLoad) {
-      setIsCreateDialogOpen(true);
-    }
+    setIsCreateDialogOpen(openCreateOnLoad);
   }, [openCreateOnLoad]);
 
   const refreshDataLists = async () => {
@@ -66,6 +64,9 @@ export function DataListsPage({
   };
 
   const handleOpenDelete = (dataList: DataList) => {
+    setIsCreateDialogOpen(false);
+    router.replace("/data-lists");
+
     setSelectedForDelete(dataList);
     setDependencies([]);
     setIsDeleteBlocked(false);
@@ -111,7 +112,7 @@ export function DataListsPage({
   const handleCreateDialogClose = (open: boolean) => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      router.push("/data-lists");
+      router.replace("/data-lists");
     }
   };
 
