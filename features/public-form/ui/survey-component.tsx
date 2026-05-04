@@ -11,14 +11,7 @@ import { ApiResult, Submission } from "@/lib/endatix-api";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useTransition } from "react";
 import {
   CompleteEvent,
   CurrentPageChangedEvent,
