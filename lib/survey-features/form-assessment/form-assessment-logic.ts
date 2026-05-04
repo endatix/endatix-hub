@@ -4,6 +4,7 @@ const DATA_URL_PREFIX = "data:image/";
 const BASE64_MARKER = ";base64,";
 
 export interface FormAssessmentStats {
+  /** UTF-8 byte size of the serialized survey JSON. */
   uncompressedSize: number;
   totalQuestions: number;
   embeddedImagesCount: number;
@@ -40,9 +41,10 @@ const emptyStats = (): FormAssessmentStats => ({
   scanditCount: 0,
 });
 
-/**
- * Extract base64 data URLs from a string; returns count and total decoded byte size.
- */
+function getUtf8ByteLength(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+
 function extractBase64ImagesFromString(text: string | undefined): {
   count: number;
   sizeBytes: number;
@@ -66,6 +68,43 @@ function extractBase64ImagesFromString(text: string | undefined): {
     idx = payloadStart + payload.length;
   }
   return { count, sizeBytes };
+}
+
+function extractBase64ImagesFromValue(value: unknown): {
+  count: number;
+  sizeBytes: number;
+} {
+  if (typeof value === "string") {
+    return extractBase64ImagesFromString(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.reduce(
+      (acc, item) => {
+        const result = extractBase64ImagesFromValue(item);
+        return {
+          count: acc.count + result.count,
+          sizeBytes: acc.sizeBytes + result.sizeBytes,
+        };
+      },
+      { count: 0, sizeBytes: 0 },
+    );
+  }
+
+  if (value != null && typeof value === "object") {
+    return Object.values(value).reduce(
+      (acc, item) => {
+        const result = extractBase64ImagesFromValue(item);
+        return {
+          count: acc.count + result.count,
+          sizeBytes: acc.sizeBytes + result.sizeBytes,
+        };
+      },
+      { count: 0, sizeBytes: 0 },
+    );
+  }
+
+  return { count: 0, sizeBytes: 0 };
 }
 
 /**
@@ -95,25 +134,18 @@ const SELECT_BASE_TYPES = new Set([
  */
 export function analyzeSurvey(jsonData: string): FormAssessmentStats {
   const stats = emptyStats();
-  stats.uncompressedSize = jsonData.length;
+  stats.uncompressedSize = getUtf8ByteLength(jsonData);
 
   if (!jsonData) return stats;
 
-  const base64Re = /data:image\/[^;]+;base64,/g;
-  let match: RegExpExecArray | null;
-  while ((match = base64Re.exec(jsonData)) !== null) {
-    stats.embeddedImagesCount++;
-    const payloadStart = match.index + match[0].length;
-    let end = jsonData.indexOf('"', payloadStart);
-    if (end === -1) end = jsonData.indexOf("'", payloadStart);
-    if (end === -1) end = jsonData.length;
-    const payload = jsonData.slice(payloadStart, end).replace(/\s/g, "");
-    stats.embeddedImagesSizeBytes += Math.floor((payload.length * 3) / 4);
-  }
-
   try {
     const survey = JSON.parse(jsonData);
+    const embeddedImages = extractBase64ImagesFromValue(survey);
+    stats.embeddedImagesCount = embeddedImages.count;
+    stats.embeddedImagesSizeBytes = embeddedImages.sizeBytes;
 
+    // This JSON fallback mirrors common SurveyJS element structures. In the
+    // creator tab, live SurveyModel stats overlay these counts.
     const traverseElements = (elements: any[]) => {
       if (!Array.isArray(elements)) return;
 

@@ -30,7 +30,18 @@ import { ReactElementFactory } from "survey-react-ui";
 import { FormAssessmentPlugin } from "../form-assessment-plugin";
 
 interface FormAssessmentViewProps {
-  model: FormAssessmentPlugin;
+  model?: FormAssessmentPlugin;
+}
+
+interface FormAssessmentTabProps {
+  data?: FormAssessmentPlugin | { model?: FormAssessmentPlugin };
+}
+
+interface AssessmentIssue {
+  title: string;
+  description: string;
+  severity: "critical" | "warning" | "info";
+  url?: string;
 }
 
 function formatNumber(n: number): string {
@@ -52,17 +63,12 @@ export const FormAssessmentView = ({
 
   const issues = useMemo(() => {
     if (!stats) return [];
-    const list: {
-      title: string;
-      description: string;
-      severity: string;
-      url?: string;
-    }[] = [];
+    const list: AssessmentIssue[] = [];
 
     if (stats.uncompressedSize > 1024 * 1024) {
       list.push({
         title: "Large JSON Size",
-        description: `The form JSON is ${formatSize(stats.uncompressedSize)}, which may impact load times.`,
+        description: `The form JSON is ${formatSize(stats.uncompressedSize)} as UTF-8, which may impact load times.`,
         severity: "warning",
       });
     }
@@ -161,15 +167,6 @@ export const FormAssessmentView = ({
     }
   };
 
-  if (!stats) {
-    return (
-      <div className="flex flex-col items-center gap-2 p-6 text-center text-muted-foreground">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        Analyzing form...
-      </div>
-    );
-  }
-
   return (
     <div className="h-full overflow-y-auto bg-background p-6">
       <Card className="mx-auto max-w-6xl">
@@ -191,7 +188,7 @@ export const FormAssessmentView = ({
             <div className="grid grid-cols-2 gap-5 md:grid-cols-5">
               <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <FileJson className="h-4 w-4" /> JSON Size
+                  <FileJson className="h-4 w-4" /> JSON Size (UTF-8)
                 </span>
                 <span className="text-xl font-semibold">
                   {formatSize(stats.uncompressedSize)}
@@ -241,7 +238,7 @@ export const FormAssessmentView = ({
             <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               Dropdown & choices
             </h4>
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-6">
               <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   Dropdowns
@@ -280,6 +277,14 @@ export const FormAssessmentView = ({
                 </span>
                 <span className="text-xl font-semibold">
                   {formatNumber(stats.fileUploadCount)}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  Scandit
+                </span>
+                <span className="text-xl font-semibold">
+                  {formatNumber(stats.scanditCount)}
                 </span>
               </div>
             </div>
@@ -375,23 +380,24 @@ export const FormAssessmentView = ({
   );
 };
 
-export function FormAssessmentTab(props: any) {
-  const data = props.data;
-
-  const model =
-    data instanceof FormAssessmentPlugin ? data : data?.model || data;
-
-  if (!model || !model.stats) {
-    return (
-      <div className="p-6 text-center text-destructive">
-        Error: Assessment data not initialized correctly. (Data:{" "}
-        {data ? "present" : "missing"}, Model/Stats:{" "}
-        {model?.stats ? "present" : "missing"})
-      </div>
-    );
+function getAssessmentModel(
+  data: FormAssessmentTabProps["data"],
+): FormAssessmentPlugin | undefined {
+  if (data instanceof FormAssessmentPlugin) {
+    return data;
   }
 
+  return data?.model;
+}
+
+export function FormAssessmentTab({ data }: Readonly<FormAssessmentTabProps>) {
+  const model = getAssessmentModel(data);
+
   return <FormAssessmentView model={model} />;
+}
+
+function renderFormAssessmentTab(props: unknown) {
+  return <FormAssessmentTab {...(props as FormAssessmentTabProps)} />;
 }
 
 let isRegistered = false;
@@ -400,10 +406,7 @@ export function registerFormAssessmentTab() {
 
   ReactElementFactory.Instance.registerElement(
     "svc-tab-form-assessment",
-    (props: any) => {
-      return <FormAssessmentTab {...props} />;
-    },
+    renderFormAssessmentTab,
   );
   isRegistered = true;
-  console.debug("[FormAssessmentTab] Registered svc-tab-form-assessment");
 }

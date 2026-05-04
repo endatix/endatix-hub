@@ -8,6 +8,18 @@ import {
 } from "./form-assessment-plugin";
 import { registerFormAssessmentTab } from "./ui/form-assessment-tab";
 
+type AssessmentTabApi = {
+  addTab: (tab: {
+    name: string;
+    plugin: FormAssessmentPlugin;
+    data: FormAssessmentPlugin;
+    title: string;
+    iconName: string;
+    componentName: string;
+  }) => void;
+  removeTab?: (name: string) => void;
+};
+
 /**
  * Hook to add the Form Assessment feature to the Survey Creator.
  */
@@ -21,8 +33,9 @@ export function useFormAssessment() {
       return;
     }
 
+    const creatorWithTabs = creator as unknown as AssessmentTabApi;
     const plugin = new FormAssessmentPlugin(creator);
-    (creator as any).addTab({
+    creatorWithTabs.addTab({
       name: FORM_ASSESSMENT_PLUGIN_NAME,
       plugin,
       data: plugin,
@@ -32,8 +45,8 @@ export function useFormAssessment() {
     });
 
     return () => {
-      if (typeof (creator as any).removeTab === "function") {
-        (creator as any).removeTab(FORM_ASSESSMENT_PLUGIN_NAME);
+      if (typeof creatorWithTabs.removeTab === "function") {
+        creatorWithTabs.removeTab(FORM_ASSESSMENT_PLUGIN_NAME);
       } else {
         const tabIndex = creator.tabs.findIndex(
           (tab) => tab.id === FORM_ASSESSMENT_PLUGIN_NAME,
