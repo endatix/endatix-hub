@@ -161,7 +161,6 @@ export function useExtensionLoader({
       extensionIdSet.has(ext.id),
     );
   }, [allExtensions, normalizedExtensionIds]);
-
   useEffect(() => {
     mountedRef.current = true;
 
@@ -212,7 +211,9 @@ export function useExtensionLoader({
     (creator: SurveyCreatorModel) => {
       const currentRuntimeDeps = runtimeDepsRef.current;
       extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onCreatorReady?.(creator, currentRuntimeDeps);
+        loadedModules
+          .get(ext.id)
+          ?.onCreatorReady?.(creator, currentRuntimeDeps);
       });
     },
     [extensionsToLoad],

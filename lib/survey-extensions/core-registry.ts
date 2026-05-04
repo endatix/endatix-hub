@@ -11,6 +11,8 @@ import type { ExtensionDefinition } from "./types";
 import { expressionFormattingExtension } from "@/lib/survey-features/expression-formatting";
 import { dataListsExtension } from "@/lib/survey-features/data-lists";
 
+export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
+
 /**
  * Core extensions that ship with the platform.
  * Developers should add their extensions to hub/extensions/user-extensions.ts
@@ -40,7 +42,7 @@ export const coreExtensions: ExtensionDefinition[] = [
     module: expressionFormattingExtension,
   },
   {
-    id: "data-lists-runtime",
+    id: DATA_LISTS_RUNTIME_EXTENSION_ID,
     type: "feature",
     loading: "static",
     metadata: {

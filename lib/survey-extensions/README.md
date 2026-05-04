@@ -117,6 +117,12 @@ This ensures that if you add a new restriction rule, it applies to all public-fa
 2. Read runtime via `deps.getRuntimeState()` inside lifecycle hooks; do not attach runtime sentinels to SurveyJS model objects.
 3. For backend/public ReBAC differences, prefer injected function boundaries (similar to upload handler factory pattern) over branching deep inside event handlers.
 
+### Runtime-only extensions
+
+Some extensions require a live form runtime (e.g. a form access JWT) to operate. These must opt callers out when runtime context is missing.
+
+- `data-lists-runtime` (constant: `DATA_LISTS_RUNTIME_EXTENSION_ID`) requires a form-scoped access token. The form template editor disables it via `extensionIdsToLoad` because templates do not have template-scoped access tokens yet. Once template-scoped access exists, drop the exclusion.
+
 ## Extension Definition Examples
 
 ```typescript

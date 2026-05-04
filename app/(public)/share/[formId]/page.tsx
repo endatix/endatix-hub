@@ -153,6 +153,7 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
             initialState={{
               formId,
               token: urlToken,
+              tokenType: urlToken ? "AccessToken" : undefined,
               submissionId: submission?.id,
             }}
           >

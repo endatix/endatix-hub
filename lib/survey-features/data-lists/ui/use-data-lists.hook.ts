@@ -1,6 +1,7 @@
 import { DataList } from "@/lib/endatix-api/data-lists/types";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { getDataListsAction } from "@/features/data-lists/view-lists/get-data-lists.action";
+import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { Model } from "survey-core";
 import {
@@ -9,17 +10,16 @@ import {
 } from "../infrastructure/creator-bindings";
 import { registerDataListGlobals } from "../infrastructure/registry";
 import { bindDataListsToSurvey } from "../infrastructure/survey-bindings";
-import { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 
 interface UseDataListsApi {
   initGlobals: () => void;
   bindToCreator: (
     creator: SurveyCreatorModel,
-    getRuntimeState: () => FormRuntimeState,
+    deps: ExtensionRuntimeDeps,
   ) => (() => void) | undefined;
   bindToSurvey: (
     model: Model,
-    getRuntimeState: () => FormRuntimeState,
+    deps: ExtensionRuntimeDeps,
   ) => (() => void) | undefined;
   setAvailableDataLists: (dataLists: DataList[]) => void;
 }
@@ -37,13 +37,13 @@ export function useDataLists(): UseDataListsApi {
   }, []);
 
   const bindToCreator = useCallback(
-    (creator: SurveyCreatorModel, getRuntimeState: () => FormRuntimeState) => {
+    (creator: SurveyCreatorModel, deps: ExtensionRuntimeDeps) => {
       if (!creator || creatorBoundRef.current) {
         return;
       }
 
       creatorBoundRef.current = true;
-      const unbind = bindDataListsToCreator(creator, getRuntimeState);
+      const unbind = bindDataListsToCreator(creator, deps);
 
       return () => {
         unbind();
@@ -54,13 +54,13 @@ export function useDataLists(): UseDataListsApi {
   );
 
   const bindToSurvey = useCallback(
-    (model: Model, getRuntimeState: () => FormRuntimeState) => {
+    (model: Model, deps: ExtensionRuntimeDeps) => {
       if (!model || surveyBoundRef.current) {
         return;
       }
 
       surveyBoundRef.current = true;
-      const unbind = bindDataListsToSurvey(model, getRuntimeState);
+      const unbind = bindDataListsToSurvey(model, deps);
 
       return () => {
         unbind();

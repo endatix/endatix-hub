@@ -7,7 +7,7 @@ import {
 } from "survey-creator-core";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
 import { bindDataListsToSurvey } from "./survey-bindings";
-import { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
+import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
@@ -46,7 +46,7 @@ export function setDataListPropertyChoices(dataLists: DataList[]): void {
 
 export function bindDataListsToCreator(
   creator: SurveyCreatorModel,
-  getRuntimeState: () => FormRuntimeState,
+  deps: ExtensionRuntimeDeps,
 ): () => void {
   registerDataListGlobals();
   const creatorWithFlags = creator as SurveyCreatorModel &
@@ -90,7 +90,7 @@ export function bindDataListsToCreator(
     const previousDispose = creatorSurveyDisposers.get(options.area);
     previousDispose?.();
 
-    const dispose = bindDataListsToSurvey(options.survey, getRuntimeState);
+    const dispose = bindDataListsToSurvey(options.survey, deps);
     creatorSurveyDisposers.set(options.area, dispose);
   };
 
@@ -102,7 +102,7 @@ export function bindDataListsToCreator(
     const previousDispose = creatorSurveyDisposers.get(initialSurveyArea);
     previousDispose?.();
 
-    const dispose = bindDataListsToSurvey(creator.survey, getRuntimeState);
+    const dispose = bindDataListsToSurvey(creator.survey, deps);
     creatorSurveyDisposers.set(initialSurveyArea, dispose);
   }
 

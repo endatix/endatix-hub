@@ -161,6 +161,7 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
           initialState={{
             formId,
             token: urlToken,
+            tokenType: urlToken ? "AccessToken" : undefined,
             submissionId: submission?.id,
           }}
         >

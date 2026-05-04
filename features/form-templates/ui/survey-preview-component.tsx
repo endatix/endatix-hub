@@ -32,7 +32,10 @@ export default function SurveyPreviewComponent({
   useRichText(model);
   useLoopAwareSummaryTable(model);
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
-  const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
+  const {
+    initGlobals: initQuestionLoopsGlobals,
+    bindToSurvey: bindQuestionLoops,
+  } = useQuestionLoops();
 
   const { setModelMetadata, registerViewHandlers } = useStorageView();
 

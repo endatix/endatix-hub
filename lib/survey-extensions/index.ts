@@ -25,6 +25,7 @@ export {
   coreExtensions,
   getCoreExtensionById,
   getAllCoreExtensions,
+  DATA_LISTS_RUNTIME_EXTENSION_ID,
 } from "./core-registry";
 
 export {
