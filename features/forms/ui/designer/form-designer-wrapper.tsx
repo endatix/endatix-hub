@@ -77,6 +77,7 @@ function FormDesignerContent({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
+          isPublic={isPublic}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
@@ -88,6 +89,7 @@ function FormDesignerContent({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
+          isPublic={isPublic}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />

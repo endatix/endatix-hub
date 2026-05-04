@@ -1,0 +1,90 @@
+import { Base, SvgRegistry } from "survey-core";
+import {
+  ICreatorPlugin,
+  SurveyCreatorModel,
+  SurveyLogic,
+} from "survey-creator-core";
+import {
+  analyzeSurvey,
+  analyzeSurveyModel,
+  FormAssessmentStats,
+} from "./form-assessment-logic";
+
+export const FORM_ASSESSMENT_PLUGIN_NAME = "form-assessment";
+
+/**
+ * Survey Creator plugin for the Form Assessment feature.
+ * Extends Base to provide reactive properties directly.
+ */
+export class FormAssessmentPlugin extends Base implements ICreatorPlugin {
+  constructor(private creator: SurveyCreatorModel) {
+    super();
+    this.updateStats();
+  }
+
+  public get model(): FormAssessmentPlugin {
+    return this;
+  }
+
+  public get stats(): FormAssessmentStats {
+    return this.getPropertyValue("stats");
+  }
+
+  public set stats(val: FormAssessmentStats) {
+    this.setPropertyValue("stats", val);
+  }
+
+  public get requiresReCaptcha(): boolean {
+    return this.getPropertyValue("requiresReCaptcha", false);
+  }
+
+  public set requiresReCaptcha(val: boolean) {
+    this.setPropertyValue("requiresReCaptcha", val);
+  }
+
+  /** Whether the form is public (anyone with link) or private (authenticated only). Set by the form editor when form context is available. */
+  public get isPublic(): boolean | undefined {
+    return this.getPropertyValue("isPublic");
+  }
+
+  public set isPublic(val: boolean | undefined) {
+    this.setPropertyValue("isPublic", val);
+  }
+
+  public updateStats() {
+    if (!this.creator) return;
+
+    const baseStats = analyzeSurvey(this.creator.text || "");
+
+    const survey = this.creator.survey;
+    if (survey) {
+      const modelStats = analyzeSurveyModel(survey);
+      const logic = new SurveyLogic(survey, this.creator);
+      logic.update();
+      this.stats = {
+        ...baseStats,
+        ...modelStats,
+        logicConditionsCount: logic.items.length + logic.invisibleItems.length,
+        invisibleLogicItemsCount: logic.invisibleItems.length,
+      };
+      logic.dispose();
+    } else {
+      this.stats = baseStats;
+    }
+
+    this.requiresReCaptcha =
+      (this.creator.survey as any)?.requiresReCaptcha === true;
+  }
+
+  public activate() {
+    this.updateStats();
+  }
+
+  public deactivate(): boolean {
+    return true;
+  }
+}
+
+const assessmentIcon =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>';
+SvgRegistry.registerIcon("icon-tab-form-assessment", assessmentIcon);

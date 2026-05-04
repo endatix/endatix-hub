@@ -20,6 +20,11 @@ import {
   JsonEditorState,
   useJsonEditor,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
+import {
+  FORM_ASSESSMENT_PLUGIN_NAME,
+  FormAssessmentPlugin,
+  useFormAssessment,
+} from "@/lib/survey-features/form-assessment";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
@@ -113,6 +118,7 @@ interface FormEditorProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
+  isPublic?: boolean;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
@@ -146,6 +152,7 @@ function FormEditor({
   options,
   slkVal,
   themeId,
+  isPublic,
   initialPropertyGridVisible = true,
   onThemeModificationChange,
   onSaveHandlerReady,
@@ -201,7 +208,12 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
-  const { initGlobals: initDataListsGlobals, setAvailableDataLists } = useDataLists();
+  const {
+    initGlobals: initFormAssessmentGlobals,
+    bindToCreator: bindFormAssessment,
+  } = useFormAssessment();
+  const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
+    useDataLists();
   const { dataLists, isLoading: isDataListsLoading } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
@@ -498,6 +510,7 @@ function FormEditor({
         };
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
+        initFormAssessmentGlobals();
         initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         const resolvedTheme = resolveCreatorThemeCssVariables(
@@ -506,6 +519,7 @@ function FormEditor({
         );
         newCreator.applyCreatorTheme(resolvedTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
+        const cleanupFormAssessment = bindFormAssessment(newCreator);
 
         setCreator(newCreator);
 
@@ -545,6 +559,7 @@ function FormEditor({
 
         return () => {
           cleanupQuestionLoops?.();
+          cleanupFormAssessment?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
@@ -569,8 +584,10 @@ function FormEditor({
     onCreatorCreated,
     formRuntime,
     bindQuestionLoops,
+    bindFormAssessment,
     initAnyAnsweredGlobals,
     initDataListsGlobals,
+    initFormAssessmentGlobals,
     initQuestionLoopsGlobals,
   ]);
 
@@ -608,6 +625,20 @@ function FormEditor({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!creator) return;
+
+    const tab = creator.tabs?.find(
+      (t: { id?: string; name?: string }) =>
+        t.id === FORM_ASSESSMENT_PLUGIN_NAME ||
+        t.name === FORM_ASSESSMENT_PLUGIN_NAME,
+    );
+    const plugin = tab?.plugin;
+    if (plugin instanceof FormAssessmentPlugin) {
+      plugin.isPublic = isPublic;
+    }
+  }, [creator, isPublic]);
 
   useEffect(() => {
     if (!creator) return;
