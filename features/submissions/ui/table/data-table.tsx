@@ -306,7 +306,7 @@ export function DataTable<TData extends Submission>({
           </Table>
           {rows.length === 0 ? (
             <div className="flex h-24 items-center justify-center border-t border-sidebar-border/50 px-6 text-center text-sm text-muted-foreground">
-              No rows to display.
+              No submissions match current filters.
             </div>
           ) : null}
           <DragOverlay
