@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { PaginationState, Updater } from "@tanstack/react-table";
@@ -224,7 +224,7 @@ describe("SubmissionsWithFilters", () => {
     ).toBe(true);
   });
 
-  it("shows the filtered empty state when submissions exist but filters match no rows", () => {
+  it("keeps the table mounted when submissions exist but filters match no rows", () => {
     // Act
     renderSubmissionsWithFilters({
       hasAnySubmissions: true,
@@ -234,19 +234,12 @@ describe("SubmissionsWithFilters", () => {
     });
 
     // Assert
-    screen.getByText("No submissions match these filters");
+    screen.getByTestId("submissions-table");
+    screen.getByText("Rows: 0");
     expect(screen.queryByText("No submissions yet")).toBeNull();
+    expect(screen.queryByText("No submissions match these filters")).toBeNull();
 
-    const emptyState = screen
-      .getByRole("heading", { name: "No submissions match these filters" })
-      .closest("div");
-
-    expect(emptyState).not.toBeNull();
-    fireEvent.click(
-      within(emptyState as HTMLElement).getByRole("button", {
-        name: /reset filters/i,
-      }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
 
     expect(navigationMocks.push).toHaveBeenCalledWith(
       "/forms/form-1/submissions",
@@ -352,16 +345,7 @@ describe("SubmissionsWithFilters", () => {
       totalPages: 1,
     });
 
-    const emptyState = screen
-      .getByRole("heading", { name: "No submissions match these filters" })
-      .closest("div");
-
-    expect(emptyState).not.toBeNull();
-    fireEvent.click(
-      within(emptyState as HTMLElement).getByRole("button", {
-        name: /reset filters/i,
-      }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
 
     // Assert
     expect(navigationMocks.push).toHaveBeenCalledWith(

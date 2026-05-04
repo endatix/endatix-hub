@@ -17,8 +17,10 @@ export function CellDate({ date, visible = true }: CellDateProps) {
   }, [date]);
 
   if (!parsedDate) {
-    return <span className="text-muted-foreground">-</span>;
+    return <span className="font-normal text-muted-foreground">-</span>;
   }
 
-  return visible ? parsedDate.toLocaleString("en-US") : null;
+  return visible ? (
+    <span className="font-normal">{parsedDate.toLocaleString("en-US")}</span>
+  ) : null;
 }

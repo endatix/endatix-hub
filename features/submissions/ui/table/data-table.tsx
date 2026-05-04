@@ -23,6 +23,7 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  type Modifier,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -53,6 +54,63 @@ const ROW_CLASS_NAMES = {
   selected: "bg-accent",
   complete: "font-medium",
 } as const;
+
+const getActivatorCoordinates = (
+  event: Event | null,
+): { x: number; y: number } | null => {
+  if (!event) {
+    return null;
+  }
+
+  if ("clientX" in event && "clientY" in event) {
+    const pointerEvent = event as MouseEvent | PointerEvent;
+    return {
+      x: pointerEvent.clientX,
+      y: pointerEvent.clientY,
+    };
+  }
+
+  if ("touches" in event) {
+    const touchEvent = event as TouchEvent;
+    const touch = touchEvent.touches[0] ?? touchEvent.changedTouches[0];
+    if (touch) {
+      return {
+        x: touch.clientX,
+        y: touch.clientY,
+      };
+    }
+  }
+
+  return null;
+};
+
+const centerDragOverlayOnPointer: Modifier = ({
+  activatorEvent,
+  draggingNodeRect,
+  overlayNodeRect,
+  transform,
+}) => {
+  const coordinates = getActivatorCoordinates(activatorEvent);
+  const overlayRect = overlayNodeRect ?? draggingNodeRect;
+
+  if (!coordinates || !draggingNodeRect || !overlayRect) {
+    return transform;
+  }
+
+  return {
+    ...transform,
+    x:
+      transform.x +
+      coordinates.x -
+      draggingNodeRect.left -
+      overlayRect.width / 2,
+    y:
+      transform.y +
+      coordinates.y -
+      draggingNodeRect.top -
+      overlayRect.height / 2,
+  };
+};
 
 const getRowClassName = <TData extends Submission>(row: Row<TData>) => {
   let className = "";
@@ -167,22 +225,6 @@ export function DataTable<TData extends Submission>({
 
   const rows = table.getRowModel().rows;
 
-  if (rows.length === 0) {
-    return (
-      <div
-        data-slot="submission-data-table"
-        className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
-      >
-        <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          No rows to display.
-        </div>
-        {manualRowCount && manualRowCount > 0 ? (
-          <TablePagination table={table} totalRows={manualRowCount} />
-        ) : null}
-      </div>
-    );
-  }
-
   return (
     <>
       <div
@@ -228,41 +270,51 @@ export function DataTable<TData extends Submission>({
               </SortableContext>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn("group cursor-pointer", getRowClassName(row))}
-                  onClick={() => handleRowSelectionChange(row)}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const isPinned = cell.column.getIsPinned();
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          isPinned &&
-                            "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
-                          isPinned === "left" && "left-0",
-                          isPinned &&
-                            row.getIsSelected() &&
-                            "bg-accent group-hover:bg-accent",
-                        )}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
+              {rows.map((row) => {
+                return (
+                  <TableRow
+                    key={row.id}
+                    className={cn("group cursor-pointer", getRowClassName(row))}
+                    onClick={() => handleRowSelectionChange(row)}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const isPinned = cell.column.getIsPinned();
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            isPinned &&
+                              "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
+                            isPinned === "left" && "left-0",
+                            isPinned &&
+                              row.getIsSelected() &&
+                              "bg-accent group-hover:bg-accent",
+                          )}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
-          <DragOverlay>
+          {rows.length === 0 ? (
+            <div className="flex h-24 items-center justify-center border-t border-sidebar-border/50 px-6 text-center text-sm text-muted-foreground">
+              No rows to display.
+            </div>
+          ) : null}
+          <DragOverlay
+            dropAnimation={null}
+            modifiers={[centerDragOverlayOnPointer]}
+          >
             {activeColumn ? (
-              <div className="cursor-grabbing px-4 py-2 opacity-60">
+              <div className="pointer-events-none cursor-pointer rounded-md border border-sidebar-border/70 bg-background px-2 py-1 opacity-95 shadow-lg">
                 {(() => {
                   const column = table
                     .getAllColumns()

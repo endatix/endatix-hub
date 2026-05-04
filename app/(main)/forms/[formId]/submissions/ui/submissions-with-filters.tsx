@@ -3,10 +3,7 @@
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
-import {
-  NoMatchingSubmissionsEmptyState,
-  NoSubmissionsEmptyState,
-} from "@/features/submissions/ui/submissions-empty-state";
+import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
   buildSubmissionDataColumns,
   buildSubmissionSystemColumns,
@@ -112,14 +109,7 @@ function SubmissionsContent({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const hasSorting = sorting.length > 0;
-  const hasActiveFilters =
-    isCompleteFilter.size > 0 ||
-    statusFilter.size > 0 ||
-    testSubmissionFilter.size > 0 ||
-    hasDateFilters(dateFilters);
   const isTrueEmptyState = !hasAnySubmissions;
-  const isFilteredEmptyState =
-    hasAnySubmissions && hasActiveFilters && data.length === 0;
   const disableTableControls = isTrueEmptyState;
 
   useEffect(() => {
@@ -221,8 +211,6 @@ function SubmissionsContent({
             onOpenChange={setIsShareDialogOpen}
           />
         </>
-      ) : isFilteredEmptyState ? (
-        <NoMatchingSubmissionsEmptyState onClearFilters={onResetFilters} />
       ) : (
         <SubmissionsTable
           key={tableKey}

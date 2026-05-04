@@ -174,6 +174,7 @@ export function buildSubmissionDataColumns(
     })
     .map((field) => ({
       id: `data_${field.name}`,
+      enableSorting: false,
       meta: {
         defaultHidden: true,
         displayName: humanizeFieldName(field.name),

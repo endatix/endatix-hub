@@ -31,6 +31,7 @@ describe("submission table column definitions", () => {
 
     expect(columns[0].id).toBe("data_firstName");
     expect(columns[0].header).toBe("First Name");
+    expect(columns[0].enableSorting).toBe(false);
     expect(columns[0].meta?.displayName).toBe("First Name");
     expect(columns[0].meta?.defaultHidden).toBe(true);
   });
