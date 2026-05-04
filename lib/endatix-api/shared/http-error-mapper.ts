@@ -57,7 +57,7 @@ export async function mapResponseToApiError<T>(
       const retryAfter = response.headers.get("Retry-After");
       return ApiResult.rateLimitError(message, {
         ...enrichedDetails,
-        retryAfter: retryAfter ? parseInt(retryAfter, 10) : undefined,
+        retryAfter: retryAfter ? Number.parseInt(retryAfter, 10) : undefined,
       });
     }
     case 500:
