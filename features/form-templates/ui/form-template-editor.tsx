@@ -31,13 +31,7 @@ import "ace-builds/src-noconflict/ext-searchbox";
 import "ace-builds/src-noconflict/theme-github_light_default";
 import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { slk } from "survey-core";
 import "survey-core/i18n";
 import "survey-core/survey-core.css";
@@ -107,7 +101,7 @@ function FormTemplateEditorContent({
       }),
     },
   });
-  const { registerStorageHandlers } = useStorageWithCreator({
+  const { registerStorageHandlers, isStorageReady } = useStorageWithCreator({
     itemId: templateId,
     itemType: "template",
   });
@@ -144,12 +138,11 @@ function FormTemplateEditorContent({
 
       setHasUnsavedChanges(true);
     };
-    
+
     creator.onModified.add(setAsModified);
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
-
 
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
@@ -184,7 +177,7 @@ function FormTemplateEditorContent({
     }
   }, [templateId, name, originalName]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     customizeQuestionClassesOnCreator(creator, questionClasses);
   }, [creator, questionClasses]);
 
@@ -210,12 +203,14 @@ function FormTemplateEditorContent({
       try {
         const newCreator = new SurveyCreator(options || defaultCreatorOptions);
 
-        onCreatorCreated(newCreator);
         const resolvedTheme = resolveCreatorThemeCssVariables(
           creatorThemeRef.current,
           document.getElementById("surveyCreatorContainer") ?? undefined,
         );
         newCreator.applyCreatorTheme(resolvedTheme);
+        setCreator(newCreator);
+        onCreatorCreated(newCreator);
+
         const unregisterStorage = registerStorageHandlers(newCreator);
         const unregisterJsonEditor = registerJsonEditor(newCreator);
 
@@ -223,7 +218,6 @@ function FormTemplateEditorContent({
           setQuestionClasses(newQuestionClasses);
         }
 
-        setCreator(newCreator);
         isCreatorInitializedRef.current = true;
 
         return () => {
@@ -383,6 +377,7 @@ function FormTemplateEditorContent({
   const saveDisabled = isSaving || hasJsonErrors;
   const showInvalidJson = isOnJsonTab && hasJsonErrors;
   const showUnsavedChanges = !hasJsonErrors && hasUnsavedChanges;
+  const isCreatorLoading = isLoading || !isStorageReady || !isExtensionsReady;
   return (
     <>
       <div className="sticky top-0 z-50 mt-0 flex w-full items-center justify-between border-border/40 bg-background/95 px-6 pt-4 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -437,7 +432,7 @@ function FormTemplateEditorContent({
       </div>
 
       <div id="surveyCreatorContainer">
-        {isLoading || !isExtensionsReady ? (
+        {isCreatorLoading ? (
           <div className="flex h-[calc(100vh-80px)] items-center justify-center">
             <div className="flex flex-col items-center gap-4">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
