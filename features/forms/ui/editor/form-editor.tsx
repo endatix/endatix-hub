@@ -21,10 +21,10 @@ import {
   useJsonEditor,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import {
-  FORM_ASSESSMENT_PLUGIN_NAME,
-  FormAssessmentPlugin,
-  useFormAssessment,
-} from "@/lib/survey-features/form-assessment";
+  FORM_DIAGNOSTICS_PLUGIN_NAME,
+  FormDiagnosticsPlugin,
+  useFormDiagnostics,
+} from "@/lib/survey-features/form-diagnostics";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
@@ -209,9 +209,9 @@ function FormEditor({
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
   const {
-    initGlobals: initFormAssessmentGlobals,
-    bindToCreator: bindFormAssessment,
-  } = useFormAssessment();
+    initGlobals: initFormDiagnosticsGlobals,
+    bindToCreator: bindFormDiagnostics,
+  } = useFormDiagnostics();
   const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
     useDataLists();
   const { dataLists, isLoading: isDataListsLoading } = useDataListsLoader();
@@ -510,7 +510,7 @@ function FormEditor({
         };
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
-        initFormAssessmentGlobals();
+        initFormDiagnosticsGlobals();
         initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         const resolvedTheme = resolveCreatorThemeCssVariables(
@@ -519,7 +519,7 @@ function FormEditor({
         );
         newCreator.applyCreatorTheme(resolvedTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
-        const cleanupFormAssessment = bindFormAssessment(newCreator);
+        const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
 
         setCreator(newCreator);
 
@@ -559,7 +559,7 @@ function FormEditor({
 
         return () => {
           cleanupQuestionLoops?.();
-          cleanupFormAssessment?.();
+          cleanupFormDiagnostics?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
@@ -584,10 +584,10 @@ function FormEditor({
     onCreatorCreated,
     formRuntime,
     bindQuestionLoops,
-    bindFormAssessment,
+    bindFormDiagnostics,
     initAnyAnsweredGlobals,
     initDataListsGlobals,
-    initFormAssessmentGlobals,
+    initFormDiagnosticsGlobals,
     initQuestionLoopsGlobals,
   ]);
 
@@ -631,11 +631,11 @@ function FormEditor({
 
     const tab = creator.tabs?.find(
       (t: { id?: string; name?: string }) =>
-        t.id === FORM_ASSESSMENT_PLUGIN_NAME ||
-        t.name === FORM_ASSESSMENT_PLUGIN_NAME,
+        t.id === FORM_DIAGNOSTICS_PLUGIN_NAME ||
+        t.name === FORM_DIAGNOSTICS_PLUGIN_NAME,
     );
     const plugin = tab?.plugin;
-    if (plugin instanceof FormAssessmentPlugin) {
+    if (plugin instanceof FormDiagnosticsPlugin) {
       plugin.isPublic = isPublic;
     }
   }, [creator, isPublic]);

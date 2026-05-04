@@ -7,30 +7,30 @@ import {
 import {
   analyzeSurvey,
   analyzeSurveyModel,
-  FormAssessmentStats,
-} from "./form-assessment-logic";
+  FormDiagnosticsStats,
+} from "./form-diagnostics-logic";
 
-export const FORM_ASSESSMENT_PLUGIN_NAME = "form-assessment";
+export const FORM_DIAGNOSTICS_PLUGIN_NAME = "form-diagnostics";
 
 /**
- * Survey Creator plugin for the Form Assessment feature.
+ * Survey Creator plugin for the Form Diagnostics feature.
  * Extends Base to provide reactive properties directly.
  */
-export class FormAssessmentPlugin extends Base implements ICreatorPlugin {
+export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
   constructor(private creator: SurveyCreatorModel) {
     super();
     this.updateStats();
   }
 
-  public get model(): FormAssessmentPlugin {
+  public get model(): FormDiagnosticsPlugin {
     return this;
   }
 
-  public get stats(): FormAssessmentStats {
+  public get stats(): FormDiagnosticsStats {
     return this.getPropertyValue("stats");
   }
 
-  public set stats(val: FormAssessmentStats) {
+  public set stats(val: FormDiagnosticsStats) {
     this.setPropertyValue("stats", val);
   }
 
@@ -85,6 +85,6 @@ export class FormAssessmentPlugin extends Base implements ICreatorPlugin {
   }
 }
 
-const assessmentIcon =
+const diagnosticsIcon =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>';
-SvgRegistry.registerIcon("icon-tab-form-assessment", assessmentIcon);
+SvgRegistry.registerIcon("icon-tab-form-diagnostics", diagnosticsIcon);

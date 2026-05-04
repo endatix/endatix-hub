@@ -27,17 +27,17 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ReactElementFactory } from "survey-react-ui";
-import { FormAssessmentPlugin } from "../form-assessment-plugin";
+import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
-interface FormAssessmentViewProps {
-  model?: FormAssessmentPlugin;
+interface FormDiagnosticsViewProps {
+  model?: FormDiagnosticsPlugin;
 }
 
-interface FormAssessmentTabProps {
-  data?: FormAssessmentPlugin | { model?: FormAssessmentPlugin };
+interface FormDiagnosticsTabProps {
+  data?: FormDiagnosticsPlugin | { model?: FormDiagnosticsPlugin };
 }
 
-interface AssessmentIssue {
+interface DiagnosticsIssue {
   title: string;
   description: string;
   severity: "critical" | "warning" | "info";
@@ -56,14 +56,14 @@ function formatSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-export const FormAssessmentView = ({
+export const FormDiagnosticsView = ({
   model,
-}: Readonly<FormAssessmentViewProps>) => {
+}: Readonly<FormDiagnosticsViewProps>) => {
   const stats = model?.stats;
 
   const issues = useMemo(() => {
     if (!stats) return [];
-    const list: AssessmentIssue[] = [];
+    const list: DiagnosticsIssue[] = [];
 
     if (stats.uncompressedSize > 1024 * 1024) {
       list.push({
@@ -133,7 +133,7 @@ export const FormAssessmentView = ({
   if (!model || !stats) {
     return (
       <div className="p-6 text-center text-muted-foreground">
-        No assessment data available.
+        No diagnostics data available.
       </div>
     );
   }
@@ -173,11 +173,11 @@ export const FormAssessmentView = ({
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Layers className="h-6 w-6" />
-            Form Assessment
+            Diagnostics
           </CardTitle>
           <CardDescription className="text-sm">
-            Real-time analysis of your form structure and potential performance
-            issues.
+            Checks form size, questions, choices, logic, assets, and security
+            signals.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -370,7 +370,7 @@ export const FormAssessmentView = ({
               <CheckCircle2 className="h-4 w-4" />
               <AlertTitle>All Good!</AlertTitle>
               <AlertDescription>
-                No significant issues detected in the form structure.
+                No issues detected in the form structure.
               </AlertDescription>
             </Alert>
           )}
@@ -380,33 +380,35 @@ export const FormAssessmentView = ({
   );
 };
 
-function getAssessmentModel(
-  data: FormAssessmentTabProps["data"],
-): FormAssessmentPlugin | undefined {
-  if (data instanceof FormAssessmentPlugin) {
+function getDiagnosticsModel(
+  data: FormDiagnosticsTabProps["data"],
+): FormDiagnosticsPlugin | undefined {
+  if (data instanceof FormDiagnosticsPlugin) {
     return data;
   }
 
   return data?.model;
 }
 
-export function FormAssessmentTab({ data }: Readonly<FormAssessmentTabProps>) {
-  const model = getAssessmentModel(data);
+export function FormDiagnosticsTab({
+  data,
+}: Readonly<FormDiagnosticsTabProps>) {
+  const model = getDiagnosticsModel(data);
 
-  return <FormAssessmentView model={model} />;
+  return <FormDiagnosticsView model={model} />;
 }
 
-function renderFormAssessmentTab(props: unknown) {
-  return <FormAssessmentTab {...(props as FormAssessmentTabProps)} />;
+function renderFormDiagnosticsTab(props: unknown) {
+  return <FormDiagnosticsTab {...(props as FormDiagnosticsTabProps)} />;
 }
 
 let isRegistered = false;
-export function registerFormAssessmentTab() {
+export function registerFormDiagnosticsTab() {
   if (isRegistered) return;
 
   ReactElementFactory.Instance.registerElement(
-    "svc-tab-form-assessment",
-    renderFormAssessmentTab,
+    "svc-tab-form-diagnostics",
+    renderFormDiagnosticsTab,
   );
   isRegistered = true;
 }

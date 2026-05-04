@@ -3,7 +3,7 @@ import { JsonObject, type SurveyModel } from "survey-core";
 const DATA_URL_PREFIX = "data:image/";
 const BASE64_MARKER = ";base64,";
 
-export interface FormAssessmentStats {
+export interface FormDiagnosticsStats {
   /** UTF-8 byte size of the serialized survey JSON. */
   uncompressedSize: number;
   totalQuestions: number;
@@ -24,7 +24,7 @@ export interface FormAssessmentStats {
   scanditCount: number;
 }
 
-const emptyStats = (): FormAssessmentStats => ({
+const emptyStats = (): FormDiagnosticsStats => ({
   uncompressedSize: 0,
   totalQuestions: 0,
   embeddedImagesCount: 0,
@@ -132,7 +132,7 @@ const SELECT_BASE_TYPES = new Set([
 /**
  * Analyze survey from JSON (used when SurveyModel is not available).
  */
-export function analyzeSurvey(jsonData: string): FormAssessmentStats {
+export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
   const stats = emptyStats();
   stats.uncompressedSize = getUtf8ByteLength(jsonData);
 
@@ -231,8 +231,8 @@ export function analyzeSurvey(jsonData: string): FormAssessmentStats {
  */
 export function analyzeSurveyModel(
   survey: SurveyModel,
-): Partial<FormAssessmentStats> {
-  const partial: Partial<FormAssessmentStats> = {
+): Partial<FormDiagnosticsStats> {
+  const partial: Partial<FormDiagnosticsStats> = {
     totalQuestions: 0,
     embeddedImagesCount: 0,
     embeddedImagesSizeBytes: 0,

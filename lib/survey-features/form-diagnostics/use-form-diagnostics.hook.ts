@@ -3,16 +3,16 @@
 import { useCallback } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import {
-  FormAssessmentPlugin,
-  FORM_ASSESSMENT_PLUGIN_NAME,
-} from "./form-assessment-plugin";
-import { registerFormAssessmentTab } from "./ui/form-assessment-tab";
+  FormDiagnosticsPlugin,
+  FORM_DIAGNOSTICS_PLUGIN_NAME,
+} from "./form-diagnostics-plugin";
+import { registerFormDiagnosticsTab } from "./ui/form-diagnostics-tab";
 
-type AssessmentTabApi = {
+type DiagnosticsTabApi = {
   addTab: (tab: {
     name: string;
-    plugin: FormAssessmentPlugin;
-    data: FormAssessmentPlugin;
+    plugin: FormDiagnosticsPlugin;
+    data: FormDiagnosticsPlugin;
     title: string;
     iconName: string;
     componentName: string;
@@ -21,11 +21,11 @@ type AssessmentTabApi = {
 };
 
 /**
- * Hook to add the Form Assessment feature to the Survey Creator.
+ * Hook to add the Form Diagnostics feature to the Survey Creator.
  */
-export function useFormAssessment() {
+export function useFormDiagnostics() {
   const initGlobals = useCallback(() => {
-    registerFormAssessmentTab();
+    registerFormDiagnosticsTab();
   }, []);
 
   const bindToCreator = useCallback((creator: SurveyCreatorModel) => {
@@ -33,23 +33,23 @@ export function useFormAssessment() {
       return;
     }
 
-    const creatorWithTabs = creator as unknown as AssessmentTabApi;
-    const plugin = new FormAssessmentPlugin(creator);
+    const creatorWithTabs = creator as unknown as DiagnosticsTabApi;
+    const plugin = new FormDiagnosticsPlugin(creator);
     creatorWithTabs.addTab({
-      name: FORM_ASSESSMENT_PLUGIN_NAME,
+      name: FORM_DIAGNOSTICS_PLUGIN_NAME,
       plugin,
       data: plugin,
-      title: "Assessment",
-      iconName: "icon-tab-form-assessment",
-      componentName: "svc-tab-form-assessment",
+      title: "Diagnostics",
+      iconName: "icon-tab-form-diagnostics",
+      componentName: "svc-tab-form-diagnostics",
     });
 
     return () => {
       if (typeof creatorWithTabs.removeTab === "function") {
-        creatorWithTabs.removeTab(FORM_ASSESSMENT_PLUGIN_NAME);
+        creatorWithTabs.removeTab(FORM_DIAGNOSTICS_PLUGIN_NAME);
       } else {
         const tabIndex = creator.tabs.findIndex(
-          (tab) => tab.id === FORM_ASSESSMENT_PLUGIN_NAME,
+          (tab) => tab.id === FORM_DIAGNOSTICS_PLUGIN_NAME,
         );
         if (tabIndex !== -1) {
           creator.tabs.splice(tabIndex, 1);

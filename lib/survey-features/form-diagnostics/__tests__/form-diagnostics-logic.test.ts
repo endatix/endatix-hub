@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Model } from "survey-core";
-import { analyzeSurvey, analyzeSurveyModel } from "../form-assessment-logic";
+import { analyzeSurvey, analyzeSurveyModel } from "../form-diagnostics-logic";
 
-describe("form assessment logic", () => {
+describe("form diagnostics logic", () => {
   it("measures serialized JSON as UTF-8 bytes", () => {
     const jsonData = JSON.stringify({
       title: "Unicode: Здравей",
