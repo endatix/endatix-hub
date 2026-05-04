@@ -76,7 +76,11 @@ export function ReplaceItemsDialog({
   }, [open, resetFileHandler]);
 
   const canSubmit = useMemo(() => {
-    return validation !== null && validation.validItems.length > 0;
+    return (
+      validation !== null &&
+      validation.validItems.length > 0 &&
+      validation.errors.length === 0
+    );
   }, [validation]);
 
   const handleReplace = () => {
