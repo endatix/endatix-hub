@@ -17,7 +17,9 @@ export function CellDate({ date, visible = true }: CellDateProps) {
   }, [date]);
 
   if (!parsedDate) {
-    return <span className="font-normal text-muted-foreground">-</span>;
+    return visible ? (
+      <span className="font-normal text-muted-foreground">-</span>
+    ) : null;
   }
 
   return visible ? (

@@ -161,6 +161,9 @@ export function DataTable<TData extends Submission>({
   const router = useRouter();
   const { columnOrder, reorderColumn } = useColumnOrder();
   const { columnVisibility } = useColumnVisibility();
+  const visibleColumnOrder = columnOrder.filter(
+    (id) => id !== "actions" && columnVisibility[id] !== false,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -240,7 +243,7 @@ export function DataTable<TData extends Submission>({
           <Table className="border-separate border-spacing-0">
             <TableHeader className="border-b border-sidebar-border/50 bg-muted">
               <SortableContext
-                items={columnOrder.filter((id) => id !== "actions")}
+                items={visibleColumnOrder}
                 strategy={horizontalListSortingStrategy}
               >
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -335,7 +338,10 @@ export function DataTable<TData extends Submission>({
             ) : null}
           </DragOverlay>
         </DndContext>
-        <TablePagination table={table} totalRows={rowCount} />
+        <TablePagination
+          table={table}
+          totalRows={rowCount ?? table.getFilteredRowModel().rows.length}
+        />
       </div>
       <Sheet modal={true} open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="flex h-screen w-[600px] flex-col justify-between sm:w-[480px] sm:max-w-none">

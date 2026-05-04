@@ -27,13 +27,11 @@ describe("Submissions empty states", () => {
     const onClearFilters = vi.fn();
 
     // Act
-    render(
-      <NoMatchingSubmissionsEmptyState onClearFilters={onClearFilters} />,
-    );
+    render(<NoMatchingSubmissionsEmptyState onClearFilters={onClearFilters} />);
     fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
 
     // Assert
-    screen.getByText("No submissions match these filters");
+    screen.getByText("No submissions match current filters.");
     expect(onClearFilters).toHaveBeenCalledOnce();
   });
 });

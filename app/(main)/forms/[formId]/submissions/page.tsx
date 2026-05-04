@@ -4,6 +4,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
+import type {
+  BooleanFilterValue,
+  SubmissionReviewStatus,
+} from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
@@ -13,6 +17,8 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const;
 const MAX_PAGE_SIZE = 50;
+const BOOLEAN_FILTER_VALUES = ["true", "false"] as const;
+const SUBMISSION_REVIEW_STATUS_VALUES = ["new", "read", "approved"] as const;
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -98,16 +104,19 @@ async function SubmissionsTableData({
     completedAtTo?: string;
   };
 }) {
-  const isCompleteFilter = searchParams.isComplete
-    ? searchParams.isComplete.split(",")
-    : [];
+  const isCompleteFilter = parseFilterValues(
+    searchParams.isComplete,
+    BOOLEAN_FILTER_VALUES,
+  );
 
-  const statusFilter = searchParams.status
-    ? searchParams.status.split(",")
-    : [];
-  const isTestSubmissionFilter = searchParams.isTestSubmission
-    ? searchParams.isTestSubmission.split(",")
-    : [];
+  const statusFilter = parseFilterValues(
+    searchParams.status,
+    SUBMISSION_REVIEW_STATUS_VALUES,
+  );
+  const isTestSubmissionFilter = parseFilterValues(
+    searchParams.isTestSubmission,
+    BOOLEAN_FILTER_VALUES,
+  );
   const createdAtFrom = parseDateParam(searchParams.createdAtFrom);
   const createdAtTo = parseDateParam(searchParams.createdAtTo);
   const completedAtFrom = parseDateParam(searchParams.completedAtFrom);
@@ -172,10 +181,7 @@ async function SubmissionsTableData({
         : Promise.resolve(null),
     ]);
 
-  if (
-    !submissionsResult.success ||
-    (unfilteredSubmissionsResult && !unfilteredSubmissionsResult.success)
-  ) {
+  if (!submissionsResult.success) {
     return (
       <SubmissionsLoadError>
         Unable to load submissions. Please try again.
@@ -267,6 +273,18 @@ function parseDateParam(value: string | undefined) {
     : undefined;
 }
 
+function parseFilterValues<T extends string>(
+  value: string | undefined,
+  allowedValues: readonly T[],
+) {
+  if (!value) {
+    return [];
+  }
+
+  const allowedSet = new Set<string>(allowedValues);
+  return value.split(",").filter((item): item is T => allowedSet.has(item));
+}
+
 function isCanonicalPageRequest(
   rawPage: string | undefined,
   rawPageSize: string | undefined,
@@ -322,9 +340,9 @@ function getCanonicalPage(
 
 function buildSubmissionsUrl(
   formId: string,
-  isCompleteFilter: string[],
-  statusFilter: string[],
-  isTestSubmissionFilter: string[],
+  isCompleteFilter: BooleanFilterValue[],
+  statusFilter: SubmissionReviewStatus[],
+  isTestSubmissionFilter: BooleanFilterValue[],
   dateFilters: {
     createdAtFrom?: string;
     createdAtTo?: string;

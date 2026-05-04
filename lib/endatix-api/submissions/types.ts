@@ -89,18 +89,22 @@ export type ExportSubmissionsDto = {
   };
 };
 
+export type ExportFormat = ExportSubmissionsDto["exportFormat"];
+export type BooleanFilterValue = "true" | "false";
+export type SubmissionReviewStatus = "new" | "read" | "approved";
+
 export interface ExportSubmissionsRequest {
   formId: string;
-  exportFormat?: string;
+  exportFormat?: ExportFormat;
   exportId?: string;
 }
 
 export interface ListSubmissionsRequest {
   page?: number;
   pageSize?: number;
-  isComplete?: string[];
-  status?: string[];
-  isTestSubmission?: string[];
+  isComplete?: BooleanFilterValue[];
+  status?: SubmissionReviewStatus[];
+  isTestSubmission?: BooleanFilterValue[];
   createdAtFrom?: string;
   createdAtTo?: string;
   completedAtFrom?: string;

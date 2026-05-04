@@ -41,7 +41,7 @@ export function NoMatchingSubmissionsEmptyState({
   return (
     <div className="flex min-h-[14rem] flex-col items-center justify-center px-6 py-12 text-center">
       <h2 className="text-lg font-semibold text-foreground">
-        No submissions match these filters
+        No submissions match current filters.
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
         Try changing or clearing the current filters.

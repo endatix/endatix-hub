@@ -57,6 +57,8 @@ interface SubmissionsWithFiltersProps {
   totalPages: number;
 }
 
+const EMPTY_INITIAL_FILTER_VALUES: string[] = [];
+
 function SubmissionsContent({
   data,
   formId,
@@ -109,6 +111,11 @@ function SubmissionsContent({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const hasSorting = sorting.length > 0;
+  const hasActiveFilters =
+    isCompleteFilter.size > 0 ||
+    statusFilter.size > 0 ||
+    testSubmissionFilter.size > 0 ||
+    hasDateFilters(dateFilters);
   const isTrueEmptyState = !hasAnySubmissions;
   const disableTableControls = isTrueEmptyState;
 
@@ -159,6 +166,7 @@ function SubmissionsContent({
     if (hasCustomOrder) resetOrder();
     if (hasCustomVisibility) resetVisibility();
     if (hasSorting) onResetSorting();
+    if (hasActiveFilters) onResetFilters();
   };
 
   return (
@@ -243,9 +251,9 @@ export function SubmissionsWithFilters({
   formId,
   hasAnySubmissions,
   definitionFields = [],
-  initialIsComplete = [],
-  initialStatus = [],
-  initialIsTestSubmission = [],
+  initialIsComplete = EMPTY_INITIAL_FILTER_VALUES,
+  initialStatus = EMPTY_INITIAL_FILTER_VALUES,
+  initialIsTestSubmission = EMPTY_INITIAL_FILTER_VALUES,
   initialCreatedAtFrom,
   initialCreatedAtTo,
   initialCompletedAtFrom,
@@ -289,6 +297,30 @@ export function SubmissionsWithFilters({
       pageSize: initialPageSize,
     });
   }, [initialPage, initialPageSize]);
+
+  useEffect(() => {
+    setIsCompleteFilter(new Set(initialIsComplete));
+    setStatusFilter(new Set(initialStatus));
+    setTestSubmissionFilter(new Set(initialIsTestSubmission));
+    setDateFilters({
+      createdAt: {
+        from: initialCreatedAtFrom,
+        to: initialCreatedAtTo,
+      },
+      completedAt: {
+        from: initialCompletedAtFrom,
+        to: initialCompletedAtTo,
+      },
+    });
+  }, [
+    initialIsComplete,
+    initialStatus,
+    initialIsTestSubmission,
+    initialCreatedAtFrom,
+    initialCreatedAtTo,
+    initialCompletedAtFrom,
+    initialCompletedAtTo,
+  ]);
 
   const updateURL = (
     isComplete: Set<string>,

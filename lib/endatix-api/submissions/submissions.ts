@@ -198,25 +198,25 @@ export class Submissions {
     if (request.createdAtFrom) {
       params.append(
         "filter",
-        `createdAt>:${toUtcDayStart(request.createdAtFrom)}`,
+        `createdAt>:${localDayStartToUtc(request.createdAtFrom)}`,
       );
     }
     if (request.createdAtTo) {
       params.append(
         "filter",
-        `createdAt<${toUtcNextDayStart(request.createdAtTo)}`,
+        `createdAt<${localNextDayStartToUtc(request.createdAtTo)}`,
       );
     }
     if (request.completedAtFrom) {
       params.append(
         "filter",
-        `completedAt>:${toUtcDayStart(request.completedAtFrom)}`,
+        `completedAt>:${localDayStartToUtc(request.completedAtFrom)}`,
       );
     }
     if (request.completedAtTo) {
       params.append(
         "filter",
-        `completedAt<${toUtcNextDayStart(request.completedAtTo)}`,
+        `completedAt<${localNextDayStartToUtc(request.completedAtTo)}`,
       );
     }
 
@@ -228,11 +228,12 @@ export class Submissions {
   }
 }
 
-function toUtcDayStart(date: string) {
-  return `${date}T00:00:00.000Z`;
+function localDayStartToUtc(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day).toISOString();
 }
 
-function toUtcNextDayStart(date: string) {
+function localNextDayStartToUtc(date: string) {
   const [year, month, day] = date.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString();
+  return new Date(year, month - 1, day + 1).toISOString();
 }
