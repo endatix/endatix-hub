@@ -67,7 +67,7 @@ export function FormRuntimeProvider({
 
   useEffect(() => {
     startTransition(() => {
-      void ensureFormAccessJwt();
+      ensureFormAccessJwt();
     });
   }, [ensureFormAccessJwt]);
 
