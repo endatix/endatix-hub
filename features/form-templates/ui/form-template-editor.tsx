@@ -8,7 +8,11 @@ import {
   loadBuiltInCustomQuestionClasses,
 } from "@/features/forms/ui/editor/survey-creator-custom-questions";
 import { Result } from "@/lib/result";
-import { useSurveyExtensions } from "@/lib/survey-extensions";
+import {
+  ALL_EXTENSIONS,
+  DATA_LISTS_RUNTIME_EXTENSION_ID,
+  useSurveyExtensions,
+} from "@/lib/survey-extensions";
 import {
   DesignSurveyProvider,
   useSurveyDesigner,
@@ -66,6 +70,16 @@ const defaultCreatorOptions: ICreatorOptions = {
   themeForPreview: "Default",
 };
 
+// Template editor intentionally excludes runtime-only extensions (e.g. data-lists)
+// because templates are not bound to a form access JWT yet. Re-enable once
+// template-scoped access tokens are supported.
+const TEMPLATE_EXCLUDED_EXTENSION_IDS: ReadonlySet<string> = new Set([
+  DATA_LISTS_RUNTIME_EXTENSION_ID,
+]);
+const TEMPLATE_EXTENSION_IDS = ALL_EXTENSIONS.filter(
+  (extension) => !TEMPLATE_EXCLUDED_EXTENSION_IDS.has(extension.id),
+).map((extension) => extension.id);
+
 function FormTemplateEditorContent({
   templateJson,
   templateId,
@@ -86,6 +100,7 @@ function FormTemplateEditorContent({
     setIsJsonModified,
   } = useSurveyDesigner();
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
+    extensionIdsToLoad: TEMPLATE_EXTENSION_IDS,
     runtimeDeps: {
       getRuntimeState: () => ({
         formId: templateId,

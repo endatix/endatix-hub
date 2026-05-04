@@ -3,6 +3,10 @@ import { bindDataListsToCreator } from "@/lib/survey-features/data-lists/infrast
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
 import { bindDataListsToSurvey } from "@/lib/survey-features/data-lists/infrastructure/survey-bindings";
 
+/**
+ * Runtime-bound extension. Requires a form access JWT context; consumers without
+ * one (e.g. the form template editor) must opt out via `extensionIdsToLoad`.
+ */
 const dataListsExtension: ExtensionModule = {
   onInit: () => {
     registerDataListGlobals();
