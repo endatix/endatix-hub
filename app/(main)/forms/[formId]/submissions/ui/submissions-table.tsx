@@ -68,9 +68,7 @@ const SubmissionsTable = ({
     ...submission,
     parsedData: (() => {
       try {
-        return submission.jsonData
-          ? JSON.parse(submission.jsonData as string)
-          : {};
+        return submission.jsonData ? JSON.parse(submission.jsonData) : {};
       } catch {
         return {};
       }

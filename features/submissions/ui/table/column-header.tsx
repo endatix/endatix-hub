@@ -25,25 +25,25 @@ import { useColumnVisibility } from "./column-visibility-context";
 import type { DateFilterValue } from "./date-filter-types";
 
 interface DateFilterConfig {
-  value: DateFilterValue;
-  onChange: (value: DateFilterValue) => void;
+  readonly value: DateFilterValue;
+  readonly onChange: (value: DateFilterValue) => void;
 }
 
 interface DateFilterControlsProps {
-  idPrefix: string;
-  value: DateFilterValue;
-  onApply: (value: DateFilterValue) => void;
+  readonly idPrefix: string;
+  readonly value: DateFilterValue;
+  readonly onApply: (value: DateFilterValue) => void;
 }
 
 interface ColumnHeaderProps<
   TData,
   TValue,
 > extends React.HTMLAttributes<HTMLDivElement> {
-  column: Column<TData, TValue>;
-  title: string;
-  visible?: boolean;
-  isSorted?: false | SortDirection;
-  dateFilter?: DateFilterConfig;
+  readonly column: Column<TData, TValue>;
+  readonly title: string;
+  readonly visible?: boolean;
+  readonly isSorted?: false | SortDirection;
+  readonly dateFilter?: DateFilterConfig;
 }
 
 export function ColumnHeader<TData, TValue>({
@@ -139,10 +139,7 @@ export function ColumnHeader<TData, TValue>({
           {dateFilter && (
             <>
               <DropdownMenuSeparator />
-              <div
-                className="w-56 space-y-3 p-2"
-                onClick={(event) => event.stopPropagation()}
-              >
+              <div className="w-56 space-y-3 p-2">
                 <DateFilterControls
                   idPrefix={column.id}
                   value={dateFilter.value}
@@ -155,7 +152,7 @@ export function ColumnHeader<TData, TValue>({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => toggleColumnVisibility(column.id!)}
+                onClick={() => toggleColumnVisibility(column.id)}
               >
                 <EyeOff className="h-3.5 w-3.5 text-muted-foreground/70" />
                 Hide

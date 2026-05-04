@@ -15,7 +15,7 @@ export function DraggableColumnHeader<TData extends Submission>({
   column,
   header,
 }: DraggableColumnHeaderProps<TData>) {
-  const isActionsColumn = column.id === "actions";
+  const isReorderDisabled = column.id === "actions";
   const canSort = column.getCanSort();
 
   const {
@@ -27,8 +27,10 @@ export function DraggableColumnHeader<TData extends Submission>({
     isDragging,
   } = useSortable({
     id: column.id,
-    disabled: isActionsColumn,
+    disabled: isReorderDisabled,
   });
+  const sortableAttributes = isReorderDisabled ? {} : attributes;
+  const sortableListeners = isReorderDisabled ? {} : listeners;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -44,8 +46,8 @@ export function DraggableColumnHeader<TData extends Submission>({
         "[&_*]:!cursor-inherit flex touch-none items-center gap-1",
         canSort ? "!cursor-pointer" : "!cursor-default",
       )}
-      {...(!isActionsColumn ? attributes : {})}
-      {...(!isActionsColumn ? listeners : {})}
+      {...sortableAttributes}
+      {...sortableListeners}
     >
       {flexRender(header.column.columnDef.header, header.getContext())}
     </div>

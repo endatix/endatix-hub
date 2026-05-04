@@ -147,12 +147,10 @@ export function DataTable<TData extends Submission>({
 }) {
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
 
-  const sorting =
-    externalSorting !== undefined ? externalSorting : internalSorting;
-  const setSorting =
-    externalOnSortingChange !== undefined
-      ? externalOnSortingChange
-      : setInternalSorting;
+  const sorting = externalSorting ?? internalSorting;
+  const setSorting = externalOnSortingChange
+    ? externalOnSortingChange
+    : setInternalSorting;
   const manualPagination = externalPagination !== undefined;
   const manualRowCount = manualPagination ? rowCount : undefined;
   const manualPageCount = manualPagination ? pageCount : undefined;

@@ -190,9 +190,9 @@ export function buildSubmissionDataColumns(
 
 export function humanizeFieldName(name: string) {
   return name
-    .replace(/[_-]+/g, " ")
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/\s+/g, " ")
+    .replaceAll(/[_-]+/g, " ")
+    .replaceAll(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replaceAll(/\s+/g, " ")
     .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replaceAll(/\b\w/g, (char) => char.toUpperCase());
 }

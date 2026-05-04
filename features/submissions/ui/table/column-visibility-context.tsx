@@ -28,9 +28,9 @@ const ColumnVisibilityContext = createContext<
 >(undefined);
 
 interface ColumnVisibilityProviderProps<TData extends Submission = Submission> {
-  children: ReactNode;
-  formId: string;
-  defaultColumns: ColumnDef<TData>[];
+  readonly children: ReactNode;
+  readonly formId: string;
+  readonly defaultColumns: ColumnDef<TData>[];
 }
 
 export function ColumnVisibilityProvider<

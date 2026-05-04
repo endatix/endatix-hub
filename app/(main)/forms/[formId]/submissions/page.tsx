@@ -21,8 +21,8 @@ const BOOLEAN_FILTER_VALUES = ["true", "false"] as const;
 const SUBMISSION_REVIEW_STATUS_VALUES = ["new", "read", "approved"] as const;
 
 type Params = {
-  params: Promise<{ formId: string }>;
-  searchParams: Promise<{
+  readonly params: Promise<{ formId: string }>;
+  readonly searchParams: Promise<{
     page?: string;
     pageSize?: string;
     isComplete?: string;
@@ -77,7 +77,7 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
   );
 }
 
-async function PageTitleData({ formId }: { formId: string }) {
+async function PageTitleData({ formId }: Readonly<{ formId: string }>) {
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
   const formResult = await api.forms.get(formId);
@@ -91,8 +91,8 @@ async function SubmissionsTableData({
   formId,
   searchParams,
 }: {
-  formId: string;
-  searchParams: {
+  readonly formId: string;
+  readonly searchParams: {
     page?: string;
     pageSize?: string;
     isComplete?: string;
@@ -390,7 +390,7 @@ function buildSubmissionsUrl(
   ) as Route;
 }
 
-function SubmissionsLoadError({ children }: { children: ReactNode }) {
+function SubmissionsLoadError({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div
       role="alert"
@@ -401,7 +401,7 @@ function SubmissionsLoadError({ children }: { children: ReactNode }) {
   );
 }
 
-function TableLoader({ pageSize }: { pageSize: number }) {
+function TableLoader({ pageSize }: Readonly<{ pageSize: number }>) {
   const pageSizeNumber = pageSize;
   const rowHeight = 60;
   const rows = Array.from({ length: pageSizeNumber }, (_, i) => i + 1);

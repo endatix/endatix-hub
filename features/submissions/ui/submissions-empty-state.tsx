@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Inbox, RotateCcw, Share2 } from "lucide-react";
 
 interface NoSubmissionsEmptyStateProps {
-  onShareForm?: () => void;
+  readonly onShareForm?: () => void;
 }
 
 interface NoMatchingSubmissionsEmptyStateProps {
-  onClearFilters: () => void;
+  readonly onClearFilters: () => void;
 }
 
 export function NoSubmissionsEmptyState({
