@@ -580,8 +580,8 @@ function FormEditor({
     // Delay re-apply until after theme class/token updates settle in the DOM.
     let frame1 = 0;
     let frame2 = 0;
-    frame1 = window.requestAnimationFrame(() => {
-      frame2 = window.requestAnimationFrame(() => {
+    frame1 = globalThis.window.requestAnimationFrame(() => {
+      frame2 = globalThis.window.requestAnimationFrame(() => {
         const resolvedTheme = resolveCreatorThemeCssVariables(
           creatorTheme,
           document.getElementById("creator") ?? undefined,
@@ -591,8 +591,8 @@ function FormEditor({
     });
 
     return () => {
-      if (frame1) window.cancelAnimationFrame(frame1);
-      if (frame2) window.cancelAnimationFrame(frame2);
+      if (frame1) globalThis.window.cancelAnimationFrame(frame1);
+      if (frame2) globalThis.window.cancelAnimationFrame(frame2);
     };
   }, [creator, creatorTheme]);
 
@@ -644,8 +644,8 @@ function FormEditor({
       }
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    globalThis.window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges, isCurrentThemeModified]);
 
   useEffect(() => {
