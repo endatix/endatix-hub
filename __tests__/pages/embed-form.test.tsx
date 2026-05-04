@@ -65,7 +65,7 @@ vi.mock("next-auth/react", () => ({
   useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
 }));
 
-vi.mock("@/lib/form-runtime/form-access-token-client", () => ({
+vi.mock("@/lib/endatix-api/public/forms/form-access-token.client", () => ({
   buildFormAccessTokenBody: vi.fn(() => ({})),
   createFormAccessToken: vi.fn().mockResolvedValue({
     success: true,

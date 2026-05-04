@@ -81,7 +81,6 @@ describe("PublicDataListsClient", () => {
   });
 
   it("uses constructor accessToken when request token is omitted", async () => {
-    // Arrange
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -101,13 +100,11 @@ describe("PublicDataListsClient", () => {
       accessToken: "client-jwt",
     });
 
-    // Act
     const result = await client.search({
       formId: "101",
       dataListId: "12",
     });
 
-    // Assert
     expect(result.success).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.example.com/public/forms/101/data-lists/12/search?skip=0&take=25",
@@ -121,7 +118,6 @@ describe("PublicDataListsClient", () => {
   });
 
   it("prefers request formAccessJwt over constructor accessToken", async () => {
-    // Arrange
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -141,14 +137,12 @@ describe("PublicDataListsClient", () => {
       accessToken: "client-jwt",
     });
 
-    // Act
     const result = await client.search({
       formId: "101",
       dataListId: "12",
       formAccessJwt: "request-jwt",
     });
 
-    // Assert
     expect(result.success).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.example.com/public/forms/101/data-lists/12/search?skip=0&take=25",
@@ -162,7 +156,6 @@ describe("PublicDataListsClient", () => {
   });
 
   it("returns validation error when no request token and no constructor accessToken", async () => {
-    // Arrange
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -170,13 +163,11 @@ describe("PublicDataListsClient", () => {
       baseUrl: "https://api.example.com",
     });
 
-    // Act
     const result = await client.search({
       formId: "101",
       dataListId: "12",
     });
 
-    // Assert
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.type).toBe("ValidationError");

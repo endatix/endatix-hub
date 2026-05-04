@@ -1,12 +1,9 @@
-import {
-  createEndatixPublicApi,
-  type PublicApiResult,
-} from "@/lib/endatix-public-api";
+import { createEndatixPublicApi } from "@/lib/endatix-api/public";
+import { ApiErrorType, ApiResult } from "@/lib/endatix-api/shared/api-result";
 import {
   ensureRuntimeFormAccessJwt,
   invalidateRuntimeFormAccessJwt,
 } from "@/lib/form-runtime/form-access-jwt-orchestrator";
-import { PublicApiErrorType } from "@/lib/endatix-public-api/shared/api-result";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import {
   ChoicesLazyLoadEvent,
@@ -48,26 +45,17 @@ export function bindDataListsToSurvey(
 
   const api = createEndatixPublicApi().dataLists;
 
-  const withJwtRetry = async <T>(
+  async function withJwtRetry<T>(
     runtimeState: ReturnType<ExtensionRuntimeDeps["getRuntimeState"]>,
-    call: (jwt: string) => Promise<PublicApiResult<T>>,
-  ): Promise<PublicApiResult<T>> => {
+    call: (jwt: string) => Promise<ApiResult<T>>,
+  ): Promise<ApiResult<T>> {
     let jwt = await ensureRuntimeFormAccessJwt(runtimeState);
     if (!jwt) {
-      return {
-        success: false,
-        error: {
-          type: PublicApiErrorType.AuthError,
-          message: "Could not obtain form access token.",
-        },
-      };
+      return ApiResult.authError<T>("Could not obtain form access token.");
     }
 
     let response = await call(jwt);
-    if (
-      !response.success &&
-      response.error.type === PublicApiErrorType.AuthError
-    ) {
+    if (!response.success && response.error.type === ApiErrorType.AuthError) {
       invalidateRuntimeFormAccessJwt(runtimeState);
       jwt = await ensureRuntimeFormAccessJwt(runtimeState);
       if (!jwt) {
@@ -76,7 +64,7 @@ export function bindDataListsToSurvey(
       response = await call(jwt);
     }
     return response;
-  };
+  }
 
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {
     const context = deps.getRuntimeState();

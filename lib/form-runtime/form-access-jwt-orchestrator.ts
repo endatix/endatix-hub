@@ -1,7 +1,7 @@
 import {
   buildFormAccessTokenBody,
   createFormAccessToken,
-} from "@/lib/form-runtime/form-access-token-client";
+} from "@/lib/endatix-api/public/forms/form-access-token.client";
 import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 
 const MIN_VALIDITY_MS = 60_000;

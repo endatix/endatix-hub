@@ -7,9 +7,9 @@ import {
 import {
   buildFormAccessTokenBody,
   createFormAccessToken,
-} from "@/lib/form-runtime/form-access-token-client";
+} from "@/lib/endatix-api/public/forms/form-access-token.client";
 
-vi.mock("@/lib/form-runtime/form-access-token-client", () => ({
+vi.mock("@/lib/endatix-api/public/forms/form-access-token.client", () => ({
   buildFormAccessTokenBody: vi.fn(() => ({})),
   createFormAccessToken: vi.fn(),
 }));
