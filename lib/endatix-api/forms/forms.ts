@@ -3,7 +3,12 @@ import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
-import { FormsListRequest, UpdateFormRequest } from "./types";
+import {
+  CreateFormAccessTokenRequest,
+  FormAccessTokenResponse,
+  FormsListRequest,
+  UpdateFormRequest,
+} from "./types";
 import { CreateFormRequest } from "@/lib/form-types";
 
 export class Forms {
@@ -40,5 +45,24 @@ export class Forms {
       return ApiResult.validationError(validateFormIdResult.message);
     }
     return this.endatix.delete<void>(`/forms/${validateFormIdResult.value}`);
+  }
+
+  /**
+   * Gets a form access JWT for browser calls to public form related endpoints & resources.
+   */
+  async createFormAccessToken(
+    formId: string,
+    body: CreateFormAccessTokenRequest = {},
+  ): Promise<ApiResult<FormAccessTokenResponse>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    return this.endatix.post<FormAccessTokenResponse>(
+      `/public/forms/${validateFormIdResult.value}/access-tokens`,
+      body,
+      { requireAuth: false },
+    );
   }
 }

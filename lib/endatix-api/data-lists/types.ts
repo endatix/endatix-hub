@@ -52,22 +52,3 @@ export interface DataListPublicSearchResult {
   totalPages: number;
   items: DataListPublicChoiceItem[];
 }
-
-export type PublicDataListTokenType = "AccessToken" | "SubmissionToken";
-
-export interface PublicDataListRequestBase {
-  formId: string;
-  dataListId: string;
-  token?: string;
-  tokenType?: PublicDataListTokenType;
-}
-
-export interface PublicDataListSearchRequest extends PublicDataListRequestBase {
-  query?: string;
-  skip?: number;
-  take?: number;
-}
-
-export interface PublicDataListDisplayValuesRequest extends PublicDataListRequestBase {
-  values: string[];
-}

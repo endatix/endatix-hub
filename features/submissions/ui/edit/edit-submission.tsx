@@ -6,6 +6,7 @@ import { editSubmissionByAccessTokenUseCase } from "@/features/public-submission
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import { Submission } from "@/lib/endatix-api";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
+import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { parseTokenExpiry } from "@/lib/utils";
 import { ActiveDefinition } from "@/types";
@@ -47,6 +48,7 @@ function EditSubmission({
   formId,
   token,
 }: Readonly<EditSubmissionProps>) {
+  const formRuntime = useFormRuntime();
   const isPublicMode = token !== undefined;
   const [submissionData, setSubmissionData] = useState<Record<string, unknown>>(
     () => {
@@ -205,14 +207,19 @@ function EditSubmission({
     }
   }, [isPublicMode, surveyModel, submissionData, router, isPending]);
 
+  useEffect(() => {
+    formRuntime.updateState({
+      formId: formId ?? submission.formId,
+      submissionId: submission.id,
+      token,
+      tokenType: token ? "AccessToken" : undefined,
+    });
+  }, [formRuntime, formId, submission.formId, submission.id, token]);
+
   const { isReady, onModelCreated } = useSurveyExtensions({
     formJson: submission.formDefinition?.jsonData,
     runtimeDeps: {
-      getRuntimeState: () => ({
-        formId: submission.formId,
-        submissionId: submission.id,
-        token,
-      }),
+      getRuntimeState: () => formRuntime.stateRef.current,
     },
   });
 

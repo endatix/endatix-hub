@@ -29,6 +29,9 @@ describe("useExtensionLoader", () => {
   const runtimeDeps = {
     getRuntimeState: () => ({ formId: "123" }),
   };
+  const expectedBaseDeps = {
+    getRuntimeState: runtimeDeps.getRuntimeState,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,7 +83,7 @@ describe("useExtensionLoader", () => {
 
     // Assert
     expect(onCreatorReady).toHaveBeenCalledTimes(1);
-    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator, runtimeDeps);
+    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator, expectedBaseDeps);
   });
 
   it("returns isReady true after extensions load and onModelCreated invokes onModelReady", async () => {
@@ -107,7 +110,7 @@ describe("useExtensionLoader", () => {
 
     // Assert
     expect(onModelReady).toHaveBeenCalledTimes(1);
-    expect(onModelReady).toHaveBeenCalledWith(mockModel, runtimeDeps);
+    expect(onModelReady).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
   });
 
   it("handles load returning undefined and still sets ready", async () => {
@@ -185,7 +188,7 @@ describe("useExtensionLoader", () => {
     });
 
     // Assert – only A was loaded and only A's onModelReady is called
-    expect(onModelReadyA).toHaveBeenCalledWith(mockModel, runtimeDeps);
+    expect(onModelReadyA).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
     expect(onModelReadyB).not.toHaveBeenCalled();
   });
 
@@ -203,7 +206,11 @@ describe("useExtensionLoader", () => {
 
     const { result, rerender } = renderHook(
       ({ ids }: { ids: string[] }) =>
-        useExtensionLoader({ allExtensions, extensionIdsToLoad: ids, runtimeDeps }),
+        useExtensionLoader({
+          allExtensions,
+          extensionIdsToLoad: ids,
+          runtimeDeps,
+        }),
       {
         initialProps: { ids: ["ext-static"] },
       },
@@ -257,8 +264,34 @@ describe("useExtensionLoader", () => {
       result.current.onCreatorCreated(mockCreator);
     });
 
-    expect(onModelReady).toHaveBeenCalledWith(mockModel, runtimeDeps);
-    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator, runtimeDeps);
+    expect(onModelReady).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
+    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator, expectedBaseDeps);
+  });
+
+  it("passes the same minimal runtime deps to every extension", async () => {
+    const onModelReady = vi.fn();
+    const allExtensions: ExtensionDefinition[] = [
+      createExtension("data-lists-runtime", { onModelReady }),
+    ];
+
+    const { result } = renderHook(() =>
+      useExtensionLoader({
+        allExtensions,
+        extensionIdsToLoad: ["data-lists-runtime"],
+        runtimeDeps,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    const mockModel = {} as any;
+    act(() => {
+      result.current.onModelCreated(mockModel);
+    });
+
+    expect(onModelReady).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
   });
 
   it("does not reload dynamic extensions when ids order changes", async () => {
@@ -272,7 +305,11 @@ describe("useExtensionLoader", () => {
 
     const { result, rerender } = renderHook(
       ({ ids }: { ids: string[] }) =>
-        useExtensionLoader({ allExtensions, extensionIdsToLoad: ids, runtimeDeps }),
+        useExtensionLoader({
+          allExtensions,
+          extensionIdsToLoad: ids,
+          runtimeDeps,
+        }),
       {
         initialProps: { ids: ["ext-order-a", "ext-order-b"] },
       },

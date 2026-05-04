@@ -20,6 +20,7 @@ exports[`ShareForm Page > renders form when definition is found 1`] = `
             "formId": "valid-id",
             "submissionId": undefined,
             "token": undefined,
+            "tokenType": undefined,
           }
         }
       >

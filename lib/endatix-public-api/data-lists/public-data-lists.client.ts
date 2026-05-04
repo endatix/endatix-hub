@@ -12,16 +12,15 @@ import {
   PublicDataListDisplayValuesRequest,
   PublicDataListSearchRequest,
 } from "./types";
-
-interface PublicDataListsClientOptions {
-  baseUrl?: string;
-}
+import { EndatixPublicApiOptions } from "../endatix-public-api";
 
 export class PublicDataListsClient {
   private readonly baseUrl: string;
+  private readonly accessToken?: string;
 
-  constructor(options: PublicDataListsClientOptions = {}) {
+  constructor(options: EndatixPublicApiOptions = {}) {
     this.baseUrl = options.baseUrl ?? process.env.ENDATIX_API_URL ?? "";
+    this.accessToken = options.accessToken;
   }
 
   async search(
@@ -35,21 +34,23 @@ export class PublicDataListsClient {
       return validation;
     }
 
+    const bearerToken = this.resolveBearerToken(request.formAccessJwt);
+    if (!bearerToken) {
+      return PublicApiResult.error(
+        PublicApiErrorType.ValidationError,
+        "formAccessJwt is required (either per request or as client accessToken).",
+      );
+    }
+
     const query = new URLSearchParams();
     query.set("skip", String(request.skip ?? 0));
     query.set("take", String(request.take ?? 25));
     if (request.query) {
       query.set("query", request.query);
     }
-    if (request.token) {
-      query.set("token", request.token);
-    }
-    if (request.tokenType) {
-      query.set("tokenType", request.tokenType);
-    }
 
     const endpoint = `/public/forms/${request.formId}/data-lists/${request.dataListId}/search?${query.toString()}`;
-    return this.get<DataListPublicSearchResult>(endpoint);
+    return this.get<DataListPublicSearchResult>(endpoint, bearerToken);
   }
 
   async getDisplayValues(
@@ -63,6 +64,14 @@ export class PublicDataListsClient {
       return validation;
     }
 
+    const bearerToken = this.resolveBearerToken(request.formAccessJwt);
+    if (!bearerToken) {
+      return PublicApiResult.error(
+        PublicApiErrorType.ValidationError,
+        "formAccessJwt is required (either per request or as client accessToken).",
+      );
+    }
+
     if (request.values.length === 0) {
       return PublicApiResult.error(
         PublicApiErrorType.ValidationError,
@@ -72,15 +81,13 @@ export class PublicDataListsClient {
 
     const query = new URLSearchParams();
     request.values.forEach((value) => query.append("values", value));
-    if (request.token) {
-      query.set("token", request.token);
-    }
-    if (request.tokenType) {
-      query.set("tokenType", request.tokenType);
-    }
 
     const endpoint = `/public/forms/${request.formId}/data-lists/${request.dataListId}/display-values?${query.toString()}`;
-    return this.get<DataListChoiceItem[]>(endpoint);
+    return this.get<DataListChoiceItem[]>(endpoint, bearerToken);
+  }
+
+  private resolveBearerToken(requestToken?: string): string | undefined {
+    return requestToken ?? this.accessToken;
   }
 
   private validateRequestIds(
@@ -109,7 +116,10 @@ export class PublicDataListsClient {
     return null;
   }
 
-  private async get<T>(endpoint: string): Promise<PublicApiResultType<T>> {
+  private async get<T>(
+    endpoint: string,
+    bearerToken: string,
+  ): Promise<PublicApiResultType<T>> {
     if (!this.baseUrl) {
       return PublicApiResult.error(
         PublicApiErrorType.ValidationError,
@@ -119,10 +129,15 @@ export class PublicDataListsClient {
 
     const url = `${this.baseUrl}${endpoint}`;
 
+    const headers: HeadersInit = {
+      Accept: "application/json",
+      Authorization: `Bearer ${bearerToken}`,
+    };
+
     try {
       const response = await fetch(url, {
         method: "GET",
-        headers: { Accept: "application/json" },
+        headers,
       });
 
       if (!response.ok) {
@@ -211,7 +226,7 @@ export class PublicDataListsClient {
 }
 
 export function createPublicDataListsClient(
-  options?: PublicDataListsClientOptions,
+  options?: EndatixPublicApiOptions,
 ): PublicDataListsClient {
   return new PublicDataListsClient(options);
 }

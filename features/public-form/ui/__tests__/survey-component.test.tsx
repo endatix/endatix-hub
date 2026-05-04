@@ -102,6 +102,21 @@ vi.mock("@/features/auth", () => ({
   ANONYMOUS_SESSION: {},
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
+}));
+
+vi.mock("@/lib/form-runtime/form-access-token-client", () => ({
+  buildFormAccessTokenBody: vi.fn(() => ({})),
+  createFormAccessToken: vi.fn().mockResolvedValue({
+    success: true,
+    data: {
+      token: "test-form-access-jwt",
+      expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),
+    },
+  }),
+}));
+
 vi.mock("survey-react-ui", () => ({
   Survey: () => <div data-testid="survey">Survey UI</div>,
 }));

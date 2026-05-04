@@ -61,6 +61,21 @@ vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
   }),
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
+}));
+
+vi.mock("@/lib/form-runtime/form-access-token-client", () => ({
+  buildFormAccessTokenBody: vi.fn(() => ({})),
+  createFormAccessToken: vi.fn().mockResolvedValue({
+    success: true,
+    data: {
+      token: "test-jwt",
+      expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),
+    },
+  }),
+}));
+
 vi.mock("@/features/public-form/ui/embed-height-reporter", () => ({
   EmbedHeightReporter: () => <div data-testid="embed-height-reporter" />,
 }));

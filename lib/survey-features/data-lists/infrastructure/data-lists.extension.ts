@@ -8,10 +8,10 @@ const dataListsExtension: ExtensionModule = {
     registerDataListGlobals();
   },
   onCreatorReady: (creator, deps) => {
-    bindDataListsToCreator(creator, deps.getRuntimeState);
+    bindDataListsToCreator(creator, deps);
   },
   onModelReady: (model, deps) => {
-    bindDataListsToSurvey(model, deps.getRuntimeState);
+    bindDataListsToSurvey(model, deps);
   },
 };
 

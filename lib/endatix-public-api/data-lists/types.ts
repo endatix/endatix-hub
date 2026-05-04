@@ -11,21 +11,23 @@ export interface DataListPublicSearchResult {
   items: DataListChoiceItem[];
 }
 
-export type PublicDataListTokenType = "AccessToken" | "SubmissionToken";
-
-export interface PublicDataListRequestBase {
+export interface PublicDataListSearchRequest {
   formId: string;
   dataListId: string;
-  token?: string;
-  tokenType?: PublicDataListTokenType;
-}
-
-export interface PublicDataListSearchRequest extends PublicDataListRequestBase {
+  /** Optional per-request token override. Falls back to client-level accessToken when omitted. */
+  formAccessJwt?: string;
   query?: string;
   skip?: number;
   take?: number;
 }
 
-export interface PublicDataListDisplayValuesRequest extends PublicDataListRequestBase {
+export interface PublicDataListDisplayValuesRequest {
+  /** The ID of the form that owns the runtime context for this data list. */
+  formId: string;
+  /** The ID of the data list. */
+  dataListId: string;
+  /** Optional per-request token override. Falls back to client-level accessToken when omitted. */
+  formAccessJwt?: string;
+  /** The values to get display values for. */
   values: string[];
 }
