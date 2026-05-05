@@ -98,28 +98,6 @@ export const FormDiagnosticsView = ({
       });
     }
 
-    if (stats.maxDropdownChoicesCount > 200) {
-      list.push({
-        title: "Large Dropdown Choices",
-        description: `A dropdown has ${formatNumber(stats.maxDropdownChoicesCount)} choices. Consider using a searchable dropdown, RESTful choices (choicesByUrl), or a different input type.`,
-        severity: "info",
-      });
-    }
-
-    const choicesJsonThreshold = 100 * 1024;
-    const maxSingleChoicesThreshold = 50 * 1024;
-    if (
-      stats.totalChoicesJsonSize > choicesJsonThreshold ||
-      stats.maxChoicesJsonSize > maxSingleChoicesThreshold
-    ) {
-      list.push({
-        title: "Consider RESTful choices",
-        description: `Choices in the form JSON use ${formatSize(stats.totalChoicesJsonSize)} total (largest single: ${formatSize(stats.maxChoicesJsonSize)}). For large option sets, use choicesByUrl to load choices from a REST API and reduce form size and load time.`,
-        severity: "info",
-        url: "https://surveyjs.io/form-library/documentation/api-reference/choicesrestful",
-      });
-    }
-
     if (stats.fileUploadWithoutBlobCount > 0) {
       list.push({
         title: "File Upload without Blob Storage",
@@ -141,6 +119,15 @@ export const FormDiagnosticsView = ({
 
   const requiresReCaptcha = model.requiresReCaptcha;
   const isPublic = model.isPublic;
+  const choicesJsonThreshold = 100 * 1024;
+  const maxSingleChoicesThreshold = 50 * 1024;
+  const shouldHighlightConverter =
+    stats.maxDropdownChoicesCount > 200 ||
+    stats.totalChoicesJsonSize > choicesJsonThreshold ||
+    stats.maxChoicesJsonSize > maxSingleChoicesThreshold;
+  const converterAttentionMessage = shouldHighlightConverter
+    ? `Large choices detected (max dropdown: ${formatNumber(stats.maxDropdownChoicesCount)}, choices JSON total: ${formatSize(stats.totalChoicesJsonSize)}, max single: ${formatSize(stats.maxChoicesJsonSize)}). Use bulk conversion below to move inline choices into data lists.`
+    : undefined;
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -184,7 +171,7 @@ export const FormDiagnosticsView = ({
         <CardContent className="space-y-6">
           <div>
             <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Size and Complexity
+              FORM ELEMENTS AND COMPLEXITY
             </h4>
             <div className="grid grid-cols-2 gap-5 md:grid-cols-5">
               <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
@@ -232,14 +219,6 @@ export const FormDiagnosticsView = ({
                   {formatNumber(stats.invisibleLogicItemsCount)}
                 </span>
               </div>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Dropdown & choices
-            </h4>
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-6">
               <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   Dropdowns
@@ -280,18 +259,13 @@ export const FormDiagnosticsView = ({
                   {formatNumber(stats.fileUploadCount)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Scandit
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.scanditCount)}
-                </span>
-              </div>
             </div>
           </div>
 
-          <ConvertLargeChoiceLists model={model} />
+          <ConvertLargeChoiceLists
+            model={model}
+            attentionMessage={converterAttentionMessage}
+          />
 
           <div>
             <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">

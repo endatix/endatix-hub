@@ -122,10 +122,12 @@ async function mapPool<T, R>(
 
 interface ConvertLargeChoiceListsProps {
   model: FormDiagnosticsPlugin;
+  attentionMessage?: string;
 }
 
 export function ConvertLargeChoiceLists({
   model,
+  attentionMessage,
 }: Readonly<ConvertLargeChoiceListsProps>) {
   const [threshold, setThreshold] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -416,6 +418,13 @@ export function ConvertLargeChoiceLists({
         number of inline choices into data lists. The open form is not
         modified; a new copy is created when at least one conversion succeeds.
       </p>
+
+      {attentionMessage ? (
+        <Alert className="mb-4 text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800">
+          <AlertTitle>Recommended for this form</AlertTitle>
+          <AlertDescription>{attentionMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="mb-4 flex flex-wrap items-end gap-4">
         <div className="space-y-2">
