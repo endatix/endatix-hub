@@ -72,6 +72,7 @@ export default async function FormDesignerPage({ params }: Params) {
     slkVal: process.env.NEXT_PUBLIC_SLK,
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
+    formIsEnabled: form.isEnabled,
   };
 
   return (

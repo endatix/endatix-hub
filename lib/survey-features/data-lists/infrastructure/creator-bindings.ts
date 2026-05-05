@@ -8,6 +8,7 @@ import {
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
 import { bindDataListsToSurvey } from "./survey-bindings";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
+import { bindConvertInlineChoicesTitleActions } from "./convert-inline-choices-title-actions";
 import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
@@ -97,6 +98,8 @@ export function bindDataListsToCreator(
   creator.onAfterPropertyChanged.add(onDataListChanged);
   creator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
 
+  const disposeConvertTitleActions = bindConvertInlineChoicesTitleActions(creator);
+
   if (creator.survey) {
     const initialSurveyArea = "__creator-initial-survey";
     const previousDispose = creatorSurveyDisposers.get(initialSurveyArea);
@@ -107,6 +110,7 @@ export function bindDataListsToCreator(
   }
 
   return () => {
+    disposeConvertTitleActions();
     creator.onAfterPropertyChanged.remove(onDataListChanged);
     creator.onSurveyInstanceCreated.remove(handleSurveyInstanceCreated);
     creatorSurveyDisposers.forEach((dispose) => dispose?.());

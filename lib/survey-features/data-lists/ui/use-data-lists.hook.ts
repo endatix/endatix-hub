@@ -82,23 +82,23 @@ export function useDataListsLoader() {
   const [dataLists, setDataLists] = useState<DataList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadDataLists = async () => {
-      setIsLoading(true);
-      try {
-        const result = await getDataListsAction();
-        if (!result.success) {
-          console.error("Failed to fetch data lists for creator.");
-          return;
-        }
-        setDataLists(result.data);
-      } finally {
-        setIsLoading(false);
+  const loadDataLists = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await getDataListsAction();
+      if (!result.success) {
+        console.error("Failed to fetch data lists for creator.");
+        return;
       }
-    };
-
-    loadDataLists();
+      setDataLists(result.data);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  return { dataLists, isLoading };
+  useEffect(() => {
+    void loadDataLists();
+  }, [loadDataLists]);
+
+  return { dataLists, isLoading, refetch: loadDataLists };
 }

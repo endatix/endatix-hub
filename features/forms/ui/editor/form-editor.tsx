@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
@@ -30,6 +40,7 @@ import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
+import { registerConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion/convert-inline-choices-deps";
 import { useDataLists, useDataListsLoader } from "@/lib/survey-features/data-lists";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
@@ -119,6 +130,8 @@ interface FormEditorProps {
   slkVal?: string;
   themeId?: string;
   isPublic?: boolean;
+  /** When set, bulk conversion uses this for the copied form's enabled flag. */
+  formIsEnabled?: boolean;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
@@ -149,10 +162,12 @@ function nameToTitle(name: string): string {
 function FormEditor({
   formJson,
   formId,
+  formName,
   options,
   slkVal,
   themeId,
   isPublic,
+  formIsEnabled,
   initialPropertyGridVisible = true,
   onThemeModificationChange,
   onSaveHandlerReady,
@@ -214,7 +229,11 @@ function FormEditor({
   } = useFormDiagnostics();
   const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
     useDataLists();
-  const { dataLists, isLoading: isDataListsLoading } = useDataListsLoader();
+  const {
+    dataLists,
+    isLoading: isDataListsLoading,
+    refetch: refetchDataLists,
+  } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -225,7 +244,43 @@ function FormEditor({
     setAvailableDataLists(dataLists);
   }, [dataLists, setAvailableDataLists]);
 
+  const [isConvertChoicesConfirmOpen, setIsConvertChoicesConfirmOpen] =
+    useState(false);
+  const convertChoicesConfirmResolverRef = useRef<
+    ((value: boolean) => void) | null
+  >(null);
 
+  const requestConvertChoicesConfirmation = useCallback((): Promise<boolean> => {
+    return new Promise((resolve) => {
+      convertChoicesConfirmResolverRef.current = resolve;
+      setIsConvertChoicesConfirmOpen(true);
+    });
+  }, []);
+
+  const resolveConvertChoicesConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = convertChoicesConfirmResolverRef.current;
+    if (!resolve) {
+      return;
+    }
+    convertChoicesConfirmResolverRef.current = null;
+    setIsConvertChoicesConfirmOpen(false);
+    resolve(confirmed);
+  }, []);
+
+  useEffect(() => {
+    registerConvertChoicesUiDeps({
+      getDataListNames: () => dataLists.map((d) => d.name),
+      refreshDataLists: () => refetchDataLists(),
+      markFormModified: () => setHasUnsavedChanges(true),
+      confirmConvertInlineChoices: requestConvertChoicesConfirmation,
+    });
+    return () => registerConvertChoicesUiDeps(null);
+  }, [
+    dataLists,
+    refetchDataLists,
+    setHasUnsavedChanges,
+    requestConvertChoicesConfirmation,
+  ]);
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -637,8 +692,12 @@ function FormEditor({
     const plugin = tab?.plugin;
     if (plugin instanceof FormDiagnosticsPlugin) {
       plugin.isPublic = isPublic;
+      plugin.formId = formId;
+      plugin.formName = formName;
+      plugin.formIsEnabled = formIsEnabled;
+      plugin.availableDataListNames = dataLists.map((d) => d.name);
     }
-  }, [creator, isPublic]);
+  }, [creator, isPublic, formId, formName, formIsEnabled, dataLists]);
 
   useEffect(() => {
     if (!creator) return;
@@ -691,6 +750,40 @@ function FormEditor({
 
   return (
     <div id="creator">
+      <AlertDialog
+        open={isConvertChoicesConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            resolveConvertChoicesConfirmation(false);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Convert inline choices to a data list?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left text-sm">
+                <p>A new data list will be created and populated with these choices.</p>
+                <p>This question will use that data list as its choice source.</p>
+                <p>Inline choices will be removed from the question.</p>
+                <p>Save the form to persist this change.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              onClick={() => resolveConvertChoicesConfirmation(true)}
+            >
+              Convert
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">
           <div className="flex flex-col items-center gap-4">

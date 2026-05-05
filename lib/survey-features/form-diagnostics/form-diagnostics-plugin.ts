@@ -17,7 +17,7 @@ export const FORM_DIAGNOSTICS_PLUGIN_NAME = "form-diagnostics";
  * Extends Base to provide reactive properties directly.
  */
 export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
-  constructor(private creator: SurveyCreatorModel) {
+  constructor(public readonly creator: SurveyCreatorModel) {
     super();
     this.updateStats();
   }
@@ -49,6 +49,38 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
 
   public set isPublic(val: boolean | undefined) {
     this.setPropertyValue("isPublic", val);
+  }
+
+  public get formId(): string | undefined {
+    return this.getPropertyValue("formId");
+  }
+
+  public set formId(val: string | undefined) {
+    this.setPropertyValue("formId", val);
+  }
+
+  public get formName(): string | undefined {
+    return this.getPropertyValue("formName");
+  }
+
+  public set formName(val: string | undefined) {
+    this.setPropertyValue("formName", val);
+  }
+
+  public get formIsEnabled(): boolean | undefined {
+    return this.getPropertyValue("formIsEnabled");
+  }
+
+  public set formIsEnabled(val: boolean | undefined) {
+    this.setPropertyValue("formIsEnabled", val);
+  }
+
+  public get availableDataListNames(): string[] {
+    return this.getPropertyValue("availableDataListNames") ?? [];
+  }
+
+  public set availableDataListNames(val: string[]) {
+    this.setPropertyValue("availableDataListNames", val);
   }
 
   public updateStats() {

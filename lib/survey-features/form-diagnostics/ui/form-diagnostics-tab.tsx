@@ -28,6 +28,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ReactElementFactory } from "survey-react-ui";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
+import { ConvertLargeChoiceLists } from "./convert-large-choice-lists";
 
 interface FormDiagnosticsViewProps {
   model?: FormDiagnosticsPlugin;
@@ -289,6 +290,8 @@ export const FormDiagnosticsView = ({
               </div>
             </div>
           </div>
+
+          <ConvertLargeChoiceLists model={model} />
 
           <div>
             <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
