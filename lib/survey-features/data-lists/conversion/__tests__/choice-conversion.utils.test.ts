@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Model, Question } from 'survey-core';
 import {
+  DATA_LIST_NAME_MAX_LENGTH,
   DATA_LIST_ITEM_MAX_LENGTH,
   applyDataListBindingByQuestionName,
   applyDataListBindingToQuestionJson,
@@ -86,6 +87,36 @@ describe('choice-conversion.utils', () => {
       expect(getQuestionDataListName({ name: 'my_question', title: '' }, set)).toBe(
         'my_question',
       );
+    });
+
+    it('strips html from localized title before naming', () => {
+      const set = new Set<string>();
+      expect(
+        getQuestionDataListName(
+          {
+            name: 'pChannel_Presencial',
+            title: {
+              es: '<p><strong>Escriba</strong> en la LUPA</p>',
+            },
+          },
+          set,
+        ),
+      ).toBe('Escriba en la LUPA');
+    });
+
+    it('limits generated names to API max length', () => {
+      const set = new Set<string>();
+      const longTitle = 'x'.repeat(DATA_LIST_NAME_MAX_LENGTH + 25);
+      const name = getQuestionDataListName({ name: 'q1', title: longTitle }, set);
+      expect(name).toHaveLength(DATA_LIST_NAME_MAX_LENGTH);
+    });
+
+    it('keeps duplicate suffix under API max length', () => {
+      const max = 'x'.repeat(DATA_LIST_NAME_MAX_LENGTH);
+      const set = new Set<string>([max.toLowerCase()]);
+      const name = getQuestionDataListName({ name: 'q1', title: max }, set);
+      expect(name).toBe(`${'x'.repeat(DATA_LIST_NAME_MAX_LENGTH - 4)} (2)`);
+      expect(name).toHaveLength(DATA_LIST_NAME_MAX_LENGTH);
     });
   });
 

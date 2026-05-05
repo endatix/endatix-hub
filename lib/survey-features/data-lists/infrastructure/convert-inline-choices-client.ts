@@ -1,6 +1,7 @@
 import { toast } from '@/components/ui/toast';
 import { convertChoicesToDataListAction } from '@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action';
 import {
+  DATA_LIST_NAME_MAX_LENGTH,
   getPlainChoiceValuesForNormalization,
   getQuestionDataListName,
   normalizeChoicesToDataListItems,
@@ -17,6 +18,18 @@ function applyDataListBindingOnQuestion(q: Question, dataListId: string): void {
   rec.choices = [];
 }
 
+function isNameValidationError(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('name') &&
+    (m.includes('already exists') ||
+      m.includes('must be') ||
+      m.includes('required') ||
+      m.includes('length') ||
+      m.includes('characters or fewer'))
+  );
+}
+
 /**
  * Runs the single-question inline-choices → data list conversion (Creator UX entry points).
  */
@@ -24,6 +37,16 @@ export async function runConvertInlineChoicesToDataList(
   question: Question,
 ): Promise<void> {
   const uiDeps = getConvertChoicesUiDeps();
+
+  const getReservedNames = () =>
+    new Set((uiDeps?.getDataListNames() ?? []).map((n) => n.toLowerCase()));
+
+  const reserved = getReservedNames();
+  const defaultListName = getQuestionDataListName(
+    { title: question.title, name: question.name },
+    reserved,
+  );
+
   const normalized = normalizeChoicesToDataListItems(
     getPlainChoiceValuesForNormalization(question),
   );
@@ -32,43 +55,45 @@ export async function runConvertInlineChoicesToDataList(
     return;
   }
 
-  const reserved = new Set(
-    (uiDeps?.getDataListNames() ?? []).map((n) => n.toLowerCase()),
-  );
-  const listName = getQuestionDataListName(
-    { title: question.title, name: question.name },
-    reserved,
-  );
-
   const confirm = uiDeps?.confirmConvertInlineChoices;
-  const ok = confirm
-    ? await confirm()
-    : window.confirm(
-        [
-          'Convert inline choices to a data list?',
-          '',
-          '- A new data list will be created and populated with these choices.',
-          '- This question will use that data list as its choice source.',
-          '- Inline choices will be removed from the question.',
-          '- Save the form to persist this change.',
-        ].join('\n'),
-      );
-  if (!ok) {
+  let proposedName = defaultListName;
+  let nameError: string | undefined;
+
+  for (;;) {
+    const pickedName = confirm
+      ? await confirm({ initialName: proposedName, errorMessage: nameError })
+      : window.prompt('Data list name', proposedName);
+    if (pickedName === null) {
+      return;
+    }
+
+    const finalName = pickedName.trim().slice(0, DATA_LIST_NAME_MAX_LENGTH);
+    if (!finalName) {
+      proposedName = pickedName;
+      nameError = 'Name is required.';
+      continue;
+    }
+
+    const result = await convertChoicesToDataListAction({
+      name: finalName,
+      items: normalized.items,
+    });
+
+    if (!Result.isSuccess(result)) {
+      if (isNameValidationError(result.message)) {
+        await uiDeps?.refreshDataLists();
+        proposedName = finalName;
+        nameError = result.message;
+        continue;
+      }
+      toast.error(result.message);
+      return;
+    }
+
+    applyDataListBindingOnQuestion(question, result.value.dataList.id);
+    await uiDeps?.refreshDataLists();
+    uiDeps?.markFormModified();
+    toast.success('Data list created and attached. Save the form when ready.');
     return;
   }
-
-  const result = await convertChoicesToDataListAction({
-    name: listName,
-    items: normalized.items,
-  });
-
-  if (!Result.isSuccess(result)) {
-    toast.error(result.message);
-    return;
-  }
-
-  applyDataListBindingOnQuestion(question, result.value.dataList.id);
-  await uiDeps?.refreshDataLists();
-  uiDeps?.markFormModified();
-  toast.success('Data list created and attached. Save the form when ready.');
 }

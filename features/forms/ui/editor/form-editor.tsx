@@ -1,15 +1,5 @@
 "use client";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
@@ -239,33 +229,42 @@ function FormEditor({
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);
   creatorThemeRef.current = creatorTheme;
+  const convertChoicesConfirmResolverRef = useRef<
+    ((value: string | null) => void) | null
+  >(null);
+  const [convertChoicesDialog, setConvertChoicesDialog] = useState<{
+    isOpen: boolean;
+    name: string;
+    errorMessage?: string;
+  }>({ isOpen: false, name: "" });
 
   useEffect(() => {
     setAvailableDataLists(dataLists);
   }, [dataLists, setAvailableDataLists]);
 
-  const [isConvertChoicesConfirmOpen, setIsConvertChoicesConfirmOpen] =
-    useState(false);
-  const convertChoicesConfirmResolverRef = useRef<
-    ((value: boolean) => void) | null
-  >(null);
-
-  const requestConvertChoicesConfirmation = useCallback((): Promise<boolean> => {
-    return new Promise((resolve) => {
-      convertChoicesConfirmResolverRef.current = resolve;
-      setIsConvertChoicesConfirmOpen(true);
-    });
-  }, []);
-
-  const resolveConvertChoicesConfirmation = useCallback((confirmed: boolean) => {
+  const closeConvertChoicesDialog = useCallback((value: string | null) => {
     const resolve = convertChoicesConfirmResolverRef.current;
-    if (!resolve) {
-      return;
-    }
     convertChoicesConfirmResolverRef.current = null;
-    setIsConvertChoicesConfirmOpen(false);
-    resolve(confirmed);
+    setConvertChoicesDialog({ isOpen: false, name: "", errorMessage: undefined });
+    resolve?.(value);
   }, []);
+
+  const requestConvertChoicesConfirmation = useCallback(
+    (input?: {
+      initialName: string;
+      errorMessage?: string;
+    }): Promise<string | null> => {
+      return new Promise((resolve) => {
+        convertChoicesConfirmResolverRef.current = resolve;
+        setConvertChoicesDialog({
+          isOpen: true,
+          name: input?.initialName ?? "",
+          errorMessage: input?.errorMessage,
+        });
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     registerConvertChoicesUiDeps({
@@ -750,39 +749,65 @@ function FormEditor({
 
   return (
     <div id="creator">
-      <AlertDialog
-        open={isConvertChoicesConfirmOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            resolveConvertChoicesConfirmation(false);
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
+      {convertChoicesDialog.isOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-xl rounded-lg border bg-background p-6 shadow-xl">
+            <h3 className="mb-3 text-xl font-semibold">
               Convert inline choices to a data list?
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-left text-sm">
-                <p>A new data list will be created and populated with these choices.</p>
-                <p>This question will use that data list as its choice source.</p>
-                <p>Inline choices will be removed from the question.</p>
-                <p>Save the form to persist this change.</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              type="button"
-              onClick={() => resolveConvertChoicesConfirmation(true)}
-            >
-              Convert
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </h3>
+            <div className="space-y-2 text-left text-sm">
+              <p>A new data list will be created and populated with these choices.</p>
+              <p>
+                <strong>This question</strong> will use that data list as its
+                choice source.
+              </p>
+              <p>Inline choices will be removed from the question.</p>
+              <p>Save the form to persist this change.</p>
+            </div>
+            <div className="mt-4 space-y-1.5">
+              <label className="block text-sm font-medium" htmlFor="edx-convert-list-name">
+                Data list name
+              </label>
+              <input
+                id="edx-convert-list-name"
+                type="text"
+                value={convertChoicesDialog.name}
+                maxLength={100}
+                onChange={(e) =>
+                  setConvertChoicesDialog((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                    errorMessage: undefined,
+                  }))
+                }
+                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                autoFocus
+              />
+              {convertChoicesDialog.errorMessage ? (
+                <p className="text-xs text-destructive">
+                  {convertChoicesDialog.errorMessage}
+                </p>
+              ) : null}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-md border px-4 py-2 text-sm"
+                onClick={() => closeConvertChoicesDialog(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+                onClick={() => closeConvertChoicesDialog(convertChoicesDialog.name)}
+              >
+                Convert
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">

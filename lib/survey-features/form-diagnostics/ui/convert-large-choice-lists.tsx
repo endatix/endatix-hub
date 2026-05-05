@@ -27,7 +27,6 @@ import {
   type ConvertibleChoiceQuestionRef,
 } from '@/lib/survey-features/data-lists/conversion/choice-conversion.utils';
 import { Result } from '@/lib/result';
-import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { Model, Question } from 'survey-core';
 import type { FormDiagnosticsPlugin } from '../form-diagnostics-plugin';
@@ -40,6 +39,59 @@ type Phase = 'idle' | 'lists' | 'form' | 'done';
 type ConversionOutcome =
   | { ok: true; name: string; dataListId: string }
   | { ok: false; name: string; error: string };
+
+function isDuplicateDataListNameError(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+  const m = message.toLowerCase();
+  return m.includes('data list') && m.includes('already exists');
+}
+
+function parseSurveyPayloadSafely(
+  surveyText: string,
+  creatorJson: unknown,
+): { ok: true; payload: Record<string, unknown> } | { ok: false; error: string } {
+  const fromText = (() => {
+    if (!surveyText || !surveyText.trim()) {
+      return null;
+    }
+    // Some imported forms can carry a UTF BOM or replacement chars prefix.
+    const sanitized = surveyText
+      .replace(/^\uFEFF+/, '')
+      .replace(/^\uFFFD+/, '')
+      .trim();
+    if (!sanitized) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(sanitized) as unknown;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  })();
+
+  if (fromText) {
+    return { ok: true, payload: fromText };
+  }
+
+  if (creatorJson && typeof creatorJson === 'object' && !Array.isArray(creatorJson)) {
+    return {
+      ok: true,
+      payload: JSON.parse(JSON.stringify(creatorJson)) as Record<string, unknown>,
+    };
+  }
+
+  return {
+    ok: false,
+    error:
+      'Could not parse the form JSON. Please re-open the form or switch to JSON mode and save to normalize encoding before converting.',
+  };
+}
 
 async function mapPool<T, R>(
   items: T[],
@@ -75,7 +127,6 @@ interface ConvertLargeChoiceListsProps {
 export function ConvertLargeChoiceLists({
   model,
 }: Readonly<ConvertLargeChoiceListsProps>) {
-  const router = useRouter();
   const [threshold, setThreshold] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
   const [phaseLabel, setPhaseLabel] = useState('');
@@ -86,6 +137,10 @@ export function ConvertLargeChoiceLists({
     succeeded: number;
     failed: number;
   } | null>(null);
+  const [lastFailures, setLastFailures] = useState<
+    Array<{ name: string; error: string }>
+  >([]);
+  const [createdFormId, setCreatedFormId] = useState<string | null>(null);
 
   const surveyText = model.creator?.text ?? '';
 
@@ -108,22 +163,33 @@ export function ConvertLargeChoiceLists({
     setDoneMessage(null);
     setErrorBanner(null);
     setLastSummary(null);
+    setLastFailures([]);
+    setCreatedFormId(null);
   }, []);
 
   const runBulk = useCallback(async () => {
     setErrorBanner(null);
     setDoneMessage(null);
     setLastSummary(null);
+    setLastFailures([]);
+    setCreatedFormId(null);
 
     if (candidates.length === 0) {
       setErrorBanner('Nothing to convert at this threshold.');
       return;
     }
 
-    const surveyPayload = JSON.parse(surveyText || '{}') as Record<
-      string,
-      unknown
-    >;
+    const parsedPayload = parseSurveyPayloadSafely(
+      surveyText,
+      (model.creator as { JSON?: unknown } | undefined)?.JSON,
+    );
+    if (!parsedPayload.ok) {
+      setPhase('done');
+      setPhaseLabel('Done');
+      setErrorBanner(parsedPayload.error);
+      return;
+    }
+    const surveyPayload = parsedPayload.payload;
 
     const reserved = new Set(
       model.availableDataListNames.map((n) => n.toLowerCase()),
@@ -197,10 +263,31 @@ export function ConvertLargeChoiceLists({
             error: normalized.error,
           };
         }
-        const result = await convertChoicesToDataListAction({
-          name: plan.listName,
+        let targetListName = plan.listName;
+        let result = await convertChoicesToDataListAction({
+          name: targetListName,
           items: normalized.items,
         });
+
+        // Name collisions can still happen if server-side names changed since
+        // diagnostics loaded. Retry with generated unique names.
+        let retryCount = 0;
+        while (
+          !Result.isSuccess(result) &&
+          isDuplicateDataListNameError(result.message) &&
+          retryCount < 3
+        ) {
+          targetListName = getQuestionDataListName(
+            { title: undefined, name: targetListName },
+            reserved,
+          );
+          result = await convertChoicesToDataListAction({
+            name: targetListName,
+            items: normalized.items,
+          });
+          retryCount++;
+        }
+
         if (!Result.isSuccess(result)) {
           return {
             ok: false,
@@ -235,8 +322,12 @@ export function ConvertLargeChoiceLists({
     const successes = outcomes.filter(
       (o): o is Extract<ConversionOutcome, { ok: true }> => o.ok,
     );
+    const failures = outcomes.filter(
+      (o): o is Extract<ConversionOutcome, { ok: false }> => !o.ok,
+    );
     const failed = outcomes.length - successes.length;
     setLastSummary({ succeeded: successes.length, failed });
+    setLastFailures(failures.map((f) => ({ name: f.name, error: f.error })));
 
     if (successes.length === 0) {
       setPhase('done');
@@ -301,13 +392,12 @@ export function ConvertLargeChoiceLists({
     setDoneMessage(
       `Created "${newFormName}" with ${successes.length} conversion(s). ${failed} failed or skipped.`,
     );
-    router.push(`/forms/${createResult.value}/design`);
+    setCreatedFormId(createResult.value);
   }, [
     candidates,
     model.availableDataListNames,
     model.formIsEnabled,
     model.formName,
-    router,
     surveyText,
   ]);
 
@@ -404,6 +494,29 @@ export function ConvertLargeChoiceLists({
         </p>
       ) : null}
 
+      {phase === 'done' && lastFailures.length > 0 ? (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Failed conversions ({lastFailures.length})</AlertTitle>
+          <AlertDescription>
+            <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5">
+              {lastFailures.map((f) => (
+                <li key={`${f.name}:${f.error}`}>
+                  <span className="font-medium">{f.name}:</span> {f.error}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {phase === 'done' && createdFormId ? (
+        <div className="mb-4">
+          <Button asChild type="button" variant="outline">
+            <a href={`/forms/${createdFormId}/design`}>Open copied form</a>
+          </Button>
+        </div>
+      ) : null}
+
       {phase === 'lists' || phase === 'form' ? (
         <div className="mb-4 space-y-2">
           <div className="flex justify-between text-sm">
@@ -432,18 +545,20 @@ export function ConvertLargeChoiceLists({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Convert large choice lists</AlertDialogTitle>
-              <AlertDialogDescription className="space-y-3 text-left">
-                <p>
-                  The current form in the designer will not be edited. Data
-                  lists will be created for matching dropdown and tagbox
-                  questions (at least {threshold} inline choices each).
-                </p>
-                <p>
-                  After processing, a new form named like{' '}
-                  <strong>{(model.formName || 'Form') + ' - Data Lists'}</strong>{' '}
-                  will be created with successful conversions applied. Failed
-                  conversions stay as inline choices in that copy.
-                </p>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-left">
+                  <p>
+                    The current form in the designer will not be edited. Data
+                    lists will be created for matching dropdown and tagbox
+                    questions (at least {threshold} inline choices each).
+                  </p>
+                  <p>
+                    After processing, a new form named like{' '}
+                    <strong>{(model.formName || 'Form') + ' - Data Lists'}</strong>{' '}
+                    will be created with successful conversions applied. Failed
+                    conversions stay as inline choices in that copy.
+                  </p>
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -62,7 +62,11 @@ export function bindConvertInlineChoicesTitleActions(
         iconSize: 22,
         css: 'endatix-convert-datalist-title-action',
         action: () => {
-          void runConvertInlineChoicesToDataList(el);
+          // Defer execution so SurveyJS click handling can finish and UI can repaint
+          // before React opens the confirmation dialog.
+          globalThis.setTimeout(() => {
+            void runConvertInlineChoicesToDataList(el);
+          }, 0);
         },
       }),
     );

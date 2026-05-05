@@ -3,6 +3,7 @@ import type { DataListChoiceItem } from '@/lib/endatix-api/data-lists/types';
 import { DATA_LIST_PROPERTY_NAME } from '../constants';
 
 export const DATA_LIST_ITEM_MAX_LENGTH = 255;
+export const DATA_LIST_NAME_MAX_LENGTH = 100;
 
 export interface ConvertibleChoiceQuestionRef {
   name: string;
@@ -30,6 +31,20 @@ export function resolveLocalizedText(title: unknown): string {
     }
   }
   return '';
+}
+
+function toPlainText(input: string): string {
+  return input
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function readQuestionProp(q: Question, name: string): unknown {
@@ -204,19 +219,27 @@ export function getQuestionDataListName(
   question: { title?: unknown; name: string },
   existingNames: Set<string>,
 ): string {
-  const fromTitle = resolveLocalizedText(question.title);
+  const fromTitle = toPlainText(resolveLocalizedText(question.title));
+  const fromName = toPlainText(question.name || '');
   const baseSource =
     fromTitle ||
-    (question.name && question.name.trim().length > 0
-      ? question.name
+    (fromName.length > 0
+      ? fromName
       : 'Data list');
-  const sanitized = baseSource.replace(/\s+/g, ' ').trim().slice(0, 200);
+  const sanitized = baseSource
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, DATA_LIST_NAME_MAX_LENGTH);
   const base = sanitized.length > 0 ? sanitized : 'Data list';
 
   let candidate = base;
   let n = 2;
   while (existingNames.has(candidate.toLowerCase())) {
-    candidate = `${base} (${n})`;
+    const suffix = ` (${n})`;
+    const maxBaseLength = Math.max(1, DATA_LIST_NAME_MAX_LENGTH - suffix.length);
+    const trimmedBase = base.slice(0, maxBaseLength).trim();
+    const normalizedBase = trimmedBase.length > 0 ? trimmedBase : 'Data list';
+    candidate = `${normalizedBase}${suffix}`;
     n++;
   }
   existingNames.add(candidate.toLowerCase());

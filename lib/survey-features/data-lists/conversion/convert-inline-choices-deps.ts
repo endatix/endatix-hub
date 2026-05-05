@@ -2,8 +2,14 @@ export type ConvertChoicesUiDeps = {
   getDataListNames: () => string[];
   refreshDataLists: () => Promise<void>;
   markFormModified: () => void;
-  /** Resolves when the user confirms or dismisses the convert dialog (shadcn AlertDialog in FormEditor). */
-  confirmConvertInlineChoices: () => Promise<boolean>;
+  /**
+   * Opens the convert dialog and resolves with selected list name, or null if cancelled.
+   * errorMessage can be used to re-open the dialog after validation/server failure.
+   */
+  confirmConvertInlineChoices: (input?: {
+    initialName: string;
+    errorMessage?: string;
+  }) => Promise<string | null>;
 };
 
 let deps: ConvertChoicesUiDeps | null = null;
