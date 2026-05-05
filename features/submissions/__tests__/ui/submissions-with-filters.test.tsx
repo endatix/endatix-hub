@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { Submission } from "@/lib/endatix-api/submissions/types";
-import { SubmissionsWithFilters } from "./submissions-with-filters";
+import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -25,9 +25,12 @@ vi.mock("@/auth", () => ({
   unstable_update: vi.fn(),
 }));
 
-vi.mock("@/features/forms/application/actions/get-tenant-settings.action", () => ({
-  getTenantSettingsAction: vi.fn(),
-}));
+vi.mock(
+  "@/features/forms/application/actions/get-tenant-settings.action",
+  () => ({
+    getTenantSettingsAction: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/submissions/ui/export", () => ({
   ExportSubmissionsButton: ({ disabled }: { disabled?: boolean }) => (
@@ -65,7 +68,7 @@ vi.mock("@/features/submissions/ui/table", () => ({
   }),
 }));
 
-vi.mock("./submissions-table", () => ({
+vi.mock("@/features/submissions/ui/submissions-table", () => ({
   default: ({ data }: { data: Submission[] }) => (
     <div data-testid="submissions-table">Rows: {data.length}</div>
   ),
@@ -111,9 +114,11 @@ describe("SubmissionsWithFilters", () => {
         .disabled,
     ).toBe(true);
     expect(
-      (screen.getByRole("button", {
-        name: /export submissions/i,
-      }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: /export submissions/i,
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
 
@@ -132,7 +137,9 @@ describe("SubmissionsWithFilters", () => {
     screen.getByText("No submissions match these filters");
     expect(screen.queryByText("No submissions yet")).toBeNull();
 
-    fireEvent.click(screen.getAllByRole("button", { name: /reset filters/i })[1]);
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /reset filters/i })[1],
+    );
 
     expect(navigationMocks.push).toHaveBeenCalledWith(
       "/forms/form-1/submissions",

@@ -22,8 +22,14 @@ import { Submission } from "@/lib/endatix-api/submissions/types";
 import { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useEffect, useState, useTransition } from "react";
-import SubmissionsTable from "./submissions-table";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
+import SubmissionsTable from "@/features/submissions/ui/submissions-table";
 
 interface SubmissionsWithFiltersProps {
   data: Submission[];
@@ -73,7 +79,8 @@ function SubmissionsContent({
   onResetSorting: () => void;
 }) {
   const { resetToDefault: resetOrder, hasCustomOrder } = useColumnOrder();
-  const { resetToDefault: resetVisibility, hasCustomVisibility } = useColumnVisibility();
+  const { resetToDefault: resetVisibility, hasCustomVisibility } =
+    useColumnVisibility();
   const [isClient, setIsClient] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
@@ -83,7 +90,8 @@ function SubmissionsContent({
     statusFilter.size > 0 ||
     testSubmissionFilter.size > 0;
   const isTrueEmptyState = !hasAnySubmissions;
-  const isFilteredEmptyState = hasAnySubmissions && hasActiveFilters && data.length === 0;
+  const isFilteredEmptyState =
+    hasAnySubmissions && hasActiveFilters && data.length === 0;
   const disableTableControls = isTrueEmptyState;
 
   useEffect(() => {
@@ -137,7 +145,7 @@ function SubmissionsContent({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 mt-8 mb-4">
+      <div className="mt-8 mb-4 flex items-center justify-between gap-4">
         <SubmissionsFilterToolbar
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
@@ -213,10 +221,10 @@ export function SubmissionsWithFilters({
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const [isCompleteFilter, setIsCompleteFilter] = useState<Set<string>>(
-    new Set(initialIsComplete)
+    new Set(initialIsComplete),
   );
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
-    new Set(initialStatus)
+    new Set(initialStatus),
   );
   const [testSubmissionFilter, setTestSubmissionFilter] = useState<Set<string>>(
     new Set(initialIsTestSubmission),
@@ -276,9 +284,18 @@ export function SubmissionsWithFilters({
   };
 
   // Create a key that changes when filters change to force table re-mount
-  const tableKey = `${Array.from(isCompleteFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(statusFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(testSubmissionFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${data.length}`;
+  const tableKey = `${Array.from(isCompleteFilter)
+    .sort((a, b) => a.localeCompare(b))
+    .join(",")}-${Array.from(statusFilter)
+    .sort((a, b) => a.localeCompare(b))
+    .join(",")}-${Array.from(testSubmissionFilter)
+    .sort((a, b) => a.localeCompare(b))
+    .join(",")}-${data.length}`;
 
-  const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
+  const allColumns = [
+    ...COLUMNS_DEFINITION,
+    ...buildSubmissionDataColumns(definitionFields),
+  ];
 
   return (
     <ColumnOrderProvider formId={formId} defaultColumns={allColumns}>

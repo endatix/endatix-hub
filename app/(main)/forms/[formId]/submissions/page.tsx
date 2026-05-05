@@ -3,10 +3,10 @@ import PageTitle from "@/components/headings/page-title";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
+import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense, type ReactNode } from "react";
-import { SubmissionsWithFilters } from "./ui/submissions-with-filters";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -98,22 +98,23 @@ async function SubmissionsTableData({
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
 
-  const [submissionsResult, fieldsResult, unfilteredSubmissionsResult] = await Promise.all([
-    api.submissions.list(formId, {
-      pageSize: 10000,
-      isComplete: isCompleteFilter,
-      status: statusFilter,
-      isTestSubmission: isTestSubmissionFilter,
-    }),
-    api.definitions.getFields(formId),
-    hasActiveFilters
-      ? api.submissions.list(formId, { pageSize: 1 })
-      : Promise.resolve(null),
-  ]);
+  const [submissionsResult, fieldsResult, hasAnySubmissionsProbeResult] =
+    await Promise.all([
+      api.submissions.list(formId, {
+        pageSize: 10000,
+        isComplete: isCompleteFilter,
+        status: statusFilter,
+        isTestSubmission: isTestSubmissionFilter,
+      }),
+      api.definitions.getFields(formId),
+      hasActiveFilters
+        ? api.submissions.list(formId, { pageSize: 1 })
+        : Promise.resolve(null),
+    ]);
 
   if (
     !submissionsResult.success ||
-    (unfilteredSubmissionsResult && !unfilteredSubmissionsResult.success)
+    (hasAnySubmissionsProbeResult && !hasAnySubmissionsProbeResult.success)
   ) {
     return (
       <SubmissionsLoadError>
@@ -132,8 +133,8 @@ async function SubmissionsTableData({
 
   const submissions = submissionsResult.data.items;
   const hasAnySubmissions = hasActiveFilters
-    ? unfilteredSubmissionsResult?.success === true &&
-      unfilteredSubmissionsResult.data.totalRecords > 0
+    ? hasAnySubmissionsProbeResult?.success === true &&
+      hasAnySubmissionsProbeResult.data.totalRecords > 0
     : submissionsResult.data.totalRecords > 0;
   const definitionFields = fieldsResult.data;
 
