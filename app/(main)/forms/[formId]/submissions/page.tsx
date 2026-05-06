@@ -3,10 +3,10 @@ import PageTitle from "@/components/headings/page-title";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
+import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata } from "next";
-import { Suspense } from "react";
-import { SubmissionsWithFilters } from "./ui/submissions-with-filters";
+import { Suspense, type ReactNode } from "react";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -90,31 +90,75 @@ async function SubmissionsTableData({
   const isTestSubmissionFilter = searchParams.isTestSubmission
     ? searchParams.isTestSubmission.split(",")
     : [];
+  const hasActiveFilters =
+    isCompleteFilter.length > 0 ||
+    statusFilter.length > 0 ||
+    isTestSubmissionFilter.length > 0;
 
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
 
-  const [submissionsResult, fieldsResult] = await Promise.all([
-    api.submissions.list(formId, {
-      isComplete: isCompleteFilter,
-      status: statusFilter,
-      isTestSubmission: isTestSubmissionFilter,
-    }),
-    api.definitions.getFields(formId),
-  ]);
+  const [submissionsResult, fieldsResult, hasAnySubmissionsProbeResult] =
+    await Promise.all([
+      api.submissions.list(formId, {
+        pageSize: 10000,
+        isComplete: isCompleteFilter,
+        status: statusFilter,
+        isTestSubmission: isTestSubmissionFilter,
+      }),
+      api.definitions.getFields(formId),
+      hasActiveFilters
+        ? api.submissions.list(formId, { pageSize: 1 })
+        : Promise.resolve(null),
+    ]);
 
-  const submissions = submissionsResult.success ? submissionsResult.data : [];
-  const definitionFields = fieldsResult.success ? fieldsResult.data : [];
+  if (
+    !submissionsResult.success ||
+    (hasAnySubmissionsProbeResult && !hasAnySubmissionsProbeResult.success)
+  ) {
+    return (
+      <SubmissionsLoadError>
+        Unable to load submissions. Please try again.
+      </SubmissionsLoadError>
+    );
+  }
+
+  if (!fieldsResult.success) {
+    return (
+      <SubmissionsLoadError>
+        Unable to load submission fields. Please try again.
+      </SubmissionsLoadError>
+    );
+  }
+
+  const submissions = submissionsResult.data.items;
+  const hasAnySubmissions = hasActiveFilters
+    ? hasAnySubmissionsProbeResult?.success === true &&
+      hasAnySubmissionsProbeResult.data.totalRecords > 0
+    : submissionsResult.data.totalRecords > 0;
+  const definitionFields = fieldsResult.data;
 
   return (
     <SubmissionsWithFilters
       data={submissions}
       formId={formId}
+      hasAnySubmissions={hasAnySubmissions}
       definitionFields={definitionFields}
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}
       initialIsTestSubmission={isTestSubmissionFilter}
     />
+  );
+}
+
+function SubmissionsLoadError({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="alert"
+      className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
+    >
+      {children}
+    </div>
   );
 }
 

@@ -30,6 +30,7 @@ interface FacetedFilterProps {
   }[];
   selectedValues: Set<string>;
   onValueChange: (values: Set<string>) => void;
+  disabled?: boolean;
 }
 
 export function FacetedFilter({
@@ -37,6 +38,7 @@ export function FacetedFilter({
   options,
   selectedValues,
   onValueChange,
+  disabled = false,
 }: FacetedFilterProps) {
   const [open, setOpen] = useState(false);
 
@@ -55,9 +57,9 @@ export function FacetedFilter({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="border-dashed">
+        <Button variant="outline" className="border-dashed" disabled={disabled}>
           {title}
           {selectedValues.size > 0 && (
             <>

@@ -1,7 +1,12 @@
 "use client";
 
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
+import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
+import {
+  NoMatchingSubmissionsEmptyState,
+  NoSubmissionsEmptyState,
+} from "@/features/submissions/ui/submissions-empty-state";
 import {
   buildSubmissionDataColumns,
   ColumnOrderProvider,
@@ -17,12 +22,19 @@ import { Submission } from "@/lib/endatix-api/submissions/types";
 import { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useEffect, useState, useTransition } from "react";
-import SubmissionsTable from "./submissions-table";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
+import SubmissionsTable from "@/features/submissions/ui/submissions-table";
 
 interface SubmissionsWithFiltersProps {
   data: Submission[];
   formId: string;
+  hasAnySubmissions: boolean;
   definitionFields?: DefinitionField[];
   initialIsComplete?: string[];
   initialStatus?: string[];
@@ -32,6 +44,7 @@ interface SubmissionsWithFiltersProps {
 function SubmissionsContent({
   data,
   formId,
+  hasAnySubmissions,
   definitionFields,
   isCompleteFilter,
   statusFilter,
@@ -49,6 +62,7 @@ function SubmissionsContent({
 }: {
   data: Submission[];
   formId: string;
+  hasAnySubmissions: boolean;
   definitionFields: DefinitionField[];
   isCompleteFilter: Set<string>;
   statusFilter: Set<string>;
@@ -65,10 +79,20 @@ function SubmissionsContent({
   onResetSorting: () => void;
 }) {
   const { resetToDefault: resetOrder, hasCustomOrder } = useColumnOrder();
-  const { resetToDefault: resetVisibility, hasCustomVisibility } = useColumnVisibility();
+  const { resetToDefault: resetVisibility, hasCustomVisibility } =
+    useColumnVisibility();
   const [isClient, setIsClient] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const hasSorting = sorting.length > 0;
+  const hasActiveFilters =
+    isCompleteFilter.size > 0 ||
+    statusFilter.size > 0 ||
+    testSubmissionFilter.size > 0;
+  const isTrueEmptyState = !hasAnySubmissions;
+  const isFilteredEmptyState =
+    hasAnySubmissions && hasActiveFilters && data.length === 0;
+  const disableTableControls = isTrueEmptyState;
 
   useEffect(() => {
     setIsClient(true);
@@ -121,7 +145,7 @@ function SubmissionsContent({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 mt-8 mb-4">
+      <div className="mt-8 mb-4 flex items-center justify-between gap-4">
         <SubmissionsFilterToolbar
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
@@ -130,29 +154,56 @@ function SubmissionsContent({
           onStatusChange={onStatusChange}
           onTestSubmissionChange={onTestSubmissionChange}
           onResetFilters={onResetFilters}
+          disabled={disableTableControls}
         />
         <div className="flex items-center gap-2">
-          <ColumnViewOptionsDropdown columns={columnHeaders} />
+          <div
+            role="status"
+            aria-live="polite"
+            className="min-w-[5rem] text-right text-sm text-muted-foreground"
+          >
+            {isPending ? "Updating..." : null}
+          </div>
+          <ColumnViewOptionsDropdown
+            columns={columnHeaders}
+            disabled={disableTableControls}
+          />
           {isClient && (
             <ResetOptionsDropdown
               options={resetOptions}
               onResetAll={handleResetAll}
+              disabled={disableTableControls}
             />
           )}
-          <ExportSubmissionsButton formId={formId} />
+          <ExportSubmissionsButton
+            formId={formId}
+            disabled={disableTableControls}
+          />
         </div>
       </div>
-      {isPending && (
-        <div className="text-sm text-muted-foreground">Updating...</div>
+      {isTrueEmptyState ? (
+        <>
+          <NoSubmissionsEmptyState
+            onShareForm={() => setIsShareDialogOpen(true)}
+          />
+          <ShareDialog
+            formId={formId}
+            open={isShareDialogOpen}
+            onOpenChange={setIsShareDialogOpen}
+          />
+        </>
+      ) : isFilteredEmptyState ? (
+        <NoMatchingSubmissionsEmptyState onClearFilters={onResetFilters} />
+      ) : (
+        <SubmissionsTable
+          key={tableKey}
+          data={data}
+          formId={formId}
+          definitionFields={definitionFields}
+          sorting={sorting}
+          onSortingChange={onSortingChange}
+        />
       )}
-      <SubmissionsTable
-        key={tableKey}
-        data={data}
-        formId={formId}
-        definitionFields={definitionFields}
-        sorting={sorting}
-        onSortingChange={onSortingChange}
-      />
     </>
   );
 }
@@ -160,6 +211,7 @@ function SubmissionsContent({
 export function SubmissionsWithFilters({
   data,
   formId,
+  hasAnySubmissions,
   definitionFields = [],
   initialIsComplete = [],
   initialStatus = [],
@@ -169,10 +221,10 @@ export function SubmissionsWithFilters({
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const [isCompleteFilter, setIsCompleteFilter] = useState<Set<string>>(
-    new Set(initialIsComplete)
+    new Set(initialIsComplete),
   );
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
-    new Set(initialStatus)
+    new Set(initialStatus),
   );
   const [testSubmissionFilter, setTestSubmissionFilter] = useState<Set<string>>(
     new Set(initialIsTestSubmission),
@@ -232,9 +284,18 @@ export function SubmissionsWithFilters({
   };
 
   // Create a key that changes when filters change to force table re-mount
-  const tableKey = `${Array.from(isCompleteFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(statusFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${Array.from(testSubmissionFilter).sort((a, b) => a.localeCompare(b)).join(',')}-${data.length}`;
+  const tableKey = `${Array.from(isCompleteFilter)
+    .sort((a, b) => a.localeCompare(b))
+    .join(",")}-${Array.from(statusFilter)
+    .sort((a, b) => a.localeCompare(b))
+    .join(",")}-${Array.from(testSubmissionFilter)
+    .sort((a, b) => a.localeCompare(b))
+    .join(",")}-${data.length}`;
 
-  const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
+  const allColumns = [
+    ...COLUMNS_DEFINITION,
+    ...buildSubmissionDataColumns(definitionFields),
+  ];
 
   return (
     <ColumnOrderProvider formId={formId} defaultColumns={allColumns}>
@@ -242,6 +303,7 @@ export function SubmissionsWithFilters({
         <SubmissionsContent
           data={data}
           formId={formId}
+          hasAnySubmissions={hasAnySubmissions}
           definitionFields={definitionFields}
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}

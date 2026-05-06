@@ -6,7 +6,12 @@ import {
 } from "@/lib/utils/type-validators";
 import type { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
-import { ExportSubmissionsRequest, Submission } from "./types";
+import {
+  ExportSubmissionsRequest,
+  ListSubmissionsRequest,
+  ListSubmissionsResponse,
+  Submission,
+} from "./types";
 
 class PublicSubmissions {
   constructor(private readonly endatix: EndatixApi) {}
@@ -167,30 +172,27 @@ export class Submissions {
    */
   async list(
     formId: string,
-    filters?: {
-      isComplete?: string[];
-      status?: string[];
-      isTestSubmission?: string[];
-    },
-  ): Promise<ApiResult<Submission[]>> {
+    request: ListSubmissionsRequest = {},
+  ): Promise<ApiResult<ListSubmissionsResponse>> {
     const validateFormIdResult = validateEndatixId(formId, "formId");
     if (Result.isError(validateFormIdResult)) {
       return ApiResult.validationError(validateFormIdResult.message);
     }
 
     const params = new URLSearchParams();
-    params.set("pageSize", "10000");
+    params.set("page", String(request.page ?? 1));
+    params.set("pageSize", String(request.pageSize ?? 10000));
 
-    if (filters?.isComplete && filters.isComplete.length > 0) {
-      params.append("filter", `isComplete:${filters.isComplete.join("|")}`);
+    if (request.isComplete && request.isComplete.length > 0) {
+      params.append("filter", `isComplete:${request.isComplete.join("|")}`);
     }
-    if (filters?.status && filters.status.length > 0) {
-      params.append("filter", `status:${filters.status.join("|")}`);
+    if (request.status && request.status.length > 0) {
+      params.append("filter", `status:${request.status.join("|")}`);
     }
-    if (filters?.isTestSubmission && filters.isTestSubmission.length > 0) {
+    if (request.isTestSubmission && request.isTestSubmission.length > 0) {
       params.append(
         "filter",
-        `isTestSubmission:${filters.isTestSubmission.join("|")}`,
+        `isTestSubmission:${request.isTestSubmission.join("|")}`,
       );
     }
 
@@ -198,6 +200,6 @@ export class Submissions {
     const queryPart = queryString ? `?${queryString}` : "";
     const endpoint = `/forms/${validateFormIdResult.value}/submissions${queryPart}`;
 
-    return this.endatix.get<Submission[]>(endpoint);
+    return this.endatix.get<ListSubmissionsResponse>(endpoint);
   }
 }
