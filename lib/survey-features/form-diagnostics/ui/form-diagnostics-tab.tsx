@@ -119,15 +119,33 @@ export const FormDiagnosticsView = ({
 
   const requiresReCaptcha = model.requiresReCaptcha;
   const isPublic = model.isPublic;
+  const infoAlertClassName =
+    "text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800";
+  const warningCardClassName =
+    "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:border-orange-800 dark:text-orange-300";
   const choicesJsonThreshold = 100 * 1024;
   const maxSingleChoicesThreshold = 50 * 1024;
+  const jsonSizeThreshold = 1024 * 1024;
+  const questionCountThreshold = 100;
+  const embeddedImagesThreshold = 5;
+  const logicConditionsThreshold = 50;
+  const largestChoicesThreshold = 200;
+  const hasLargeJson = stats.uncompressedSize > jsonSizeThreshold;
+  const hasHighQuestionCount = stats.totalQuestions > questionCountThreshold;
+  const hasManyEmbeddedImages = stats.embeddedImagesCount > embeddedImagesThreshold;
+  const hasComplexLogic = stats.logicConditionsCount > logicConditionsThreshold;
+  const hasLargeChoiceList = stats.maxDropdownChoicesCount > largestChoicesThreshold;
+  const hasLargeChoicesJsonTotal = stats.totalChoicesJsonSize > choicesJsonThreshold;
+  const hasLargeSingleChoicesJson = stats.maxChoicesJsonSize > maxSingleChoicesThreshold;
   const shouldHighlightConverter =
-    stats.maxDropdownChoicesCount > 200 ||
-    stats.totalChoicesJsonSize > choicesJsonThreshold ||
-    stats.maxChoicesJsonSize > maxSingleChoicesThreshold;
+    hasLargeChoiceList || hasLargeChoicesJsonTotal || hasLargeSingleChoicesJson;
   const converterAttentionMessage = shouldHighlightConverter
     ? `Large choices detected (max dropdown: ${formatNumber(stats.maxDropdownChoicesCount)}, choices JSON total: ${formatSize(stats.totalChoicesJsonSize)}, max single: ${formatSize(stats.maxChoicesJsonSize)}). Use bulk conversion below to move inline choices into data lists.`
     : undefined;
+  const metricCardClass = (isWarning: boolean) =>
+    `flex flex-col gap-1.5 rounded-lg border bg-card p-4 ${
+      isWarning ? warningCardClassName : ""
+    }`;
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -136,7 +154,7 @@ export const FormDiagnosticsView = ({
       case "warning":
         return "text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-800";
       case "info":
-        return "text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800";
+        return infoAlertClassName;
       default:
         return "";
     }
@@ -173,8 +191,8 @@ export const FormDiagnosticsView = ({
             <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               FORM ELEMENTS AND COMPLEXITY
             </h4>
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-5">
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-6">
+              <div className={metricCardClass(hasLargeJson)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <FileJson className="h-4 w-4" /> JSON Size (UTF-8)
                 </span>
@@ -182,7 +200,7 @@ export const FormDiagnosticsView = ({
                   {formatSize(stats.uncompressedSize)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(hasHighQuestionCount)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <ListTodo className="h-4 w-4" /> Questions
                 </span>
@@ -190,9 +208,9 @@ export const FormDiagnosticsView = ({
                   {formatNumber(stats.totalQuestions)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(hasManyEmbeddedImages)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <ImageIcon className="h-4 w-4" /> Images
+                  <ImageIcon className="h-4 w-4" /> Embedded Images
                 </span>
                 <span className="text-xl font-semibold">
                   {formatNumber(stats.embeddedImagesCount)}
@@ -203,7 +221,7 @@ export const FormDiagnosticsView = ({
                   )}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(hasComplexLogic)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <Zap className="h-4 w-4" /> Logic conditions
                 </span>
@@ -219,7 +237,7 @@ export const FormDiagnosticsView = ({
                   {formatNumber(stats.invisibleLogicItemsCount)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(false)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   Dropdowns
                 </span>
@@ -227,15 +245,15 @@ export const FormDiagnosticsView = ({
                   {formatNumber(stats.dropdownCount)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(hasLargeChoiceList)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Choices (Max)
+                  Largest list (choices)
                 </span>
                 <span className="text-xl font-semibold">
                   {formatNumber(stats.maxDropdownChoicesCount)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(hasLargeChoicesJsonTotal)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   Choices JSON (total)
                 </span>
@@ -243,7 +261,7 @@ export const FormDiagnosticsView = ({
                   {formatSize(stats.totalChoicesJsonSize)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(hasLargeSingleChoicesJson)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   Choices JSON (max)
                 </span>
@@ -251,7 +269,7 @@ export const FormDiagnosticsView = ({
                   {formatSize(stats.maxChoicesJsonSize)}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(false)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <FileUp className="h-4 w-4" /> File Uploads
                 </span>
@@ -259,20 +277,7 @@ export const FormDiagnosticsView = ({
                   {formatNumber(stats.fileUploadCount)}
                 </span>
               </div>
-            </div>
-          </div>
-
-          <ConvertLargeChoiceLists
-            model={model}
-            attentionMessage={converterAttentionMessage}
-          />
-
-          <div>
-            <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Security
-            </h4>
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-5">
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(false)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   {requiresReCaptcha ? (
                     <ShieldCheck className="h-4 w-4 text-green-500" />
@@ -285,14 +290,14 @@ export const FormDiagnosticsView = ({
                   {requiresReCaptcha ? "Enabled" : "Disabled"}
                 </span>
               </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
+              <div className={metricCardClass(false)}>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   {isPublic === true ? (
                     <Globe className="h-4 w-4" />
                   ) : (
                     <Lock className="h-4 w-4" />
                   )}{" "}
-                  Visibility
+                  Form access
                 </span>
                 <span className="text-xl font-semibold">
                   {isPublic === true
@@ -301,16 +306,15 @@ export const FormDiagnosticsView = ({
                       ? "Private"
                       : "-"}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {isPublic === true
-                    ? "Accessible to anyone with the link."
-                    : isPublic === false
-                      ? "Only for authenticated users (more secure)."
-                      : ""}
-                </span>
               </div>
             </div>
           </div>
+
+          <ConvertLargeChoiceLists
+            model={model}
+            attentionMessage={converterAttentionMessage}
+            attentionClassName={infoAlertClassName}
+          />
 
           {issues.length > 0 ? (
             <div className="space-y-3 pt-2">

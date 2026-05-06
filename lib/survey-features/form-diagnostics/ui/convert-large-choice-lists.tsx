@@ -28,6 +28,7 @@ import {
 } from '@/lib/survey-features/data-lists/conversion/choice-conversion.utils';
 import { Result } from '@/lib/result';
 import { useCallback, useMemo, useState } from 'react';
+import { Info } from 'lucide-react';
 import { Model, Question } from 'survey-core';
 import type { FormDiagnosticsPlugin } from '../form-diagnostics-plugin';
 
@@ -39,6 +40,10 @@ type Phase = 'idle' | 'lists' | 'form' | 'done';
 type ConversionOutcome =
   | { ok: true; name: string; dataListId: string }
   | { ok: false; name: string; error: string };
+
+function formatNumber(n: number): string {
+  return n.toLocaleString();
+}
 
 function isDuplicateDataListNameError(message: string | undefined): boolean {
   if (!message) {
@@ -123,11 +128,13 @@ async function mapPool<T, R>(
 interface ConvertLargeChoiceListsProps {
   model: FormDiagnosticsPlugin;
   attentionMessage?: string;
+  attentionClassName?: string;
 }
 
 export function ConvertLargeChoiceLists({
   model,
   attentionMessage,
+  attentionClassName,
 }: Readonly<ConvertLargeChoiceListsProps>) {
   const [threshold, setThreshold] = useState(10);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -420,7 +427,8 @@ export function ConvertLargeChoiceLists({
       </p>
 
       {attentionMessage ? (
-        <Alert className="mb-4 text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800">
+        <Alert className={`mb-4 ${attentionClassName ?? ''}`.trim()}>
+          <Info className="h-4 w-4" />
           <AlertTitle>Recommended for this form</AlertTitle>
           <AlertDescription>{attentionMessage}</AlertDescription>
         </Alert>
@@ -428,7 +436,9 @@ export function ConvertLargeChoiceLists({
 
       <div className="mb-4 flex flex-wrap items-end gap-4">
         <div className="space-y-2">
-          <Label htmlFor="edx-choice-threshold">Minimum choices</Label>
+          <Label htmlFor="edx-choice-threshold">
+            Minimum choices required for conversion
+          </Label>
           <Input
             id="edx-choice-threshold"
             type="number"
@@ -449,11 +459,15 @@ export function ConvertLargeChoiceLists({
           <div className="text-xs text-muted-foreground">
             Convertible questions
           </div>
-          <div className="text-lg font-semibold">{candidates.length}</div>
+          <div className="text-lg font-semibold">
+            {formatNumber(candidates.length)}
+          </div>
         </div>
         <div className="rounded-md border bg-background p-3">
           <div className="text-xs text-muted-foreground">Choices to move</div>
-          <div className="text-lg font-semibold">{totalChoicesToMove}</div>
+          <div className="text-lg font-semibold">
+            {formatNumber(totalChoicesToMove)}
+          </div>
         </div>
       </div>
 
