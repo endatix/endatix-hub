@@ -9,7 +9,7 @@ import {
 import { auth } from "@/auth";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { FolderCreateButton } from "@/features/folders/create-folder";
+import { CreateFolderDialog } from "@/features/folders/create-folder";
 import { FolderEditButton } from "@/features/folders/update-folder";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import Link from "next/link";
@@ -101,7 +101,7 @@ function NoFormFoldersEmptyState({ canManage }: { canManage: boolean }) {
       </EmptyHeader>
       {canManage ? (
         <EmptyContent className="flex-row justify-center gap-2">
-          <FolderCreateButton triggerLabel="Create Folder" showFolderPlusIcon />
+          <CreateFolderDialog triggerLabel="Create Folder" showFolderPlusIcon />
         </EmptyContent>
       ) : null}
     </Empty>

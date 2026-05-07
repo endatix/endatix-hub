@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { FolderCreateButton } from "../ui/folder-create-button";
+import { CreateFolderDialog } from "../ui/create-folder-dialog";
 import { Result } from "@/lib/result";
 
 const createFolderAction = vi.fn();
@@ -23,14 +23,14 @@ vi.mock("@/components/ui/toast", () => ({
   },
 }));
 
-describe("FolderCreateButton", () => {
+describe("CreateFolderDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createFolderAction.mockResolvedValue(Result.success({ id: "1" }));
   });
 
   it("submits normalized slug payload to create action", async () => {
-    render(<FolderCreateButton showTrigger={false} openOnLoad />);
+    render(<CreateFolderDialog showTrigger={false} openOnLoad />);
 
     fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "Test Folder" },

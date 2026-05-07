@@ -56,7 +56,7 @@ async function FormTemplatesContent({
 }: Readonly<{ accessToken: string | undefined }>) {
   const templatesPromise = (async () => {
     const api = new EndatixApi(accessToken);
-    return api.formTemplates.list();
+    return api.formTemplates.list({ filter: "folderId:null" });
   })();
 
   return (

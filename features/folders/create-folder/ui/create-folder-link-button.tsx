@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FolderPlus } from "lucide-react";
+import Link from "next/link";
 
-export function CreateFolderButton() {
+export function CreateFolderLinkButton() {
   return (
     <Button asChild>
       <Link href="/folders?action=create">

@@ -78,7 +78,7 @@ async function FormsTabsContent({
   accessToken: string | undefined;
 }) {
   const endatixApi = new EndatixApi(accessToken);
-  const formsResult = await endatixApi.forms.list();
+  const formsResult = await endatixApi.forms.list({ filter: "folderId:null" });
 
   if (ApiResult.isError(formsResult)) {
     if (formsResult.error.type === ApiErrorType.AuthError) {
@@ -112,10 +112,10 @@ function NoFormsEmptyState() {
         <EmptyMedia variant="icon">
           <FileText />
         </EmptyMedia>
-        <EmptyTitle>No forms yet</EmptyTitle>
+        <EmptyTitle>No unassigned forms yet</EmptyTitle>
         <EmptyDescription>
-          You haven&apos;t created any forms yet. Create your first form to
-          start collecting submissions.
+          Forms without a folder appear here. Create a new form or move an
+          existing form out of its folder.
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">

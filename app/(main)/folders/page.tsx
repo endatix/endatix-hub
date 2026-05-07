@@ -1,8 +1,8 @@
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
+import { SIGNIN_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { FolderCreateButton } from "@/features/folders/create-folder";
+import { CreateFolderDialog } from "@/features/folders/create-folder";
 import { FolderManagementListCard } from "@/features/folders/list-folders";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
@@ -72,7 +72,7 @@ export default async function FoldersManagementPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <FolderCreateButton
+      <CreateFolderDialog
         showTrigger={false}
         openOnLoad={openCreateOnLoad}
         replacePathOnClose="/folders"
@@ -121,7 +121,7 @@ function NoFoldersEmptyState() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex-row justify-center gap-2">
-        <FolderCreateButton triggerLabel="Create Folder" showFolderPlusIcon />
+        <CreateFolderDialog triggerLabel="Create Folder" showFolderPlusIcon />
       </EmptyContent>
     </Empty>
   );
