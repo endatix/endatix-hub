@@ -1,5 +1,6 @@
 export interface FormsListRequest {
   filter?: string;
+  folderId?: string;
 }
 
 export interface UpdateFormRequest {
@@ -10,6 +11,8 @@ export interface UpdateFormRequest {
   metadata?: string | null;
   themeId?: string | null;
   webHookSettingsJson?: string;
+  folderId?: string | null;
+  clearFolderId?: boolean;
 }
 
 /** Optional body for POST /public/forms/{formId}/access-tokens. */

@@ -18,7 +18,7 @@ import Link from "next/link";
 import { SectionTitle } from "@/components/headings/section-title";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useTransition, useState } from "react";
+import { useTransition, useState, useEffect, useMemo } from "react";
 import { updateFormStatusAction } from "../application/actions/update-form-status.action";
 import { updateFormVisibilityAction } from "../application/actions/update-form-visibility.action";
 import { toast } from "@/components/ui/toast";
@@ -51,6 +51,15 @@ import PageTitle from "@/components/headings/page-title";
 import { WebhookSettings } from "./webhook-settings";
 import { ShareDialog } from "./share-dialog";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
+import { listFoldersAction } from "@/features/folders/server";
+import type { Folder } from "@/lib/endatix-api/folders/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -98,8 +107,8 @@ const DeleteFormDialog = ({
           <AlertDialogTitle>
             Are you sure you want to delete form <strong>{formName}</strong>?
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4 mb-1">
-            <span className="flex items-center gap-2 text-destructive font-medium">
+          <AlertDialogDescription className="mb-1 space-y-4">
+            <span className="flex items-center gap-2 font-medium text-destructive">
               <AlertTriangle className="h-4 w-4" />
               This action will permanently delete the form, all its definitions
               and submissions, and cannot be undone.
@@ -117,7 +126,7 @@ const DeleteFormDialog = ({
             placeholder={`Type "${formName}"`}
             value={formNameInput}
             onChange={(e) => setFormNameInput(e.target.value)}
-            className="w-full mt-1"
+            className="mt-1 w-full"
           />
         </AlertDialogHeader>
 
@@ -155,16 +164,59 @@ const FormDetails = ({
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
   const [isPublic, setIsPublic] = useState(form?.isPublic);
-  const [limitOnePerUser, setLimitOnePerUser] = useState(form?.limitOnePerUser ?? false);
+  const [limitOnePerUser, setLimitOnePerUser] = useState(
+    form?.limitOnePerUser ?? false,
+  );
   const [metadata, setMetadata] = useState(form?.metadata ?? "");
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(
+    () => form.folderId ?? "__none__",
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [isEnableLimitWarningOpen, setIsEnableLimitWarningOpen] = useState(false);
+  const [isEnableLimitWarningOpen, setIsEnableLimitWarningOpen] =
+    useState(false);
   const [isEnableLimitErrorOpen, setIsEnableLimitErrorOpen] = useState(false);
   const [enableLimitErrorMessage, setEnableLimitErrorMessage] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    setSelectedFolderId(form.folderId ?? "__none__");
+  }, [form.id, form.folderId]);
+
+  useEffect(() => {
+    if (!enableEditing) {
+      return;
+    }
+    let cancelled = false;
+    void listFoldersAction().then((result) => {
+      if (cancelled || !Result.isSuccess(result)) {
+        return;
+      }
+      setFolders(result.value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enableEditing]);
+
+  const folderSelectItems = useMemo(() => {
+    if (form.folderId && !folders.some((f) => f.id === form.folderId)) {
+      return [
+        ...folders,
+        {
+          id: form.folderId,
+          name: "Current folder",
+          slug: "",
+          isActive: false,
+          immutable: false,
+        } satisfies Folder,
+      ];
+    }
+    return folders;
+  }, [folders, form.folderId]);
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
@@ -274,6 +326,34 @@ const FormDetails = ({
     await updateLimitOnePerUser(true);
   };
 
+  const applyFolderChange = async (value: string) => {
+    const previous = selectedFolderId;
+    setSelectedFolderId(value);
+    startTransition(async () => {
+      const payload =
+        value === "__none__" ? { clearFolderId: true } : { folderId: value };
+      const result = await updateFormSettingsAction(form.id, payload);
+
+      if (result === undefined || Result.isError(result)) {
+        setSelectedFolderId(previous);
+        const message =
+          result && Result.isError(result)
+            ? result.message
+            : "Failed to update folder";
+        const [title, ...rest] = message.split(". ");
+        const details = rest.join(". ").trim();
+        toast.error({
+          title: title || "Failed to update folder",
+          description: details || undefined,
+        });
+        return;
+      }
+
+      toast.success(value === "__none__" ? "Folder cleared" : "Folder updated");
+      router.refresh();
+    });
+  };
+
   const handleSaveMetadata = async () => {
     startTransition(async () => {
       const result = await updateFormSettingsAction(form.id, {
@@ -337,7 +417,7 @@ const FormDetails = ({
 
   return (
     <div>
-      <div className="flex flex-wrap justify-between items-start gap-4 mb-8">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         {/* Header - conditionally rendered for flexibility */}
         {showHeader && (
           <div>
@@ -349,7 +429,7 @@ const FormDetails = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex space-x-2 justify-end ml-auto">
+        <div className="ml-auto flex justify-end space-x-2">
           <Button variant={"outline"} asChild>
             <Link href={{ pathname: `/forms/${form.id}/design` }}>
               <FilePen className="mr-2 h-4 w-4" />
@@ -369,7 +449,7 @@ const FormDetails = ({
                 pathname: `/forms/${form.id}/submissions`,
               }}
             >
-              <List className="w-4 h-4 mr-1" />
+              <List className="mr-1 h-4 w-4" />
               Submissions
             </Link>
           </Button>
@@ -397,7 +477,7 @@ const FormDetails = ({
                 Save as Template
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-destructive cursor-pointer"
+                className="cursor-pointer text-destructive"
                 onClick={handleOpenDeleteDialog}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -409,25 +489,25 @@ const FormDetails = ({
       </div>
 
       {/* Form Details */}
-      <div className="max-w-2xl mx-auto">
+      <div className="mx-auto max-w-2xl">
         <SectionTitle title="Form details" headingClassName="text-xl mt-4" />
       </div>
-      <div className="grid gap-2 py-4 max-w-2xl mx-auto">
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Created at</span>
-          <span className="text-sm text-muted-foreground col-span-3">
+      <div className="mx-auto grid max-w-2xl gap-2 py-4">
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Created at</span>
+          <span className="col-span-3 text-sm text-muted-foreground">
             {getFormattedDate(form.createdAt)}
           </span>
         </div>
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Modified on</span>
-          <span className="text-sm text-muted-foreground col-span-3">
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Modified on</span>
+          <span className="col-span-3 text-sm text-muted-foreground">
             {getFormattedDate(form.modifiedAt)}
           </span>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="col-span-1 text-right self-start">Submissions</span>
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="col-span-1 self-start text-right">Submissions</span>
           <div className="col-span-3 text-sm">
             {(form?.submissionsCount ?? 0) === 0 ? (
               <span className="text-muted-foreground">No submissions yet</span>
@@ -439,8 +519,8 @@ const FormDetails = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Status</span>
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Status</span>
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
               <>
@@ -461,8 +541,8 @@ const FormDetails = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Visibility</span>
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Visibility</span>
           <div className="col-span-3 flex items-center space-x-2">
             {enableEditing ? (
               <>
@@ -489,7 +569,10 @@ const FormDetails = ({
                     )}
                   </Tooltip>
                 </TooltipProvider>
-                <Label htmlFor="form-visibility" className="flex items-center gap-1">
+                <Label
+                  htmlFor="form-visibility"
+                  className="flex items-center gap-1"
+                >
                   {isPublic ? (
                     <Globe className="h-3 w-3" />
                   ) : (
@@ -499,7 +582,10 @@ const FormDetails = ({
                 </Label>
               </>
             ) : (
-              <Badge variant={isPublic ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+              <Badge
+                variant={isPublic ? "default" : "secondary"}
+                className="flex w-fit items-center gap-1"
+              >
                 {isPublic ? (
                   <Globe className="h-3 w-3" />
                 ) : (
@@ -511,8 +597,8 @@ const FormDetails = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-center gap-4">
-          <span className="text-right self-start">Limit one per user</span>
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start text-right">Limit one per user</span>
           <div className="col-span-3 flex flex-col gap-1">
             <div className="flex items-center space-x-2">
               <TooltipProvider>
@@ -550,8 +636,33 @@ const FormDetails = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 py-2 items-start gap-4">
-          <span className="text-right self-start pt-2">Metadata (JSON)</span>
+        {enableEditing && (
+          <div className="grid grid-cols-4 items-center gap-4 py-2">
+            <span className="self-start pt-2 text-right">Folder</span>
+            <div className="col-span-3">
+              <Select
+                value={selectedFolderId}
+                onValueChange={applyFolderChange}
+                disabled={pending}
+              >
+                <SelectTrigger className="w-full max-w-md">
+                  <SelectValue placeholder="Select folder" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No folder</SelectItem>
+                  {folderSelectItems.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-4 items-start gap-4 py-2">
+          <span className="self-start pt-2 text-right">Metadata (JSON)</span>
           <div className="col-span-3 space-y-2">
             <Textarea
               value={metadata}
@@ -570,7 +681,6 @@ const FormDetails = ({
             </Button>
           </div>
         </div>
-
       </div>
 
       {/* Webhook Configuration Section */}
@@ -624,7 +734,7 @@ const FormDetails = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmEnableLimitOnePerUser}>
-            Enable permanently
+              Enable permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

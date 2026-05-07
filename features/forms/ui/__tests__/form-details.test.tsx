@@ -35,6 +35,10 @@ vi.mock("../../application/actions/delete-form.action", () => ({
   deleteFormAction: vi.fn(),
 }));
 
+vi.mock('@/features/folders/server', () => ({
+  listFoldersAction: vi.fn().mockResolvedValue({ kind: 0, value: [] }),
+}));
+
 vi.mock("../webhook-settings", () => ({
   WebhookSettings: () => <div data-testid="webhook-settings" />,
 }));
@@ -61,6 +65,7 @@ describe("FormDetails", () => {
       isEnabled: true,
       isPublic: false,
       limitOnePerUser: true,
+      folderId: null,
       createdAt: new Date(),
     };
 
@@ -81,6 +86,7 @@ describe("FormDetails", () => {
       isEnabled: true,
       isPublic: false,
       limitOnePerUser: false,
+      folderId: null,
       createdAt: new Date(),
     };
 
@@ -128,6 +134,7 @@ describe("FormDetails", () => {
       isEnabled: true,
       isPublic: false,
       limitOnePerUser: true,
+      folderId: null,
       createdAt: new Date(),
     };
 
@@ -154,6 +161,7 @@ describe("FormDetails", () => {
       isEnabled: true,
       isPublic: false,
       limitOnePerUser: false,
+      folderId: null,
       createdAt: new Date(),
     };
 

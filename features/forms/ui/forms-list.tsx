@@ -52,7 +52,7 @@ const FormsList = ({ forms }: FormDataProps) => {
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(420px,1fr))] gap-6">
+      <div className="grid-card-list">
         {forms.map((form) => (
           <FormCard
             key={form.id}

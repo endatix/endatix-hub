@@ -20,6 +20,7 @@ export class SitemapService {
     const sitemapList: INavItem[] = [
       sitemap.forms,
       sitemap.formTemplates,
+      sitemap.folders,
       sitemap.dataLists,
       sitemap.documentation,
       sitemap.settings,
