@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { mergeTopLevelNavWithFolderForms } from "@/features/folders/lib/merge-forms-sidebar-nav";
+import { mergeTopLevelNavWithFolderForms } from "@/features/folders/utils";
 import { listFoldersAction } from "@/features/folders/server";
 import { Result } from "@/lib/result";
 import { ChevronsUpDown } from "lucide-react";

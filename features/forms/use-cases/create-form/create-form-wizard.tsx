@@ -17,10 +17,19 @@ import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import type { Folder } from "@/lib/endatix-api/folders/types";
 
 const INITIAL_STATE: CreateFormActionState = ServerActionState.emptyState();
 
-export default function CreateFormWizard() {
+type CreateFormWizardProps = {
+  requireFolderAssignment?: boolean;
+  folders?: Folder[];
+};
+
+export default function CreateFormWizard({
+  requireFolderAssignment = false,
+  folders = [],
+}: CreateFormWizardProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     createFormAction,
@@ -74,6 +83,42 @@ export default function CreateFormWizard() {
         </div>
         {state?.errors?.description && (
           <ErrorMessage message={state.errors.description} />
+        )}
+
+        {(requireFolderAssignment || folders.length > 0) && (
+          <div className="space-y-2">
+            <Label htmlFor="folderId">
+              Folder
+              {requireFolderAssignment ? (
+                <span className="text-destructive"> *</span>
+              ) : null}
+            </Label>
+            <select
+              id="folderId"
+              name="folderId"
+              defaultValue={state?.data?.folderId ?? ""}
+              disabled={isPending}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">
+                {requireFolderAssignment ? "Select a folder" : "No folder"}
+              </option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            {state?.errors?.folderId && (
+              <ErrorMessage message={state.errors.folderId} />
+            )}
+            {requireFolderAssignment && folders.length === 0 && (
+              <p className="text-sm text-destructive">
+                No active folders exist. Create a folder under Forms → Folders
+                before creating a form.
+              </p>
+            )}
+          </div>
         )}
       </div>
 

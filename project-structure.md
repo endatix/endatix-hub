@@ -24,35 +24,41 @@ Quick reference for organizing features using vertical slice architecture.
 
 ## Feature Structure
 
-Vertical Slice Architecture: organize by business feature, then by use-case.
+Vertical Slice Architecture: organize by business feature, then by use-case slice.
 
 ```text
 features/
 ├── {feature-name}/
-│   ├── client.ts                             # Client-side only exports
-│   ├── server.ts                             # Server-side only exports
-│   ├── index.ts                              # Shared exports (both client and server)
-│   ├── types.ts                              # Feature-specific types
-│   ├── use-cases/                            # Business logic by use case
-│   │   ├── {verb-noun}/                      # e.g., create-form
-│   │   │   ├── {verb-noun}.use-case.ts       # Pure business logic
-│   │   │   ├── {verb-noun}.action.ts         # Use case specific server action
-│   │   │   ├── use-{noun}.hook.ts            # Use-case specific hook
-│   │   │   └── ui/                           # Use-case specific components
-│   ├── infrastructure/                       # External adapters, config
-│   ├── ui/                                   # Cross-use-case components & context
-│   │   ├── {feature-name}.context.tsx        # React Context & Client Provider
-│   │   └── {feature-name}.provider.tsx       # Server Component Context Provider Wrapper
-│   └── __tests__/                            # Feature-level tests
+│   ├── server.ts                             # Optional: curated server-safe exports
+│   ├── index.ts                              # Optional: curated shared/client-safe exports
+│   ├── types.ts                              # Feature-shared types across slices
+│   ├── utils.ts                              # Feature-shared pure helpers
+│   ├── ui/                                   # Cross-slice reusable UI only
+│   ├── {verb-noun}/                          # Use-case slice (preferred)
+│   │   ├── {verb-noun}.action.ts             # Server action for this slice
+│   │   ├── {verb-noun}.server.ts             # Optional server-only loader/helper
+│   │   ├── use-{noun}.hook.ts                # Optional slice-local hook
+│   │   ├── ui/                               # Slice-local UI
+│   │   ├── __tests__/                        # Slice-local tests
+│   │   └── index.ts                          # Slice barrel exports
+│   └── __tests__/                            # Optional cross-slice integration tests
 ```
+
+### Reference Example: `features/folders`
+
+Use `features/folders` as the canonical implementation of this pattern:
+- slices like `create-folder`, `update-folder`, `delete-folder`, `move-form-to-folder`, `view-forms-header`
+- shared root artifacts in `types.ts`, `utils.ts`, and root `ui/` for cross-slice components
+- server-safe curated exports via `features/folders/server.ts`
+- slice-local tests in `features/folders/create-folder/__tests__/`
 
 ### Entry Point Pattern (Idiomatic Next.js)
 
 To prevent server-side dependencies (like database clients or SDKs) from leaking into the client bundle, use explicit entry points:
 
-1.  **client.ts**: Exports for Client Components (hooks, providers, safe types). Mark with `"use client"`.
-2.  **server.ts**: Exports for Server Components and Server Actions. Mark with `"use server"`.
-3.  **index.ts**: Shared exports (primitive types, basic utilities) that are safe for both environments.
+1.  **Slice `index.ts`**: Primary import point for each vertical slice.
+2.  **`server.ts`**: Optional feature-level curated exports for Server Components and Server Actions.
+3.  **`index.ts`**: Optional feature-level curated shared/client-safe exports.
 
 ## Why Vertical Slice Architecture?
 
@@ -68,16 +74,17 @@ To prevent server-side dependencies (like database clients or SDKs) from leaking
 
 Use `__tests__/` folders for test organization:
 
-- **Feature level**: `features/{name}/__tests__/` - Test feature integration and shared utilities
+- **Slice level (default)**: `features/{name}/{verb-noun}/__tests__/` - Test slice behavior close to implementation
+- **Feature level (optional)**: `features/{name}/__tests__/` - Cross-slice integration and shared feature helpers
 - **Component level**: Place `.test.tsx` files alongside components when testing specific UI behavior
-- **Focus on use-cases**: Write comprehensive unit tests for `.use-case.ts` files as they contain core business logic
+- **Focus on slices**: Test actions, loaders, hooks, and UI inside the slice where they live
 
 ## Layers
 
-### Use-Case Layer (.use-case.ts)
+### Use-Case Layer (optional `.use-case.ts`)
 
 ```typescript
-// Pure business logic, no Next.js dependencies
+// Pure business logic, no Next.js dependencies (only when needed)
 export const createFormUseCase = async (
   request: CreateFormRequest,
 ): Promise<Result<string>> => {
@@ -103,11 +110,10 @@ export async function createFormAction(
 }
 ```
 
-### Infrastructure Layer
+### Server Helper Layer (`*.server.ts`)
 
-- External adapters (auth providers, storage, APIs)
-- Framework-specific integrations
-- Configuration and setup
+- Server-only read-model loaders and helper orchestration
+- Can live inside a slice (preferred) or feature root for shared server-only code
 
 ### Data Fetching and State Management
 
@@ -189,14 +195,16 @@ More on this in the [Next.js Data Fetching Documentation](https://nextjs.org/doc
 
 ### Files & Folders
 
-- **kebab-case**: `create-form.use-case.ts`, `use-cases/`
+- **kebab-case**: `create-form.action.ts`, `view-forms-header/`
 - **Functions**: `camelCase` → `createFormUseCase`
 - **Classes/Types**: `PascalCase` → `CreateFormRequest`
 
 ### Files
 
-- **Use-cases**: `{verb-noun}.use-case.ts`
+- **Use-cases**: `{verb-noun}.use-case.ts` (optional)
 - **Actions**: `{verb-noun}.action.ts`
+- **Server-only helpers**: `{verb-noun}.server.ts`
+- **Hooks**: `use-{noun}.hook.ts`
 - **Components**: `{feature-name}-{purpose}.tsx`
 
 ## App Folder Structure
@@ -256,10 +264,10 @@ app/
 
 ## Guidelines
 
-1. **Start with use-case** - Write business logic first
-2. **Keep actions thin** - Simple wrappers around use-cases
-3. **Co-locate related code** - Keep use-case items together
-4. **Use feature exports** - Import from `features/{name}/index.ts`
+1. **Start with a slice** - Create `{verb-noun}/` and co-locate action, UI, tests, and exports
+2. **Keep actions thin** - Wrap API calls and orchestration, move complex logic to helpers/use-case files
+3. **Co-locate related code** - Keep slice internals inside the slice folder
+4. **Use slice exports first** - Import from `features/{name}/{verb-noun}` before feature-level barrels
 5. **Move to lib/ when reusable** - Extract to lib/ when used across projects
 6. **Move to packages/ when publishable** - Extract to packages/ when ready for npm
 7. **Document Architecture Updates** - Any new architectural items, patterns, or cross-cutting features discovered during planning or development must be documented in a dedicated `ARCHITECTURE.md` file in the root of the project.

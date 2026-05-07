@@ -4,6 +4,7 @@ import DotLoader from "@/components/loaders/dot-loader";
 import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AssistantFolderSelect } from "@/features/forms/use-cases/design-form/ui/assistant-folder-select";
 import {
   Sheet,
   SheetContent,
@@ -224,6 +225,7 @@ const CreateFormSheet: FC = () => {
                   </span>{" "}
                   build the form
                 </p>
+                <AssistantFolderSelect />
                 <ChatBox />
               </div>
             )}

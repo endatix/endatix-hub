@@ -9,8 +9,8 @@ import {
 import { auth } from "@/auth";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { FolderCreateButton } from "@/features/folders/ui/folder-create-button";
-import { FolderEditButton } from "@/features/folders/ui/folder-edit-button";
+import { FolderCreateButton } from "@/features/folders/create-folder";
+import { FolderEditButton } from "@/features/folders/update-folder";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import Link from "next/link";
 import { redirect } from "next/navigation";

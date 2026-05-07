@@ -2,7 +2,7 @@ import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { FolderNavigationCards } from "@/features/folders/ui/folder-navigation-cards";
+import { FolderNavigationCards } from "@/features/folders/list-folders";
 
 export default async function TemplateFoldersPage() {
   const session = await auth();

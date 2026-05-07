@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiErrorType, EndatixApi } from "@/lib/endatix-api";
 import { ErrorType, Kind } from "@/lib/result";
-import { createFolderAction } from "./create-folder.action";
+import { createFolderAction } from "@/features/folders/create-folder";
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -53,7 +53,6 @@ describe("createFolderAction", () => {
   });
 
   it("maps validation field error to specific result message", async () => {
-    // Arrange
     create.mockResolvedValue({
       success: false,
       error: {
@@ -65,13 +64,11 @@ describe("createFolderAction", () => {
       },
     });
 
-    // Act
     const result = await createFolderAction({
       name: "Folder",
       slug: "bad slug",
     });
 
-    // Assert
     expect(requirePermission).toHaveBeenCalledWith(Permissions.Folders.Manage);
     expect(result.kind).toBe(Kind.Error);
     if (result.kind !== Kind.Error) {

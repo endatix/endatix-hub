@@ -2,13 +2,13 @@ import { auth } from "@/auth";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildFormsBreadcrumbModel } from "@/features/folders/application/build-forms-breadcrumb-model";
-import { getFormsHeaderDataCached } from "@/features/folders/application/get-forms-header-data";
+import { buildFormsBreadcrumbModel } from "@/features/folders/view-forms-header";
+import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { Suspense } from "react";
-import type { FormsBreadcrumbItem } from "@/features/folders/application/build-forms-breadcrumb-model";
+import type { FormsBreadcrumbItem } from "@/features/folders/types";
 
 export default async function FormsHeaderSlot() {
   const session = await auth();

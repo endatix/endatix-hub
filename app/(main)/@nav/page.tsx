@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import SidebarNav from "@/components/layout-ui/sidebar/sidebar-nav";
-import { getFormsHeaderDataCached } from "@/features/folders/application/get-forms-header-data";
+import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 
 export default async function NavSlot() {
   const session = await auth();
