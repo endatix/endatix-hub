@@ -6,6 +6,7 @@ export type Folder = {
   metadata?: string | null;
   isActive: boolean;
   immutable: boolean;
+  locked?: boolean;
 };
 
 export type CreateFolderRequest = {
@@ -14,6 +15,7 @@ export type CreateFolderRequest = {
   description?: string | null;
   metadata?: string | null;
   immutable?: boolean;
+  locked?: boolean;
 };
 
 export type UpdateFolderRequest = {
@@ -23,4 +25,5 @@ export type UpdateFolderRequest = {
   metadata?: string | null;
   isActive?: boolean | null;
   immutable?: boolean | null;
+  locked?: boolean | null;
 };

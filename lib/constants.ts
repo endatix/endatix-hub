@@ -3,6 +3,7 @@ import {
   BookOpen,
   ClipboardList,
   DatabaseZap,
+  FolderCog,
   LayoutTemplate,
   LifeBuoy,
   LineChart,
@@ -25,6 +26,12 @@ const sitemapArray: INavItem[] = [
     title: "Form Templates",
     url: "/forms/templates",
     icon: LayoutTemplate,
+  },
+  {
+    key: "folders",
+    title: "Folders",
+    url: "/folders",
+    icon: FolderCog,
   },
   {
     key: "dataLists",
@@ -98,6 +105,11 @@ const sitemapArray: INavItem[] = [
         key: "users",
         title: "Users",
         url: "/settings/organization/users",
+      },
+      {
+        key: "formsOrganization",
+        title: "Organization settings",
+        url: "/settings/organization/forms",
       },
     ],
   },

@@ -49,13 +49,26 @@ export function SidebarNavItem({
     return (
       <Collapsible asChild className="group/collapsible">
         <SidebarMenuItem>
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton tooltip={item.title} {...props}>
-              {item.icon && <item.icon className="h-5 w-5" />}
-              <span>{item.title}</span>
-              <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          <div className="flex items-center gap-1">
+            <SidebarMenuButton asChild tooltip={item.title} className="flex-1" {...props}>
+              <Link
+                href={item.url as Route}
+                target={item.external ? "_blank" : undefined}
+              >
+                {item.icon && <item.icon className="h-5 w-5" />}
+                <span>{item.title}</span>
+              </Link>
             </SidebarMenuButton>
-          </CollapsibleTrigger>
+            <CollapsibleTrigger asChild>
+              <SidebarMenuButton
+                type="button"
+                tooltip={`Toggle ${item.title}`}
+                className="w-8 shrink-0 justify-center px-0"
+              >
+                <ChevronRight className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+          </div>
           <CollapsibleContent>
             <SidebarMenuSub>
               {item.children?.map((subItem) => (

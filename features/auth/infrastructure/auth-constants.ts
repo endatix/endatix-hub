@@ -18,7 +18,14 @@ const AUTH_ROUTES = [
   SESSION_BRIDGE_PATH,
 ];
 
-const HUB_PATHS = ["/forms", "/settings", "/my-account"];
+const HUB_PATHS = [
+  "/forms",
+  "/settings",
+  "/my-account",
+  "/admin",
+  "/folders",
+  "/data-lists",
+];
 
 export {
   AUTH_ROUTES,

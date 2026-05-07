@@ -20,6 +20,7 @@ interface JsonEditorProps {
   style?: CSSProperties;
   errors?: JsonErrorAnnotation[];
   activeError?: { row: number; column: number } | null;
+  readOnly?: boolean;
 }
 
 export function JsonEditor({
@@ -28,6 +29,7 @@ export function JsonEditor({
   style,
   errors,
   activeError,
+  readOnly = false,
 }: Readonly<JsonEditorProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
@@ -147,6 +149,13 @@ export function JsonEditor({
 
     editor.setTheme(activeAceTheme);
   }, [activeAceTheme]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !isReady) return;
+
+    editor.setReadOnly(readOnly);
+  }, [readOnly, isReady]);
 
   useEffect(() => {
     const editor = editorRef.current;
