@@ -22,6 +22,7 @@ import {
 import { useRouter } from "next/navigation";
 import { FolderDeleteButton } from "../../delete-folder";
 import { FolderEditDialog } from "../../update-folder";
+import { Route } from "next";
 
 type FolderManagementListCardProps = {
   folder: Folder;
@@ -38,7 +39,7 @@ export function FolderManagementListCard({
 }: Readonly<FolderManagementListCardProps>) {
   const router = useRouter();
   const statusLabel = folder.isActive ? "Active" : "Inactive";
-  const detailsHref = `/folders/${folder.id}`;
+  const folderDetailsHref = `/folders/${folder.id}` as Route;
 
   const shouldIgnoreCardNavigation = (target: EventTarget | null) => {
     if (!(target instanceof HTMLElement)) {
@@ -67,7 +68,7 @@ export function FolderManagementListCard({
           if (shouldIgnoreCardNavigation(event.target)) {
             return;
           }
-          router.push(detailsHref);
+          router.push(folderDetailsHref);
         }}
         onKeyDown={(event) => {
           if (shouldIgnoreCardNavigation(event.target)) {
@@ -76,7 +77,7 @@ export function FolderManagementListCard({
 
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            router.push(detailsHref);
+            router.push(folderDetailsHref);
           }
         }}
       >
