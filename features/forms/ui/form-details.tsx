@@ -336,10 +336,16 @@ const FormDetails = ({
 
       if (result === undefined || Result.isError(result)) {
         setSelectedFolderId(previous);
-        toast.error(
-          "Failed to update folder. " +
-            (result && Result.isError(result) ? result.message : ""),
-        );
+        const message =
+          result && Result.isError(result)
+            ? result.message
+            : "Failed to update folder";
+        const [title, ...rest] = message.split(". ");
+        const details = rest.join(". ").trim();
+        toast.error({
+          title: title || "Failed to update folder",
+          description: details || undefined,
+        });
         return;
       }
 

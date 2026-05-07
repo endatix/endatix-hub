@@ -20,9 +20,13 @@ import { ApiResult } from "@/lib/endatix-api";
 
 type FormTemplatesListProps = {
   templatesPromise: Promise<ApiResult<FormTemplate[]> | FormTemplate[]>;
+  requireFolderAssignment?: boolean;
 };
 
-const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
+const FormTemplatesList = ({
+  templatesPromise,
+  requireFolderAssignment = false,
+}: FormTemplatesListProps) => {
   const resolvedTemplates = use(templatesPromise);
   const templatesResult = Array.isArray(resolvedTemplates)
     ? ApiResult.success(resolvedTemplates)
@@ -99,6 +103,7 @@ const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
             key={template.id}
             template={template}
             isSelected={template.id === selectedTemplateId}
+            requireFolderAssignment={requireFolderAssignment}
             onClick={() => handleTemplateSelected(template.id)}
             onPreviewClick={handlePreviewOpen}
           />
@@ -109,6 +114,7 @@ const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
         selectedTemplate={selectedTemplate ?? null}
         open={isSheetOpen}
         onOpenChange={handleSheetOpenChange}
+        requireFolderAssignment={requireFolderAssignment}
         onPreviewClick={selectedTemplate ? handlePreviewOpen : undefined}
       />
 
@@ -117,6 +123,7 @@ const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
           open={isPreviewOpen}
           onOpenChange={handlePreviewOpenChange}
           templateId={previewTemplateId}
+          requireFolderAssignment={requireFolderAssignment}
         />
       )}
     </>

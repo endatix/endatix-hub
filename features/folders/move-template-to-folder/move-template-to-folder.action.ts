@@ -15,7 +15,7 @@ export async function moveTemplateToFolderAction(
   const session = await auth();
   const { requireHubAccess, requirePermission } = await authorization(session);
   await requireHubAccess();
-  await requirePermission(Permissions.Folders.Manage);
+  await requirePermission(Permissions.Forms.Edit);
 
   const api = new EndatixApi(session?.accessToken);
   const updateCommand = targetFolderId

@@ -54,14 +54,22 @@ async function TemplatesFoldersSection({
 async function FormTemplatesContent({
   accessToken,
 }: Readonly<{ accessToken: string | undefined }>) {
-  const templatesPromise = (async () => {
-    const api = new EndatixApi(accessToken);
-    return api.formTemplates.list({ filter: "folderId:null" });
-  })();
+  const api = new EndatixApi(accessToken);
+  const [templatesResult, settingsResult] = await Promise.all([
+    api.formTemplates.list({ filter: "folderId:null" }),
+    api.tenant.getSettings(),
+  ]);
+
+  const requireFolderAssignment =
+    settingsResult.success &&
+    settingsResult.data.requireFolderAssignment === true;
 
   return (
     <AssetStorageProvider>
-      <FormTemplatesList templatesPromise={templatesPromise} />
+      <FormTemplatesList
+        templatesPromise={Promise.resolve(templatesResult)}
+        requireFolderAssignment={requireFolderAssignment}
+      />
     </AssetStorageProvider>
   );
 }

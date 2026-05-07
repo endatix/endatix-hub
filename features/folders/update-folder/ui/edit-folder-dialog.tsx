@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { Result } from "@/lib/result";
-import { FolderPen, Shield } from "lucide-react";
+import { FolderPen, Lock, Shield } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -88,12 +88,35 @@ export function FolderEditDialog({
         name: trimmedName,
         slug: resolvedSlug.value,
         description: description.trim() || null,
-        metadata: metadataPayload.length > 0 ? metadataPayload : "",
+        metadata: metadataPayload.length > 0 ? metadataPayload : null,
         isActive,
       });
 
       if (!Result.isSuccess(result)) {
-        toast.error(result.message);
+        const message = result.message.trim();
+        const details = result.details?.trim() ?? "";
+        const messageLower = message.toLowerCase();
+        const detailsLower = details.toLowerCase();
+
+        const isDuplicateDetails =
+          details.length > 0 &&
+          (detailsLower === messageLower ||
+            detailsLower.includes(messageLower) ||
+            messageLower.includes(detailsLower));
+
+        const lockHint = "You need to unlock first and then try again.";
+        const shouldShowLockHint =
+          messageLower.includes("cannot be modified") ||
+          detailsLower.includes("cannot be modified");
+
+        const errorMessage = shouldShowLockHint
+          ? `${message} ${lockHint}`
+          : details && message === "Unexpected error"
+            ? details
+            : details && !isDuplicateDetails
+              ? `${message}\n${details}`
+              : message;
+        toast.error(errorMessage);
         return;
       }
 
@@ -129,6 +152,17 @@ export function FolderEditDialog({
         </DialogHeader>
         <div className="flex-1 overflow-y-auto py-2 pr-1">
           <div className="flex flex-col gap-4">
+            {isLocked ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <p className="inline-flex items-center gap-2 font-medium text-destructive">
+                  <Lock className="size-4" />
+                  This folder is locked.
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Unlock it from folder details first, then return here to edit.
+                </p>
+              </div>
+            ) : null}
             <div className="flex flex-col gap-2">
               <Label htmlFor={`folder-edit-name-${folder.id}`}>Name</Label>
               <Input
@@ -152,7 +186,9 @@ export function FolderEditDialog({
               hint="Changing the slug updates the folder URL under /forms/folders/."
             />
             <div className="flex flex-col gap-2">
-              <Label htmlFor={`folder-edit-desc-${folder.id}`}>Description</Label>
+              <Label htmlFor={`folder-edit-desc-${folder.id}`}>
+                Description
+              </Label>
               <Textarea
                 id={`folder-edit-desc-${folder.id}`}
                 value={description}
@@ -170,6 +206,9 @@ export function FolderEditDialog({
                   value={metadata}
                   onChange={setMetadata}
                   readOnly={isLocked}
+                  height="180px"
+                  minLines={6}
+                  maxLines={12}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
@@ -198,6 +237,7 @@ export function FolderEditDialog({
                     id={`folder-edit-active-${folder.id}`}
                     checked={isActive}
                     onCheckedChange={setIsActive}
+                    disabled={isLocked}
                   />
                 </div>
               </div>
@@ -215,7 +255,7 @@ export function FolderEditDialog({
           <Button
             type="button"
             onClick={onSubmit}
-            disabled={pending || !name.trim()}
+            disabled={pending || !name.trim() || isLocked}
           >
             Save
           </Button>

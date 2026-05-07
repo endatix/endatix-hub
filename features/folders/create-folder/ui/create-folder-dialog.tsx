@@ -14,11 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { createFolderAction } from "@/features/folders/server";
+import {
+  createFolderAction,
+  updateFolderAction,
+} from "@/features/folders/server";
 import { FolderSlugField } from "@/features/folders/ui/folder-slug-field";
 import { resolveFolderSlug } from "@/features/folders/folder-slug-utils";
 import { Result } from "@/lib/result";
-import { FolderPlus, LockOpen } from "lucide-react";
+import { FolderPlus, LockOpen, Shield } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -44,6 +47,7 @@ export function CreateFolderDialog({
   const [slug, setSlug] = useState("");
   const [slugEditable, setSlugEditable] = useState(false);
   const [description, setDescription] = useState("");
+  const [isActive, setIsActive] = useState(true);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -86,12 +90,24 @@ export function CreateFolderDialog({
         toast.error(result.message);
         return;
       }
+
+      if (!isActive) {
+        const updateResult = await updateFolderAction(result.value.id, {
+          isActive: false,
+        });
+        if (Result.isError(updateResult)) {
+          toast.error(updateResult.message);
+          return;
+        }
+      }
+
       toast.success("Folder created");
       setOpen(false);
       setName("");
       setSlug("");
       setSlugEditable(false);
       setDescription("");
+      setIsActive(true);
       if (replacePathOnClose) {
         router.replace(replacePathOnClose);
       }
@@ -149,6 +165,25 @@ export function CreateFolderDialog({
             <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
               Security & permissions
             </p>
+            <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Shield className="size-4 text-primary" />
+                    <Label htmlFor="folder-active-create">Active</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Inactive folders are hidden from navigation and listing
+                    views.
+                  </p>
+                </div>
+                <Switch
+                  id="folder-active-create"
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                />
+              </div>
+            </div>
             <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">

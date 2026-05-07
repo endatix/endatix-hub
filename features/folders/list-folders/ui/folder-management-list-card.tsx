@@ -19,8 +19,7 @@ import {
   LockOpen,
   MoreHorizontal,
 } from "lucide-react";
-import Link from "next/link";
-import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import { FolderDeleteButton } from "../../delete-folder";
 import { FolderEditDialog } from "../../update-folder";
 
@@ -37,19 +36,55 @@ export function FolderManagementListCard({
   templateCount,
   canManage,
 }: Readonly<FolderManagementListCardProps>) {
+  const router = useRouter();
   const statusLabel = folder.isActive ? "Active" : "Inactive";
+  const detailsHref = `/folders/${folder.id}`;
+
+  const shouldIgnoreCardNavigation = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+
+    return Boolean(
+      target.closest(
+        "button,a,input,textarea,select,[role='button'],[data-no-card-nav='true']",
+      ),
+    );
+  };
 
   return (
     <TooltipProvider delayDuration={100}>
       <Card
         className={
           folder.isActive
-            ? "group relative overflow-hidden border-border/50 shadow-sm transition-shadow hover:shadow-md"
-            : "group relative overflow-hidden border-dashed border-border/70 bg-muted/20"
+            ? "group relative cursor-pointer overflow-hidden border-border/50 shadow-sm transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
+            : "group relative cursor-pointer overflow-hidden border-dashed border-border/70 bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
         }
+        role="link"
+        tabIndex={0}
+        aria-label={`Open folder details for ${folder.name}`}
+        onClick={(event) => {
+          if (shouldIgnoreCardNavigation(event.target)) {
+            return;
+          }
+          router.push(detailsHref);
+        }}
+        onKeyDown={(event) => {
+          if (shouldIgnoreCardNavigation(event.target)) {
+            return;
+          }
+
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            router.push(detailsHref);
+          }
+        }}
       >
         <CardHeader className="gap-3 pb-3">
-          <div className="flex items-start justify-between gap-3">
+          <div
+            className="flex items-start justify-between gap-3"
+            data-no-card-nav="true"
+          >
             <div className="flex min-w-0 items-center gap-2">
               {folder.immutable ? (
                 <FolderLock className="size-5 shrink-0 text-destructive" />
@@ -105,14 +140,6 @@ export function FolderManagementListCard({
           </div>
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
-          <div>
-            <Link
-              href={`/folders/${folder.id}` as Route}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              View details
-            </Link>
-          </div>
           <div className="flex items-center justify-between border-t pt-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-4">
               <Tooltip>

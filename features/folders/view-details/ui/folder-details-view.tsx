@@ -36,6 +36,7 @@ import type { Form, FormTemplate } from "@/types";
 import {
   ClipboardList,
   Folder as FolderIcon,
+  FolderInput,
   FolderLock,
   LayoutTemplate,
   MoreVertical,
@@ -267,6 +268,7 @@ export function FolderDetailsView({
                             openMoveDialog(item.type, item.resourceId)
                           }
                         >
+                          <FolderInput className="mr-2 size-4" />
                           Move to folder
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>

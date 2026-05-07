@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   createFormAction,
   type CreateFormActionState,
@@ -31,11 +31,18 @@ export default function CreateFormWizard({
   folders = [],
 }: CreateFormWizardProps) {
   const router = useRouter();
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [state, formAction, isPending] = useActionState(
     createFormAction,
     INITIAL_STATE,
   );
   const isFormCreatedState = state?.isSuccess && state?.formId;
+  const isFolderRequiredAndMissing =
+    requireFolderAssignment && selectedFolderId.length === 0;
+
+  useEffect(() => {
+    setSelectedFolderId(state?.data?.folderId ?? "");
+  }, [state?.data?.folderId]);
 
   useEffect(() => {
     if (isFormCreatedState) {
@@ -96,7 +103,8 @@ export default function CreateFormWizard({
             <select
               id="folderId"
               name="folderId"
-              defaultValue={state?.data?.folderId ?? ""}
+              value={selectedFolderId}
+              onChange={(event) => setSelectedFolderId(event.target.value)}
               disabled={isPending}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -112,6 +120,12 @@ export default function CreateFormWizard({
             {state?.errors?.folderId && (
               <ErrorMessage message={state.errors.folderId} />
             )}
+            {requireFolderAssignment && (
+              <p className="text-sm text-muted-foreground">
+                A folder is required by your organization policy. If not
+                selected, the server will return a validation message.
+              </p>
+            )}
             {requireFolderAssignment && folders.length === 0 && (
               <p className="text-sm text-destructive">
                 No active folders exist. Create a folder under Forms → Folders
@@ -126,7 +140,10 @@ export default function CreateFormWizard({
         <Button variant="outline" asChild disabled={isPending}>
           <Link href="/forms">Cancel</Link>
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button
+          type="submit"
+          disabled={isPending || isFolderRequiredAndMissing}
+        >
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           {isPending ? "Creating your form..." : "Create Form"}
         </Button>

@@ -33,7 +33,13 @@ export default async function TemplateFolderSlugPage({ params }: PageProps) {
   }
 
   const folder = folderResult.data;
-  const templatesPromise = api.formTemplates.list({ folderId: folder.id });
+  const [templatesResult, settingsResult] = await Promise.all([
+    api.formTemplates.list({ folderId: folder.id }),
+    api.tenant.getSettings(),
+  ]);
+  const requireFolderAssignment =
+    settingsResult.success &&
+    settingsResult.data.requireFolderAssignment === true;
 
   return (
     <AssetStorageProvider>
@@ -53,7 +59,10 @@ export default async function TemplateFolderSlugPage({ params }: PageProps) {
           {folder.description}
         </p>
       ) : null}
-      <FormTemplatesList templatesPromise={Promise.resolve(templatesPromise)} />
+      <FormTemplatesList
+        templatesPromise={Promise.resolve(templatesResult)}
+        requireFolderAssignment={requireFolderAssignment}
+      />
     </AssetStorageProvider>
   );
 }

@@ -15,25 +15,23 @@ import {
 interface MoveTemplateToFolderMenuItemProps {
   templateId: string;
   currentFolderId: string | null;
-  onActionHandled?: () => void;
 }
 
 export function MoveTemplateToFolderMenuItem({
   templateId,
   currentFolderId,
-  onActionHandled,
 }: MoveTemplateToFolderMenuItemProps) {
+  const currentFolderValue = currentFolderId ?? NO_FOLDER_VALUE;
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [availableFolders, setAvailableFolders] = useState<
     { id: string; name: string }[]
   >([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
-    currentFolderId ?? NO_FOLDER_VALUE,
+    currentFolderValue,
   );
   const [isMovePending, setIsMovePending] = useState(false);
 
   const handleOpenMoveDialog = async () => {
-    onActionHandled?.();
     const listResult = await listFoldersAction();
     if (Result.isError(listResult)) {
       toast.error(listResult.message);
@@ -45,7 +43,7 @@ export function MoveTemplateToFolderMenuItem({
       .map((folder) => ({ id: folder.id, name: folder.name }));
 
     setAvailableFolders(activeFolders);
-    setSelectedFolderId(currentFolderId ?? NO_FOLDER_VALUE);
+    setSelectedFolderId(currentFolderValue);
     setMoveDialogOpen(true);
   };
 
@@ -58,7 +56,10 @@ export function MoveTemplateToFolderMenuItem({
     setIsMovePending(false);
 
     if (Result.isError(moveResult)) {
-      toast.error(moveResult.message);
+      toast.error({
+        title: "Cannot move template to folder",
+        description: moveResult.message,
+      });
       return;
     }
 
@@ -70,9 +71,7 @@ export function MoveTemplateToFolderMenuItem({
     <>
       <DropdownMenuItem
         className="cursor-pointer"
-        onSelect={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
+        onSelect={() => {
           void handleOpenMoveDialog();
         }}
       >
@@ -88,6 +87,7 @@ export function MoveTemplateToFolderMenuItem({
         onFolderChange={setSelectedFolderId}
         folderOptions={availableFolders}
         isMovePending={isMovePending}
+        canMove={selectedFolderId !== currentFolderValue}
         onMove={() => void handleMoveToFolder()}
       />
     </>

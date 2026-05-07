@@ -35,6 +35,7 @@ interface MoveToFolderDialogProps {
   onFolderChange: (value: string) => void;
   folderOptions: MoveToFolderOption[];
   isMovePending: boolean;
+  canMove: boolean;
   onMove: () => void;
 }
 
@@ -47,11 +48,15 @@ export function MoveToFolderDialog({
   onFolderChange,
   folderOptions,
   isMovePending,
+  canMove,
   onMove,
 }: MoveToFolderDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="sr-only">
@@ -80,11 +85,21 @@ export function MoveToFolderDialog({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => onOpenChange(false)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenChange(false);
+            }}
           >
             Cancel
           </Button>
-          <Button type="button" onClick={onMove} disabled={isMovePending}>
+          <Button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onMove();
+            }}
+            disabled={isMovePending || !canMove}
+          >
             {isMovePending ? "Moving..." : "Move"}
           </Button>
         </DialogFooter>

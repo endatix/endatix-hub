@@ -27,7 +27,7 @@ export async function updateFolderAction(
   if (!updated.success) {
     return mapApiErrorToResult(updated, {
       fallbackMessage: "Failed to update folder",
-      preferredFields: ["slug", "name"],
+      preferredFields: ["metadata", "slug", "name", "isActive", "immutable"],
     });
   }
 
