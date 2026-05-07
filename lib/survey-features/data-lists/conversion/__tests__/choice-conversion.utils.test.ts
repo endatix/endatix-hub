@@ -6,6 +6,7 @@ import {
   applyDataListBindingByQuestionName,
   applyDataListBindingToQuestionJson,
   findConvertibleChoiceQuestions,
+  isInlineChoicesQuestion,
   getQuestionDataListName,
   normalizeChoicesToDataListItems,
   resolveLocalizedText,
@@ -269,6 +270,7 @@ describe('choice-conversion.utils', () => {
       const m = new Model(json as object);
       const q = m.getQuestionByName('q') as Question;
       expect(q.getType()).toBe('dropdown');
+      expect(isInlineChoicesQuestion(q)).toBe(true);
       m.dispose?.();
     });
   });

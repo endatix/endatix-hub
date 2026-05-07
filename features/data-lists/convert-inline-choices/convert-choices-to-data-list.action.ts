@@ -3,6 +3,7 @@
 import { createDataListAction } from '@/features/data-lists/create-list/create-data-list.action';
 import { deleteDataListAction } from '@/features/data-lists/delete-list/delete-data-list.action';
 import { replaceDataListItemsAction } from '@/features/data-lists/replace-items/replace-data-list-items.action';
+import { TelemetryLogger } from '@/features/telemetry';
 import type {
   DataListChoiceItem,
   DataListDetails,
@@ -10,6 +11,7 @@ import type {
 import { Result } from '@/lib/result';
 
 export type ConvertChoicesToDataListResult = Result<{ dataList: DataListDetails }>;
+const LOGGER_NAME = 'data-lists';
 
 export async function convertChoicesToDataListAction(input: {
   name: string;
@@ -31,7 +33,16 @@ export async function convertChoicesToDataListAction(input: {
   );
 
   if (!Result.isSuccess(replaced)) {
-    await deleteDataListAction(created.value.id);
+    try {
+      await deleteDataListAction(created.value.id);
+    } catch (error) {
+      TelemetryLogger.error(
+        `Failed to compensate data list creation for "${created.value.id}"`,
+        error,
+        { dataListId: created.value.id },
+        LOGGER_NAME,
+      );
+    }
     return replaced;
   }
 

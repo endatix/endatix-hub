@@ -1,6 +1,14 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
@@ -232,6 +240,9 @@ function FormEditor({
   const convertChoicesConfirmResolverRef = useRef<
     ((value: string | null) => void) | null
   >(null);
+  const convertChoicesConfirmPromiseRef = useRef<Promise<string | null> | null>(
+    null,
+  );
   const [convertChoicesDialog, setConvertChoicesDialog] = useState<{
     isOpen: boolean;
     name: string;
@@ -239,12 +250,13 @@ function FormEditor({
   }>({ isOpen: false, name: "" });
 
   useEffect(() => {
-    setAvailableDataLists(dataLists);
+    setAvailableDataLists(dataLists ?? []);
   }, [dataLists, setAvailableDataLists]);
 
   const closeConvertChoicesDialog = useCallback((value: string | null) => {
     const resolve = convertChoicesConfirmResolverRef.current;
     convertChoicesConfirmResolverRef.current = null;
+    convertChoicesConfirmPromiseRef.current = null;
     setConvertChoicesDialog({ isOpen: false, name: "", errorMessage: undefined });
     resolve?.(value);
   }, []);
@@ -254,7 +266,10 @@ function FormEditor({
       initialName: string;
       errorMessage?: string;
     }): Promise<string | null> => {
-      return new Promise((resolve) => {
+      if (convertChoicesConfirmPromiseRef.current) {
+        return convertChoicesConfirmPromiseRef.current;
+      }
+      const promise = new Promise<string | null>((resolve) => {
         convertChoicesConfirmResolverRef.current = resolve;
         setConvertChoicesDialog({
           isOpen: true,
@@ -262,13 +277,15 @@ function FormEditor({
           errorMessage: input?.errorMessage,
         });
       });
+      convertChoicesConfirmPromiseRef.current = promise;
+      return promise;
     },
     [],
   );
 
   useEffect(() => {
     registerConvertChoicesUiDeps({
-      getDataListNames: () => dataLists.map((d) => d.name),
+      getDataListNames: () => (dataLists ?? []).map((d) => d.name),
       refreshDataLists: () => refetchDataLists(),
       markFormModified: () => setHasUnsavedChanges(true),
       confirmConvertInlineChoices: requestConvertChoicesConfirmation,
@@ -694,7 +711,7 @@ function FormEditor({
       plugin.formId = formId;
       plugin.formName = formName;
       plugin.formIsEnabled = formIsEnabled;
-      plugin.availableDataListNames = dataLists.map((d) => d.name);
+      plugin.availableDataListNames = (dataLists ?? []).map((d) => d.name);
     }
   }, [creator, isPublic, formId, formName, formIsEnabled, dataLists]);
 
@@ -749,65 +766,74 @@ function FormEditor({
 
   return (
     <div id="creator">
-      {convertChoicesDialog.isOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-xl rounded-lg border bg-background p-6 shadow-xl">
-            <h3 className="mb-3 text-xl font-semibold">
-              Convert inline choices to a data list?
-            </h3>
-            <div className="space-y-2 text-left text-sm">
-              <p>A new data list will be created and populated with these choices.</p>
-              <p>
-                <strong>This question</strong> will use that data list as its
-                choice source.
-              </p>
-              <p>Inline choices will be removed from the question.</p>
-              <p>Save the form to persist this change.</p>
-            </div>
-            <div className="mt-4 space-y-1.5">
-              <label className="block text-sm font-medium" htmlFor="edx-convert-list-name">
-                Data list name
-              </label>
-              <input
-                id="edx-convert-list-name"
-                type="text"
-                value={convertChoicesDialog.name}
-                maxLength={100}
-                onChange={(e) =>
-                  setConvertChoicesDialog((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                    errorMessage: undefined,
-                  }))
-                }
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                autoFocus
-              />
-              {convertChoicesDialog.errorMessage ? (
-                <p className="text-xs text-destructive">
-                  {convertChoicesDialog.errorMessage}
+      <Dialog
+        open={convertChoicesDialog.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeConvertChoicesDialog(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Convert inline choices to a data list?</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 text-left text-sm">
+                <p>
+                  A new data list will be created and populated with these choices.
                 </p>
-              ) : null}
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-md border px-4 py-2 text-sm"
-                onClick={() => closeConvertChoicesDialog(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-                onClick={() => closeConvertChoicesDialog(convertChoicesDialog.name)}
-              >
-                Convert
-              </button>
-            </div>
+                <p>
+                  <strong>This question</strong> will use that data list as its
+                  choice source.
+                </p>
+                <p>Inline choices will be removed from the question.</p>
+                <p>Save the form to persist this change.</p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium" htmlFor="edx-convert-list-name">
+              Data list name
+            </label>
+            <input
+              id="edx-convert-list-name"
+              type="text"
+              value={convertChoicesDialog.name}
+              maxLength={100}
+              onChange={(e) =>
+                setConvertChoicesDialog((prev) => ({
+                  ...prev,
+                  name: e.target.value,
+                  errorMessage: undefined,
+                }))
+              }
+              className="w-full rounded-md border border-input bg-background px-3 py-2"
+              autoFocus
+            />
+            {convertChoicesDialog.errorMessage ? (
+              <p className="text-xs text-destructive">
+                {convertChoicesDialog.errorMessage}
+              </p>
+            ) : null}
           </div>
-        </div>
-      ) : null}
+          <DialogFooter>
+            <button
+              type="button"
+              className="rounded-md border px-4 py-2 text-sm"
+              onClick={() => closeConvertChoicesDialog(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+              onClick={() => closeConvertChoicesDialog(convertChoicesDialog.name)}
+            >
+              Convert
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">

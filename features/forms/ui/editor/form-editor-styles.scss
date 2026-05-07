@@ -149,6 +149,6 @@ global {
   .sv-popup,
   .sv-popup__container,
   .sv-popup__body {
-    background-color: #fff;
+    background-color: hsl(var(--background));
   }
 }

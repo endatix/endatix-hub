@@ -129,6 +129,45 @@ const SELECT_BASE_TYPES = new Set([
   "ranking",
 ]);
 
+function getNonEmptyLocalizedValues(source: unknown): unknown | undefined {
+  if (
+    source != null &&
+    typeof source === "object" &&
+    !Array.isArray(source) &&
+    Object.keys(source as Record<string, unknown>).length > 0
+  ) {
+    return source;
+  }
+  return undefined;
+}
+
+function readLocalizedField(
+  owner: unknown,
+  locKey: "locTitle" | "locDescription" | "locText" | "locHtml",
+  rawKey: "title" | "description" | "text" | "html",
+): unknown {
+  const record = owner as Record<string, unknown> | null;
+  const localizedObj =
+    record && typeof record === "object"
+      ? (record[locKey] as Record<string, unknown> | undefined)
+      : undefined;
+  const values = getNonEmptyLocalizedValues(localizedObj?.values);
+  if (values !== undefined) {
+    return values;
+  }
+  if (record && typeof record === "object") {
+    const raw = record[rawKey];
+    if (raw !== undefined && raw !== null) {
+      return raw;
+    }
+  }
+  const getLocaleText = localizedObj?.getLocaleText;
+  if (typeof getLocaleText === "function") {
+    return getLocaleText.call(localizedObj);
+  }
+  return undefined;
+}
+
 /**
  * Analyze survey from JSON (used when SurveyModel is not available).
  */
@@ -146,32 +185,48 @@ export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
 
     // This JSON fallback mirrors common SurveyJS element structures. In the
     // creator tab, live SurveyModel stats overlay these counts.
-    const traverseElements = (elements: any[]) => {
+    const traverseElements = (elements: unknown[]) => {
       if (!Array.isArray(elements)) return;
 
       elements.forEach((element) => {
-        if (element.type === "panel" || element.type === "paneldynamic") {
-          traverseElements(element.elements || element.templateElements);
-          if (element.type === "paneldynamic") {
+        if (!element || typeof element !== "object") {
+          return;
+        }
+        const obj = element as Record<string, unknown>;
+        const type = obj.type;
+        if (type === "panel" || type === "paneldynamic") {
+          if (Array.isArray(obj.elements)) {
+            traverseElements(obj.elements);
+          } else if (Array.isArray(obj.templateElements)) {
+            traverseElements(obj.templateElements);
+          }
+          if (type === "paneldynamic") {
             stats.totalQuestions++;
           }
         } else if (
-          element.type === "matrixdynamic" ||
-          element.type === "matrixdropdown"
+          type === "matrixdynamic" ||
+          type === "matrixdropdown"
         ) {
           stats.totalQuestions++;
-          if (element.columns && Array.isArray(element.columns)) {
-            element.columns.forEach((col: any) => {
-              if (col.cellType === "dropdown" || col.type === "dropdown") {
+          if (Array.isArray(obj.columns)) {
+            obj.columns.forEach((col) => {
+              if (!col || typeof col !== "object") {
+                return;
+              }
+              const colObj = col as Record<string, unknown>;
+              const cellType = colObj.cellType;
+              const colType = colObj.type;
+              if (cellType === "dropdown" || colType === "dropdown") {
                 stats.dropdownCount++;
-                const choicesCount = (col.choices || []).length;
+                const choices = Array.isArray(colObj.choices) ? colObj.choices : [];
+                const choicesCount = choices.length;
                 stats.totalDropdownChoicesCount += choicesCount;
                 stats.maxDropdownChoicesCount = Math.max(
                   stats.maxDropdownChoicesCount,
                   choicesCount,
                 );
-                if (col.choices != null) {
-                  const size = JSON.stringify(col.choices).length;
+                if (colObj.choices != null) {
+                  const size = JSON.stringify(colObj.choices).length;
                   stats.totalChoicesJsonSize += size;
                   stats.maxChoicesJsonSize = Math.max(
                     stats.maxChoicesJsonSize,
@@ -181,12 +236,13 @@ export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
               }
             });
           }
-        } else if (element.type) {
+        } else if (typeof type === "string" && type.length > 0) {
           stats.totalQuestions++;
 
-          if (element.type === "dropdown") {
+          if (type === "dropdown") {
             stats.dropdownCount++;
-            const choicesCount = (element.choices || []).length;
+            const choices = Array.isArray(obj.choices) ? obj.choices : [];
+            const choicesCount = choices.length;
             stats.totalDropdownChoicesCount += choicesCount;
             stats.maxDropdownChoicesCount = Math.max(
               stats.maxDropdownChoicesCount,
@@ -194,20 +250,20 @@ export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
             );
           }
 
-          if (SELECT_BASE_TYPES.has(element.type) && element.choices != null) {
-            const size = JSON.stringify(element.choices).length;
+          if (SELECT_BASE_TYPES.has(type) && obj.choices != null) {
+            const size = JSON.stringify(obj.choices).length;
             stats.totalChoicesJsonSize += size;
             stats.maxChoicesJsonSize = Math.max(stats.maxChoicesJsonSize, size);
           }
 
-          if (element.type === "file") {
+          if (type === "file") {
             stats.fileUploadCount++;
-            if (element.storeDataAsText !== false) {
+            if (obj.storeDataAsText !== false) {
               stats.fileUploadWithoutBlobCount++;
             }
           }
 
-          if (element.type === "scandit") {
+          if (type === "scandit") {
             stats.scanditCount++;
           }
         }
@@ -261,41 +317,109 @@ export function analyzeSurveyModel(
   const questions = survey.getAllQuestions(false, undefined, true);
   partial.totalQuestions = questions.length;
 
+  function countDropdownChoices(question: unknown): void {
+    const q = question as Record<string, unknown>;
+    partial.dropdownCount!++;
+    const choices = q.choices;
+    const count = Array.isArray(choices) ? choices.length : 0;
+    partial.totalDropdownChoicesCount! += count;
+    partial.maxDropdownChoicesCount = Math.max(
+      partial.maxDropdownChoicesCount ?? 0,
+      count,
+    );
+  }
+
+  function measureQuestionChoicesSize(question: unknown): void {
+    const q = question as { jsonObj?: unknown };
+    const qJson = q.jsonObj ?? jsonObj.toJsonObject(question);
+    const choices = (qJson as Record<string, unknown> | undefined)?.choices;
+    measureChoicesSize(choices);
+  }
+
+  function handleMatrixColumnChoices(question: unknown): void {
+    const columns = (question as { columns?: unknown[] }).columns ?? [];
+    for (const col of columns) {
+      const c = col as Record<string, unknown>;
+      const cellType = c.cellType ?? c.type;
+      if (cellType === "dropdown") {
+        partial.dropdownCount!++;
+        const choices = Array.isArray(c.choices) ? c.choices : [];
+        const count = choices.length;
+        partial.totalDropdownChoicesCount! += count;
+        partial.maxDropdownChoicesCount = Math.max(
+          partial.maxDropdownChoicesCount ?? 0,
+          count,
+        );
+        const colJson = (c as { jsonObj?: unknown }).jsonObj ?? jsonObj.toJsonObject(c);
+        measureChoicesSize((colJson as Record<string, unknown> | undefined)?.choices);
+      }
+    }
+  }
+
+  function addImageStatsFromValues(values: string[]): void {
+    for (const s of values) {
+      const r = extractBase64ImagesFromString(s);
+      partial.embeddedImagesCount! += r.count;
+      partial.embeddedImagesSizeBytes! += r.sizeBytes;
+    }
+  }
+
+  function extractImagesFromQuestion(question: unknown): void {
+    addImageStatsFromValues(
+      getAllLocalizedStrings(readLocalizedField(question, "locTitle", "title")),
+    );
+    addImageStatsFromValues(
+      getAllLocalizedStrings(
+        readLocalizedField(question, "locDescription", "description"),
+      ),
+    );
+
+    const qType = (question as { getType: () => string }).getType();
+    if (SELECT_BASE_TYPES.has(qType)) {
+      const choices = (question as { choices?: unknown[] }).choices ?? [];
+      for (const choice of choices) {
+        addImageStatsFromValues(
+          getAllLocalizedStrings(readLocalizedField(choice, "locText", "text")),
+        );
+      }
+    }
+
+    if (qType === "matrixdropdown" || qType === "matrixdynamic") {
+      const columns = (question as { columns?: unknown[] }).columns ?? [];
+      for (const col of columns) {
+        const colChoices = (col as { choices?: unknown[] }).choices ?? [];
+        for (const choice of colChoices) {
+          addImageStatsFromValues(
+            getAllLocalizedStrings(readLocalizedField(choice, "locText", "text")),
+          );
+        }
+      }
+    }
+
+    if (qType === "image") {
+      addImageStatsFromValues([
+        String((question as Record<string, unknown>).imageLink ?? ""),
+      ]);
+    }
+
+    if (qType === "html") {
+      addImageStatsFromValues(
+        getAllLocalizedStrings(readLocalizedField(question, "locHtml", "html")),
+      );
+    }
+  }
+
   for (const q of questions) {
     const qType = q.getType();
 
     if (qType === "dropdown") {
-      partial.dropdownCount!++;
-      const choices = (q as any).choices;
-      const count = Array.isArray(choices) ? choices.length : 0;
-      partial.totalDropdownChoicesCount! += count;
-      partial.maxDropdownChoicesCount = Math.max(
-        partial.maxDropdownChoicesCount ?? 0,
-        count,
-      );
+      countDropdownChoices(q);
     }
     if (SELECT_BASE_TYPES.has(qType)) {
-      const qJson = (q as any).jsonObj ?? jsonObj.toJsonObject(q);
-      const choices = qJson?.choices;
-      measureChoicesSize(choices);
+      measureQuestionChoicesSize(q);
     }
     if (qType === "matrixdropdown" || qType === "matrixdynamic") {
-      const columns = (q as any).columns ?? [];
-      for (const col of columns) {
-        const cellType = (col as any).cellType ?? (col as any).type;
-        if (cellType === "dropdown") {
-          partial.dropdownCount!++;
-          const choices = (col as any).choices ?? [];
-          const count = Array.isArray(choices) ? choices.length : 0;
-          partial.totalDropdownChoicesCount! += count;
-          partial.maxDropdownChoicesCount = Math.max(
-            partial.maxDropdownChoicesCount ?? 0,
-            count,
-          );
-          const colJson = (col as any).jsonObj ?? jsonObj.toJsonObject(col);
-          measureChoicesSize(colJson?.choices);
-        }
-      }
+      handleMatrixColumnChoices(q);
     }
     if (qType === "file") {
       partial.fileUploadCount!++;
@@ -307,83 +431,7 @@ export function analyzeSurveyModel(
       partial.scanditCount!++;
     }
 
-    // Title and description: check all locale variants (e.g. { "es": "...", "default": "..." })
-    const rawTitle =
-      (q as any).locTitle?.values ??
-      (q as any).title ??
-      (q as any).locTitle?.getLocaleText?.();
-    const rawDesc =
-      (q as any).locDescription?.values ??
-      (q as any).description ??
-      (q as any).locDescription?.getLocaleText?.();
-    const titleValues = getAllLocalizedStrings(rawTitle);
-    const descValues = getAllLocalizedStrings(rawDesc);
-    for (const s of titleValues) {
-      const t = extractBase64ImagesFromString(s);
-      partial.embeddedImagesCount! += t.count;
-      partial.embeddedImagesSizeBytes! += t.sizeBytes;
-    }
-    for (const s of descValues) {
-      const d = extractBase64ImagesFromString(s);
-      partial.embeddedImagesCount! += d.count;
-      partial.embeddedImagesSizeBytes! += d.sizeBytes;
-    }
-
-    // Select-base questions: choices[].text can contain embedded images (and can be localized)
-    if (SELECT_BASE_TYPES.has(qType)) {
-      const choices = (q as any).choices ?? [];
-      for (const choice of choices) {
-        const rawText =
-          (choice as any).locText?.values ??
-          (choice as any).text ??
-          (choice as any).locText?.getLocaleText?.();
-        const textValues = getAllLocalizedStrings(rawText);
-        for (const s of textValues) {
-          const c = extractBase64ImagesFromString(s);
-          partial.embeddedImagesCount! += c.count;
-          partial.embeddedImagesSizeBytes! += c.sizeBytes;
-        }
-      }
-    }
-
-    // Matrix columns with choices (e.g. dropdown columns): column.choices[].text
-    if (qType === "matrixdropdown" || qType === "matrixdynamic") {
-      const columns = (q as any).columns ?? [];
-      for (const col of columns) {
-        const colChoices = (col as any).choices ?? [];
-        for (const choice of colChoices) {
-          const rawText =
-            (choice as any).locText?.values ??
-            (choice as any).text ??
-            (choice as any).locText?.getLocaleText?.();
-          const textValues = getAllLocalizedStrings(rawText);
-          for (const s of textValues) {
-            const c = extractBase64ImagesFromString(s);
-            partial.embeddedImagesCount! += c.count;
-            partial.embeddedImagesSizeBytes! += c.sizeBytes;
-          }
-        }
-      }
-    }
-
-    if (qType === "image") {
-      const link = (q as any).imageLink;
-      const img = extractBase64ImagesFromString(link);
-      partial.embeddedImagesCount! += img.count;
-      partial.embeddedImagesSizeBytes! += img.sizeBytes;
-    }
-    if (qType === "html") {
-      const rawHtml =
-        (q as any).locHtml?.values ??
-        (q as any).html ??
-        (q as any).locHtml?.getLocaleText?.();
-      const htmlValues = getAllLocalizedStrings(rawHtml);
-      for (const s of htmlValues) {
-        const h = extractBase64ImagesFromString(s);
-        partial.embeddedImagesCount! += h.count;
-        partial.embeddedImagesSizeBytes! += h.sizeBytes;
-      }
-    }
+    extractImagesFromQuestion(q);
   }
 
   const logoStr = (survey as any).logo;

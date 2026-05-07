@@ -79,20 +79,34 @@ export function useDataLists(): UseDataListsApi {
 }
 
 export function useDataListsLoader() {
-  const [dataLists, setDataLists] = useState<DataList[]>([]);
+  const [dataLists, setDataLists] = useState<DataList[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const requestIdRef = useRef(0);
 
   const loadDataLists = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
+    setError(null);
     try {
       const result = await getDataListsAction();
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       if (!result.success) {
-        console.error("Failed to fetch data lists for creator.");
+        const nextError = new Error(
+          result.error.message || "Failed to fetch data lists for creator.",
+        );
+        setDataLists([]);
+        setError(nextError);
+        console.error(nextError.message);
         return;
       }
       setDataLists(result.data);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -100,5 +114,5 @@ export function useDataListsLoader() {
     void loadDataLists();
   }, [loadDataLists]);
 
-  return { dataLists, isLoading, refetch: loadDataLists };
+  return { dataLists, isLoading, error, refetch: loadDataLists };
 }

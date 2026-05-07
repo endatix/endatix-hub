@@ -13,9 +13,8 @@ import { DATA_LIST_PROPERTY_NAME } from '../constants';
 
 function applyDataListBindingOnQuestion(q: Question, dataListId: string): void {
   q.setPropertyValue(DATA_LIST_PROPERTY_NAME, dataListId);
-  const rec = q as unknown as Record<string, unknown>;
-  rec.choicesLazyLoadEnabled = true;
-  rec.choices = [];
+  q.setPropertyValue('choicesLazyLoadEnabled', true);
+  q.setPropertyValue('choices', []);
 }
 
 function isNameValidationError(message: string): boolean {
@@ -62,8 +61,8 @@ export async function runConvertInlineChoicesToDataList(
   for (;;) {
     const pickedName = confirm
       ? await confirm({ initialName: proposedName, errorMessage: nameError })
-      : window.prompt('Data list name', proposedName);
-    if (pickedName === null) {
+      : globalThis.window?.prompt?.('Data list name', proposedName) ?? null;
+    if (pickedName === null || pickedName === undefined) {
       return;
     }
 

@@ -31,7 +31,7 @@ export function bindConvertInlineChoicesTitleActions(
     _: SurveyCreatorModel,
     options: {
       property?: { name?: string };
-      element: Question | unknown;
+      element: unknown;
       titleActions: Array<{ id?: string }>;
     },
   ) => {

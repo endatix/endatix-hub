@@ -23,7 +23,7 @@ describe("useDataLists hooks", () => {
 
   beforeAll(async () => {
     hooksModule = await loadUseDataListsHook();
-  }, 20000);
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,5 +53,6 @@ describe("useDataLists hooks", () => {
     });
     expect(mockGetDataListsAction).toHaveBeenCalledTimes(1);
     expect(result.current.dataLists).toEqual(dataLists);
+    expect(result.current.error).toBeNull();
   });
 });
