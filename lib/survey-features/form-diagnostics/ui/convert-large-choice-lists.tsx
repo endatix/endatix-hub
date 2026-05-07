@@ -152,11 +152,20 @@ export function ConvertLargeChoiceLists({
   const [createdFormId, setCreatedFormId] = useState<string | null>(null);
 
   const surveyText = model.creator?.text ?? '';
+  const creatorJson = (model.creator as { JSON?: unknown } | undefined)?.JSON;
+
+  const parsedPayload = useMemo(
+    () => parseSurveyPayloadSafely(surveyText, creatorJson),
+    [surveyText, creatorJson],
+  );
 
   const candidates = useMemo(() => {
     const t = Number.isFinite(threshold) && threshold >= 1 ? threshold : 10;
-    return findConvertibleChoiceQuestions(surveyText, t);
-  }, [surveyText, threshold]);
+    if (!parsedPayload.ok) {
+      return [];
+    }
+    return findConvertibleChoiceQuestions(parsedPayload.payload, t);
+  }, [parsedPayload, threshold]);
 
   const totalChoicesToMove = useMemo(
     () => candidates.reduce((acc, c) => acc + c.choiceCount, 0),
@@ -188,10 +197,6 @@ export function ConvertLargeChoiceLists({
       return;
     }
 
-    const parsedPayload = parseSurveyPayloadSafely(
-      surveyText,
-      (model.creator as { JSON?: unknown } | undefined)?.JSON,
-    );
     if (!parsedPayload.ok) {
       setPhase('done');
       setPhaseLabel('Done');
@@ -407,7 +412,7 @@ export function ConvertLargeChoiceLists({
     model.availableDataListNames,
     model.formIsEnabled,
     model.formName,
-    surveyText,
+    parsedPayload,
   ]);
 
   const progressPct =
