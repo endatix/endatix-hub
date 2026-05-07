@@ -37,11 +37,12 @@ function toPlainText(input: string): string {
   return input
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
+    // Decode ampersand last to avoid double-unescaping sequences like &amp;quot;.
+    .replace(/&amp;/gi, '&')
     .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
