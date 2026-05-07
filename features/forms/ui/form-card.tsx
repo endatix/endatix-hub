@@ -11,14 +11,25 @@ import {
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { FilePen, Globe, Link2, List, Lock, MoreVertical, Save } from "lucide-react";
+import {
+  FilePen,
+  Globe,
+  Link2,
+  List,
+  Lock,
+  MoreVertical,
+  Save,
+} from "lucide-react";
 import React, { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MoveFormToFolderMenuItem } from "@/features/folders/move-form-to-folder";
 
 type FormCardProps = React.ComponentProps<typeof Card> & {
   form: Form;
@@ -83,8 +94,8 @@ const FormCard = ({
   return (
     <Card
       className={cn(
-        "group flex h-[230px] min-w-[420px] w-full max-w-full flex-col gap-0 py-0",
-        isSelected ? "bg-accent border-primary" : "",
+        "group flex h-[230px] w-full max-w-full min-w-[420px] flex-col gap-0 py-0",
+        isSelected ? "border-primary bg-accent" : "",
         className,
       )}
       {...props}
@@ -93,7 +104,7 @@ const FormCard = ({
         <CardHeader className="shrink-0 p-4 pt-4 pb-2">
           <CardTitle
             title={form.name}
-            className="line-clamp-2 min-w-0 break-words font-sans text-2xl font-normal leading-snug tracking-tigher"
+            className="tracking-tigher line-clamp-2 min-w-0 font-sans text-2xl leading-snug font-normal break-words"
           >
             {form.name}
           </CardTitle>
@@ -109,13 +120,13 @@ const FormCard = ({
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1">
               <Badge
-                className="text-xs font-normal pointer-events-none"
+                className="pointer-events-none text-xs font-normal"
                 variant={form.isEnabled ? "default" : "secondary"}
               >
                 {getFormLabel()}
               </Badge>
               <Badge
-                className="text-xs font-normal pointer-events-none flex items-center gap-1"
+                className="pointer-events-none flex items-center gap-1 text-xs font-normal"
                 variant={form.isPublic ? "default" : "outline"}
               >
                 {form.isPublic ? (
@@ -137,7 +148,7 @@ const FormCard = ({
           <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-x-3 overflow-x-auto overflow-y-hidden opacity-0 transition-opacity group-hover:opacity-100">
             <Link
               href={{ pathname: `/forms/${form.id}/design` }}
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm leading-none text-muted-foreground hover:text-foreground"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground hover:text-foreground"
             >
               <FilePen className="size-4 shrink-0" />
               Design
@@ -145,7 +156,7 @@ const FormCard = ({
             <Link
               href={`/share/${form.id}`}
               target="_blank"
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm leading-none text-muted-foreground hover:text-foreground"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground hover:text-foreground"
             >
               <Link2 className="size-4 shrink-0" />
               Share Link
@@ -157,7 +168,7 @@ const FormCard = ({
                   : "/",
               }}
               className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm leading-none text-muted-foreground",
+                "inline-flex shrink-0 items-center gap-1.5 text-sm leading-none whitespace-nowrap text-muted-foreground",
                 form?.submissionsCount
                   ? "cursor-pointer hover:text-foreground"
                   : "pointer-events-none cursor-default opacity-50",
@@ -176,12 +187,16 @@ const FormCard = ({
                 <button
                   type="button"
                   className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="size-4" />
                   <span className="sr-only">More options</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={handleOpenSaveAsTemplate}
@@ -189,6 +204,11 @@ const FormCard = ({
                   <Save className="mr-2 h-4 w-4" />
                   Save as Template
                 </DropdownMenuItem>
+                <MoveFormToFolderMenuItem
+                  formId={form.id}
+                  currentFolderId={form.folderId}
+                  onActionHandled={() => setIsDropdownOpen(false)}
+                />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

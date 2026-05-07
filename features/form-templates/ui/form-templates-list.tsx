@@ -16,13 +16,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, FilePlus2, FileText } from "lucide-react";
 import Link from "next/link";
+import { ApiResult } from "@/lib/endatix-api";
 
 type FormTemplatesListProps = {
-  templatesPromise: Promise<FormTemplate[]>;
+  templatesPromise: Promise<ApiResult<FormTemplate[]> | FormTemplate[]>;
 };
 
 const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
-  const templates = use(templatesPromise);
+  const resolvedTemplates = use(templatesPromise);
+  const templatesResult = Array.isArray(resolvedTemplates)
+    ? ApiResult.success(resolvedTemplates)
+    : resolvedTemplates;
+  const errorMessage = ApiResult.isError(templatesResult)
+    ? ApiResult.getErrorMessage(templatesResult) ||
+      "Failed to load form templates."
+    : null;
+  const templates = useMemo(
+    () =>
+      ApiResult.isSuccess(templatesResult) &&
+      Array.isArray(templatesResult.data)
+        ? templatesResult.data
+        : [],
+    [templatesResult],
+  );
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
   );
@@ -63,13 +79,21 @@ const FormTemplatesList = ({ templatesPromise }: FormTemplatesListProps) => {
     }
   };
 
+  if (errorMessage) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        {errorMessage}
+      </div>
+    );
+  }
+
   if (templates.length === 0) {
     return <NoFormTemplates />;
   }
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(420px,1fr))] gap-6">
+      <div className="grid-card-list">
         {templates.map((template) => (
           <FormTemplateCard
             key={template.id}
@@ -106,10 +130,10 @@ const NoFormTemplates = () => {
         <EmptyMedia variant="icon">
           <FileText />
         </EmptyMedia>
-        <EmptyTitle>No form templates yet</EmptyTitle>
+        <EmptyTitle>No unassigned form templates yet</EmptyTitle>
         <EmptyDescription>
-          You haven&apos;t created any form templates yet. Get started by
-          creating your first template.
+          Templates without a folder appear here. Create your first template or
+          move an existing one out of a folder.
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent className="flex flex-row justify-center gap-2">

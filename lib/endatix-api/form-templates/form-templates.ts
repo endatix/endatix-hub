@@ -7,6 +7,7 @@ import type { CreateFormTemplateRequest } from "@/lib/form-types";
 
 export type FormTemplatesListRequest = {
   folderId?: string;
+  filter?: string;
 };
 
 export type PartialUpdateFormTemplateRequest = {
@@ -31,6 +32,9 @@ export class FormTemplates {
   ): Promise<ApiResult<FormTemplate[]>> {
     const params = new URLSearchParams();
     params.set("pageSize", "100");
+    if (request?.filter) {
+      params.set("filter", request.filter);
+    }
     if (request?.folderId) {
       params.set("folderId", request.folderId);
     }

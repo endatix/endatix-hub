@@ -27,6 +27,7 @@ export async function useTemplateAction(
       name: `Form from template: ${template.name}`,
       isEnabled: true,
       formDefinitionJsonData: template.jsonData,
+      folderId: template.folderId ?? undefined,
     });
 
     if (newForm.id?.length > 0) {

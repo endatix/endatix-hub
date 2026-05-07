@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
-import { FolderDeleteButton } from "../../ui/folder-delete-button";
+import { FolderDeleteButton } from "../../delete-folder";
 import { FolderEditButton } from "../../ui/folder-edit-button";
 
 type FolderManagementListCardProps = {

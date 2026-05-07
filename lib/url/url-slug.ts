@@ -9,6 +9,7 @@ const HYPHEN_CHAR = "-";
 
 const RESERVED_SLUGS = new Set(
   [
+    "null",
     "create",
     "templates",
     "new",
@@ -46,7 +47,9 @@ export function normalizeUrlSlug(raw: string): string {
     }
   }
 
-  let collapsed = collapseHyphens(out).replace(/^-+/, EMPTY_STRING).replace(/-+$/, EMPTY_STRING);
+  let collapsed = collapseHyphens(out)
+    .replace(/^-+/, EMPTY_STRING)
+    .replace(/-+$/, EMPTY_STRING);
   collapsed = collapseHyphens(collapsed);
   if (collapsed.length > MAX_URL_SLUG_LENGTH) {
     collapsed = collapsed
