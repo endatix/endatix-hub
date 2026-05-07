@@ -34,15 +34,44 @@ export function resolveLocalizedText(title: unknown): string {
 }
 
 function toPlainText(input: string): string {
+  let withoutTags = '';
+  let inTag = false;
+  for (const ch of input) {
+    if (ch === '<') {
+      inTag = true;
+      withoutTags += ' ';
+      continue;
+    }
+    if (ch === '>') {
+      inTag = false;
+      continue;
+    }
+    if (!inTag) {
+      withoutTags += ch;
+    }
+  }
+
+  const normalizedLineBreaks = withoutTags
+    .replace(/\r?\n/g, ' ')
+    .replace(/\t/g, ' ');
+  return normalizeControlAndWhitespace(
+    decodeCommonHtmlEntities(normalizedLineBreaks),
+  );
+}
+
+function decodeCommonHtmlEntities(input: string): string {
   return input
-    .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     // Decode ampersand last to avoid double-unescaping sequences like &amp;quot;.
-    .replace(/&amp;/gi, '&')
+    .replace(/&amp;/gi, '&');
+}
+
+function normalizeControlAndWhitespace(input: string): string {
+  return input
     .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
