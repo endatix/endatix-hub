@@ -10,7 +10,7 @@ import { auth } from "@/auth";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { CreateFolderDialog } from "@/features/folders/create-folder";
-import { FolderEditButton } from "@/features/folders/update-folder";
+import { FolderEditDialog } from "@/features/folders/update-folder";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -74,7 +74,7 @@ export default async function FormFoldersPage() {
                       {f.slug}
                     </CardDescription>
                   </Link>
-                  {canManage ? <FolderEditButton folder={f} /> : null}
+                  {canManage ? <FolderEditDialog folder={f} /> : null}
                 </div>
               </CardHeader>
             </Card>

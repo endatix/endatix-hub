@@ -15,14 +15,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { createFolderAction } from "@/features/folders/server";
+import { FolderSlugField } from "@/features/folders/ui/folder-slug-field";
+import { resolveFolderSlug } from "@/features/folders/folder-slug-utils";
 import { Result } from "@/lib/result";
-import {
-  isReservedUrlSlug,
-  isValidUrlSlugFormat,
-  normalizeUrlSlug,
-  urlSlugFromDisplayName,
-} from "@/lib/url/url-slug";
-import { FolderPlus, Link2, LockOpen, Pencil, Shield } from "lucide-react";
+import { FolderPlus, LockOpen, Shield } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -71,26 +67,20 @@ export function CreateFolderDialog({
       return;
     }
 
-    const slugCandidate = slug.trim();
-    const normalizedSlug =
-      slugCandidate.length > 0 ? normalizeUrlSlug(slugCandidate) : "";
-    if (slugCandidate.length > 0) {
-      if (!isValidUrlSlugFormat(normalizedSlug)) {
-        toast.error(
-          "Slug must use lowercase letters, numbers, and hyphens only; cannot start or end with a hyphen.",
-        );
-        return;
-      }
-      if (isReservedUrlSlug(normalizedSlug)) {
-        toast.error("This slug is reserved. Choose another.");
-        return;
-      }
+    const resolvedSlug = resolveFolderSlug({
+      name: trimmedName,
+      slugInput: slug,
+      allowEmpty: true,
+    });
+    if (resolvedSlug.error) {
+      toast.error(resolvedSlug.error);
+      return;
     }
 
     startTransition(async () => {
       const result = await createFolderAction({
         name: trimmedName,
-        slug: normalizedSlug || null,
+        slug: resolvedSlug.value || null,
         description: description.trim() || null,
         immutable: immutable || undefined,
       });
@@ -138,43 +128,17 @@ export function CreateFolderDialog({
               autoComplete="off"
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="folder-slug-view">URL slug</Label>
-            <div className="flex items-center gap-2">
-              {slugEditable ? (
-                <Input
-                  id="folder-slug"
-                  value={slug}
-                  onChange={(event) => setSlug(event.target.value)}
-                  placeholder="Leave empty to derive from name"
-                  autoComplete="off"
-                  className="font-mono"
-                />
-              ) : (
-                <div
-                  id="folder-slug-view"
-                  className="flex min-h-10 flex-1 items-center gap-2 rounded-lg border border-border/50 bg-muted/40 px-3 text-sm"
-                >
-                  <Link2 className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate font-mono text-xs sm:text-sm">
-                    {slug.trim()
-                      ? normalizeUrlSlug(slug.trim())
-                      : urlSlugFromDisplayName(name.trim()) ||
-                        "(derived from name)"}
-                  </span>
-                </div>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setSlugEditable((previous) => !previous)}
-                aria-label={slugEditable ? "Hide slug editor" : "Edit slug"}
-              >
-                <Pencil className="size-4" />
-              </Button>
-            </div>
-          </div>
+          <FolderSlugField
+            labelId="folder-create-slug-label"
+            inputId="folder-slug"
+            previewId="folder-slug-view"
+            slug={slug}
+            name={name}
+            slugEditable={slugEditable}
+            onSlugChange={setSlug}
+            onSlugEditableChange={setSlugEditable}
+            placeholder="Leave empty to derive from name"
+          />
           <div className="flex flex-col gap-2">
             <Label htmlFor="folder-description">Description (optional)</Label>
             <Textarea

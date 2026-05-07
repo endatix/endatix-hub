@@ -29,14 +29,10 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
 import { moveTemplateToFolderAction } from "@/features/folders/move-template-to-folder";
+import type { Folder } from "@/lib/endatix-api/folders/types";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import type { Form, FormTemplate } from "@/types";
-import type { Route } from "next";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import type { Folder } from "@/lib/endatix-api/folders/types";
 import {
   ClipboardList,
   Folder as FolderIcon,
@@ -44,6 +40,10 @@ import {
   LayoutTemplate,
   MoreVertical,
 } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 type FolderDetailsViewProps = {
   folder: Folder;

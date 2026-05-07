@@ -22,7 +22,7 @@ import {
 import Link from "next/link";
 import type { Route } from "next";
 import { FolderDeleteButton } from "../../delete-folder";
-import { FolderEditButton } from "../../ui/folder-edit-button";
+import { FolderEditDialog } from "../../update-folder";
 
 type FolderManagementListCardProps = {
   folder: Folder;
@@ -72,7 +72,7 @@ export function FolderManagementListCard({
             <div className="flex items-center gap-1">
               {canManage ? (
                 <>
-                  <FolderEditButton
+                  <FolderEditDialog
                     folder={folder}
                     redirectToFolderSlugBase={null}
                   />
