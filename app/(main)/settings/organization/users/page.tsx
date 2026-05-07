@@ -6,6 +6,7 @@ import { UsersTable } from "@/features/organization/view-users/ui/users-table";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Session } from "next-auth";
+import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 
 async function getUsersPromise(
   session: Session | null = null,
@@ -36,8 +37,14 @@ function UsersTableSkeleton() {
 
 export default async function SettingsOrganizationUsersPage() {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
+
+  const canManageUsers = (await checkPermission(Permissions.Tenant.ManageUsers))
+    .success;
+  if (!canManageUsers) {
+    return <UnauthorizedComponent variant="card" />;
+  }
 
   const usersPromise = getUsersPromise(session);
   const currentUserId = session?.user?.id;

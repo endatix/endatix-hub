@@ -1,6 +1,9 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { mergeTopLevelNavWithFolderForms } from "@/features/form-folders/lib/merge-forms-sidebar-nav";
+import { listFoldersAction } from "@/features/form-folders/server";
+import { Result } from "@/lib/result";
 import { ChevronsUpDown } from "lucide-react";
 import { SitemapService } from "@/services/sitemap-service";
 import UserAvatar from "@/components/user/user-avatar";
@@ -21,15 +24,60 @@ import {
 } from "@/components/ui/sidebar";
 import { getCurrentUserInfo } from "@/features/users/user-utils";
 import { SidebarNavItem } from "./sidebar-nav-item";
+import type { INavItem } from "@/types/navigation-models";
+import { useEffect, useState } from "react";
 
-const SidebarNav = () => {
-  const { data: session } = useSession();
+type SidebarFolder = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type SidebarNavProps = {
+  initialFolders?: SidebarFolder[];
+};
+
+const SidebarNav = ({ initialFolders }: Readonly<SidebarNavProps>) => {
+  const { data: session, status } = useSession();
   const { state } = useSidebar();
   const isSidebarCollapsed = state === "collapsed";
-  const mainNavItems = SitemapService.getTopLevelSitemap();
+  const [mainNavItems, setMainNavItems] = useState<INavItem[]>(() => {
+    const base = SitemapService.getTopLevelSitemap();
+    return initialFolders && initialFolders.length > 0
+      ? mergeTopLevelNavWithFolderForms(base, initialFolders)
+      : base;
+  });
   const secondaryNavItems = SitemapService.getSecondarySitemap();
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
+
+  useEffect(() => {
+    if (initialFolders) {
+      return;
+    }
+
+    if (status !== "authenticated" || !session) {
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const result = await listFoldersAction();
+      if (cancelled) {
+        return;
+      }
+      const base = SitemapService.getTopLevelSitemap();
+      if (!Result.isSuccess(result)) {
+        setMainNavItems(base);
+        return;
+      }
+      setMainNavItems(mergeTopLevelNavWithFolderForms(base, result.value));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, session, initialFolders]);
 
   return (
     <Sidebar collapsible="icon">

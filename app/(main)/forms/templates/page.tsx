@@ -2,30 +2,62 @@ import PageTitle from "@/components/headings/page-title";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
-import { getFormTemplates } from "@/services/api";
+import { FolderNavigationCards } from "@/features/form-folders/ui/folder-navigation-cards";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { getFormsHeaderDataCached } from "@/features/form-folders/application/get-forms-header-data";
+import { EndatixApi } from "@/lib/endatix-api";
 
 export default async function FormTemplatesPage() {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
+  const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
+
   return (
     <>
       <PageTitle title="Form Templates" className="mt-2 mb-4" />
+      <Suspense fallback={<FolderCardsSkeleton />}>
+        <TemplatesFoldersSection headerDataPromise={headerDataPromise} />
+      </Suspense>
       <div className="flex flex-1 flex-col">
         <Suspense fallback={<FormTemplatesSkeleton />}>
-          <FormTemplatesContent />
+          <FormTemplatesContent accessToken={session?.accessToken} />
         </Suspense>
       </div>
     </>
   );
 }
 
-function FormTemplatesContent() {
-  const templatesPromise = getFormTemplates();
+async function TemplatesFoldersSection({
+  headerDataPromise,
+}: Readonly<{
+  headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
+}>) {
+  const headerData = await headerDataPromise;
+  if (headerData.folders.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mb-6">
+      <FolderNavigationCards
+        folders={headerData.folders}
+        targetBasePath="/forms/templates/folders"
+      />
+    </div>
+  );
+}
+
+async function FormTemplatesContent({
+  accessToken,
+}: Readonly<{ accessToken: string | undefined }>) {
+  const templatesPromise = (async () => {
+    const api = new EndatixApi(accessToken);
+    return api.formTemplates.list();
+  })();
 
   return (
     <AssetStorageProvider>
@@ -46,6 +78,16 @@ function FormTemplatesSkeleton() {
             <Skeleton className="h-4 w-[200px]" />
           </div>
         </div>
+      ))}
+    </div>
+  );
+}
+
+function FolderCardsSkeleton() {
+  return (
+    <div className="grid-card-list mb-6">
+      {Array.from({ length: 3 }, (_, index) => (
+        <Skeleton key={index} className="h-14 rounded-xl" />
       ))}
     </div>
   );
