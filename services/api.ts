@@ -3,8 +3,6 @@ import { SubmissionData } from "@/features/submissions/types";
 import { Submission } from "@/lib/endatix-api";
 import {
   CreateFormRequest,
-  CreateFormTemplateRequest,
-  CreateFormTemplateResult,
 } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import {
@@ -382,49 +380,6 @@ export const deleteTheme = async (themeId: string): Promise<string> => {
   }
 
   return response.text();
-};
-
-export const createFormTemplate = async (
-  formTemplateRequest: CreateFormTemplateRequest,
-): Promise<CreateFormTemplateResult> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const response = await fetch(`${API_BASE_URL}/form-templates`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(formTemplateRequest),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to create form template");
-  }
-
-  const result = await response.json();
-  return {
-    isSuccess: response.ok,
-    error: response.statusText,
-    formTemplateId: result.id,
-  };
-};
-
-export const getFormTemplates = async (): Promise<FormTemplate[]> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder().withAuth(session).build();
-
-  const response = await fetch(`${API_BASE_URL}/form-templates`, {
-    headers: headers,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch form templates");
-  }
-
-  return response.json();
 };
 
 export const getFormTemplate = async (
