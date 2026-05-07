@@ -1,7 +1,7 @@
 import PageTitle from "@/components/headings/page-title";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import FormsList from "@/features/forms/ui/forms-list";
-import { FolderNavigationCards } from "@/features/form-folders/ui/folder-navigation-cards";
+import { FolderNavigationCards } from "@/features/folders/ui/folder-navigation-cards";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/auth";
@@ -10,7 +10,7 @@ import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
-import { getFormsHeaderDataCached } from "@/features/form-folders/application/get-forms-header-data";
+import { getFormsHeaderDataCached } from "@/features/folders/application/get-forms-header-data";
 import {
   Empty,
   EmptyContent,

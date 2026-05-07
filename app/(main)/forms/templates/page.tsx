@@ -2,11 +2,11 @@ import PageTitle from "@/components/headings/page-title";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
-import { FolderNavigationCards } from "@/features/form-folders/ui/folder-navigation-cards";
+import { FolderNavigationCards } from "@/features/folders/ui/folder-navigation-cards";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
-import { getFormsHeaderDataCached } from "@/features/form-folders/application/get-forms-header-data";
+import { getFormsHeaderDataCached } from "@/features/folders/application/get-forms-header-data";
 import { EndatixApi } from "@/lib/endatix-api";
 
 export default async function FormTemplatesPage() {

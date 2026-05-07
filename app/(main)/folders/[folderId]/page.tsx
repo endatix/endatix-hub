@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { getFolderManagementDetailCached } from "@/features/form-folders/application/get-folder-management-detail";
-import { FolderDetailsView } from "@/features/form-folders/ui/folder-details-view";
+import { getFolderManagementDetailCached } from "@/features/folders/application/get-folder-management-detail";
+import { FolderDetailsView } from "@/features/folders/ui/folder-details-view";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { notFound, redirect } from "next/navigation";
 

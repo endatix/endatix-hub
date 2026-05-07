@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { FormsBreadcrumbItem } from "@/features/form-folders/application/build-forms-breadcrumb-model";
+import type { FormsBreadcrumbItem } from "@/features/folders/application/build-forms-breadcrumb-model";
 import { ChevronDownIcon } from "lucide-react";
 
 type FormsBreadcrumbNavProps = {
