@@ -21,11 +21,13 @@ import { useRouter } from "next/navigation";
 type FolderNavigationCardsProps = {
   folders: Folder[];
   targetBasePath: "/forms/folders" | "/forms/templates/folders";
+  canManage?: boolean;
 };
 
 export function FolderNavigationCards({
   folders,
   targetBasePath,
+  canManage = false,
 }: Readonly<FolderNavigationCardsProps>) {
   const router = useRouter();
 
@@ -66,43 +68,34 @@ export function FolderNavigationCards({
                 {folder.name}
               </span>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            {canManage ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Folder actions for ${folder.name}`}
+                  >
+                    <MoreVertical className="size-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
                   onClick={(e) => e.stopPropagation()}
-                  aria-label={`Folder actions for ${folder.name}`}
                 >
-                  <MoreVertical className="size-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push("/folders" as Route);
-                  }}
-                >
-                  <Pencil className="mr-2 size-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(
-                      `${targetBasePath}/${encodeURIComponent(folder.slug)}` as Route,
-                    );
-                  }}
-                >
-                  <Search className="mr-2 size-4" />
-                  View details
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push("/folders" as Route);
+                    }}
+                  >
+                    <Pencil className="mr-2 size-4" />
+                    Edit
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </CardContent>
         </Card>
       ))}

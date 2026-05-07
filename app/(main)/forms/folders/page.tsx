@@ -1,18 +1,10 @@
 import PageTitle from "@/components/headings/page-title";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { auth } from "@/auth";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { CreateFolderDialog } from "@/features/folders/create-folder";
-import { FolderEditDialog } from "@/features/folders/update-folder";
+import { FolderNavigationCards } from "@/features/folders/list-folders";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Empty,
@@ -57,29 +49,11 @@ export default async function FormFoldersPage() {
       {folders.length === 0 ? (
         <NoFormFoldersEmptyState canManage={canManage} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {folders.map((f) => (
-            <Card
-              key={f.id}
-              className="h-full transition-colors hover:bg-muted/50"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <Link
-                    href={`/forms/folders/${encodeURIComponent(f.slug)}`}
-                    className="min-w-0 flex-1"
-                  >
-                    <CardTitle className="text-lg">{f.name}</CardTitle>
-                    <CardDescription className="mt-1 font-mono text-xs">
-                      {f.slug}
-                    </CardDescription>
-                  </Link>
-                  {canManage ? <FolderEditDialog folder={f} /> : null}
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
+        <FolderNavigationCards
+          folders={folders}
+          targetBasePath="/forms/folders"
+          canManage={canManage}
+        />
       )}
     </>
   );

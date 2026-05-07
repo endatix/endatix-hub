@@ -18,7 +18,7 @@ import { createFolderAction } from "@/features/folders/server";
 import { FolderSlugField } from "@/features/folders/ui/folder-slug-field";
 import { resolveFolderSlug } from "@/features/folders/folder-slug-utils";
 import { Result } from "@/lib/result";
-import { FolderPlus, LockOpen, Shield } from "lucide-react";
+import { FolderPlus, LockOpen } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -44,7 +44,6 @@ export function CreateFolderDialog({
   const [slug, setSlug] = useState("");
   const [slugEditable, setSlugEditable] = useState(false);
   const [description, setDescription] = useState("");
-  const [immutable, setImmutable] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -82,7 +81,6 @@ export function CreateFolderDialog({
         name: trimmedName,
         slug: resolvedSlug.value || null,
         description: description.trim() || null,
-        immutable: immutable || undefined,
       });
       if (Result.isError(result)) {
         toast.error(result.message);
@@ -94,7 +92,6 @@ export function CreateFolderDialog({
       setSlug("");
       setSlugEditable(false);
       setDescription("");
-      setImmutable(false);
       if (replacePathOnClose) {
         router.replace(replacePathOnClose);
       }
@@ -152,25 +149,6 @@ export function CreateFolderDialog({
             <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
               Security & permissions
             </p>
-            <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Shield className="size-4 text-primary" />
-                    <Label htmlFor="folder-immutable-create">Immutable</Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Protect folder assignments. Items cannot be moved unless
-                    this is toggled off.
-                  </p>
-                </div>
-                <Switch
-                  id="folder-immutable-create"
-                  checked={immutable}
-                  onCheckedChange={setImmutable}
-                />
-              </div>
-            </div>
             <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">

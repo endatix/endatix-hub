@@ -7,8 +7,8 @@ import type { CSSProperties } from "react";
 import { JsonErrorAnnotation } from "../types";
 
 const DEFAULT_STYLE: CSSProperties = {
-  height: "250px",
-  minHeight: "250px",
+  height: "180px",
+  minHeight: "180px",
 };
 
 const ACE_DARK_THEME = "ace/theme/clouds_midnight";
@@ -73,8 +73,8 @@ export function JsonEditor({
       editor.session.setUseWorker(false);
 
       editor.setOptions({
-        minLines: 10,
-        maxLines: 20,
+        minLines: 6,
+        maxLines: 12,
         showGutter: true,
         showPrintMargin: false,
         showLineNumbers: false,
@@ -89,7 +89,7 @@ export function JsonEditor({
           "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
       });
 
-      container.style.height = "250px";
+      container.style.height = "180px";
       container.style.width = "100%";
 
       editor.setTheme(activeAceTheme);

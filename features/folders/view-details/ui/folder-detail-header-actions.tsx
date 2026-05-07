@@ -19,12 +19,12 @@ export function FolderDetailHeaderActions({
 }: Readonly<FolderDetailHeaderActionsProps>) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const isLocked = folder.locked ?? folder.immutable;
+  const isLocked = folder.immutable;
 
   const onToggleLock = () => {
     startTransition(async () => {
       const result = await updateFolderAction(folder.id, {
-        locked: !isLocked,
+        immutable: !isLocked,
       });
       if (Result.isError(result)) {
         toast.error(result.message);

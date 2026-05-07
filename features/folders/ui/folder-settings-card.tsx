@@ -48,7 +48,6 @@ import {
   urlSlugFromDisplayName,
   isReservedUrlSlug,
   isValidUrlSlugFormat,
-  normalizeUrlSlug,
 } from "@/lib/url/url-slug";
 import { Result } from "@/lib/result";
 import type { Form, FormTemplate } from "@/types";
@@ -107,9 +106,6 @@ export function FolderSettingsCard({
   const [description, setDescription] = useState(folder.description ?? "");
   const [editActive, setEditActive] = useState(folder.isActive);
   const [editImmutable, setEditImmutable] = useState(folder.immutable);
-  const [editLocked, setEditLocked] = useState(
-    folder.locked ?? folder.immutable,
-  );
   const [slugEditable, setSlugEditable] = useState(false);
 
   const openEdit = () => {
@@ -118,7 +114,6 @@ export function FolderSettingsCard({
     setDescription(folder.description ?? "");
     setEditActive(folder.isActive);
     setEditImmutable(folder.immutable);
-    setEditLocked(folder.locked ?? folder.immutable);
     setSlugEditable(false);
     setEditOpen(true);
   };
@@ -185,7 +180,6 @@ export function FolderSettingsCard({
         description: description.trim() || null,
         isActive: editActive,
         immutable: editImmutable,
-        locked: editLocked,
       });
       if (Result.isError(result)) {
         toast.error(result.message);
@@ -463,7 +457,7 @@ export function FolderSettingsCard({
                   setName(e.target.value);
                 }}
                 autoComplete="off"
-                disabled={editLocked}
+                disabled={editImmutable}
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -480,7 +474,7 @@ export function FolderSettingsCard({
                     }}
                     autoComplete="off"
                     className="font-mono"
-                    disabled={editLocked}
+                    disabled={editImmutable}
                   />
                 ) : (
                   <div
@@ -490,7 +484,7 @@ export function FolderSettingsCard({
                     <Link2 className="size-4 shrink-0 text-muted-foreground" />
                     <span className="truncate font-mono text-xs sm:text-sm">
                       {slug.trim()
-                        ? normalizeUrlSlug(slug.trim())
+                        ? slug.trim()
                         : urlSlugFromDisplayName(name.trim()) ||
                           "(derived from name)"}
                     </span>
@@ -502,7 +496,7 @@ export function FolderSettingsCard({
                   size="icon"
                   onClick={() => setSlugEditable((prev) => !prev)}
                   aria-label={slugEditable ? "Hide slug editor" : "Edit slug"}
-                  disabled={editLocked}
+                  disabled={editImmutable}
                 >
                   <Pencil className="size-4" />
                 </Button>
@@ -519,7 +513,7 @@ export function FolderSettingsCard({
                   setDescription(e.target.value);
                 }}
                 rows={3}
-                disabled={editLocked}
+                disabled={editImmutable}
               />
             </div>
             <div className="space-y-3">
@@ -548,7 +542,7 @@ export function FolderSettingsCard({
               </div>
               <div
                 className={
-                  editLocked
+                  editImmutable
                     ? "rounded-lg border border-destructive/30 bg-destructive/10 p-3"
                     : "rounded-lg border border-border/50 bg-muted/30 p-3"
                 }
@@ -556,28 +550,28 @@ export function FolderSettingsCard({
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      {editLocked ? (
+                      {editImmutable ? (
                         <Lock className="size-4 text-destructive" />
                       ) : (
                         <LockOpen className="size-4 text-muted-foreground" />
                       )}
                       <Label
                         htmlFor={`settings-folder-lock-${folder.id}`}
-                        className={editLocked ? "text-destructive" : ""}
+                        className={editImmutable ? "text-destructive" : ""}
                       >
-                        {editLocked ? "Locked" : "Unlocked"}
+                        {editImmutable ? "Locked" : "Unlocked"}
                       </Label>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {editLocked
+                      {editImmutable
                         ? "Prevents editing name, slug, and description."
                         : "Allows editing name, slug, and description."}
                     </p>
                   </div>
                   <Switch
                     id={`settings-folder-lock-${folder.id}`}
-                    checked={editLocked}
-                    onCheckedChange={setEditLocked}
+                    checked={editImmutable}
+                    onCheckedChange={setEditImmutable}
                   />
                 </div>
               </div>
