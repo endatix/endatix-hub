@@ -1,0 +1,43 @@
+import "@/app/globals.css";
+import { AppProvider } from "@/components/providers";
+import { geistMono, geistSans } from "@/lib/fonts/geist-local";
+import { getOsClass } from "@/lib/utils/next-utils";
+import { Metadata } from "next";
+import { headers } from "next/headers";
+
+const appOptions = {
+  enableTheme: true,
+  enableAnalytics: false,
+  enableSession: false,
+  enableToaster: false,
+  enableSidebar: false,
+};
+
+export const metadata: Metadata = {
+  title: "Endatix",
+  description: "Customizable form management platform",
+};
+
+export default async function PublicLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const requestHeaders = await headers();
+  const osClass = getOsClass(requestHeaders);
+
+  return (
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${osClass}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+      </head>
+      <body>
+        <AppProvider options={appOptions}>{children}</AppProvider>
+      </body>
+    </html>
+  );
+}

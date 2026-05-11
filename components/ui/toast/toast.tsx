@@ -97,6 +97,7 @@ function Toast({
   const remainingTimeRef = React.useRef(duration ?? DEFAULT_DURATION);
   const UPDATE_TIME_INTERVAL = 50;
   const buttonProps = action ? { ...action } : {};
+  const hasDetailRow = Boolean(description || action);
 
   const handleDismiss = useCallback(() => {
     setTimeout(() => {
@@ -143,39 +144,49 @@ function Toast({
 
   return (
     <div
-      className="flex flex-col w-full min-w-[356px] md:max-w-[364px] gap-0 justify-between items-center rounded-lg bg-card shadow-lg ring-1 ring-black/5 relative overflow-hidden"
+      className="relative flex w-full min-w-[356px] flex-col items-center justify-between gap-0 overflow-hidden rounded-lg bg-card shadow-lg ring-1 ring-black/5 md:max-w-[364px]"
       onMouseEnter={handlePause}
       onMouseLeave={handleResume}
     >
-      <div className="flex flex-row justify-between w-full p-4 gap-2">
-        {includeIcon && (
-          <ToastIcon
-            variant={variant}
-            SvgIcon={SvgIcon}
-            includeIcon={includeIcon}
-          />
-        )}
-        <div className="flex flex-col justify-start w-full">
-          <div className="text-sm font-medium">{title}</div>
-          {description && (
-            <div className="text-sm text-muted-foreground">{description}</div>
+      <div className="w-full p-4">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+          {includeIcon ? (
+            <div className="self-center">
+              <ToastIcon
+                variant={variant}
+                SvgIcon={SvgIcon}
+                includeIcon={includeIcon}
+              />
+            </div>
+          ) : (
+            <span />
+          )}
+          <div>
+            <div className="text-sm font-medium">{title}</div>
+            {hasDetailRow && description ? (
+              <div className="mt-1 text-sm text-muted-foreground">
+                {description}
+              </div>
+            ) : null}
+          </div>
+          {action ? (
+            <div className="flex items-center text-sm">
+              <Button
+                size="sm"
+                variant="outline"
+                {...buttonProps}
+                onClick={() => {
+                  action.onClick();
+                  handleDismiss();
+                }}
+              >
+                {action.label}
+              </Button>
+            </div>
+          ) : (
+            <span />
           )}
         </div>
-        {action && (
-          <div className="flex ml-5 items-center text-sm">
-            <Button
-              size="sm"
-              variant="outline"
-              {...buttonProps}
-              onClick={() => {
-                action.onClick();
-                handleDismiss();
-              }}
-            >
-              {action.label}
-            </Button>
-          </div>
-        )}
       </div>
       {progressBar !== "none" && (
         <ToastProgress

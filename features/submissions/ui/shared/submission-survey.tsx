@@ -7,7 +7,7 @@ import addRandomizeGroupFeature from "@/lib/questions/features/group-randomizati
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import type { Model } from "survey-core";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import {
   DynamicPanelItemValueChangedEvent,
   MatrixCellValueChangedEvent,
@@ -47,10 +47,14 @@ function SubmissionSurvey({
     readOnly,
     onModelCreated,
   );
+  const getSubmissionId = useCallback(() => {
+    return submission.id;
+  }, [submission.id]);
+
   const { registerStorageHandlers, isStorageReady } = useStorageWithSurvey({
     model: model,
     formId: submission.formId,
-    submissionId: submission.id,
+    getSubmissionId,
   });
   useRichText(model);
   useLoopAwareSummaryTable(model);

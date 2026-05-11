@@ -1,5 +1,6 @@
 import type { Model } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
+import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 
 /**
  * Extension type. Defines the type of the extension.
@@ -42,17 +43,17 @@ interface ExtensionDefinitionBase {
 
 /**
  * Static extension definition.
- * Use for always-on lightweight bootstrap registrations.
+ * Use for always-on lightweight initialization registrations.
  */
 export interface StaticExtensionDefinition extends ExtensionDefinitionBase {
   loading: "static";
 
   /**
-   * Synchronous bootstrap function for static extension loading.
+   * Eager extension module for static loading.
    * @example
-   * bootstrap: () => { registerExpressionFormatting(); }
+   * module: { onInit: () => { registerExpressionFormatting(); } }
    */
-  bootstrap: () => void;
+  module: ExtensionModule;
 }
 
 /**
@@ -88,10 +89,17 @@ export interface ExtensionModule {
   onInit?: () => void;
 
   /** For SurveyJS Model-type extensions: called when the model is ready */
-  onModelReady?: (model: Model) => void;
+  onModelReady?: (model: Model, deps: ExtensionRuntimeDeps) => void;
 
   /** For SurveyJS Creator-type extensions: called when the creator is ready */
-  onCreatorReady?: (creator: SurveyCreatorModel) => void;
+  onCreatorReady?: (
+    creator: SurveyCreatorModel,
+    deps: ExtensionRuntimeDeps,
+  ) => void;
+}
+
+export interface ExtensionRuntimeDeps {
+  getRuntimeState: () => FormRuntimeState;
 }
 
 export type { ExtensionDefinition as Extension };

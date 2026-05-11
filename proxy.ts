@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import { isMaintenanceMode } from "@/lib/maintenance/maintenance-config";
+import { rewriteToMaintenance } from "@/lib/maintenance/maintenance-response";
 import { toSafeRelativeUrl } from "@/lib/utils/url-utils";
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -32,6 +34,10 @@ export function shouldRedirectToLogin(
 }
 
 export default async function proxy(request: NextRequest) {
+  if (isMaintenanceMode()) {
+    return rewriteToMaintenance(request);
+  }
+
   const session = await auth();
   const pathname = request.nextUrl.pathname;
 
@@ -46,20 +52,22 @@ export default async function proxy(request: NextRequest) {
  * Match all request paths except for the ones starting with:
  * - api (API routes)
  * - .swa (Azure static web apps)
+ * - ingest (PostHog proxy)
+ * - maintenance — the maintenance page (must bypass rewrite loop / auth)
+ * - share — the public share page
+ * - slack — the Slack integration page
+ * - assets — all files and folders served from the public folder
  * - _next/static (static files)
  * - _next/image (image optimization files)
  * - favicon.ico, sitemap.xml, robots.txt (metadata files)
- * - assets - all files and folders served from the public folder
- * - login - the login page
- * - create-account - the create account page
- * - ingest - the ingest proxy route for PostHog
- * - Note the the `missing: [{ type: 'header', key: 'next-action' }]` is to exclude server-actions
+ * - .well-known (ACME, security.txt, etc.)
+ * Note: `missing: [{ type: 'header', key: 'next-action' }]` excludes Server Actions.
  */
 export const config = {
   matcher: [
     {
       source:
-        "/((?!api|.swa|ingest|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.well-known).*)",
+        "/((?!api|.swa|ingest|maintenance|share|slack|assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.well-known).*)",
       missing: [{ type: "header", key: "next-action" }],
     },
   ],

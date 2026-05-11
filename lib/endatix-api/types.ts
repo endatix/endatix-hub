@@ -84,7 +84,7 @@ export type {
   ApiEntity,
   ITenantOwned,
   PaginationQuery,
-  PaginatedResponse,
+  PagedResponse,
   BaseRequestOptions,
   FileUploadOptions,
   StatusResponse,

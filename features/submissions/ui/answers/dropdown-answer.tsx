@@ -7,29 +7,51 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Minus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { QuestionDropdownModel } from "survey-core";
 
 interface DropdownAnswerProps {
   question: QuestionDropdownModel;
   className?: string;
 }
-const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
-  const text = (() => {
-    const selectedItem = question.selectedItem;
-    if (selectedItem?.text) {
-      return selectedItem.text;
-    }
-    return String(question.value ?? "");
-  })();
 
-  if (question && question.value) {
+function resolveDisplayText(question: QuestionDropdownModel): string {
+  const selectedValue = question.value;
+  const selectedItem = question.selectedItem;
+  if (selectedItem?.text) {
+    return selectedItem.text;
+  }
+
+  return String(selectedValue ?? "");
+}
+
+const DropdownAnswer = ({ question, className }: DropdownAnswerProps) => {
+  const [displayText, setDisplayText] = useState(() =>
+    resolveDisplayText(question),
+  );
+
+  useEffect(() => {
+    const syncDisplayText = () => {
+      setDisplayText(resolveDisplayText(question));
+    };
+
+    question.onItemValuePropertyChanged.add(syncDisplayText);
+
+    return () => {
+      question.onItemValuePropertyChanged.remove(syncDisplayText);
+    };
+  }, [question]);
+
+  const selectedValue = question.value;
+
+  if (question && selectedValue) {
     return (
       <Select disabled>
-        <SelectTrigger className={cn("min-w-[180px] w-auto", className)}>
-          <SelectValue placeholder={text} />
+        <SelectTrigger className={cn("w-auto min-w-[180px]", className)}>
+          <SelectValue placeholder={displayText} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={String(question.value)}>{text}</SelectItem>
+          <SelectItem value={String(selectedValue)}>{displayText}</SelectItem>
         </SelectContent>
       </Select>
     );

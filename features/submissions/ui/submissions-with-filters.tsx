@@ -37,7 +37,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import SubmissionsTable from "./submissions-table";
+import SubmissionsTable from "@/features/submissions/ui/submissions-table";
 
 interface SubmissionsWithFiltersProps {
   data: Submission[];

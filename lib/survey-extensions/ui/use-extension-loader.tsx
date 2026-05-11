@@ -4,7 +4,11 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { ReactElementFactory } from "survey-react-ui";
 import type { Model } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
-import type { ExtensionDefinition, ExtensionModule } from "../types";
+import type {
+  ExtensionDefinition,
+  ExtensionModule,
+  ExtensionRuntimeDeps,
+} from "../types";
 
 // Global state stays outside to persist across renders/mounts
 const loadedModules = new Map<string, ExtensionModule>();
@@ -16,11 +20,11 @@ function getLoadingMode(extension: ExtensionDefinition): "static" | "dynamic" {
   return extension.loading;
 }
 
-function getBootstrap(
+function getStaticModule(
   extension: ExtensionDefinition,
-): (() => void) | undefined {
+): ExtensionModule | undefined {
   if (extension.loading === "static") {
-    return extension.bootstrap;
+    return extension.module;
   }
 
   return undefined;
@@ -36,6 +40,31 @@ function getLoader(
   return undefined;
 }
 
+function registerLoadedModule(
+  extension: ExtensionDefinition,
+  mod: ExtensionModule,
+): ExtensionModule {
+  const ExtensionComponent = mod.Component;
+  if (ExtensionComponent && extension.metadata) {
+    ReactElementFactory.Instance.registerElement(
+      extension.metadata.name,
+      (props) => <ExtensionComponent {...props} key={extension.id} />,
+    );
+  }
+
+  loadedModules.set(extension.id, mod);
+  return mod;
+}
+
+function initializeModule(
+  extension: ExtensionDefinition,
+  mod: ExtensionModule,
+): ExtensionModule {
+  mod.onInit?.();
+  console.debug(`✓ [ExtensionLoader] Initialized extension: ${extension.id}`);
+  return registerLoadedModule(extension, mod);
+}
+
 function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
   extensions.forEach((extension) => {
     if (getLoadingMode(extension) !== "static") {
@@ -46,17 +75,14 @@ function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
       return;
     }
 
-    const bootstrap = getBootstrap(extension);
-    if (!bootstrap) {
+    const mod = getStaticModule(extension);
+    if (!mod) {
       return;
     }
 
     try {
-      bootstrap();
+      initializeModule(extension, mod);
       initializedExtensionIds.add(extension.id);
-      console.debug(
-        `✓ [ExtensionLoader] Initialized extension: ${extension.id}`,
-      );
     } catch (error) {
       console.error(`✗ [ExtensionLoader] Error: ${extension.id}`, error);
     }
@@ -66,6 +92,7 @@ function initializeStaticExtensions(extensions: ExtensionDefinition[]) {
 export interface UseExtensionLoaderOptions {
   allExtensions: ReadonlyArray<ExtensionDefinition>;
   extensionIdsToLoad: string[];
+  runtimeDeps: ExtensionRuntimeDeps;
 }
 
 /**
@@ -90,20 +117,7 @@ async function loadSingleExtension(ext: ExtensionDefinition) {
       if (!mod) {
         return undefined;
       }
-
-      mod.onInit?.();
-      console.debug(`✓ [ExtensionLoader] Initialized extension: ${ext.id}`);
-
-      const ExtensionComponent = mod.Component;
-      if (ExtensionComponent && ext.metadata) {
-        ReactElementFactory.Instance.registerElement(
-          ext.metadata.name,
-          (props) => <ExtensionComponent {...props} key={ext.id} />,
-        );
-      }
-
-      loadedModules.set(ext.id, mod);
-      return mod;
+      return initializeModule(ext, mod);
     } catch (error) {
       console.error(`✗ [ExtensionLoader] Error: ${ext.id}`, error);
       return undefined;
@@ -119,9 +133,18 @@ async function loadSingleExtension(ext: ExtensionDefinition) {
 export function useExtensionLoader({
   allExtensions,
   extensionIdsToLoad,
+  runtimeDeps,
 }: UseExtensionLoaderOptions) {
+  if (typeof runtimeDeps.getRuntimeState !== "function") {
+    throw new TypeError(
+      "useExtensionLoader requires runtimeDeps.getRuntimeState function.",
+    );
+  }
+
   const [isReady, setIsReady] = useState(false);
   const mountedRef = useRef(true);
+  const runtimeDepsRef = useRef(runtimeDeps);
+  runtimeDepsRef.current = runtimeDeps;
 
   const normalizedExtensionIds = useMemo(
     () =>
@@ -130,7 +153,7 @@ export function useExtensionLoader({
       ),
     [extensionIdsToLoad],
   );
-  
+
   const extensionIdsKey = normalizedExtensionIds.join(",");
   const extensionsToLoad = useMemo(() => {
     const extensionIdSet = new Set(normalizedExtensionIds);
@@ -138,7 +161,6 @@ export function useExtensionLoader({
       extensionIdSet.has(ext.id),
     );
   }, [allExtensions, normalizedExtensionIds]);
-
   useEffect(() => {
     mountedRef.current = true;
 
@@ -177,8 +199,9 @@ export function useExtensionLoader({
 
   const onModelCreated = useCallback(
     (model: Model) => {
+      const currentRuntimeDeps = runtimeDepsRef.current;
       extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onModelReady?.(model);
+        loadedModules.get(ext.id)?.onModelReady?.(model, currentRuntimeDeps);
       });
     },
     [extensionsToLoad],
@@ -186,8 +209,11 @@ export function useExtensionLoader({
 
   const onCreatorCreated = useCallback(
     (creator: SurveyCreatorModel) => {
+      const currentRuntimeDeps = runtimeDepsRef.current;
       extensionsToLoad.forEach((ext: ExtensionDefinition) => {
-        loadedModules.get(ext.id)?.onCreatorReady?.(creator);
+        loadedModules
+          .get(ext.id)
+          ?.onCreatorReady?.(creator, currentRuntimeDeps);
       });
     },
     [extensionsToLoad],

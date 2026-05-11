@@ -7,6 +7,8 @@ import type { ReactNode } from "react";
 
 interface MainHeaderProps {
   showHeader?: boolean;
+  /** Optional left-side breadcrumb node override. */
+  breadcrumb?: ReactNode;
   /** Optional right-side actions (e.g. primary CTA). */
   actions?: ReactNode;
   /** Pin header under the viewport top while scrolling. */
@@ -15,6 +17,7 @@ interface MainHeaderProps {
 
 export default async function MainHeader({
   showHeader = true,
+  breadcrumb,
   actions,
   sticky = false,
 }: MainHeaderProps) {
@@ -37,11 +40,13 @@ export default async function MainHeader({
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
           />
-          <BreadcrumbNav
-            homeText="Home"
-            sitemap={sitemap}
-            listClasses="hidden md:block"
-          />
+          {breadcrumb ?? (
+            <BreadcrumbNav
+              homeText="Home"
+              sitemap={sitemap}
+              listClasses="hidden md:block"
+            />
+          )}
         </div>
         {actions ? (
           <div className="flex shrink-0 items-center gap-2">{actions}</div>

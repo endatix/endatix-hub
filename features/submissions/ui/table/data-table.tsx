@@ -226,6 +226,22 @@ export function DataTable<TData extends Submission>({
 
   const rows = table.getRowModel().rows;
 
+  if (rows.length === 0) {
+    return (
+      <div
+        data-slot="submission-data-table"
+        className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
+      >
+        <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+          No rows to display.
+        </div>
+        {manualRowCount && manualRowCount > 0 ? (
+          <TablePagination table={table} totalRows={manualRowCount} />
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <>
       <div

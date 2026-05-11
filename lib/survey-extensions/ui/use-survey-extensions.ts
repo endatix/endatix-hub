@@ -5,7 +5,7 @@ import { useExtensionLoader } from "./use-extension-loader";
 import { getRequiredExtensionIds } from "../server/analyzer";
 import { coreExtensions } from "../core-registry";
 import { userExtensions } from "../../../extensions/user-extensions";
-import type { ExtensionDefinition } from "../types";
+import type { ExtensionDefinition, ExtensionRuntimeDeps } from "../types";
 
 const ALL_EXTENSIONS: ReadonlyArray<ExtensionDefinition> = Object.freeze([
   ...coreExtensions,
@@ -17,12 +17,15 @@ export interface UseSurveyExtensionsOptions {
   extensionIdsToLoad?: string[];
   /** When provided, active IDs are computed via shouldLoad (client-side). */
   formJson?: unknown;
+  /** Runtime dependencies available to extension lifecycle hooks. */
+  runtimeDeps: ExtensionRuntimeDeps;
 }
 
 export function useSurveyExtensions({
   extensionIdsToLoad,
   formJson,
-}: UseSurveyExtensionsOptions = {}) {
+  runtimeDeps,
+}: UseSurveyExtensionsOptions) {
   const isEnabled = process.env.ENDATIX_ENABLE_EXTENSIONS === "true";
 
   const ids = useMemo(() => {
@@ -44,6 +47,7 @@ export function useSurveyExtensions({
   return useExtensionLoader({
     allExtensions: ALL_EXTENSIONS,
     extensionIdsToLoad: ids,
+    runtimeDeps,
   });
 }
 

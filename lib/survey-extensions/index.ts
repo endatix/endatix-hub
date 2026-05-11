@@ -10,6 +10,7 @@ export type {
   ExtensionDefinition,
   Extension,
   ExtensionModule as ExtensionImplementation,
+  ExtensionRuntimeDeps,
 } from "./types";
 
 export { useExtensionLoader } from "./ui/use-extension-loader";
@@ -24,6 +25,7 @@ export {
   coreExtensions,
   getCoreExtensionById,
   getAllCoreExtensions,
+  DATA_LISTS_RUNTIME_EXTENSION_ID,
 } from "./core-registry";
 
 export {

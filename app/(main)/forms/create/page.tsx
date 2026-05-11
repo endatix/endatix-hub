@@ -1,8 +1,29 @@
 import PageTitle from "@/components/headings/page-title";
 import { CreateFormWizard } from "@/features/forms/use-cases/create-form";
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import type { Folder } from "@/lib/endatix-api/folders/types";
+import { EndatixApi } from "@/lib/endatix-api";
 import Link from "next/link";
 
-export default function CreateFormPage() {
+export default async function CreateFormPage() {
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
+  await requireHubAccess();
+
+  const api = new EndatixApi(session?.accessToken);
+  const [settingsResult, foldersResult] = await Promise.all([
+    api.tenant.getSettings(),
+    api.folders.list(),
+  ]);
+
+  const requireFolderAssignment =
+    settingsResult.success &&
+    (settingsResult.data.requireFolderAssignment ?? false);
+  const folders: Folder[] = foldersResult.success
+    ? foldersResult.data
+    : [];
+
   return (
     <>
       <PageTitle title="Create Form" />
@@ -19,7 +40,10 @@ export default function CreateFormPage() {
             Design your form with a simple drag and drop interface.
           </p>
 
-          <CreateFormWizard />
+          <CreateFormWizard
+            requireFolderAssignment={requireFolderAssignment}
+            folders={folders}
+          />
         </div>
       </div>
     </>

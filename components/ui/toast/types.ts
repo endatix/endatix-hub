@@ -1,5 +1,5 @@
-import { Button } from '../button';
-import { ReactNode } from 'react';
+import { Button } from "../button";
+import { ReactNode } from "react";
 
 type ToastVariant = "success" | "info" | "warning" | "error";
 
