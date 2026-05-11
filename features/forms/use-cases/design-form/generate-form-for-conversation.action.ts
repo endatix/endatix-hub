@@ -1,4 +1,5 @@
 "use server";
+
 import { authorization } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { getSession } from "@/features/auth";
@@ -12,6 +13,7 @@ const GenerateFormForConversationRequestSchema = z.object({
   formDefinitionSchema: z.looseObject({}),
   conversationId: z.string(),
   agentId: z.string(),
+  folderId: z.string().optional(),
 });
 
 type GenerateFormForConversationRequest = z.infer<
@@ -34,12 +36,24 @@ export async function generateFormForConversationAction(
       return ApiResult.validationError(validationResult.error.message);
     }
 
+    const settings = await endatix.tenant.getSettings();
+    const requireFolder =
+      settings.success && settings.data.requireFolderAssignment === true;
+    const folderId = validationResult.data.folderId?.trim();
+
+    if (requireFolder && (folderId === undefined || folderId.length === 0)) {
+      return ApiResult.validationError(
+        "A folder is required to create a form for this tenant.",
+      );
+    }
+
     const form = await createForm({
       name: validationResult.data.formTitle,
       isEnabled: false,
       formDefinitionJsonData: JSON.stringify(
         validationResult.data.formDefinitionSchema,
       ),
+      folderId: folderId && folderId.length > 0 ? folderId : undefined,
     });
 
     if (!form?.id || form.id.length === 0) {

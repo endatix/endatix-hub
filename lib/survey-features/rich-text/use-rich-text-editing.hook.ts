@@ -43,7 +43,6 @@ export function useRichTextEditing(surveyCreator: SurveyCreator | null) {
       _: unknown,
       options: SurveyInstanceCreatedEvent,
     ) => {
-      console.log(options);
       if (options.area === "property-grid" || options.area.startsWith("theme-tab")) {
         return;
       }

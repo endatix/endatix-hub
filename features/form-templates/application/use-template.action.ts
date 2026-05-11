@@ -8,6 +8,7 @@ export type UseTemplateResult = Result<string>;
 
 export type UseTemplateRequest = {
   templateId: string;
+  folderId?: string;
 };
 
 export async function useTemplateAction(
@@ -27,6 +28,7 @@ export async function useTemplateAction(
       name: `Form from template: ${template.name}`,
       isEnabled: true,
       formDefinitionJsonData: template.jsonData,
+      folderId: request.folderId ?? template.folderId ?? undefined,
     });
 
     if (newForm.id?.length > 0) {

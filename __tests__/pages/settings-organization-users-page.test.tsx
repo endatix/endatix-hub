@@ -36,6 +36,7 @@ vi.mock("@/features/organization/view-users/ui/users-table", () => ({
 describe("Settings organization users page", () => {
   const mockRequireHubAccess = vi.fn().mockResolvedValue(undefined);
   const mockRequirePermission = vi.fn().mockResolvedValue(undefined);
+  const mockCheckPermission = vi.fn().mockResolvedValue({ success: true });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,6 +47,7 @@ describe("Settings organization users page", () => {
     vi.mocked(authFeature.authorization).mockResolvedValue({
       requireHubAccess: mockRequireHubAccess,
       requirePermission: mockRequirePermission,
+      checkPermission: mockCheckPermission,
     } as unknown as Awaited<ReturnType<typeof authFeature.authorization>>);
   });
 

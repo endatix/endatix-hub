@@ -24,6 +24,11 @@ export interface ITenantOwned {
   tenantId: string;
 }
 
+export interface IPagedRequest {
+  page?: number;
+  pageSize?: number;
+}
+
 export interface PaginationQuery {
   page?: number;
   pageSize?: number;
@@ -31,13 +36,25 @@ export interface PaginationQuery {
   sortDirection?: "asc" | "desc";
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  totalCount: number;
+/**
+ * A standardized wrapper for paginated API responses.
+ * @template T - The type of data contained in the items array.
+ */
+export interface PagedResponse<T> {
+  /** The current page index - first page is 1 */
   page: number;
+
+  /** The number of items requested per page */
   pageSize: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
+
+  /** The total count of records available across all pages */
+  totalRecords: number;
+
+  /** The calculated total number of pages */
+  totalPages: number;
+
+  /** The actual data payload for the current page */
+  items: ReadonlyArray<T>;
 }
 
 // ============================================================================

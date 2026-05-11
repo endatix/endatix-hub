@@ -27,7 +27,7 @@ vi.mock("@/features/asset-storage/use-cases/upload/upload.utils", () => ({
 describe("createUserUpload", () => {
   const userConfig: UserUploadConfig = {
     formId: "form-1",
-    submissionId: "sub-1",
+    getSubmissionId: () => "sub-1",
     surveyModel: { locale: "en" } as unknown as SurveyModel,
     onSubmissionIdChange: vi.fn(),
     isResizeEnabled: false,

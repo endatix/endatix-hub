@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOsClass } from "../next-utils";
+import { getOsClass, hasValue } from "../next-utils";
 
 const createMockHeaders = (
   userAgent: string,
@@ -62,6 +62,36 @@ describe("next-utils", () => {
     it("should return empty string when user-agent is null", () => {
       const headers = { get: () => null };
       expect(getOsClass(headers as any)).toBe("");
+    });
+  });
+
+  describe("hasValue", () => {
+    it("returns false for undefined param", () => {
+      expect(hasValue(undefined, "create")).toBe(false);
+    });
+
+    it("returns false for empty value", () => {
+      expect(hasValue("test", "")).toBe(false);
+    });
+
+    it("returns true for matching string value", () => {
+      expect(hasValue("create", "create")).toBe(true);
+    });
+
+    it("returns false for non-matching string value", () => {
+      expect(hasValue("edit", "create")).toBe(false);
+    });
+
+    it("returns true for value in array", () => {
+      expect(hasValue(["create", "edit"], "create")).toBe(true);
+    });
+
+    it("returns false for value not in array", () => {
+      expect(hasValue(["edit", "delete"], "create")).toBe(false);
+    });
+
+    it("returns false for whitespace-only value", () => {
+      expect(hasValue("test", "  ")).toBe(false);
     });
   });
 });

@@ -10,6 +10,7 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 export type CreateFormActionState = ServerActionState<{
   name?: string;
   description?: string;
+  folderId?: string;
 }> & {
   formId?: string;
 };
@@ -27,11 +28,15 @@ export async function createFormAction(
 
     const rawData = extractFormData(formData);
 
+    const endatix = new EndatixApi(session?.accessToken);
+    const folderIdRaw = formData.get('folderId')?.toString().trim() ?? '';
+
     const initialFormRequest = {
       name: rawData.name,
       description: rawData.description || undefined,
       isEnabled: true,
       formDefinitionJsonData: JSON.stringify(EMPTY_FORM_DEFINITION),
+      folderId: folderIdRaw || undefined,
     };
 
     const validatedRequestData =
@@ -41,7 +46,6 @@ export async function createFormAction(
       return ServerActionState.fromZodError(validatedRequestData.error, rawData) as CreateFormActionState;
     }
 
-    const endatix = new EndatixApi(session?.accessToken);
     const createFormResult = await endatix.forms.create(
       validatedRequestData.data,
     );
@@ -81,9 +85,11 @@ export async function createFormAction(
 function extractFormData(formData: FormData): {
   name: string;
   description: string;
+  folderId: string;
 } {
   return {
     name: formData.get("name")?.toString().trim() ?? "",
     description: formData.get("description")?.toString().trim() ?? "",
+    folderId: formData.get("folderId")?.toString().trim() ?? "",
   };
 }

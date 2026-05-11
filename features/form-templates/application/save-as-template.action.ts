@@ -2,8 +2,10 @@
 
 import { authorization } from "@/features/auth";
 import { TelemetryLogger } from "@/features/telemetry";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
-import { createFormTemplate, getActiveFormDefinition } from "@/services/api";
+import { getActiveFormDefinition } from "@/services/api";
+import { auth } from "@/auth";
 
 export type SaveAsTemplateRequest = {
   formId: string;
@@ -30,17 +32,25 @@ export async function saveAsTemplateAction(
     }
 
     // Create the template
-    const templateResult = await createFormTemplate({
+    const session = await auth();
+    const api = new EndatixApi(session?.accessToken);
+    const templateResult = await api.formTemplates.create({
       name: request.name,
       description: request.description || "",
       jsonData: formDefinition.jsonData,
     });
 
-    if (templateResult.isSuccess && templateResult.formTemplateId) {
-      return Result.success(templateResult.formTemplateId);
-    } else {
-      return Result.error(templateResult.error || "Failed to create template");
+    if (ApiResult.isError(templateResult)) {
+      return Result.error(
+        templateResult.error.message || "Failed to create template",
+      );
     }
+
+    if (templateResult.data.id) {
+      return Result.success(templateResult.data.id);
+    }
+
+    return Result.error("Failed to create template");
   } catch (error) {
     TelemetryLogger.error(
       "Failed to save form as template",

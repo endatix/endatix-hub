@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import SurveyComponent from "../survey-component";
 import { SurveyModel, CompleteEvent } from "survey-core";
 import { ApiResult } from "@/lib/endatix-api";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 
 // --- HOIST MOCK FUNCTIONS ---
 // All mock functions must be hoisted so they're available in vi.mock factories
@@ -101,6 +102,21 @@ vi.mock("@/features/auth", () => ({
   ANONYMOUS_SESSION: {},
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
+}));
+
+vi.mock("@/lib/endatix-api/public/forms/form-access-token.client", () => ({
+  buildFormAccessTokenBody: vi.fn(() => ({})),
+  createFormAccessToken: vi.fn().mockResolvedValue({
+    success: true,
+    data: {
+      token: "test-form-access-jwt",
+      expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),
+    },
+  }),
+}));
+
 vi.mock("survey-react-ui", () => ({
   Survey: () => <div data-testid="survey">Survey UI</div>,
 }));
@@ -164,6 +180,18 @@ const defaultProps = {
   isEmbed: false,
 };
 
+function renderSurveyComponent() {
+  return render(
+    <FormRuntimeProvider
+      initialState={{
+        formId: defaultProps.formId,
+      }}
+    >
+      <SurveyComponent {...defaultProps} />
+    </FormRuntimeProvider>,
+  );
+}
+
 describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
   let realSurveyModel: SurveyModel;
 
@@ -206,7 +234,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
   it("should prevent partial updates while a form submission is in progress", async () => {
     // Arrange
-    render(<SurveyComponent {...defaultProps} />);
+    renderSurveyComponent();
 
     // Act
     let completeEventMocks!: ReturnType<typeof fireCompleteEvent>;
@@ -243,7 +271,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     mockSubmitFormAction.mockResolvedValue(
       ApiResult.networkError("Network error"),
     );
-    render(<SurveyComponent {...defaultProps} />);
+    renderSurveyComponent();
 
     // Act
     let completeEventMocks!: ReturnType<typeof fireCompleteEvent>;
@@ -269,7 +297,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
   it("should prevent a second concurrent submission attempt", async () => {
     // Arrange
-    render(<SurveyComponent {...defaultProps} />);
+    renderSurveyComponent();
 
     // Act: firing first onComplete - Submission starts, guard is set
     await act(async () => {

@@ -15,7 +15,7 @@ const USER_RESIZE_URL = "/api/public/v0/storage/resize-image";
 
 export interface UserUploadConfig {
   formId: string;
-  submissionId?: string;
+  getSubmissionId?: () => string | undefined;
   surveyModel: SurveyModel | null;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
   isResizeEnabled: boolean;
@@ -29,7 +29,7 @@ export interface UserUploadConfig {
 export function createUserUpload(config: UserUploadConfig) {
   const {
     formId,
-    submissionId,
+    getSubmissionId,
     surveyModel,
     onSubmissionIdChange,
     isResizeEnabled,
@@ -44,9 +44,10 @@ export function createUserUpload(config: UserUploadConfig) {
       return;
     }
 
+    const currentSubmissionId = getSubmissionId?.();
     const sasResult = await fetchUploadUrls(USER_SAS_URL, {
       fileNames: options.files.map((f) => f.name),
-      submissionId,
+      submissionId: currentSubmissionId,
       formId,
       formLocale: surveyModel?.locale ?? "",
     });
@@ -58,7 +59,7 @@ export function createUserUpload(config: UserUploadConfig) {
 
     const sasData: UploadUrlsData = sasResult.value;
 
-    if (sasData.submissionId && sasData.submissionId !== (submissionId ?? "")) {
+    if (sasData.submissionId && sasData.submissionId !== (currentSubmissionId ?? "")) {
       onSubmissionIdChange?.(sasData.submissionId);
     }
 
@@ -74,7 +75,7 @@ export function createUserUpload(config: UserUploadConfig) {
             kind: "user",
             uploadedBy: sasData.userId ?? "anonymous",
             formId,
-            submissionId: sasData.submissionId ?? submissionId ?? "",
+            submissionId: sasData.submissionId ?? currentSubmissionId ?? "",
             questionName: options.question?.name ?? "",
             formLang: surveyModel?.locale ?? "",
             displayName: file.name,

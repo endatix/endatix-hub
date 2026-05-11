@@ -11,6 +11,8 @@ export type UpdateFormSettingsResult = Result<string>;
 interface UpdateFormSettingsPayload {
   limitOnePerUser?: boolean;
   metadata?: string | null;
+  folderId?: string | null;
+  clearFolderId?: boolean;
 }
 
 export async function updateFormSettingsAction(

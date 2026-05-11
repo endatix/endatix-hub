@@ -40,6 +40,21 @@ vi.mock("@/features/auth", () => ({
   requireAdminAccess: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
+}));
+
+vi.mock("@/lib/endatix-api/public/forms/form-access-token.client", () => ({
+  buildFormAccessTokenBody: vi.fn(() => ({})),
+  createFormAccessToken: vi.fn().mockResolvedValue({
+    success: true,
+    data: {
+      token: "test-jwt",
+      expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),
+    },
+  }),
+}));
+
 // Mock use cases
 vi.mock(
   "@/features/public-form/use-cases/get-active-definition.use-case",

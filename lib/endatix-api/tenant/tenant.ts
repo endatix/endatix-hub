@@ -1,5 +1,5 @@
 import { EndatixApi } from "../endatix-api";
-import type { TenantSettings } from "./types";
+import type { PatchTenantSettingsRequest, TenantSettings } from "./types";
 
 export default class Tenant {
   constructor(private readonly endatix: EndatixApi) {}
@@ -10,5 +10,9 @@ export default class Tenant {
    */
   async getSettings() {
     return this.endatix.get<TenantSettings>("/tenant-settings");
+  }
+
+  async patchSettings(body: PatchTenantSettingsRequest) {
+    return this.endatix.patch<TenantSettings>("/tenant-settings", body);
   }
 }

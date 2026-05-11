@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { Session } from "next-auth";
-import { NextMiddleware, NextRequest, NextResponse } from "next/server";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextProxy, NextRequest, NextResponse } from "next/server";
 import {
   SIGNIN_PATH,
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure/auth-constants";
-import { ProxySession, shouldRedirectToLogin } from "@/proxy";
+import { shouldRedirectToLogin } from "@/proxy";
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -32,7 +31,7 @@ describe("proxy", () => {
   describe("auth routes", () => {
     it("should allow /signin without session", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/signin");
@@ -45,7 +44,7 @@ describe("proxy", () => {
 
     it("should allow /create-account without session", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/create-account");
@@ -56,7 +55,7 @@ describe("proxy", () => {
 
     it("should allow /auth-error without session", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/auth-error");
@@ -69,7 +68,7 @@ describe("proxy", () => {
   describe("hub paths without session", () => {
     it("should redirect to signin when accessing /forms without session", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/forms");
@@ -86,7 +85,7 @@ describe("proxy", () => {
 
     it("should redirect to signin when accessing /settings without session", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/settings");
@@ -100,7 +99,7 @@ describe("proxy", () => {
 
     it("should redirect to signin when accessing /my-account without session", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/my-account");
@@ -118,7 +117,7 @@ describe("proxy", () => {
         user: { id: "u1", email: "a@b.com" },
         error: "AccessDenied",
         expires: "2025-01-01",
-      } as unknown as NextMiddleware);
+      } as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/forms");
@@ -135,7 +134,7 @@ describe("proxy", () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: "u1", email: "a@b.com" },
         expires: "2025-01-01",
-      } as unknown as NextMiddleware);
+      } as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/forms");
@@ -149,7 +148,7 @@ describe("proxy", () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: "u1", email: "a@b.com" },
         expires: "2025-01-01",
-      } as unknown as NextMiddleware);
+      } as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/forms/abc-123");
@@ -162,7 +161,7 @@ describe("proxy", () => {
   describe("redirectToLogin behavior", () => {
     it("should include search params in returnUrl when redirecting from hub path", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/forms", "tab=submissions");
@@ -177,7 +176,7 @@ describe("proxy", () => {
   describe("non-auth, non-hub paths", () => {
     it("should allow request when path is / (root is not a hub path)", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null as unknown as NextMiddleware);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/");
@@ -208,6 +207,39 @@ describe("proxy", () => {
       expect(Array.isArray(config.matcher)).toBe(true);
       expect(config.matcher[0]).toHaveProperty("source");
       expect(config.matcher[0]).toHaveProperty("missing");
+    });
+  });
+
+  describe("maintenance mode", () => {
+    beforeEach(async () => {
+      vi.stubEnv("MAINTENANCE_MODE", "true");
+      const { auth } = await import("@/auth");
+      vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("should rewrite with 503 and not call auth", async () => {
+      const { auth } = await import("@/auth");
+      const proxy = await getProxy();
+      const response = await proxy(createRequest("/forms"));
+
+      expect(auth).not.toHaveBeenCalled();
+      expect(response.status).toBe(503);
+      expect(response.headers.get("location")).toBeNull();
+    });
+
+    it("should set Retry-After when MAINTENANCE_RETRY_AFTER_SECONDS is valid", async () => {
+      vi.stubEnv("MAINTENANCE_RETRY_AFTER_SECONDS", "600");
+      const { auth } = await import("@/auth");
+      const proxy = await getProxy();
+      const response = await proxy(createRequest("/"));
+
+      expect(auth).not.toHaveBeenCalled();
+      expect(response.status).toBe(503);
+      expect(response.headers.get("Retry-After")).toBe("600");
     });
   });
 });

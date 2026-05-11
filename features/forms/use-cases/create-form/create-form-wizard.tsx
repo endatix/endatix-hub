@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   createFormAction,
   type CreateFormActionState,
@@ -17,16 +17,32 @@ import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import type { Folder } from "@/lib/endatix-api/folders/types";
 
 const INITIAL_STATE: CreateFormActionState = ServerActionState.emptyState();
 
-export default function CreateFormWizard() {
+type CreateFormWizardProps = {
+  requireFolderAssignment?: boolean;
+  folders?: Folder[];
+};
+
+export default function CreateFormWizard({
+  requireFolderAssignment = false,
+  folders = [],
+}: CreateFormWizardProps) {
   const router = useRouter();
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [state, formAction, isPending] = useActionState(
     createFormAction,
     INITIAL_STATE,
   );
   const isFormCreatedState = state?.isSuccess && state?.formId;
+  const isFolderRequiredAndMissing =
+    requireFolderAssignment && selectedFolderId.length === 0;
+
+  useEffect(() => {
+    setSelectedFolderId(state?.data?.folderId ?? "");
+  }, [state?.data?.folderId]);
 
   useEffect(() => {
     if (isFormCreatedState) {
@@ -75,13 +91,59 @@ export default function CreateFormWizard() {
         {state?.errors?.description && (
           <ErrorMessage message={state.errors.description} />
         )}
+
+        {(requireFolderAssignment || folders.length > 0) && (
+          <div className="space-y-2">
+            <Label htmlFor="folderId">
+              Folder
+              {requireFolderAssignment ? (
+                <span className="text-destructive"> *</span>
+              ) : null}
+            </Label>
+            <select
+              id="folderId"
+              name="folderId"
+              value={selectedFolderId}
+              onChange={(event) => setSelectedFolderId(event.target.value)}
+              disabled={isPending}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">
+                {requireFolderAssignment ? "Select a folder" : "No folder"}
+              </option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            {state?.errors?.folderId && (
+              <ErrorMessage message={state.errors.folderId} />
+            )}
+            {requireFolderAssignment && (
+              <p className="text-sm text-muted-foreground">
+                A folder is required by your organization policy. If not
+                selected, the server will return a validation message.
+              </p>
+            )}
+            {requireFolderAssignment && folders.length === 0 && (
+              <p className="text-sm text-destructive">
+                No active folders exist. Create a folder under Forms → Folders
+                before creating a form.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end space-x-2">
         <Button variant="outline" asChild disabled={isPending}>
           <Link href="/forms">Cancel</Link>
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button
+          type="submit"
+          disabled={isPending || isFolderRequiredAndMissing}
+        >
           {isPending && <Spinner className="mr-2 h-4 w-4" />}
           {isPending ? "Creating your form..." : "Create Form"}
         </Button>
