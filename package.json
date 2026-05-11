@@ -136,7 +136,7 @@
       "fast-xml-builder": "^1.1.7",
       "lodash": "^4.18.0",
       "lodash-es": "^4.18.0",
-      "axios": "^1.15.0",
+      "axios": "^1.16.0",
       "minimatch": "^10.2.4",
       "immutable": "^5.1.5",
       "flatted": "^3.4.2",
