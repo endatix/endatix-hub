@@ -64,7 +64,19 @@ declare namespace NodeJS {
     NEXT_PUBLIC_POSTHOG_HOST?: string;
     NEXT_PUBLIC_POSTHOG_UI_HOST?: string;
     ENABLE_POSTHOG_ADAPTER?: string;
+    
     // Application settings
     NEXT_PUBLIC_IS_DEBUG_MODE?: string; // Application-level debug flag
+
+     // Hub maintenance (see docs — proxy rewrite + /maintenance page)
+     MAINTENANCE_MODE?: string;
+     MAINTENANCE_RETRY_AFTER_SECONDS?: string;
+     MAINTENANCE_BADGE_LABEL?: string;
+     MAINTENANCE_TITLE?: string;
+     MAINTENANCE_CARD_DESCRIPTION?: string;
+     MAINTENANCE_BODY?: string;
+     MAINTENANCE_FOOTER?: string;
+     MAINTENANCE_METADATA_TITLE?: string;
+     MAINTENANCE_METADATA_DESCRIPTION?: string;
   }
 }
