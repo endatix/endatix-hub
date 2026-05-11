@@ -17,6 +17,7 @@ import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PanelImperativeHandle } from "react-resizable-panels";
 import ChatBox from "../chat/chat-box";
+import { AssistantFolderSelect } from "@/features/forms/use-cases/design-form/ui/assistant-folder-select";
 import ChatThread from "../chat/chat-thread";
 import DotLoader from "@/components/loaders/dot-loader";
 import FormEditorContainer from "./form-editor-container";
@@ -124,7 +125,7 @@ export default function FormEditorWithChat({
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="flex flex-1 overflow-hidden">
       <ResizablePanelGroup orientation="horizontal" className="flex-1">
         <ResizablePanel defaultSize={70}>
           {shouldRenderEditor ? (
@@ -154,9 +155,9 @@ export default function FormEditorWithChat({
           onResize={(panelSize) => handleResize(panelSize)}
           className="transition-all duration-300 ease-in-out"
         >
-          <div className="flex h-full shrink-0 z-50 bg-background border-l pt-6 md:px-4">
+          <div className="z-50 flex h-full shrink-0 border-l bg-background pt-6 md:px-4">
             {isCollapsed ? (
-              <div className="flex flex-col items-center w-full gap-4">
+              <div className="flex w-full flex-col items-center gap-4">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -165,20 +166,20 @@ export default function FormEditorWithChat({
                         size="icon"
                         className={`${
                           isMobile ? "hidden" : "flex"
-                        } items-center justify-center -mt-2`}
+                        } -mt-2 items-center justify-center`}
                         onClick={toggleCollapse}
                       >
                         <ChevronLeft className="h-10 w-10 stroke-[2.5]" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent className="bg-black text-white border-black">
+                    <TooltipContent className="border-black bg-black text-white">
                       <p>Show AI Assistant</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 <div className="flex flex-col items-center gap-2">
                   <span
-                    className="text-lg font-semibold text-foreground/70 tracking-wide"
+                    className="text-lg font-semibold tracking-wide text-foreground/70"
                     style={{
                       writingMode: "vertical-rl",
                       textOrientation: "mixed",
@@ -187,7 +188,7 @@ export default function FormEditorWithChat({
                     AI Assistant
                   </span>
                   <span
-                    className="px-1 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-full tracking-wide"
+                    className="rounded-full bg-primary px-1 py-2 text-xs font-medium tracking-wide text-primary-foreground"
                     style={{ writingMode: "vertical-rl" }}
                   >
                     Beta
@@ -196,13 +197,13 @@ export default function FormEditorWithChat({
               </div>
             ) : null}
             {!isCollapsed && (
-              <div className="flex flex-col gap-4 p-2 w-full -mt-2">
-                <div className="flex items-center justify-between w-full px-2">
+              <div className="-mt-2 flex w-full flex-col gap-4 p-2">
+                <div className="flex w-full items-center justify-between px-2">
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-semibold text-foreground/70">
                       AI Assistant
                     </span>
-                    <span className="px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded-full">
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                       Beta
                     </span>
                   </div>
@@ -218,7 +219,7 @@ export default function FormEditorWithChat({
                           <ChevronRight className="h-6 w-6 stroke-[2.5]" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent className="bg-black text-white border-black">
+                      <TooltipContent className="border-black bg-black text-white">
                         <p>Hide AI Assistant</p>
                       </TooltipContent>
                     </Tooltip>
@@ -242,9 +243,9 @@ export default function FormEditorWithChat({
                     </AlertDescription>
                   </Alert>
                 ) : !conversationLoaded ? (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex h-full items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
                       <p className="text-muted-foreground">
                         Loading conversation...
                       </p>
@@ -253,8 +254,9 @@ export default function FormEditorWithChat({
                 ) : (
                   <>
                     <ChatThread />
+                    <AssistantFolderSelect />
                     {isGeneratingResponse && (
-                      <DotLoader className="flex flex-none items-center m-auto" />
+                      <DotLoader className="m-auto flex flex-none items-center" />
                     )}
                     <ChatBox
                       currentDefinition={JSON.stringify(

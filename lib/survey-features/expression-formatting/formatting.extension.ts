@@ -18,3 +18,7 @@ export function registerFormattingExtension(): void {
 
   areFunctionsRegistered = true;
 }
+
+export const expressionFormattingExtension = {
+  onInit: registerFormattingExtension,
+};

@@ -26,6 +26,13 @@ function createExtension(
 }
 
 describe("useExtensionLoader", () => {
+  const runtimeDeps = {
+    getRuntimeState: () => ({ formId: "123" }),
+  };
+  const expectedBaseDeps = {
+    getRuntimeState: runtimeDeps.getRuntimeState,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -38,7 +45,7 @@ describe("useExtensionLoader", () => {
 
     // Act
     const { result } = renderHook(() =>
-      useExtensionLoader({ allExtensions, extensionIdsToLoad }),
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
     );
 
     await waitFor(() => {
@@ -63,7 +70,7 @@ describe("useExtensionLoader", () => {
 
     // Act
     const { result } = renderHook(() =>
-      useExtensionLoader({ allExtensions, extensionIdsToLoad }),
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
     );
 
     await waitFor(() => {
@@ -76,7 +83,7 @@ describe("useExtensionLoader", () => {
 
     // Assert
     expect(onCreatorReady).toHaveBeenCalledTimes(1);
-    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator);
+    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator, expectedBaseDeps);
   });
 
   it("returns isReady true after extensions load and onModelCreated invokes onModelReady", async () => {
@@ -90,7 +97,7 @@ describe("useExtensionLoader", () => {
 
     // Act
     const { result } = renderHook(() =>
-      useExtensionLoader({ allExtensions, extensionIdsToLoad }),
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
     );
 
     await waitFor(() => {
@@ -103,7 +110,7 @@ describe("useExtensionLoader", () => {
 
     // Assert
     expect(onModelReady).toHaveBeenCalledTimes(1);
-    expect(onModelReady).toHaveBeenCalledWith(mockModel);
+    expect(onModelReady).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
   });
 
   it("handles load returning undefined and still sets ready", async () => {
@@ -115,7 +122,7 @@ describe("useExtensionLoader", () => {
 
     // Act
     const { result } = renderHook(() =>
-      useExtensionLoader({ allExtensions, extensionIdsToLoad }),
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
     );
 
     await waitFor(() => {
@@ -143,7 +150,7 @@ describe("useExtensionLoader", () => {
 
     // Act
     const { result } = renderHook(() =>
-      useExtensionLoader({ allExtensions, extensionIdsToLoad }),
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
     );
 
     await waitFor(() => {
@@ -168,7 +175,7 @@ describe("useExtensionLoader", () => {
     const extensionIdsToLoad = ["ext-only-a"]; // only load A
 
     const { result } = renderHook(() =>
-      useExtensionLoader({ allExtensions, extensionIdsToLoad }),
+      useExtensionLoader({ allExtensions, extensionIdsToLoad, runtimeDeps }),
     );
 
     await waitFor(() => {
@@ -181,25 +188,29 @@ describe("useExtensionLoader", () => {
     });
 
     // Assert – only A was loaded and only A's onModelReady is called
-    expect(onModelReadyA).toHaveBeenCalledWith(mockModel);
+    expect(onModelReadyA).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
     expect(onModelReadyB).not.toHaveBeenCalled();
   });
 
-  it("runs static bootstrap only once for the same extension id", async () => {
+  it("initializes static module only once for the same extension id", async () => {
     // Arrange
-    const bootstrap = vi.fn();
+    const onInit = vi.fn();
     const allExtensions: ExtensionDefinition[] = [
       {
         id: "ext-static",
         type: "feature",
         loading: "static",
-        bootstrap,
+        module: { onInit },
       },
     ];
 
     const { result, rerender } = renderHook(
       ({ ids }: { ids: string[] }) =>
-        useExtensionLoader({ allExtensions, extensionIdsToLoad: ids }),
+        useExtensionLoader({
+          allExtensions,
+          extensionIdsToLoad: ids,
+          runtimeDeps,
+        }),
       {
         initialProps: { ids: ["ext-static"] },
       },
@@ -215,7 +226,72 @@ describe("useExtensionLoader", () => {
     });
 
     // Assert
-    expect(bootstrap).toHaveBeenCalledTimes(1);
+    expect(onInit).toHaveBeenCalledTimes(1);
+  });
+
+  it("invokes static module runtime hooks", async () => {
+    const onModelReady = vi.fn();
+    const onCreatorReady = vi.fn();
+    const allExtensions: ExtensionDefinition[] = [
+      {
+        id: "ext-static-module",
+        type: "feature",
+        loading: "static",
+        module: {
+          onInit: vi.fn(),
+          onModelReady,
+          onCreatorReady,
+        } satisfies ExtensionModule,
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useExtensionLoader({
+        allExtensions,
+        extensionIdsToLoad: ["ext-static-module"],
+        runtimeDeps,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    const mockModel = {} as any;
+    const mockCreator = {} as any;
+    act(() => {
+      result.current.onModelCreated(mockModel);
+      result.current.onCreatorCreated(mockCreator);
+    });
+
+    expect(onModelReady).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
+    expect(onCreatorReady).toHaveBeenCalledWith(mockCreator, expectedBaseDeps);
+  });
+
+  it("passes the same minimal runtime deps to every extension", async () => {
+    const onModelReady = vi.fn();
+    const allExtensions: ExtensionDefinition[] = [
+      createExtension("data-lists-runtime", { onModelReady }),
+    ];
+
+    const { result } = renderHook(() =>
+      useExtensionLoader({
+        allExtensions,
+        extensionIdsToLoad: ["data-lists-runtime"],
+        runtimeDeps,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    const mockModel = {} as any;
+    act(() => {
+      result.current.onModelCreated(mockModel);
+    });
+
+    expect(onModelReady).toHaveBeenCalledWith(mockModel, expectedBaseDeps);
   });
 
   it("does not reload dynamic extensions when ids order changes", async () => {
@@ -229,7 +305,11 @@ describe("useExtensionLoader", () => {
 
     const { result, rerender } = renderHook(
       ({ ids }: { ids: string[] }) =>
-        useExtensionLoader({ allExtensions, extensionIdsToLoad: ids }),
+        useExtensionLoader({
+          allExtensions,
+          extensionIdsToLoad: ids,
+          runtimeDeps,
+        }),
       {
         initialProps: { ids: ["ext-order-a", "ext-order-b"] },
       },
@@ -263,7 +343,11 @@ describe("useExtensionLoader", () => {
     ];
 
     const { result } = renderHook(() =>
-      useExtensionLoader({ allExtensions, extensionIdsToLoad: ["ext-slow"] }),
+      useExtensionLoader({
+        allExtensions,
+        extensionIdsToLoad: ["ext-slow"],
+        runtimeDeps,
+      }),
     );
 
     // Assert

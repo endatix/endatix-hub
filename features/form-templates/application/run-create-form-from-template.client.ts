@@ -12,10 +12,11 @@ import {
 export async function runCreateFormFromTemplate(
   templateId: string,
   router: AppRouterInstance,
+  folderId?: string,
 ): Promise<UseTemplateResult> {
   // useTemplateAction is a server action (not a hook); name triggers react-hooks/rules-of-hooks.
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const result = await useTemplateAction({ templateId });
+  const result = await useTemplateAction({ templateId, folderId });
 
   if (Result.isSuccess(result)) {
     toast.success("Form created from template successfully");

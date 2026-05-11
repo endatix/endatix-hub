@@ -4,8 +4,10 @@ import {
   createContext,
   ReactNode,
   use,
+  useEffect,
   useOptimistic,
   useReducer,
+  useState,
 } from "react";
 import {
   ConversationState,
@@ -17,8 +19,11 @@ import {
 } from "./form-assistant.reducer";
 import { Model } from "survey-core";
 import { defineFormAction } from "../../application/actions/define-form.action";
+import { resolveAssistantFolderGateError } from "./assistant-folder-gate";
 import { generateFormForConversationAction } from "./generate-form-for-conversation.action";
 import { ChatMessage } from "@/lib/endatix-api/conversations/types";
+
+export type AssistantFolderOption = { id: string; name: string };
 
 interface FormAssistantContext {
   isAssistantEnabled: boolean;
@@ -28,6 +33,11 @@ interface FormAssistantContext {
     definition?: string,
   ) => Promise<ConversationState>;
   generateAssociatedForm: () => Promise<string | undefined>;
+  /** When tenant policy requires a folder, set before generating a form from the assistant. */
+  requireFolderForNewForms: boolean;
+  assignableFolders: AssistantFolderOption[];
+  assignFolderId: string | undefined;
+  setAssignFolderId: (folderId: string | undefined) => void;
 }
 
 /**
@@ -55,16 +65,31 @@ interface FormAssistantProviderProps {
   children: ReactNode;
   isAssistantEnabled: boolean;
   getConversationPromise?: Promise<ConversationState>;
+  /** When true, new forms from the assistant must include a folder (matches tenant requireFolderAssignment). */
+  requireFolderForNewForms?: boolean;
+  assignableFolders?: AssistantFolderOption[];
 }
 
 export function FormAssistantProvider({
   children,
   isAssistantEnabled,
   getConversationPromise,
+  requireFolderForNewForms = false,
+  assignableFolders = [],
 }: Readonly<FormAssistantProviderProps>) {
   const initialConversation = getConversationPromise
     ? use(getConversationPromise)
     : emptyConversationState();
+  const [assignFolderId, setAssignFolderId] = useState<string | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    if (requireFolderForNewForms && assignableFolders.length === 1) {
+      setAssignFolderId(assignableFolders[0].id);
+    }
+  }, [requireFolderForNewForms, assignableFolders]);
+
   const [chatContext, dispatch] = useReducer(
     conversationStateReducer,
     initialConversation,
@@ -183,6 +208,19 @@ export function FormAssistantProvider({
       return chatContext.formId;
     }
 
+    const gateError = resolveAssistantFolderGateError(
+      requireFolderForNewForms,
+      assignableFolders,
+      assignFolderId,
+    );
+    if (gateError !== null) {
+      dispatch({
+        type: ConversationActionType.SET_ERROR,
+        payload: { error: gateError },
+      });
+      return undefined;
+    }
+
     setOptimisticChatContext({
       isResponsePending: true,
     });
@@ -196,6 +234,7 @@ export function FormAssistantProvider({
         formDefinitionSchema: surveyModel.toJSON(),
         conversationId: chatContext?.threadId ?? "",
         agentId: chatContext?.agentId ?? "",
+        folderId: assignFolderId,
       });
 
       if (!generateFormResult.success) {
@@ -232,6 +271,10 @@ export function FormAssistantProvider({
     isAssistantEnabled,
     sendPrompt,
     generateAssociatedForm,
+    requireFolderForNewForms,
+    assignableFolders,
+    assignFolderId,
+    setAssignFolderId,
   };
 
   return (

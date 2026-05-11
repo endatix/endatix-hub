@@ -4,6 +4,7 @@ import DotLoader from "@/components/loaders/dot-loader";
 import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AssistantFolderSelect } from "@/features/forms/use-cases/design-form/ui/assistant-folder-select";
 import {
   Sheet,
   SheetContent,
@@ -16,6 +17,8 @@ import {
 import { toast } from "@/components/ui/toast";
 import { runCreateFormFromTemplate } from "@/features/form-templates/application/run-create-form-from-template.client";
 import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
+import { listFoldersAction } from "@/features/folders/server";
+import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import { cn } from "@/lib/utils";
 import { FormTemplate } from "@/types";
 import {
@@ -27,11 +30,21 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FC, useState, useTransition } from "react";
+import { FC, useEffect, useState, useTransition } from "react";
 import TemplateSelector from "./template-selector";
 import { useFormAssistant } from "../use-cases/design-form/form-assistant.context";
 import { useAutoCreateForm } from "../use-cases/design-form/use-auto-create-form.hook";
 import ChatBox from "./chat/chat-box";
+import { Result } from "@/lib/result";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 type CreateFormOption =
   | "from_scratch"
@@ -49,6 +62,8 @@ interface FormCreateSheetProps {
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
 }
+
+const NO_FOLDER_ID = "__none__";
 
 const CreateFormCard: FC<FormCreateSheetProps> = ({
   title,
@@ -92,6 +107,9 @@ const CreateFormSheet: FC = () => {
   );
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [requireFolderAssignment, setRequireFolderAssignment] = useState(false);
+  const [folders, setFolders] = useState<{ id: string; name: string }[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(NO_FOLDER_ID);
   const router = useRouter();
   const { isAssistantEnabled, chatContext } = useFormAssistant();
   const { isCreatingForm } = useAutoCreateForm({
@@ -103,9 +121,35 @@ const CreateFormSheet: FC = () => {
 
   const isGeneratingResponse =
     (chatContext?.isResponsePending ?? false) || isCreatingForm;
+  const isFolderRequiredAndMissing =
+    requireFolderAssignment && selectedFolderId === NO_FOLDER_ID;
+
+  useEffect(() => {
+    void (async () => {
+      const [tenantSettingsResult, foldersResult] = await Promise.all([
+        getTenantSettingsAction(),
+        listFoldersAction(),
+      ]);
+
+      if (Result.isSuccess(tenantSettingsResult)) {
+        setRequireFolderAssignment(
+          tenantSettingsResult.value.requireFolderAssignment === true,
+        );
+      }
+
+      if (Result.isSuccess(foldersResult)) {
+        setFolders(
+          foldersResult.value
+            .filter((folder) => folder.isActive)
+            .map((folder) => ({ id: folder.id, name: folder.name })),
+        );
+      }
+    })();
+  }, []);
 
   const handleTemplateSelect = (template: FormTemplate) => {
     setSelectedTemplate(template);
+    setSelectedFolderId(template.folderId ?? NO_FOLDER_ID);
   };
 
   const handlePreviewTemplate = (templateId: string) => {
@@ -117,7 +161,11 @@ const CreateFormSheet: FC = () => {
     if (!selectedTemplate || isPending) return;
 
     startTransition(async () => {
-      await runCreateFormFromTemplate(selectedTemplate.id, router);
+      await runCreateFormFromTemplate(
+        selectedTemplate.id,
+        router,
+        selectedFolderId === NO_FOLDER_ID ? undefined : selectedFolderId,
+      );
     });
   };
 
@@ -186,11 +234,64 @@ const CreateFormSheet: FC = () => {
                   onTemplateSelect={handleTemplateSelect}
                   onPreviewTemplate={handlePreviewTemplate}
                 />
+                {(folders.length > 0 || requireFolderAssignment) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="create-form-sheet-folder-id">
+                      Folder
+                      {requireFolderAssignment ? (
+                        <span className="text-destructive"> *</span>
+                      ) : (
+                        " (optional)"
+                      )}
+                    </Label>
+                    <Select
+                      value={selectedFolderId}
+                      onValueChange={setSelectedFolderId}
+                      disabled={isPending || isCreatingForm}
+                    >
+                      <SelectTrigger id="create-form-sheet-folder-id" className="w-full">
+                        <SelectValue
+                          placeholder={
+                            requireFolderAssignment ? "Select a folder" : "No folder"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value={NO_FOLDER_ID}>
+                            {requireFolderAssignment ? "Select a folder" : "No folder"}
+                          </SelectItem>
+                          {folders.map((folder) => (
+                            <SelectItem key={folder.id} value={folder.id}>
+                              {folder.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {requireFolderAssignment && (
+                      <p className="text-sm text-muted-foreground">
+                        A folder is required by your organization policy.
+                      </p>
+                    )}
+                    {requireFolderAssignment && folders.length === 0 && (
+                      <p className="text-sm text-destructive">
+                        No active folders exist. Create a folder under Forms → Folders
+                        before creating a form.
+                      </p>
+                    )}
+                  </div>
+                )}
                 {selectedTemplate && (
                   <Button
                     className="w-full"
                     onClick={handleCreateFromTemplate}
-                    disabled={isPending}
+                    disabled={
+                      isPending ||
+                      isCreatingForm ||
+                      isFolderRequiredAndMissing ||
+                      (requireFolderAssignment && folders.length === 0)
+                    }
                   >
                     {isPending || isCreatingForm ? (
                       <>
@@ -224,6 +325,7 @@ const CreateFormSheet: FC = () => {
                   </span>{" "}
                   build the form
                 </p>
+                <AssistantFolderSelect />
                 <ChatBox />
               </div>
             )}

@@ -9,6 +9,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 
 type Params = {
   params: Promise<{
@@ -53,7 +54,14 @@ export default async function EditSubmissionPage({ params }: Params) {
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
-        <EditSubmission submission={submission} />
+        <FormRuntimeProvider
+          initialState={{
+            formId,
+            submissionId,
+          }}
+        >
+          <EditSubmission submission={submission} />
+        </FormRuntimeProvider>
       </AssetStorageProvider>
     </Suspense>
   );

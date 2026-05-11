@@ -23,6 +23,9 @@ vi.mock("../../core-registry", () => ({
 
 describe("useSurveyExtensions", () => {
   const originalEnv = process.env;
+  const runtimeDeps = {
+    getRuntimeState: () => ({ formId: "123" }),
+  };
 
   beforeEach(() => {
     mockUseExtensionLoader.mockReturnValue({
@@ -44,12 +47,13 @@ describe("useSurveyExtensions", () => {
     const extensionIdsToLoad = ["ext-1", "ext-2"];
 
     // Act
-    renderHook(() => useSurveyExtensions({ extensionIdsToLoad }));
+    renderHook(() => useSurveyExtensions({ extensionIdsToLoad, runtimeDeps }));
 
     // Assert
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: ["ext-1", "ext-2"],
+        runtimeDeps,
       }),
     );
     expect(mockGetRequiredExtensionIds).not.toHaveBeenCalled();
@@ -62,12 +66,13 @@ describe("useSurveyExtensions", () => {
     const formJson = { pages: [{ elements: [{ type: "country" }] }] };
 
     // Act
-    renderHook(() => useSurveyExtensions({ extensionIdsToLoad, formJson }));
+    renderHook(() => useSurveyExtensions({ extensionIdsToLoad, formJson, runtimeDeps }));
 
     // Assert
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: ["server-ext-a"],
+        runtimeDeps,
       }),
     );
     expect(mockGetRequiredExtensionIds).not.toHaveBeenCalled();
@@ -80,7 +85,7 @@ describe("useSurveyExtensions", () => {
     const formJson = { pages: [] };
 
     // Act
-    renderHook(() => useSurveyExtensions({ formJson }));
+    renderHook(() => useSurveyExtensions({ formJson, runtimeDeps }));
 
     // Assert
     expect(mockGetRequiredExtensionIds).toHaveBeenCalledWith(
@@ -90,6 +95,7 @@ describe("useSurveyExtensions", () => {
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: ["country", "hello-world"],
+        runtimeDeps,
       }),
     );
   });
@@ -100,12 +106,13 @@ describe("useSurveyExtensions", () => {
     const formJson = { pages: [] };
 
     // Act
-    renderHook(() => useSurveyExtensions({ formJson }));
+    renderHook(() => useSurveyExtensions({ formJson, runtimeDeps }));
 
     // Assert – ids should be [] so no extensions load, getRequiredExtensionIds not used
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: [],
+        runtimeDeps,
       }),
     );
     expect(mockGetRequiredExtensionIds).not.toHaveBeenCalled();
@@ -118,7 +125,7 @@ describe("useSurveyExtensions", () => {
 
     // Act
     const { result } = renderHook(() =>
-      useSurveyExtensions({ extensionIdsToLoad: [] }),
+      useSurveyExtensions({ extensionIdsToLoad: [], runtimeDeps }),
     );
 
     // Assert

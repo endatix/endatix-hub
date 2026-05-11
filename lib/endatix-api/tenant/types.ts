@@ -23,8 +23,13 @@ export type TenantSettings = {
   tenantId: string;
   submissionTokenExpiryHours: number;
   isSubmissionTokenValidAfterCompletion: boolean;
+  requireFolderAssignment?: boolean;
   slackSettings?: SlackSettings;
   webHookSettings?: WebHookSettings;
   customExports?: CustomExportSettings[];
   modifiedAt?: string | null;
+};
+
+export type PatchTenantSettingsRequest = {
+  requireFolderAssignment: boolean;
 };

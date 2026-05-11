@@ -3,11 +3,11 @@ import PageTitle from "@/components/headings/page-title";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
+import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
-import { SubmissionsWithFilters } from "./ui/submissions-with-filters";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
@@ -129,7 +129,7 @@ async function SubmissionsTableData({
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
 
-  const [submissionsResult, fieldsResult, unfilteredSubmissionsResult] =
+  const [submissionsResult, fieldsResult, hasAnySubmissionsProbeResult] =
     await Promise.all([
       api.submissions.list(formId, {
         page,
@@ -146,7 +146,7 @@ async function SubmissionsTableData({
 
   if (
     !submissionsResult.success ||
-    (unfilteredSubmissionsResult && !unfilteredSubmissionsResult.success)
+    (hasAnySubmissionsProbeResult && !hasAnySubmissionsProbeResult.success)
   ) {
     return (
       <SubmissionsLoadError>
@@ -183,8 +183,8 @@ async function SubmissionsTableData({
 
   const submissions = submissionsResult.data.items;
   const hasAnySubmissions = hasActiveFilters
-    ? unfilteredSubmissionsResult?.success === true &&
-      unfilteredSubmissionsResult.data.totalRecords > 0
+    ? hasAnySubmissionsProbeResult?.success === true &&
+      hasAnySubmissionsProbeResult.data.totalRecords > 0
     : submissionsResult.data.totalRecords > 0;
   const definitionFields = fieldsResult.data;
 

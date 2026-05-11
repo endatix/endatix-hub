@@ -64,18 +64,23 @@ const SubmissionsTable = ({
     };
   }, [selectedSubmissionId, data]);
 
-  const parsedData: ParsedSubmission[] = data.map(submission => ({
+  const parsedData: ParsedSubmission[] = data.map((submission) => ({
     ...submission,
     parsedData: (() => {
       try {
-        return submission.jsonData ? JSON.parse(submission.jsonData as string) : {};
+        return submission.jsonData
+          ? JSON.parse(submission.jsonData as string)
+          : {};
       } catch {
         return {};
       }
-    })()
+    })(),
   }));
 
-  const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
+  const allColumns = [
+    ...COLUMNS_DEFINITION,
+    ...buildSubmissionDataColumns(definitionFields),
+  ];
   return (
     <DataTable
       data={parsedData}

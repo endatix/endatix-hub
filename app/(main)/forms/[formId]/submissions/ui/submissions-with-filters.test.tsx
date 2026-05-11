@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { PaginationState, Updater } from "@tanstack/react-table";
 import type { Submission } from "@/lib/endatix-api/submissions/types";
-import { SubmissionsWithFilters } from "./submissions-with-filters";
+import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -26,9 +26,12 @@ vi.mock("@/auth", () => ({
   unstable_update: vi.fn(),
 }));
 
-vi.mock("@/features/forms/application/actions/get-tenant-settings.action", () => ({
-  getTenantSettingsAction: vi.fn(),
-}));
+vi.mock(
+  "@/features/forms/application/actions/get-tenant-settings.action",
+  () => ({
+    getTenantSettingsAction: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/submissions/ui/export", () => ({
   ExportSubmissionsButton: ({ disabled }: { disabled?: boolean }) => (
@@ -66,7 +69,7 @@ vi.mock("@/features/submissions/ui/table", () => ({
   }),
 }));
 
-vi.mock("./submissions-table", () => ({
+vi.mock("@/features/submissions/ui/submissions-table", () => ({
   default: ({
     data,
     onPaginationChange,
@@ -77,9 +80,7 @@ vi.mock("./submissions-table", () => ({
     <div data-testid="submissions-table">
       Rows: {data.length}
       <button
-        onClick={() =>
-          onPaginationChange?.({ pageIndex: 1, pageSize: 20 })
-        }
+        onClick={() => onPaginationChange?.({ pageIndex: 1, pageSize: 20 })}
       >
         Go page 2
       </button>
@@ -139,9 +140,11 @@ describe("SubmissionsWithFilters", () => {
         .disabled,
     ).toBe(true);
     expect(
-      (screen.getByRole("button", {
-        name: /export submissions/i,
-      }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: /export submissions/i,
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
 

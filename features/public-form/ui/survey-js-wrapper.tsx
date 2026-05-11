@@ -5,6 +5,7 @@ import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import dynamic from "next/dynamic";
+import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -36,9 +37,13 @@ const SurveyJsWrapper = ({
   urlToken,
   extensionIdsToLoad,
 }: SurveyJsWrapperProps) => {
+  const formRuntime = useFormRuntime();
   const { isReady, onModelCreated } = useSurveyExtensions({
     formJson: definition,
     extensionIdsToLoad,
+    runtimeDeps: {
+      getRuntimeState: () => formRuntime.stateRef.current,
+    },
   });
 
   if (!isReady) {
