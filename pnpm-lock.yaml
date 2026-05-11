@@ -12,7 +12,7 @@ overrides:
   fast-xml-builder: ^1.1.7
   lodash: ^4.18.0
   lodash-es: ^4.18.0
-  axios: ^1.15.0
+  axios: ^1.16.0
   minimatch: ^10.2.4
   immutable: ^5.1.5
   flatted: ^3.4.2
@@ -206,8 +206,8 @@ importers:
         specifier: ^3.4.1
         version: 3.4.1
       uuid:
-        specifier: ^11.0.5
-        version: 11.1.0
+        specifier: ^11.1.1
+        version: 11.1.1
       vaul:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -6554,8 +6554,8 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  uuid@11.1.0:
-    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
 
   validate-npm-package-name@7.0.2:
@@ -13475,7 +13475,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  uuid@11.1.0: {}
+  uuid@11.1.1: {}
 
   validate-npm-package-name@7.0.2: {}
 
