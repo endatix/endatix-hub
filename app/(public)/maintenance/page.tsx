@@ -16,7 +16,7 @@ import {
 } from "@/lib/maintenance/maintenance-config";
 import { notFound } from "next/navigation";
 
-export async function generateMetadata(): Promise<Metadata> {
+export function generateMetadata(): Metadata {
   if (!isMaintenanceMode()) {
     return {
       title: "404 - Page Not Found",

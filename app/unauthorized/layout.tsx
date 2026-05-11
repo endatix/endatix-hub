@@ -1,19 +1,8 @@
 import "@/app/globals.css";
-import type { Metadata } from "next";
-import localFont from "next/font/local";
-import { AppProvider } from "@/components/providers";
 import { auth } from "@/auth";
-
-const geistSans = localFont({
-  src: "../../public/fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "../../public/fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
+import { AppProvider } from "@/components/providers";
+import { geistMono, geistSans } from "@/lib/fonts/geist-local";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Endatix Hub - Error",
@@ -51,7 +40,7 @@ export default async function UnauthorizedLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider session={session}>
           <div className="flex min-h-screen w-full flex-row bg-muted/40">
-            <main className="flex-1 flex flex-col p-6">{children}</main>
+            <main className="flex flex-1 flex-col p-6">{children}</main>
           </div>
         </AppProvider>
       </body>

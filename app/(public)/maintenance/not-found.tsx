@@ -3,11 +3,16 @@ import "@/components/error-handling/not-found/not-found-styles-standalone.css";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "404 - Form Not Found",
-  description: "The form you are requesting does not exist.",
+  title: "404 - Page Not Found",
+  description: "The page you are looking for does not exist.",
+  generator: "Endatix",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
-export default function NotFoundSharedForm() {
+export default function NotFoundMaintenancePage() {
   return (
     <div className="not-found-container">
       <NotFoundComponent

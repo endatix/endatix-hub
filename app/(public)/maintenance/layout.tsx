@@ -1,20 +1,9 @@
 import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
+import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
-import localFont from "next/font/local";
 import { headers } from "next/headers";
-
-const geistSans = localFont({
-  src: "../../../public/fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "../../../public/fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
 
 const appOptions = {
   enableTheme: true,
