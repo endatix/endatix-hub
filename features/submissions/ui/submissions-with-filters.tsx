@@ -19,7 +19,11 @@ import {
 } from "@/features/submissions/ui/table";
 import { DefinitionField } from "@/lib/endatix-api";
 import { Submission } from "@/lib/endatix-api/submissions/types";
-import { ColumnDef, SortingState } from "@tanstack/react-table";
+import {
+  ColumnDef,
+  PaginationState,
+  SortingState,
+} from "@tanstack/react-table";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -39,6 +43,10 @@ interface SubmissionsWithFiltersProps {
   initialIsComplete?: string[];
   initialStatus?: string[];
   initialIsTestSubmission?: string[];
+  initialPage: number;
+  initialPageSize: number;
+  totalRecords: number;
+  totalPages: number;
 }
 
 function SubmissionsContent({
@@ -59,6 +67,10 @@ function SubmissionsContent({
   sorting,
   onSortingChange,
   onResetSorting,
+  pagination,
+  onPaginationChange,
+  totalRecords,
+  totalPages,
 }: {
   data: Submission[];
   formId: string;
@@ -77,6 +89,10 @@ function SubmissionsContent({
   sorting: SortingState;
   onSortingChange: Dispatch<SetStateAction<SortingState>>;
   onResetSorting: () => void;
+  pagination: PaginationState;
+  onPaginationChange: Dispatch<SetStateAction<PaginationState>>;
+  totalRecords: number;
+  totalPages: number;
 }) {
   const { resetToDefault: resetOrder, hasCustomOrder } = useColumnOrder();
   const { resetToDefault: resetVisibility, hasCustomVisibility } =
@@ -202,6 +218,10 @@ function SubmissionsContent({
           definitionFields={definitionFields}
           sorting={sorting}
           onSortingChange={onSortingChange}
+          pagination={pagination}
+          onPaginationChange={onPaginationChange}
+          totalRecords={totalRecords}
+          totalPages={totalPages}
         />
       )}
     </>
@@ -216,6 +236,10 @@ export function SubmissionsWithFilters({
   initialIsComplete = [],
   initialStatus = [],
   initialIsTestSubmission = [],
+  initialPage,
+  initialPageSize,
+  totalRecords,
+  totalPages,
 }: SubmissionsWithFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -230,14 +254,33 @@ export function SubmissionsWithFilters({
     new Set(initialIsTestSubmission),
   );
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: initialPage - 1,
+    pageSize: initialPageSize,
+  });
+
+  useEffect(() => {
+    setPagination({
+      pageIndex: initialPage - 1,
+      pageSize: initialPageSize,
+    });
+  }, [initialPage, initialPageSize]);
 
   const updateURL = (
     isComplete: Set<string>,
     status: Set<string>,
     isTestSubmission: Set<string>,
+    page: number,
+    pageSize: number,
   ) => {
     const params = new URLSearchParams();
 
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (pageSize !== 10) {
+      params.set("pageSize", String(pageSize));
+    }
     if (isComplete.size > 0) {
       params.set("isComplete", Array.from(isComplete).join(","));
     }
@@ -258,17 +301,32 @@ export function SubmissionsWithFilters({
 
   const handleIsCompleteChange = (values: Set<string>) => {
     setIsCompleteFilter(values);
-    updateURL(values, statusFilter, testSubmissionFilter);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL(
+      values,
+      statusFilter,
+      testSubmissionFilter,
+      1,
+      pagination.pageSize,
+    );
   };
 
   const handleStatusChange = (values: Set<string>) => {
     setStatusFilter(values);
-    updateURL(isCompleteFilter, values, testSubmissionFilter);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL(
+      isCompleteFilter,
+      values,
+      testSubmissionFilter,
+      1,
+      pagination.pageSize,
+    );
   };
 
   const handleTestSubmissionChange = (values: Set<string>) => {
     setTestSubmissionFilter(values);
-    updateURL(isCompleteFilter, statusFilter, values);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL(isCompleteFilter, statusFilter, values, 1, pagination.pageSize);
   };
 
   const handleResetFilters = () => {
@@ -276,11 +334,26 @@ export function SubmissionsWithFilters({
     setIsCompleteFilter(emptySet);
     setStatusFilter(emptySet);
     setTestSubmissionFilter(emptySet);
-    updateURL(emptySet, emptySet, emptySet);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL(emptySet, emptySet, emptySet, 1, pagination.pageSize);
   };
 
   const handleResetSorting = () => {
     setSorting([]);
+  };
+
+  const handlePaginationChange: Dispatch<SetStateAction<PaginationState>> = (
+    updater,
+  ) => {
+    const next = typeof updater === "function" ? updater(pagination) : updater;
+    setPagination(next);
+    updateURL(
+      isCompleteFilter,
+      statusFilter,
+      testSubmissionFilter,
+      next.pageIndex + 1,
+      next.pageSize,
+    );
   };
 
   // Create a key that changes when filters change to force table re-mount
@@ -290,7 +363,7 @@ export function SubmissionsWithFilters({
     .sort((a, b) => a.localeCompare(b))
     .join(",")}-${Array.from(testSubmissionFilter)
     .sort((a, b) => a.localeCompare(b))
-    .join(",")}-${data.length}`;
+    .join(",")}-${pagination.pageIndex}-${pagination.pageSize}-${data.length}`;
 
   const allColumns = [
     ...COLUMNS_DEFINITION,
@@ -318,6 +391,10 @@ export function SubmissionsWithFilters({
           sorting={sorting}
           onSortingChange={setSorting}
           onResetSorting={handleResetSorting}
+          pagination={pagination}
+          onPaginationChange={handlePaginationChange}
+          totalRecords={totalRecords}
+          totalPages={totalPages}
         />
       </ColumnVisibilityProvider>
     </ColumnOrderProvider>

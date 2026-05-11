@@ -5,8 +5,14 @@ import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { EndatixApi } from "@/lib/endatix-api";
-import type { Metadata, ResolvingMetadata } from "next";
+import type { Metadata, ResolvingMetadata, Route } from "next";
+import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const;
+const MAX_PAGE_SIZE = 50;
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -52,7 +58,9 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
       <Suspense fallback={<PageTitle title="Submissions..." />}>
         <PageTitleData formId={formId} />
       </Suspense>
-      <Suspense fallback={<TableLoader pageSize={sp.pageSize ?? "10"} />}>
+      <Suspense
+        fallback={<TableLoader pageSize={parsePageSize(sp.pageSize)} />}
+      >
         <SubmissionsTableData formId={formId} searchParams={sp} />
       </Suspense>
     </>
@@ -75,6 +83,8 @@ async function SubmissionsTableData({
 }: {
   formId: string;
   searchParams: {
+    page?: string;
+    pageSize?: string;
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
@@ -94,6 +104,27 @@ async function SubmissionsTableData({
     isCompleteFilter.length > 0 ||
     statusFilter.length > 0 ||
     isTestSubmissionFilter.length > 0;
+  const page = parsePage(searchParams.page);
+  const pageSize = parsePageSize(searchParams.pageSize);
+  if (
+    !isCanonicalPageRequest(
+      searchParams.page,
+      searchParams.pageSize,
+      page,
+      pageSize,
+    )
+  ) {
+    redirect(
+      buildSubmissionsUrl(
+        formId,
+        isCompleteFilter,
+        statusFilter,
+        isTestSubmissionFilter,
+        page,
+        pageSize,
+      ),
+    );
+  }
 
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
@@ -101,7 +132,8 @@ async function SubmissionsTableData({
   const [submissionsResult, fieldsResult, hasAnySubmissionsProbeResult] =
     await Promise.all([
       api.submissions.list(formId, {
-        pageSize: 10000,
+        page,
+        pageSize,
         isComplete: isCompleteFilter,
         status: statusFilter,
         isTestSubmission: isTestSubmissionFilter,
@@ -131,6 +163,24 @@ async function SubmissionsTableData({
     );
   }
 
+  const canonicalPage = getCanonicalPage(
+    page,
+    submissionsResult.data.page,
+    submissionsResult.data.totalPages,
+  );
+  if (canonicalPage !== page) {
+    redirect(
+      buildSubmissionsUrl(
+        formId,
+        isCompleteFilter,
+        statusFilter,
+        isTestSubmissionFilter,
+        canonicalPage,
+        pageSize,
+      ),
+    );
+  }
+
   const submissions = submissionsResult.data.items;
   const hasAnySubmissions = hasActiveFilters
     ? hasAnySubmissionsProbeResult?.success === true &&
@@ -144,11 +194,99 @@ async function SubmissionsTableData({
       formId={formId}
       hasAnySubmissions={hasAnySubmissions}
       definitionFields={definitionFields}
+      initialPage={submissionsResult.data.page}
+      initialPageSize={submissionsResult.data.pageSize}
+      totalRecords={submissionsResult.data.totalRecords}
+      totalPages={submissionsResult.data.totalPages}
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}
       initialIsTestSubmission={isTestSubmissionFilter}
     />
   );
+}
+
+function parsePage(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PAGE;
+}
+
+function parsePageSize(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_PAGE_SIZE;
+  }
+
+  return PAGE_SIZE_OPTIONS.find((option) => parsed <= option) ?? MAX_PAGE_SIZE;
+}
+
+function isCanonicalPageRequest(
+  rawPage: string | undefined,
+  rawPageSize: string | undefined,
+  page: number,
+  pageSize: number,
+) {
+  const canonicalPage =
+    page === DEFAULT_PAGE ? rawPage === undefined : rawPage === String(page);
+  const canonicalPageSize =
+    pageSize === DEFAULT_PAGE_SIZE
+      ? rawPageSize === undefined
+      : rawPageSize === String(pageSize);
+
+  return canonicalPage && canonicalPageSize;
+}
+
+function getCanonicalPage(
+  requestedPage: number,
+  responsePage: number,
+  totalPages: number,
+) {
+  if (totalPages <= 0) {
+    return DEFAULT_PAGE;
+  }
+
+  if (requestedPage > totalPages) {
+    return totalPages;
+  }
+
+  if (responsePage > 0 && responsePage !== requestedPage) {
+    return Math.min(responsePage, totalPages);
+  }
+
+  return requestedPage;
+}
+
+function buildSubmissionsUrl(
+  formId: string,
+  isCompleteFilter: string[],
+  statusFilter: string[],
+  isTestSubmissionFilter: string[],
+  page: number,
+  pageSize: number,
+) {
+  const params = new URLSearchParams();
+
+  if (page > DEFAULT_PAGE) {
+    params.set("page", String(page));
+  }
+  if (pageSize !== DEFAULT_PAGE_SIZE) {
+    params.set("pageSize", String(pageSize));
+  }
+  if (isCompleteFilter.length > 0) {
+    params.set("isComplete", isCompleteFilter.join(","));
+  }
+  if (statusFilter.length > 0) {
+    params.set("status", statusFilter.join(","));
+  }
+  if (isTestSubmissionFilter.length > 0) {
+    params.set("isTestSubmission", isTestSubmissionFilter.join(","));
+  }
+
+  const queryString = params.toString();
+  return (
+    queryString
+      ? `/forms/${formId}/submissions?${queryString}`
+      : `/forms/${formId}/submissions`
+  ) as Route;
 }
 
 function SubmissionsLoadError({ children }: { children: ReactNode }) {
@@ -162,8 +300,8 @@ function SubmissionsLoadError({ children }: { children: ReactNode }) {
   );
 }
 
-function TableLoader({ pageSize }: { pageSize: string }) {
-  const pageSizeNumber = parseInt(pageSize) || 10;
+function TableLoader({ pageSize }: { pageSize: number }) {
+  const pageSizeNumber = pageSize;
   const rowHeight = 60;
   const rows = Array.from({ length: pageSizeNumber }, (_, i) => i + 1);
   return (

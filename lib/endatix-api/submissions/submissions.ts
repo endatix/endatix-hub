@@ -181,7 +181,7 @@ export class Submissions {
 
     const params = new URLSearchParams();
     params.set("page", String(request.page ?? 1));
-    params.set("pageSize", String(request.pageSize ?? 10000));
+    params.set("pageSize", String(request.pageSize ?? 10));
 
     if (request.isComplete && request.isComplete.length > 0) {
       params.append("filter", `isComplete:${request.isComplete.join("|")}`);
