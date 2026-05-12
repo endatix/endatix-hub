@@ -20,6 +20,7 @@ type SubmissionsTableProps = {
   onPaginationChange?: Dispatch<SetStateAction<PaginationState>>;
   totalRecords?: number;
   totalPages?: number;
+  onFilteredEmptyClear?: () => void;
 };
 
 const SubmissionsTable = ({
@@ -32,6 +33,7 @@ const SubmissionsTable = ({
   onPaginationChange,
   totalRecords,
   totalPages,
+  onFilteredEmptyClear,
 }: SubmissionsTableProps) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<
     string | null
@@ -86,6 +88,7 @@ const SubmissionsTable = ({
       onPaginationChange={onPaginationChange}
       rowCount={totalRecords}
       pageCount={totalPages}
+      onFilteredEmptyClear={onFilteredEmptyClear}
     />
   );
 };

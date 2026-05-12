@@ -11,6 +11,9 @@ interface DraggableColumnHeaderProps<TData extends Submission> {
   header: Header<TData, unknown>;
 }
 
+const EMPTY_ATTRIBUTES: Record<string, unknown> = {};
+const EMPTY_LISTENERS: Record<string, unknown> = {};
+
 export function DraggableColumnHeader<TData extends Submission>({
   column,
   header,
@@ -29,8 +32,8 @@ export function DraggableColumnHeader<TData extends Submission>({
     id: column.id,
     disabled: isReorderDisabled,
   });
-  const sortableAttributes = isReorderDisabled ? {} : attributes;
-  const sortableListeners = isReorderDisabled ? {} : listeners;
+  const sortableAttributes = isReorderDisabled ? EMPTY_ATTRIBUTES : attributes;
+  const sortableListeners = isReorderDisabled ? EMPTY_LISTENERS : listeners;
 
   const style = {
     transform: CSS.Transform.toString(transform),

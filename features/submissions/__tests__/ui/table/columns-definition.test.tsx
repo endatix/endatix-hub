@@ -4,6 +4,7 @@ import {
 } from "@/features/submissions/ui/table/columns-definition";
 import { describe, expect, it, vi } from "vitest";
 
+/** Avoid loading `change-status.action` (Next / auth) via `CellStatusDropdown` in `columns-definition`. */
 vi.mock(
   "@/features/submissions/use-cases/change-status/change-status.action",
   () => ({

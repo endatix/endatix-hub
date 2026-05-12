@@ -6,12 +6,17 @@ import {
 } from "@/lib/utils/type-validators";
 import type { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
+import { appendSubmissionListFilters } from "./submission-list-query-params";
 import {
   ExportSubmissionsRequest,
   ListSubmissionsRequest,
   ListSubmissionsResponse,
   Submission,
 } from "./types";
+import {
+  SUBMISSION_LIST_DEFAULT_PAGE,
+  SUBMISSION_LIST_DEFAULT_PAGE_SIZE,
+} from "@/features/submissions/list-submission-query";
 
 class PublicSubmissions {
   constructor(private readonly endatix: EndatixApi) {}
@@ -180,45 +185,12 @@ export class Submissions {
     }
 
     const params = new URLSearchParams();
-    params.set("page", String(request.page ?? 1));
-    params.set("pageSize", String(request.pageSize ?? 10));
-
-    if (request.isComplete && request.isComplete.length > 0) {
-      params.append("filter", `isComplete:${request.isComplete.join("|")}`);
-    }
-    if (request.status && request.status.length > 0) {
-      params.append("filter", `status:${request.status.join("|")}`);
-    }
-    if (request.isTestSubmission && request.isTestSubmission.length > 0) {
-      params.append(
-        "filter",
-        `isTestSubmission:${request.isTestSubmission.join("|")}`,
-      );
-    }
-    if (request.createdAtFrom) {
-      params.append(
-        "filter",
-        `createdAt>:${localDayStartToUtc(request.createdAtFrom)}`,
-      );
-    }
-    if (request.createdAtTo) {
-      params.append(
-        "filter",
-        `createdAt<${localNextDayStartToUtc(request.createdAtTo)}`,
-      );
-    }
-    if (request.completedAtFrom) {
-      params.append(
-        "filter",
-        `completedAt>:${localDayStartToUtc(request.completedAtFrom)}`,
-      );
-    }
-    if (request.completedAtTo) {
-      params.append(
-        "filter",
-        `completedAt<${localNextDayStartToUtc(request.completedAtTo)}`,
-      );
-    }
+    params.set("page", String(request.page ?? SUBMISSION_LIST_DEFAULT_PAGE));
+    params.set(
+      "pageSize",
+      String(request.pageSize ?? SUBMISSION_LIST_DEFAULT_PAGE_SIZE),
+    );
+    appendSubmissionListFilters(params, request);
 
     const queryString = params.toString();
     const queryPart = queryString ? `?${queryString}` : "";
@@ -226,14 +198,4 @@ export class Submissions {
 
     return this.endatix.get<ListSubmissionsResponse>(endpoint);
   }
-}
-
-function localDayStartToUtc(date: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(year, month - 1, day).toISOString();
-}
-
-function localNextDayStartToUtc(date: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(year, month - 1, day + 1).toISOString();
 }

@@ -48,9 +48,13 @@ export function ColumnVisibilityProvider<
 
   const [columnVisibility, setColumnVisibilityState] = useState<
     Record<string, boolean>
-  >(() => {
+  >(defaultColumnVisibility);
+
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
     if (globalThis.window === undefined) {
-      return defaultColumnVisibility;
+      return;
     }
 
     const store = createColumnVisibilityStore(formId);
@@ -58,7 +62,6 @@ export function ColumnVisibilityProvider<
 
     if (saved && Object.keys(saved).length > 0) {
       const validVisibility: Record<string, boolean> = {};
-
       Object.keys(defaultColumnVisibility).forEach((id) => {
         if (id in saved) {
           validVisibility[id] = saved[id];
@@ -67,13 +70,13 @@ export function ColumnVisibilityProvider<
         }
       });
 
-      return validVisibility;
+      setColumnVisibilityState((prev) =>
+        JSON.stringify(prev) === JSON.stringify(validVisibility)
+          ? prev
+          : validVisibility,
+      );
     }
-
-    return defaultColumnVisibility;
-  });
-
-  const isFirstRender = useRef(true);
+  }, [formId, defaultColumnVisibility]);
 
   useEffect(() => {
     if (globalThis.window === undefined) {

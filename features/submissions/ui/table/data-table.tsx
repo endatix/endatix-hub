@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { NoMatchingSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import { Submission } from "@/lib/endatix-api";
 import { cn } from "@/lib/utils";
 import {
@@ -44,7 +45,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useId, useState } from "react";
 import { useColumnOrder } from "./column-order-context";
 import { useColumnVisibility } from "./column-visibility-context";
 import { DraggableColumnHeader } from "./draggable-column-header";
@@ -134,6 +135,7 @@ export function DataTable<TData extends Submission>({
   onPaginationChange: externalOnPaginationChange,
   rowCount,
   pageCount,
+  onFilteredEmptyClear,
 }: {
   data: TData[];
   columns: ColumnDef<TData>[];
@@ -144,18 +146,18 @@ export function DataTable<TData extends Submission>({
   onPaginationChange?: Dispatch<SetStateAction<PaginationState>>;
   rowCount?: number;
   pageCount?: number;
+  onFilteredEmptyClear?: () => void;
 }) {
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
 
   const sorting = externalSorting ?? internalSorting;
-  const setSorting = externalOnSortingChange
-    ? externalOnSortingChange
-    : setInternalSorting;
+  const setSorting = externalOnSortingChange ?? setInternalSorting;
   const manualPagination = externalPagination !== undefined;
   const manualRowCount = manualPagination ? rowCount : undefined;
   const manualPageCount = manualPagination ? pageCount : undefined;
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
+  const dndContextId = useId();
   const router = useRouter();
   const { columnOrder, reorderColumn } = useColumnOrder();
   const { columnVisibility } = useColumnVisibility();
@@ -227,14 +229,25 @@ export function DataTable<TData extends Submission>({
   const rows = table.getRowModel().rows;
 
   if (rows.length === 0) {
+    const isFilteredEmpty =
+      manualRowCount !== undefined &&
+      manualRowCount > 0 &&
+      onFilteredEmptyClear !== undefined;
+
     return (
       <div
         data-slot="submission-data-table"
         className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
       >
-        <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          No rows to display.
-        </div>
+        {isFilteredEmpty ? (
+          <NoMatchingSubmissionsEmptyState
+            onClearFilters={onFilteredEmptyClear}
+          />
+        ) : (
+          <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+            No rows to display.
+          </div>
+        )}
         {manualRowCount && manualRowCount > 0 ? (
           <TablePagination table={table} totalRows={manualRowCount} />
         ) : null}
@@ -249,6 +262,7 @@ export function DataTable<TData extends Submission>({
         className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
       >
         <DndContext
+          id={dndContextId}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
@@ -321,11 +335,6 @@ export function DataTable<TData extends Submission>({
               })}
             </TableBody>
           </Table>
-          {rows.length === 0 ? (
-            <div className="flex h-24 items-center justify-center border-t border-sidebar-border/50 px-6 text-center text-sm text-muted-foreground">
-              No submissions match current filters.
-            </div>
-          ) : null}
           <DragOverlay
             dropAnimation={null}
             modifiers={[centerDragOverlayOnPointer]}
