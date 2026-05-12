@@ -3,23 +3,27 @@
 import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
-import {
-  NoMatchingSubmissionsEmptyState,
-  NoSubmissionsEmptyState,
-} from "@/features/submissions/ui/submissions-empty-state";
+import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
   buildSubmissionDataColumns,
+  buildSubmissionSystemColumns,
   ColumnOrderProvider,
-  COLUMNS_DEFINITION,
   ColumnViewOptionsDropdown,
   ColumnVisibilityProvider,
+  EMPTY_SUBMISSION_DATE_FILTERS,
   ResetOptionsDropdown,
   useColumnOrder,
   useColumnVisibility,
 } from "@/features/submissions/ui/table";
-import { DefinitionField } from "@/lib/endatix-api";
-import { Submission } from "@/lib/endatix-api/submissions/types";
-import {
+import type {
+  DateFilterColumnId,
+  DateFilterValue,
+  ParsedSubmission,
+  SubmissionDateFilters,
+} from "@/features/submissions/ui/table";
+import type { DefinitionField } from "@/lib/endatix-api";
+import type { Submission } from "@/lib/endatix-api/submissions/types";
+import type {
   ColumnDef,
   PaginationState,
   SortingState,
@@ -43,20 +47,26 @@ interface SubmissionsWithFiltersProps {
   initialIsComplete?: string[];
   initialStatus?: string[];
   initialIsTestSubmission?: string[];
+  initialCreatedAtFrom?: string;
+  initialCreatedAtTo?: string;
+  initialCompletedAtFrom?: string;
+  initialCompletedAtTo?: string;
   initialPage: number;
   initialPageSize: number;
   totalRecords: number;
   totalPages: number;
 }
 
+const EMPTY_INITIAL_FILTER_VALUES: string[] = [];
+
 function SubmissionsContent({
   data,
   formId,
   hasAnySubmissions,
-  definitionFields,
   isCompleteFilter,
   statusFilter,
   testSubmissionFilter,
+  dateFilters,
   onIsCompleteChange,
   onStatusChange,
   onTestSubmissionChange,
@@ -75,17 +85,17 @@ function SubmissionsContent({
   data: Submission[];
   formId: string;
   hasAnySubmissions: boolean;
-  definitionFields: DefinitionField[];
   isCompleteFilter: Set<string>;
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
+  dateFilters: SubmissionDateFilters;
   onIsCompleteChange: (values: Set<string>) => void;
   onStatusChange: (values: Set<string>) => void;
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
   isPending: boolean;
   tableKey: string;
-  allColumns: ColumnDef<any>[];
+  allColumns: ColumnDef<ParsedSubmission>[];
   sorting: SortingState;
   onSortingChange: Dispatch<SetStateAction<SortingState>>;
   onResetSorting: () => void;
@@ -104,17 +114,16 @@ function SubmissionsContent({
   const hasActiveFilters =
     isCompleteFilter.size > 0 ||
     statusFilter.size > 0 ||
-    testSubmissionFilter.size > 0;
+    testSubmissionFilter.size > 0 ||
+    hasDateFilters(dateFilters);
   const isTrueEmptyState = !hasAnySubmissions;
-  const isFilteredEmptyState =
-    hasAnySubmissions && hasActiveFilters && data.length === 0;
   const disableTableControls = isTrueEmptyState;
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const getColumnHeaderText = (col: ColumnDef<any>): string => {
+  const getColumnHeaderText = (col: ColumnDef<ParsedSubmission>): string => {
     if (col.meta?.displayName) {
       return col.meta.displayName as string;
     }
@@ -157,6 +166,7 @@ function SubmissionsContent({
     if (hasCustomOrder) resetOrder();
     if (hasCustomVisibility) resetVisibility();
     if (hasSorting) onResetSorting();
+    if (hasActiveFilters) onResetFilters();
   };
 
   return (
@@ -171,6 +181,7 @@ function SubmissionsContent({
           onTestSubmissionChange={onTestSubmissionChange}
           onResetFilters={onResetFilters}
           disabled={disableTableControls}
+          hasAdditionalFilters={hasDateFilters(dateFilters)}
         />
         <div className="flex items-center gap-2">
           <div
@@ -208,14 +219,12 @@ function SubmissionsContent({
             onOpenChange={setIsShareDialogOpen}
           />
         </>
-      ) : isFilteredEmptyState ? (
-        <NoMatchingSubmissionsEmptyState onClearFilters={onResetFilters} />
       ) : (
         <SubmissionsTable
           key={tableKey}
           data={data}
           formId={formId}
-          definitionFields={definitionFields}
+          columns={allColumns}
           sorting={sorting}
           onSortingChange={onSortingChange}
           pagination={pagination}
@@ -228,14 +237,27 @@ function SubmissionsContent({
   );
 }
 
+function hasDateFilters(dateFilters: SubmissionDateFilters) {
+  return Boolean(
+    dateFilters.createdAt.from ||
+    dateFilters.createdAt.to ||
+    dateFilters.completedAt.from ||
+    dateFilters.completedAt.to,
+  );
+}
+
 export function SubmissionsWithFilters({
   data,
   formId,
   hasAnySubmissions,
   definitionFields = [],
-  initialIsComplete = [],
-  initialStatus = [],
-  initialIsTestSubmission = [],
+  initialIsComplete = EMPTY_INITIAL_FILTER_VALUES,
+  initialStatus = EMPTY_INITIAL_FILTER_VALUES,
+  initialIsTestSubmission = EMPTY_INITIAL_FILTER_VALUES,
+  initialCreatedAtFrom,
+  initialCreatedAtTo,
+  initialCompletedAtFrom,
+  initialCompletedAtTo,
   initialPage,
   initialPageSize,
   totalRecords,
@@ -253,6 +275,16 @@ export function SubmissionsWithFilters({
   const [testSubmissionFilter, setTestSubmissionFilter] = useState<Set<string>>(
     new Set(initialIsTestSubmission),
   );
+  const [dateFilters, setDateFilters] = useState<SubmissionDateFilters>({
+    createdAt: {
+      from: initialCreatedAtFrom,
+      to: initialCreatedAtTo,
+    },
+    completedAt: {
+      from: initialCompletedAtFrom,
+      to: initialCompletedAtTo,
+    },
+  });
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: initialPage - 1,
@@ -266,10 +298,35 @@ export function SubmissionsWithFilters({
     });
   }, [initialPage, initialPageSize]);
 
+  useEffect(() => {
+    setIsCompleteFilter(new Set(initialIsComplete));
+    setStatusFilter(new Set(initialStatus));
+    setTestSubmissionFilter(new Set(initialIsTestSubmission));
+    setDateFilters({
+      createdAt: {
+        from: initialCreatedAtFrom,
+        to: initialCreatedAtTo,
+      },
+      completedAt: {
+        from: initialCompletedAtFrom,
+        to: initialCompletedAtTo,
+      },
+    });
+  }, [
+    initialIsComplete,
+    initialStatus,
+    initialIsTestSubmission,
+    initialCreatedAtFrom,
+    initialCreatedAtTo,
+    initialCompletedAtFrom,
+    initialCompletedAtTo,
+  ]);
+
   const updateURL = (
     isComplete: Set<string>,
     status: Set<string>,
     isTestSubmission: Set<string>,
+    dates: SubmissionDateFilters,
     page: number,
     pageSize: number,
   ) => {
@@ -290,6 +347,18 @@ export function SubmissionsWithFilters({
     if (isTestSubmission.size > 0) {
       params.set("isTestSubmission", Array.from(isTestSubmission).join(","));
     }
+    if (dates.createdAt.from) {
+      params.set("createdAtFrom", dates.createdAt.from);
+    }
+    if (dates.createdAt.to) {
+      params.set("createdAtTo", dates.createdAt.to);
+    }
+    if (dates.completedAt.from) {
+      params.set("completedAtFrom", dates.completedAt.from);
+    }
+    if (dates.completedAt.to) {
+      params.set("completedAtTo", dates.completedAt.to);
+    }
 
     const queryString = params.toString();
     const url = queryString ? `${pathname}?${queryString}` : pathname;
@@ -306,6 +375,7 @@ export function SubmissionsWithFilters({
       values,
       statusFilter,
       testSubmissionFilter,
+      dateFilters,
       1,
       pagination.pageSize,
     );
@@ -318,6 +388,7 @@ export function SubmissionsWithFilters({
       isCompleteFilter,
       values,
       testSubmissionFilter,
+      dateFilters,
       1,
       pagination.pageSize,
     );
@@ -326,7 +397,34 @@ export function SubmissionsWithFilters({
   const handleTestSubmissionChange = (values: Set<string>) => {
     setTestSubmissionFilter(values);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(isCompleteFilter, statusFilter, values, 1, pagination.pageSize);
+    updateURL(
+      isCompleteFilter,
+      statusFilter,
+      values,
+      dateFilters,
+      1,
+      pagination.pageSize,
+    );
+  };
+
+  const handleDateFilterChange = (
+    columnId: DateFilterColumnId,
+    value: DateFilterValue,
+  ) => {
+    const nextDateFilters = {
+      ...dateFilters,
+      [columnId]: value,
+    };
+    setDateFilters(nextDateFilters);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL(
+      isCompleteFilter,
+      statusFilter,
+      testSubmissionFilter,
+      nextDateFilters,
+      1,
+      pagination.pageSize,
+    );
   };
 
   const handleResetFilters = () => {
@@ -334,8 +432,16 @@ export function SubmissionsWithFilters({
     setIsCompleteFilter(emptySet);
     setStatusFilter(emptySet);
     setTestSubmissionFilter(emptySet);
+    setDateFilters(EMPTY_SUBMISSION_DATE_FILTERS);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(emptySet, emptySet, emptySet, 1, pagination.pageSize);
+    updateURL(
+      emptySet,
+      emptySet,
+      emptySet,
+      EMPTY_SUBMISSION_DATE_FILTERS,
+      1,
+      pagination.pageSize,
+    );
   };
 
   const handleResetSorting = () => {
@@ -351,6 +457,7 @@ export function SubmissionsWithFilters({
       isCompleteFilter,
       statusFilter,
       testSubmissionFilter,
+      dateFilters,
       next.pageIndex + 1,
       next.pageSize,
     );
@@ -363,10 +470,15 @@ export function SubmissionsWithFilters({
     .sort((a, b) => a.localeCompare(b))
     .join(",")}-${Array.from(testSubmissionFilter)
     .sort((a, b) => a.localeCompare(b))
-    .join(",")}-${pagination.pageIndex}-${pagination.pageSize}-${data.length}`;
+    .join(
+      ",",
+    )}-${dateFilters.createdAt.from ?? ""}-${dateFilters.createdAt.to ?? ""}-${dateFilters.completedAt.from ?? ""}-${dateFilters.completedAt.to ?? ""}-${pagination.pageIndex}-${pagination.pageSize}-${data.length}`;
 
   const allColumns = [
-    ...COLUMNS_DEFINITION,
+    ...buildSubmissionSystemColumns({
+      dateFilters,
+      onDateFilterChange: handleDateFilterChange,
+    }),
     ...buildSubmissionDataColumns(definitionFields),
   ];
 
@@ -377,10 +489,10 @@ export function SubmissionsWithFilters({
           data={data}
           formId={formId}
           hasAnySubmissions={hasAnySubmissions}
-          definitionFields={definitionFields}
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
           testSubmissionFilter={testSubmissionFilter}
+          dateFilters={dateFilters}
           onIsCompleteChange={handleIsCompleteChange}
           onStatusChange={handleStatusChange}
           onTestSubmissionChange={handleTestSubmissionChange}

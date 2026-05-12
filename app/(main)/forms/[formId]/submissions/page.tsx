@@ -5,6 +5,10 @@ import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { EndatixApi } from "@/lib/endatix-api";
+import type {
+  BooleanFilterValue,
+  SubmissionReviewStatus,
+} from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
@@ -13,15 +17,21 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const;
 const MAX_PAGE_SIZE = 50;
+const BOOLEAN_FILTER_VALUES = ["true", "false"] as const;
+const SUBMISSION_REVIEW_STATUS_VALUES = ["new", "read", "approved"] as const;
 
 type Params = {
-  params: Promise<{ formId: string }>;
-  searchParams: Promise<{
+  readonly params: Promise<{ formId: string }>;
+  readonly searchParams: Promise<{
     page?: string;
     pageSize?: string;
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
   }>;
 };
 
@@ -67,7 +77,7 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
   );
 }
 
-async function PageTitleData({ formId }: { formId: string }) {
+async function PageTitleData({ formId }: Readonly<{ formId: string }>) {
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
   const formResult = await api.forms.get(formId);
@@ -81,29 +91,41 @@ async function SubmissionsTableData({
   formId,
   searchParams,
 }: {
-  formId: string;
-  searchParams: {
+  readonly formId: string;
+  readonly searchParams: {
     page?: string;
     pageSize?: string;
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
   };
 }) {
-  const isCompleteFilter = searchParams.isComplete
-    ? searchParams.isComplete.split(",")
-    : [];
+  const isCompleteFilter = parseFilterValues(
+    searchParams.isComplete,
+    BOOLEAN_FILTER_VALUES,
+  );
 
-  const statusFilter = searchParams.status
-    ? searchParams.status.split(",")
-    : [];
-  const isTestSubmissionFilter = searchParams.isTestSubmission
-    ? searchParams.isTestSubmission.split(",")
-    : [];
+  const statusFilter = parseFilterValues(
+    searchParams.status,
+    SUBMISSION_REVIEW_STATUS_VALUES,
+  );
+  const isTestSubmissionFilter = parseFilterValues(
+    searchParams.isTestSubmission,
+    BOOLEAN_FILTER_VALUES,
+  );
+  const createdAtFrom = parseDateParam(searchParams.createdAtFrom);
+  const createdAtTo = parseDateParam(searchParams.createdAtTo);
+  const completedAtFrom = parseDateParam(searchParams.completedAtFrom);
+  const completedAtTo = parseDateParam(searchParams.completedAtTo);
   const hasActiveFilters =
     isCompleteFilter.length > 0 ||
     statusFilter.length > 0 ||
-    isTestSubmissionFilter.length > 0;
+    isTestSubmissionFilter.length > 0 ||
+    Boolean(createdAtFrom || createdAtTo || completedAtFrom || completedAtTo);
   const page = parsePage(searchParams.page);
   const pageSize = parsePageSize(searchParams.pageSize);
   if (
@@ -112,6 +134,16 @@ async function SubmissionsTableData({
       searchParams.pageSize,
       page,
       pageSize,
+      {
+        rawCreatedAtFrom: searchParams.createdAtFrom,
+        rawCreatedAtTo: searchParams.createdAtTo,
+        rawCompletedAtFrom: searchParams.completedAtFrom,
+        rawCompletedAtTo: searchParams.completedAtTo,
+        createdAtFrom,
+        createdAtTo,
+        completedAtFrom,
+        completedAtTo,
+      },
     )
   ) {
     redirect(
@@ -120,6 +152,7 @@ async function SubmissionsTableData({
         isCompleteFilter,
         statusFilter,
         isTestSubmissionFilter,
+        { createdAtFrom, createdAtTo, completedAtFrom, completedAtTo },
         page,
         pageSize,
       ),
@@ -137,6 +170,10 @@ async function SubmissionsTableData({
         isComplete: isCompleteFilter,
         status: statusFilter,
         isTestSubmission: isTestSubmissionFilter,
+        createdAtFrom,
+        createdAtTo,
+        completedAtFrom,
+        completedAtTo,
       }),
       api.definitions.getFields(formId),
       hasActiveFilters
@@ -144,10 +181,7 @@ async function SubmissionsTableData({
         : Promise.resolve(null),
     ]);
 
-  if (
-    !submissionsResult.success ||
-    (hasAnySubmissionsProbeResult && !hasAnySubmissionsProbeResult.success)
-  ) {
+  if (!submissionsResult.success) {
     return (
       <SubmissionsLoadError>
         Unable to load submissions. Please try again.
@@ -175,6 +209,7 @@ async function SubmissionsTableData({
         isCompleteFilter,
         statusFilter,
         isTestSubmissionFilter,
+        { createdAtFrom, createdAtTo, completedAtFrom, completedAtTo },
         canonicalPage,
         pageSize,
       ),
@@ -201,6 +236,10 @@ async function SubmissionsTableData({
       initialIsComplete={isCompleteFilter}
       initialStatus={statusFilter}
       initialIsTestSubmission={isTestSubmissionFilter}
+      initialCreatedAtFrom={createdAtFrom}
+      initialCreatedAtTo={createdAtTo}
+      initialCompletedAtFrom={completedAtFrom}
+      initialCompletedAtTo={completedAtTo}
     />
   );
 }
@@ -219,11 +258,48 @@ function parsePageSize(value: string | undefined) {
   return PAGE_SIZE_OPTIONS.find((option) => parsed <= option) ?? MAX_PAGE_SIZE;
 }
 
+function parseDateParam(value: string | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return undefined;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+    ? value
+    : undefined;
+}
+
+function parseFilterValues<T extends string>(
+  value: string | undefined,
+  allowedValues: readonly T[],
+) {
+  if (!value) {
+    return [];
+  }
+
+  const allowedSet = new Set<string>(allowedValues);
+  return value.split(",").filter((item): item is T => allowedSet.has(item));
+}
+
 function isCanonicalPageRequest(
   rawPage: string | undefined,
   rawPageSize: string | undefined,
   page: number,
   pageSize: number,
+  dateParams: {
+    rawCreatedAtFrom?: string;
+    rawCreatedAtTo?: string;
+    rawCompletedAtFrom?: string;
+    rawCompletedAtTo?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
+  },
 ) {
   const canonicalPage =
     page === DEFAULT_PAGE ? rawPage === undefined : rawPage === String(page);
@@ -232,7 +308,14 @@ function isCanonicalPageRequest(
       ? rawPageSize === undefined
       : rawPageSize === String(pageSize);
 
-  return canonicalPage && canonicalPageSize;
+  return (
+    canonicalPage &&
+    canonicalPageSize &&
+    dateParams.rawCreatedAtFrom === dateParams.createdAtFrom &&
+    dateParams.rawCreatedAtTo === dateParams.createdAtTo &&
+    dateParams.rawCompletedAtFrom === dateParams.completedAtFrom &&
+    dateParams.rawCompletedAtTo === dateParams.completedAtTo
+  );
 }
 
 function getCanonicalPage(
@@ -257,9 +340,15 @@ function getCanonicalPage(
 
 function buildSubmissionsUrl(
   formId: string,
-  isCompleteFilter: string[],
-  statusFilter: string[],
-  isTestSubmissionFilter: string[],
+  isCompleteFilter: BooleanFilterValue[],
+  statusFilter: SubmissionReviewStatus[],
+  isTestSubmissionFilter: BooleanFilterValue[],
+  dateFilters: {
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
+  },
   page: number,
   pageSize: number,
 ) {
@@ -280,6 +369,18 @@ function buildSubmissionsUrl(
   if (isTestSubmissionFilter.length > 0) {
     params.set("isTestSubmission", isTestSubmissionFilter.join(","));
   }
+  if (dateFilters.createdAtFrom) {
+    params.set("createdAtFrom", dateFilters.createdAtFrom);
+  }
+  if (dateFilters.createdAtTo) {
+    params.set("createdAtTo", dateFilters.createdAtTo);
+  }
+  if (dateFilters.completedAtFrom) {
+    params.set("completedAtFrom", dateFilters.completedAtFrom);
+  }
+  if (dateFilters.completedAtTo) {
+    params.set("completedAtTo", dateFilters.completedAtTo);
+  }
 
   const queryString = params.toString();
   return (
@@ -289,7 +390,7 @@ function buildSubmissionsUrl(
   ) as Route;
 }
 
-function SubmissionsLoadError({ children }: { children: ReactNode }) {
+function SubmissionsLoadError({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div
       role="alert"
@@ -300,7 +401,7 @@ function SubmissionsLoadError({ children }: { children: ReactNode }) {
   );
 }
 
-function TableLoader({ pageSize }: { pageSize: number }) {
+function TableLoader({ pageSize }: Readonly<{ pageSize: number }>) {
   const pageSizeNumber = pageSize;
   const rowHeight = 60;
   const rows = Array.from({ length: pageSizeNumber }, (_, i) => i + 1);

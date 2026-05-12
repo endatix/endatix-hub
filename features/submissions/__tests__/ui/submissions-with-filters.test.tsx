@@ -40,6 +40,7 @@ vi.mock("@/features/submissions/ui/export", () => ({
 
 vi.mock("@/features/submissions/ui/table", () => ({
   buildSubmissionDataColumns: () => [],
+  buildSubmissionSystemColumns: () => [],
   COLUMNS_DEFINITION: [
     {
       id: "createdAt",
@@ -48,6 +49,10 @@ vi.mock("@/features/submissions/ui/table", () => ({
       },
     },
   ],
+  EMPTY_SUBMISSION_DATE_FILTERS: {
+    createdAt: {},
+    completedAt: {},
+  },
   ColumnOrderProvider: ({ children }: { children: ReactNode }) => (
     <>{children}</>
   ),
@@ -141,12 +146,14 @@ describe("SubmissionsWithFilters", () => {
       />,
     );
 
-    // Assert
-    screen.getByText("No submissions match these filters");
+    // Assert — table path with zero rows (real UI shows copy inside DataTable; SubmissionsTable is mocked here)
+    expect(screen.getByTestId("submissions-table").textContent).toContain(
+      "Rows: 0",
+    );
     expect(screen.queryByText("No submissions yet")).toBeNull();
 
     fireEvent.click(
-      screen.getAllByRole("button", { name: /reset filters/i })[1],
+      screen.getByRole("button", { name: /reset filters/i }),
     );
 
     expect(navigationMocks.push).toHaveBeenCalledWith(

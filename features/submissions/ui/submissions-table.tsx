@@ -1,19 +1,19 @@
 "use client";
 
-import {
-  buildSubmissionDataColumns,
-  COLUMNS_DEFINITION,
-  DataTable,
-  ParsedSubmission,
-} from "@/features/submissions/ui/table";
-import { DefinitionField, Submission } from "@/lib/endatix-api";
-import { PaginationState, SortingState } from "@tanstack/react-table";
+import { DataTable } from "@/features/submissions/ui/table";
+import type { ParsedSubmission } from "@/features/submissions/ui/table";
+import { Submission } from "@/lib/endatix-api";
+import type {
+  ColumnDef,
+  PaginationState,
+  SortingState,
+} from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type SubmissionsTableProps = {
   data: Submission[];
   formId: string;
-  definitionFields?: DefinitionField[];
+  columns: ColumnDef<ParsedSubmission>[];
   sorting?: SortingState;
   onSortingChange?: Dispatch<SetStateAction<SortingState>>;
   pagination?: PaginationState;
@@ -25,7 +25,7 @@ type SubmissionsTableProps = {
 const SubmissionsTable = ({
   data,
   formId,
-  definitionFields = [],
+  columns,
   sorting,
   onSortingChange,
   pagination,
@@ -68,23 +68,17 @@ const SubmissionsTable = ({
     ...submission,
     parsedData: (() => {
       try {
-        return submission.jsonData
-          ? JSON.parse(submission.jsonData as string)
-          : {};
+        return submission.jsonData ? JSON.parse(submission.jsonData) : {};
       } catch {
         return {};
       }
     })(),
   }));
 
-  const allColumns = [
-    ...COLUMNS_DEFINITION,
-    ...buildSubmissionDataColumns(definitionFields),
-  ];
   return (
     <DataTable
       data={parsedData}
-      columns={allColumns}
+      columns={columns}
       formId={formId}
       sorting={sorting}
       onSortingChange={onSortingChange}

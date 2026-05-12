@@ -23,6 +23,7 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  type Modifier,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -53,6 +54,63 @@ const ROW_CLASS_NAMES = {
   selected: "bg-accent",
   complete: "font-medium",
 } as const;
+
+const getActivatorCoordinates = (
+  event: Event | null,
+): { x: number; y: number } | null => {
+  if (!event) {
+    return null;
+  }
+
+  if ("clientX" in event && "clientY" in event) {
+    const pointerEvent = event as MouseEvent | PointerEvent;
+    return {
+      x: pointerEvent.clientX,
+      y: pointerEvent.clientY,
+    };
+  }
+
+  if ("touches" in event) {
+    const touchEvent = event as TouchEvent;
+    const touch = touchEvent.touches[0] ?? touchEvent.changedTouches[0];
+    if (touch) {
+      return {
+        x: touch.clientX,
+        y: touch.clientY,
+      };
+    }
+  }
+
+  return null;
+};
+
+const centerDragOverlayOnPointer: Modifier = ({
+  activatorEvent,
+  draggingNodeRect,
+  overlayNodeRect,
+  transform,
+}) => {
+  const coordinates = getActivatorCoordinates(activatorEvent);
+  const overlayRect = overlayNodeRect ?? draggingNodeRect;
+
+  if (!coordinates || !draggingNodeRect || !overlayRect) {
+    return transform;
+  }
+
+  return {
+    ...transform,
+    x:
+      transform.x +
+      coordinates.x -
+      draggingNodeRect.left -
+      overlayRect.width / 2,
+    y:
+      transform.y +
+      coordinates.y -
+      draggingNodeRect.top -
+      overlayRect.height / 2,
+  };
+};
 
 const getRowClassName = <TData extends Submission>(row: Row<TData>) => {
   let className = "";
@@ -89,12 +147,10 @@ export function DataTable<TData extends Submission>({
 }) {
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
 
-  const sorting =
-    externalSorting !== undefined ? externalSorting : internalSorting;
-  const setSorting =
-    externalOnSortingChange !== undefined
-      ? externalOnSortingChange
-      : setInternalSorting;
+  const sorting = externalSorting ?? internalSorting;
+  const setSorting = externalOnSortingChange
+    ? externalOnSortingChange
+    : setInternalSorting;
   const manualPagination = externalPagination !== undefined;
   const manualRowCount = manualPagination ? rowCount : undefined;
   const manualPageCount = manualPagination ? pageCount : undefined;
@@ -103,6 +159,9 @@ export function DataTable<TData extends Submission>({
   const router = useRouter();
   const { columnOrder, reorderColumn } = useColumnOrder();
   const { columnVisibility } = useColumnVisibility();
+  const visibleColumnOrder = columnOrder.filter(
+    (id) => id !== "actions" && columnVisibility[id] !== false,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -198,7 +257,7 @@ export function DataTable<TData extends Submission>({
           <Table className="border-separate border-spacing-0">
             <TableHeader className="border-b border-sidebar-border/50 bg-muted">
               <SortableContext
-                items={columnOrder.filter((id) => id !== "actions")}
+                items={visibleColumnOrder}
                 strategy={horizontalListSortingStrategy}
               >
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -228,41 +287,51 @@ export function DataTable<TData extends Submission>({
               </SortableContext>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn("group cursor-pointer", getRowClassName(row))}
-                  onClick={() => handleRowSelectionChange(row)}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const isPinned = cell.column.getIsPinned();
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          isPinned &&
-                            "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
-                          isPinned === "left" && "left-0",
-                          isPinned &&
-                            row.getIsSelected() &&
-                            "bg-accent group-hover:bg-accent",
-                        )}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
+              {rows.map((row) => {
+                return (
+                  <TableRow
+                    key={row.id}
+                    className={cn("group cursor-pointer", getRowClassName(row))}
+                    onClick={() => handleRowSelectionChange(row)}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const isPinned = cell.column.getIsPinned();
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            isPinned &&
+                              "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
+                            isPinned === "left" && "left-0",
+                            isPinned &&
+                              row.getIsSelected() &&
+                              "bg-accent group-hover:bg-accent",
+                          )}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
-          <DragOverlay>
+          {rows.length === 0 ? (
+            <div className="flex h-24 items-center justify-center border-t border-sidebar-border/50 px-6 text-center text-sm text-muted-foreground">
+              No submissions match current filters.
+            </div>
+          ) : null}
+          <DragOverlay
+            dropAnimation={null}
+            modifiers={[centerDragOverlayOnPointer]}
+          >
             {activeColumn ? (
-              <div className="cursor-grabbing px-4 py-2 opacity-60">
+              <div className="pointer-events-none cursor-pointer rounded-md border border-sidebar-border/70 bg-background px-2 py-1 opacity-95 shadow-lg">
                 {(() => {
                   const column = table
                     .getAllColumns()
@@ -283,7 +352,10 @@ export function DataTable<TData extends Submission>({
             ) : null}
           </DragOverlay>
         </DndContext>
-        <TablePagination table={table} totalRows={rowCount} />
+        <TablePagination
+          table={table}
+          totalRows={rowCount ?? table.getFilteredRowModel().rows.length}
+        />
       </div>
       <Sheet modal={true} open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="flex h-screen w-[600px] flex-col justify-between sm:w-[480px] sm:max-w-none">

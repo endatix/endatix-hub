@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface FacetedFilterProps {
   title: string;
@@ -41,6 +41,12 @@ export function FacetedFilter({
   disabled = false,
 }: FacetedFilterProps) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (disabled) {
+      setOpen(false);
+    }
+  }, [disabled]);
 
   const handleSelect = (value: string) => {
     const newSelectedValues = new Set(selectedValues);
@@ -114,7 +120,7 @@ export function FacetedFilter({
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                         isSelected
                           ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible"
+                          : "opacity-50 [&_svg]:invisible",
                       )}
                     >
                       <Check className="h-4 w-4" />

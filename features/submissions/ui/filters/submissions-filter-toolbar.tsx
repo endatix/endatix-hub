@@ -13,6 +13,7 @@ interface SubmissionsFilterToolbarProps {
   onTestSubmissionChange: (values: Set<string>) => void;
   onResetFilters: () => void;
   disabled?: boolean;
+  hasAdditionalFilters?: boolean;
 }
 
 const isCompleteOptions = [
@@ -40,9 +41,13 @@ export function SubmissionsFilterToolbar({
   onTestSubmissionChange,
   onResetFilters,
   disabled = false,
+  hasAdditionalFilters = false,
 }: SubmissionsFilterToolbarProps) {
   const hasActiveFilters =
-    isCompleteFilter.size > 0 || statusFilter.size > 0 || testSubmissionFilter.size > 0;
+    isCompleteFilter.size > 0 ||
+    statusFilter.size > 0 ||
+    testSubmissionFilter.size > 0 ||
+    hasAdditionalFilters;
 
   return (
     <div className="flex items-center gap-2">

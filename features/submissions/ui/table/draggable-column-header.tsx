@@ -1,10 +1,10 @@
 "use client";
 
 import { Submission } from "@/lib/endatix-api";
+import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Column, Header, flexRender } from "@tanstack/react-table";
-import { GripVertical } from "lucide-react";
 
 interface DraggableColumnHeaderProps<TData extends Submission> {
   column: Column<TData>;
@@ -15,7 +15,8 @@ export function DraggableColumnHeader<TData extends Submission>({
   column,
   header,
 }: DraggableColumnHeaderProps<TData>) {
-  const isActionsColumn = column.id === "actions";
+  const isReorderDisabled = column.id === "actions";
+  const canSort = column.getCanSort();
 
   const {
     attributes,
@@ -26,8 +27,10 @@ export function DraggableColumnHeader<TData extends Submission>({
     isDragging,
   } = useSortable({
     id: column.id,
-    disabled: isActionsColumn,
+    disabled: isReorderDisabled,
   });
+  const sortableAttributes = isReorderDisabled ? {} : attributes;
+  const sortableListeners = isReorderDisabled ? {} : listeners;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -39,21 +42,13 @@ export function DraggableColumnHeader<TData extends Submission>({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-1"
-    >
-      {/* Drag handle - hide for actions column */}
-      {!isActionsColumn && (
-        <button
-          type="button"
-          className="cursor-grab active:cursor-grabbing rounded p-1 text-muted-foreground/55 hover:bg-accent/40 hover:text-muted-foreground/75 touch-none"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+      className={cn(
+        "[&_*]:!cursor-inherit flex touch-none items-center gap-1",
+        canSort ? "!cursor-pointer" : "!cursor-default",
       )}
-
-      {/* Original column header content */}
+      {...sortableAttributes}
+      {...sortableListeners}
+    >
       {flexRender(header.column.columnDef.header, header.getContext())}
     </div>
   );

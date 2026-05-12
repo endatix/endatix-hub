@@ -195,6 +195,30 @@ export class Submissions {
         `isTestSubmission:${request.isTestSubmission.join("|")}`,
       );
     }
+    if (request.createdAtFrom) {
+      params.append(
+        "filter",
+        `createdAt>:${localDayStartToUtc(request.createdAtFrom)}`,
+      );
+    }
+    if (request.createdAtTo) {
+      params.append(
+        "filter",
+        `createdAt<${localNextDayStartToUtc(request.createdAtTo)}`,
+      );
+    }
+    if (request.completedAtFrom) {
+      params.append(
+        "filter",
+        `completedAt>:${localDayStartToUtc(request.completedAtFrom)}`,
+      );
+    }
+    if (request.completedAtTo) {
+      params.append(
+        "filter",
+        `completedAt<${localNextDayStartToUtc(request.completedAtTo)}`,
+      );
+    }
 
     const queryString = params.toString();
     const queryPart = queryString ? `?${queryString}` : "";
@@ -202,4 +226,14 @@ export class Submissions {
 
     return this.endatix.get<ListSubmissionsResponse>(endpoint);
   }
+}
+
+function localDayStartToUtc(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day).toISOString();
+}
+
+function localNextDayStartToUtc(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day + 1).toISOString();
 }
