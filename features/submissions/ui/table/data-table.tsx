@@ -45,7 +45,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useId, useState } from "react";
 import { useColumnOrder } from "./column-order-context";
 import { useColumnVisibility } from "./column-visibility-context";
 import { DraggableColumnHeader } from "./draggable-column-header";
@@ -157,6 +157,7 @@ export function DataTable<TData extends Submission>({
   const manualPageCount = manualPagination ? pageCount : undefined;
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
+  const dndContextId = useId();
   const router = useRouter();
   const { columnOrder, reorderColumn } = useColumnOrder();
   const { columnVisibility } = useColumnVisibility();
@@ -261,6 +262,7 @@ export function DataTable<TData extends Submission>({
         className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
       >
         <DndContext
+          id={dndContextId}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
