@@ -1,0 +1,92 @@
+import type { ListSubmissionsRequest } from "./types";
+
+/**
+ * Encodes {@link ListSubmissionsRequest} into repeated `filter` query segments for the Endatix list API.
+ *
+ * Kept submission-specific on purpose: a generic “list filter query builder” should wait until a second
+ * resource proves the same rules (param name, segment grammar, UTC calendar bounds for date ranges).
+ * Then extract a small shared helper driven by a field descriptor (wire name, multi-value join, operator
+ * shape) instead of duplicating ad hoc encoders.
+ */
+
+/** Repeated query key for each list filter segment (`field:value` / `field>:` / …). */
+export const SUBMISSION_LIST_FILTER_QUERY_PARAM = "filter" as const;
+
+/** Wire field names for `ListSubmissionsRequest` → list API `filter` segments. */
+export const SUBMISSION_LIST_FILTER_FIELD_NAMES = Object.freeze({
+  isComplete: "isComplete",
+  status: "status",
+  isTestSubmission: "isTestSubmission",
+  createdAt: "createdAt",
+  completedAt: "completedAt",
+} as const);
+
+export type SubmissionFilterFieldName =
+  keyof typeof SUBMISSION_LIST_FILTER_FIELD_NAMES;
+
+/**
+ * Start of a calendar day `YYYY-MM-DD` in UTC as ISO 8601 (for `createdAt>` / `completedAt>` filters).
+ */
+export function utcCalendarDayStartIso(calendarDate: string): string {
+  const [year, month, day] = calendarDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).toISOString();
+}
+
+/**
+ * Start of the day after `YYYY-MM-DD` in UTC as ISO 8601 (exclusive upper bound for `createdAt<` / `completedAt<`).
+ */
+export function utcCalendarNextDayStartIso(calendarDate: string): string {
+  const [year, month, day] = calendarDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString();
+}
+
+/**
+ * Appends Endatix list `filter` query segments for {@link ListSubmissionsRequest} onto existing params (page, pageSize).
+ */
+export function appendSubmissionListFilters(
+  params: URLSearchParams,
+  request: ListSubmissionsRequest,
+): void {
+  if (request.isComplete && request.isComplete.length > 0) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.isComplete}:${request.isComplete.join("|")}`,
+    );
+  }
+  if (request.status && request.status.length > 0) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.status}:${request.status.join("|")}`,
+    );
+  }
+  if (request.isTestSubmission && request.isTestSubmission.length > 0) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.isTestSubmission}:${request.isTestSubmission.join("|")}`,
+    );
+  }
+  if (request.createdAtFrom) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.createdAt}>:${utcCalendarDayStartIso(request.createdAtFrom)}`,
+    );
+  }
+  if (request.createdAtTo) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.createdAt}<${utcCalendarNextDayStartIso(request.createdAtTo)}`,
+    );
+  }
+  if (request.completedAtFrom) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.completedAt}>:${utcCalendarDayStartIso(request.completedAtFrom)}`,
+    );
+  }
+  if (request.completedAtTo) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.completedAt}<${utcCalendarNextDayStartIso(request.completedAtTo)}`,
+    );
+  }
+}
