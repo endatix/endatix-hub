@@ -28,21 +28,19 @@ const ColumnVisibilityContext = createContext<
 >(undefined);
 
 interface ColumnVisibilityProviderProps<TData extends Submission = Submission> {
-  children: ReactNode;
-  formId: string;
-  defaultColumns: ColumnDef<TData>[];
+  readonly children: ReactNode;
+  readonly formId: string;
+  readonly defaultColumns: ColumnDef<TData>[];
 }
 
-export function ColumnVisibilityProvider<TData extends Submission = Submission>({
-  children,
-  formId,
-  defaultColumns,
-}: ColumnVisibilityProviderProps<TData>) {
+export function ColumnVisibilityProvider<
+  TData extends Submission = Submission,
+>({ children, formId, defaultColumns }: ColumnVisibilityProviderProps<TData>) {
   const defaultColumnVisibility = useMemo(() => {
     const visibility: Record<string, boolean> = {};
     defaultColumns.forEach((col) => {
       if (col.id && col.id !== "actions") {
-        visibility[col.id] = true;
+        visibility[col.id] = col.meta?.defaultHidden !== true;
       }
     });
     return visibility;
@@ -50,9 +48,13 @@ export function ColumnVisibilityProvider<TData extends Submission = Submission>(
 
   const [columnVisibility, setColumnVisibilityState] = useState<
     Record<string, boolean>
-  >(() => {
+  >(defaultColumnVisibility);
+
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
     if (globalThis.window === undefined) {
-      return defaultColumnVisibility;
+      return;
     }
 
     const store = createColumnVisibilityStore(formId);
@@ -60,22 +62,21 @@ export function ColumnVisibilityProvider<TData extends Submission = Submission>(
 
     if (saved && Object.keys(saved).length > 0) {
       const validVisibility: Record<string, boolean> = {};
-
       Object.keys(defaultColumnVisibility).forEach((id) => {
         if (id in saved) {
           validVisibility[id] = saved[id];
         } else {
-          validVisibility[id] = true;
+          validVisibility[id] = defaultColumnVisibility[id];
         }
       });
 
-      return validVisibility;
+      setColumnVisibilityState((prev) =>
+        JSON.stringify(prev) === JSON.stringify(validVisibility)
+          ? prev
+          : validVisibility,
+      );
     }
-
-    return defaultColumnVisibility;
-  });
-
-  const isFirstRender = useRef(true);
+  }, [formId, defaultColumnVisibility]);
 
   useEffect(() => {
     if (globalThis.window === undefined) {
@@ -95,22 +96,19 @@ export function ColumnVisibilityProvider<TData extends Submission = Submission>(
     (visibility: Record<string, boolean>) => {
       setColumnVisibilityState(visibility);
     },
-    []
+    [],
   );
 
-  const toggleColumnVisibility = useCallback(
-    (columnId: string) => {
-      if (columnId === "actions") {
-        return;
-      }
+  const toggleColumnVisibility = useCallback((columnId: string) => {
+    if (columnId === "actions") {
+      return;
+    }
 
-      setColumnVisibilityState((prev) => ({
-        ...prev,
-        [columnId]: !(prev[columnId] ?? true),
-      }));
-    },
-    []
-  );
+    setColumnVisibilityState((prev) => ({
+      ...prev,
+      [columnId]: !(prev[columnId] ?? true),
+    }));
+  }, []);
 
   const resetToDefault = useCallback(() => {
     setColumnVisibilityState(defaultColumnVisibility);
@@ -122,7 +120,7 @@ export function ColumnVisibilityProvider<TData extends Submission = Submission>(
     () =>
       JSON.stringify(columnVisibility) !==
       JSON.stringify(defaultColumnVisibility),
-    [columnVisibility, defaultColumnVisibility]
+    [columnVisibility, defaultColumnVisibility],
   );
 
   const contextValue = useMemo(
@@ -141,7 +139,7 @@ export function ColumnVisibilityProvider<TData extends Submission = Submission>(
       toggleColumnVisibility,
       resetToDefault,
       hasCustomVisibility,
-    ]
+    ],
   );
 
   return (
@@ -155,7 +153,7 @@ export function useColumnVisibility() {
   const context = useContext(ColumnVisibilityContext);
   if (context === undefined) {
     throw new Error(
-      "useColumnVisibility must be used within ColumnVisibilityProvider"
+      "useColumnVisibility must be used within ColumnVisibilityProvider",
     );
   }
   return context;

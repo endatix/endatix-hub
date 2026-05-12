@@ -5,11 +5,26 @@ export { CellReadStatus } from "./cell-read-status";
 export { ColumnHeader } from "./column-header";
 export { ColumnOrderProvider, useColumnOrder } from "./column-order-context";
 export { ColumnViewOptionsDropdown } from "./column-view-options-dropdown";
-export { ColumnVisibilityProvider, useColumnVisibility } from "./column-visibility-context";
-export { buildSubmissionDataColumns, COLUMNS_DEFINITION, type ParsedSubmission } from "./columns-definition";
+export {
+  ColumnVisibilityProvider,
+  useColumnVisibility,
+} from "./column-visibility-context";
+export {
+  buildSubmissionDataColumns,
+  buildSubmissionSystemColumns,
+  COLUMNS_DEFINITION,
+  humanizeFieldName,
+  type ParsedSubmission,
+} from "./columns-definition";
 export { DataTable } from "./data-table";
+export {
+  EMPTY_SUBMISSION_DATE_FILTERS,
+  type DateFilterChangeHandler,
+  type DateFilterColumnId,
+  type DateFilterValue,
+  type SubmissionDateFilters,
+} from "./date-filter-types";
 export { DraggableColumnHeader } from "./draggable-column-header";
 export { ResetOptionsDropdown } from "./reset-options-dropdown";
 export { RowActions } from "./row-actions";
 export { TablePagination } from "./table-pagination";
-

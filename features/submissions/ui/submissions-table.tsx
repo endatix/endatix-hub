@@ -1,29 +1,39 @@
 "use client";
 
-import {
-  buildSubmissionDataColumns,
-  COLUMNS_DEFINITION,
-  DataTable,
-  ParsedSubmission,
-} from "@/features/submissions/ui/table";
-import { DefinitionField, Submission } from "@/lib/endatix-api";
-import { SortingState } from "@tanstack/react-table";
+import { DataTable } from "@/features/submissions/ui/table";
+import type { ParsedSubmission } from "@/features/submissions/ui/table";
+import { Submission } from "@/lib/endatix-api";
+import type {
+  ColumnDef,
+  PaginationState,
+  SortingState,
+} from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type SubmissionsTableProps = {
   data: Submission[];
   formId: string;
-  definitionFields?: DefinitionField[];
+  columns: ColumnDef<ParsedSubmission>[];
   sorting?: SortingState;
   onSortingChange?: Dispatch<SetStateAction<SortingState>>;
+  pagination?: PaginationState;
+  onPaginationChange?: Dispatch<SetStateAction<PaginationState>>;
+  totalRecords?: number;
+  totalPages?: number;
+  onFilteredEmptyClear?: () => void;
 };
 
 const SubmissionsTable = ({
   data,
   formId,
-  definitionFields = [],
+  columns,
   sorting,
   onSortingChange,
+  pagination,
+  onPaginationChange,
+  totalRecords,
+  totalPages,
+  onFilteredEmptyClear,
 }: SubmissionsTableProps) => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<
     string | null
@@ -56,25 +66,29 @@ const SubmissionsTable = ({
     };
   }, [selectedSubmissionId, data]);
 
-  const parsedData: ParsedSubmission[] = data.map(submission => ({
+  const parsedData: ParsedSubmission[] = data.map((submission) => ({
     ...submission,
     parsedData: (() => {
       try {
-        return submission.jsonData ? JSON.parse(submission.jsonData as string) : {};
+        return submission.jsonData ? JSON.parse(submission.jsonData) : {};
       } catch {
         return {};
       }
-    })()
+    })(),
   }));
 
-  const allColumns = [...COLUMNS_DEFINITION, ...buildSubmissionDataColumns(definitionFields)];
   return (
     <DataTable
       data={parsedData}
-      columns={allColumns}
+      columns={columns}
       formId={formId}
       sorting={sorting}
       onSortingChange={onSortingChange}
+      pagination={pagination}
+      onPaginationChange={onPaginationChange}
+      rowCount={totalRecords}
+      pageCount={totalPages}
+      onFilteredEmptyClear={onFilteredEmptyClear}
     />
   );
 };

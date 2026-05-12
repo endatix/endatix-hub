@@ -6,7 +6,17 @@ import {
 } from "@/lib/utils/type-validators";
 import type { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
-import { ExportSubmissionsRequest, Submission } from "./types";
+import { appendSubmissionListFilters } from "./submission-list-query-params";
+import {
+  ExportSubmissionsRequest,
+  ListSubmissionsRequest,
+  ListSubmissionsResponse,
+  Submission,
+} from "./types";
+import {
+  SUBMISSION_LIST_DEFAULT_PAGE,
+  SUBMISSION_LIST_DEFAULT_PAGE_SIZE,
+} from "@/features/submissions/list-submission-query";
 
 class PublicSubmissions {
   constructor(private readonly endatix: EndatixApi) {}
@@ -167,37 +177,25 @@ export class Submissions {
    */
   async list(
     formId: string,
-    filters?: {
-      isComplete?: string[];
-      status?: string[];
-      isTestSubmission?: string[];
-    },
-  ): Promise<ApiResult<Submission[]>> {
+    request: ListSubmissionsRequest = {},
+  ): Promise<ApiResult<ListSubmissionsResponse>> {
     const validateFormIdResult = validateEndatixId(formId, "formId");
     if (Result.isError(validateFormIdResult)) {
       return ApiResult.validationError(validateFormIdResult.message);
     }
 
     const params = new URLSearchParams();
-    params.set("pageSize", "10000");
-
-    if (filters?.isComplete && filters.isComplete.length > 0) {
-      params.append("filter", `isComplete:${filters.isComplete.join("|")}`);
-    }
-    if (filters?.status && filters.status.length > 0) {
-      params.append("filter", `status:${filters.status.join("|")}`);
-    }
-    if (filters?.isTestSubmission && filters.isTestSubmission.length > 0) {
-      params.append(
-        "filter",
-        `isTestSubmission:${filters.isTestSubmission.join("|")}`,
-      );
-    }
+    params.set("page", String(request.page ?? SUBMISSION_LIST_DEFAULT_PAGE));
+    params.set(
+      "pageSize",
+      String(request.pageSize ?? SUBMISSION_LIST_DEFAULT_PAGE_SIZE),
+    );
+    appendSubmissionListFilters(params, request);
 
     const queryString = params.toString();
     const queryPart = queryString ? `?${queryString}` : "";
     const endpoint = `/forms/${validateFormIdResult.value}/submissions${queryPart}`;
 
-    return this.endatix.get<Submission[]>(endpoint);
+    return this.endatix.get<ListSubmissionsResponse>(endpoint);
   }
 }
