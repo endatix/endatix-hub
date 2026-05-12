@@ -21,7 +21,27 @@ export function buildSubmissionsTableKey(options: {
   pagination: PaginationState;
   dataLength: number;
 }): string {
-  const { dateFilters, pagination, dataLength } = options;
-  
-  return `${sortedSetJoin(options.isCompleteFilter)}-${sortedSetJoin(options.statusFilter)}-${sortedSetJoin(options.testSubmissionFilter)}-${dateFilters.createdAt.from ?? ""}-${dateFilters.createdAt.to ?? ""}-${dateFilters.completedAt.from ?? ""}-${dateFilters.completedAt.to ?? ""}-${pagination.pageIndex}-${pagination.pageSize}-${dataLength}`;
+  const {
+    dateFilters,
+    pagination,
+    dataLength,
+    isCompleteFilter,
+    statusFilter,
+    testSubmissionFilter,
+  } = options;
+
+  const parts = [
+    sortedSetJoin(isCompleteFilter),
+    sortedSetJoin(statusFilter),
+    sortedSetJoin(testSubmissionFilter),
+    dateFilters.createdAt.from ?? "",
+    dateFilters.createdAt.to ?? "",
+    dateFilters.completedAt.from ?? "",
+    dateFilters.completedAt.to ?? "",
+    String(pagination.pageIndex),
+    String(pagination.pageSize),
+    String(dataLength),
+  ];
+
+  return parts.join("-");
 }

@@ -108,8 +108,8 @@ describe("SubmissionsWithFilters", () => {
         formId="form-1"
         hasAnySubmissions={false}
         initialStatus={["new"]}
-        initialPage={0}
-        initialPageSize={0}
+        initialPage={1}
+        initialPageSize={10}
         totalRecords={0}
         totalPages={0}
       />,
@@ -117,7 +117,9 @@ describe("SubmissionsWithFilters", () => {
 
     // Assert
     screen.getByText("No submissions yet");
-    expect(screen.queryByText("No submissions match these filters")).toBeNull();
+    expect(
+      screen.queryByText("No submissions match current filters"),
+    ).toBeNull();
     expect(
       (screen.getByRole("button", { name: /status/i }) as HTMLButtonElement)
         .disabled,
@@ -139,7 +141,7 @@ describe("SubmissionsWithFilters", () => {
         formId="form-1"
         hasAnySubmissions
         initialStatus={["new"]}
-        initialPage={0}
+        initialPage={1}
         initialPageSize={10}
         totalRecords={0}
         totalPages={0}
@@ -152,9 +154,7 @@ describe("SubmissionsWithFilters", () => {
     );
     expect(screen.queryByText("No submissions yet")).toBeNull();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /reset filters/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
 
     expect(navigationMocks.push).toHaveBeenCalledWith(
       "/forms/form-1/submissions",
@@ -169,8 +169,8 @@ describe("SubmissionsWithFilters", () => {
         data={[submission]}
         formId="form-1"
         hasAnySubmissions
-        initialPage={0}
-        initialPageSize={0}
+        initialPage={1}
+        initialPageSize={10}
         totalRecords={0}
         totalPages={0}
       />,
@@ -179,6 +179,8 @@ describe("SubmissionsWithFilters", () => {
     // Assert
     screen.getByTestId("submissions-table");
     expect(screen.queryByText("No submissions yet")).toBeNull();
-    expect(screen.queryByText("No submissions match these filters")).toBeNull();
+    expect(
+      screen.queryByText("No submissions match current filters"),
+    ).toBeNull();
   });
 });

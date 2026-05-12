@@ -41,7 +41,11 @@ describe("ColumnVisibilityProvider", () => {
       </ColumnVisibilityProvider>,
     );
 
-    expect(screen.getByText("createdAt: true")).toBeDefined();
-    expect(screen.getByText("data_firstName: false")).toBeDefined();
+    expect(screen.getByText("createdAt: true").textContent).toBe(
+      "createdAt: true",
+    );
+    expect(screen.getByText("data_firstName: false").textContent).toBe(
+      "data_firstName: false",
+    );
   });
 });
