@@ -1,6 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Inbox, RotateCcw, Share2 } from "lucide-react";
 
 interface NoSubmissionsEmptyStateProps {
@@ -15,23 +23,25 @@ export function NoSubmissionsEmptyState({
   onShareForm,
 }: NoSubmissionsEmptyStateProps) {
   return (
-    <div className="flex min-h-[18rem] flex-col items-center justify-center px-6 py-14 text-center">
-      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-sidebar-border/70 bg-background/70 text-muted-foreground/70">
-        <Inbox className="h-8 w-8" aria-hidden="true" />
-      </div>
-      <h2 className="text-xl font-semibold text-foreground">
-        No submissions yet
-      </h2>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Responses will appear here as soon as someone submits this form.
-      </p>
-      {onShareForm && (
-        <Button onClick={onShareForm} className="mt-6">
-          <Share2 className="mr-2 h-4 w-4" />
-          Share form
-        </Button>
-      )}
-    </div>
+    <Empty className="min-h-[18rem] border-sidebar-border/50 py-14">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Inbox className="h-6 w-6" aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>No submissions yet</EmptyTitle>
+        <EmptyDescription>
+          Responses will appear here as soon as someone submits this form.
+        </EmptyDescription>
+      </EmptyHeader>
+      {onShareForm ? (
+        <EmptyContent>
+          <Button onClick={onShareForm}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Share form
+          </Button>
+        </EmptyContent>
+      ) : null}
+    </Empty>
   );
 }
 
@@ -39,17 +49,19 @@ export function NoMatchingSubmissionsEmptyState({
   onClearFilters,
 }: NoMatchingSubmissionsEmptyStateProps) {
   return (
-    <div className="flex min-h-[14rem] flex-col items-center justify-center px-6 py-12 text-center">
-      <h2 className="text-lg font-semibold text-foreground">
-        No submissions match current filters.
-      </h2>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Try changing or clearing the current filters.
-      </p>
-      <Button variant="outline" onClick={onClearFilters} className="mt-5">
-        <RotateCcw className="mr-2 h-4 w-4" />
-        Reset Filters
-      </Button>
-    </div>
+    <Empty className="min-h-[14rem] border-sidebar-border/50 py-12">
+      <EmptyHeader>
+        <EmptyTitle>No submissions match current filters.</EmptyTitle>
+        <EmptyDescription>
+          Try changing or clearing the current filters.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button variant="outline" onClick={onClearFilters}>
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Reset Filters
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }
