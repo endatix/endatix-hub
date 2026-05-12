@@ -1,7 +1,12 @@
 "use client";
 
-import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
+import {
+  buildSubmissionsTableKey,
+  serializeSubmissionListSearchParams,
+  submissionListUrlStateFromClientFilters,
+} from "@/features/submissions/list-submission-query";
+import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
@@ -231,6 +236,7 @@ function SubmissionsContent({
           onPaginationChange={onPaginationChange}
           totalRecords={totalRecords}
           totalPages={totalPages}
+          onFilteredEmptyClear={onResetFilters}
         />
       )}
     </>
@@ -330,37 +336,19 @@ export function SubmissionsWithFilters({
     page: number,
     pageSize: number,
   ) => {
-    const params = new URLSearchParams();
-
-    if (page > 1) {
-      params.set("page", String(page));
-    }
-    if (pageSize !== 10) {
-      params.set("pageSize", String(pageSize));
-    }
-    if (isComplete.size > 0) {
-      params.set("isComplete", Array.from(isComplete).join(","));
-    }
-    if (status.size > 0) {
-      params.set("status", Array.from(status).join(","));
-    }
-    if (isTestSubmission.size > 0) {
-      params.set("isTestSubmission", Array.from(isTestSubmission).join(","));
-    }
-    if (dates.createdAt.from) {
-      params.set("createdAtFrom", dates.createdAt.from);
-    }
-    if (dates.createdAt.to) {
-      params.set("createdAtTo", dates.createdAt.to);
-    }
-    if (dates.completedAt.from) {
-      params.set("completedAtFrom", dates.completedAt.from);
-    }
-    if (dates.completedAt.to) {
-      params.set("completedAtTo", dates.completedAt.to);
-    }
-
-    const queryString = params.toString();
+    const listState = submissionListUrlStateFromClientFilters({
+      page,
+      pageSize,
+      isComplete,
+      status,
+      isTestSubmission,
+      createdAtFrom: dates.createdAt.from,
+      createdAtTo: dates.createdAt.to,
+      completedAtFrom: dates.completedAt.from,
+      completedAtTo: dates.completedAt.to,
+    });
+    const queryString =
+      serializeSubmissionListSearchParams(listState).toString();
     const url = queryString ? `${pathname}?${queryString}` : pathname;
 
     startTransition(() => {
@@ -463,16 +451,14 @@ export function SubmissionsWithFilters({
     );
   };
 
-  // Create a key that changes when filters change to force table re-mount
-  const tableKey = `${Array.from(isCompleteFilter)
-    .sort((a, b) => a.localeCompare(b))
-    .join(",")}-${Array.from(statusFilter)
-    .sort((a, b) => a.localeCompare(b))
-    .join(",")}-${Array.from(testSubmissionFilter)
-    .sort((a, b) => a.localeCompare(b))
-    .join(
-      ",",
-    )}-${dateFilters.createdAt.from ?? ""}-${dateFilters.createdAt.to ?? ""}-${dateFilters.completedAt.from ?? ""}-${dateFilters.completedAt.to ?? ""}-${pagination.pageIndex}-${pagination.pageSize}-${data.length}`;
+  const tableKey = buildSubmissionsTableKey({
+    isCompleteFilter,
+    statusFilter,
+    testSubmissionFilter,
+    dateFilters,
+    pagination,
+    dataLength: data.length,
+  });
 
   const allColumns = [
     ...buildSubmissionSystemColumns({
