@@ -25,6 +25,23 @@ export type SubmissionFilterFieldName =
   keyof typeof SUBMISSION_LIST_FILTER_FIELD_NAMES;
 
 /**
+ * True when `value` is a real calendar day `YYYY-MM-DD` in UTC (rejects overflow dates and garbage).
+ */
+function isValidCalendarDateYmd(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return (
+    d.getUTCFullYear() === year &&
+    d.getUTCMonth() === month - 1 &&
+    d.getUTCDate() === day
+  );
+}
+
+/**
  * Start of a calendar day `YYYY-MM-DD` in UTC as ISO 8601 (for `createdAt>` / `completedAt>` filters).
  */
 export function utcCalendarDayStartIso(calendarDate: string): string {
@@ -65,25 +82,28 @@ export function appendSubmissionListFilters(
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.isTestSubmission}:${request.isTestSubmission.join("|")}`,
     );
   }
-  if (request.createdAtFrom) {
+  if (request.createdAtFrom && isValidCalendarDateYmd(request.createdAtFrom)) {
     params.append(
       SUBMISSION_LIST_FILTER_QUERY_PARAM,
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.createdAt}>:${utcCalendarDayStartIso(request.createdAtFrom)}`,
     );
   }
-  if (request.createdAtTo) {
+  if (request.createdAtTo && isValidCalendarDateYmd(request.createdAtTo)) {
     params.append(
       SUBMISSION_LIST_FILTER_QUERY_PARAM,
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.createdAt}<${utcCalendarNextDayStartIso(request.createdAtTo)}`,
     );
   }
-  if (request.completedAtFrom) {
+  if (
+    request.completedAtFrom &&
+    isValidCalendarDateYmd(request.completedAtFrom)
+  ) {
     params.append(
       SUBMISSION_LIST_FILTER_QUERY_PARAM,
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.completedAt}>:${utcCalendarDayStartIso(request.completedAtFrom)}`,
     );
   }
-  if (request.completedAtTo) {
+  if (request.completedAtTo && isValidCalendarDateYmd(request.completedAtTo)) {
     params.append(
       SUBMISSION_LIST_FILTER_QUERY_PARAM,
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.completedAt}<${utcCalendarNextDayStartIso(request.completedAtTo)}`,

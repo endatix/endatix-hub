@@ -67,4 +67,23 @@ describe("appendSubmissionListFilters", () => {
       `${F.completedAt}<${utcCalendarNextDayStartIso("2024-02-02")}`,
     );
   });
+
+  it("skips date filters that are not valid YYYY-MM-DD calendar days (no throw)", () => {
+    const params = new URLSearchParams();
+    appendSubmissionListFilters(params, {
+      isComplete: ["true"],
+      createdAtFrom: "not-a-date",
+      createdAtTo: "2024-13-40",
+      completedAtFrom: "2024-02-30",
+      completedAtTo: "2024-06-15",
+    });
+
+    const filters = params.getAll(SUBMISSION_LIST_FILTER_QUERY_PARAM);
+    expect(filters).toContain(`${F.isComplete}:true`);
+    expect(filters.some((f) => f.startsWith(`${F.createdAt}`))).toBe(false);
+    expect(filters.some((f) => f.startsWith(`${F.completedAt}>`))).toBe(false);
+    expect(filters).toContain(
+      `${F.completedAt}<${utcCalendarNextDayStartIso("2024-06-15")}`,
+    );
+  });
 });

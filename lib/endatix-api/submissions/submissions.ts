@@ -13,6 +13,10 @@ import {
   ListSubmissionsResponse,
   Submission,
 } from "./types";
+import {
+  SUBMISSION_LIST_DEFAULT_PAGE,
+  SUBMISSION_LIST_DEFAULT_PAGE_SIZE,
+} from "@/features/submissions/list-submission-query";
 
 class PublicSubmissions {
   constructor(private readonly endatix: EndatixApi) {}
@@ -181,8 +185,11 @@ export class Submissions {
     }
 
     const params = new URLSearchParams();
-    params.set("page", String(request.page ?? 1));
-    params.set("pageSize", String(request.pageSize ?? 10));
+    params.set("page", String(request.page ?? SUBMISSION_LIST_DEFAULT_PAGE));
+    params.set(
+      "pageSize",
+      String(request.pageSize ?? SUBMISSION_LIST_DEFAULT_PAGE_SIZE),
+    );
     appendSubmissionListFilters(params, request);
 
     const queryString = params.toString();
