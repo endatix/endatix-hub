@@ -115,7 +115,6 @@ async function SubmissionsTableData({
       listState.completedAtTo,
     );
   const page = listState.page;
-  const pageSize = listState.pageSize;
 
   if (
     !isCanonicalSubmissionListUrl(
