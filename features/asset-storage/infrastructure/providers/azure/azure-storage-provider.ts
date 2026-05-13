@@ -11,11 +11,16 @@ import type { ReadTokensResult as BulkReadTokensResult } from "../../../types";
 import type { IStorageProvider } from "../../core/storage-provider.interface";
 import { buildUserFileFolderPath } from "../../storage-utils";
 import { getAzureStorageConfig, type AzureStorageConfig } from "./azure-config";
+import {
+  toAzureBlockBlobPutHeaders,
+  toBlobUploadOptions,
+} from "./azure-blob-metadata-parser";
 import type {
   BlobPropertiesResult,
   BulkReadUrlsOptions,
   FileOptions,
   FolderOptions,
+  UploadUrlDescriptor,
 } from "./types";
 
 const READ_ONLY_PERMISSIONS = BlobSASPermissions.parse("r");
@@ -184,7 +189,7 @@ export class AzureBlobStorageProvider implements IStorageProvider {
   async generateUploadUrl(
     fileOptions: FileOptions,
     permissions: "wr" = "wr",
-  ): Promise<string> {
+  ): Promise<UploadUrlDescriptor> {
     const config = this.getConfig();
     if (!config.isEnabled) {
       throw new Error("Azure storage is not enabled");
@@ -215,14 +220,25 @@ export class AzureBlobStorageProvider implements IStorageProvider {
 
       const NOW = new Date(Date.now());
       const EXPIRY_IN_MS = 1000 * 60 * 3; // 3 minutes
-      const sasToken = blobClient.generateSasUrl({
+      const sasToken = await blobClient.generateSasUrl({
         startsOn: NOW,
         permissions: BlobSASPermissions.parse(permissions),
         expiresOn: new Date(NOW.valueOf() + EXPIRY_IN_MS),
         protocol: SASProtocol.Https,
       });
 
-      return sasToken;
+      const headers =
+        fileOptions.blobUploadFileMetadata !== undefined
+          ? toAzureBlockBlobPutHeaders(
+              toBlobUploadOptions(fileOptions.blobUploadFileMetadata),
+            )
+          : { "x-ms-blob-type": "BlockBlob" };
+
+      return {
+        url: sasToken,
+        key: blobName,
+        headers,
+      };
     } catch (error) {
       console.error("Error generating SAS token:", error);
       throw error;

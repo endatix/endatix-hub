@@ -13,6 +13,7 @@ export { AzureBlobStorageProvider } from "./azure-storage-provider";
 export {
   blobMetadataParser,
   toBlobUploadOptions,
+  toAzureBlockBlobPutHeaders,
 } from "./azure-blob-metadata-parser";
 export type {
   BlobPropertiesResult,

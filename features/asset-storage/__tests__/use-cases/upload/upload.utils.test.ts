@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
 import {
   fetchUploadUrls,
+  prepareUploadBytes,
   processAndUploadFile,
   type UploadUrlsData,
 } from "@/features/asset-storage/use-cases/upload/upload.utils";
@@ -19,6 +20,12 @@ vi.mock("@/features/asset-storage/use-cases/upload/upload-blob", () => ({
 
 global.fetch = vi.fn();
 
+const sampleDescriptor = {
+  url: "https://example.com/a?sas",
+  key: "folder/a.pdf",
+  headers: { "x-ms-blob-type": "BlockBlob" as const },
+};
+
 describe("fetchUploadUrls", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,8 +33,8 @@ describe("fetchUploadUrls", () => {
 
   it("returns success with data when response is ok", async () => {
     const data: UploadUrlsData = {
-      sasTokens: {
-        "a.pdf": { success: true, url: "https://example.com/a?sas" },
+      uploads: {
+        "a.pdf": sampleDescriptor,
       },
       userId: "user-1",
     };
@@ -36,14 +43,14 @@ describe("fetchUploadUrls", () => {
       json: () => Promise.resolve(data),
     });
 
-    const result = await fetchUploadUrls("/api/sas", { fileNames: ["a.pdf"] });
+    const result = await fetchUploadUrls("/api/upload-urls", {
+      fileNames: ["a.pdf"],
+    });
 
     expect(Result.isSuccess(result)).toBe(true);
     if (Result.isSuccess(result)) {
       expect(result.value).toEqual(data);
-      expect(result.value.sasTokens["a.pdf"].url).toBe(
-        "https://example.com/a?sas",
-      );
+      expect(result.value.uploads["a.pdf"]).toEqual(sampleDescriptor);
     }
   });
 
@@ -54,7 +61,7 @@ describe("fetchUploadUrls", () => {
         Promise.resolve({ detail: "Validation failed", error: "Bad request" }),
     });
 
-    const result = await fetchUploadUrls("/api/sas", {});
+    const result = await fetchUploadUrls("/api/upload-urls", {});
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
@@ -68,7 +75,7 @@ describe("fetchUploadUrls", () => {
       json: () => Promise.resolve({}),
     });
 
-    const result = await fetchUploadUrls("/api/sas", {});
+    const result = await fetchUploadUrls("/api/upload-urls", {});
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
@@ -81,7 +88,7 @@ describe("fetchUploadUrls", () => {
       new Error("Network error"),
     );
 
-    const result = await fetchUploadUrls("/api/sas", {});
+    const result = await fetchUploadUrls("/api/upload-urls", {});
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
@@ -90,20 +97,9 @@ describe("fetchUploadUrls", () => {
   });
 });
 
-describe("processAndUploadFile", () => {
-  const userMeta = {
-    kind: "user" as const,
-    uploadedBy: "user-1",
-    displayName: "doc.pdf",
-    contentType: "application/pdf",
-    formId: "f1",
-    submissionId: "s1",
-    formLang: "en",
-  };
-
+describe("prepareUploadBytes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUploadBlob.mockResolvedValue("https://example.com/container/doc.pdf");
     mockResizeImageOrFallback.mockResolvedValue({
       buffer: new ArrayBuffer(0),
       contentType: "image/png",
@@ -111,85 +107,73 @@ describe("processAndUploadFile", () => {
     });
   });
 
-  it("returns success with url and file when upload succeeds (no resize)", async () => {
-    const file = new File(["content"], "doc.pdf", {
-      type: "application/pdf",
-    });
+  it("reads arrayBuffer when resize URL is omitted", async () => {
+    const file = new File(["x"], "doc.pdf", { type: "application/pdf" });
     Object.defineProperty(file, "arrayBuffer", {
       value: () => Promise.resolve(new ArrayBuffer(8)),
       writable: false,
     });
 
-    const result = await processAndUploadFile(
-      file,
-      "https://example.com/sas",
-      userMeta,
-    );
+    const out = await prepareUploadBytes(file, undefined);
+    expect(out.buffer.byteLength).toBe(8);
+    expect(out.contentType).toBe("application/pdf");
+    expect(out.fileState).toBe("original");
+    expect(mockResizeImageOrFallback).not.toHaveBeenCalled();
+  });
+
+  it("calls resize for small images when resize URL is set", async () => {
+    const file = new File([new Uint8Array(10)], "img.png", {
+      type: "image/png",
+    });
+    Object.defineProperty(file, "size", { value: 100, writable: false });
+
+    const out = await prepareUploadBytes(file, "/api/resize");
+    expect(mockResizeImageOrFallback).toHaveBeenCalledWith(file, "/api/resize");
+    expect(out.contentType).toBe("image/png");
+    expect(out.fileState).toBe("optimized");
+  });
+});
+
+describe("processAndUploadFile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUploadBlob.mockResolvedValue("https://example.com/container/doc.pdf");
+  });
+
+  it("returns success with url and file when upload succeeds", async () => {
+    const file = new File(["content"], "doc.pdf", {
+      type: "application/pdf",
+    });
+    const buffer = new ArrayBuffer(8);
+
+    const result = await processAndUploadFile(file, sampleDescriptor, buffer);
 
     expect(Result.isSuccess(result)).toBe(true);
     if (Result.isSuccess(result)) {
       expect(result.value.url).toBe("https://example.com/container/doc.pdf");
       expect(result.value.file).toBe(file);
     }
-    expect(mockResizeImageOrFallback).not.toHaveBeenCalled();
     expect(mockUploadBlob).toHaveBeenCalledTimes(1);
-  });
-
-  it("returns success when resize is used for image under threshold", async () => {
-    const file = new File([new Uint8Array(10)], "img.png", {
-      type: "image/png",
-    });
-    Object.defineProperty(file, "size", { value: 100, writable: false });
-
-    const result = await processAndUploadFile(
-      file,
-      "https://example.com/sas",
-      userMeta,
-      "/api/resize",
+    expect(mockUploadBlob).toHaveBeenCalledWith(
+      sampleDescriptor.url,
+      buffer,
+      sampleDescriptor.headers,
     );
-
-    expect(Result.isSuccess(result)).toBe(true);
-    expect(mockResizeImageOrFallback).toHaveBeenCalledWith(file, "/api/resize");
-    expect(mockUploadBlob).toHaveBeenCalledTimes(1);
   });
 
   it("returns error when uploadBlob throws", async () => {
     const file = new File(["x"], "doc.pdf", { type: "application/pdf" });
-    Object.defineProperty(file, "arrayBuffer", {
-      value: () => Promise.resolve(new ArrayBuffer(1)),
-      writable: false,
-    });
     mockUploadBlob.mockRejectedValue(new Error("Upload failed"));
 
     const result = await processAndUploadFile(
       file,
-      "https://example.com/sas",
-      userMeta,
+      sampleDescriptor,
+      new ArrayBuffer(1),
     );
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
       expect(result.message).toBe("Upload failed");
-    }
-  });
-
-  it("returns error when resize throws", async () => {
-    const file = new File([new Uint8Array(10)], "img.png", {
-      type: "image/png",
-    });
-    Object.defineProperty(file, "size", { value: 100, writable: false });
-    mockResizeImageOrFallback.mockRejectedValue(new Error("Resize failed"));
-
-    const result = await processAndUploadFile(
-      file,
-      "https://example.com/sas",
-      userMeta,
-      "/api/resize",
-    );
-
-    expect(Result.isError(result)).toBe(true);
-    if (Result.isError(result)) {
-      expect(result.message).toBe("Resize failed");
     }
   });
 });

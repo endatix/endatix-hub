@@ -1,19 +1,26 @@
 import { Result } from "@/lib/result";
-import type { FileMetadata } from "../../types";
-import { toBlobUploadOptions } from "@endatix/storage-azure";
+import type { ProcessedState } from "../../types";
+import type { UploadUrlDescriptor } from "../../infrastructure/storage-gateway";
 import { uploadBlob, resizeImageOrFallback } from "./upload-blob";
 import { processUploadError } from "./upload-errors";
 
 const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
+async function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  if (typeof file.arrayBuffer === "function") {
+    return file.arrayBuffer();
+  }
+  return new Response(file).arrayBuffer();
+}
+
+/** Per-file result from upload-urls / content/upload-urls (PR2 contract). */
+export type UploadUrlEntry = UploadUrlDescriptor | { error: string };
+
 /**
  * The data returned from the upload URLs endpoint.
  */
 export interface UploadUrlsData {
-  sasTokens: Record<
-    string,
-    { success: boolean; url?: string; message?: string }
-  >;
+  uploads: Record<string, UploadUrlEntry>;
   submissionId?: string;
   userId?: string;
   uploadMetadata?: {
@@ -25,6 +32,45 @@ export interface UploadUrlsData {
 }
 
 export type ProcessAndUploadSuccess = { url: string; file: File };
+
+export type PreparedUploadBytes = {
+  file: File;
+  buffer: ArrayBuffer;
+  contentType: string;
+  fileState: ProcessedState;
+};
+
+/**
+ * Reads the file (or resizes images under the threshold) so MIME and bytes match
+ * what the server will embed in {@link UploadUrlDescriptor.headers}.
+ */
+export async function prepareUploadBytes(
+  file: File,
+  resizeUrl: string | undefined,
+): Promise<PreparedUploadBytes> {
+  const shouldResize =
+    resizeUrl !== undefined &&
+    file.type.startsWith("image/") &&
+    file.size < LARGE_FILE_THRESHOLD;
+
+  if (shouldResize) {
+    const out = await resizeImageOrFallback(file, resizeUrl);
+    return {
+      file,
+      buffer: out.buffer,
+      contentType: out.contentType,
+      fileState: out.fileState,
+    };
+  }
+
+  const buffer = await readFileAsArrayBuffer(file);
+  return {
+    file,
+    buffer,
+    contentType: file.type || "application/octet-stream",
+    fileState: "original",
+  };
+}
 
 /**
  * Fetches upload URLs from the given endpoint.
@@ -64,48 +110,15 @@ export async function fetchUploadUrls(
 }
 
 /**
- * Resizes image if applicable, then uploads to the SAS URL.
- *
- * @param file - The file to upload.
- * @param sasUrl - The URL to upload the file to.
- * @param meta - The metadata for the file.
- * @param resizeUrl - The URL to resize the file.
- * @returns A Result containing the URL of the uploaded file or an error message.
+ * PUTs prepared bytes using only server-supplied {@link UploadUrlDescriptor.headers}
  */
 export async function processAndUploadFile(
   file: File,
-  sasUrl: string,
-  meta: FileMetadata,
-  resizeUrl?: string,
+  descriptor: UploadUrlDescriptor,
+  buffer: ArrayBuffer,
 ): Promise<Result<ProcessAndUploadSuccess>> {
   try {
-    const shouldResize =
-      resizeUrl !== undefined &&
-      file.type.startsWith("image/") &&
-      file.size < LARGE_FILE_THRESHOLD;
-
-    let buffer: ArrayBuffer;
-    let contentType: string;
-    let fileState: "original" | "optimized";
-
-    if (shouldResize) {
-      const out = await resizeImageOrFallback(file, resizeUrl);
-      buffer = out.buffer;
-      contentType = out.contentType;
-      fileState = out.fileState;
-    } else {
-      buffer = await file.arrayBuffer();
-      contentType = file.type || "application/octet-stream";
-      fileState = "original";
-    }
-
-    const uploadMeta: FileMetadata = {
-      ...meta,
-      contentType,
-      fileState,
-    };
-    const options = toBlobUploadOptions(uploadMeta);
-    const url = await uploadBlob(sasUrl, buffer, options);
+    const url = await uploadBlob(descriptor.url, buffer, descriptor.headers);
     return Result.success({ url, file });
   } catch (err) {
     return Result.error(processUploadError(err));

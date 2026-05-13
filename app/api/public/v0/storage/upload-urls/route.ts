@@ -8,23 +8,28 @@ import { generateUniqueFileName } from "@/features/asset-storage";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { buildUserFileFolderPath } from "@/features/asset-storage/infrastructure/storage-utils";
+import {
+  buildUserFileFolderPath,
+  buildUserFileMetadata,
+} from "@/features/asset-storage/infrastructure/storage-utils";
+import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
+import type { ProcessedState } from "@/features/asset-storage/types";
 
-interface SASTokenRequest {
+interface UploadUrlsRequest {
   formId: string;
   fileNames: string[];
   formLocale: string;
   submissionId: string;
+  /** Original client file name → MIME type after optional resize (must match PUT bytes). */
+  fileTypes?: Record<string, string>;
+  fileStates?: Record<string, ProcessedState>;
+  questionName?: string;
 }
 
-interface SASOperationResult {
-  success: boolean;
-  message?: string;
-  url?: string;
-}
+export type UploadUrlEntry = UploadUrlDescriptor | { error: string };
 
-interface SASTokenResponse {
-  sasTokens: Record<string, SASOperationResult>;
+export interface UploadUrlsResponse {
+  uploads: Record<string, UploadUrlEntry>;
   submissionId: string;
   userId: string;
 }
@@ -33,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
   const session = await auth();
   const userId = session?.user?.id ?? "anonymous";
 
-  const data: SASTokenRequest = await request.json();
+  const data: UploadUrlsRequest = await request.json();
   const { formId, fileNames, formLocale } = data;
   let submissionId = data.submissionId;
 
@@ -49,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
     const initialSubmissionResult = await createInitialSubmissionUseCase(
       formId,
       formLocale,
-      "Generate submissionId for sas token generation",
+      "Generate submissionId for upload URL generation",
     );
 
     if (ApiResult.isError(initialSubmissionResult)) {
@@ -60,57 +65,58 @@ export async function POST(request: Request): Promise<Response> {
 
     submissionId = initialSubmissionResult.data.submissionId;
   }
-  const sasTokens: Record<string, SASOperationResult> = {};
+  const uploads: Record<string, UploadUrlEntry> = {};
 
   const containerNames = getContainerNames();
   const containerName = containerNames.USER_FILES;
-
+  const folderPathResult = buildUserFileFolderPath(formId, submissionId);
+  if (Result.isError(folderPathResult)) {
+    return apiResponses.badRequest({ detail: folderPathResult.message });
+  }
+  const folderPath = folderPathResult.value;
+  
   for (const fileName of fileNames) {
     const uniqueFileNameResult = generateUniqueFileName(fileName);
     if (Result.isError(uniqueFileNameResult)) {
-      sasTokens[fileName] = failedResult(uniqueFileNameResult.message);
-      continue;
-    }
-
-    const folderPathResult = buildUserFileFolderPath(formId, submissionId);
-    if (Result.isError(folderPathResult)) {
-      sasTokens[fileName] = failedResult(folderPathResult.message);
+      uploads[fileName] = { error: uniqueFileNameResult.message };
       continue;
     }
 
     try {
-      const sasToken = await generateUploadUrl({
-        containerName,
-        folderPath: folderPathResult.value,
-        fileName: uniqueFileNameResult.value,
+      const contentType =
+        data.fileTypes?.[fileName] ?? "application/octet-stream";
+      const fileState = data.fileStates?.[fileName];
+      const blobUploadFileMetadata = buildUserFileMetadata({
+        kind: "user",
+        uploadedBy: userId,
+        displayName: fileName,
+        contentType,
+        formId,
+        submissionId,
+        formLang: data.formLocale,
+        questionName: data.questionName ?? "",
+        ...(fileState !== undefined ? { fileState } : {}),
       });
-      sasTokens[fileName] = successResult(sasToken);
+
+      const descriptor = await generateUploadUrl({
+        containerName,
+        folderPath,
+        fileName: uniqueFileNameResult.value,
+        blobUploadFileMetadata,
+      });
+      uploads[fileName] = descriptor;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      sasTokens[fileName] = failedResult(errorMessage);
+      uploads[fileName] = { error: errorMessage };
     }
   }
 
-  const sasTokenResponse: SASTokenResponse = {
-    sasTokens,
+  const body: UploadUrlsResponse = {
+    uploads,
     submissionId,
     userId,
   };
 
-  return Response.json(sasTokenResponse);
-}
-
-function successResult(url: string): SASOperationResult {
-  return {
-    success: true,
-    url,
-  };
-}
-
-function failedResult(message: string): SASOperationResult {
-  return {
-    success: false,
-    message,
-  };
+  return Response.json(body);
 }

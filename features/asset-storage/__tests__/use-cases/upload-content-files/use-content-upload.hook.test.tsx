@@ -39,24 +39,31 @@ const createMockFile = (name = "test.jpg"): File => {
 };
 
 const mockFetchSuccess = (questionName: string) => {
-  global.fetch = vi.fn().mockResolvedValueOnce({
-    ok: true,
-    json: () =>
-      Promise.resolve({
-        sasTokens: {
-          "test.jpg": {
-            success: true,
-            url: `https://account.blob.core.windows.net/content/f/test-item/unique.jpg?sas=token`,
+  global.fetch = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          uploads: {
+            "test.jpg": {
+              url: `https://account.blob.core.windows.net/content/f/test-item/unique.jpg?sas=token`,
+              headers: { "x-ms-blob-type": "BlockBlob" },
+              key: "f/test-item/unique.jpg",
+            },
           },
-        },
-        uploadMetadata: {
-          userId: "user-1",
-          itemId: "test-item",
-          contentItemType: "form",
-          questionName,
-        },
-      }),
-  });
+          uploadMetadata: {
+            userId: "user-1",
+            itemId: "test-item",
+            contentItemType: "form",
+            questionName,
+          },
+        }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(""),
+    });
 };
 
 const mockFetchError = (detail = "Unauthorized") => {
@@ -152,7 +159,7 @@ describe("useContentUpload", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/hub/v0/storage/content/sas-token",
+      "/api/hub/v0/storage/content/upload-urls",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -160,6 +167,8 @@ describe("useContentUpload", () => {
           itemType: "form",
           fileNames: ["test.jpg"],
           questionName: "testQuestion",
+          fileTypes: { "test.jpg": "image/jpeg" },
+          fileStates: { "test.jpg": "original" },
         }),
       }),
     );

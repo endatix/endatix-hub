@@ -1,7 +1,10 @@
+import type { FileMetadata } from "../../../types";
+
 export interface FileOptions {
   fileName: string;
   containerName: string;
   folderPath?: string;
+  blobUploadFileMetadata?: FileMetadata;
 }
 
 export interface FolderOptions {
@@ -20,4 +23,11 @@ export interface BulkReadUrlsOptions extends Omit<FileOptions, "fileName"> {
   resourceType: "file" | "directory" | "container";
   resourceNames?: string[];
   expiresInMinutes?: number;
+}
+
+/** Presigned upload URL plus headers and object key for client-side `fetch` PUT. */
+export interface UploadUrlDescriptor {
+  url: string;
+  headers: Record<string, string>;
+  key: string;
 }

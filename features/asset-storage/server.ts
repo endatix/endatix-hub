@@ -31,6 +31,7 @@ export {
   uploadToStorage,
   type BlobPropertiesResult,
   type FileOptions,
+  type UploadUrlDescriptor,
 } from "./infrastructure/storage-gateway";
 export * from "./types";
 export { AssetStorageProvider } from "./ui/asset-storage.provider";

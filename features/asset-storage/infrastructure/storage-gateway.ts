@@ -10,6 +10,7 @@ import type {
   BulkReadUrlsOptions,
   FileOptions,
   FolderOptions,
+  UploadUrlDescriptor,
 } from "./providers/azure/types";
 
 /** Used when `instrumentation` has not run (e.g. Vitest). */
@@ -95,7 +96,7 @@ export async function bulkGenerateReadTokens(
 export async function generateUploadUrl(
   fileOptions: FileOptions,
   permissions: "wr" = "wr",
-): Promise<string> {
+): Promise<UploadUrlDescriptor> {
   return requireEnabledAzureProvider().generateUploadUrl(
     fileOptions,
     permissions,
@@ -131,4 +132,10 @@ export function resetBlobServiceClient(): void {
   }
 }
 
-export type { BulkReadUrlsOptions, FileOptions, BlobPropertiesResult };
+export type {
+  BlobPropertiesResult,
+  BulkReadUrlsOptions,
+  FileOptions,
+  FolderOptions,
+  UploadUrlDescriptor,
+};
