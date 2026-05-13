@@ -43,7 +43,7 @@ export function getAzureStorageHostname(): string | null {
     return null;
   }
 
-  const accountName = AZURE_STORAGE_ACCOUNT_NAME || "";
+  const accountName = AZURE_STORAGE_ACCOUNT_NAME;
   const host = resolveAzureBlobStorageHostname(
     accountName,
     process.env.AZURE_STORAGE_CUSTOM_DOMAIN,

@@ -295,10 +295,7 @@ function buildEnvPatch(
   const env: Record<string, string> = {
     AUTH_KEYCLOAK_ENABLED: mergedAuth.providers.keycloak.enabled.toString(),
     AUTH_KEYCLOAK_CLIENT_ID: mergedAuth.providers.keycloak.clientId ?? "",
-    AUTH_KEYCLOAK_CLIENT_SECRET:
-      mergedAuth.providers.keycloak.clientSecret ?? "",
     AUTH_KEYCLOAK_ISSUER: mergedAuth.providers.keycloak.issuer ?? "",
-    SESSION_SECRET: mergedAuth.session.secret,
     SESSION_MAX_AGE_IN_MINUTES: mergedAuth.session.maxAge.toString(),
     ENDATIX_ENABLE_EXTENSIONS: mergedExperimental.extensions.toString(),
   };
