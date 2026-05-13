@@ -149,6 +149,19 @@ describe("resolveEndatixSettings", () => {
       const r = resolveEndatixSettings({ source: "runtime" });
       expect(r.storage.explicitProvider).toBe("none");
       expect(r.storage.azureCredentialsPresent).toBe(false);
+      expect(r.storage.imageRemoteHostnames).toEqual([]);
+    });
+
+    it("mirror empty ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES does not repopulate hosts from live env", () => {
+      process.env.AZURE_STORAGE_ACCOUNT_NAME = "liveacct";
+      process.env.AZURE_STORAGE_ACCOUNT_KEY = "livekey";
+      process.env.ENDATIX_RESOLVED_STORAGE_VERSION = "1";
+      process.env.ENDATIX_RESOLVED_STORAGE_EXPLICIT = "auto";
+      process.env.ENDATIX_RESOLVED_AZURE_CREDENTIALS = "0";
+      process.env.ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES = "";
+      resetResolveEndatixSettingsCacheForTests();
+      const r = resolveEndatixSettings({ source: "runtime" });
+      expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
     it("falls back to env when mirror version missing", () => {

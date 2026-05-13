@@ -176,16 +176,20 @@ function readStorageProfileFromBuildMirror(): StorageProfileSlice | null {
   );
   const azureCredentialsPresent = process.env[RESOLVED_AZURE_CREDS_KEY] === "1";
 
-  const rawHosts = process.env[RESOLVED_IMAGE_HOSTS_KEY]?.trim() ?? "";
-  const imageRemoteHostnames: readonly string[] =
-    rawHosts.length > 0
-      ? Object.freeze(
-          rawHosts
-            .split(",")
-            .map((h) => h.trim())
-            .filter(Boolean),
-        )
-      : collectImageRemoteHostnames(explicitProvider);
+  const hasResolvedImageHosts = Object.prototype.hasOwnProperty.call(
+    process.env,
+    RESOLVED_IMAGE_HOSTS_KEY,
+  );
+  const rawHosts =
+    process.env[RESOLVED_IMAGE_HOSTS_KEY]?.trim() ?? "";
+  const imageRemoteHostnames: readonly string[] = hasResolvedImageHosts
+    ? Object.freeze(
+        rawHosts
+          .split(",")
+          .map((h) => h.trim())
+          .filter(Boolean),
+      )
+    : collectImageRemoteHostnames(explicitProvider);
 
   return Object.freeze({
     explicitProvider,
