@@ -47,7 +47,7 @@ import { POST } from "../route";
 const sampleUrl =
   "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf";
 
-describe("POST /api/public/v0/storage/read-token", () => {
+describe("POST /api/public/v0/storage/read-urls", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -84,7 +84,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
   });
 
   const createRequest = (body: object) => {
-    return new Request("http://localhost/api/public/v0/storage/read-token", {
+    return new Request("http://localhost/api/public/v0/storage/read-urls", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -178,7 +178,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.detail).toBe(
-      "Read-token route requires Azure storage configuration",
+      "read-urls route requires Azure storage configuration",
     );
     expect(mockResolveContainerFromUrl).not.toHaveBeenCalled();
     expect(mockBulkGenerateReadTokens).not.toHaveBeenCalled();
@@ -186,7 +186,7 @@ describe("POST /api/public/v0/storage/read-token", () => {
 
   it("should return 400 if body is not valid JSON", async () => {
     const request = new Request(
-      "http://localhost/api/public/v0/storage/read-token",
+      "http://localhost/api/public/v0/storage/read-urls",
       {
         method: "POST",
         body: "invalid json",

@@ -144,7 +144,7 @@ export function useStorageUpload({
       if (storageConfig?.isPrivate) {
         try {
           const tokenResponse = await fetch(
-            "/api/public/v0/storage/read-token",
+            "/api/public/v0/storage/read-urls",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },

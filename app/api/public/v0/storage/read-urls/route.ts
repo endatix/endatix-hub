@@ -5,13 +5,17 @@ import { getStorageRuntimeSettings } from "@/features/asset-storage/storage-runt
 import { bulkGenerateReadTokens } from "@/features/asset-storage/infrastructure/storage-gateway";
 import { resolveContainerFromUrl } from "@/features/asset-storage/utils";
 
+/**
+ * Request body for the read-urls route.
+ */
 interface ReadUrlsRequest {
+  /**
+   * The URLs to generate read tokens for.
+   */
   urls: string[];
 }
 
-export type ReadUrlResolvedEntry =
-  | { url: string }
-  | { error: string };
+export type ReadUrlResolvedEntry = { url: string } | { error: string };
 
 export interface ReadUrlsResponse {
   resolved: Record<string, ReadUrlResolvedEntry>;
@@ -82,7 +86,7 @@ export async function POST(request: Request): Promise<Response> {
   const config = storageSettings.azure;
   if (config === null) {
     return apiResponses.badRequest({
-      detail: "Read-token route requires Azure storage configuration",
+      detail: "read-urls route requires Azure storage configuration",
     });
   }
 

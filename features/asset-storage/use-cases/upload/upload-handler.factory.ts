@@ -2,6 +2,7 @@ import type { SurveyModel, UploadFilesEvent } from "survey-core";
 import type { UploadFileEvent } from "survey-creator-core";
 import { Result, type ResultType } from "@/lib/result";
 import type { ContentItemType, FileMetadata } from "../../types";
+import type { UploadUrlDescriptor } from "../../infrastructure/storage-gateway";
 import { buildUserFileMetadata } from "../../infrastructure/storage-utils";
 import {
   fetchUploadUrls,
@@ -10,7 +11,7 @@ import {
   type UploadUrlsData,
 } from "./upload.utils";
 
-const USER_SAS_URL = "/api/public/v0/storage/sas-token";
+const USER_UPLOAD_URLS = "/api/public/v0/storage/upload-urls";
 const USER_RESIZE_URL = "/api/public/v0/storage/resize-image";
 
 export interface UserUploadConfig {
@@ -45,7 +46,7 @@ export function createUserUpload(config: UserUploadConfig) {
     }
 
     const currentSubmissionId = getSubmissionId?.();
-    const sasResult = await fetchUploadUrls(USER_SAS_URL, {
+    const sasResult = await fetchUploadUrls(USER_UPLOAD_URLS, {
       fileNames: options.files.map((f) => f.name),
       submissionId: currentSubmissionId,
       formId,
@@ -66,10 +67,15 @@ export function createUserUpload(config: UserUploadConfig) {
     const uploadResults = await Promise.all(
       options.files.map(
         async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
-          const token = sasData.sasTokens[file.name];
-          if (!token?.success || !token?.url) {
-            return Result.error(token?.message ?? `No URL for ${file.name}`);
+          const entry = sasData.uploads[file.name];
+          if (!entry) {
+            return Result.error(`No URL for ${file.name}`);
           }
+          if ("error" in entry) {
+            return Result.error(entry.error);
+          }
+
+          const descriptor: UploadUrlDescriptor = entry;
 
           const metadata: FileMetadata = buildUserFileMetadata({
             kind: "user",
@@ -84,7 +90,7 @@ export function createUserUpload(config: UserUploadConfig) {
 
           return processAndUploadFile(
             file,
-            token.url,
+            descriptor,
             metadata,
             isResizeEnabled ? USER_RESIZE_URL : undefined,
           );
@@ -109,7 +115,7 @@ export function createUserUpload(config: UserUploadConfig) {
 
 // ─── Content (creator) upload ─────────────────────────────────────────────
 
-const CONTENT_SAS_URL = "/api/hub/v0/storage/content/sas-token";
+const CONTENT_UPLOAD_URLS = "/api/hub/v0/storage/content/upload-urls";
 const CONTENT_RESIZE_URL = "/api/hub/v0/storage/resize-image";
 
 export interface ContentUploadConfig {
@@ -134,7 +140,7 @@ export function createContentUpload(config: ContentUploadConfig) {
     const files = options.files ?? [];
     if (files.length === 0) return;
 
-    const sasResult = await fetchUploadUrls(CONTENT_SAS_URL, {
+    const sasResult = await fetchUploadUrls(CONTENT_UPLOAD_URLS, {
       itemId,
       itemType,
       fileNames: files.map((f) => f.name),
@@ -150,10 +156,15 @@ export function createContentUpload(config: ContentUploadConfig) {
 
     const uploadResults = await Promise.all(
       files.map(async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
-        const token = uploadUrlsData.sasTokens[file.name];
-        if (!token?.success || !token?.url) {
-          return Result.error(token?.message ?? "No upload URL");
+        const entry = uploadUrlsData.uploads[file.name];
+        if (!entry) {
+          return Result.error("No upload URL");
         }
+        if ("error" in entry) {
+          return Result.error(entry.error);
+        }
+
+        const descriptor: UploadUrlDescriptor = entry;
 
         const meta = uploadUrlsData.uploadMetadata ?? {
           userId: "",
@@ -174,7 +185,7 @@ export function createContentUpload(config: ContentUploadConfig) {
 
         return processAndUploadFile(
           file,
-          token.url,
+          descriptor,
           metadata,
           isResizeEnabled ? CONTENT_RESIZE_URL : undefined,
         );

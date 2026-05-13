@@ -21,3 +21,10 @@ export interface BulkReadUrlsOptions extends Omit<FileOptions, "fileName"> {
   resourceNames?: string[];
   expiresInMinutes?: number;
 }
+
+/** Presigned upload URL plus headers and object key for client-side `fetch` PUT. */
+export interface UploadUrlDescriptor {
+  url: string;
+  headers: Record<string, string>;
+  key: string;
+}

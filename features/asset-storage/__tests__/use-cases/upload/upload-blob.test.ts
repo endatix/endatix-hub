@@ -1,127 +1,88 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { RestError } from "@azure/storage-blob";
 import {
   uploadBlob,
   resizeImageOrFallback,
 } from "@/features/asset-storage/use-cases/upload/upload-blob";
 import {
   UploadError,
-  UploadUnauthorizedError,
-  UploadBlockedError,
 } from "@/features/asset-storage/use-cases/upload/upload-errors";
-
-const mockUploadData = vi.fn();
-
-vi.mock("@azure/storage-blob", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("@azure/storage-blob")>();
-  return {
-    ...mod,
-    BlockBlobClient: vi.fn().mockImplementation(function () {
-      return { uploadData: mockUploadData };
-    }),
-  };
-});
 
 global.fetch = vi.fn();
 
 describe("uploadBlob", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUploadData.mockResolvedValue(undefined);
   });
 
-  it("uploads data and returns base URL without query", async () => {
+  it("uploads data via fetch PUT and returns base URL without query", async () => {
     const sasUrl =
       "https://account.blob.core.windows.net/container/file.pdf?sv=2020&sig=abc";
     const data = new ArrayBuffer(8);
-    const options = {
-      metadata: { fileName: "file.pdf", uploadedBy: "user-1" },
-      blobHTTPHeaders: { blobContentType: "application/pdf" },
+    const headers = {
+      "x-ms-blob-type": "BlockBlob",
+      "x-ms-blob-content-type": "application/pdf",
     };
 
-    const url = await uploadBlob(sasUrl, data, options);
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(""),
+    });
+
+    const url = await uploadBlob(sasUrl, data, headers);
 
     expect(url).toBe(
       "https://account.blob.core.windows.net/container/file.pdf",
     );
-    expect(mockUploadData).toHaveBeenCalledTimes(1);
-    expect(mockUploadData).toHaveBeenCalledWith(
-      data,
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      sasUrl,
       expect.objectContaining({
-        metadata: options.metadata,
-        blobHTTPHeaders: options.blobHTTPHeaders,
+        method: "PUT",
+        body: data,
+        headers,
       }),
     );
   });
 
   it("returns full URL when no query string", async () => {
     const sasUrl = "https://account.blob.core.windows.net/container/file.pdf";
-    const url = await uploadBlob(sasUrl, new ArrayBuffer(0), {
-      metadata: {},
-      blobHTTPHeaders: {},
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(""),
     });
+
+    const url = await uploadBlob(sasUrl, new ArrayBuffer(0), {});
 
     expect(url).toBe(sasUrl);
   });
 
-  it("throws UploadError when uploadData rejects with generic Error", async () => {
-    mockUploadData.mockRejectedValue(new Error("Network error"));
+  it("throws UploadError when fetch returns not ok", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: "Forbidden",
+      text: () => Promise.resolve("body"),
+    });
 
     await expect(
-      uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {
-        metadata: {},
-        blobHTTPHeaders: {},
-      }),
+      uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {}),
     ).rejects.toThrow(UploadError);
 
     try {
-      await uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {
-        metadata: {},
-        blobHTTPHeaders: {},
-      });
+      await uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {});
     } catch (err) {
       expect(err).toBeInstanceOf(UploadError);
-      expect((err as UploadError).message).toBe("Network error");
       expect((err as UploadError).fileUrl).toBe("https://x/y?s=1");
     }
   });
 
-  it("throws UploadUnauthorizedError when uploadData rejects with RestError 403 and AuthenticationFailed", async () => {
-    const restError = new RestError("Authentication failed", {
-      statusCode: 403,
-      code: "AuthenticationFailed",
-    });
-    mockUploadData.mockRejectedValue(restError);
+  it("throws UploadError when fetch rejects", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Network error"),
+    );
 
     await expect(
-      uploadBlob("https://account.blob/core/file?sv=1", new ArrayBuffer(0), {
-        metadata: {},
-        blobHTTPHeaders: {},
-      }),
-    ).rejects.toThrow(UploadUnauthorizedError);
-  });
-
-  it("throws UploadBlockedError when uploadData rejects with RestError 403 without AuthenticationFailed", async () => {
-    const restError = new RestError("Forbidden", { statusCode: 403 });
-    mockUploadData.mockRejectedValue(restError);
-
-    await expect(
-      uploadBlob("https://account.blob/core/file?sv=1", new ArrayBuffer(0), {
-        metadata: {},
-        blobHTTPHeaders: {},
-      }),
-    ).rejects.toThrow(UploadBlockedError);
-  });
-
-  it("throws UploadError when uploadData rejects with RestError other status", async () => {
-    const restError = new RestError("Bad request", { statusCode: 400 });
-    mockUploadData.mockRejectedValue(restError);
-
-    await expect(
-      uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {
-        metadata: {},
-        blobHTTPHeaders: {},
-      }),
+      uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {}),
     ).rejects.toThrow(UploadError);
   });
 });

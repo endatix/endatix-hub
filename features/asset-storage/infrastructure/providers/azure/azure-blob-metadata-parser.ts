@@ -159,6 +159,43 @@ export function toBlobUploadOptions(meta: FileMetadata): BlobUploadOptions {
   };
 }
 
+/**
+ * HTTP headers for a client-side `fetch` PUT to an Azure block blob SAS URL
+ * (replaces BlockBlobClient.uploadData header composition in the browser).
+ */
+export function toAzureBlockBlobPutHeaders(
+  options: BlobUploadOptions,
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    "x-ms-blob-type": "BlockBlob",
+  };
+  const { blobHTTPHeaders, metadata } = options;
+
+  if (blobHTTPHeaders.blobContentType) {
+    headers["x-ms-blob-content-type"] = blobHTTPHeaders.blobContentType;
+  }
+  if (blobHTTPHeaders.blobContentDisposition) {
+    headers["x-ms-blob-content-disposition"] =
+      blobHTTPHeaders.blobContentDisposition;
+  }
+  if (
+    blobHTTPHeaders.blobContentLanguage !== undefined &&
+    blobHTTPHeaders.blobContentLanguage !== ""
+  ) {
+    headers["x-ms-blob-content-language"] = blobHTTPHeaders.blobContentLanguage;
+  }
+
+  for (const [rawKey, value] of Object.entries(metadata)) {
+    if (value === undefined || value === "") {
+      continue;
+    }
+    const metaKey = rawKey.toLowerCase();
+    headers[`x-ms-meta-${metaKey}`] = value;
+  }
+
+  return headers;
+}
+
 function buildUserFileMetadata(
   fileMetadata: UserFileMetadata,
 ): Record<string, string> {

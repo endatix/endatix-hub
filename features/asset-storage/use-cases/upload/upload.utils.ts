@@ -1,19 +1,23 @@
 import { Result } from "@/lib/result";
 import type { FileMetadata } from "../../types";
-import { toBlobUploadOptions } from "@endatix/storage-azure";
+import {
+  toBlobUploadOptions,
+  toAzureBlockBlobPutHeaders,
+} from "@endatix/storage-azure";
+import type { UploadUrlDescriptor } from "../../infrastructure/storage-gateway";
 import { uploadBlob, resizeImageOrFallback } from "./upload-blob";
 import { processUploadError } from "./upload-errors";
 
 const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
+/** Per-file result from upload-urls / content/upload-urls (PR2 contract). */
+export type UploadUrlEntry = UploadUrlDescriptor | { error: string };
+
 /**
  * The data returned from the upload URLs endpoint.
  */
 export interface UploadUrlsData {
-  sasTokens: Record<
-    string,
-    { success: boolean; url?: string; message?: string }
-  >;
+  uploads: Record<string, UploadUrlEntry>;
   submissionId?: string;
   userId?: string;
   uploadMetadata?: {
@@ -25,6 +29,13 @@ export interface UploadUrlsData {
 }
 
 export type ProcessAndUploadSuccess = { url: string; file: File };
+
+function mergePutHeaders(
+  base: Record<string, string>,
+  overlay: Record<string, string>,
+): Record<string, string> {
+  return { ...base, ...overlay };
+}
 
 /**
  * Fetches upload URLs from the given endpoint.
@@ -64,17 +75,17 @@ export async function fetchUploadUrls(
 }
 
 /**
- * Resizes image if applicable, then uploads to the SAS URL.
+ * Resizes image if applicable, then uploads via `fetch` PUT to the presigned URL.
  *
  * @param file - The file to upload.
- * @param sasUrl - The URL to upload the file to.
+ * @param descriptor - URL, base headers, and object key from the upload-urls route.
  * @param meta - The metadata for the file.
  * @param resizeUrl - The URL to resize the file.
  * @returns A Result containing the URL of the uploaded file or an error message.
  */
 export async function processAndUploadFile(
   file: File,
-  sasUrl: string,
+  descriptor: UploadUrlDescriptor,
   meta: FileMetadata,
   resizeUrl?: string,
 ): Promise<Result<ProcessAndUploadSuccess>> {
@@ -104,8 +115,12 @@ export async function processAndUploadFile(
       contentType,
       fileState,
     };
-    const options = toBlobUploadOptions(uploadMeta);
-    const url = await uploadBlob(sasUrl, buffer, options);
+    const blobOptions = toBlobUploadOptions(uploadMeta);
+    const putHeaders = mergePutHeaders(
+      descriptor.headers,
+      toAzureBlockBlobPutHeaders(blobOptions),
+    );
+    const url = await uploadBlob(descriptor.url, buffer, putHeaders);
     return Result.success({ url, file });
   } catch (err) {
     return Result.error(processUploadError(err));

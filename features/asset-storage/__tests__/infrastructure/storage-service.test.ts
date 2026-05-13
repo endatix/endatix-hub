@@ -284,7 +284,11 @@ describe("StorageGateway", () => {
           protocol: "https",
         }),
       );
-      expect(result).toBe("https://test.blob.core.windows.net/test?sas-token");
+      expect(result).toEqual({
+        url: "https://test.blob.core.windows.net/test?sas-token",
+        key: `${mockFolderPath}/${mockFileName}`,
+        headers: { "x-ms-blob-type": "BlockBlob" },
+      });
     });
 
     it("should throw error when fileName is not provided", async () => {

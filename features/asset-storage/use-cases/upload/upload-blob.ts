@@ -1,32 +1,33 @@
-import { BlockBlobClient } from "@azure/storage-blob";
-import type { BlobUploadOptions } from "../../types";
 import { throwUploadError } from "./upload-errors";
 
-/** Uploads files to a SAS blob URL and returns the base URL (without query). */
+/**
+ * Uploads bytes to a presigned blob URL via `fetch` PUT (no Azure SDK on the client).
+ * @param uploadUrl - Full URL including SAS or presigned query string.
+ * @param data - Raw file bytes.
+ * @param headers - Merged provider base headers + {@link toAzureBlockBlobPutHeaders} (or S3 equivalent).
+ */
 export async function uploadBlob(
-  sasUrl: string,
+  uploadUrl: string,
   data: ArrayBuffer,
-  options: BlobUploadOptions,
+  headers: Record<string, string>,
 ): Promise<string> {
-  const client = new BlockBlobClient(sasUrl);
   try {
-    await client.uploadData(data, {
-      metadata: options.metadata,
-      blobHTTPHeaders: options.blobHTTPHeaders,
-      onProgress: (progress) => {
-        const progressPercentage = Math.round(
-          (progress.loadedBytes / data.byteLength) * 100,
-        );
-        console.debug(
-          `Upload of ${options.metadata.fileName} is ${progressPercentage}% complete`,
-        );
-      },
+    const response = await fetch(uploadUrl, {
+      method: "PUT",
+      body: data,
+      headers,
     });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      const detail = text || response.statusText || `HTTP ${response.status}`;
+      throw new Error(`Blob upload failed: ${detail}`);
+    }
   } catch (err) {
-    throwUploadError(err, sasUrl);
+    throwUploadError(err, uploadUrl);
   }
 
-  return sasUrl.split("?").at(0) ?? sasUrl;
+  return uploadUrl.split("?").at(0) ?? uploadUrl;
 }
 
 export type ResizeResult = {

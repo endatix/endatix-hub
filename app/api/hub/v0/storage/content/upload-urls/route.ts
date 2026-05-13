@@ -9,19 +9,16 @@ import { generateUniqueFileName } from "@/features/asset-storage";
 import { buildContentFolderPath } from "@/features/asset-storage/infrastructure/storage-utils";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
+import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
 
-interface ContentSASTokenRequest {
+interface ContentUploadUrlsRequest {
   itemId: string;
   itemType: ContentItemType;
   fileNames: string[];
   questionName?: string;
 }
 
-interface SASOperationResult {
-  success: boolean;
-  message?: string;
-  url?: string;
-}
+export type UploadUrlEntry = UploadUrlDescriptor | { error: string };
 
 /** Server-provided metadata for the client to set on each blob upload. */
 interface ContentUploadMetadata {
@@ -31,8 +28,8 @@ interface ContentUploadMetadata {
   questionName: string;
 }
 
-interface ContentSASTokenResponse {
-  sasTokens: Record<string, SASOperationResult>;
+interface ContentUploadUrlsResponse {
+  uploads: Record<string, UploadUrlEntry>;
   uploadMetadata: ContentUploadMetadata;
 }
 
@@ -41,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  let data: ContentSASTokenRequest;
+  let data: ContentUploadUrlsRequest;
   try {
     data = await request.json();
   } catch {
@@ -70,29 +67,25 @@ export async function POST(request: Request): Promise<Response> {
   const containerNames = getContainerNames();
   const containerName = containerNames.CONTENT;
   const folderPath = folderPathResult.value;
-  const sasTokens: Record<string, SASOperationResult> = {};
+  const uploads: Record<string, UploadUrlEntry> = {};
 
   for (const fileName of fileNames) {
     const uniqueFileNameResult = generateUniqueFileName(fileName);
     if (Result.isError(uniqueFileNameResult)) {
-      sasTokens[fileName] = {
-        success: false,
-        message: uniqueFileNameResult.message,
-      };
+      uploads[fileName] = { error: uniqueFileNameResult.message };
       continue;
     }
 
     try {
-      const sasUrl = await generateUploadUrl({
+      const descriptor = await generateUploadUrl({
         containerName,
         folderPath,
         fileName: uniqueFileNameResult.value,
       });
-      sasTokens[fileName] = { success: true, url: sasUrl };
+      uploads[fileName] = descriptor;
     } catch (error) {
-      sasTokens[fileName] = {
-        success: false,
-        message: error instanceof Error ? error.message : "Unknown error",
+      uploads[fileName] = {
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -104,6 +97,6 @@ export async function POST(request: Request): Promise<Response> {
     questionName: questionName ?? "",
   };
 
-  const body: ContentSASTokenResponse = { sasTokens, uploadMetadata };
+  const body: ContentUploadUrlsResponse = { uploads, uploadMetadata };
   return Response.json(body);
 }

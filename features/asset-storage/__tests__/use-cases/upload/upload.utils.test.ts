@@ -19,6 +19,12 @@ vi.mock("@/features/asset-storage/use-cases/upload/upload-blob", () => ({
 
 global.fetch = vi.fn();
 
+const sampleDescriptor = {
+  url: "https://example.com/a?sas",
+  key: "folder/a.pdf",
+  headers: { "x-ms-blob-type": "BlockBlob" as const },
+};
+
 describe("fetchUploadUrls", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,8 +32,8 @@ describe("fetchUploadUrls", () => {
 
   it("returns success with data when response is ok", async () => {
     const data: UploadUrlsData = {
-      sasTokens: {
-        "a.pdf": { success: true, url: "https://example.com/a?sas" },
+      uploads: {
+        "a.pdf": sampleDescriptor,
       },
       userId: "user-1",
     };
@@ -36,14 +42,14 @@ describe("fetchUploadUrls", () => {
       json: () => Promise.resolve(data),
     });
 
-    const result = await fetchUploadUrls("/api/sas", { fileNames: ["a.pdf"] });
+    const result = await fetchUploadUrls("/api/upload-urls", {
+      fileNames: ["a.pdf"],
+    });
 
     expect(Result.isSuccess(result)).toBe(true);
     if (Result.isSuccess(result)) {
       expect(result.value).toEqual(data);
-      expect(result.value.sasTokens["a.pdf"].url).toBe(
-        "https://example.com/a?sas",
-      );
+      expect(result.value.uploads["a.pdf"]).toEqual(sampleDescriptor);
     }
   });
 
@@ -54,7 +60,7 @@ describe("fetchUploadUrls", () => {
         Promise.resolve({ detail: "Validation failed", error: "Bad request" }),
     });
 
-    const result = await fetchUploadUrls("/api/sas", {});
+    const result = await fetchUploadUrls("/api/upload-urls", {});
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
@@ -68,7 +74,7 @@ describe("fetchUploadUrls", () => {
       json: () => Promise.resolve({}),
     });
 
-    const result = await fetchUploadUrls("/api/sas", {});
+    const result = await fetchUploadUrls("/api/upload-urls", {});
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
@@ -81,7 +87,7 @@ describe("fetchUploadUrls", () => {
       new Error("Network error"),
     );
 
-    const result = await fetchUploadUrls("/api/sas", {});
+    const result = await fetchUploadUrls("/api/upload-urls", {});
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {
@@ -122,7 +128,7 @@ describe("processAndUploadFile", () => {
 
     const result = await processAndUploadFile(
       file,
-      "https://example.com/sas",
+      sampleDescriptor,
       userMeta,
     );
 
@@ -133,6 +139,10 @@ describe("processAndUploadFile", () => {
     }
     expect(mockResizeImageOrFallback).not.toHaveBeenCalled();
     expect(mockUploadBlob).toHaveBeenCalledTimes(1);
+    const putArgs = mockUploadBlob.mock.calls[0];
+    expect(putArgs[0]).toBe(sampleDescriptor.url);
+    expect(putArgs[1]).toBeInstanceOf(ArrayBuffer);
+    expect(typeof putArgs[2]).toBe("object");
   });
 
   it("returns success when resize is used for image under threshold", async () => {
@@ -143,7 +153,7 @@ describe("processAndUploadFile", () => {
 
     const result = await processAndUploadFile(
       file,
-      "https://example.com/sas",
+      sampleDescriptor,
       userMeta,
       "/api/resize",
     );
@@ -163,7 +173,7 @@ describe("processAndUploadFile", () => {
 
     const result = await processAndUploadFile(
       file,
-      "https://example.com/sas",
+      sampleDescriptor,
       userMeta,
     );
 
@@ -182,7 +192,7 @@ describe("processAndUploadFile", () => {
 
     const result = await processAndUploadFile(
       file,
-      "https://example.com/sas",
+      sampleDescriptor,
       userMeta,
       "/api/resize",
     );
