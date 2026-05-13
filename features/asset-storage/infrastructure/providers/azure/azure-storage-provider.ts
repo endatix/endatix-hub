@@ -11,6 +11,10 @@ import type { ReadTokensResult as BulkReadTokensResult } from "../../../types";
 import type { IStorageProvider } from "../../core/storage-provider.interface";
 import { buildUserFileFolderPath } from "../../storage-utils";
 import { getAzureStorageConfig, type AzureStorageConfig } from "./azure-config";
+import {
+  toAzureBlockBlobPutHeaders,
+  toBlobUploadOptions,
+} from "./azure-blob-metadata-parser";
 import type {
   BlobPropertiesResult,
   BulkReadUrlsOptions,
@@ -223,12 +227,17 @@ export class AzureBlobStorageProvider implements IStorageProvider {
         protocol: SASProtocol.Https,
       });
 
+      const headers =
+        fileOptions.blobUploadFileMetadata !== undefined
+          ? toAzureBlockBlobPutHeaders(
+              toBlobUploadOptions(fileOptions.blobUploadFileMetadata),
+            )
+          : { "x-ms-blob-type": "BlockBlob" };
+
       return {
         url: sasToken,
         key: blobName,
-        headers: {
-          "x-ms-blob-type": "BlockBlob",
-        },
+        headers,
       };
     } catch (error) {
       console.error("Error generating SAS token:", error);

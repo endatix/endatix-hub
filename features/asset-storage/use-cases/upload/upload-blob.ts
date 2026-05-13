@@ -1,10 +1,10 @@
 import { throwUploadError } from "./upload-errors";
 
 /**
- * Uploads bytes to a presigned blob URL via `fetch` PUT (no Azure SDK on the client).
+ * Uploads bytes to a presigned blob URL via `fetch` PUT (no storage SDK on the client).
  * @param uploadUrl - Full URL including SAS or presigned query string.
  * @param data - Raw file bytes.
- * @param headers - Merged provider base headers + {@link toAzureBlockBlobPutHeaders} (or S3 equivalent).
+ * @param headers - Header map from {@link UploadUrlDescriptor.headers} (composed server-side).
  */
 export async function uploadBlob(
   uploadUrl: string,

@@ -18,11 +18,17 @@ const { mockFetchUploadUrls, mockProcessAndUploadFile } = vi.hoisted(() => ({
   mockProcessAndUploadFile: vi.fn(),
 }));
 
-vi.mock("@/features/asset-storage/use-cases/upload/upload.utils", () => ({
-  fetchUploadUrls: (...args: unknown[]) => mockFetchUploadUrls(...args),
-  processAndUploadFile: (...args: unknown[]) =>
-    mockProcessAndUploadFile(...args),
-}));
+vi.mock("@/features/asset-storage/use-cases/upload/upload.utils", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/asset-storage/use-cases/upload/upload.utils")
+  >("@/features/asset-storage/use-cases/upload/upload.utils");
+  return {
+    ...actual,
+    fetchUploadUrls: (...args: unknown[]) => mockFetchUploadUrls(...args),
+    processAndUploadFile: (...args: unknown[]) =>
+      mockProcessAndUploadFile(...args),
+  };
+});
 
 describe("createUserUpload", () => {
   const userConfig: UserUploadConfig = {
@@ -78,6 +84,9 @@ describe("createUserUpload", () => {
         formId: "form-1",
         submissionId: "sub-1",
         formLocale: "en",
+        fileTypes: { "a.pdf": "application/pdf" },
+        fileStates: { "a.pdf": "original" },
+        questionName: "q1",
       }),
     );
   });

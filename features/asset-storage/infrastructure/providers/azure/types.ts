@@ -1,7 +1,10 @@
+import type { FileMetadata } from "../../../types";
+
 export interface FileOptions {
   fileName: string;
   containerName: string;
   folderPath?: string;
+  blobUploadFileMetadata?: FileMetadata;
 }
 
 export interface FolderOptions {

@@ -220,6 +220,11 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               uploads: {
@@ -230,11 +235,6 @@ describe("useStorageUpload", () => {
                 },
               },
             }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
         })
         .mockResolvedValueOnce({
           ok: true,
@@ -259,7 +259,11 @@ describe("useStorageUpload", () => {
         await result.current!.uploadFiles(mockSurveyModel, mockUploadOptions);
       });
 
-      // Should call upload-urls first, then resize-image for small images (browser-to-storage)
+      // Resize-image first (bytes + MIME), then upload-urls, then PUT to blob
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/public/v0/storage/resize-image",
+        expect.objectContaining({ method: "POST" }),
+      );
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/public/v0/storage/upload-urls",
         expect.objectContaining({
@@ -269,12 +273,11 @@ describe("useStorageUpload", () => {
             submissionId: mockSubmissionId,
             formId: mockFormId,
             formLocale: "en",
+            fileTypes: { "test.jpg": "image/jpeg" },
+            fileStates: { "test.jpg": "optimized" },
+            questionName: "",
           }),
         }),
-      );
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/resize-image",
-        expect.objectContaining({ method: "POST" }),
       );
     });
 
@@ -282,6 +285,11 @@ describe("useStorageUpload", () => {
       const runtimeSubmissionId = "runtime-submission-456";
 
       (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
@@ -294,11 +302,6 @@ describe("useStorageUpload", () => {
                 },
               },
             }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
         })
         .mockResolvedValueOnce({
           ok: true,
@@ -334,6 +337,9 @@ describe("useStorageUpload", () => {
             submissionId: runtimeSubmissionId,
             formId: mockFormId,
             formLocale: "en",
+            fileTypes: { "test.jpg": "image/jpeg" },
+            fileStates: { "test.jpg": "optimized" },
+            questionName: "",
           }),
         }),
       );
@@ -373,6 +379,10 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, largeFileOptions);
       });
 
@@ -386,6 +396,9 @@ describe("useStorageUpload", () => {
             submissionId: mockSubmissionId,
             formId: mockFormId,
             formLocale: "en",
+            fileTypes: { "large-video.mp4": "video/mp4" },
+            fileStates: { "large-video.mp4": "original" },
+            questionName: "",
           }),
         }),
       );
@@ -444,38 +457,55 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, mixedFilesOptions);
       });
 
-      // SAS token once for all files, then resize-image for the small image
+      // Resize for the small image, then upload-urls for the batch, then PUTs
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/upload-urls",
+        "/api/public/v0/storage/resize-image",
         expect.any(Object),
       );
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/resize-image",
+        "/api/public/v0/storage/upload-urls",
         expect.any(Object),
       );
     });
 
     it("should handle upload errors gracefully", async () => {
+      const largeOnlyOptions: UploadFilesEvent = {
+        files: [mockLargeFile],
+        callback: vi.fn(),
+      } as unknown as UploadFilesEvent;
+
+      let result: ReturnType<typeof renderHook>["result"];
+
+      await act(async () => {
+        const view = renderHook(
+          () =>
+            useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+          {
+            wrapper: createWrapper(),
+          },
+        );
+        result = view.result;
+        await Promise.resolve();
+      });
+
+      expect(result!.current).not.toBeNull();
+
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockReset()
         .mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(
-        () =>
-          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
       await act(async () => {
-        await result.current.uploadFiles(mockSurveyModel, mockUploadOptions);
+        await result.current!.uploadFiles(mockSurveyModel, largeOnlyOptions);
       });
 
-      expect(mockUploadOptions.callback).toHaveBeenCalledWith(
+      expect(largeOnlyOptions.callback).toHaveBeenCalledWith(
         [],
         ["Network error"],
       );
@@ -500,6 +530,11 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               uploads: {
@@ -512,11 +547,6 @@ describe("useStorageUpload", () => {
               submissionId: mockSubmissionId,
               userId: "user-1",
             }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
         })
         .mockResolvedValueOnce({
           ok: true,
@@ -819,6 +849,11 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               uploads: {
@@ -832,8 +867,7 @@ describe("useStorageUpload", () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -845,16 +879,20 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
-      // Should call SAS token then resize-image for small images
+      // Resize-image then upload-urls for small images
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/upload-urls",
+        "/api/public/v0/storage/resize-image",
         expect.any(Object),
       );
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/resize-image",
+        "/api/public/v0/storage/upload-urls",
         expect.any(Object),
       );
     });
@@ -872,19 +910,24 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            uploads: {
-              "large.jpg": {
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              uploads: {
+                "large.jpg": {
                   url: "https://test.blob.core.windows.net/large?sas-token",
                   headers: { "x-ms-blob-type": "BlockBlob" },
                   key: "mock/blob-key",
                 },
-            },
-          }),
-      });
+              },
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(""),
+        });
 
       const { result } = renderHook(
         () =>
@@ -893,6 +936,10 @@ describe("useStorageUpload", () => {
           wrapper: createWrapper(),
         },
       );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
@@ -916,19 +963,24 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            uploads: {
-              "document.pdf": {
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              uploads: {
+                "document.pdf": {
                   url: "https://test.blob.core.windows.net/document?sas-token",
                   headers: { "x-ms-blob-type": "BlockBlob" },
                   key: "mock/blob-key",
                 },
-            },
-          }),
-      });
+              },
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(""),
+        });
 
       const { result } = renderHook(
         () =>
@@ -937,6 +989,10 @@ describe("useStorageUpload", () => {
           wrapper: createWrapper(),
         },
       );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
@@ -960,6 +1016,11 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               submissionId: "new-submission-id",
@@ -975,8 +1036,7 @@ describe("useStorageUpload", () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -1010,6 +1070,11 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               submissionId: mockSubmissionId, // Same as current
@@ -1025,8 +1090,7 @@ describe("useStorageUpload", () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "video/mp4" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -1321,6 +1385,10 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
@@ -1355,6 +1423,10 @@ describe("useStorageUpload", () => {
           wrapper: createWrapper(),
         },
       );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
@@ -1400,6 +1472,10 @@ describe("useStorageUpload", () => {
           wrapper: createWrapper(),
         },
       );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       // Act
       await act(async () => {
@@ -1455,6 +1531,10 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
@@ -1493,7 +1573,7 @@ describe("useStorageUpload", () => {
 
     it("should handle SAS token API errors", async () => {
       const uploadOptions: UploadFilesEvent = {
-        files: [mockFile],
+        files: [mockLargeFile],
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
@@ -1529,6 +1609,11 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               submissionId: "new-submission-id",
@@ -1540,11 +1625,6 @@ describe("useStorageUpload", () => {
                 },
               },
             }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
         })
         .mockResolvedValueOnce({
           ok: true,
@@ -1582,6 +1662,11 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               uploads: {
@@ -1592,11 +1677,6 @@ describe("useStorageUpload", () => {
                 },
               },
             }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
         })
         .mockResolvedValueOnce({
           ok: true,

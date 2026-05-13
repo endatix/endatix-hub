@@ -68,11 +68,18 @@ describe("uploadBlob", () => {
       uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {}),
     ).rejects.toThrow(UploadError);
 
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: "Forbidden",
+      text: () => Promise.resolve("body"),
+    });
+
     try {
       await uploadBlob("https://x/y?s=1", new ArrayBuffer(0), {});
     } catch (err) {
       expect(err).toBeInstanceOf(UploadError);
-      expect((err as UploadError).fileUrl).toBe("https://x/y?s=1");
+      expect((err as UploadError).fileUrl).toBe("https://x/y");
     }
   });
 

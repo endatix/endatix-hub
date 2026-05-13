@@ -1,18 +1,32 @@
 import type { SurveyModel, UploadFilesEvent } from "survey-core";
 import type { UploadFileEvent } from "survey-creator-core";
 import { Result, type ResultType } from "@/lib/result";
-import type { ContentItemType, FileMetadata } from "../../types";
+import type { ContentItemType } from "../../types";
 import type { UploadUrlDescriptor } from "../../infrastructure/storage-gateway";
-import { buildUserFileMetadata } from "../../infrastructure/storage-utils";
 import {
   fetchUploadUrls,
+  prepareUploadBytes,
   processAndUploadFile,
   type ProcessAndUploadSuccess,
+  type PreparedUploadBytes,
   type UploadUrlsData,
 } from "./upload.utils";
 
 const USER_UPLOAD_URLS = "/api/public/v0/storage/upload-urls";
 const USER_RESIZE_URL = "/api/public/v0/storage/resize-image";
+
+function buildPerFileMaps(prepared: PreparedUploadBytes[]): {
+  fileTypes: Record<string, string>;
+  fileStates: Record<string, PreparedUploadBytes["fileState"]>;
+} {
+  const fileTypes: Record<string, string> = {};
+  const fileStates: Record<string, PreparedUploadBytes["fileState"]> = {};
+  for (const p of prepared) {
+    fileTypes[p.file.name] = p.contentType;
+    fileStates[p.file.name] = p.fileState;
+  }
+  return { fileTypes, fileStates };
+}
 
 export interface UserUploadConfig {
   formId: string;
@@ -46,11 +60,22 @@ export function createUserUpload(config: UserUploadConfig) {
     }
 
     const currentSubmissionId = getSubmissionId?.();
+    const resizeUrl = isResizeEnabled ? USER_RESIZE_URL : undefined;
+
+    const prepared = await Promise.all(
+      options.files.map((file) => prepareUploadBytes(file, resizeUrl)),
+    );
+
+    const { fileTypes, fileStates } = buildPerFileMaps(prepared);
+
     const sasResult = await fetchUploadUrls(USER_UPLOAD_URLS, {
       fileNames: options.files.map((f) => f.name),
       submissionId: currentSubmissionId,
       formId,
       formLocale: surveyModel?.locale ?? "",
+      fileTypes,
+      fileStates,
+      questionName: options.question?.name ?? "",
     });
 
     if (Result.isError(sasResult)) {
@@ -68,8 +93,11 @@ export function createUserUpload(config: UserUploadConfig) {
     }
 
     const uploadResults = await Promise.all(
-      options.files.map(
-        async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
+      prepared.map(
+        async ({
+          file,
+          buffer,
+        }): Promise<ResultType<ProcessAndUploadSuccess>> => {
           const entry = sasData.uploads[file.name];
           if (!entry) {
             return Result.error(`No URL for ${file.name}`);
@@ -80,23 +108,7 @@ export function createUserUpload(config: UserUploadConfig) {
 
           const descriptor: UploadUrlDescriptor = entry;
 
-          const metadata: FileMetadata = buildUserFileMetadata({
-            kind: "user",
-            uploadedBy: sasData.userId ?? "anonymous",
-            formId,
-            submissionId: sasData.submissionId ?? currentSubmissionId ?? "",
-            questionName: options.question?.name ?? "",
-            formLang: surveyModel?.locale ?? "",
-            displayName: file.name,
-            contentType: file.type,
-          });
-
-          return processAndUploadFile(
-            file,
-            descriptor,
-            metadata,
-            isResizeEnabled ? USER_RESIZE_URL : undefined,
-          );
+          return processAndUploadFile(file, descriptor, buffer);
         },
       ),
     );
@@ -143,11 +155,21 @@ export function createContentUpload(config: ContentUploadConfig) {
     const files = options.files ?? [];
     if (files.length === 0) return;
 
+    const resizeUrl = isResizeEnabled ? CONTENT_RESIZE_URL : undefined;
+
+    const prepared = await Promise.all(
+      files.map((file) => prepareUploadBytes(file, resizeUrl)),
+    );
+
+    const { fileTypes, fileStates } = buildPerFileMaps(prepared);
+
     const sasResult = await fetchUploadUrls(CONTENT_UPLOAD_URLS, {
       itemId,
       itemType,
       fileNames: files.map((f) => f.name),
       questionName,
+      fileTypes,
+      fileStates,
     });
 
     if (Result.isError(sasResult)) {
@@ -158,41 +180,24 @@ export function createContentUpload(config: ContentUploadConfig) {
     const uploadUrlsData: UploadUrlsData = sasResult.value;
 
     const uploadResults = await Promise.all(
-      files.map(async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
-        const entry = uploadUrlsData.uploads[file.name];
-        if (!entry) {
-          return Result.error(`No upload URL for ${file.name}`);
-        }
-        if ("error" in entry) {
-          return Result.error(entry.error);
-        }
-
-        const descriptor: UploadUrlDescriptor = entry;
-
-        const meta = uploadUrlsData.uploadMetadata ?? {
-          userId: "",
-          itemId,
-          contentItemType: itemType,
-          questionName,
-        };
-
-        const metadata: FileMetadata = {
-          kind: "content",
-          uploadedBy: meta.userId,
-          itemId: meta.itemId,
-          contentItemType: meta.contentItemType as ContentItemType,
-          displayName: file.name,
-          contentType: file.type,
-          questionName: meta.questionName,
-        };
-
-        return processAndUploadFile(
+      prepared.map(
+        async ({
           file,
-          descriptor,
-          metadata,
-          isResizeEnabled ? CONTENT_RESIZE_URL : undefined,
-        );
-      }),
+          buffer,
+        }): Promise<ResultType<ProcessAndUploadSuccess>> => {
+          const entry = uploadUrlsData.uploads[file.name];
+          if (!entry) {
+            return Result.error(`No upload URL for ${file.name}`);
+          }
+          if ("error" in entry) {
+            return Result.error(entry.error);
+          }
+
+          const descriptor: UploadUrlDescriptor = entry;
+
+          return processAndUploadFile(file, descriptor, buffer);
+        },
+      ),
     );
 
     const firstError = uploadResults.find(Result.isError);

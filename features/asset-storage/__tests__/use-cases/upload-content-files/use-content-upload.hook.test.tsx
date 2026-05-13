@@ -167,6 +167,8 @@ describe("useContentUpload", () => {
           itemType: "form",
           fileNames: ["test.jpg"],
           questionName: "testQuestion",
+          fileTypes: { "test.jpg": "image/jpeg" },
+          fileStates: { "test.jpg": "original" },
         }),
       }),
     );
