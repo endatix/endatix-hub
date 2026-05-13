@@ -1029,13 +1029,17 @@ describe("useStorageUpload", () => {
       });
 
       // Mock the read-token API response
+      const fileUrl = "https://test.blob.core.windows.net/user-files/test.pdf";
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
-              token: "on-demand-token-123",
-              expiresOn: new Date().toISOString(),
+              resolved: {
+                [fileUrl]: {
+                  url: `${fileUrl}?on-demand-token-123`,
+                },
+              },
             }),
         })
         .mockResolvedValueOnce({
@@ -1059,7 +1063,7 @@ describe("useStorageUpload", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            url: "https://test.blob.core.windows.net/user-files/test.pdf",
+            urls: ["https://test.blob.core.windows.net/user-files/test.pdf"],
           }),
         }),
       );
@@ -1175,13 +1179,17 @@ describe("useStorageUpload", () => {
       });
 
       // Mock successful read-token but failed file fetch
+      const fileUrl = "https://test.blob.core.windows.net/user-files/test.pdf";
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
-              token: "on-demand-token-123",
-              expiresOn: new Date().toISOString(),
+              resolved: {
+                [fileUrl]: {
+                  url: `${fileUrl}?on-demand-token-123`,
+                },
+              },
             }),
         })
         .mockRejectedValue(new Error("Network error"));

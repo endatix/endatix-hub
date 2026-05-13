@@ -148,7 +148,7 @@ export function useStorageUpload({
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: options.content }),
+              body: JSON.stringify({ urls: [options.content] }),
             },
           );
 
@@ -161,8 +161,22 @@ export function useStorageUpload({
             return;
           }
 
-          const { token } = await tokenResponse.json();
-          url = token ? `${options.content}?${token}` : options.content;
+          const data = (await tokenResponse.json()) as {
+            resolved?: Record<
+              string,
+              { url: string } | { error: string }
+            >;
+          };
+          const entry = data.resolved?.[options.content];
+          if (!entry || "error" in entry) {
+            console.error(
+              "Failed to resolve read URL:",
+              entry && "error" in entry ? entry.error : "missing entry",
+            );
+            options.callback("error");
+            return;
+          }
+          url = entry.url;
         } catch (error) {
           console.error("Error getting read token:", error);
           options.callback("error");
