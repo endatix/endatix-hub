@@ -2,8 +2,8 @@
 
 import { auth } from "@/auth";
 import { Result } from "@/lib/result";
-import { getStorageConfig } from "../../infrastructure/storage-config";
-import { bulkGenerateReadTokens } from "../../infrastructure/storage-service";
+import { getStorageRuntimeSettings } from "../../storage-runtime";
+import { bulkGenerateReadTokens } from "../../infrastructure/storage-gateway";
 import { ContainerReadToken, ReadTokenResult } from "../../types";
 
 /**
@@ -14,13 +14,13 @@ import { ContainerReadToken, ReadTokenResult } from "../../types";
 export async function generateReadTokensAction(
   containerName: string,
 ): Promise<ReadTokenResult> {
-  const storageConfig = getStorageConfig();
+  const storageSettings = getStorageRuntimeSettings();
 
-  if (!storageConfig.isEnabled) {
+  if (!storageSettings.isEnabled) {
     return Result.error("Azure storage is not enabled");
   }
 
-  if (!storageConfig.isPrivate) {
+  if (!storageSettings.isPrivate) {
     return Result.success(emptyReadToken(containerName));
   }
 

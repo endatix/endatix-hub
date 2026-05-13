@@ -4,8 +4,10 @@ import {
   StorageConfig,
 } from "@/features/asset-storage/client";
 import { render } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { QuestionSignaturePadModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clientStorageConfig } from "../../../test-storage-config";
 
 // Mock SurveyQuestionSignaturePad - must be before imports that use it
 const mockRenderBackgroundImage = vi.fn(() => {
@@ -54,7 +56,9 @@ const renderWithContext = (
     (instance as any).context = { config: null, resolveStorageUrl: vi.fn() };
   }
 
-  const view = instance.renderBackgroundImage();
+  const view = (
+    instance as unknown as { renderBackgroundImage(): ReactNode }
+  ).renderBackgroundImage();
 
   return render(
     <AssetStorageContext.Provider value={contextValue || { config: null, resolveStorageUrl: vi.fn() }}>
@@ -74,16 +78,10 @@ describe("ProtectedSignaturePad", () => {
 
   describe("when storage is disabled", () => {
     it("should render default background image without enrichment", () => {
-      const disabledConfig: StorageConfig = {
+      const disabledConfig: StorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       renderWithContext(mockQuestion, {
         config: disabledConfig,
@@ -96,16 +94,10 @@ describe("ProtectedSignaturePad", () => {
 
   describe("when storage is enabled but not private", () => {
     it("should render default background image without enrichment", () => {
-      const publicConfig: StorageConfig = {
+      const publicConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       renderWithContext(mockQuestion, {
         config: publicConfig,
@@ -118,16 +110,9 @@ describe("ProtectedSignaturePad", () => {
 
   describe("when storage is enabled and private", () => {
     it("should enrich background image when backgroundImage exists", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const mockResolveStorageUrl = vi.fn(
         (url: string) => `${url}?token=abc123`,
@@ -145,16 +130,9 @@ describe("ProtectedSignaturePad", () => {
     });
 
     it("should return null when backgroundImage is missing", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const questionWithoutBackground = {
         backgroundImage: undefined,

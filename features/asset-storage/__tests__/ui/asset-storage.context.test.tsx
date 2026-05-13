@@ -7,7 +7,8 @@ import {
 } from "@testing-library/react";
 import { Suspense } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { StorageConfig } from "../../infrastructure/storage-config-client";
+import type { StorageConfig } from "@endatix/storage-azure";
+import { IMAGE_SERVICE_CONFIG } from "../../infrastructure/image-service";
 import {
   AssetStorageClientProvider,
   useAssetStorage,
@@ -23,6 +24,7 @@ const mockStorageConfig: StorageConfig = {
     USER_FILES: "user-files",
     CONTENT: "content",
   },
+  imageConfig: IMAGE_SERVICE_CONFIG,
 };
 
 describe("AssetStorageContext", () => {

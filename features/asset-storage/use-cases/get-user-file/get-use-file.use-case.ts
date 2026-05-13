@@ -1,13 +1,10 @@
 import { Result } from "@/lib/result";
-import { blobMetadataParser } from "../../infrastructure/blob-metadata-parser";
-import {
-  getStorageConfig,
-  getContainerUrl,
-} from "../../infrastructure/storage-config";
+import { blobMetadataParser, getContainerUrl } from "@endatix/storage-azure";
+import { getStorageRuntimeSettings } from "../../storage-runtime";
 import {
   bulkGenerateReadTokens,
   getBlobProperties,
-} from "../../infrastructure/storage-service";
+} from "../../infrastructure/storage-gateway";
 import { buildUserFilePath } from "../../infrastructure/storage-utils";
 import type { UserFileMetadata } from "../../types";
 
@@ -24,8 +21,9 @@ async function getUserFile(
   submissionId: string,
   fileName: string,
 ): Promise<Result<UserFileViewData>> {
-  const config = getStorageConfig();
-  if (!config.isEnabled) {
+  const storageSettings = getStorageRuntimeSettings();
+  const config = storageSettings.azure;
+  if (!storageSettings.isEnabled || config === null) {
     return Result.error("Storage is not enabled");
   }
 

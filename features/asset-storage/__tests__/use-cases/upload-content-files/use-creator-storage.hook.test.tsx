@@ -7,6 +7,7 @@ import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import { StorageConfig } from "@/features/asset-storage/client";
+import { clientStorageConfig } from "../../test-storage-config";
 
 // Mock the hooks
 const mockRegisterUploadHandlers = vi.fn();
@@ -88,16 +89,10 @@ describe("useStorageWithCreator", () => {
     const readTokenPromises = createReadTokenPromises();
 
     it("should handle disabled storage", async () => {
-      const disabledConfig: StorageConfig = {
+      const disabledConfig: StorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const creator = createMockCreatorModel();
       let result: any;
@@ -128,16 +123,10 @@ describe("useStorageWithCreator", () => {
     });
 
     it("should register upload handlers but not view handlers when not private", async () => {
-      const publicConfig: StorageConfig = {
+      const publicConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const creator = createMockCreatorModel();
       let result: any;
@@ -166,16 +155,10 @@ describe("useStorageWithCreator", () => {
     });
 
     it("should register both upload and view handlers when private", async () => {
-      const privateConfig: StorageConfig = {
+      const privateConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const creator = createMockCreatorModel();
       let result: any;

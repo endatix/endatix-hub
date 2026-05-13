@@ -1,23 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
 import { listUserFiles } from "@/features/asset-storage/use-cases/list-user-files/list-user-files.use-case";
-import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
-import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
-import * as blobMetadataParser from "@/features/asset-storage/infrastructure/blob-metadata-parser";
+import * as storageRuntime from "@/features/asset-storage/storage-runtime";
+import * as storageConfig from "@endatix/storage-azure";
+import * as storageService from "@/features/asset-storage/infrastructure/storage-gateway";
 import type { BlobItem } from "@azure/storage-blob";
+import type { AzureStorageConfig } from "@endatix/storage-azure";
 
-vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
-  getStorageConfig: vi.fn(),
+vi.mock("@/features/asset-storage/storage-runtime", () => ({
+  getStorageRuntimeSettings: vi.fn(),
 }));
 
-vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
-  listBlobs: vi.fn(),
-}));
-
-vi.mock("@/features/asset-storage/infrastructure/blob-metadata-parser", () => ({
+vi.mock("@endatix/storage-azure", () => ({
   blobMetadataParser: {
+    parseFromProperties: vi.fn(),
     parseFromBlob: vi.fn(),
   },
+}));
+
+vi.mock("@/features/asset-storage/infrastructure/storage-gateway", () => ({
+  listBlobs: vi.fn(),
 }));
 
 const mockContainerName = "user-files";
@@ -49,26 +51,39 @@ const mockMetadata2 = {
   uploadedBy: "user-1",
 };
 
+const mockRuntimeStorageProfile = {
+  explicitProvider: null,
+  azureCredentialsPresent: true,
+  imageRemoteHostnames: [] as readonly string[],
+};
+
 describe("listUserFiles", () => {
   const formId = "f1";
   const submissionId = "s1";
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue(
-      mockPublicConfig as ReturnType<typeof storageConfig.getStorageConfig>,
-    );
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
+      isEnabled: true,
+      isPrivate: false,
+      storage: mockRuntimeStorageProfile,
+      azure: mockPublicConfig as AzureStorageConfig,
+    });
     vi.mocked(storageService.listBlobs).mockResolvedValue([]);
     vi.mocked(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      storageConfig.blobMetadataParser.parseFromBlob,
     ).mockReturnValue(mockMetadata1);
   });
 
   it("returns error when storage is not enabled", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
-      ...mockPublicConfig,
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: null,
       isEnabled: false,
-    } as ReturnType<typeof storageConfig.getStorageConfig>);
+      isPrivate: false,
+      storage: mockRuntimeStorageProfile,
+      azure: null,
+    });
 
     const result = await listUserFiles(formId, submissionId);
 
@@ -94,7 +109,7 @@ describe("listUserFiles", () => {
       submissionId,
     });
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      storageConfig.blobMetadataParser.parseFromBlob,
     ).not.toHaveBeenCalled();
   });
 
@@ -102,7 +117,7 @@ describe("listUserFiles", () => {
     const blob1 = createMockBlobItem("s/f1/s1/doc.pdf");
     const blob2 = createMockBlobItem("s/f1/s1/image.jpg");
     vi.mocked(storageService.listBlobs).mockResolvedValue([blob1, blob2]);
-    vi.mocked(blobMetadataParser.blobMetadataParser.parseFromBlob)
+    vi.mocked(storageConfig.blobMetadataParser.parseFromBlob)
       .mockReturnValueOnce(mockMetadata1)
       .mockReturnValueOnce(mockMetadata2);
 
@@ -120,13 +135,13 @@ describe("listUserFiles", () => {
       submissionId,
     });
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      storageConfig.blobMetadataParser.parseFromBlob,
     ).toHaveBeenCalledTimes(2);
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      storageConfig.blobMetadataParser.parseFromBlob,
     ).toHaveBeenNthCalledWith(1, blob1);
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      storageConfig.blobMetadataParser.parseFromBlob,
     ).toHaveBeenNthCalledWith(2, blob2);
   });
 

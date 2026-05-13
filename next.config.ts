@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
-import {
-  getRewriteRuleFor,
-  includesRemoteImageHostnames,
-} from "./lib/hosting/next-config-helper";
-import { getStorageConfig } from "@/features/asset-storage/infrastructure/storage-config";
+import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
 
@@ -27,7 +23,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [],
-    maximumRedirects: 3
+    maximumRedirects: 3,
   },
   rewrites: async () => {
     const rules = {
@@ -118,15 +114,5 @@ const nextConfig: NextConfig = {
   ],
   skipTrailingSlashRedirect: true,
 };
-
-includesRemoteImageHostnames(nextConfig.images?.remotePatterns);
-
-const storageConfig = getStorageConfig();
-if (storageConfig.isEnabled) {
-  nextConfig?.images?.remotePatterns?.push({
-    protocol: "https",
-    hostname: storageConfig.hostName,
-  });
-}
 
 export default withEndatix(nextConfig);

@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  getStorageConfig,
+  type AzureStorageConfig,
+  createStorageConfigClient,
   getContainerNames,
   getContainerUrl,
-  createStorageConfigClient,
-  AzureStorageConfig,
-} from "../../infrastructure/storage-config";
+  getAzureStorageConfig,
+} from "@endatix/storage-azure";
+import { IMAGE_SERVICE_CONFIG } from "../../infrastructure/image-service";
 
 describe("StorageConfig", () => {
   const mockAccountName = "mock-account-name";
@@ -17,7 +18,7 @@ describe("StorageConfig", () => {
     process.env = { ...originalEnv };
   });
 
-  describe("getStorageConfig", () => {
+  describe("getAzureStorageConfig", () => {
     describe("isEnabled", () => {
       it("should be true when account name and key are set", () => {
         // Arrange
@@ -25,7 +26,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isEnabled).toBe(true);
@@ -42,7 +43,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isEnabled).toBe(false);
@@ -56,7 +57,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = "";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isEnabled).toBe(false);
@@ -69,7 +70,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = "";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isEnabled).toBe(false);
@@ -81,7 +82,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isEnabled).toBe(false);
@@ -93,7 +94,7 @@ describe("StorageConfig", () => {
         delete process.env.AZURE_STORAGE_ACCOUNT_KEY;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isEnabled).toBe(false);
@@ -108,7 +109,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_IS_PRIVATE = "true";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isPrivate).toBe(true);
@@ -121,7 +122,7 @@ describe("StorageConfig", () => {
         delete process.env.AZURE_STORAGE_IS_PRIVATE;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isPrivate).toBe(false);
@@ -134,7 +135,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_IS_PRIVATE = "";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isPrivate).toBe(false);
@@ -147,7 +148,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_IS_PRIVATE = "1";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.isPrivate).toBe(true);
@@ -162,7 +163,7 @@ describe("StorageConfig", () => {
         delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("myaccount.blob.core.windows.net");
@@ -175,7 +176,7 @@ describe("StorageConfig", () => {
         delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("");
@@ -188,7 +189,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "cdn.example.com";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("cdn.example.com");
@@ -201,7 +202,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("myaccount.blob.core.windows.net");
@@ -214,7 +215,7 @@ describe("StorageConfig", () => {
         delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("myaccount.blob.core.windows.net");
@@ -227,7 +228,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "  cdn.example.com  ";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("cdn.example.com");
@@ -240,7 +241,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://cdn.example.com";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("cdn.example.com");
@@ -253,7 +254,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "http://cdn.example.com";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("cdn.example.com");
@@ -267,7 +268,7 @@ describe("StorageConfig", () => {
           "https://cdn.example.com/path";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("cdn.example.com");
@@ -280,7 +281,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://cdn.example.com:443";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("cdn.example.com");
@@ -293,7 +294,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://invalid url";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert - should fallback to default Azure hostname when URL parsing fails
         expect(config.hostName).toBe("myaccount.blob.core.windows.net");
@@ -306,7 +307,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "not a valid url://";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("myaccount.blob.core.windows.net");
@@ -319,7 +320,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://invalid url";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.hostName).toBe("");
@@ -333,7 +334,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.protocol).toBe("https");
@@ -345,7 +346,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.protocol).toBe("https");
@@ -361,7 +362,7 @@ describe("StorageConfig", () => {
         delete process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.sasReadExpiryMinutes).toBe(15);
@@ -374,7 +375,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.sasReadExpiryMinutes).toBe(30);
@@ -387,7 +388,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "invalid";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.sasReadExpiryMinutes).toBe(15);
@@ -400,7 +401,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "0";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.sasReadExpiryMinutes).toBe(15);
@@ -413,7 +414,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "-5";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.sasReadExpiryMinutes).toBe(15);
@@ -426,7 +427,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "1440"; // 24 hours
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.sasReadExpiryMinutes).toBe(1440);
@@ -439,7 +440,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30.5";
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(config.sasReadExpiryMinutes).toBe(30);
@@ -453,7 +454,7 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
-        const config = getStorageConfig();
+        const config = getAzureStorageConfig();
 
         // Assert
         expect(Object.isFrozen(config)).toBe(true);
@@ -465,8 +466,8 @@ describe("StorageConfig", () => {
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
-        const config1 = getStorageConfig();
-        const config2 = getStorageConfig();
+        const config1 = getAzureStorageConfig();
+        const config2 = getAzureStorageConfig();
 
         // Assert - should be different objects but equal values
         expect(config1).not.toBe(config2);
@@ -666,6 +667,7 @@ describe("StorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
@@ -689,6 +691,7 @@ describe("StorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "http",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
@@ -712,6 +715,7 @@ describe("StorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
@@ -737,6 +741,7 @@ describe("StorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
@@ -760,6 +765,7 @@ describe("StorageConfig", () => {
           hostName: "",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
@@ -841,6 +847,7 @@ describe("StorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
@@ -866,6 +873,7 @@ describe("StorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",
@@ -891,6 +899,7 @@ describe("StorageConfig", () => {
           hostName: "testaccount.blob.core.windows.net",
           protocol: "https",
           sasReadExpiryMinutes: 15,
+          imageConfig: IMAGE_SERVICE_CONFIG,
           containerNames: {
             USER_FILES: "user-files",
             CONTENT: "content",

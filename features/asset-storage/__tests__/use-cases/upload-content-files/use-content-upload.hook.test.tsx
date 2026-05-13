@@ -8,11 +8,16 @@ import {
 } from "@/features/asset-storage/client";
 import { useContentUpload } from "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook";
 
-vi.mock("@azure/storage-blob", () => ({
-  BlockBlobClient: vi.fn().mockImplementation(function () {
-    return { uploadData: vi.fn().mockResolvedValue(undefined) };
-  }),
-}));
+vi.mock("@azure/storage-blob", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@azure/storage-blob")>();
+  return {
+    ...actual,
+    BlockBlobClient: vi.fn().mockImplementation(function () {
+      return { uploadData: vi.fn().mockResolvedValue(undefined) };
+    }),
+  };
+});
 
 const mockStorageConfig = {
   isEnabled: true,
@@ -136,6 +141,8 @@ describe("useContentUpload", () => {
       callback: vi.fn(),
       element: { name: "testQuestion" } as any,
       elementType: "question",
+      propertyName: "testQuestion",
+      question: {} as any,
     };
 
     mockFetchSuccess("testQuestion");
@@ -206,6 +213,8 @@ describe("useContentUpload", () => {
       callback: vi.fn(),
       element: { name: "testQuestion" } as any,
       elementType: "question",
+      propertyName: "testQuestion",
+      question: {} as any,
     };
 
     mockFetchSuccess("testQuestion");

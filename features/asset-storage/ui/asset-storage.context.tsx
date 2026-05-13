@@ -3,7 +3,7 @@
 import { Result } from '@/lib/result';
 import notAllowedImageSrc from "@/public/assets/images/signs/not-allowed-image.svg";
 import React, { createContext, use, useCallback, useMemo } from "react";
-import { StorageConfig } from "../infrastructure/storage-config-client";
+import type { StorageConfig } from "@endatix/storage-azure";
 import { ReadTokenResult } from "../types";
 import { enhanceUrlWithToken, resolveContainerFromUrl } from "../utils";
 

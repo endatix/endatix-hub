@@ -3,7 +3,7 @@
 export type {
   StorageConfig,
   StorageConfigClient,
-} from "./infrastructure/storage-config-client";
+} from "@endatix/storage-azure";
 export {
   ProtectedFilePreview,
   registerProtectedFilePreview,

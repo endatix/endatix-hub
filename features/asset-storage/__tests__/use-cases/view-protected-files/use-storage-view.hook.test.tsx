@@ -14,6 +14,8 @@ import {
 import { Result } from "@/lib/result";
 import { ContainerReadToken, ProtectedFile } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
+import type { StorageConfig } from "@endatix/storage-azure";
+import { clientStorageConfig } from "../../test-storage-config";
 
 // Mock the not-allowed image
 vi.mock("@/public/assets/images/signs/not-allowed-image.svg", () => ({
@@ -39,15 +41,9 @@ const createDefaultReadTokenPromises = () => ({
   content: Promise.resolve(resolvedTokenResult),
 });
 
-const mockStorageConfig = {
-  isEnabled: true,
+const mockStorageConfig: StorageConfig = clientStorageConfig({
   isPrivate: true,
-  hostName: "testaccount.blob.core.windows.net",
-  containerNames: {
-    USER_FILES: "user-files",
-    CONTENT: "content",
-  },
-};
+});
 
 describe("useStorageView", () => {
   const mockSurveyModel = {
@@ -67,7 +63,7 @@ describe("useStorageView", () => {
   } as unknown as SurveyModel;
 
   const createWrapper = (
-    config: typeof mockStorageConfig | null = mockStorageConfig,
+    config: StorageConfig | null = mockStorageConfig,
     tokens?: { userFiles: Promise<typeof resolvedUserFilesTokenResult>; content: Promise<typeof resolvedTokenResult> },
   ) => {
     const defaultTokens = createDefaultReadTokenPromises();
@@ -84,7 +80,7 @@ describe("useStorageView", () => {
   };
 
   const renderHookWithSuspense = async (
-    config: typeof mockStorageConfig | null = mockStorageConfig,
+    config: StorageConfig | null = mockStorageConfig,
   ) => {
     const props = createDefaultReadTokenPromises();
     let result: ReturnType<typeof renderHook>["result"] | undefined;

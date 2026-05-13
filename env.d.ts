@@ -37,6 +37,9 @@ declare namespace NodeJS {
     SLACK_REDIRECT_URI?: string;
 
     // Storage:General
+    
+    // When unset, bootstrap auto-selects Azure when account credentials exist.
+    STORAGE_PROVIDER?: string;
     USER_FILES_STORAGE_CONTAINER_NAME?: string;
     CONTENT_STORAGE_CONTAINER_NAME?: string;
 

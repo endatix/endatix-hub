@@ -1,5 +1,10 @@
 import { RemotePattern } from "next/dist/shared/lib/image-config";
 
+/**
+ * Includes remote image hostnames in the remote patterns.
+ * @param remotePatterns - The remote patterns to include the hostnames in.
+ * @returns void
+ */
 function includesRemoteImageHostnames(
   remotePatterns: (URL | RemotePattern)[] | undefined,
 ): void {
@@ -33,6 +38,76 @@ function includesRemoteImageHostnames(
   });
 }
 
+/** Same sequence as `withEndatix`: `REMOTE_IMAGE_HOSTNAMES` / fallback, then storage-derived hostnames. */
+export function appendEndatixImageRemotePatterns(
+  remotePatterns: (URL | RemotePattern)[],
+  imageRemoteHostnames: readonly string[],
+): void {
+  includesRemoteImageHostnames(remotePatterns);
+  for (const hostname of imageRemoteHostnames) {
+    remotePatterns.push({
+      protocol: "https",
+      hostname,
+    });
+  }
+}
+
+function formatURLPattern(entry: URL): string {
+  return entry.hostname.length > 0 ? entry.hostname : entry.toString();
+}
+
+function getRemotePatternProtocol(p: RemotePattern): string {
+  return typeof p.protocol === "string" && p.protocol.length > 0
+    ? p.protocol
+    : "https";
+}
+
+function getRemotePatternHostname(p: RemotePattern): string {
+  return typeof p.hostname === "string" && p.hostname.length > 0
+    ? p.hostname
+    : "";
+}
+
+function getRemotePatternPathname(p: RemotePattern): string {
+  return typeof p.pathname === "string" && p.pathname.length > 0
+    ? p.pathname
+    : "";
+}
+
+function formatRemotePattern(p: RemotePattern): string {
+  const protocol = getRemotePatternProtocol(p);
+  const hostname = getRemotePatternHostname(p);
+  if (hostname.length > 0) {
+    const path = getRemotePatternPathname(p);
+    return path.length > 0
+      ? `${protocol}://${hostname}${path}`
+      : `${protocol}://${hostname}`;
+  }
+  return `${protocol}://*`;
+}
+
+/**
+ * Formats the remote patterns for display.
+ * @param patterns - The remote patterns to format.
+ * @returns The formatted remote patterns.
+ */
+export function formatRemotePatternsForDisplay(
+  patterns: (URL | RemotePattern)[] | undefined,
+): string {
+  if (patterns === undefined || patterns.length === 0) {
+    return "None configured";
+  }
+  const labels: string[] = [];
+  for (const entry of patterns) {
+    if (entry instanceof URL) {
+      labels.push(formatURLPattern(entry));
+      continue;
+    }
+    labels.push(formatRemotePattern(entry as RemotePattern));
+  }
+  return labels.join(", ");
+}
+
 /**
  * Generates a rewrite rule for parallel route segments in Next.js static chunks.
  * This is needed because Next.js encodes @ symbols in parallel route segments as %40 in file paths,
@@ -55,10 +130,14 @@ function getRewriteRuleFor(parallelRouteRoot: string): {
 
   if (!isValidRouteName) {
     throw new Error("Invalid route name value", {
-      cause: parallelRouteRoot
+      cause: parallelRouteRoot,
     });
   }
 
+  /**
+   * Returns the rewrite rule for the parallel route segment.
+   * @returns The rewrite rule for the parallel route segment.
+   */
   return {
     source: `/_next/static/chunks/app/:folder*/@${trimmedRouteRoot}/:path*`,
     destination: `/_next/static/chunks/app/:folder*/%40${trimmedRouteRoot}/:path*`,

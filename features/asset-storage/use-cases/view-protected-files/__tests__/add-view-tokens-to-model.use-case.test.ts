@@ -8,8 +8,8 @@ import {
 } from "./test-utils";
 
 // Mock dependencies
-vi.mock("../../../infrastructure/storage-config", () => ({
-  getStorageConfig: vi.fn(),
+vi.mock("../../../storage-runtime", () => ({
+  getStorageRuntimeSettings: vi.fn(),
 }));
 
 vi.mock("../generate-granular-read-tokens.use-case", () => ({
@@ -20,9 +20,15 @@ vi.mock("../generate-assets-manifest", () => ({
   generateAssetsManifest: vi.fn(),
 }));
 
-import { getStorageConfig } from "../../../infrastructure/storage-config";
+import { getStorageRuntimeSettings } from "../../../storage-runtime";
 import { generateAssetsManifest } from "../generate-assets-manifest";
 import { generateGranularReadTokensUseCase } from "../generate-granular-read-tokens.use-case";
+
+const mockRuntimeStorageProfile = {
+  explicitProvider: null,
+  azureCredentialsPresent: true,
+  imageRemoteHostnames: [] as readonly string[],
+};
 
 describe("addViewTokensToModelUseCase", () => {
   const mockStorageConfig = {
@@ -42,7 +48,13 @@ describe("addViewTokensToModelUseCase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getStorageConfig).mockReturnValue(mockStorageConfig as any);
+    vi.mocked(getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
+      isEnabled: mockStorageConfig.isEnabled,
+      isPrivate: mockStorageConfig.isPrivate,
+      storage: mockRuntimeStorageProfile,
+      azure: mockStorageConfig as any,
+    });
 
     // Create a fresh model for each test
     mockModel = new Model({
@@ -57,10 +69,13 @@ describe("addViewTokensToModelUseCase", () => {
 
   describe("storage configuration checks", () => {
     it("should return early when storage is not enabled", async () => {
-      vi.mocked(getStorageConfig).mockReturnValue({
-        ...mockStorageConfig,
+      vi.mocked(getStorageRuntimeSettings).mockReturnValue({
+        providerId: null,
         isEnabled: false,
-      } as any);
+        isPrivate: false,
+        storage: mockRuntimeStorageProfile,
+        azure: null,
+      });
 
       await addViewTokensToModelUseCase(mockModel);
 
@@ -69,10 +84,13 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should return early when storage is not private", async () => {
-      vi.mocked(getStorageConfig).mockReturnValue({
-        ...mockStorageConfig,
+      vi.mocked(getStorageRuntimeSettings).mockReturnValue({
+        providerId: "azure",
+        isEnabled: true,
         isPrivate: false,
-      } as any);
+        storage: mockRuntimeStorageProfile,
+        azure: { ...mockStorageConfig, isPrivate: false } as any,
+      });
 
       await addViewTokensToModelUseCase(mockModel);
 

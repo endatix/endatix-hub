@@ -1,6 +1,6 @@
 import { Result } from "@/lib/result";
 import { Model, QuestionImageModel, QuestionSignaturePadModel } from "survey-core";
-import { getStorageConfig } from "../../infrastructure/storage-config";
+import { getStorageRuntimeSettings } from "../../storage-runtime";
 import { ProtectedFile, StorageTokenMap } from "../../types";
 import { enhanceUrlWithToken } from "../../utils";
 import { generateAssetsManifest } from "./generate-assets-manifest";
@@ -13,8 +13,8 @@ import { generateGranularReadTokensUseCase } from "./generate-granular-read-toke
  * @param model - The SurveyJS Model to authorize
  */
 export async function addViewTokensToModelUseCase(model: Model): Promise<void> {
-  const storageConfig = getStorageConfig();
-  if (!storageConfig.isEnabled || !storageConfig.isPrivate) {
+  const storageSettings = getStorageRuntimeSettings();
+  if (!storageSettings.isEnabled || !storageSettings.isPrivate) {
     return;
   }
 
