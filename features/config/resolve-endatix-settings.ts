@@ -176,12 +176,11 @@ function readStorageProfileFromBuildMirror(): StorageProfileSlice | null {
   );
   const azureCredentialsPresent = process.env[RESOLVED_AZURE_CREDS_KEY] === "1";
 
-  const hasResolvedImageHosts = Object.prototype.hasOwnProperty.call(
+  const hasResolvedImageHosts = Object.hasOwn(
     process.env,
     RESOLVED_IMAGE_HOSTS_KEY,
   );
-  const rawHosts =
-    process.env[RESOLVED_IMAGE_HOSTS_KEY]?.trim() ?? "";
+  const rawHosts = process.env[RESOLVED_IMAGE_HOSTS_KEY]?.trim() ?? "";
   const imageRemoteHostnames: readonly string[] = hasResolvedImageHosts
     ? Object.freeze(
         rawHosts
