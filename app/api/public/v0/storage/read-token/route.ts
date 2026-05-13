@@ -39,10 +39,10 @@ interface ParsedReadUrl {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const readModel = getStorageRuntimeSettings();
+  const storageSettings = getStorageRuntimeSettings();
 
-  if (!readModel.isEnabled) {
-    return apiResponses.badRequest({ detail: "Azure storage is not enabled" });
+  if (!storageSettings.isEnabled) {
+    return apiResponses.badRequest({ detail: "Storage is not enabled" });
   }
 
   let body: ReadUrlsRequest;
@@ -64,7 +64,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const urls = body.urls;
 
-  if (!readModel.isPrivate) {
+  if (!storageSettings.isPrivate) {
     const resolved: Record<string, ReadUrlResolvedEntry> = {};
     for (const url of urls) {
       resolved[url] = { url };
@@ -79,7 +79,7 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  const config = readModel.azure;
+  const config = storageSettings.azure;
   if (config === null) {
     return apiResponses.badRequest({
       detail: "Read-token route requires Azure storage configuration",
