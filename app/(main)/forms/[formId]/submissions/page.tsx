@@ -3,19 +3,32 @@ import PageTitle from "@/components/headings/page-title";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
+import {
+  buildSubmissionListPath,
+  isCanonicalSubmissionListUrl,
+  parseSubmissionListPageSize,
+  parseSubmissionListSearchParams,
+  SUBMISSION_LIST_DEFAULT_PAGE,
+  submissionListUrlStateToListRequest,
+} from "@/features/submissions/list-submission-query";
+import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { EndatixApi } from "@/lib/endatix-api";
-import type { Metadata, ResolvingMetadata } from "next";
-import { Suspense } from "react";
-import { SubmissionsWithFilters } from "./ui/submissions-with-filters";
+import type { Metadata, ResolvingMetadata, Route } from "next";
+import { redirect } from "next/navigation";
+import { Suspense, type ReactNode } from "react";
 
 type Params = {
-  params: Promise<{ formId: string }>;
-  searchParams: Promise<{
+  readonly params: Promise<{ formId: string }>;
+  readonly searchParams: Promise<{
     page?: string;
     pageSize?: string;
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
   }>;
 };
 
@@ -52,14 +65,18 @@ export default async function ResponsesPage({ params, searchParams }: Params) {
       <Suspense fallback={<PageTitle title="Submissions..." />}>
         <PageTitleData formId={formId} />
       </Suspense>
-      <Suspense fallback={<TableLoader pageSize={sp.pageSize ?? "10"} />}>
+      <Suspense
+        fallback={
+          <TableLoader pageSize={parseSubmissionListPageSize(sp.pageSize)} />
+        }
+      >
         <SubmissionsTableData formId={formId} searchParams={sp} />
       </Suspense>
     </>
   );
 }
 
-async function PageTitleData({ formId }: { formId: string }) {
+async function PageTitleData({ formId }: Readonly<{ formId: string }>) {
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
   const formResult = await api.forms.get(formId);
@@ -73,53 +90,158 @@ async function SubmissionsTableData({
   formId,
   searchParams,
 }: {
-  formId: string;
-  searchParams: {
+  readonly formId: string;
+  readonly searchParams: {
+    page?: string;
+    pageSize?: string;
     isComplete?: string;
     status?: string;
     isTestSubmission?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    completedAtFrom?: string;
+    completedAtTo?: string;
   };
 }) {
-  const isCompleteFilter = searchParams.isComplete
-    ? searchParams.isComplete.split(",")
-    : [];
+  const listState = parseSubmissionListSearchParams(searchParams);
+  const hasActiveFilters =
+    listState.isComplete.length > 0 ||
+    listState.status.length > 0 ||
+    listState.isTestSubmission.length > 0 ||
+    Boolean(
+      listState.createdAtFrom ||
+      listState.createdAtTo ||
+      listState.completedAtFrom ||
+      listState.completedAtTo,
+    );
+  const page = listState.page;
 
-  const statusFilter = searchParams.status
-    ? searchParams.status.split(",")
-    : [];
-  const isTestSubmissionFilter = searchParams.isTestSubmission
-    ? searchParams.isTestSubmission.split(",")
-    : [];
+  if (
+    !isCanonicalSubmissionListUrl(
+      searchParams.page,
+      searchParams.pageSize,
+      listState,
+      {
+        rawCreatedAtFrom: searchParams.createdAtFrom,
+        rawCreatedAtTo: searchParams.createdAtTo,
+        rawCompletedAtFrom: searchParams.completedAtFrom,
+        rawCompletedAtTo: searchParams.completedAtTo,
+        createdAtFrom: listState.createdAtFrom,
+        createdAtTo: listState.createdAtTo,
+        completedAtFrom: listState.completedAtFrom,
+        completedAtTo: listState.completedAtTo,
+      },
+    )
+  ) {
+    redirect(buildSubmissionListPath(formId, listState) as Route);
+  }
 
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
 
-  const [submissionsResult, fieldsResult] = await Promise.all([
-    api.submissions.list(formId, {
-      isComplete: isCompleteFilter,
-      status: statusFilter,
-      isTestSubmission: isTestSubmissionFilter,
-    }),
-    api.definitions.getFields(formId),
-  ]);
+  const listRequest = submissionListUrlStateToListRequest(listState);
 
-  const submissions = submissionsResult.success ? submissionsResult.data : [];
-  const definitionFields = fieldsResult.success ? fieldsResult.data : [];
+  const [submissionsResult, fieldsResult, hasAnySubmissionsProbeResult] =
+    await Promise.all([
+      api.submissions.list(formId, listRequest),
+      api.definitions.getFields(formId),
+      hasActiveFilters
+        ? api.submissions.list(formId, { pageSize: 1 })
+        : Promise.resolve(null),
+    ]);
+
+  if (!submissionsResult.success) {
+    return (
+      <SubmissionsLoadError>
+        Unable to load submissions. Please try again.
+      </SubmissionsLoadError>
+    );
+  }
+
+  if (!fieldsResult.success) {
+    return (
+      <SubmissionsLoadError>
+        Unable to load submission fields. Please try again.
+      </SubmissionsLoadError>
+    );
+  }
+
+  const definitionFields = fieldsResult.data;
+
+  const canonicalPage = getCanonicalPage(
+    page,
+    submissionsResult.data.page,
+    submissionsResult.data.totalPages,
+  );
+  if (canonicalPage !== page) {
+    redirect(
+      buildSubmissionListPath(formId, {
+        ...listState,
+        page: canonicalPage,
+      }) as Route,
+    );
+  }
+
+  const submissions = submissionsResult.data.items;
+  const hasAnySubmissions = hasActiveFilters
+    ? hasAnySubmissionsProbeResult?.success === true &&
+      hasAnySubmissionsProbeResult.data.totalRecords > 0
+    : submissionsResult.data.totalRecords > 0;
 
   return (
     <SubmissionsWithFilters
       data={submissions}
       formId={formId}
+      hasAnySubmissions={hasAnySubmissions}
       definitionFields={definitionFields}
-      initialIsComplete={isCompleteFilter}
-      initialStatus={statusFilter}
-      initialIsTestSubmission={isTestSubmissionFilter}
+      initialPage={submissionsResult.data.page}
+      initialPageSize={submissionsResult.data.pageSize}
+      totalRecords={submissionsResult.data.totalRecords}
+      totalPages={submissionsResult.data.totalPages}
+      initialIsComplete={listState.isComplete}
+      initialStatus={listState.status}
+      initialIsTestSubmission={listState.isTestSubmission}
+      initialCreatedAtFrom={listState.createdAtFrom}
+      initialCreatedAtTo={listState.createdAtTo}
+      initialCompletedAtFrom={listState.completedAtFrom}
+      initialCompletedAtTo={listState.completedAtTo}
     />
   );
 }
 
-function TableLoader({ pageSize }: { pageSize: string }) {
-  const pageSizeNumber = parseInt(pageSize) || 10;
+function getCanonicalPage(
+  requestedPage: number,
+  responsePage: number,
+  totalPages: number,
+) {
+  if (totalPages <= 0) {
+    return SUBMISSION_LIST_DEFAULT_PAGE;
+  }
+
+  if (requestedPage > totalPages) {
+    return totalPages;
+  }
+
+  if (responsePage > 0 && responsePage !== requestedPage) {
+    return Math.min(responsePage, totalPages);
+  }
+
+  return requestedPage;
+}
+
+function SubmissionsLoadError({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <div
+      role="alert"
+      className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive"
+    >
+      {children}
+    </div>
+  );
+}
+
+function TableLoader({ pageSize }: Readonly<{ pageSize: number }>) {
+  const pageSizeNumber = pageSize;
   const rowHeight = 60;
   const rows = Array.from({ length: pageSizeNumber }, (_, i) => i + 1);
   return (

@@ -81,11 +81,11 @@
     "semver": "^7.6.3",
     "sharp": "^0.34.2",
     "sonner": "^1.7.1",
-    "survey-analytics": "^2.5.18",
-    "survey-core": "^2.5.18",
-    "survey-creator-core": "^2.5.18",
-    "survey-creator-react": "^2.5.18",
-    "survey-react-ui": "^2.5.18",
+    "survey-analytics": "^2.5.24",
+    "survey-core": "^2.5.24",
+    "survey-creator-core": "^2.5.24",
+    "survey-creator-react": "^2.5.24",
+    "survey-react-ui": "^2.5.24",
     "tailwind-merge": "^3.4.1",
     "uuid": "^11.1.1",
     "vaul": "^1.1.2",
@@ -161,7 +161,7 @@
       "unrs-resolver"
     ],
     "comments": {
-      "overrides": "[@types/react] & [@types/react-dom] are managed by Next.js. |  [preact] 10.29.1 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump | [fast-xml-parser] 5.7.0 bump is to address CVE-2026-25128, CVE-2026-27942, CVE-2026-33036, CVE-2026-33349 & CVE-2026-41650. Remove once we upgrade @azure/storage-blob | [fast-xml-builder] 1.1.7 to fix CVE-2026-44665. Remove with next @azure/storage-blob bump| [lodash] 4.18.0 bump is to address CVE-2025-13465, CVE-2026-2950 & CVE-2026-4800. Multiple peer dependenices hold outdated versions | [lodash-es] 4.18.00 bump is to address CVE-2025-13465, CVE-2026-2950 & CVE-2026-4800. Fix with quill & react-quill-new bump | [axios] 1.16.0 bump is to address 10+ CVEs. Remove when @flags-sdk/posthog is updated or removed | [minimatch] 10.2.4 bump is to address CVE-2026-27904. Remove with vitest 4x & eslint-config-next | [immutable] 5.1.5 bump is to address CVE-2026-29063. Multiple peer dependenices hold outdated versions. | [flatted] 3.4.2 bump is to address CVE-2026-33228. Remove with next vitest bump | [picomatch] 2.3.2 & 4.0.4 bump is to address CVE-2026-33671 & CVE-2026-33671. Multiple peer dependenices hold outdated versions. | [brace-expansion] 5.0.5 bump is to address CVE-2026-33750. Fix with new minimatch& eslintbump | [yaml] 2.8.3 bump is to address CVE-2026-33532 . Fix with vite bump | [vite] 7.3.2 bump is to address GHSA-4w7w-66w2-5vf9, GHSA-v2wj-q39q-566r & CVE-2026-39363. Fix with vitest bump | [follow-redirects] 1.16.0 bump is to address GHSA-r4q5-vmmm-2653. Remove with next Axios bump > 1.15.0 | [fast-uri] 3.1.2 bump to adress CVE-2026-6321 & CVE-2026-6322. Remove on next shadcn bump | [postcss] Bump to 8.5.10 to address CVE-2026-41305. Remove with removal of next-auth if possible | [hono] bump to 4.12.18 is to address CVE-2026-44457, CVE-2026-44455, CVE-2026-44458 & CVE-2026-44459. Remove with next shadcn bump | [ip-address] bump to 10.1.1 is to fix CVE-2026-42338. Remove on the next shadcn bump" 
+      "overrides": "[@types/react] & [@types/react-dom] are managed by Next.js. |  [preact] 10.29.1 bump is to address CVE-2026-22028. Remove with better auth and next posthog-js bump | [fast-xml-parser] 5.7.0 bump is to address CVE-2026-25128, CVE-2026-27942, CVE-2026-33036, CVE-2026-33349 & CVE-2026-41650. Remove once we upgrade @azure/storage-blob | [fast-xml-builder] 1.1.7 to fix CVE-2026-44665. Remove with next @azure/storage-blob bump| [lodash] 4.18.0 bump is to address CVE-2025-13465, CVE-2026-2950 & CVE-2026-4800. Multiple peer dependenices hold outdated versions | [lodash-es] 4.18.00 bump is to address CVE-2025-13465, CVE-2026-2950 & CVE-2026-4800. Fix with quill & react-quill-new bump | [axios] 1.16.0 bump is to address 10+ CVEs. Remove when @flags-sdk/posthog is updated or removed | [minimatch] 10.2.4 bump is to address CVE-2026-27904. Remove with vitest 4x & eslint-config-next | [immutable] 5.1.5 bump is to address CVE-2026-29063. Multiple peer dependenices hold outdated versions. | [flatted] 3.4.2 bump is to address CVE-2026-33228. Remove with next vitest bump | [picomatch] 2.3.2 & 4.0.4 bump is to address CVE-2026-33671 & CVE-2026-33671. Multiple peer dependenices hold outdated versions. | [brace-expansion] 5.0.5 bump is to address CVE-2026-33750. Fix with new minimatch& eslintbump | [yaml] 2.8.3 bump is to address CVE-2026-33532 . Fix with vite bump | [vite] 7.3.2 bump is to address GHSA-4w7w-66w2-5vf9, GHSA-v2wj-q39q-566r & CVE-2026-39363. Fix with vitest bump | [follow-redirects] 1.16.0 bump is to address GHSA-r4q5-vmmm-2653. Remove with next Axios bump > 1.15.0 | [fast-uri] 3.1.2 bump to adress CVE-2026-6321 & CVE-2026-6322. Remove on next shadcn bump | [postcss] Bump to 8.5.10 to address CVE-2026-41305. Remove with removal of next-auth if possible | [hono] bump to 4.12.18 is to address CVE-2026-44457, CVE-2026-44455, CVE-2026-44458 & CVE-2026-44459. Remove with next shadcn bump | [ip-address] bump to 10.1.1 is to fix CVE-2026-42338. Remove on the next shadcn bump"
     }
   }
 }
