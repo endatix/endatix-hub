@@ -24,7 +24,8 @@ export async function uploadBlob(
       throw new Error(`Blob upload failed: ${detail}`);
     }
   } catch (err) {
-    throwUploadError(err, uploadUrl);
+    const fileUrl = uploadUrl.split("?").at(0) ?? uploadUrl;
+    throwUploadError(err, fileUrl);
   }
 
   return uploadUrl.split("?").at(0) ?? uploadUrl;

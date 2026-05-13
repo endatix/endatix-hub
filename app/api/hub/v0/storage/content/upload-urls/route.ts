@@ -10,12 +10,15 @@ import { buildContentFolderPath } from "@/features/asset-storage/infrastructure/
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
+import type { FileMetadata, ProcessedState } from "@/features/asset-storage/types";
 
 interface ContentUploadUrlsRequest {
   itemId: string;
   itemType: ContentItemType;
   fileNames: string[];
   questionName?: string;
+  fileTypes?: Record<string, string>;
+  fileStates?: Record<string, ProcessedState>;
 }
 
 export type UploadUrlEntry = UploadUrlDescriptor | { error: string };
@@ -45,7 +48,8 @@ export async function POST(request: Request): Promise<Response> {
     return apiResponses.badRequest({ detail: "Invalid JSON body" });
   }
 
-  const { itemId, itemType, fileNames, questionName } = data;
+  const { itemId, itemType, fileNames, questionName, fileTypes, fileStates } =
+    data;
 
   if (!itemId?.trim()) {
     return apiResponses.badRequest({ detail: "Item ID is required" });
@@ -77,10 +81,25 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     try {
+      const contentType =
+        fileTypes?.[fileName] ?? "application/octet-stream";
+      const fileState = fileStates?.[fileName];
+      const blobUploadFileMetadata: FileMetadata = {
+        kind: "content",
+        uploadedBy: session!.user?.id ?? "",
+        itemId: itemId.trim(),
+        contentItemType: itemType,
+        displayName: fileName,
+        contentType,
+        questionName: questionName ?? "",
+        ...(fileState !== undefined ? { fileState } : {}),
+      };
+
       const descriptor = await generateUploadUrl({
         containerName,
         folderPath,
         fileName: uniqueFileNameResult.value,
+        blobUploadFileMetadata,
       });
       uploads[fileName] = descriptor;
     } catch (error) {

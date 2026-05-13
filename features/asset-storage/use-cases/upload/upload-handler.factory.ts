@@ -60,7 +60,10 @@ export function createUserUpload(config: UserUploadConfig) {
 
     const sasData: UploadUrlsData = sasResult.value;
 
-    if (sasData.submissionId && sasData.submissionId !== (currentSubmissionId ?? "")) {
+    if (
+      sasData.submissionId &&
+      sasData.submissionId !== (currentSubmissionId ?? "")
+    ) {
       onSubmissionIdChange?.(sasData.submissionId);
     }
 
@@ -158,7 +161,7 @@ export function createContentUpload(config: ContentUploadConfig) {
       files.map(async (file): Promise<ResultType<ProcessAndUploadSuccess>> => {
         const entry = uploadUrlsData.uploads[file.name];
         if (!entry) {
-          return Result.error("No upload URL");
+          return Result.error(`No upload URL for ${file.name}`);
         }
         if ("error" in entry) {
           return Result.error(entry.error);

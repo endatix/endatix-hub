@@ -8,14 +8,22 @@ import { generateUniqueFileName } from "@/features/asset-storage";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { buildUserFileFolderPath } from "@/features/asset-storage/infrastructure/storage-utils";
+import {
+  buildUserFileFolderPath,
+  buildUserFileMetadata,
+} from "@/features/asset-storage/infrastructure/storage-utils";
 import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
+import type { ProcessedState } from "@/features/asset-storage/types";
 
 interface UploadUrlsRequest {
   formId: string;
   fileNames: string[];
   formLocale: string;
   submissionId: string;
+  /** Original client file name → MIME type after optional resize (must match PUT bytes). */
+  fileTypes?: Record<string, string>;
+  fileStates?: Record<string, ProcessedState>;
+  questionName?: string;
 }
 
 export type UploadUrlEntry = UploadUrlDescriptor | { error: string };
@@ -61,7 +69,12 @@ export async function POST(request: Request): Promise<Response> {
 
   const containerNames = getContainerNames();
   const containerName = containerNames.USER_FILES;
-
+  const folderPathResult = buildUserFileFolderPath(formId, submissionId);
+  if (Result.isError(folderPathResult)) {
+    return apiResponses.badRequest({ detail: folderPathResult.message });
+  }
+  const folderPath = folderPathResult.value;
+  
   for (const fileName of fileNames) {
     const uniqueFileNameResult = generateUniqueFileName(fileName);
     if (Result.isError(uniqueFileNameResult)) {
@@ -69,17 +82,27 @@ export async function POST(request: Request): Promise<Response> {
       continue;
     }
 
-    const folderPathResult = buildUserFileFolderPath(formId, submissionId);
-    if (Result.isError(folderPathResult)) {
-      uploads[fileName] = { error: folderPathResult.message };
-      continue;
-    }
-
     try {
+      const contentType =
+        data.fileTypes?.[fileName] ?? "application/octet-stream";
+      const fileState = data.fileStates?.[fileName];
+      const blobUploadFileMetadata = buildUserFileMetadata({
+        kind: "user",
+        uploadedBy: userId,
+        displayName: fileName,
+        contentType,
+        formId,
+        submissionId,
+        formLang: data.formLocale,
+        questionName: data.questionName ?? "",
+        ...(fileState !== undefined ? { fileState } : {}),
+      });
+
       const descriptor = await generateUploadUrl({
         containerName,
-        folderPath: folderPathResult.value,
+        folderPath,
         fileName: uniqueFileNameResult.value,
+        blobUploadFileMetadata,
       });
       uploads[fileName] = descriptor;
     } catch (error) {
