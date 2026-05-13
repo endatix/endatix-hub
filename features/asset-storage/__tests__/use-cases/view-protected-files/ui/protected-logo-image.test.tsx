@@ -3,9 +3,12 @@ import {
   AssetStorageContextValue,
   StorageConfig,
 } from "@/features/asset-storage/client";
+import type { ReactNode } from "react";
 import { render } from "@testing-library/react";
-import { SurveyCreatorModel, SurveyModel } from "survey-creator-core";
+import type { SurveyModel } from "survey-core";
+import { SurveyCreatorModel } from "survey-creator-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clientStorageConfig } from "../../../test-storage-config";
 
 // Mock LogoImage - must be before imports that use it
 const mockRender = vi.fn(() => {
@@ -105,7 +108,9 @@ const renderLogoImageComponentWithContext = (
     (instance as any).context = contextValue;
   }
 
-  const view = instance.renderImage();
+  const view = (
+    instance as unknown as { renderImage(): ReactNode }
+  ).renderImage();
 
   return render(
     <AssetStorageContext.Provider value={contextValue || { config: null, resolveStorageUrl: vi.fn() }}>
@@ -127,16 +132,10 @@ describe("ProtectedLogoImage", () => {
 
   describe("when storage is disabled", () => {
     it("should render default element without enrichment", () => {
-      const disabledConfig: StorageConfig = {
+      const disabledConfig: StorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       renderLogoImageWithContext(mockSurveyModel, {
         config: disabledConfig,
@@ -149,16 +148,10 @@ describe("ProtectedLogoImage", () => {
 
   describe("when storage is enabled but not private", () => {
     it("should render default element without enrichment", () => {
-      const publicConfig: StorageConfig = {
+      const publicConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       renderLogoImageWithContext(mockSurveyModel, {
         config: publicConfig,
@@ -171,16 +164,9 @@ describe("ProtectedLogoImage", () => {
 
   describe("when storage is enabled and private", () => {
     it("should enrich logo when logoUrl exists", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const mockResolveStorageUrl = vi.fn(
         (url: string) => `${url}?token=abc123`,
@@ -197,16 +183,9 @@ describe("ProtectedLogoImage", () => {
     });
 
     it("should render default element when logoUrl is missing", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const surveyWithoutLogo = {
         locLogo: {
@@ -249,16 +228,9 @@ describe("ProtectedLogoImageComponent", () => {
   });
 
   it("should render image component", () => {
-    const privateConfig: StorageConfig = {
-      isEnabled: true,
+    const privateConfig: StorageConfig = clientStorageConfig({
       isPrivate: true,
-      protocol: "https",
-      hostName: "testaccount.blob.core.windows.net",
-      containerNames: {
-        USER_FILES: "user-files",
-        CONTENT: "content",
-      },
-    };
+    });
 
     const view = renderLogoImageComponentWithContext(mockCreatorModel, {
       config: privateConfig,

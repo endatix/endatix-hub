@@ -1,9 +1,11 @@
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
 import {
-  getStorageConfig,
+  getStorageRuntimeSettings,
+  IMAGE_SERVICE_CONFIG,
   type AzureStorageConfig,
 } from "@/features/asset-storage/server";
 import nextConfig from "@/next.config";
+import { formatRemotePatternsForDisplay } from "@/lib/hosting/next-config-helper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -86,7 +88,12 @@ const isKnownVariable = (name: string): boolean => {
 export default async function EnvironmentPage() {
   await requireAdmin();
 
-  const storageConfig = getStorageConfig();
+  const storageSettings = getStorageRuntimeSettings();
+  const azureConfig = storageSettings.azure;
+  const storageProfileLabel =
+    storageSettings.storage.explicitProvider === null
+      ? "auto (STORAGE_PROVIDER unset)"
+      : storageSettings.storage.explicitProvider;
 
   // Get all environment variables
   const allEnvVars = Object.keys(process.env).sort();
@@ -98,10 +105,10 @@ export default async function EnvironmentPage() {
   );
   const unknownVars = allEnvVars.filter((name) => !isKnownVariable(name));
 
-  const { imageConfig } = storageConfig;
-  const remoteHostnames =
-    nextConfig?.images?.remotePatterns?.map((p) => p.hostname).join(", ") ||
-    "None configured";
+  const imageConfig = IMAGE_SERVICE_CONFIG;
+  const remotePatternsDisplay = formatRemotePatternsForDisplay(
+    nextConfig.images?.remotePatterns,
+  );
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -115,12 +122,8 @@ export default async function EnvironmentPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <HardDrive className="h-5 w-5" />
-            Azure Storage & Image Configuration
+            Storage Related Configuration
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Resolved values from storage-config and image-service (env vars
-            below)
-          </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Azure Storage */}
@@ -130,33 +133,40 @@ export default async function EnvironmentPage() {
               Azure Storage
             </h4>
             <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
+              {azureConfig === null ? (
+                <p className="text-muted-foreground text-sm">
+                  No Azure storage layout (e.g. explicit S3 provider). Image
+                  settings below still reflect env-based image service config.
+                </p>
+              ) : (
+                <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-muted-foreground">Status</span>
                 <Badge
-                  variant={storageConfig.isEnabled ? "default" : "secondary"}
+                  variant={azureConfig.isEnabled ? "default" : "secondary"}
                 >
-                  {storageConfig.isEnabled ? "Enabled" : "Disabled"}
+                  {azureConfig.isEnabled ? "Enabled" : "Disabled"}
                 </Badge>
               </div>
-              {storageConfig.isEnabled && (
+              {azureConfig.isEnabled && (
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-muted-foreground">Host name</span>
                     <span className="font-mono">
-                      {storageConfig.hostName || "—"}
+                      {azureConfig.hostName || "—"}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-muted-foreground">Private</span>
                     <Badge variant="outline">
-                      {storageConfig.isPrivate ? "Yes" : "No"}
+                      {azureConfig.isPrivate ? "Yes" : "No"}
                     </Badge>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-muted-foreground">Containers</span>
                     <span className="font-mono text-muted-foreground">
-                      user-files: {storageConfig.containerNames.USER_FILES},
-                      content: {storageConfig.containerNames.CONTENT}
+                      user-files: {azureConfig.containerNames.USER_FILES},
+                      content: {azureConfig.containerNames.CONTENT}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -164,11 +174,13 @@ export default async function EnvironmentPage() {
                       SAS read expiry
                     </span>
                     <span>
-                      {(storageConfig as AzureStorageConfig)
+                      {(azureConfig as AzureStorageConfig)
                         .sasReadExpiryMinutes ?? "—"}{" "}
                       min
                     </span>
                   </div>
+                </>
+              )}
                 </>
               )}
             </div>
@@ -197,10 +209,10 @@ export default async function EnvironmentPage() {
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-muted-foreground">
-                  Remote image hostnames
+                  Next.js images.remotePatterns
                 </span>
                 <span className="font-mono text-muted-foreground break-all">
-                  {remoteHostnames}
+                  {remotePatternsDisplay}
                 </span>
               </div>
             </div>

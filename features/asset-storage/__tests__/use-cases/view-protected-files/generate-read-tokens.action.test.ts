@@ -1,22 +1,29 @@
-import { auth } from "@/auth";
-import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
-import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
+import * as storageRuntime from "@/features/asset-storage/storage-runtime";
+import * as storageService from "@/features/asset-storage/infrastructure/storage-gateway";
 import { generateReadTokensAction } from "@/features/asset-storage/use-cases/view-protected-files/generate-read-tokens.action";
 import { Result } from "@/lib/result";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies
-vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-gateway", () => ({
   bulkGenerateReadTokens: vi.fn(),
 }));
 
-vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
-  getStorageConfig: vi.fn(),
+vi.mock("@/features/asset-storage/storage-runtime", () => ({
+  getStorageRuntimeSettings: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
+
+import { auth } from "@/auth";
+
+const mockRuntimeStorageProfile = {
+  explicitProvider: null,
+  azureCredentialsPresent: true,
+  imageRemoteHostnames: [] as readonly string[],
+};
 
 describe("generateReadTokensAction", () => {
   beforeEach(() => {
@@ -24,21 +31,30 @@ describe("generateReadTokensAction", () => {
   });
 
   it("should return error if Azure storage is not enabled", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: null,
       isEnabled: false,
-    } as any);
+      isPrivate: false,
+      storage: mockRuntimeStorageProfile,
+      azure: null,
+    });
 
     const result = await generateReadTokensAction("test-container");
 
     expect(Result.isError(result)).toBe(true);
-    expect(result.message).toBe("Azure storage is not enabled");
+    if (Result.isError(result)) {
+      expect(result.message).toBe("Azure storage is not enabled");
+    }
   });
 
   it("should return empty token if storage is not private", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: false,
-    } as any);
+      storage: mockRuntimeStorageProfile,
+      azure: {} as any,
+    });
 
     const result = await generateReadTokensAction("test-container");
 
@@ -50,11 +66,14 @@ describe("generateReadTokensAction", () => {
   });
 
   it("should return empty token if user is not authenticated", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: true,
-    } as any);
-    vi.mocked(auth).mockResolvedValue(null);
+      storage: mockRuntimeStorageProfile,
+      azure: {} as any,
+    });
+    vi.mocked(auth).mockResolvedValue(null as never);
 
     const result = await generateReadTokensAction("test-container");
 
@@ -65,10 +84,13 @@ describe("generateReadTokensAction", () => {
   });
 
   it("should return empty token if session has error", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: true,
-    } as any);
+      storage: mockRuntimeStorageProfile,
+      azure: {} as any,
+    });
     vi.mocked(auth).mockResolvedValue({ error: "some error" } as any);
 
     const result = await generateReadTokensAction("test-container");
@@ -80,23 +102,31 @@ describe("generateReadTokensAction", () => {
   });
 
   it("should return validation error if container name is missing", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: true,
-    } as any);
+      storage: mockRuntimeStorageProfile,
+      azure: {} as any,
+    });
     vi.mocked(auth).mockResolvedValue({ user: { id: "1" } } as any);
 
     const result = await generateReadTokensAction("");
 
     expect(Result.isError(result)).toBe(true);
-    expect(result.message).toBe("Container name is required");
+    if (Result.isError(result)) {
+      expect(result.message).toBe("Container name is required");
+    }
   });
 
   it("should call generateReadTokens and return the token on success", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: true,
-    } as any);
+      storage: mockRuntimeStorageProfile,
+      azure: {} as any,
+    });
     vi.mocked(auth).mockResolvedValue({ user: { id: "1" } } as any);
 
     const mockExpiry = new Date();
@@ -128,10 +158,13 @@ describe("generateReadTokensAction", () => {
   });
 
   it("should return error if generateReadTokens fails", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: true,
-    } as any);
+      storage: mockRuntimeStorageProfile,
+      azure: {} as any,
+    });
     vi.mocked(auth).mockResolvedValue({ user: { id: "1" } } as any);
 
     vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
@@ -141,6 +174,8 @@ describe("generateReadTokensAction", () => {
     const result = await generateReadTokensAction("test-container");
 
     expect(Result.isError(result)).toBe(true);
-    expect(result.message).toBe("Generation failed");
+    if (Result.isError(result)) {
+      expect(result.message).toBe("Generation failed");
+    }
   });
 });

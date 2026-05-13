@@ -1,29 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
 import { getUserFile } from "@/features/asset-storage/use-cases/get-user-file/get-use-file.use-case";
-import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
-import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
+import * as storageRuntime from "@/features/asset-storage/storage-runtime";
+import * as storageService from "@/features/asset-storage/infrastructure/storage-gateway";
+import * as storageConfig from "@endatix/storage-azure";
 import * as storageUtils from "@/features/asset-storage/infrastructure/storage-utils";
-import * as blobMetadataParser from "@/features/asset-storage/infrastructure/blob-metadata-parser";
+import type { AzureStorageConfig } from "@endatix/storage-azure";
 
-vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
-  getStorageConfig: vi.fn(),
-  getContainerUrl: vi.fn(),
+vi.mock("@/features/asset-storage/storage-runtime", () => ({
+  getStorageRuntimeSettings: vi.fn(),
 }));
 
-vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
+vi.mock("@endatix/storage-azure", () => ({
+  getContainerUrl: vi.fn(),
+  blobMetadataParser: {
+    parseFromProperties: vi.fn(),
+    parseFromBlob: vi.fn(),
+  },
+}));
+
+vi.mock("@/features/asset-storage/infrastructure/storage-gateway", () => ({
   getBlobProperties: vi.fn(),
   bulkGenerateReadTokens: vi.fn(),
 }));
 
 vi.mock("@/features/asset-storage/infrastructure/storage-utils", () => ({
   buildUserFilePath: vi.fn(),
-}));
-
-vi.mock("@/features/asset-storage/infrastructure/blob-metadata-parser", () => ({
-  blobMetadataParser: {
-    parseFromProperties: vi.fn(),
-  },
 }));
 
 const mockContainerName = "user-files";
@@ -53,6 +55,12 @@ const mockMetadata = {
   uploadedBy: "user-1",
 };
 
+const mockRuntimeStorageProfile = {
+  explicitProvider: null,
+  azureCredentialsPresent: true,
+  imageRemoteHostnames: [] as readonly string[],
+};
+
 describe("getUserFile", () => {
   const formId = "f1";
   const submissionId = "s1";
@@ -60,9 +68,13 @@ describe("getUserFile", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue(
-      mockPublicConfig as ReturnType<typeof storageConfig.getStorageConfig>,
-    );
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
+      isEnabled: true,
+      isPrivate: false,
+      storage: mockRuntimeStorageProfile,
+      azure: mockPublicConfig as AzureStorageConfig,
+    });
     vi.mocked(storageConfig.getContainerUrl).mockReturnValue(mockBaseUrl);
     vi.mocked(storageUtils.buildUserFilePath).mockReturnValue(
       Result.success(mockBlobName),
@@ -71,15 +83,18 @@ describe("getUserFile", () => {
       mockProperties,
     );
     vi.mocked(
-      blobMetadataParser.blobMetadataParser.parseFromProperties,
+      storageConfig.blobMetadataParser.parseFromProperties,
     ).mockReturnValue(mockMetadata);
   });
 
   it("returns error when storage is not enabled", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
-      ...mockPublicConfig,
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: null,
       isEnabled: false,
-    } as ReturnType<typeof storageConfig.getStorageConfig>);
+      isPrivate: false,
+      storage: mockRuntimeStorageProfile,
+      azure: null,
+    });
 
     const result = await getUserFile(formId, submissionId, fileName);
 
@@ -145,15 +160,19 @@ describe("getUserFile", () => {
       mockBlobName,
     );
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromProperties,
+      storageConfig.blobMetadataParser.parseFromProperties,
     ).toHaveBeenCalledWith(mockProperties, mockBlobName);
     expect(storageService.bulkGenerateReadTokens).not.toHaveBeenCalled();
   });
 
   it("returns success with URL including token when storage is private", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue(
-      mockPrivateConfig as ReturnType<typeof storageConfig.getStorageConfig>,
-    );
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
+      isEnabled: true,
+      isPrivate: true,
+      storage: mockRuntimeStorageProfile,
+      azure: mockPrivateConfig as AzureStorageConfig,
+    });
     vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
       Result.success({
         readTokens: { [mockBlobName]: "sig=abc&se=123" },
@@ -178,9 +197,13 @@ describe("getUserFile", () => {
   });
 
   it('strips leading "?" from token when appending to URL', async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue(
-      mockPrivateConfig as ReturnType<typeof storageConfig.getStorageConfig>,
-    );
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
+      isEnabled: true,
+      isPrivate: true,
+      storage: mockRuntimeStorageProfile,
+      azure: mockPrivateConfig as AzureStorageConfig,
+    });
     vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
       Result.success({
         readTokens: { [mockBlobName]: "?sig=xyz&se=456" },
@@ -200,9 +223,13 @@ describe("getUserFile", () => {
   });
 
   it("returns error when private and bulkGenerateReadTokens fails", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue(
-      mockPrivateConfig as ReturnType<typeof storageConfig.getStorageConfig>,
-    );
+    vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
+      isEnabled: true,
+      isPrivate: true,
+      storage: mockRuntimeStorageProfile,
+      azure: mockPrivateConfig as AzureStorageConfig,
+    });
     vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
       Result.error("Token generation failed"),
     );

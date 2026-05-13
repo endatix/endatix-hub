@@ -7,6 +7,7 @@ import { Result } from "@/lib/result";
 import { ContainerReadToken } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import { StorageConfig } from "@/features/asset-storage/client";
+import { clientStorageConfig } from "../../test-storage-config";
 
 // Mock the hooks
 const mockSetModelMetadata = vi.fn();
@@ -112,15 +113,10 @@ describe("useSurveyStorage", () => {
     const readTokenPromises = createReadTokenPromises();
 
     it("should handle disabled storage", async () => {
-      const disabledConfig: StorageConfig = {
+      const disabledConfig: StorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const model = createMockSurveyModel();
       let result: any;
@@ -153,15 +149,10 @@ describe("useSurveyStorage", () => {
     });
 
     it("should register upload handlers but not view handlers when not private", async () => {
-      const publicConfig: StorageConfig = {
+      const publicConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const model = createMockSurveyModel();
       let result: any;
@@ -193,15 +184,10 @@ describe("useSurveyStorage", () => {
     });
 
     it("should register both upload and view handlers when private", async () => {
-      const privateConfig: StorageConfig = {
+      const privateConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: true,
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const model = createMockSurveyModel();
       let result: any;
@@ -233,15 +219,10 @@ describe("useSurveyStorage", () => {
     });
 
     it("should return a combined cleanup function", async () => {
-      const privateConfig: StorageConfig = {
+      const privateConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: true,
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const model = createMockSurveyModel();
       const unregisterUpload = vi.fn();

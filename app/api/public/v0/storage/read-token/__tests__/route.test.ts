@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Use vi.hoisted to define mocks before they're used
 const {
-  mockGetStorageConfig,
+  mockGetStorageRuntimeSettings,
   mockBulkGenerateReadTokens,
   mockResolveContainerFromUrl,
   mockAuth,
 } = vi.hoisted(() => ({
-  mockGetStorageConfig: vi.fn(),
+  mockGetStorageRuntimeSettings: vi.fn(),
   mockBulkGenerateReadTokens: vi.fn(),
   mockResolveContainerFromUrl: vi.fn(),
   mockAuth: vi.fn(),
@@ -18,11 +18,11 @@ vi.mock("@/auth", () => ({
   auth: mockAuth,
 }));
 
-vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
-  getStorageConfig: mockGetStorageConfig,
+vi.mock("@/features/asset-storage/storage-runtime", () => ({
+  getStorageRuntimeSettings: mockGetStorageRuntimeSettings,
 }));
 
-vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
+vi.mock("@/features/asset-storage/infrastructure/storage-gateway", () => ({
   bulkGenerateReadTokens: mockBulkGenerateReadTokens,
 }));
 
@@ -49,13 +49,23 @@ describe("POST /api/public/v0/storage/read-token", () => {
     vi.clearAllMocks();
 
     // Default mock implementations
-    mockGetStorageConfig.mockReturnValue({
+    mockGetStorageRuntimeSettings.mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: true,
-      hostName: "test.blob.core.windows.net",
-      containerNames: {
-        USER_FILES: "user-files",
-        CONTENT: "content",
+      storage: {
+        explicitProvider: null,
+        azureCredentialsPresent: true,
+        imageRemoteHostnames: [],
+      },
+      azure: {
+        isEnabled: true,
+        isPrivate: true,
+        hostName: "test.blob.core.windows.net",
+        containerNames: {
+          USER_FILES: "user-files",
+          CONTENT: "content",
+        },
       },
     });
     mockAuth.mockResolvedValue({ user: { id: "user-123" }, error: null });
@@ -100,13 +110,23 @@ describe("POST /api/public/v0/storage/read-token", () => {
 
   it("should return early with empty token and expiresOn if storage is not private", async () => {
     // Arrange
-    mockGetStorageConfig.mockReturnValue({
+    mockGetStorageRuntimeSettings.mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: false,
-      hostName: "test.blob.core.windows.net",
-      containerNames: {
-        USER_FILES: "user-files",
-        CONTENT: "content",
+      storage: {
+        explicitProvider: null,
+        azureCredentialsPresent: true,
+        imageRemoteHostnames: [],
+      },
+      azure: {
+        isEnabled: true,
+        isPrivate: false,
+        hostName: "test.blob.core.windows.net",
+        containerNames: {
+          USER_FILES: "user-files",
+          CONTENT: "content",
+        },
       },
     });
 

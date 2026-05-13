@@ -1,6 +1,7 @@
 import { ErrorType, Result } from "@/lib/result";
 import { describe, expect, it, vi } from "vitest";
-import { StorageConfig } from "../infrastructure/storage-config-client";
+import type { StorageConfig } from "@endatix/storage-azure";
+import { clientStorageConfig } from "./test-storage-config";
 import {
   enhanceUrlWithToken,
   escapeRegex,
@@ -221,16 +222,9 @@ describe("generateUniqueFileName", () => {
 });
 
 describe("resolveContainerFromUrl", () => {
-  const mockStorageConfig: StorageConfig = {
-    isEnabled: true,
+  const mockStorageConfig: StorageConfig = clientStorageConfig({
     isPrivate: true,
-    protocol: "https",
-    hostName: "testaccount.blob.core.windows.net",
-    containerNames: {
-      USER_FILES: "user-files",
-      CONTENT: "content",
-    },
-  };
+  });
 
   it("should resolve USER_FILES container from URL", () => {
     const url =
@@ -340,16 +334,9 @@ describe("resolveContainerFromUrl", () => {
 });
 
 describe("isUrlFromContainer", () => {
-  const mockStorageConfig: StorageConfig = {
-    isEnabled: true,
+  const mockStorageConfig: StorageConfig = clientStorageConfig({
     isPrivate: true,
-    protocol: "https",
-    hostName: "testaccount.blob.core.windows.net",
-    containerNames: {
-      USER_FILES: "user-files",
-      CONTENT: "content",
-    },
-  };
+  });
 
   it("should return true for URL from matching container", () => {
     const url = "https://testaccount.blob.core.windows.net/content/image.jpg";

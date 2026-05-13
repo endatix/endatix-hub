@@ -266,10 +266,12 @@ describe("enrich-image-urls", () => {
       const result = enrichImageInJSX(imgElement, mockResolveStorageUrl);
 
       expect(result).not.toBe(imgElement);
-      expect((result as React.ReactElement).props.src).toBe(
-        "https://example.com/image.jpg?token=abc123",
-      );
-      expect((result as React.ReactElement).props[ORIGINAL_SRC_ATTRIBUTE]).toBe(
+      const out = result as React.ReactElement<{
+        src?: string;
+        [ORIGINAL_SRC_ATTRIBUTE]?: string;
+      }>;
+      expect(out.props.src).toBe("https://example.com/image.jpg?token=abc123");
+      expect(out.props[ORIGINAL_SRC_ATTRIBUTE]).toBe(
         "https://example.com/image.jpg",
       );
     });
@@ -323,18 +325,20 @@ describe("enrich-image-urls", () => {
       const result = enrichImageInJSX(divElement, mockResolveStorageUrl);
 
       expect(result).not.toBe(divElement);
-      const children = (result as React.ReactElement).props.children;
+      const children = (result as React.ReactElement<{ children?: unknown }>)
+        .props.children;
       // When there's a single child, React doesn't wrap it in an array
       if (React.isValidElement(children)) {
-        expect(children.props.src).toBe(
-          "https://example.com/image.jpg?token=abc123",
-        );
+        expect(
+          (children as React.ReactElement<{ src?: string }>).props.src,
+        ).toBe("https://example.com/image.jpg?token=abc123");
       } else {
-        const childrenArray = React.Children.toArray(children);
+        const childrenArray = React.Children.toArray(children as React.ReactNode);
         expect(childrenArray.length).toBe(1);
-        expect((childrenArray[0] as React.ReactElement).props.src).toBe(
-          "https://example.com/image.jpg?token=abc123",
-        );
+        expect(
+          (childrenArray[0] as React.ReactElement<{ src?: string }>).props
+            .src,
+        ).toBe("https://example.com/image.jpg?token=abc123");
       }
     });
 
@@ -351,15 +355,16 @@ describe("enrich-image-urls", () => {
 
       expect(result).not.toBe(divElement);
       const children = React.Children.toArray(
-        (result as React.ReactElement).props.children,
+        (result as React.ReactElement<{ children?: React.ReactNode }>).props
+          .children as React.ReactNode,
       );
       expect(children.length).toBe(2);
-      expect((children[0] as React.ReactElement).props.src).toBe(
-        "https://example.com/image1.jpg?token=abc123",
-      );
-      expect((children[1] as React.ReactElement).props.src).toBe(
-        "https://example.com/image2.jpg?token=abc123",
-      );
+      expect(
+        (children[0] as React.ReactElement<{ src?: string }>).props.src,
+      ).toBe("https://example.com/image1.jpg?token=abc123");
+      expect(
+        (children[1] as React.ReactElement<{ src?: string }>).props.src,
+      ).toBe("https://example.com/image2.jpg?token=abc123");
     });
 
     it("should return original element if no changes were made", () => {

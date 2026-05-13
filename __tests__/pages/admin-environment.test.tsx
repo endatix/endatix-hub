@@ -1,6 +1,6 @@
 import EnvironmentPage from "@/app/(main)/admin/environment/page";
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
-import { getStorageConfig } from "@/features/asset-storage/server";
+import { getStorageRuntimeSettings } from "@/features/asset-storage/server";
 import { render, screen } from "@testing-library/react";
 import { redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,8 +14,11 @@ vi.mock("@/components/admin-ui/admin-protection", () => ({
 }));
 
 vi.mock("@/features/asset-storage/server", () => ({
-  getStorageConfig: vi.fn(),
-  AzureStorageConfig: {},
+  getStorageRuntimeSettings: vi.fn(),
+  IMAGE_SERVICE_CONFIG: {
+    isResizeEnabled: false,
+    defaultResizeWidth: 800,
+  },
 }));
 
 vi.mock("@/next.config", () => ({
@@ -27,17 +30,30 @@ vi.mock("@/next.config", () => ({
 describe("Admin Environment Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getStorageConfig).mockReturnValue({
+    vi.mocked(getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
       isEnabled: true,
       isPrivate: false,
-      hostName: "test.blob.core.windows.net",
-      protocol: "https",
-      containerNames: { USER_FILES: "user-files", CONTENT: "content" },
-      imageConfig: {
-        isResizeEnabled: false,
-        defaultResizeWidth: 800,
+      storage: {
+        explicitProvider: null,
+        azureCredentialsPresent: true,
+        imageRemoteHostnames: [],
       },
-    } as ReturnType<typeof getStorageConfig>);
+      azure: {
+        isEnabled: true,
+        isPrivate: false,
+        accountName: "testaccount",
+        accountKey: "",
+        hostName: "test.blob.core.windows.net",
+        protocol: "https",
+        sasReadExpiryMinutes: 15,
+        containerNames: { USER_FILES: "user-files", CONTENT: "content" },
+        imageConfig: {
+          isResizeEnabled: false,
+          defaultResizeWidth: 800,
+        },
+      },
+    });
   });
 
   describe("requireAdmin", () => {

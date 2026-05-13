@@ -1,7 +1,7 @@
 import { Result } from "@/lib/result";
-import { blobMetadataParser } from "../../infrastructure/blob-metadata-parser";
-import { getStorageConfig } from "../../infrastructure/storage-config";
-import { listBlobs } from "../../infrastructure/storage-service";
+import { blobMetadataParser } from "@endatix/storage-azure";
+import { getStorageRuntimeSettings } from "../../storage-runtime";
+import { listBlobs } from "../../infrastructure/storage-gateway";
 import type { UserFileMetadata } from "../../types";
 
 /**
@@ -12,8 +12,9 @@ export async function listUserFiles(
   formId: string,
   submissionId: string,
 ): Promise<Result<UserFileMetadata[]>> {
-  const config = getStorageConfig();
-  if (!config.isEnabled) {
+  const storageSettings = getStorageRuntimeSettings();
+  const config = storageSettings.azure;
+  if (!storageSettings.isEnabled || config === null) {
     return Result.error("Storage is not enabled");
   }
 

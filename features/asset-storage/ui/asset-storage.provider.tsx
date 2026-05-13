@@ -1,6 +1,9 @@
 import React from "react";
-import { getStorageConfig } from "../infrastructure/storage-config";
-import { StorageConfig } from "../infrastructure/storage-config-client";
+import type { StorageConfig } from "@endatix/storage-azure";
+import {
+  getClientStorageConfig,
+  getStorageRuntimeSettings,
+} from "../storage-runtime";
 import { generateReadTokensAction } from "../use-cases/view-protected-files/generate-read-tokens.action";
 import { AssetStorageClientProvider, AssetStorageTokens } from "./asset-storage.context";
 
@@ -22,16 +25,10 @@ export function AssetStorageProvider({
   config: propsConfig,
   tokens: propsTokens,
 }: Readonly<AssetStorageProviderProps>) {
-  const serverConfig = getStorageConfig();
+  const readModel = getStorageRuntimeSettings();
+  const serverConfig = getClientStorageConfig(readModel);
 
-  const config = propsConfig ?? {
-    isEnabled: serverConfig.isEnabled,
-    isPrivate: serverConfig.isPrivate,
-    hostName: serverConfig.hostName,
-    protocol: serverConfig.protocol,
-    containerNames: serverConfig.containerNames,
-    imageConfig: serverConfig.imageConfig,
-  };
+  const config = propsConfig ?? serverConfig;
 
   const tokens: AssetStorageTokens = propsTokens ?? {
     content: generateReadTokensAction(serverConfig.containerNames.CONTENT),

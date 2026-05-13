@@ -4,9 +4,12 @@ import {
   AssetStorageContextValue,
   StorageConfig,
 } from "@/features/asset-storage/client";
+import type { ReactNode } from "react";
 import { render } from "@testing-library/react";
+import type { QuestionFileModel } from "survey-core";
 import { QuestionImageModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clientStorageConfig } from "../../../test-storage-config";
 
 // Mock SurveyQuestionImage - must be before imports that use it
 const mockRenderElement = vi.fn(() => {
@@ -46,7 +49,10 @@ const renderWithContext = (
   contextValue?: AssetStorageContextValue | undefined,
 ) => {
   if (contextValue === undefined) {
-    return renderSurveyJsComponent(ProtectedQuestionImage, question);
+    return renderSurveyJsComponent(
+      ProtectedQuestionImage,
+      question as unknown as QuestionFileModel,
+    );
   }
 
   // Create instance and manually set context
@@ -55,7 +61,9 @@ const renderWithContext = (
     (instance as any).context = contextValue;
   }
 
-  const view = instance.renderElement();
+  const view = (
+    instance as unknown as { renderElement(): ReactNode }
+  ).renderElement();
 
   return render(
     <AssetStorageContext.Provider value={contextValue}>
@@ -77,16 +85,10 @@ describe("ProtectedQuestionImage", () => {
 
   describe("when storage is disabled", () => {
     it("should render default element without enrichment", () => {
-      const disabledConfig: StorageConfig = {
+      const disabledConfig: StorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       renderWithContext(mockQuestion, {
         config: disabledConfig,
@@ -99,16 +101,10 @@ describe("ProtectedQuestionImage", () => {
 
   describe("when storage is enabled but not private", () => {
     it("should render default element without enrichment", () => {
-      const publicConfig: StorageConfig = {
+      const publicConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       renderWithContext(mockQuestion, {
         config: publicConfig,
@@ -121,16 +117,9 @@ describe("ProtectedQuestionImage", () => {
 
   describe("when storage is enabled and private", () => {
     it("should attempt enrichment when imageLink exists", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const mockResolveStorageUrl = vi.fn(
         (url: string) => `${url}?token=abc123`,
@@ -147,16 +136,9 @@ describe("ProtectedQuestionImage", () => {
     });
 
     it("should render default element when imageLink is missing", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const questionWithoutImage = {
         locImageLink: {

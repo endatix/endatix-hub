@@ -1,10 +1,9 @@
 import { auth } from "@/auth";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import { getStorageConfig } from "@/features/asset-storage/infrastructure/storage-config";
-import { bulkGenerateReadTokens } from "@/features/asset-storage/infrastructure/storage-service";
+import { getStorageRuntimeSettings } from "@/features/asset-storage/storage-runtime";
+import { bulkGenerateReadTokens } from "@/features/asset-storage/infrastructure/storage-gateway";
 import { resolveContainerFromUrl } from "@/features/asset-storage/utils";
-import { IContainerInfo } from "@/features/asset-storage";
 
 interface ReadTokenRequest {
   url: string;
@@ -16,16 +15,16 @@ interface ReadTokenResponse {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const config = getStorageConfig();
+  const readModel = getStorageRuntimeSettings();
 
-  if (!config.isEnabled) {
+  if (!readModel.isEnabled) {
     return apiResponses.badRequest({ detail: "Azure storage is not enabled" });
   }
 
-  if (!config.isPrivate) {
+  if (!readModel.isPrivate) {
     return Response.json({
       token: "",
-      expiresOn: ""
+      expiresOn: "",
     });
   }
 
@@ -46,6 +45,13 @@ export async function POST(request: Request): Promise<Response> {
   const { url } = body;
   if (!url) {
     return apiResponses.badRequest({ detail: "URL is required" });
+  }
+
+  const config = readModel.azure;
+  if (config === null) {
+    return apiResponses.badRequest({
+      detail: "Read-token route requires Azure storage configuration",
+    });
   }
 
   const containerInfo = resolveContainerFromUrl(url, config);

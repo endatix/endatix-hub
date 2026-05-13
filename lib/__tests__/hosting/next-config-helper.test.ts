@@ -1,5 +1,7 @@
 import { RemotePattern } from "next/dist/shared/lib/image-config";
 import {
+  appendEndatixImageRemotePatterns,
+  formatRemotePatternsForDisplay,
   getRewriteRuleFor,
   includesRemoteImageHostnames,
 } from "@/lib/hosting/next-config-helper";
@@ -87,6 +89,33 @@ describe("includesRemoteImageHostnames", () => {
         hostname: "images.pexels.com",
       },
     ]);
+  });
+});
+
+describe("appendEndatixImageRemotePatterns", () => {
+  it("appends storage hostnames after REMOTE_IMAGE_HOSTNAMES patterns", () => {
+    process.env.REMOTE_IMAGE_HOSTNAMES = "cdn.example.com";
+    const remotePatterns: RemotePattern[] = [];
+    appendEndatixImageRemotePatterns(remotePatterns, ["blob.core.windows.net"]);
+    expect(remotePatterns).toEqual([
+      { protocol: "https", hostname: "cdn.example.com" },
+      { protocol: "https", hostname: "blob.core.windows.net" },
+    ]);
+  });
+});
+
+describe("formatRemotePatternsForDisplay", () => {
+  it("returns None configured for empty or undefined", () => {
+    expect(formatRemotePatternsForDisplay(undefined)).toBe("None configured");
+    expect(formatRemotePatternsForDisplay([])).toBe("None configured");
+  });
+
+  it("formats RemotePattern entries", () => {
+    const text = formatRemotePatternsForDisplay([
+      { protocol: "https", hostname: "a.example.com" },
+      { protocol: "https", hostname: "**" } as RemotePattern,
+    ]);
+    expect(text).toBe("https://a.example.com, https://**");
   });
 });
 

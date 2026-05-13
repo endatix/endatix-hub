@@ -4,14 +4,26 @@ export {
 } from "./infrastructure/image-service";
 export {
   createStorageConfigClient,
+  getAzureStorageConfig,
   getContainerNames,
-  getStorageConfig,
+  toClientStorageConfig,
   type AzureStorageConfig,
   type IStorageConfig,
-} from "./infrastructure/storage-config";
+} from "@endatix/storage-azure";
 export {
-  deleteBlob,
+  getRuntimeStorageProfile,
+  type StorageProfileSlice,
+} from "@/features/config/resolve-endatix-settings";
+export {
+  ensureStorageRegistered,
+  getActiveStorageProvider,
+  getClientStorageConfig,
+  getStorageRuntimeSettings,
+  type StorageRuntimeSettings,
+} from "./storage-runtime";
+export {
   bulkGenerateReadTokens as generateReadTokens,
+  deleteBlob,
   generateUploadUrl,
   getBlobProperties,
   listBlobs as listFiles,
@@ -19,7 +31,7 @@ export {
   uploadToStorage,
   type BlobPropertiesResult,
   type FileOptions,
-} from "./infrastructure/storage-service";
+} from "./infrastructure/storage-gateway";
 export * from "./types";
 export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export {

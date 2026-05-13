@@ -6,9 +6,11 @@ import {
   StorageConfig,
 } from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { QuestionFileModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clientStorageConfig } from "../../../test-storage-config";
 
 // Mock SurveyFilePreview - must be before imports that use it
 const mockRenderElement = vi.fn(() => {
@@ -52,7 +54,7 @@ const renderWithContext = (
   }
   
   // Call renderElement to trigger the modification logic
-  const view = instance.renderElement();
+  const view = (instance as unknown as { renderElement(): ReactNode }).renderElement();
   
   // Render the result with context provider for any child components
   return render(
@@ -116,16 +118,10 @@ describe("ProtectedFilePreview", () => {
 
   describe("when storage is disabled", () => {
     it("should render default preview without token injection", () => {
-      const disabledConfig: StorageConfig = {
+      const disabledConfig: StorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       renderWithContext(mockQuestion, { config: disabledConfig, resolveStorageUrl: vi.fn() });
 
@@ -144,17 +140,15 @@ describe("ProtectedFilePreview", () => {
 
   describe("when storage is enabled but not private", () => {
     it("should render default preview without token injection", () => {
-      const publicConfig: StorageConfig = {
+      const publicConfig: StorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
-      renderWithContext(mockQuestion, { config: publicConfig });
+      renderWithContext(mockQuestion, {
+        config: publicConfig,
+        resolveStorageUrl: vi.fn((u: string) => u),
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -171,16 +165,9 @@ describe("ProtectedFilePreview", () => {
 
   describe("when storage is enabled and private", () => {
     it("should inject tokens into file content URLs", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const mockResolveStorageUrl = vi.fn((url: string) => {
         if (url.includes("file1.pdf")) {
@@ -218,16 +205,9 @@ describe("ProtectedFilePreview", () => {
     });
 
     it("should not modify items without matching tokens", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       // Create question with items that don't have matching tokens
       const questionWithoutTokens = {
@@ -271,16 +251,9 @@ describe("ProtectedFilePreview", () => {
     });
 
     it("should handle partial token matches correctly", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       // Create question where only one item has a token
       const questionWithPartialTokens = {
@@ -352,16 +325,9 @@ describe("ProtectedFilePreview", () => {
     });
 
     it("should handle empty renderedPages gracefully", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const questionWithEmptyPages = {
         ...mockQuestion,
@@ -376,16 +342,9 @@ describe("ProtectedFilePreview", () => {
     });
 
     it("should handle missing currentShownPage gracefully", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: StorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const questionWithInvalidIndex = {
         ...mockQuestion,

@@ -1,7 +1,5 @@
 /**
  * Azure Blob Storage–specific metadata parsing and upload options.
- * Parsing: parseFromBlob, parseFromProperties.
- * Upload: toBlobUploadOptions (supports both user and content file uploads).
  */
 
 import type { BlobItem } from "@azure/storage-blob";
@@ -11,15 +9,13 @@ import type {
   FileMetadata,
   ProcessedState,
   UserFileMetadata,
-} from "../types";
-import { getLastSegmentFromUrlPath } from "../utils";
-import type { BlobPropertiesResult } from "./storage-service";
+} from "../../../types";
+import { getLastSegmentFromUrlPath } from "../../../utils";
+import type { BlobPropertiesResult } from "./types";
 
 const DEFAULT_CONTENT_TYPE = "application/octet-stream";
-/** Placeholder when content type is missing in list views (e.g. table "—"). */
 const LIST_CONTENT_TYPE_PLACEHOLDER = "—";
 
-/** Extension (lowercase) → MIME type for inferring type when blob has application/octet-stream. */
 const EXTENSION_TO_MIME: Record<string, string> = {
   png: "image/png",
   jpg: "image/jpeg",
@@ -37,10 +33,6 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   ogg: "audio/ogg",
 };
 
-/**
- * When stored contentType is generic (octet-stream or placeholder), guess from file extension
- * so legacy uploads can be previewed (e.g. image in modal).
- */
 function resolveContentType(contentType: string, fileName: string): string {
   const shouldResolveFromExtension =
     !contentType ||
@@ -64,7 +56,6 @@ function parseFileState(value: string | undefined): ProcessedState | undefined {
   return undefined;
 }
 
-/** Azure lowercases custom metadata keys; we support both. */
 function parseMetadataFields(
   metadata: Record<string, string>,
 ): Pick<
@@ -82,15 +73,7 @@ function parseMetadataFields(
   };
 }
 
-/**
- * Encapsulated blob metadata parser.
- * Use .parseFromBlob(blob) for list blobs (BlobItem) or .parseFromProperties(properties, blobName) for getBlobProperties result.
- */
 export const blobMetadataParser = {
-  /**
-   * Parses user file metadata from a user file blob (BlobItem).
-   * Used by list-user-files use case.
-   */
   parseFromBlob(blob: BlobItem): UserFileMetadata {
     const metadata = blob.metadata ?? {};
     const rawContentType =
@@ -110,10 +93,6 @@ export const blobMetadataParser = {
     };
   },
 
-  /**
-   * Parses user file metadata from blob properties (e.g. getBlobProperties result).
-   * Used by get-user-file (single-file view) when only properties + blobName are available.
-   */
   parseFromProperties(
     properties: BlobPropertiesResult,
     blobName: string,
@@ -135,13 +114,6 @@ export const blobMetadataParser = {
   },
 };
 
-/**
- * Builds BlobUploadOptions for upload primitives.
- * Single method for both user and content file uploads; applies defaults for optional fields.
- *
- * @param meta - User or content file upload metadata
- * @returns BlobUploadOptions (metadata + blobHTTPHeaders) for BlockBlobClient.uploadData
- */
 export function toBlobUploadOptions(meta: FileMetadata): BlobUploadOptions {
   const contentType = meta.contentType ?? DEFAULT_CONTENT_TYPE;
 
@@ -164,7 +136,7 @@ export function toBlobUploadOptions(meta: FileMetadata): BlobUploadOptions {
     blobContentDisposition: "inline",
   };
 
-  let specificMetadata: Record<string, string>;
+  let specificMetadata: Record<string, string> = {};
 
   switch (meta.kind) {
     case "user": {
@@ -174,6 +146,9 @@ export function toBlobUploadOptions(meta: FileMetadata): BlobUploadOptions {
     }
     case "content": {
       specificMetadata = buildContentFileMetadata(meta);
+      break;
+    }
+    default: {
       break;
     }
   }
@@ -187,22 +162,18 @@ export function toBlobUploadOptions(meta: FileMetadata): BlobUploadOptions {
 function buildUserFileMetadata(
   fileMetadata: UserFileMetadata,
 ): Record<string, string> {
-  const metadata: Record<string, string> = {
+  return {
     formId: fileMetadata.formId ?? "",
     submissionId: fileMetadata.submissionId ?? "",
     formLang: fileMetadata.formLang ?? "",
   };
-
-  return metadata;
 }
 
 function buildContentFileMetadata(
   fileMetadata: ContentFileMetadata,
 ): Record<string, string> {
-  const metadata: Record<string, string> = {
+  return {
     itemId: fileMetadata.itemId,
     contentItemType: fileMetadata.contentItemType,
   };
-
-  return metadata;
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   blobMetadataParser,
   toBlobUploadOptions,
-} from "../blob-metadata-parser";
+} from "../providers/azure/azure-blob-metadata-parser";
 import type { BlobItem } from "@azure/storage-blob";
 
 describe("blobMetadataParser.parseFromProperties", () => {

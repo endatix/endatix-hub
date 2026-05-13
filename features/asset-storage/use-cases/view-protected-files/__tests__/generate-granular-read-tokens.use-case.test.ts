@@ -2,12 +2,18 @@ import { Result } from "@/lib/result";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateGranularReadTokensUseCase } from "../generate-granular-read-tokens.use-case";
 
+const mockRuntimeStorageProfile = {
+  explicitProvider: null,
+  azureCredentialsPresent: true,
+  imageRemoteHostnames: [] as readonly string[],
+};
+
 // Mock dependencies
-vi.mock("../../../infrastructure/storage-config", () => ({
-  getStorageConfig: vi.fn(),
+vi.mock("../../../storage-runtime", () => ({
+  getStorageRuntimeSettings: vi.fn(),
 }));
 
-vi.mock("../../../infrastructure/storage-service", () => ({
+vi.mock("../../../infrastructure/storage-gateway", () => ({
   bulkGenerateReadTokens: vi.fn(),
 }));
 
@@ -15,8 +21,8 @@ vi.mock("../../../utils", () => ({
   resolveContainerFromUrl: vi.fn(),
 }));
 
-import { getStorageConfig } from "../../../infrastructure/storage-config";
-import { bulkGenerateReadTokens } from "../../../infrastructure/storage-service";
+import { getStorageRuntimeSettings } from "../../../storage-runtime";
+import { bulkGenerateReadTokens } from "../../../infrastructure/storage-gateway";
 import { resolveContainerFromUrl } from "../../../utils";
 
 describe("generateGranularReadTokensUseCase", () => {
@@ -35,15 +41,24 @@ describe("generateGranularReadTokensUseCase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getStorageConfig).mockReturnValue(mockStorageConfig as any);
+    vi.mocked(getStorageRuntimeSettings).mockReturnValue({
+      providerId: "azure",
+      isEnabled: mockStorageConfig.isEnabled,
+      isPrivate: mockStorageConfig.isPrivate,
+      storage: mockRuntimeStorageProfile,
+      azure: mockStorageConfig as any,
+    });
   });
 
   describe("storage configuration checks", () => {
     it("should return error when storage is not enabled", async () => {
-      vi.mocked(getStorageConfig).mockReturnValue({
-        ...mockStorageConfig,
+      vi.mocked(getStorageRuntimeSettings).mockReturnValue({
+        providerId: null,
         isEnabled: false,
-      } as any);
+        isPrivate: false,
+        storage: mockRuntimeStorageProfile,
+        azure: null,
+      });
 
       const result = await generateGranularReadTokensUseCase([
         "https://testaccount.blob.core.windows.net/content/file.jpg",
@@ -56,10 +71,13 @@ describe("generateGranularReadTokensUseCase", () => {
     });
 
     it("should return empty tokens when storage is not private", async () => {
-      vi.mocked(getStorageConfig).mockReturnValue({
-        ...mockStorageConfig,
+      vi.mocked(getStorageRuntimeSettings).mockReturnValue({
+        providerId: "azure",
+        isEnabled: true,
         isPrivate: false,
-      } as any);
+        storage: mockRuntimeStorageProfile,
+        azure: { ...mockStorageConfig, isPrivate: false } as any,
+      });
 
       const result = await generateGranularReadTokensUseCase([
         "https://testaccount.blob.core.windows.net/content/file.jpg",

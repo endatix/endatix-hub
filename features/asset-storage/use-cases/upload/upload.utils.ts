@@ -1,6 +1,6 @@
 import { Result } from "@/lib/result";
 import type { FileMetadata } from "../../types";
-import { toBlobUploadOptions } from "../../infrastructure/blob-metadata-parser";
+import { toBlobUploadOptions } from "@endatix/storage-azure";
 import { uploadBlob, resizeImageOrFallback } from "./upload-blob";
 import { processUploadError } from "./upload-errors";
 
