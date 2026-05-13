@@ -24,7 +24,8 @@ export type StorageRuntimeSettings = {
   readonly storage: StorageProfileSlice;
   /**
    * Azure-shaped env resolution for admin, URL parsing, and legacy paths.
-   * Omitted when `STORAGE_PROVIDER=s3` (RustFS track); not tied to active registry provider.
+   * Omitted when `STORAGE_PROVIDER` is `none` or `s3` (explicit opt-out / RustFS track);
+   * not tied to active registry provider.
    */
   readonly azure: AzureStorageConfig | null;
 };
@@ -52,7 +53,9 @@ export function getStorageRuntimeSettings(): StorageRuntimeSettings {
   const isEnabled = provider?.isEnabled() ?? false;
   const isPrivate = provider?.isPrivate() ?? false;
   const azure =
-    storage.explicitProvider === "s3" ? null : getAzureStorageConfig();
+    storage.explicitProvider === "none" || storage.explicitProvider === "s3"
+      ? null
+      : getAzureStorageConfig();
 
   return {
     providerId,
