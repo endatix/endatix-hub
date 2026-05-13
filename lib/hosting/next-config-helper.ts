@@ -52,6 +52,40 @@ export function appendEndatixImageRemotePatterns(
   }
 }
 
+function formatURLPattern(entry: URL): string {
+  return entry.hostname.length > 0 ? entry.hostname : entry.toString();
+}
+
+function getRemotePatternProtocol(p: RemotePattern): string {
+  return typeof p.protocol === "string" && p.protocol.length > 0
+    ? p.protocol
+    : "https";
+}
+
+function getRemotePatternHostname(p: RemotePattern): string {
+  return typeof p.hostname === "string" && p.hostname.length > 0
+    ? p.hostname
+    : "";
+}
+
+function getRemotePatternPathname(p: RemotePattern): string {
+  return typeof p.pathname === "string" && p.pathname.length > 0
+    ? p.pathname
+    : "";
+}
+
+function formatRemotePattern(p: RemotePattern): string {
+  const protocol = getRemotePatternProtocol(p);
+  const hostname = getRemotePatternHostname(p);
+  if (hostname.length > 0) {
+    const path = getRemotePatternPathname(p);
+    return path.length > 0
+      ? `${protocol}://${hostname}${path}`
+      : `${protocol}://${hostname}`;
+  }
+  return `${protocol}://*`;
+}
+
 /**
  * Formats the remote patterns for display.
  * @param patterns - The remote patterns to format.
@@ -66,31 +100,10 @@ export function formatRemotePatternsForDisplay(
   const labels: string[] = [];
   for (const entry of patterns) {
     if (entry instanceof URL) {
-      labels.push(
-        entry.hostname.length > 0 ? entry.hostname : entry.toString(),
-      );
+      labels.push(formatURLPattern(entry));
       continue;
     }
-    const p = entry as RemotePattern;
-    const hostname =
-      typeof p.hostname === "string" && p.hostname.length > 0 ? p.hostname : "";
-    const protocol =
-      typeof p.protocol === "string" && p.protocol.length > 0
-        ? p.protocol
-        : "https";
-    if (hostname.length > 0) {
-      const path =
-        typeof p.pathname === "string" && p.pathname.length > 0
-          ? p.pathname
-          : "";
-      labels.push(
-        path.length > 0
-          ? `${protocol}://${hostname}${path}`
-          : `${protocol}://${hostname}`,
-      );
-    } else {
-      labels.push(`${protocol}://*`);
-    }
+    labels.push(formatRemotePattern(entry as RemotePattern));
   }
   return labels.join(", ");
 }
