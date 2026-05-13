@@ -1,5 +1,6 @@
 import type { BlobItem } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
+import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-settings";
 import { registerStorageProviders } from "./bootstrap/register-providers";
 import { storageRegistry } from "./core";
 import type { ReadTokensResult as BulkReadTokensResult } from "../types";
@@ -32,16 +33,29 @@ export function ensureStorageRegistered(): void {
   ensureStorageProvidersRegistered();
 }
 
-function getAzureProvider(): AzureBlobStorageProvider {
+function tryGetAzureProviderForGateway(): AzureBlobStorageProvider | null {
   ensureStorageProvidersRegistered();
   const registered = storageRegistry.getActiveProvider();
   if (registered !== null && registered.id === "azure") {
     return registered as AzureBlobStorageProvider;
   }
 
+  const explicit = getRuntimeStorageProfile().explicitProvider;
+  if (explicit === "none" || explicit === "s3") {
+    return null;
+  }
+
   fallbackProvider = fallbackProvider ?? new AzureBlobStorageProvider();
-  
+
   return fallbackProvider;
+}
+
+function getAzureProvider(): AzureBlobStorageProvider {
+  const provider = tryGetAzureProviderForGateway();
+  if (provider === null) {
+    throw new Error("Azure storage is not available for this storage profile");
+  }
+  return provider;
 }
 
 function requireEnabledAzureProvider(): AzureBlobStorageProvider {
@@ -71,8 +85,8 @@ export async function uploadToStorage(
 export async function bulkGenerateReadTokens(
   options: BulkReadUrlsOptions,
 ): Promise<BulkReadTokensResult> {
-  const provider = getAzureProvider();
-  if (!provider.isEnabled()) {
+  const provider = tryGetAzureProviderForGateway();
+  if (provider === null || !provider.isEnabled()) {
     return Result.error("Azure storage is not enabled");
   }
   return provider.bulkGenerateReadTokens(options);
@@ -82,14 +96,19 @@ export async function generateUploadUrl(
   fileOptions: FileOptions,
   permissions: "wr" = "wr",
 ): Promise<string> {
-  return requireEnabledAzureProvider().generateUploadUrl(fileOptions, permissions);
+  return requireEnabledAzureProvider().generateUploadUrl(
+    fileOptions,
+    permissions,
+  );
 }
 
 export async function deleteBlob(fileOptions: FileOptions): Promise<void> {
   return requireEnabledAzureProvider().deleteBlob(fileOptions);
 }
 
-export async function listBlobs(folderOptions: FolderOptions): Promise<BlobItem[]> {
+export async function listBlobs(
+  folderOptions: FolderOptions,
+): Promise<BlobItem[]> {
   return requireEnabledAzureProvider().listBlobs(folderOptions);
 }
 
@@ -97,8 +116,8 @@ export async function getBlobProperties(
   containerName: string,
   blobName: string,
 ): Promise<BlobPropertiesResult | null> {
-  const provider = getAzureProvider();
-  if (!provider.isEnabled()) {
+  const provider = tryGetAzureProviderForGateway();
+  if (provider === null || !provider.isEnabled()) {
     return null;
   }
   return provider.getBlobProperties(containerName, blobName);
