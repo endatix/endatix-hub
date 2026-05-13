@@ -80,8 +80,9 @@ describe("Admin Environment Page", () => {
       // Assert
       expect(screen.getByText(/Environment Variables/)).toBeDefined();
       expect(
-        screen.getByText(/Azure Storage & Image Configuration/),
+        screen.getByText(/Storage Related Configuration/),
       ).toBeDefined();
+      expect(screen.getByText(/Azure Storage/)).toBeDefined();
     });
   });
 
