@@ -26,12 +26,12 @@ export function registerStorageProviders(): void {
   }
 
   if (storage.explicitProvider === "azure") {
-    if (!storage.azureCredentialsPresent) {
+    if (storage.azureCredentialsPresent) {
+      storageRegistry.register(new AzureBlobStorageProvider());
+    } else {
       console.warn(
         "[storage] STORAGE_PROVIDER=azure but AZURE_STORAGE_ACCOUNT_NAME / AZURE_STORAGE_ACCOUNT_KEY are missing",
       );
-    } else {
-      storageRegistry.register(new AzureBlobStorageProvider());
     }
     return;
   }

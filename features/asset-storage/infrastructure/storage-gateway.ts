@@ -38,9 +38,9 @@ function getAzureProvider(): AzureBlobStorageProvider {
   if (registered !== null && registered.id === "azure") {
     return registered as AzureBlobStorageProvider;
   }
-  if (fallbackProvider === null) {
-    fallbackProvider = new AzureBlobStorageProvider();
-  }
+
+  fallbackProvider = fallbackProvider ?? new AzureBlobStorageProvider();
+  
   return fallbackProvider;
 }
 

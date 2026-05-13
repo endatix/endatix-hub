@@ -2,7 +2,6 @@ import { requireAdmin } from "@/components/admin-ui/admin-protection";
 import {
   getStorageRuntimeSettings,
   IMAGE_SERVICE_CONFIG,
-  type AzureStorageConfig,
 } from "@/features/asset-storage/server";
 import nextConfig from "@/next.config";
 import { formatRemotePatternsForDisplay } from "@/lib/hosting/next-config-helper";
@@ -90,10 +89,6 @@ export default async function EnvironmentPage() {
 
   const storageSettings = getStorageRuntimeSettings();
   const azureConfig = storageSettings.azure;
-  const storageProfileLabel =
-    storageSettings.storage.explicitProvider === null
-      ? "auto (STORAGE_PROVIDER unset)"
-      : storageSettings.storage.explicitProvider;
 
   // Get all environment variables
   const allEnvVars = Object.keys(process.env).sort();
@@ -111,8 +106,8 @@ export default async function EnvironmentPage() {
   );
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-2 mb-6">
+    <div className="container mx-auto space-y-6 p-6">
+      <div className="mb-6 flex items-center gap-2">
         <Shield className="h-6 w-6" />
         <h1 className="text-2xl font-bold">Environment Variables</h1>
       </div>
@@ -128,59 +123,59 @@ export default async function EnvironmentPage() {
         <CardContent className="space-y-6">
           {/* Azure Storage */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
+            <h4 className="flex items-center gap-2 text-sm font-semibold">
               <HardDrive className="h-4 w-4" />
               Azure Storage
             </h4>
             <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
               {azureConfig === null ? (
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm text-muted-foreground">
                   No Azure storage layout (e.g. explicit S3 provider). Image
                   settings below still reflect env-based image service config.
                 </p>
               ) : (
                 <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-muted-foreground">Status</span>
-                <Badge
-                  variant={azureConfig.isEnabled ? "default" : "secondary"}
-                >
-                  {azureConfig.isEnabled ? "Enabled" : "Disabled"}
-                </Badge>
-              </div>
-              {azureConfig.isEnabled && (
-                <>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Host name</span>
-                    <span className="font-mono">
-                      {azureConfig.hostName || "—"}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Private</span>
-                    <Badge variant="outline">
-                      {azureConfig.isPrivate ? "Yes" : "No"}
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge
+                      variant={azureConfig.isEnabled ? "default" : "secondary"}
+                    >
+                      {azureConfig.isEnabled ? "Enabled" : "Disabled"}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Containers</span>
-                    <span className="font-mono text-muted-foreground">
-                      user-files: {azureConfig.containerNames.USER_FILES},
-                      content: {azureConfig.containerNames.CONTENT}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-muted-foreground">
-                      SAS read expiry
-                    </span>
-                    <span>
-                      {(azureConfig as AzureStorageConfig)
-                        .sasReadExpiryMinutes ?? "—"}{" "}
-                      min
-                    </span>
-                  </div>
-                </>
-              )}
+                  {azureConfig.isEnabled && (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-muted-foreground">Host name</span>
+                        <span className="font-mono">
+                          {azureConfig.hostName || "—"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-muted-foreground">Private</span>
+                        <Badge variant="outline">
+                          {azureConfig.isPrivate ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-muted-foreground">
+                          Containers
+                        </span>
+                        <span className="font-mono text-muted-foreground">
+                          user-files: {azureConfig.containerNames.USER_FILES},
+                          content: {azureConfig.containerNames.CONTENT}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-muted-foreground">
+                          SAS read expiry
+                        </span>
+                        <span>
+                          {azureConfig.sasReadExpiryMinutes ?? "—"} min
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -188,7 +183,7 @@ export default async function EnvironmentPage() {
 
           {/* Image */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
+            <h4 className="flex items-center gap-2 text-sm font-semibold">
               <ImageIcon className="h-4 w-4" />
               Image
             </h4>
@@ -211,7 +206,7 @@ export default async function EnvironmentPage() {
                 <span className="text-muted-foreground">
                   Next.js images.remotePatterns
                 </span>
-                <span className="font-mono text-muted-foreground break-all">
+                <span className="font-mono break-all text-muted-foreground">
                   {remotePatternsDisplay}
                 </span>
               </div>
@@ -244,7 +239,7 @@ export default async function EnvironmentPage() {
               return (
                 <div
                   key={name}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                  className="flex items-center justify-between rounded-lg border bg-card p-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
@@ -300,7 +295,7 @@ export default async function EnvironmentPage() {
               return (
                 <div
                   key={name}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                  className="flex items-center justify-between rounded-lg border bg-card p-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
@@ -355,7 +350,7 @@ export default async function EnvironmentPage() {
                 return (
                   <div
                     key={name}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    className="flex items-center justify-between rounded-lg border bg-card p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
