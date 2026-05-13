@@ -86,7 +86,7 @@ export async function bulkGenerateReadTokens(
   options: BulkReadUrlsOptions,
 ): Promise<BulkReadTokensResult> {
   const provider = tryGetAzureProviderForGateway();
-  if (provider === null || !provider.isEnabled()) {
+  if (!provider?.isEnabled()) {
     return Result.error("Azure storage is not enabled");
   }
   return provider.bulkGenerateReadTokens(options);
@@ -117,7 +117,7 @@ export async function getBlobProperties(
   blobName: string,
 ): Promise<BlobPropertiesResult | null> {
   const provider = tryGetAzureProviderForGateway();
-  if (provider === null || !provider.isEnabled()) {
+  if (!provider?.isEnabled()) {
     return null;
   }
   return provider.getBlobProperties(containerName, blobName);
