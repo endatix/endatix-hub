@@ -142,6 +142,56 @@ describe("htmlSanitizer", () => {
         expect(result).not.toContain("</iframe>");
       });
 
+      describe("xmp raw-text bypass (CVE-2026-44990)", () => {
+        const xmpBypassCases = [
+          {
+            name: "script inside disallowed xmp",
+            input: "<xmp><script>alert(1)</script></xmp>",
+          },
+          {
+            name: "img onerror inside disallowed xmp",
+            input: "<xmp><img src=x onerror=alert(1)></xmp>",
+          },
+          {
+            name: "svg script inside disallowed xmp",
+            input: "<xmp><svg><script>alert(1)</script></svg></xmp>",
+          },
+        ] as const;
+
+        it.each(xmpBypassCases)(
+          "should not passthrough live markup for $name",
+          ({ input }) => {
+            // Act
+            const result = htmlSanitizer.sanitize(input);
+
+            // Assert
+            expect(result).not.toContain("<script");
+            expect(result).not.toContain("onerror");
+            expect(result).not.toContain("<svg");
+            expect(result).not.toContain("<img");
+          },
+        );
+
+        it.each([
+          ["moderate", htmlSanitizer.presets.moderate],
+          ["inline", htmlSanitizer.presets.inline],
+          ["strict", htmlSanitizer.presets.strict],
+        ] as const)(
+          "should not passthrough xmp script payload on %s preset",
+          (_presetName, preset) => {
+            // Arrange
+            const input = "<xmp><script>alert(1)</script></xmp>";
+
+            // Act
+            const result = htmlSanitizer.sanitize(input, preset);
+
+            // Assert
+            expect(result).not.toContain("<script");
+            expect(result).not.toContain("alert(1)");
+          },
+        );
+      });
+
       it("should remove object and embed tags", () => {
         // Arrange
         const input =
