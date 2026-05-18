@@ -8,7 +8,6 @@ import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
-import { resolveRequiresFormAccessJwt } from "@/lib/form-runtime/form-definition-requires-form-access-jwt";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
@@ -97,12 +96,7 @@ export default async function FormDesignerPage({ params }: Params) {
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
         <DesignerRuntimeProvider
-          initialState={{
-            formId,
-            requiresFormAccessJwt: resolveRequiresFormAccessJwt({
-              definitionJson: formDefinitionJson,
-            }),
-          }}
+          initialState={{ formId }}
         >
           <AssetStorageProvider>
             <FormAssistantProvider

@@ -6,9 +6,7 @@ import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
 import { Result } from "@/lib/result";
 import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
-import {
-  validateEndatixId,
-} from "@/lib/utils/type-validators";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import { getActiveFormDefinition } from "@/services/api";
 import { Suspense } from "react";
 
@@ -81,7 +79,10 @@ export default async function PublicEditSubmissionPage({
       );
     }
 
-    if (errorMessage.includes("permission") || errorMessage.includes("forbidden")) {
+    if (
+      errorMessage.includes("permission") ||
+      errorMessage.includes("forbidden")
+    ) {
       return (
         <NotFoundComponent
           notFoundTitle="Access Denied"
@@ -130,7 +131,7 @@ export default async function PublicEditSubmissionPage({
             formId: validateFormIdResult.value,
             submissionId: submission.id,
             token,
-            tokenType: 'AccessToken',
+            tokenType: "AccessToken",
           }}
         >
           <EditSubmission
@@ -149,7 +150,7 @@ function SubmissionDataSkeleton() {
 
   return (
     <div className="w-full overflow-auto p-4">
-      <div className="flex flex-col space-y-4 items-center max-w-4xl mx-auto">
+      <div className="mx-auto flex max-w-4xl flex-col items-center space-y-4">
         <Skeleton className="h-12 w-full" />
         {questions.map((question) => (
           <Skeleton className="h-16 w-full" key={question} />

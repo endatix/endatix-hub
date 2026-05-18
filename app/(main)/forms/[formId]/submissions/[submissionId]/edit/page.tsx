@@ -9,8 +9,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
-import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
-
+import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 type Params = {
   params: Promise<{
     formId: string;
@@ -54,14 +53,11 @@ export default async function EditSubmissionPage({ params }: Params) {
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
-        <FormRuntimeProvider
-          initialState={{
-            formId,
-            submissionId,
-          }}
+        <DesignerRuntimeProvider
+          initialState={{ formId, submissionId }}
         >
           <EditSubmission submission={submission} />
-        </FormRuntimeProvider>
+        </DesignerRuntimeProvider>
       </AssetStorageProvider>
     </Suspense>
   );
@@ -73,13 +69,13 @@ function SubmissionDataSkeleton() {
 
   return (
     <div className="w-full overflow-auto">
-      <div className="flex flex-col space-y-2 items-center">
+      <div className="flex flex-col items-center space-y-2">
         {summaryQuestions.map((question) => (
-          <Skeleton className="h-8 w-[300px] " key={question} />
+          <Skeleton className="h-8 w-[300px]" key={question} />
         ))}
       </div>
       <SectionTitle title="Submission Answers" headingClassName="py-2 my-0" />
-      <div className="flex flex-col items-center space-y-2 items-center">
+      <div className="flex flex-col items-center space-y-2">
         {answersQuestions.map((question) => (
           <Skeleton className="h-12 w-[600px]" key={question} />
         ))}
