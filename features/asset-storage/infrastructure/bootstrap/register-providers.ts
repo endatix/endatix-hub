@@ -1,15 +1,22 @@
 import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-settings";
 import { storageRegistry } from "../core";
 import { AzureBlobStorageProvider } from "../providers/azure/azure-storage-provider";
+import { S3StorageProvider } from "../providers/s3";
 
 /**
- * Registers the active storage provider based on `STORAGE_PROVIDER` and env.
+ * Registers the active storage provider from `STORAGE_PROVIDER` and credentials.
  * Uses {@link getRuntimeStorageProfile} (prefers `ENDATIX_RESOLVED_*` from `withEndatix`).
  *
- * - `STORAGE_PROVIDER=none` — no provider.
- * - `STORAGE_PROVIDER=s3` — reserved for RustFS (PR 3); no provider registered here.
- * - `STORAGE_PROVIDER=azure` — Azure when credentials are present (warns if missing).
- * - Unset / unknown — auto: register Azure when `AZURE_STORAGE_ACCOUNT_NAME` + key are set.
+ * Providers are **statically imported** so the first synchronous `ensureStorageRegistered` call
+ * always sees a registered implementation (tests and routes that do not await async bootstrap).
+ * Optional code-splitting via dynamic `import()` is deferred until bundle size warrants it.
+ *
+ * **`STORAGE_PROVIDER` is required** (no inference from credentials alone). Set one of:
+ * - `none` — no provider.
+ * - `s3` — RustFS / S3 when `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY` are set.
+ * - `azure` — Azure when `AZURE_STORAGE_ACCOUNT_NAME` and `AZURE_STORAGE_ACCOUNT_KEY` are set.
+ *
+ * Unset or unknown values log a warning and skip registration.
  */
 export function registerStorageProviders(): void {
   if (storageRegistry.getActiveProvider() !== null) {
@@ -18,10 +25,18 @@ export function registerStorageProviders(): void {
 
   const storage = getRuntimeStorageProfile();
 
-  if (
-    storage.explicitProvider === "none" ||
-    storage.explicitProvider === "s3"
-  ) {
+  if (storage.explicitProvider === "none") {
+    return;
+  }
+
+  if (storage.explicitProvider === "s3") {
+    if (storage.s3CredentialsPresent) {
+      storageRegistry.register(new S3StorageProvider());
+    } else {
+      console.warn(
+        "[storage] STORAGE_PROVIDER=s3 but S3_ENDPOINT / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY are missing",
+      );
+    }
     return;
   }
 
@@ -36,9 +51,7 @@ export function registerStorageProviders(): void {
     return;
   }
 
-  if (!storage.azureCredentialsPresent) {
-    return;
-  }
-
-  storageRegistry.register(new AzureBlobStorageProvider());
+  console.warn(
+    "[storage] STORAGE_PROVIDER must be set to azure, s3, or none. Skipping storage registration.",
+  );
 }

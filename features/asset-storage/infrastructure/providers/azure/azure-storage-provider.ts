@@ -1,5 +1,4 @@
 import { Result } from "@/lib/result";
-import type { BlobItem } from "@azure/storage-blob";
 import {
   BlobSASPermissions,
   BlobServiceClient,
@@ -9,22 +8,38 @@ import {
 } from "@azure/storage-blob";
 import type { ReadTokensResult as BulkReadTokensResult } from "../../../types";
 import type { IStorageProvider } from "../../core/storage-provider.interface";
+import { buildStorageObjectKey } from "../shared/storage-object-key";
 import { buildUserFileFolderPath } from "../../storage-utils";
-import { getAzureStorageConfig, type AzureStorageConfig } from "./azure-config";
 import {
-  toAzureBlockBlobPutHeaders,
-  toBlobUploadOptions,
-} from "./azure-blob-metadata-parser";
+  computeReadTokenExpiry,
+  validateBulkReadUrlsOptions,
+} from "../shared/bulk-read-validation";
+import { isListableStorageObject } from "../shared/list-blob-filter";
+import {
+  assertDeleteBlobInputs,
+  assertGenerateUploadUrlInputs,
+  assertStorageEnabled,
+} from "../shared/storage-guards";
 import type {
   BlobPropertiesResult,
   BulkReadUrlsOptions,
   FileOptions,
   FolderOptions,
+  StorageListBlobItem,
   UploadUrlDescriptor,
-} from "./types";
+} from "../shared/blob-route-types";
+import { getAzureStorageConfig, type AzureStorageConfig } from "./azure-config";
+import {
+  toAzureBlockBlobPutHeaders,
+  toBlobUploadOptions,
+} from "./azure-blob-metadata-parser";
 
 const READ_ONLY_PERMISSIONS = BlobSASPermissions.parse("r");
+const PROVIDER_LABEL = "Azure";
 
+/**
+ * AzureBlobStorageProvider is a class that implements the IStorageProvider interface for Azure Blob Storage.
+ */
 export class AzureBlobStorageProvider implements IStorageProvider {
   readonly id = "azure";
   readonly name = "Azure Blob Storage";
@@ -35,12 +50,27 @@ export class AzureBlobStorageProvider implements IStorageProvider {
     return getAzureStorageConfig();
   }
 
+  /**
+   * Check if the Azure storage is enabled.
+   * @returns True if the Azure storage is enabled, false otherwise.
+   */
   isEnabled(): boolean {
     return this.getConfig().isEnabled;
   }
 
+  /**
+   * Check if the Azure storage is private.
+   * @returns True if the Azure storage is private, false otherwise.
+   */
   isPrivate(): boolean {
     return this.getConfig().isPrivate;
+  }
+
+  /**
+   * Reset the Azure storage client.
+   */
+  resetClient(): void {
+    this._blobServiceClient = null;
   }
 
   private getBlobServiceClient(): BlobServiceClient {
@@ -54,125 +84,39 @@ export class AzureBlobStorageProvider implements IStorageProvider {
     return this._blobServiceClient;
   }
 
-  resetBlobServiceClient(): void {
-    this._blobServiceClient = null;
-  }
-
-  async uploadToStorage(
-    fileBuffer: Buffer,
-    fileName: string,
-    containerName: string,
-    folderPath?: string,
-    metadata?: Record<string, string>,
-  ): Promise<string> {
-    const config = this.getConfig();
-    if (!config.isEnabled) {
-      throw new Error("Azure storage is not enabled");
-    }
-
-    if (!fileBuffer) {
-      throw new Error("a file is not provided");
-    }
-
-    if (!fileName) {
-      throw new Error("fileName is not provided");
-    }
-
-    if (!containerName) {
-      throw new Error("container name is not provided");
-    }
-
-    const STEP_UPLOAD_START = performance.now();
-
-    const blobServiceClient = this.getBlobServiceClient();
-    const containerClient = blobServiceClient.getContainerClient(containerName);
-
-    try {
-      const blobName = folderPath ? `${folderPath}/${fileName}` : fileName;
-      const blobClient = containerClient.getBlockBlobClient(blobName);
-      await blobClient.uploadData(fileBuffer, {
-        blobHTTPHeaders: {
-          blobContentType: metadata?.contentType ?? "",
-          blobContentLanguage: metadata?.language ?? "",
-          blobContentDisposition: "inline",
-        },
-        metadata: metadata,
-      });
-
-      const STEP_UPLOAD_END = performance.now();
-      console.log(
-        `⏱️ Upload to blob took ${STEP_UPLOAD_END - STEP_UPLOAD_START}ms`,
-      );
-
-      return blobClient.url;
-    } catch (error) {
-      console.error("Error uploading to blob storage:", error);
-      throw error;
-    }
-  }
-
+  /**
+   * Bulk generate read tokens for the Azure storage.
+   * @param options - The options for the bulk generate read tokens.
+   * @returns The result of the bulk generate read tokens.
+   */
   async bulkGenerateReadTokens(
     options: BulkReadUrlsOptions,
   ): Promise<BulkReadTokensResult> {
-    const { containerName, resourceType, resourceNames, expiresInMinutes } =
-      options;
-
     const config = this.getConfig();
-    if (!config.isEnabled) {
-      return Result.error("Azure storage is not enabled");
-    }
-
-    if (!config.isPrivate) {
-      return Result.error("Azure storage is not private");
-    }
-
-    if (!containerName) {
-      return Result.validationError("A container name is not provided");
-    }
-
-    if (!resourceType) {
-      return Result.validationError("A resource type is not provided");
-    }
-
-    if (
-      resourceType !== "container" &&
-      (!resourceNames || resourceNames.length === 0)
-    ) {
-      return Result.validationError(
-        "Resource names are required for file or directory resource types",
-      );
-    }
-
-    const credential = new StorageSharedKeyCredential(
-      config.accountName,
-      config.accountKey,
+    const validation = validateBulkReadUrlsOptions(
+      config,
+      options,
+      PROVIDER_LABEL,
     );
 
-    const now = new Date(Date.now());
-    const expirationSpanInMs =
-      (expiresInMinutes ?? config.sasReadExpiryMinutes) * 60 * 1000;
-    const expiresOn = new Date(now.valueOf() + expirationSpanInMs);
+    if (Result.isError(validation)) {
+      return validation;
+    }
+
+    const { containerName, resourceNames, expiresInMinutes } = options;
+    const { now, expiresOn } = computeReadTokenExpiry(
+      expiresInMinutes,
+      config.sasReadExpiryMinutes,
+    );
 
     try {
       const readTokens: Record<string, string> = {};
-
-      if (resourceType === "container") {
-        readTokens.container = generateContainerReadToken(
+      for (const resourceName of resourceNames!) {
+        readTokens[resourceName] = await this.generateReadTokenQuery(
           containerName,
-          credential,
-          now,
-          expiresOn,
+          resourceName,
+          expiresInMinutes,
         );
-      } else {
-        for (const resourceName of resourceNames!) {
-          readTokens[resourceName] = generateBlobReadToken(
-            containerName,
-            resourceName,
-            credential,
-            now,
-            expiresOn,
-          );
-        }
       }
 
       return Result.success({
@@ -186,98 +130,113 @@ export class AzureBlobStorageProvider implements IStorageProvider {
     }
   }
 
+  /**
+   * Generate a read token query for the Azure storage.
+   * @param containerName - The name of the container.
+   * @param objectKey - The key of the object.
+   * @param expiresInMinutes - The number of minutes the token is valid for.
+   * @returns The read token query.
+   */
+  async generateReadTokenQuery(
+    containerName: string,
+    objectKey: string,
+    expiresInMinutes?: number,
+  ): Promise<string> {
+    const config = this.getConfig();
+    const credential = new StorageSharedKeyCredential(
+      config.accountName,
+      config.accountKey,
+    );
+    const { now, expiresOn } = computeReadTokenExpiry(
+      expiresInMinutes,
+      config.sasReadExpiryMinutes,
+    );
+    return generateBlobReadToken(
+      containerName,
+      objectKey,
+      credential,
+      now,
+      expiresOn,
+    );
+  }
+
+  /**
+   * Generate an upload URL for the Azure storage.
+   * @param fileOptions - The options for the upload URL.
+   * @param permissions - The permissions for the upload URL.
+   * @returns The upload URL.
+   */
   async generateUploadUrl(
     fileOptions: FileOptions,
     permissions: "wr" = "wr",
   ): Promise<UploadUrlDescriptor> {
     const config = this.getConfig();
-    if (!config.isEnabled) {
-      throw new Error("Azure storage is not enabled");
-    }
-
-    if (!fileOptions.fileName) {
-      throw new Error("a file is not provided");
-    }
-
-    if (!fileOptions.folderPath) {
-      throw new Error("a folder path is not provided");
-    }
-
-    if (!fileOptions.containerName) {
-      throw new Error("container name is not provided");
-    }
+    assertStorageEnabled(PROVIDER_LABEL, config.isEnabled);
+    assertGenerateUploadUrlInputs(fileOptions);
 
     const blobServiceClient = this.getBlobServiceClient();
     const containerClient = blobServiceClient.getContainerClient(
       fileOptions.containerName,
     );
 
-    try {
-      const blobName = fileOptions.folderPath
-        ? `${fileOptions.folderPath}/${fileOptions.fileName}`
-        : fileOptions.fileName;
-      const blobClient = containerClient.getBlockBlobClient(blobName);
-
-      const NOW = new Date(Date.now());
-      const EXPIRY_IN_MS = 1000 * 60 * 3; // 3 minutes
-      const sasToken = await blobClient.generateSasUrl({
-        startsOn: NOW,
-        permissions: BlobSASPermissions.parse(permissions),
-        expiresOn: new Date(NOW.valueOf() + EXPIRY_IN_MS),
-        protocol: SASProtocol.Https,
-      });
-
-      const headers =
-        fileOptions.blobUploadFileMetadata !== undefined
-          ? toAzureBlockBlobPutHeaders(
-              toBlobUploadOptions(fileOptions.blobUploadFileMetadata),
-            )
-          : { "x-ms-blob-type": "BlockBlob" };
-
-      return {
-        url: sasToken,
-        key: blobName,
-        headers,
-      };
-    } catch (error) {
-      console.error("Error generating SAS token:", error);
-      throw error;
-    }
-  }
-
-  async deleteBlob(fileOptions: FileOptions): Promise<void> {
-    const config = this.getConfig();
-    if (!config.isEnabled) {
-      throw new Error("Azure storage is not enabled");
-    }
-
-    if (!fileOptions.fileName) {
-      throw new Error("a file is not provided");
-    }
-
-    if (!fileOptions.containerName) {
-      throw new Error("container name is not provided");
-    }
-
-    const blobServiceClient = this.getBlobServiceClient();
-    const containerClient = blobServiceClient.getContainerClient(
-      fileOptions.containerName,
+    const blobName = buildStorageObjectKey(
+      fileOptions.fileName,
+      fileOptions.folderPath,
     );
-
-    const blobName = fileOptions.folderPath
-      ? `${fileOptions.folderPath}/${fileOptions.fileName}`
-      : fileOptions.fileName;
     const blobClient = containerClient.getBlockBlobClient(blobName);
 
-    try {
-      await blobClient.delete();
-    } catch (error) {
-      console.error("Error deleting blob:", error);
-      throw error;
-    }
+    const now = new Date(Date.now());
+    const expiresOn = new Date(
+      now.valueOf() + config.sasWriteExpirySeconds * 1000,
+    );
+
+    const sasToken = await blobClient.generateSasUrl({
+      startsOn: now,
+      permissions: BlobSASPermissions.parse(permissions),
+      expiresOn,
+      protocol: SASProtocol.Https,
+    });
+
+    const headers =
+      fileOptions.blobUploadFileMetadata !== undefined
+        ? toAzureBlockBlobPutHeaders(
+            toBlobUploadOptions(fileOptions.blobUploadFileMetadata),
+          )
+        : { "x-ms-blob-type": "BlockBlob" };
+
+    return { url: sasToken, key: blobName, headers };
   }
 
-  async listBlobs(folderOptions: FolderOptions): Promise<BlobItem[]> {
+  /**
+   * Delete a blob from the Azure storage.
+   * @param fileOptions - The options for the delete blob.
+   * @returns The result of the delete blob.
+   */
+  async deleteBlob(fileOptions: FileOptions): Promise<void> {
+    const config = this.getConfig();
+    assertStorageEnabled(PROVIDER_LABEL, config.isEnabled);
+    assertDeleteBlobInputs(fileOptions);
+
+    const blobServiceClient = this.getBlobServiceClient();
+    const containerClient = blobServiceClient.getContainerClient(
+      fileOptions.containerName,
+    );
+    const blobName = buildStorageObjectKey(
+      fileOptions.fileName,
+      fileOptions.folderPath,
+    );
+    const blobClient = containerClient.getBlockBlobClient(blobName);
+    await blobClient.delete();
+  }
+
+  /**
+   * List blobs from the Azure storage.
+   * @param folderOptions - The options for the list blobs.
+   * @returns The list of blobs.
+   */
+  async listBlobs(
+    folderOptions: FolderOptions,
+  ): Promise<StorageListBlobItem[]> {
     const folderPathResult = buildUserFileFolderPath(
       folderOptions.formId,
       folderOptions.submissionId,
@@ -291,24 +250,30 @@ export class AzureBlobStorageProvider implements IStorageProvider {
       this.getConfig().containerNames.USER_FILES,
     );
 
-    const blobsIterator = containerClient.listBlobsFlat({
+    const filesResult: StorageListBlobItem[] = [];
+    for await (const blob of containerClient.listBlobsFlat({
       prefix: folderPathResult.value,
       includeDeleted: false,
       includeMetadata: true,
-    });
-
-    const filesResult: BlobItem[] = [];
-    for await (const blob of blobsIterator) {
-      const contentLength = Number(blob.properties?.contentLength ?? 0);
-      const contentType = blob.properties?.contentType ?? "";
-      const isFile = contentLength > 0 && contentType.length > 0;
-      if (isFile) {
+    })) {
+      if (
+        isListableStorageObject({
+          contentLength: blob.properties?.contentLength,
+          contentType: blob.properties?.contentType,
+        })
+      ) {
         filesResult.push(blob);
       }
     }
     return filesResult;
   }
 
+  /**
+   * Get the properties of a blob from the Azure storage.
+   * @param containerName - The name of the container.
+   * @param blobName - The key of the object.
+   * @returns The properties of the blob.
+   */
   async getBlobProperties(
     containerName: string,
     blobName: string,
@@ -328,11 +293,9 @@ export class AzureBlobStorageProvider implements IStorageProvider {
       const contentType =
         response.metadata?.["content-type"] ?? response.contentType;
 
-      const sizeInBytes = response.contentLength ?? 0;
-
       return {
         contentType,
-        sizeInBytes,
+        sizeInBytes: response.contentLength ?? 0,
         metadata: response.metadata as Record<string, string> | undefined,
       };
     } catch {
@@ -341,24 +304,15 @@ export class AzureBlobStorageProvider implements IStorageProvider {
   }
 }
 
-function generateContainerReadToken(
-  containerName: string,
-  credential: StorageSharedKeyCredential,
-  startsOn: Date,
-  expiresOn: Date,
-): string {
-  return generateBlobSASQueryParameters(
-    {
-      containerName,
-      permissions: READ_ONLY_PERMISSIONS,
-      startsOn,
-      expiresOn,
-      protocol: SASProtocol.Https,
-    },
-    credential,
-  ).toString();
-}
-
+/**
+ * Generate a read token for the Azure storage.
+ * @param containerName - The name of the container.
+ * @param blobName - The key of the object.
+ * @param credential - The credential for the Azure storage.
+ * @param startsOn - The start time of the token.
+ * @param expiresOn - The expiration time of the token.
+ * @returns The read token.
+ */
 function generateBlobReadToken(
   containerName: string,
   blobName: string,

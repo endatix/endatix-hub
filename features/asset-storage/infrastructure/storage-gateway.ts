@@ -1,20 +1,20 @@
-import type { BlobItem } from "@azure/storage-blob";
 import { Result } from "@/lib/result";
-import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-settings";
 import { registerStorageProviders } from "./bootstrap/register-providers";
 import { storageRegistry } from "./core";
 import type { ReadTokensResult as BulkReadTokensResult } from "../types";
 import { AzureBlobStorageProvider } from "./providers/azure/azure-storage-provider";
+import { S3StorageProvider } from "./providers/s3/s3-storage-provider";
 import type {
   BlobPropertiesResult,
   BulkReadUrlsOptions,
   FileOptions,
   FolderOptions,
+  StorageListBlobItem,
   UploadUrlDescriptor,
-} from "./providers/azure/types";
+} from "./providers/shared/blob-route-types";
 
-/** Used when `instrumentation` has not run (e.g. Vitest). */
-let fallbackProvider: AzureBlobStorageProvider | null = null;
+/** Active concrete provider used for presigned URLs and blob CRUD (registry-backed). */
+type HubStorageProvider = AzureBlobStorageProvider | S3StorageProvider;
 
 let storageProvidersRegistrationEnsured = false;
 
@@ -34,35 +34,31 @@ export function ensureStorageRegistered(): void {
   ensureStorageProvidersRegistered();
 }
 
-function tryGetAzureProviderForGateway(): AzureBlobStorageProvider | null {
+function tryGetStorageProvider(): HubStorageProvider | null {
   ensureStorageProvidersRegistered();
   const registered = storageRegistry.getActiveProvider();
-  if (registered !== null && registered.id === "azure") {
+  if (registered?.id === "azure") {
     return registered as AzureBlobStorageProvider;
   }
-
-  const explicit = getRuntimeStorageProfile().explicitProvider;
-  if (explicit === "none" || explicit === "s3") {
-    return null;
+  if (registered?.id === "s3") {
+    return registered as S3StorageProvider;
   }
-
-  fallbackProvider = fallbackProvider ?? new AzureBlobStorageProvider();
-
-  return fallbackProvider;
+  return null;
 }
 
-function getAzureProvider(): AzureBlobStorageProvider {
-  const provider = tryGetAzureProviderForGateway();
+function requireStorageProvider(): HubStorageProvider {
+  const provider = tryGetStorageProvider();
   if (provider === null) {
-    throw new Error("Azure storage is not available for this storage profile");
+    throw new Error("Storage is not available for this storage profile");
   }
   return provider;
 }
 
-function requireEnabledAzureProvider(): AzureBlobStorageProvider {
-  const provider = getAzureProvider();
+/** Resolves the active provider and ensures {@link IStorageProvider.isEnabled} is true. */
+function requireEnabledStorageProvider(): HubStorageProvider {
+  const provider = requireStorageProvider();
   if (!provider.isEnabled()) {
-    throw new Error("Azure storage is not enabled");
+    throw new Error("Storage is not enabled");
   }
   return provider;
 }
@@ -74,7 +70,7 @@ export async function uploadToStorage(
   folderPath?: string,
   metadata?: Record<string, string>,
 ): Promise<string> {
-  return requireEnabledAzureProvider().uploadToStorage(
+  return requireEnabledStorageProvider().uploadToStorage(
     fileBuffer,
     fileName,
     containerName,
@@ -86,9 +82,12 @@ export async function uploadToStorage(
 export async function bulkGenerateReadTokens(
   options: BulkReadUrlsOptions,
 ): Promise<BulkReadTokensResult> {
-  const provider = tryGetAzureProviderForGateway();
-  if (!provider?.isEnabled()) {
-    return Result.error("Azure storage is not enabled");
+  const provider = tryGetStorageProvider();
+  if (provider === null) {
+    return Result.error("Storage is not available for this storage profile");
+  }
+  if (!provider.isEnabled()) {
+    return Result.error("Storage is not enabled");
   }
   return provider.bulkGenerateReadTokens(options);
 }
@@ -97,38 +96,40 @@ export async function generateUploadUrl(
   fileOptions: FileOptions,
   permissions: "wr" = "wr",
 ): Promise<UploadUrlDescriptor> {
-  return requireEnabledAzureProvider().generateUploadUrl(
+  return requireEnabledStorageProvider().generateUploadUrl(
     fileOptions,
     permissions,
   );
 }
 
 export async function deleteBlob(fileOptions: FileOptions): Promise<void> {
-  return requireEnabledAzureProvider().deleteBlob(fileOptions);
+  return requireEnabledStorageProvider().deleteBlob(fileOptions);
 }
 
 export async function listBlobs(
   folderOptions: FolderOptions,
-): Promise<BlobItem[]> {
-  return requireEnabledAzureProvider().listBlobs(folderOptions);
+): Promise<StorageListBlobItem[]> {
+  return requireEnabledStorageProvider().listBlobs(folderOptions);
 }
 
 export async function getBlobProperties(
   containerName: string,
   blobName: string,
 ): Promise<BlobPropertiesResult | null> {
-  const provider = tryGetAzureProviderForGateway();
-  if (!provider?.isEnabled()) {
+  const provider = tryGetStorageProvider();
+  if (provider === null || !provider.isEnabled()) {
     return null;
   }
   return provider.getBlobProperties(containerName, blobName);
 }
 
 export function resetBlobServiceClient(): void {
-  fallbackProvider = null;
   const registered = storageRegistry.getActiveProvider();
-  if (registered !== null && registered.id === "azure") {
+  if (registered?.id === "azure") {
     (registered as AzureBlobStorageProvider).resetBlobServiceClient();
+  }
+  if (registered?.id === "s3") {
+    (registered as S3StorageProvider).resetS3Client();
   }
 }
 
@@ -137,5 +138,6 @@ export type {
   BulkReadUrlsOptions,
   FileOptions,
   FolderOptions,
+  StorageListBlobItem,
   UploadUrlDescriptor,
 };

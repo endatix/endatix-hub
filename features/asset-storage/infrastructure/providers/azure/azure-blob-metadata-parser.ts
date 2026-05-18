@@ -1,167 +1,16 @@
+import type { BlobUploadOptions } from "../../../types";
+import { encodeHeaderValueForFetch } from "../../fetch-header-utils";
+
+export { blobMetadataParser } from "../shared/blob-metadata-parser";
+export { toBlobUploadOptions } from "../shared/upload-metadata";
+
 /**
- * Azure Blob Storage–specific metadata parsing and upload options.
+ * HTTP headers for a client-side `fetch` PUT to an Azure block blob SAS URL.
  */
-
-import type { BlobItem } from "@azure/storage-blob";
-import type {
-  BlobUploadOptions,
-  ContentFileMetadata,
-  FileMetadata,
-  ProcessedState,
-  UserFileMetadata,
-} from "../../../types";
-import { getLastSegmentFromUrlPath } from "../../../utils";
-import type { BlobPropertiesResult } from "./types";
-
-const DEFAULT_CONTENT_TYPE = "application/octet-stream";
-const LIST_CONTENT_TYPE_PLACEHOLDER = "—";
-
-const EXTENSION_TO_MIME: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  gif: "image/gif",
-  webp: "image/webp",
-  svg: "image/svg+xml",
-  bmp: "image/bmp",
-  ico: "image/x-icon",
-  pdf: "application/pdf",
-  mp4: "video/mp4",
-  webm: "video/webm",
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  ogg: "audio/ogg",
-};
-
-function resolveContentType(contentType: string, fileName: string): string {
-  const shouldResolveFromExtension =
-    !contentType ||
-    contentType === DEFAULT_CONTENT_TYPE ||
-    contentType === LIST_CONTENT_TYPE_PLACEHOLDER;
-
-  if (!shouldResolveFromExtension) {
-    return contentType;
-  }
-
-  const extension = fileName.split(".").pop()?.toLowerCase();
-  if (!extension) {
-    return contentType;
-  }
-
-  return EXTENSION_TO_MIME[extension] ?? contentType;
-}
-
-function parseFileState(value: string | undefined): ProcessedState | undefined {
-  if (value === "original" || value === "optimized") return value;
-  return undefined;
-}
-
-function parseMetadataFields(
-  metadata: Record<string, string>,
-): Pick<
-  UserFileMetadata,
-  "originalFileName" | "questionName" | "fileState" | "uploadedBy"
-> {
-  const fileStateValue =
-    metadata["filestate"] ?? metadata["fileState"] ?? undefined;
-  return {
-    originalFileName: metadata["filename"] ?? metadata["fileName"] ?? undefined,
-    questionName:
-      metadata["questionname"] ?? metadata["questionName"] ?? undefined,
-    fileState: parseFileState(fileStateValue),
-    uploadedBy: metadata["uploadedby"] ?? metadata["uploadedBy"] ?? "anonymous",
-  };
-}
-
-export const blobMetadataParser = {
-  parseFromBlob(blob: BlobItem): UserFileMetadata {
-    const metadata = blob.metadata ?? {};
-    const rawContentType =
-      metadata["content-type"] ??
-      (blob.properties?.contentType as string | undefined) ??
-      LIST_CONTENT_TYPE_PLACEHOLDER;
-    const displayName = getLastSegmentFromUrlPath(blob.name);
-    const contentType = resolveContentType(rawContentType, displayName);
-    const fields = parseMetadataFields(metadata);
-
-    return {
-      kind: "user" as const,
-      displayName,
-      contentType,
-      sizeInBytes: blob.properties?.contentLength ?? 0,
-      ...fields,
-    };
-  },
-
-  parseFromProperties(
-    properties: BlobPropertiesResult,
-    blobName: string,
-  ): UserFileMetadata {
-    const metadata = properties.metadata ?? {};
-    const displayName = getLastSegmentFromUrlPath(blobName);
-    const rawContentType =
-      properties.contentType?.trim() || DEFAULT_CONTENT_TYPE;
-    const contentType = resolveContentType(rawContentType, displayName);
-    const fields = parseMetadataFields(metadata);
-
-    return {
-      kind: "user" as const,
-      displayName,
-      contentType,
-      sizeInBytes: properties.sizeInBytes,
-      ...fields,
-    };
-  },
-};
-
-export function toBlobUploadOptions(meta: FileMetadata): BlobUploadOptions {
-  const contentType = meta.contentType ?? DEFAULT_CONTENT_TYPE;
-
-  const baseMetadata: Record<string, string> = {
-    uploadedBy: meta.uploadedBy,
-    fileName: meta.displayName,
-    fileType: contentType,
-  };
-
-  if (meta.fileState !== undefined) {
-    baseMetadata.fileState = meta.fileState;
-  }
-
-  if (meta.questionName) {
-    baseMetadata.questionName = meta.questionName;
-  }
-
-  const blobHTTPHeaders: Record<string, string> = {
-    blobContentType: contentType,
-    blobContentDisposition: "inline",
-  };
-
-  let specificMetadata: Record<string, string> = {};
-
-  switch (meta.kind) {
-    case "user": {
-      specificMetadata = buildUserFileMetadata(meta);
-      blobHTTPHeaders.blobContentLanguage = meta.formLang ?? "";
-      break;
-    }
-    case "content": {
-      specificMetadata = buildContentFileMetadata(meta);
-      break;
-    }
-    default: {
-      break;
-    }
-  }
-
-  return {
-    metadata: { ...baseMetadata, ...specificMetadata },
-    blobHTTPHeaders,
-  };
-}
-
 /**
- * HTTP headers for a client-side `fetch` PUT to an Azure block blob SAS URL
- * (replaces BlockBlobClient.uploadData header composition in the browser).
+ * HTTP headers for a client-side `fetch` PUT to an Azure block blob SAS URL.
+ * @param options - The options for the HTTP headers.
+ * @returns The HTTP headers.
  */
 export function toAzureBlockBlobPutHeaders(
   options: BlobUploadOptions,
@@ -172,17 +21,24 @@ export function toAzureBlockBlobPutHeaders(
   const { blobHTTPHeaders, metadata } = options;
 
   if (blobHTTPHeaders.blobContentType) {
-    headers["x-ms-blob-content-type"] = blobHTTPHeaders.blobContentType;
+    headers["x-ms-blob-content-type"] = encodeHeaderValueForFetch(
+      blobHTTPHeaders.blobContentType,
+    );
   }
+
   if (blobHTTPHeaders.blobContentDisposition) {
-    headers["x-ms-blob-content-disposition"] =
-      blobHTTPHeaders.blobContentDisposition;
+    headers["x-ms-blob-content-disposition"] = encodeHeaderValueForFetch(
+      blobHTTPHeaders.blobContentDisposition,
+    );
   }
+  
   if (
     blobHTTPHeaders.blobContentLanguage !== undefined &&
     blobHTTPHeaders.blobContentLanguage !== ""
   ) {
-    headers["x-ms-blob-content-language"] = blobHTTPHeaders.blobContentLanguage;
+    headers["x-ms-blob-content-language"] = encodeHeaderValueForFetch(
+      blobHTTPHeaders.blobContentLanguage,
+    );
   }
 
   for (const [rawKey, value] of Object.entries(metadata)) {
@@ -190,27 +46,8 @@ export function toAzureBlockBlobPutHeaders(
       continue;
     }
     const metaKey = rawKey.toLowerCase();
-    headers[`x-ms-meta-${metaKey}`] = value;
+    headers[`x-ms-meta-${metaKey}`] = encodeHeaderValueForFetch(value);
   }
 
   return headers;
-}
-
-function buildUserFileMetadata(
-  fileMetadata: UserFileMetadata,
-): Record<string, string> {
-  return {
-    formId: fileMetadata.formId ?? "",
-    submissionId: fileMetadata.submissionId ?? "",
-    formLang: fileMetadata.formLang ?? "",
-  };
-}
-
-function buildContentFileMetadata(
-  fileMetadata: ContentFileMetadata,
-): Record<string, string> {
-  return {
-    itemId: fileMetadata.itemId,
-    contentItemType: fileMetadata.contentItemType,
-  };
 }

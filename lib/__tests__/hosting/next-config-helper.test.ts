@@ -4,6 +4,7 @@ import {
   formatRemotePatternsForDisplay,
   getRewriteRuleFor,
   includesRemoteImageHostnames,
+  mergeEndatixImageLocalPatterns,
 } from "@/lib/hosting/next-config-helper";
 import { describe, expect, it } from "vitest";
 
@@ -99,7 +100,33 @@ describe("appendEndatixImageRemotePatterns", () => {
     appendEndatixImageRemotePatterns(remotePatterns, ["blob.core.windows.net"]);
     expect(remotePatterns).toEqual([
       { protocol: "https", hostname: "cdn.example.com" },
-      { protocol: "https", hostname: "blob.core.windows.net" },
+      {
+        protocol: "https",
+        hostname: "blob.core.windows.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "blob.core.windows.net",
+        pathname: "/**",
+      },
+    ]);
+  });
+});
+
+describe("mergeEndatixImageLocalPatterns", () => {
+  it("returns undefined when existing is undefined or empty", () => {
+    expect(mergeEndatixImageLocalPatterns(undefined)).toBeUndefined();
+    expect(mergeEndatixImageLocalPatterns([])).toBeUndefined();
+  });
+
+  it("appends storage API pathname patterns when existing is non-empty", () => {
+    const merged = mergeEndatixImageLocalPatterns([
+      { pathname: "/uploads/**" },
+    ]);
+    expect(merged).toEqual([
+      { pathname: "/uploads/**" },
+      { pathname: "/api/public/v0/storage/**" },
     ]);
   });
 });

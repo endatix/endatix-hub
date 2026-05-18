@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
+import { StorageProviderSummaryCard } from "@/components/admin-ui/storage-provider-summary-card";
 import {
-  getStorageRuntimeSettings,
+  getStorageAdminSummary,
   IMAGE_SERVICE_CONFIG,
 } from "@/features/asset-storage/server";
 import nextConfig from "@/next.config";
@@ -19,12 +20,22 @@ import {
 
 // Storage & image env vars (from storage-config.ts and image-service) – shown together for cohesion
 const STORAGE_AND_IMAGE_ENV_VARS = [
+  "STORAGE_PROVIDER",
   "AZURE_STORAGE_ACCOUNT_NAME",
   "AZURE_STORAGE_ACCOUNT_KEY",
   "AZURE_STORAGE_CUSTOM_DOMAIN",
   "AZURE_STORAGE_IS_PRIVATE",
   "AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES",
   "AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES",
+  "S3_ENDPOINT",
+  "S3_ACCESS_KEY_ID",
+  "S3_SECRET_ACCESS_KEY",
+  "S3_REGION",
+  "S3_FORCE_PATH_STYLE",
+  "S3_PUBLIC_BASE_URL",
+  "S3_IS_PRIVATE",
+  "S3_SAS_READ_EXPIRY_MINUTES",
+  "S3_SAS_WRITE_EXPIRY_SECONDS",
   "USER_FILES_STORAGE_CONTAINER_NAME",
   "CONTENT_STORAGE_CONTAINER_NAME",
   "RESIZE_IMAGES",
@@ -87,8 +98,7 @@ const isKnownVariable = (name: string): boolean => {
 export default async function EnvironmentPage() {
   await requireAdmin();
 
-  const storageSettings = getStorageRuntimeSettings();
-  const azureConfig = storageSettings.azure;
+  const storageSummary = getStorageAdminSummary();
 
   // Get all environment variables
   const allEnvVars = Object.keys(process.env).sort();
@@ -112,104 +122,38 @@ export default async function EnvironmentPage() {
         <h1 className="text-2xl font-bold">Environment Variables</h1>
       </div>
 
-      {/* Azure Storage & Image – resolved config from storage-config.ts */}
+      <StorageProviderSummaryCard summary={storageSummary} />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
-            Storage Related Configuration
+            <ImageIcon className="h-5 w-5" />
+            Image service
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Azure Storage */}
-          <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-semibold">
-              <HardDrive className="h-4 w-4" />
-              Azure Storage
-            </h4>
-            <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-              {azureConfig === null ? (
-                <p className="text-sm text-muted-foreground">
-                  No Azure storage layout (e.g. explicit S3 provider). Image
-                  settings below still reflect env-based image service config.
-                </p>
-              ) : (
-                <>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Status</span>
-                    <Badge
-                      variant={azureConfig.isEnabled ? "default" : "secondary"}
-                    >
-                      {azureConfig.isEnabled ? "Enabled" : "Disabled"}
-                    </Badge>
-                  </div>
-                  {azureConfig.isEnabled && (
-                    <>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-muted-foreground">Host name</span>
-                        <span className="font-mono">
-                          {azureConfig.hostName || "—"}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-muted-foreground">Private</span>
-                        <Badge variant="outline">
-                          {azureConfig.isPrivate ? "Yes" : "No"}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-muted-foreground">
-                          Containers
-                        </span>
-                        <span className="font-mono text-muted-foreground">
-                          user-files: {azureConfig.containerNames.USER_FILES},
-                          content: {azureConfig.containerNames.CONTENT}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-muted-foreground">
-                          SAS read expiry
-                        </span>
-                        <span>
-                          {azureConfig.sasReadExpiryMinutes ?? "—"} min
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
+        <CardContent>
+          <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-muted-foreground">Resize enabled</span>
+              <Badge variant="outline">
+                {imageConfig.isResizeEnabled ? "Yes" : "No"}
+              </Badge>
             </div>
-          </div>
-
-          {/* Image */}
-          <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-semibold">
-              <ImageIcon className="h-4 w-4" />
-              Image
-            </h4>
-            <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-muted-foreground">Resize enabled</span>
-                <Badge variant="outline">
-                  {imageConfig.isResizeEnabled ? "Yes" : "No"}
-                </Badge>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-muted-foreground">
-                  Default resize width
-                </span>
-                <span className="font-mono">
-                  {imageConfig.defaultResizeWidth}px
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-muted-foreground">
-                  Next.js images.remotePatterns
-                </span>
-                <span className="font-mono break-all text-muted-foreground">
-                  {remotePatternsDisplay}
-                </span>
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-muted-foreground">
+                Default resize width
+              </span>
+              <span className="font-mono">
+                {imageConfig.defaultResizeWidth}px
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-muted-foreground">
+                Next.js images.remotePatterns
+              </span>
+              <span className="font-mono break-all text-muted-foreground">
+                {remotePatternsDisplay}
+              </span>
             </div>
           </div>
         </CardContent>
