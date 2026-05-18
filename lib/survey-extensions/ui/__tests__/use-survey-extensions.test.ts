@@ -66,13 +66,17 @@ describe("useSurveyExtensions", () => {
     const formJson = { pages: [{ elements: [{ type: "country" }] }] };
 
     // Act
-    renderHook(() => useSurveyExtensions({ extensionIdsToLoad, formJson, runtimeDeps }));
+    renderHook(() =>
+      useSurveyExtensions({ extensionIdsToLoad, formJson, runtimeDeps }),
+    );
 
     // Assert
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: ["server-ext-a"],
-        runtimeDeps,
+        runtimeDeps: expect.objectContaining({
+          getRuntimeState: expect.any(Function),
+        }),
       }),
     );
     expect(mockGetRequiredExtensionIds).not.toHaveBeenCalled();
@@ -95,7 +99,9 @@ describe("useSurveyExtensions", () => {
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: ["country", "hello-world"],
-        runtimeDeps,
+        runtimeDeps: expect.objectContaining({
+          getRuntimeState: expect.any(Function),
+        }),
       }),
     );
   });
@@ -112,10 +118,22 @@ describe("useSurveyExtensions", () => {
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: [],
-        runtimeDeps,
+        runtimeDeps: expect.objectContaining({
+          getRuntimeState: expect.any(Function),
+        }),
       }),
     );
     expect(mockGetRequiredExtensionIds).not.toHaveBeenCalled();
+  });
+
+  it("passes runtimeDeps unchanged when formJson is omitted", () => {
+    process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
+    renderHook(() =>
+      useSurveyExtensions({ extensionIdsToLoad: ["ext-a"], runtimeDeps }),
+    );
+    expect(mockUseExtensionLoader).toHaveBeenCalledWith(
+      expect.objectContaining({ runtimeDeps }),
+    );
   });
 
   it("returns whatever useExtensionLoader returns", () => {

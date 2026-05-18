@@ -1,17 +1,18 @@
 "use client";
 
+import { useStorageView } from "@/features/asset-storage/client";
+import { useStorageReadRuntime } from "@/features/asset-storage/client";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
+import { useSurveyExtensions } from "@/lib/survey-extensions";
 import { FormTemplate } from "@/types";
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
 import "survey-core/survey-core.css";
 import { SharpLightPanelless } from "survey-core/themes";
 import { Survey } from "survey-react-ui";
-import { useStorageView } from "@/features/asset-storage/client";
-import { useSurveyExtensions } from "@/lib/survey-extensions";
 
 interface SurveyPreviewComponentProps {
   template: FormTemplate;
@@ -22,10 +23,20 @@ export default function SurveyPreviewComponent({
 }: SurveyPreviewComponentProps) {
   const [model, setModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const getReadRuntime = useStorageReadRuntime({
+    designerOnly: true,
+    creatorTemplateId: template.id,
+  });
+
+  const { setModelMetadata, prefetchPrivateReadUrlsForModel } = useStorageView({
+    getReadRuntime,
+  });
+
   const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions({
     runtimeDeps: {
       getRuntimeState: () => ({
-        formId: template.id,
+        templateId: template.id,
       }),
     },
   });
@@ -36,8 +47,6 @@ export default function SurveyPreviewComponent({
     initGlobals: initQuestionLoopsGlobals,
     bindToSurvey: bindQuestionLoops,
   } = useQuestionLoops();
-
-  const { setModelMetadata, registerViewHandlers } = useStorageView();
 
   useEffect(() => {
     if (!template || !isExtensionsReady) return;
@@ -50,26 +59,20 @@ export default function SurveyPreviewComponent({
 
       onModelCreated(survey);
 
-      // Set survey to read-only mode
       survey.mode = "display";
-
-      // Disable all navigation, buttons, and editing
       survey.showNavigationButtons = false;
       survey.showCompletedPage = false;
       survey.showProgressBar = "top";
       survey.questionsOnPageMode = "singlePage";
-
-      // Apply theme
       survey.applyTheme(SharpLightPanelless);
 
       setModelMetadata(survey);
-      const unregisterView = registerViewHandlers(survey);
+      void prefetchPrivateReadUrlsForModel(survey);
 
       setModel(survey);
       setError(null);
 
       return () => {
-        unregisterView();
         unbindQuestionLoops?.();
       };
     } catch (err) {
@@ -79,10 +82,10 @@ export default function SurveyPreviewComponent({
     }
   }, [
     template,
-    registerViewHandlers,
     onModelCreated,
     isExtensionsReady,
     setModelMetadata,
+    prefetchPrivateReadUrlsForModel,
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,

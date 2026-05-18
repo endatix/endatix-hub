@@ -11,6 +11,7 @@ export type {
   Extension,
   ExtensionModule as ExtensionImplementation,
   ExtensionRuntimeDeps,
+  ExtensionRuntimeState,
 } from "./types";
 
 export { useExtensionLoader } from "./ui/use-extension-loader";

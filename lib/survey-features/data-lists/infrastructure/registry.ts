@@ -3,6 +3,7 @@ import {
   DATA_LIST_PROPERTY_NAME,
   DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE,
 } from "../constants";
+import { DATA_LIST_QUESTION_TYPES } from "./data-list-survey-integration";
 
 let isDataListRegistryInitialized = false;
 
@@ -21,30 +22,22 @@ export function registerDataListGlobals(): void {
     category: "choices",
     visibleIndex: 0,
     dependsOn: "choicesFromQuestion",
-    visibleIf: (obj: any) => {
+    visibleIf: (obj: { choicesFromQuestion?: unknown }) => {
       return !obj.choicesFromQuestion;
     },
     choices: [],
   };
 
-  Serializer.addProperty("dropdown", dataListProperty);
-  Serializer.addProperty("tagbox", dataListProperty);
+  for (const questionType of DATA_LIST_QUESTION_TYPES) {
+    Serializer.addProperty(questionType, dataListProperty);
 
-  // Reduce JSON churn by keeping default page size at serializer level.
-  const dropdownLazyLoadPageSize = Serializer.findProperty(
-    "dropdown",
-    "choicesLazyLoadPageSize",
-  );
-  if (dropdownLazyLoadPageSize) {
-    dropdownLazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
-  }
-
-  const tagboxLazyLoadPageSize = Serializer.findProperty(
-    "tagbox",
-    "choicesLazyLoadPageSize",
-  );
-  if (tagboxLazyLoadPageSize) {
-    tagboxLazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+    const lazyLoadPageSize = Serializer.findProperty(
+      questionType,
+      "choicesLazyLoadPageSize",
+    );
+    if (lazyLoadPageSize) {
+      lazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+    }
   }
 
   isDataListRegistryInitialized = true;

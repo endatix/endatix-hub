@@ -7,7 +7,8 @@ import { authorization } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
-import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
+import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
+import { resolveRequiresFormAccessJwt } from "@/lib/form-runtime/form-definition-requires-form-access-jwt";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
@@ -45,6 +46,7 @@ export default async function FormDesignerPage({ params }: Params) {
 
   let form: Form | null = null;
   let formJson: object | null = null;
+  let formDefinitionJson: string | undefined;
 
   try {
     form = await getForm(formId);
@@ -53,7 +55,8 @@ export default async function FormDesignerPage({ params }: Params) {
       formId,
       form.activeDefinitionId!,
     );
-    formJson = response?.jsonData ? JSON.parse(response.jsonData) : null;
+    formDefinitionJson = response?.jsonData;
+    formJson = formDefinitionJson ? JSON.parse(formDefinitionJson) : null;
   } catch (error) {
     console.error("Failed to load form:", error);
 
@@ -93,7 +96,14 @@ export default async function FormDesignerPage({ params }: Params) {
   return (
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
-        <FormRuntimeProvider initialState={{ formId }}>
+        <DesignerRuntimeProvider
+          initialState={{
+            formId,
+            requiresFormAccessJwt: resolveRequiresFormAccessJwt({
+              definitionJson: formDefinitionJson,
+            }),
+          }}
+        >
           <AssetStorageProvider>
             <FormAssistantProvider
               isAssistantEnabled={aiFeaturesEnabled}
@@ -104,7 +114,7 @@ export default async function FormDesignerPage({ params }: Params) {
               <FormDesignerWrapper {...props} />
             </FormAssistantProvider>
           </AssetStorageProvider>
-        </FormRuntimeProvider>
+        </DesignerRuntimeProvider>
       </Suspense>
     </div>
   );

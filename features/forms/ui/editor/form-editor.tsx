@@ -25,7 +25,10 @@ import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
-import { useDataLists, useDataListsLoader } from "@/lib/survey-features/data-lists";
+import {
+  useDataLists,
+  useDataListsLoader,
+} from "@/lib/survey-features/data-lists";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -62,7 +65,7 @@ import {
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
-import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
+import { useDesignerRuntime } from "@/lib/designer-runtime";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -151,7 +154,7 @@ function FormEditor({
   onSaveHandlerReady,
   onPropertyGridControllerReady,
 }: Readonly<FormEditorProps>) {
-  const formRuntime = useFormRuntime();
+  const designerRuntime = useDesignerRuntime();
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -185,7 +188,7 @@ function FormEditor({
   });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     runtimeDeps: {
-      getRuntimeState: () => formRuntime.stateRef.current,
+      getRuntimeState: () => designerRuntime.stateRef.current,
     },
   });
 
@@ -201,7 +204,8 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
-  const { initGlobals: initDataListsGlobals, setAvailableDataLists } = useDataLists();
+  const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
+    useDataLists();
   const { dataLists, isLoading: isDataListsLoading } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
 
@@ -212,8 +216,6 @@ function FormEditor({
   useEffect(() => {
     setAvailableDataLists(dataLists);
   }, [dataLists, setAvailableDataLists]);
-
-
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -567,7 +569,7 @@ function FormEditor({
     registerJsonEditor,
     isExtensionsReady,
     onCreatorCreated,
-    formRuntime,
+    designerRuntime,
     bindQuestionLoops,
     initAnyAnsweredGlobals,
     initDataListsGlobals,
@@ -601,7 +603,7 @@ function FormEditor({
 
     const setAsModified = (_: SurveyCreatorModel, options: ModifiedEvent) => {
       if (options.type === JSON_CHANGED_TYPE) return;
-      
+
       setHasUnsavedChanges(true);
     };
     creator.onModified.add(setAsModified);
@@ -645,7 +647,8 @@ function FormEditor({
     };
 
     globalThis.window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
+    return () =>
+      globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges, isCurrentThemeModified]);
 
   useEffect(() => {

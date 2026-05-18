@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { useDesignerRuntime } from "@/lib/designer-runtime";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
@@ -93,12 +94,11 @@ function FormTemplateEditorContent({
     setIsOnJsonTab,
     setIsJsonModified,
   } = useSurveyDesigner();
+  const designerRuntime = useDesignerRuntime();
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     extensionIdsToLoad: TEMPLATE_EXTENSION_IDS,
     runtimeDeps: {
-      getRuntimeState: () => ({
-        formId: templateId,
-      }),
+      getRuntimeState: () => designerRuntime.stateRef.current,
     },
   });
   const { registerStorageHandlers, isStorageReady } = useStorageWithCreator({
