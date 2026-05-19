@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { getClientStorageConfig } from "@/features/asset-storage/storage-runtime";
 import { deleteUserFiles } from "@/features/asset-storage/use-cases/delete-user-files/delete-user-files";
-import { assertDesignerObjectAccess } from "@/features/form-access";
+import { assertDesignerObjectAccess } from "@/features/form-access/server";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { validateEndatixId } from "@/lib/utils/type-validators";

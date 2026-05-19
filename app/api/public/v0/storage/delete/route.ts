@@ -3,11 +3,10 @@ import { getClientStorageConfig } from "@/features/asset-storage/server";
 import { deleteUserFiles } from "@/features/asset-storage/use-cases/delete-user-files/delete-user-files";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import {
-  authorizeFormStorageAccess,
   assertStorageObjectAccess,
-  resolveStorageGateInput,
-  storageGateResultToResponse,
-} from "@/features/form-access";
+  createFormStorageGateService,
+  mapGateResultToResponse,
+} from "@/features/form-access/server";
 import { Result } from "@/lib/result";
 
 interface DeleteFilesRequest {
@@ -35,22 +34,19 @@ export async function DELETE(request: Request) {
     return apiResponses.badRequest({ detail: "Submission ID is required" });
   }
 
-  const gate = await resolveStorageGateInput(
+  const accessResult = await createFormStorageGateService().authorizeRespondent(
     {
       formId,
       submissionId,
       token: data.token,
       tokenType: data.tokenType,
     },
+    session,
     { allowCookieFallback: !session?.accessToken },
   );
 
-  const accessResult = await authorizeFormStorageAccess(gate, {
-    hubAccessToken: session?.accessToken,
-  });
-  
   if (Result.isError(accessResult)) {
-    return storageGateResultToResponse(accessResult)!;
+    return mapGateResultToResponse(accessResult)!;
   }
 
   if (!accessResult.value.canDeleteFiles) {

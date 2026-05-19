@@ -3,10 +3,10 @@ import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { getClientStorageConfig } from "@/features/asset-storage/storage-runtime";
 import {
-  parseReadUrlsBody,
-  resolveStorageGateInput,
-  storageGateResultToResponse,
-} from "@/features/form-access";
+  mapGateResultToResponse,
+  parsePublicReadUrlsBody,
+  resolveRespondentGate,
+} from "@/features/form-access/server";
 import { resolvePublicReadUrls } from "@/features/asset-storage/use-cases/resolve-read-urls/resolve-read-urls";
 
 export type {
@@ -16,7 +16,7 @@ export type {
 
 /**
  * Batch-resolve storage object URLs to signed GET URLs for public form respondents.
- * Requires formId and OSS-backed gate (body token or submission cookie).
+ * Requires formId and form-access gate (body token or submission cookie).
  */
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -26,24 +26,28 @@ export async function POST(request: Request): Promise<Response> {
     return apiResponses.badRequest({ detail: "Invalid JSON body" });
   }
 
-  const parsed = parseReadUrlsBody(
-    body as Parameters<typeof parseReadUrlsBody>[0],
+  const parsed = parsePublicReadUrlsBody(
+    body as Parameters<typeof parsePublicReadUrlsBody>[0],
   );
   if (Result.isError(parsed)) {
     return apiResponses.badRequest({ detail: parsed.message });
   }
 
   const session = await auth();
-  const gate = await resolveStorageGateInput(parsed.value.gate);
+  const gateResult = await resolveRespondentGate(parsed.value.gate, session);
+  if (Result.isError(gateResult)) {
+    return mapGateResultToResponse(gateResult)!;
+  }
+
   const result = await resolvePublicReadUrls({
-    gate,
+    gate: gateResult.value,
     hubAccessToken: session?.accessToken,
     urls: parsed.value.urls,
     clientConfig: getClientStorageConfig(),
   });
 
   if (Result.isError(result)) {
-    return storageGateResultToResponse(result)!;
+    return mapGateResultToResponse(result)!;
   }
 
   return Response.json(result.value);

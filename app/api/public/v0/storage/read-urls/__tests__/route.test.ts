@@ -1,17 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
+import { formAccessForbidden } from "@/features/form-access/server";
 
 const {
   mockAuth,
   mockGetClientStorageConfig,
-  mockParseReadUrlsBody,
-  mockResolveStorageGateInput,
+  mockParsePublicReadUrlsBody,
+  mockResolveRespondentGate,
   mockResolvePublicReadUrls,
 } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockGetClientStorageConfig: vi.fn(),
-  mockParseReadUrlsBody: vi.fn(),
-  mockResolveStorageGateInput: vi.fn(),
+  mockParsePublicReadUrlsBody: vi.fn(),
+  mockResolveRespondentGate: vi.fn(),
   mockResolvePublicReadUrls: vi.fn(),
 }));
 
@@ -23,13 +24,13 @@ vi.mock("@/features/asset-storage/storage-runtime", () => ({
   getClientStorageConfig: mockGetClientStorageConfig,
 }));
 
-vi.mock("@/features/form-access", async (importOriginal) => {
+vi.mock("@/features/form-access/server", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("@/features/form-access")>();
+    await importOriginal<typeof import("@/features/form-access/server")>();
   return {
     ...actual,
-    parseReadUrlsBody: mockParseReadUrlsBody,
-    resolveStorageGateInput: mockResolveStorageGateInput,
+    parsePublicReadUrlsBody: mockParsePublicReadUrlsBody,
+    resolveRespondentGate: mockResolveRespondentGate,
   };
 });
 
@@ -61,7 +62,9 @@ describe("POST /api/public/v0/storage/read-urls", () => {
       hostName: "test.blob.core.windows.net",
       containerNames: { USER_FILES: "user-files", CONTENT: "content" },
     });
-    mockResolveStorageGateInput.mockImplementation(async (gate) => gate);
+    mockResolveRespondentGate.mockImplementation(async (gate) =>
+      Result.success(gate),
+    );
   });
 
   function request(body: unknown): Request {
@@ -73,7 +76,7 @@ describe("POST /api/public/v0/storage/read-urls", () => {
   }
 
   it("returns 400 when body parsing fails", async () => {
-    mockParseReadUrlsBody.mockReturnValue(
+    mockParsePublicReadUrlsBody.mockReturnValue(
       Result.validationError("formId is required"),
     );
 
@@ -81,28 +84,26 @@ describe("POST /api/public/v0/storage/read-urls", () => {
     expect(response.status).toBe(400);
   });
 
-  it("returns 403 when OSS gate denies access", async () => {
-    mockParseReadUrlsBody.mockReturnValue(
+  it("returns 403 when gate denies access", async () => {
+    mockParsePublicReadUrlsBody.mockReturnValue(
       Result.success({
-        gate: { formId: "form-1" },
-        urls: [
-          "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf",
-        ],
+        gate: { formId: "100" },
+        urls: ["https://test.blob.core.windows.net/user-files/s/100/200/a.pdf"],
       }),
     );
-    mockResolvePublicReadUrls.mockResolvedValue(
-      Result.error("Form access denied"),
+    mockResolveRespondentGate.mockResolvedValue(
+      formAccessForbidden("Form access denied"),
     );
 
     const response = await POST(
-      request({ formId: "form-1", urls: ["https://example/x"] }),
+      request({ formId: "100", urls: ["https://example/x"] }),
     );
     expect(response.status).toBe(403);
-    expect(mockResolveStorageGateInput).toHaveBeenCalled();
+    expect(mockResolveRespondentGate).toHaveBeenCalled();
   });
 
   it("passes hub session token into resolvePublicReadUrls", async () => {
-    mockParseReadUrlsBody.mockReturnValue(
+    mockParsePublicReadUrlsBody.mockReturnValue(
       Result.success({
         gate: { formId: "100" },
         urls: ["https://test.blob.core.windows.net/content/f/100/a.svg"],
@@ -125,29 +126,26 @@ describe("POST /api/public/v0/storage/read-urls", () => {
   });
 
   it("returns resolved urls when gate allows", async () => {
-    mockParseReadUrlsBody.mockReturnValue(
+    mockParsePublicReadUrlsBody.mockReturnValue(
       Result.success({
-        gate: { formId: "form-1", submissionId: "sub-1" },
-        urls: [
-          "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf",
-        ],
+        gate: { formId: "100", submissionId: "200" },
+        urls: ["https://test.blob.core.windows.net/user-files/s/100/200/a.pdf"],
       }),
     );
     mockResolvePublicReadUrls.mockResolvedValue(
       Result.success({
         resolved: {
-          "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf":
-            {
-              url: "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf?sig=1",
-            },
+          "https://test.blob.core.windows.net/user-files/s/100/200/a.pdf": {
+            url: "https://test.blob.core.windows.net/user-files/s/100/200/a.pdf?sig=1",
+          },
         },
       }),
     );
 
     const response = await POST(
       request({
-        formId: "form-1",
-        submissionId: "sub-1",
+        formId: "100",
+        submissionId: "200",
         urls: ["https://example/x"],
       }),
     );

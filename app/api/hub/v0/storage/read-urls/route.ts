@@ -3,7 +3,7 @@ import { authorization } from "@/features/auth/authorization";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { getClientStorageConfig } from "@/features/asset-storage/storage-runtime";
-import { parseHubReadUrlsBody } from "@/features/form-access";
+import { parseHubReadUrlsBody } from "@/features/form-access/server";
 import { resolveHubReadUrls } from "@/features/asset-storage/use-cases/resolve-read-urls/resolve-read-urls";
 import { Permissions } from "@/features/auth/authorization/domain/permissions";
 /**

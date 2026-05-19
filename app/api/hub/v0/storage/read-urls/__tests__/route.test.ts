@@ -31,9 +31,9 @@ vi.mock("@/features/asset-storage/storage-runtime", () => ({
   getClientStorageConfig: mockGetClientStorageConfig,
 }));
 
-vi.mock("@/features/form-access", async (importOriginal) => {
+vi.mock("@/features/form-access/server", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("@/features/form-access")>();
+    await importOriginal<typeof import("@/features/form-access/server")>();
   return {
     ...actual,
     parseHubReadUrlsBody: mockParseHubReadUrlsBody,

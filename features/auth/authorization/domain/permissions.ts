@@ -43,7 +43,7 @@ export const Permissions = {
   Folders: {
     Manage: "folders.manage",
     Unlock: "folders.unlock",
-  }
+  },
 } as const;
 
 /**

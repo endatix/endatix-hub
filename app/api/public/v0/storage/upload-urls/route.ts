@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import {
-  authorizeFormStorageAccess,
-  resolveStorageGateInput,
-  storageGateResultToResponse,
-} from "@/features/form-access";
+  createFormStorageGateService,
+  mapGateResultToResponse,
+  type FormStorageTokenType,
+} from "@/features/form-access/server";
 import {
   getContainerNames,
   generateUploadUrl,
@@ -19,8 +19,6 @@ import {
 } from "@/features/asset-storage/infrastructure/storage-utils";
 import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
 import type { ProcessedState } from "@/features/asset-storage/types";
-import type { FormStorageTokenType } from "@/features/form-access/form-storage-access.types";
-
 interface UploadUrlsRequest {
   formId: string;
   fileNames: string[];
@@ -79,21 +77,18 @@ export async function POST(request: Request): Promise<Response> {
     submissionId = initialSubmissionResult.data.submissionId;
   }
 
-  const gate = await resolveStorageGateInput(
+  const accessResult = await createFormStorageGateService().authorizeRespondent(
     {
       formId,
       submissionId,
       token: data.token,
       tokenType: data.tokenType,
     },
+    session,
     { allowCookieFallback: !session?.accessToken },
   );
-
-  const accessResult = await authorizeFormStorageAccess(gate, {
-    hubAccessToken: session?.accessToken,
-  });
   if (Result.isError(accessResult)) {
-    return storageGateResultToResponse(accessResult)!;
+    return mapGateResultToResponse(accessResult)!;
   }
 
   if (!accessResult.value.canUploadFiles) {
