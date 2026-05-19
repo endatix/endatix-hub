@@ -17,7 +17,6 @@ export type DesignerScope = {
  */
 export interface DesignerRuntimeState extends DesignerScope {
   surveyModel?: Model;
-  requiresFormAccessJwt?: boolean;
   formAccessJwt?: string;
   formAccessJwtExpiresAtUtc?: string;
 }

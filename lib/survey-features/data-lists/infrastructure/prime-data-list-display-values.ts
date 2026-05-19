@@ -1,4 +1,3 @@
-import { mintFormAccessToken } from "@/lib/endatix-api/server/mint-form-access-token";
 import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { ItemValue, type Model, type Question } from "survey-core";
@@ -8,6 +7,8 @@ import {
 } from "./data-list-survey-integration";
 import { registerDataListGlobals } from "./registry";
 import { bindDataListsToSurvey } from "./survey-bindings";
+import { auth } from "@/auth";
+import { EndatixApi } from "@/lib/endatix-api";
 
 /** Uses Survey's `getChoiceDisplayValue` method to resolve display values for a data-list question. */
 function resolveChoiceDisplayValues(
@@ -82,7 +83,9 @@ async function mintServerFormAccessJwt(
 ): Promise<
   Pick<FormRuntimeState, "formAccessJwt" | "formAccessJwtExpiresAtUtc">
 > {
-  const tokenResult = await mintFormAccessToken(formId);
+  const session = await auth();
+  const api = new EndatixApi(session?.accessToken);
+  const tokenResult = await api.forms.createFormAccessToken(formId);
 
   if (!tokenResult.success) {
     console.warn("primeDataListDisplayValues: could not mint form access JWT", {

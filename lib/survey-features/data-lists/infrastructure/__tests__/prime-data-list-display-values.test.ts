@@ -6,10 +6,28 @@ import {
   resolveChoiceLabelForQuestion,
 } from "@/features/pdf-export/submission/format-choice-display";
 
-const mockMintFormAccessToken = vi.fn();
-vi.mock("@/lib/endatix-api/server/mint-form-access-token", () => ({
-  mintFormAccessToken: (...args: unknown[]) => mockMintFormAccessToken(...args),
+const { mockAuth, mockCreateFormAccessToken } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
+  mockCreateFormAccessToken: vi.fn(),
 }));
+
+vi.mock("@/auth", () => ({
+  auth: mockAuth,
+}));
+
+vi.mock("@/lib/endatix-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/endatix-api")>();
+  class MockEndatixApi {
+    forms = {
+      createFormAccessToken: mockCreateFormAccessToken,
+    };
+    constructor(_accessToken?: string) {}
+  }
+  return {
+    ...actual,
+    EndatixApi: MockEndatixApi,
+  };
+});
 
 const mockGetDisplayValues = vi.fn();
 vi.mock("@/lib/endatix-api/public", () => ({
@@ -28,7 +46,8 @@ describe("primeDataListDisplayValues", () => {
   beforeEach(() => {
     registerDataListGlobals();
     vi.clearAllMocks();
-    mockMintFormAccessToken.mockResolvedValue({
+    mockAuth.mockResolvedValue({ accessToken: "hub-token" });
+    mockCreateFormAccessToken.mockResolvedValue({
       success: true,
       data: { token: "form-jwt", expiresAtUtc: "2030-01-01T00:00:00.000Z" },
     });
@@ -59,7 +78,7 @@ describe("primeDataListDisplayValues", () => {
     const question = model.getQuestionByName(
       "country",
     ) as QuestionDropdownModel;
-    expect(mockMintFormAccessToken).toHaveBeenCalledWith("form-1");
+    expect(mockCreateFormAccessToken).toHaveBeenCalledWith("form-1");
     expect(mockGetDisplayValues).toHaveBeenCalledWith({
       formId: "form-1",
       dataListId: "42",
@@ -113,7 +132,7 @@ describe("primeDataListDisplayValues", () => {
 
     await primeDataListDisplayValues(model, "form-1");
 
-    expect(mockMintFormAccessToken).not.toHaveBeenCalled();
+    expect(mockCreateFormAccessToken).not.toHaveBeenCalled();
     expect(mockGetDisplayValues).not.toHaveBeenCalled();
   });
 });

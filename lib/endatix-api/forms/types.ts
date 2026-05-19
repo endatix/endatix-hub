@@ -25,3 +25,20 @@ export interface FormAccessTokenResponse {
   token: string;
   expiresAtUtc: string;
 }
+
+/** Query for GET /access/public/forms/{formId}. */
+export interface GetPublicFormAccessRequest {
+  token?: string;
+  tokenType?: "AccessToken" | "SubmissionToken";
+}
+
+/** Response from GET /access/public/forms/{formId}. */
+export interface PublicFormAccessResponse {
+  formId: string;
+  submissionId: string | null;
+  formPermissions: string[];
+  submissionPermissions: string[];
+  cachedAt: string;
+  expiresAt: string;
+  eTag: string;
+}

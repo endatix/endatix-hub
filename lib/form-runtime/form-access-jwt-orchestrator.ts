@@ -1,7 +1,6 @@
 /**
- * Browser-only JWT ming + caching.
- * Server code (PDF, RSC, actions) should use `mintFormAccessToken` from
- * `@/lib/endatix-api/server/mint-form-access-token` instead.
+ * Browser-only JWT mint + caching.
+ * Server code (PDF, RSC, actions) should use `auth()` + `EndatixApi.forms.createFormAccessToken`.
  */
 import { buildFormAccessTokenBody } from "@/lib/endatix-api/public/forms/form-access-token.shared";
 import { createFormAccessToken } from "@/lib/endatix-api/public/forms/form-access-token.client";

@@ -110,7 +110,6 @@ export type {
   GetSubmissionResponse,
   GetSubmissionsResponse,
   UpdateSubmissionStatusResponse,
-  GetSubmissionFilesResponse,
   ExportSubmissionsResponse,
   SubmissionQuery,
   SubmissionData,

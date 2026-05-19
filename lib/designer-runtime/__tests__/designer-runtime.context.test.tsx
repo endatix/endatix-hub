@@ -22,7 +22,6 @@ describe("DesignerRuntimeProvider", () => {
   const initialState: DesignerRuntimeState = {
     formId: "form-1",
     submissionId: "sub-1",
-    requiresFormAccessJwt: true,
   };
 
   it("exposes initial state on stateRef", () => {
