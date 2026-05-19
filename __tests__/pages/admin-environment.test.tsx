@@ -33,7 +33,7 @@ describe("Admin Environment Page", () => {
     vi.mocked(getStorageAdminSummary).mockReturnValue({
       activeProviderId: "azure",
       activeProviderLabel: "Azure Blob Storage",
-      explicitProviderLabel: "azure (explicit)",
+      configuredProviderLabel: "azure",
       isEnabled: true,
       isPrivate: false,
       protocol: "https",

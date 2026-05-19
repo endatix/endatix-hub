@@ -64,7 +64,7 @@ export function StorageProviderSummaryCard({
           />
           <DetailRow
             label="STORAGE_PROVIDER"
-            value={summary.explicitProviderLabel}
+            value={summary.configuredProviderLabel}
           />
           <DetailRow
             label="Status"

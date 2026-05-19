@@ -6,10 +6,10 @@ import {
 } from "./storage-env-predicates";
 
 /**
- * Normalized `STORAGE_PROVIDER` env: known explicit values, or `null` for unset / unknown.
+ * Normalized `STORAGE_PROVIDER` env value.
  * Kept in lib so `next.config` and `resolve-endatix-settings` share one type without importing features.
  */
-export type StorageProviderEnvChoice = "none" | "s3" | "azure" | null;
+export type StorageProvider = "none" | "s3" | "azure";
 
 export {
   isAzureStorageCredentialsPresentInEnv,
@@ -39,18 +39,18 @@ function collectS3ImageHostname(): string | null {
  * Single source of truth: same matrix as bootstrap (`STORAGE_PROVIDER` + provider env).
  */
 export function collectStorageImageRemoteHostnamesFromEnv(
-  explicitProvider: StorageProviderEnvChoice,
+  provider: StorageProvider,
 ): readonly string[] {
   const hostnames: string[] = [];
 
-  if (explicitProvider === "azure") {
+  if (provider === "azure") {
     const azure = getAzureStoragePublicHostFromEnv();
     if (azure !== null && azure.host.length > 0) {
       hostnames.push(azure.host);
     }
   }
 
-  if (explicitProvider === "s3") {
+  if (provider === "s3") {
     const s3Host = collectS3ImageHostname();
     if (s3Host !== null) {
       hostnames.push(s3Host);

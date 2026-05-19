@@ -110,15 +110,10 @@ function validateEnv(): { valid: boolean; errors: string[] } {
     errors.push(storageError);
   }
 
-  const hasExplicitStorageProvider =
-    storageProfile.explicitProvider === "azure" ||
-    storageProfile.explicitProvider === "s3";
+  const isBlobStorageEnabled =
+    storageProfile.provider === "azure" || storageProfile.provider === "s3";
 
-  if (
-    storageErrors.length === 0 &&
-    !hasExplicitStorageProvider &&
-    storageProfile.explicitProvider !== "none"
-  ) {
+  if (storageErrors.length === 0 && !isBlobStorageEnabled) {
     console.log(
       `${styles.warning(
         "Storage service is not enabled. Set STORAGE_PROVIDER to azure or s3 and configure the provider env vars.",

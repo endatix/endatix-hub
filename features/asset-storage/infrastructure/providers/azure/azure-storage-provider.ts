@@ -28,7 +28,12 @@ import type {
   StorageListBlobItem,
   UploadUrlDescriptor,
 } from "../shared/blob-route-types";
-import { getAzureStorageConfig, type AzureStorageConfig } from "./azure-config";
+import {
+  getAzureStorageConfig,
+  toClientStorageConfig,
+  type AzureStorageConfig,
+} from "./azure-config";
+import type { ClientStorageConfig } from "../shared/client-storage-config";
 import {
   toAzureBlockBlobPutHeaders,
   toBlobUploadOptions,
@@ -64,6 +69,10 @@ export class AzureBlobStorageProvider implements IStorageProvider {
    */
   isPrivate(): boolean {
     return this.getConfig().isPrivate;
+  }
+
+  getClientConfig(): ClientStorageConfig {
+    return toClientStorageConfig(this.getConfig());
   }
 
   /**

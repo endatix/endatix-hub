@@ -2,7 +2,7 @@ import {
   collectStorageImageRemoteHostnamesFromEnv,
   isAzureStorageCredentialsPresentInEnv,
   isS3StorageCredentialsPresentInEnv,
-  type StorageProviderEnvChoice,
+  type StorageProvider,
 } from "../../lib/hosting/storage-image-remote-hostnames";
 import { getAuthConfig, type EndatixAuthConfig } from "./auth-config";
 import {
@@ -18,10 +18,11 @@ import {
 
 const DEFAULT_API_PREFIX = "/api";
 
-export type { StorageProviderEnvChoice } from "../../lib/hosting/storage-image-remote-hostnames";
+export type { StorageProvider } from "../../lib/hosting/storage-image-remote-hostnames";
 
 export interface StorageProfileSlice {
-  readonly explicitProvider: StorageProviderEnvChoice;
+  readonly provider: StorageProvider;
+  readonly invalidProviderRaw: string | null;
   readonly azureCredentialsPresent: boolean;
   readonly s3CredentialsPresent: boolean;
   readonly imageRemoteHostnames: readonly string[];
@@ -80,10 +81,17 @@ export interface EndatixResolvedSettings {
  * this so storage + image host inference stays aligned with build-time `images.remotePatterns`.
  */
 const RESOLVED_STORAGE_VERSION_KEY = "ENDATIX_RESOLVED_STORAGE_VERSION";
-const RESOLVED_STORAGE_EXPLICIT_KEY = "ENDATIX_RESOLVED_STORAGE_EXPLICIT";
+const RESOLVED_STORAGE_PROVIDER_KEY = "ENDATIX_RESOLVED_STORAGE_PROVIDER";
 const RESOLVED_AZURE_CREDS_KEY = "ENDATIX_RESOLVED_AZURE_CREDENTIALS";
 const RESOLVED_S3_CREDS_KEY = "ENDATIX_RESOLVED_S3_CREDENTIALS";
 const RESOLVED_IMAGE_HOSTS_KEY = "ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES";
+
+const STORAGE_MIRROR_VERSION = "2";
+
+type ParsedStorageProvider = {
+  readonly provider: StorageProvider;
+  readonly invalidProviderRaw: string | null;
+};
 
 let cachedStorageFromEnv: StorageProfileSlice | undefined;
 
@@ -91,27 +99,20 @@ function parseRawStorageProvider(): string | undefined {
   return process.env.STORAGE_PROVIDER?.trim().toLowerCase();
 }
 
-/**
- * Normalize the explicit choice for the storage provider.
- * @param raw - The raw storage provider choice.
- * @returns The normalized storage provider choice.
- */
-function normalizeExplicitChoice(
-  raw: string | undefined,
-): StorageProviderEnvChoice {
+function parseStorageProvider(raw: string | undefined): ParsedStorageProvider {
   if (raw === undefined || raw.length === 0) {
-    return null;
+    return { provider: "none", invalidProviderRaw: null };
   }
   if (raw === "none" || raw === "s3" || raw === "azure") {
-    return raw;
+    return { provider: raw, invalidProviderRaw: null };
   }
-  return null;
+  return { provider: "none", invalidProviderRaw: raw };
 }
 
 function collectImageRemoteHostnames(
-  explicitProvider: StorageProviderEnvChoice,
+  provider: StorageProvider,
 ): readonly string[] {
-  return collectStorageImageRemoteHostnamesFromEnv(explicitProvider);
+  return collectStorageImageRemoteHostnamesFromEnv(provider);
 }
 
 function buildStorageSliceFromEnv(): StorageProfileSlice {
@@ -119,49 +120,36 @@ function buildStorageSliceFromEnv(): StorageProfileSlice {
     return cachedStorageFromEnv;
   }
 
-  const rawExplicit = parseRawStorageProvider();
-  const explicitProvider = normalizeExplicitChoice(rawExplicit);
+  const rawProvider = parseRawStorageProvider();
+  const { provider, invalidProviderRaw } = parseStorageProvider(rawProvider);
   const azureCredentialsPresent = isAzureStorageCredentialsPresentInEnv();
   const s3CredentialsPresent = isS3StorageCredentialsPresentInEnv();
 
   cachedStorageFromEnv = Object.freeze({
-    explicitProvider,
+    provider,
+    invalidProviderRaw,
     azureCredentialsPresent,
     s3CredentialsPresent,
-    imageRemoteHostnames: collectImageRemoteHostnames(explicitProvider),
+    imageRemoteHostnames: collectImageRemoteHostnames(provider),
   });
   return cachedStorageFromEnv;
 }
 
-function encodeExplicitForMirror(
-  explicit: StorageProviderEnvChoice,
-): "auto" | "none" | "s3" | "azure" {
-  if (explicit === null) {
-    return "auto";
-  }
-  return explicit;
-}
-
-function decodeExplicitFromMirror(
-  value: string | undefined,
-): StorageProviderEnvChoice {
-  const v = value?.trim() ?? "auto";
-  if (v === "auto" || v.length === 0) {
-    return null;
-  }
+function decodeProviderFromMirror(value: string | undefined): StorageProvider {
+  const v = value?.trim() ?? "none";
   if (v === "none" || v === "s3" || v === "azure") {
     return v;
   }
-  return null;
+  return "none";
 }
 
 function readStorageProfileFromBuildMirror(): StorageProfileSlice | null {
-  if (process.env[RESOLVED_STORAGE_VERSION_KEY] !== "1") {
+  if (process.env[RESOLVED_STORAGE_VERSION_KEY] !== STORAGE_MIRROR_VERSION) {
     return null;
   }
 
-  const explicitProvider = decodeExplicitFromMirror(
-    process.env[RESOLVED_STORAGE_EXPLICIT_KEY],
+  const provider = decodeProviderFromMirror(
+    process.env[RESOLVED_STORAGE_PROVIDER_KEY],
   );
   const azureCredentialsPresent = process.env[RESOLVED_AZURE_CREDS_KEY] === "1";
   const s3CredentialsPresent = Object.hasOwn(process.env, RESOLVED_S3_CREDS_KEY)
@@ -180,10 +168,11 @@ function readStorageProfileFromBuildMirror(): StorageProfileSlice | null {
           .map((h) => h.trim())
           .filter(Boolean),
       )
-    : collectImageRemoteHostnames(explicitProvider);
+    : collectImageRemoteHostnames(provider);
 
   return Object.freeze({
-    explicitProvider,
+    provider,
+    invalidProviderRaw: null,
     azureCredentialsPresent,
     s3CredentialsPresent,
     imageRemoteHostnames,
@@ -297,10 +286,8 @@ function buildEnvPatch(
   }
 
   if (source === "withEndatix") {
-    env[RESOLVED_STORAGE_VERSION_KEY] = "1";
-    env[RESOLVED_STORAGE_EXPLICIT_KEY] = encodeExplicitForMirror(
-      storage.explicitProvider,
-    );
+    env[RESOLVED_STORAGE_VERSION_KEY] = STORAGE_MIRROR_VERSION;
+    env[RESOLVED_STORAGE_PROVIDER_KEY] = storage.provider;
     env[RESOLVED_AZURE_CREDS_KEY] = storage.azureCredentialsPresent ? "1" : "0";
     env[RESOLVED_S3_CREDS_KEY] = storage.s3CredentialsPresent ? "1" : "0";
     env[RESOLVED_IMAGE_HOSTS_KEY] = storage.imageRemoteHostnames.join(",");

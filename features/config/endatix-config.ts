@@ -17,7 +17,7 @@ export type {
   EndatixResolvedSettings,
   ResolveEndatixSettingsSource,
   StorageProfileSlice,
-  StorageProviderEnvChoice,
+  StorageProvider,
   WithEndatixOptions,
 } from "./resolve-endatix-settings";
 export { getRuntimeStorageProfile, resolveEndatixSettings } from "./resolve-endatix-settings";

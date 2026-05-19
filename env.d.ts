@@ -81,7 +81,7 @@ declare namespace NodeJS {
 
     // Build-time mirror from withEndatix (resolveEndatixSettings envPatch) — flags and hostnames only, never secrets
     ENDATIX_RESOLVED_STORAGE_VERSION?: string;
-    ENDATIX_RESOLVED_STORAGE_EXPLICIT?: string;
+    ENDATIX_RESOLVED_STORAGE_PROVIDER?: string;
     ENDATIX_RESOLVED_AZURE_CREDENTIALS?: string;
     ENDATIX_RESOLVED_S3_CREDENTIALS?: string;
     ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES?: string;

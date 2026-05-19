@@ -6,6 +6,10 @@ import type { ContainerType } from "@/features/asset-storage/types";
 import { resolveStoragePublicHost } from "@/lib/hosting/resolve-storage-public-host";
 import { isS3StorageCredentialsPresentInEnv } from "@/lib/hosting/storage-env-predicates";
 import {
+  buildClientStorageConfig,
+  type ClientStorageConfig,
+} from "../shared/client-storage-config";
+import {
   getStorageContainerNames,
   parsePositiveInt,
   parseWriteExpirySecondsFromEnv,
@@ -76,5 +80,18 @@ export function getS3StorageConfig(): S3StorageConfig {
     imageConfig: IMAGE_SERVICE_CONFIG,
     clientHostName,
     protocol,
+  });
+}
+
+export function toClientStorageConfig(
+  s3: S3StorageConfig,
+): ClientStorageConfig {
+  return buildClientStorageConfig({
+    isEnabled: s3.isEnabled,
+    isPrivate: s3.isPrivate,
+    hostName: s3.clientHostName,
+    protocol: s3.protocol,
+    containerNames: s3.containerNames,
+    imageConfig: s3.imageConfig,
   });
 }

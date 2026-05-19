@@ -1,13 +1,52 @@
+import type { ReadTokensResult as BulkReadTokensResult } from "../../types";
+import type { ClientStorageConfig } from "../providers/shared/client-storage-config";
+import type {
+  BlobPropertiesResult,
+  BulkReadUrlsOptions,
+  FileOptions,
+  FolderOptions,
+  StorageListBlobItem,
+  UploadUrlDescriptor,
+} from "./storage-operation-types";
+
 /**
- * Minimal storage provider identity — extended by concrete providers (Azure, S3).
+ * Storage provider contract (Azure and S3).
+ * Hub routes and {@link ../storage-gateway} call these methods on the active provider.
  */
 export interface IStorageProvider {
   readonly id: string;
   readonly name: string;
 
-  /** True when credentials/config allow serving storage requests. */
   isEnabled(): boolean;
-
-  /** True when reads require presigned URLs / tokens. */
   isPrivate(): boolean;
+
+  /** Browser-safe config for URL parsing, presign, and client providers. */
+  getClientConfig(): ClientStorageConfig;
+
+  resetClient(): void;
+
+  bulkGenerateReadTokens(
+    options: BulkReadUrlsOptions,
+  ): Promise<BulkReadTokensResult>;
+
+  /** Presigned GET query string (no leading `?`) for one object key. */
+  generateReadTokenQuery(
+    containerName: string,
+    objectKey: string,
+    expiresInMinutes?: number,
+  ): Promise<string>;
+
+  generateUploadUrl(
+    fileOptions: FileOptions,
+    permissions?: "wr",
+  ): Promise<UploadUrlDescriptor>;
+
+  deleteBlob(fileOptions: FileOptions): Promise<void>;
+
+  listBlobs(folderOptions: FolderOptions): Promise<StorageListBlobItem[]>;
+
+  getBlobProperties(
+    containerName: string,
+    blobName: string,
+  ): Promise<BlobPropertiesResult | null>;
 }

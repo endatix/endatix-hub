@@ -33,7 +33,13 @@ import type {
   UploadUrlDescriptor,
 } from "../shared/blob-route-types";
 import { toBlobUploadOptions } from "../shared/upload-metadata";
-import { getS3StorageConfig, type S3StorageConfig } from "./s3-config";
+import { toS3ObjectMetadata, toS3PresignedPutHeaders } from "./s3-put-headers";
+import {
+  getS3StorageConfig,
+  toClientStorageConfig,
+  type S3StorageConfig,
+} from "./s3-config";
+import type { ClientStorageConfig } from "../shared/client-storage-config";
 
 const LIST_HEAD_CONCURRENCY = 16;
 const PROVIDER_LABEL = "S3";
@@ -58,29 +64,13 @@ function buildPutObjectInput(
   meta: import("../../../types").FileMetadata,
 ): PutObjectCommand["input"] {
   const blob = toBlobUploadOptions(meta);
-  const metadata: Record<string, string> = {};
-  for (const [rawKey, value] of Object.entries(blob.metadata)) {
-    if (value === undefined || value === "") {
-      continue;
-    }
-    metadata[rawKey.toLowerCase()] = value;
-  }
+  const metadata = toS3ObjectMetadata(blob.metadata);
   return {
     Bucket: bucket,
     Key: key,
     ContentType: blob.blobHTTPHeaders.blobContentType,
     Metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
   };
-}
-
-function buildClientHeadersFromPutInput(
-  input: PutObjectCommand["input"],
-): Record<string, string> {
-  const headers: Record<string, string> = {};
-  if (input.ContentType) {
-    headers["Content-Type"] = input.ContentType;
-  }
-  return headers;
 }
 
 /**
@@ -135,6 +125,10 @@ export class S3StorageProvider implements IStorageProvider {
     return this.getConfig().isPrivate;
   }
 
+  getClientConfig(): ClientStorageConfig {
+    return toClientStorageConfig(this.getConfig());
+  }
+
   /**
    * Bulk generate read tokens for the S3 storage.
    * @param options - The options for the bulk generate read tokens.
@@ -144,7 +138,11 @@ export class S3StorageProvider implements IStorageProvider {
     options: BulkReadUrlsOptions,
   ): Promise<BulkReadTokensResult> {
     const storageConfig = this.getConfig();
-    const validation = validateBulkReadUrlsOptions(storageConfig, options, PROVIDER_LABEL);
+    const validation = validateBulkReadUrlsOptions(
+      storageConfig,
+      options,
+      PROVIDER_LABEL,
+    );
     if (Result.isError(validation)) {
       return validation;
     }
@@ -200,7 +198,9 @@ export class S3StorageProvider implements IStorageProvider {
       { expiresIn: expiresInSec },
     );
     const parsedUrl = new URL(url);
-    return parsedUrl.search.startsWith("?") ? parsedUrl.search.slice(1) : parsedUrl.search;
+    return parsedUrl.search.startsWith("?")
+      ? parsedUrl.search.slice(1)
+      : parsedUrl.search;
   }
 
   /**
@@ -227,23 +227,23 @@ export class S3StorageProvider implements IStorageProvider {
       Bucket: fileOptions.containerName,
       Key: key,
     };
+    let headers: Record<string, string> = {};
 
     if (fileOptions.blobUploadFileMetadata !== undefined) {
+      const blobOptions = toBlobUploadOptions(
+        fileOptions.blobUploadFileMetadata,
+      );
       putInput = buildPutObjectInput(
         fileOptions.containerName,
         key,
         fileOptions.blobUploadFileMetadata,
       );
+      headers = toS3PresignedPutHeaders(blobOptions);
     }
 
     const url = await getSignedUrl(client, new PutObjectCommand(putInput), {
       expiresIn: c.sasWriteExpirySeconds,
     });
-
-    const headers =
-      fileOptions.blobUploadFileMetadata !== undefined
-        ? buildClientHeadersFromPutInput(putInput)
-        : {};
 
     return { url, key, headers };
   }
