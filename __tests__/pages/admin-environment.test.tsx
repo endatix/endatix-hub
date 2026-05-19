@@ -48,6 +48,7 @@ describe("Admin Environment Page", () => {
         sasWriteExpirySeconds: 3600,
       },
       s3: null,
+      configurationErrors: [],
     });
   });
 

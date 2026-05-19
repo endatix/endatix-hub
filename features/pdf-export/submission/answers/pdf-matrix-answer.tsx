@@ -1,11 +1,14 @@
-import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 import { ItemValue, QuestionMatrixModel } from "survey-core";
 import { PDF_TABLE_STYLES } from "@/features/pdf-export/submission/pdf-styles";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
+import {
+  formatChoiceDisplay,
+  resolveMatrixColumnLabel,
+} from "../format-choice-display";
 
 interface MatrixAnswerPdfProps {
-  question: Partial<QuestionMatrixModel>;
+  question: QuestionMatrixModel;
 }
 
 interface IMatrixAnswer {
@@ -26,8 +29,10 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
       }
       const rowText = row.text;
       const answer = question.value[row.value];
-      const answerText =
-        question.columns.find((c: ItemValue) => c.value === answer)?.text ?? "";
+      const answerText = formatChoiceDisplay(
+        answer,
+        resolveMatrixColumnLabel(question, answer),
+      );
       if (answerText && rowText) {
         answers.push({
           question: rowText,

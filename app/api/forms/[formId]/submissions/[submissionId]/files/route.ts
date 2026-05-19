@@ -1,30 +1,30 @@
 import { NextRequest } from "next/server";
 import { Model, Serializer } from "survey-core";
+import { buildSubmissionFilesZipFromStorage } from "@/features/submissions/use-cases/build-submission-files-zip-from-storage.use-case";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Result } from "@/lib/result";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
+import { getClientStorageConfig } from "@/features/asset-storage/storage-runtime";
 import { EMPTY_FILE_HEADER } from "@/lib/utils/files-download";
-import { getSubmissionFiles } from "@/services/api";
-import { getSession } from "@/features/auth";
+import { authorization, getSession, Permissions } from "@/features/auth";
+import { auth } from "@/auth";
 
 export async function GET(
-  request: NextRequest,
+  _: NextRequest,
   { params }: { params: Promise<{ formId: string; submissionId: string }> },
 ) {
   const { formId, submissionId } = await params;
 
-  const session = await getSession();
+  const session = await auth();
+  const { requireHubAccess, checkPermission } = await authorization(session);
 
-  if (!session.isLoggedIn) {
-    return new Response(
-      JSON.stringify({
-        error: "Unauthorized",
-      }),
-      {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+  await requireHubAccess();
+
+  const canViewSubmission = await checkPermission(Permissions.Submissions.View);
+  if (!canViewSubmission.success) {
+    return new Response("You are not authorized to view this submission", {
+      status: 403,
+    });
   }
 
   const submission = await getSubmissionDetailsUseCase({
@@ -53,34 +53,35 @@ export async function GET(
 
   const expression = model.getPropertyValue("fileNamesPrefix") ?? "";
   const prefix = model.runExpression(expression) ?? "";
+  const downloadFileName = `submission-${submissionId}-files.zip`;
 
-  try {
-    const response = await getSubmissionFiles(formId, submissionId, prefix);
-
-    // Stream the response
-    const contentType =
-      response.headers.get("content-type") || "application/octet-stream";
-    const contentDisposition = response.headers.get("content-disposition");
-    const headers: HeadersInit = { "content-type": contentType };
-    if (contentDisposition) {
-      headers["content-disposition"] = contentDisposition;
-    }
-    const emptyFile = response.headers.get(EMPTY_FILE_HEADER);
-    if (emptyFile) {
-      headers[EMPTY_FILE_HEADER] = emptyFile;
-    }
-
-    return response;
-  } catch (error) {
-    return new Response(
-      `${
-        error instanceof Error
-          ? error.message
-          : "Failed to download submission files"
-      }`,
-      {
-        status: 500,
-      },
-    );
+  if (!getClientStorageConfig().isEnabled) {
+    return new Response("File storage is not enabled", { status: 503 });
   }
+
+  const zipResult = await buildSubmissionFilesZipFromStorage({
+    formId,
+    submissionId,
+    fileNamesPrefix: prefix,
+    downloadFileName,
+  });
+
+  if (Result.isError(zipResult)) {
+    return new Response(zipResult.message, { status: 500 });
+  }
+
+  if (zipResult.value.kind === "empty") {
+    const headers: HeadersInit = {
+      "content-type": "application/zip",
+      [EMPTY_FILE_HEADER]: "true",
+    };
+    return new Response(new Uint8Array(), { status: 200, headers });
+  }
+
+  const headers: HeadersInit = {
+    "content-type": "application/zip",
+    "content-disposition": `attachment; filename=${downloadFileName}`,
+  };
+  const zipBytes = new Uint8Array(zipResult.value.buffer);
+  return new Response(zipBytes, { status: 200, headers });
 }

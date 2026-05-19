@@ -1,322 +1,158 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Result } from "@/lib/result";
 
-// Use vi.hoisted to define mocks before they're used
 const {
-  mockGetStorageRuntimeSettings,
-  mockBulkGenerateReadTokens,
-  mockResolveContainerFromUrl,
   mockAuth,
+  mockGetClientStorageConfig,
+  mockParseReadUrlsBody,
+  mockResolveStorageGateInput,
+  mockResolvePublicReadUrls,
 } = vi.hoisted(() => ({
-  mockGetStorageRuntimeSettings: vi.fn(),
-  mockBulkGenerateReadTokens: vi.fn(),
-  mockResolveContainerFromUrl: vi.fn(),
   mockAuth: vi.fn(),
+  mockGetClientStorageConfig: vi.fn(),
+  mockParseReadUrlsBody: vi.fn(),
+  mockResolveStorageGateInput: vi.fn(),
+  mockResolvePublicReadUrls: vi.fn(),
 }));
 
-// Mock dependencies before importing the route
 vi.mock("@/auth", () => ({
   auth: mockAuth,
 }));
 
 vi.mock("@/features/asset-storage/storage-runtime", () => ({
-  getStorageRuntimeSettings: mockGetStorageRuntimeSettings,
+  getClientStorageConfig: mockGetClientStorageConfig,
 }));
 
-vi.mock("@/features/asset-storage/infrastructure/storage-gateway", () => ({
-  bulkGenerateReadTokens: mockBulkGenerateReadTokens,
-}));
+vi.mock("@/features/form-access", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/features/form-access")>();
+  return {
+    ...actual,
+    parseReadUrlsBody: mockParseReadUrlsBody,
+    resolveStorageGateInput: mockResolveStorageGateInput,
+  };
+});
 
-vi.mock("@/features/asset-storage/utils", () => ({
-  resolveContainerFromUrl: mockResolveContainerFromUrl,
-}));
+vi.mock(
+  "@/features/asset-storage/use-cases/resolve-read-urls/resolve-read-urls",
+  () => ({
+    resolvePublicReadUrls: mockResolvePublicReadUrls,
+  }),
+);
 
 vi.mock("@/lib/utils/route-handlers", () => ({
   apiResponses: {
-    badRequest: (body: any) =>
+    badRequest: (body: { detail: string }) =>
       new Response(JSON.stringify(body), { status: 400 }),
-    unauthorized: (body: any) =>
-      new Response(JSON.stringify(body), { status: 401 }),
-    serverError: (body: any) =>
-      new Response(JSON.stringify(body), { status: 500 }),
+    forbidden: (body: { detail: string }) =>
+      new Response(JSON.stringify(body), { status: 403 }),
   },
 }));
 
-// Import after mocking
 import { POST } from "../route";
-
-const sampleUrl =
-  "https://test.blob.core.windows.net/user-files/s/form-123/submission-123/test.pdf";
 
 describe("POST /api/public/v0/storage/read-urls", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Default mock implementations
-    mockGetStorageRuntimeSettings.mockReturnValue({
-      providerId: "azure",
+    mockAuth.mockResolvedValue({ accessToken: "hub-session-token" });
+    mockGetClientStorageConfig.mockReturnValue({
       isEnabled: true,
       isPrivate: true,
-      storage: {
-        explicitProvider: null,
-        azureCredentialsPresent: true,
-        imageRemoteHostnames: [],
-      },
-      azure: {
-        isEnabled: true,
-        isPrivate: true,
-        hostName: "test.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      },
+      hostName: "test.blob.core.windows.net",
+      containerNames: { USER_FILES: "user-files", CONTENT: "content" },
     });
-    mockAuth.mockResolvedValue({ user: { id: "user-123" }, error: null });
-    mockResolveContainerFromUrl.mockReturnValue(null);
-    mockBulkGenerateReadTokens.mockResolvedValue({
-      kind: 0,
-      value: {
-        readTokens: {},
-        expiresOn: new Date(),
-        generatedAt: new Date(),
-      },
-    });
+    mockResolveStorageGateInput.mockImplementation(async (gate) => gate);
   });
 
-  const createRequest = (body: object) => {
+  function request(body: unknown): Request {
     return new Request("http://localhost/api/public/v0/storage/read-urls", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-  };
+  }
 
-  it("should return 401 if user is not authenticated and storage is private", async () => {
-    mockAuth.mockResolvedValue(null);
-
-    const response = await POST(createRequest({ urls: [sampleUrl] }));
-
-    expect(response.status).toBe(401);
-
-    const data = await response.json();
-    expect(data.detail).toBe(
-      "You must be authenticated to access this resource",
-    );
-  });
-
-  it("returns resolved urls unchanged when storage is not private", async () => {
-    mockGetStorageRuntimeSettings.mockReturnValue({
-      providerId: "azure",
-      isEnabled: true,
-      isPrivate: false,
-      storage: {
-        explicitProvider: null,
-        azureCredentialsPresent: true,
-        imageRemoteHostnames: [],
-      },
-      azure: {
-        isEnabled: true,
-        isPrivate: false,
-        hostName: "test.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      },
-    });
-
-    const response = await POST(createRequest({ urls: [sampleUrl] }));
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.resolved[sampleUrl]).toEqual({ url: sampleUrl });
-    expect(mockResolveContainerFromUrl).not.toHaveBeenCalled();
-    expect(mockBulkGenerateReadTokens).not.toHaveBeenCalled();
-  });
-
-  it("returns resolved urls when not private even if azure is null (non-Azure provider)", async () => {
-    mockGetStorageRuntimeSettings.mockReturnValue({
-      providerId: "s3",
-      isEnabled: true,
-      isPrivate: false,
-      storage: {
-        explicitProvider: "s3",
-        azureCredentialsPresent: false,
-        imageRemoteHostnames: [],
-      },
-      azure: null,
-    });
-
-    const rustUrl =
-      "https://rustfs.example/bucket/s/form-1/submission-1/file.pdf";
-    const response = await POST(createRequest({ urls: [rustUrl] }));
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.resolved[rustUrl]).toEqual({ url: rustUrl });
-    expect(mockResolveContainerFromUrl).not.toHaveBeenCalled();
-    expect(mockBulkGenerateReadTokens).not.toHaveBeenCalled();
-  });
-
-  it("returns 400 when private storage has no Azure layout (azure null)", async () => {
-    mockGetStorageRuntimeSettings.mockReturnValue({
-      providerId: "s3",
-      isEnabled: true,
-      isPrivate: true,
-      storage: {
-        explicitProvider: "s3",
-        azureCredentialsPresent: false,
-        imageRemoteHostnames: [],
-      },
-      azure: null,
-    });
-
-    const rustUrl =
-      "https://rustfs.example/bucket/s/form-1/submission-1/file.pdf";
-    const response = await POST(createRequest({ urls: [rustUrl] }));
-
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.detail).toBe(
-      "read-urls route requires Azure storage configuration",
-    );
-    expect(mockResolveContainerFromUrl).not.toHaveBeenCalled();
-    expect(mockBulkGenerateReadTokens).not.toHaveBeenCalled();
-  });
-
-  it("should return 400 if body is not valid JSON", async () => {
-    const request = new Request(
-      "http://localhost/api/public/v0/storage/read-urls",
-      {
-        method: "POST",
-        body: "invalid json",
-      },
+  it("returns 400 when body parsing fails", async () => {
+    mockParseReadUrlsBody.mockReturnValue(
+      Result.validationError("formId is required"),
     );
 
-    const response = await POST(request);
-
+    const response = await POST(request({ urls: [] }));
     expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.detail).toContain("Invalid JSON");
   });
 
-  it("should return 400 if urls is missing", async () => {
-    const response = await POST(createRequest({}));
+  it("returns 403 when OSS gate denies access", async () => {
+    mockParseReadUrlsBody.mockReturnValue(
+      Result.success({
+        gate: { formId: "form-1" },
+        urls: [
+          "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf",
+        ],
+      }),
+    );
+    mockResolvePublicReadUrls.mockResolvedValue(
+      Result.error("Form access denied"),
+    );
 
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.detail).toBe("urls is required");
-  });
-
-  it("should return 400 if urls is not an array of strings", async () => {
     const response = await POST(
-      createRequest({ urls: ["a", 1] } as { urls: string[] }),
+      request({ formId: "form-1", urls: ["https://example/x"] }),
+    );
+    expect(response.status).toBe(403);
+    expect(mockResolveStorageGateInput).toHaveBeenCalled();
+  });
+
+  it("passes hub session token into resolvePublicReadUrls", async () => {
+    mockParseReadUrlsBody.mockReturnValue(
+      Result.success({
+        gate: { formId: "100" },
+        urls: ["https://test.blob.core.windows.net/content/f/100/a.svg"],
+      }),
+    );
+    mockResolvePublicReadUrls.mockResolvedValue(
+      Result.success({ resolved: {} }),
     );
 
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.detail).toBe("urls must be an array of strings");
+    await POST(
+      request({
+        formId: "100",
+        urls: ["https://test.blob.core.windows.net/content/f/100/a.svg"],
+      }),
+    );
+
+    expect(mockResolvePublicReadUrls).toHaveBeenCalledWith(
+      expect.objectContaining({ hubAccessToken: "hub-session-token" }),
+    );
   });
 
-  it("should return 400 if urls is not an array", async () => {
-    const response = await POST(createRequest({ urls: "not-an-array" }));
-
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.detail).toBe("urls must be an array of strings");
-  });
-
-  it("returns resolved error when URL does not match a known container", async () => {
-    mockResolveContainerFromUrl.mockReturnValue(null);
-
-    const badUrl = "https://unknown.blob.core.windows.net/container/file.txt";
-    const response = await POST(createRequest({ urls: [badUrl] }));
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.resolved[badUrl]).toEqual({
-      error: "URL does not match a known storage container",
-    });
-  });
-
-  it("returns resolved error when URL does not contain a blob path", async () => {
-    mockResolveContainerFromUrl.mockReturnValue({
-      containerType: "USER_FILES",
-      containerName: "user-files",
-      hostName: "test.blob.core.windows.net",
-      isPrivate: true,
-      blobName: "",
-    });
-
-    const bareListUrl = "https://test.blob.core.windows.net/user-files";
-    const response = await POST(createRequest({ urls: [bareListUrl] }));
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.resolved[bareListUrl]).toEqual({
-      error: "URL does not contain a blob path",
-    });
-  });
-
-  it("returns resolved url with SAS on success", async () => {
-    mockResolveContainerFromUrl.mockReturnValue({
-      containerType: "USER_FILES",
-      containerName: "user-files",
-      hostName: "test.blob.core.windows.net",
-      isPrivate: true,
-      blobName: "s/form-123/submission-123/test.pdf",
-    });
-
-    mockBulkGenerateReadTokens.mockResolvedValue({
-      kind: 0,
-      value: {
-        readTokens: {
-          "s/form-123/submission-123/test.pdf":
-            "sv=2021-06-08&se=2023-01-01T00:00:00Z&sig=abc",
+  it("returns resolved urls when gate allows", async () => {
+    mockParseReadUrlsBody.mockReturnValue(
+      Result.success({
+        gate: { formId: "form-1", submissionId: "sub-1" },
+        urls: [
+          "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf",
+        ],
+      }),
+    );
+    mockResolvePublicReadUrls.mockResolvedValue(
+      Result.success({
+        resolved: {
+          "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf":
+            {
+              url: "https://test.blob.core.windows.net/user-files/s/form-1/sub-1/a.pdf?sig=1",
+            },
         },
-        expiresOn: new Date("2023-01-01T00:00:00Z"),
-        generatedAt: new Date("2022-12-31T00:00:00Z"),
-      },
-    });
+      }),
+    );
 
-    const response = await POST(createRequest({ urls: [sampleUrl] }));
-
+    const response = await POST(
+      request({
+        formId: "form-1",
+        submissionId: "sub-1",
+        urls: ["https://example/x"],
+      }),
+    );
     expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.resolved[sampleUrl]).toEqual({
-      url: `${sampleUrl}?sv=2021-06-08&se=2023-01-01T00:00:00Z&sig=abc`,
-    });
-  });
-
-  it("returns resolved error when token generation fails", async () => {
-    mockResolveContainerFromUrl.mockReturnValue({
-      containerType: "USER_FILES",
-      containerName: "user-files",
-      hostName: "test.blob.core.windows.net",
-      isPrivate: true,
-      blobName: "s/form-123/submission-123/test.pdf",
-    });
-
-    mockBulkGenerateReadTokens.mockResolvedValue({
-      kind: 1,
-      errorType: 1,
-      message: "Token generation failed",
-    });
-
-    const response = await POST(createRequest({ urls: [sampleUrl] }));
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.resolved[sampleUrl]).toEqual({
-      error: "Failed to generate read token: Token generation failed",
-    });
-  });
-
-  it("returns empty resolved for empty urls array", async () => {
-    const response = await POST(createRequest({ urls: [] }));
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.resolved).toEqual({});
+    const json = await response.json();
+    expect(json.resolved).toBeDefined();
   });
 });

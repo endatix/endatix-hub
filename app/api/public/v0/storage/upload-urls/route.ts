@@ -1,6 +1,11 @@
 import { auth } from "@/auth";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
 import {
+  authorizeFormStorageAccess,
+  resolveStorageGateInput,
+  storageGateResultToResponse,
+} from "@/features/form-access";
+import {
   getContainerNames,
   generateUploadUrl,
 } from "@/features/asset-storage/server";
@@ -14,13 +19,15 @@ import {
 } from "@/features/asset-storage/infrastructure/storage-utils";
 import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
 import type { ProcessedState } from "@/features/asset-storage/types";
+import type { FormStorageTokenType } from "@/features/form-access/form-storage-access.types";
 
 interface UploadUrlsRequest {
   formId: string;
   fileNames: string[];
   formLocale: string;
-  submissionId: string;
-  /** Original client file name → MIME type after optional resize (must match PUT bytes). */
+  submissionId?: string;
+  token?: string;
+  tokenType?: FormStorageTokenType;
   fileTypes?: Record<string, string>;
   fileStates?: Record<string, ProcessedState>;
   questionName?: string;
@@ -38,7 +45,13 @@ export async function POST(request: Request): Promise<Response> {
   const session = await auth();
   const userId = session?.user?.id ?? "anonymous";
 
-  const data: UploadUrlsRequest = await request.json();
+  let data: UploadUrlsRequest;
+  try {
+    data = await request.json();
+  } catch {
+    return apiResponses.badRequest({ detail: "Invalid JSON body" });
+  }
+
   const { formId, fileNames, formLocale } = data;
   let submissionId = data.submissionId;
 
@@ -65,16 +78,41 @@ export async function POST(request: Request): Promise<Response> {
 
     submissionId = initialSubmissionResult.data.submissionId;
   }
-  const uploads: Record<string, UploadUrlEntry> = {};
 
+  const gate = await resolveStorageGateInput(
+    {
+      formId,
+      submissionId,
+      token: data.token,
+      tokenType: data.tokenType,
+    },
+    { allowCookieFallback: !session?.accessToken },
+  );
+
+  const accessResult = await authorizeFormStorageAccess(gate, {
+    hubAccessToken: session?.accessToken,
+  });
+  if (Result.isError(accessResult)) {
+    return storageGateResultToResponse(accessResult)!;
+  }
+
+  if (!accessResult.value.canUploadFiles) {
+    return apiResponses.forbidden({ detail: "File upload is not permitted" });
+  }
+
+  const effectiveSubmissionId = accessResult.value.submissionId ?? submissionId;
+  const uploads: Record<string, UploadUrlEntry> = {};
   const containerNames = getContainerNames();
   const containerName = containerNames.USER_FILES;
-  const folderPathResult = buildUserFileFolderPath(formId, submissionId);
+  const folderPathResult = buildUserFileFolderPath(
+    formId,
+    effectiveSubmissionId,
+  );
   if (Result.isError(folderPathResult)) {
     return apiResponses.badRequest({ detail: folderPathResult.message });
   }
   const folderPath = folderPathResult.value;
-  
+
   for (const fileName of fileNames) {
     const uniqueFileNameResult = generateUniqueFileName(fileName);
     if (Result.isError(uniqueFileNameResult)) {
@@ -92,7 +130,7 @@ export async function POST(request: Request): Promise<Response> {
         displayName: fileName,
         contentType,
         formId,
-        submissionId,
+        submissionId: effectiveSubmissionId,
         formLang: data.formLocale,
         questionName: data.questionName ?? "",
         ...(fileState !== undefined ? { fileState } : {}),
@@ -114,7 +152,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const body: UploadUrlsResponse = {
     uploads,
-    submissionId,
+    submissionId: effectiveSubmissionId,
     userId,
   };
 

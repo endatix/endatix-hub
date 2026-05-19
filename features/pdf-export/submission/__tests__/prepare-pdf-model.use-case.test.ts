@@ -8,6 +8,13 @@ vi.mock("@/features/asset-storage/server", () => ({
   addViewTokensToModelUseCase: vi.fn(),
 }));
 
+vi.mock(
+  "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values",
+  () => ({
+    primeDataListDisplayValues: vi.fn(),
+  }),
+);
+
 vi.mock("@/features/submissions/submission-localization", () => ({
   getSubmissionLocale: vi.fn(),
 }));
@@ -21,6 +28,8 @@ vi.mock("@/lib/questions/audio-recorder/audio-question-pdf", () => ({
 }));
 
 import { addViewTokensToModelUseCase } from "@/features/asset-storage/server";
+import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
+import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
 import { getSubmissionLocale } from "@/features/submissions/submission-localization";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
@@ -53,6 +62,7 @@ describe("preparePdfModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(addViewTokensToModelUseCase).mockResolvedValue(undefined);
+    vi.mocked(primeDataListDisplayValues).mockResolvedValue(undefined);
     vi.mocked(getSubmissionLocale).mockReturnValue("en");
     vi.mocked(initializeCustomQuestions).mockReturnValue(undefined);
     vi.mocked(registerAudioQuestionModel).mockReturnValue(undefined);
@@ -87,6 +97,38 @@ describe("preparePdfModel", () => {
       });
 
       expect(registerAudioQuestionModel).toHaveBeenCalledTimes(1);
+    });
+
+    it("should hydrate data list labels when definition uses data lists", async () => {
+      const submissionWithDataList: Submission = {
+        ...mockSubmission,
+        formDefinition: {
+          ...mockSubmission.formDefinition!,
+          jsonData: JSON.stringify({
+            pages: [
+              {
+                elements: [
+                  {
+                    type: "dropdown",
+                    name: "country",
+                    [DATA_LIST_PROPERTY_NAME]: "42",
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      } as Submission;
+
+      await preparePdfModel({
+        submission: submissionWithDataList,
+        customQuestionsJsonData: [],
+      });
+
+      expect(primeDataListDisplayValues).toHaveBeenCalledWith(
+        expect.any(Model),
+        submissionWithDataList.formId,
+      );
     });
 
     it("should authorize assets by calling addViewTokensToModelUseCase", async () => {

@@ -1,4 +1,6 @@
 import { addViewTokensToModelUseCase } from "@/features/asset-storage/server";
+import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
+import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
 import { getSubmissionLocale } from "@/features/submissions/submission-localization";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
@@ -26,6 +28,7 @@ export async function preparePdfModel({
   // Add custom questions to the model
   registerAudioQuestionModel();
   initializeCustomQuestions(customQuestionsJsonData);
+  registerDataListGlobals();
 
   const surveyJson = JSON.parse(submission.formDefinition?.jsonData ?? "{}");
   const surveyModel = new Model(surveyJson);
@@ -39,6 +42,8 @@ export async function preparePdfModel({
   if (pdfLocale) {
     surveyModel.locale = pdfLocale;
   }
+
+  await primeDataListDisplayValues(surveyModel, submission.formId);
 
   // Authorize Assets
   await addViewTokensToModelUseCase(surveyModel);
