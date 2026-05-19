@@ -1,6 +1,5 @@
 import { Result } from "@/lib/result";
 import { formAccessForbidden } from "../../http/form-access-result";
-import type { FormAccessProvider } from "../../infrastructure/form-access.provider";
 import type { FormStorageAccess, FormStorageGateInput } from "../../types";
 import { anonymousPublicFormStrategy } from "./anonymous-public-form.strategy";
 import type { FormStorageGateRunContext } from "./gate-context";
@@ -10,20 +9,16 @@ import { tokenGateStrategy } from "./token-gate.strategy";
 export type { FormStorageGateRunContext } from "./gate-context";
 
 /**
- * Runs gate strategies in order (fail closed):
+ * Runs gate strategies in h415 order (fail closed):
  * token → hub policy (success only) → anonymous public definition → forbidden.
  */
 export async function runFormStorageGateStrategies(
   gate: FormStorageGateInput,
-  options: {
-    hubAccessToken?: string;
-    formAccessProvider: FormAccessProvider;
-  },
+  options: { hubAccessToken?: string },
 ): Promise<Result<FormStorageAccess>> {
   const context: FormStorageGateRunContext = {
     gate,
     hubAccessToken: options.hubAccessToken,
-    formAccessProvider: options.formAccessProvider,
   };
 
   if (gate.token) {

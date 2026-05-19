@@ -1,53 +1,65 @@
-import { describe, expect, it, vi } from "vitest";
-import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
-import type { FormAccessProvider } from "../../../infrastructure/form-access.provider";
+
+const {
+  mockGet,
+  mockGetPublicFormAccess,
+  mockGetByToken,
+  mockGetByAccessToken,
+} = vi.hoisted(() => ({
+  mockGet: vi.fn(),
+  mockGetPublicFormAccess: vi.fn(),
+  mockGetByToken: vi.fn(),
+  mockGetByAccessToken: vi.fn(),
+}));
+
+vi.mock("@/lib/endatix-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/endatix-api")>();
+  class MockEndatixApi {
+    get = mockGet;
+    forms = { getPublicFormAccess: mockGetPublicFormAccess };
+    submissions = {
+      public: {
+        getByToken: mockGetByToken,
+        getByAccessToken: mockGetByAccessToken,
+      },
+    };
+  }
+  return {
+    ...actual,
+    EndatixApi: MockEndatixApi,
+  };
+});
+
 import { runFormStorageGateStrategies } from "../run-gate-strategies";
 
-function createMockProvider(
-  overrides: Partial<FormAccessProvider> = {},
-): FormAccessProvider {
-  return {
-    getAnonymousFormDefinition: vi
-      .fn()
-      .mockResolvedValue(
-        ApiResult.authError("Forbidden", ERROR_CODE.ACCESS_FORBIDDEN),
-      ),
-    getPublicFormAccess: vi
-      .fn()
-      .mockResolvedValue(
-        ApiResult.authError("Forbidden", ERROR_CODE.ACCESS_FORBIDDEN),
-      ),
-    getSubmissionByAccessToken: vi
-      .fn()
-      .mockResolvedValue(
-        ApiResult.authError("Forbidden", ERROR_CODE.ACCESS_FORBIDDEN),
-      ),
-    getSubmissionByToken: vi
-      .fn()
-      .mockResolvedValue(
-        ApiResult.authError("Forbidden", ERROR_CODE.ACCESS_FORBIDDEN),
-      ),
-    ...overrides,
-  };
-}
-
 describe("runFormStorageGateStrategies", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGet.mockResolvedValue(
+      ApiResult.authError("Forbidden", "FORBIDDEN", { statusCode: 403 }),
+    );
+    mockGetPublicFormAccess.mockResolvedValue(
+      ApiResult.authError("Forbidden", "FORBIDDEN", { statusCode: 403 }),
+    );
+    mockGetByToken.mockResolvedValue(
+      ApiResult.authError("Forbidden", "FORBIDDEN", { statusCode: 403 }),
+    );
+    mockGetByAccessToken.mockResolvedValue(
+      ApiResult.authError("Forbidden", "FORBIDDEN", { statusCode: 403 }),
+    );
+  });
+
   it("falls through hub policy failure to anonymous public form", async () => {
-    const formAccessProvider = createMockProvider({
-      getPublicFormAccess: vi
-        .fn()
-        .mockResolvedValue(
-          ApiResult.authError("Forbidden", ERROR_CODE.ACCESS_FORBIDDEN),
-        ),
-      getAnonymousFormDefinition: vi
-        .fn()
-        .mockResolvedValue(ApiResult.success({})),
-    });
+    mockGetPublicFormAccess.mockResolvedValue(
+      ApiResult.authError("Forbidden", "FORBIDDEN", { statusCode: 403 }),
+    );
+    mockGet.mockResolvedValue(ApiResult.success({}));
 
     const result = await runFormStorageGateStrategies(
       { formId: "100" },
-      { hubAccessToken: "hub-jwt", formAccessProvider },
+      { hubAccessToken: "hub-jwt" },
     );
 
     expect(Result.isSuccess(result)).toBe(true);
@@ -57,10 +69,7 @@ describe("runFormStorageGateStrategies", () => {
   });
 
   it("returns forbidden when all strategies fail", async () => {
-    const result = await runFormStorageGateStrategies(
-      { formId: "100" },
-      { formAccessProvider: createMockProvider() },
-    );
+    const result = await runFormStorageGateStrategies({ formId: "100" }, {});
 
     expect(Result.isError(result)).toBe(true);
     if (Result.isError(result)) {

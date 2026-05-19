@@ -1,4 +1,4 @@
-import { ApiResult } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import {
   hasTokenPermission,
@@ -45,13 +45,16 @@ function assertGateSubmissionMatches(
 export async function tokenGateStrategy(
   context: FormStorageGateRunContext,
 ): Promise<Result<FormStorageAccess>> {
-  const { gate, formAccessProvider } = context;
+  const { gate } = context;
   const token = gate.token!;
   const tokenType = resolveTokenType(token, gate.tokenType);
+  const api = new EndatixApi();
 
   if (tokenType === "AccessToken") {
-    const submissionResult =
-      await formAccessProvider.getSubmissionByAccessToken(gate.formId, token);
+    const submissionResult = await api.submissions.public.getByAccessToken(
+      gate.formId,
+      token,
+    );
     if (ApiResult.isError(submissionResult)) {
       return formAccessForbidden("Form access denied");
     }
@@ -77,7 +80,7 @@ export async function tokenGateStrategy(
     });
   }
 
-  const submissionResult = await formAccessProvider.getSubmissionByToken(
+  const submissionResult = await api.submissions.public.getByToken(
     gate.formId,
     token,
   );

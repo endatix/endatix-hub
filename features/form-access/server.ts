@@ -17,10 +17,6 @@ export {
   type FormStorageGateContext,
   type IFormStorageGateService,
 } from "./authorize/form-storage-gate.factory";
-export {
-  createFormAccessProvider,
-  type FormAccessProvider,
-} from "./infrastructure/form-access.provider";
 export { authorizeFormStorageAccess } from "./authorize/authorize-form-storage-access";
 export { assertStorageObjectAccess } from "./assert-path/assert-respondent-object-access";
 export { assertDesignerObjectAccess } from "./assert-path/assert-designer-object-access";

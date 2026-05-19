@@ -2,21 +2,14 @@ import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-sett
 import { storageRegistry } from "../core";
 import { AzureBlobStorageProvider } from "../providers/azure/azure-storage-provider";
 import { S3StorageProvider } from "../providers/s3";
+import { assertStorageProfileValid } from "./validate-storage-profile";
 
 /**
  * Registers the active storage provider from `STORAGE_PROVIDER` and credentials.
  * Uses {@link getRuntimeStorageProfile} (prefers `ENDATIX_RESOLVED_*` from `withEndatix`).
  *
- * Providers are **statically imported** so the first synchronous `ensureStorageRegistered` call
- * always sees a registered implementation (tests and routes that do not await async bootstrap).
- * Optional code-splitting via dynamic `import()` is deferred until bundle size warrants it.
- *
- * **`STORAGE_PROVIDER` is required** (no inference from credentials alone). Set one of:
- * - `none` — no provider.
- * - `s3` — RustFS / S3 when `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY` are set.
- * - `azure` — Azure when `AZURE_STORAGE_ACCOUNT_NAME` and `AZURE_STORAGE_ACCOUNT_KEY` are set.
- *
- * Unset or unknown values log a warning and skip registration.
+ * Throws {@link MissingConfigurationError} or {@link MisconfigurationError} when
+ * `STORAGE_PROVIDER` is `azure` or `s3` but env fails validation.
  */
 export function registerStorageProviders(): void {
   if (storageRegistry.getActiveProvider() !== null) {
@@ -29,24 +22,16 @@ export function registerStorageProviders(): void {
     return;
   }
 
-  if (storage.explicitProvider === "s3") {
-    if (storage.s3CredentialsPresent) {
+  if (
+    storage.explicitProvider === "s3" ||
+    storage.explicitProvider === "azure"
+  ) {
+    assertStorageProfileValid(storage);
+
+    if (storage.explicitProvider === "s3") {
       storageRegistry.register(new S3StorageProvider());
     } else {
-      console.warn(
-        "[storage] STORAGE_PROVIDER=s3 but S3_ENDPOINT / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY are missing",
-      );
-    }
-    return;
-  }
-
-  if (storage.explicitProvider === "azure") {
-    if (storage.azureCredentialsPresent) {
       storageRegistry.register(new AzureBlobStorageProvider());
-    } else {
-      console.warn(
-        "[storage] STORAGE_PROVIDER=azure but AZURE_STORAGE_ACCOUNT_NAME / AZURE_STORAGE_ACCOUNT_KEY are missing",
-      );
     }
     return;
   }

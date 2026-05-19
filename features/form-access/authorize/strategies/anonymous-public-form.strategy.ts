@@ -1,4 +1,4 @@
-import { ApiResult } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { formAccessForbidden } from "../../http/form-access-result";
 import type { FormStorageAccess } from "../../types";
@@ -8,9 +8,10 @@ import type { FormStorageGateRunContext } from "./gate-context";
 export async function anonymousPublicFormStrategy(
   context: FormStorageGateRunContext,
 ): Promise<Result<FormStorageAccess>> {
-  const { gate, formAccessProvider } = context;
-  const definitionResult = await formAccessProvider.getAnonymousFormDefinition(
-    gate.formId,
+  const { gate } = context;
+  const definitionResult = await new EndatixApi().get<unknown>(
+    `/forms/${gate.formId}/definition`,
+    { requireAuth: false },
   );
 
   if (ApiResult.isError(definitionResult)) {

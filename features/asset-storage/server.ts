@@ -11,10 +11,6 @@ export {
   type IStorageConfig,
 } from "@endatix/storage-azure";
 export {
-  getRuntimeStorageProfile,
-  type StorageProfileSlice,
-} from "@/features/config/resolve-endatix-settings";
-export {
   ensureStorageRegistered,
   getActiveStorageProvider,
   getClientStorageConfig,
@@ -22,13 +18,28 @@ export {
   type StorageRuntimeSettings,
 } from "./storage-runtime";
 export {
+  assertStorageProfileValid,
+  collectStorageProfileValidationErrors,
+  validateStorageProfile,
+} from "./infrastructure/bootstrap/validate-storage-profile";
+export {
+  MissingConfigurationError,
+  MisconfigurationError,
+  formatStorageConfigurationError,
+  isMissingConfigurationError,
+  isMisconfigurationError,
+} from "@/lib/hosting/storage-configuration-errors";
+export {
+  getStorageAdminSummary,
+  type StorageAdminSummary,
+} from "./use-cases/view-settings-summary/storage-admin-summary";
+export {
   bulkGenerateReadTokens as generateReadTokens,
   deleteBlob,
   generateUploadUrl,
   getBlobProperties,
   listBlobs as listFiles,
   resetBlobServiceClient,
-  uploadToStorage,
   type BlobPropertiesResult,
   type FileOptions,
   type UploadUrlDescriptor,
@@ -38,7 +49,6 @@ export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export {
   addViewTokensToModelUseCase,
   generateGranularReadTokensUseCase,
-  generateReadTokensAction,
   listUserFiles,
   getUserFile,
   handleResizeImageRequest,

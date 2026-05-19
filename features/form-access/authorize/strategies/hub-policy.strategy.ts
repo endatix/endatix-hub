@@ -1,4 +1,4 @@
-import { ApiResult } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { formAccessForbidden } from "../../http/form-access-result";
 import type { FormStorageAccess } from "../../types";
@@ -9,13 +9,13 @@ import type { FormStorageGateRunContext } from "./gate-context";
 export async function hubPolicyStrategy(
   context: FormStorageGateRunContext,
 ): Promise<Result<FormStorageAccess>> {
-  const { gate, hubAccessToken, formAccessProvider } = context;
+  const { gate, hubAccessToken } = context;
 
-  const policyResult = await formAccessProvider.getPublicFormAccess(
+  const policyResult = await new EndatixApi(hubAccessToken!).forms.getPublicFormAccess(
     gate.formId,
-    hubAccessToken!,
+    {},
+    true,
   );
-  
   if (ApiResult.isError(policyResult)) {
     return formAccessForbidden("Form access denied");
   }
