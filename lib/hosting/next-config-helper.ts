@@ -1,4 +1,7 @@
-import { RemotePattern } from "next/dist/shared/lib/image-config";
+import type {
+  LocalPattern,
+  RemotePattern,
+} from "next/dist/shared/lib/image-config";
 
 /**
  * Includes remote image hostnames in the remote patterns.
@@ -38,6 +41,34 @@ function includesRemoteImageHostnames(
   });
 }
 
+/** Pathname glob Next uses to allow any object path on the host. */
+const STORAGE_IMAGE_PATHNAME = "/**";
+
+/**
+ * Registers a storage host for `next/image` with both HTTP and HTTPS.
+ * S3-compatible endpoints (RustFS, MinIO) often use `http://` on localhost/LAN;
+ * Azure Blob is HTTPS-only.
+ */
+function appendStorageHostRemotePatterns(
+  remotePatterns: (URL | RemotePattern)[],
+  hostname: string,
+): void {
+  const trimmed = hostname.trim();
+  if (trimmed.length === 0) {
+    return;
+  }
+  remotePatterns.push({
+    protocol: "https",
+    hostname: trimmed,
+    pathname: STORAGE_IMAGE_PATHNAME,
+  });
+  remotePatterns.push({
+    protocol: "http",
+    hostname: trimmed,
+    pathname: STORAGE_IMAGE_PATHNAME,
+  });
+}
+
 /** Same sequence as `withEndatix`: `REMOTE_IMAGE_HOSTNAMES` / fallback, then storage-derived hostnames. */
 export function appendEndatixImageRemotePatterns(
   remotePatterns: (URL | RemotePattern)[],
@@ -45,11 +76,27 @@ export function appendEndatixImageRemotePatterns(
 ): void {
   includesRemoteImageHostnames(remotePatterns);
   for (const hostname of imageRemoteHostnames) {
-    remotePatterns.push({
-      protocol: "https",
-      hostname,
-    });
+    appendStorageHostRemotePatterns(remotePatterns, hostname);
   }
+}
+
+/** Same-origin storage APIs; omit `search` so any query string matches (Next picomatch on pathname only). */
+const ENDATIX_STORAGE_IMAGE_LOCAL_PATTERNS: readonly LocalPattern[] = [
+  { pathname: "/api/public/v0/storage/**" },
+];
+
+/**
+ * Merges `images.localPatterns` for `withEndatix`.
+ * When unset or empty, returns `undefined` so Next does not run strict local `src` checks for every path.
+ * When the app defines patterns, appends public storage routes (query strings allowed on those paths).
+ */
+export function mergeEndatixImageLocalPatterns(
+  existing: LocalPattern[] | undefined,
+): LocalPattern[] | undefined {
+  if (existing === undefined || existing.length === 0) {
+    return undefined;
+  }
+  return [...existing, ...ENDATIX_STORAGE_IMAGE_LOCAL_PATTERNS];
 }
 
 function formatURLPattern(entry: URL): string {

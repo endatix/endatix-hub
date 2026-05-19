@@ -1,6 +1,9 @@
-import { getAzureStorageHostname } from "../../lib/hosting/azure-blob-remote-hostname";
-import { Result } from "../../lib/result";
-import { extractHostname } from "../../lib/utils/url-utils";
+import {
+  collectStorageImageRemoteHostnamesFromEnv,
+  isAzureStorageCredentialsPresentInEnv,
+  isS3StorageCredentialsPresentInEnv,
+  type StorageProviderEnvChoice,
+} from "../../lib/hosting/storage-image-remote-hostnames";
 import { getAuthConfig, type EndatixAuthConfig } from "./auth-config";
 import {
   constructApiUrl,
@@ -15,12 +18,12 @@ import {
 
 const DEFAULT_API_PREFIX = "/api";
 
-/** Normalized `STORAGE_PROVIDER` env: known explicit values, or `null` for unset / unknown. */
-export type StorageProviderEnvChoice = "none" | "s3" | "azure" | null;
+export type { StorageProviderEnvChoice } from "../../lib/hosting/storage-image-remote-hostnames";
 
 export interface StorageProfileSlice {
   readonly explicitProvider: StorageProviderEnvChoice;
   readonly azureCredentialsPresent: boolean;
+  readonly s3CredentialsPresent: boolean;
   readonly imageRemoteHostnames: readonly string[];
 }
 
@@ -79,6 +82,7 @@ export interface EndatixResolvedSettings {
 const RESOLVED_STORAGE_VERSION_KEY = "ENDATIX_RESOLVED_STORAGE_VERSION";
 const RESOLVED_STORAGE_EXPLICIT_KEY = "ENDATIX_RESOLVED_STORAGE_EXPLICIT";
 const RESOLVED_AZURE_CREDS_KEY = "ENDATIX_RESOLVED_AZURE_CREDENTIALS";
+const RESOLVED_S3_CREDS_KEY = "ENDATIX_RESOLVED_S3_CREDENTIALS";
 const RESOLVED_IMAGE_HOSTS_KEY = "ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES";
 
 let cachedStorageFromEnv: StorageProfileSlice | undefined;
@@ -87,12 +91,11 @@ function parseRawStorageProvider(): string | undefined {
   return process.env.STORAGE_PROVIDER?.trim().toLowerCase();
 }
 
-function isAzureCredentialsPresent(): boolean {
-  const name = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-  const key = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-  return !!name && !!key;
-}
-
+/**
+ * Normalize the explicit choice for the storage provider.
+ * @param raw - The raw storage provider choice.
+ * @returns The normalized storage provider choice.
+ */
 function normalizeExplicitChoice(
   raw: string | undefined,
 ): StorageProviderEnvChoice {
@@ -108,23 +111,7 @@ function normalizeExplicitChoice(
 function collectImageRemoteHostnames(
   explicitProvider: StorageProviderEnvChoice,
 ): readonly string[] {
-  const hostnames: string[] = [];
-  if (explicitProvider !== "none" && explicitProvider !== "s3") {
-    const azureHost = getAzureStorageHostname();
-    if (azureHost) {
-      hostnames.push(azureHost);
-    }
-  }
-
-  const s3PublicBase = process.env.S3_PUBLIC_BASE_URL?.trim();
-  if (s3PublicBase) {
-    const hostnameResult = extractHostname(s3PublicBase);
-    if (Result.isSuccess(hostnameResult) && hostnameResult.value.length > 0) {
-      hostnames.push(hostnameResult.value);
-    }
-  }
-
-  return Object.freeze(hostnames.slice());
+  return collectStorageImageRemoteHostnamesFromEnv(explicitProvider);
 }
 
 function buildStorageSliceFromEnv(): StorageProfileSlice {
@@ -134,11 +121,13 @@ function buildStorageSliceFromEnv(): StorageProfileSlice {
 
   const rawExplicit = parseRawStorageProvider();
   const explicitProvider = normalizeExplicitChoice(rawExplicit);
-  const azureCredentialsPresent = isAzureCredentialsPresent();
+  const azureCredentialsPresent = isAzureStorageCredentialsPresentInEnv();
+  const s3CredentialsPresent = isS3StorageCredentialsPresentInEnv();
 
   cachedStorageFromEnv = Object.freeze({
     explicitProvider,
     azureCredentialsPresent,
+    s3CredentialsPresent,
     imageRemoteHostnames: collectImageRemoteHostnames(explicitProvider),
   });
   return cachedStorageFromEnv;
@@ -175,6 +164,9 @@ function readStorageProfileFromBuildMirror(): StorageProfileSlice | null {
     process.env[RESOLVED_STORAGE_EXPLICIT_KEY],
   );
   const azureCredentialsPresent = process.env[RESOLVED_AZURE_CREDS_KEY] === "1";
+  const s3CredentialsPresent = Object.hasOwn(process.env, RESOLVED_S3_CREDS_KEY)
+    ? process.env[RESOLVED_S3_CREDS_KEY] === "1"
+    : isS3StorageCredentialsPresentInEnv();
 
   const hasResolvedImageHosts = Object.hasOwn(
     process.env,
@@ -193,6 +185,7 @@ function readStorageProfileFromBuildMirror(): StorageProfileSlice | null {
   return Object.freeze({
     explicitProvider,
     azureCredentialsPresent,
+    s3CredentialsPresent,
     imageRemoteHostnames,
   });
 }
@@ -210,9 +203,9 @@ function readStorageProfile(
 }
 
 /**
- * Runtime storage profile only: prefers `ENDATIX_RESOLVED_*` when present, else env-derived.
- * Use from bootstrap (`register-providers`) and from {@link getStorageRuntimeSettings}; do not call
- * {@link getStorageRuntimeSettings} from `register-providers` (registration recursion).
+ * Env / build-time storage profile (not the active registry provider).
+ * Used by `withEndatix` mirror, {@link registerStorageProviders}, startup validation, and admin env diagnostics.
+ * For active provider state use {@link getStorageRuntimeSettings} from `storage-runtime`.
  */
 export function getRuntimeStorageProfile(): StorageProfileSlice {
   return readStorageProfile("runtime");
@@ -309,6 +302,7 @@ function buildEnvPatch(
       storage.explicitProvider,
     );
     env[RESOLVED_AZURE_CREDS_KEY] = storage.azureCredentialsPresent ? "1" : "0";
+    env[RESOLVED_S3_CREDS_KEY] = storage.s3CredentialsPresent ? "1" : "0";
     env[RESOLVED_IMAGE_HOSTS_KEY] = storage.imageRemoteHostnames.join(",");
   }
 

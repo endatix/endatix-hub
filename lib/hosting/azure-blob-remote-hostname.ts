@@ -1,52 +1,36 @@
-import { Result } from "../result";
-import { extractHostname } from "../utils/url-utils";
+import {
+  resolveStoragePublicHost,
+  type StoragePublicHost,
+} from "./resolve-storage-public-host";
+import { isAzureStorageCredentialsPresentInEnv } from "./storage-env-predicates";
+
+const AZURE_PUBLIC_HOST_ENV_KEYS = ["AZURE_STORAGE_CUSTOM_DOMAIN"] as const;
 
 /**
- * Default Azure Blob host segment for an account. Shared with
- * {@link getAzureStorageConfig} via {@link resolveAzureBlobStorageHostname}.
+ * Resolves Azure public blob host from explicit `AZURE_STORAGE_CUSTOM_DOMAIN` only.
+ * Returns `null` when Azure credentials are not configured.
  */
-export function getDefaultAzureBlobHostname(accountName: string): string {
-  return accountName ? `${accountName}.blob.core.windows.net` : "";
-}
-
-/**
- * Resolves the blob endpoint hostname from account name and optional custom
- * domain (same rules as `getAzureStorageConfig().hostName`). Bootstrap-safe:
- * no `@/features/*` imports — safe for `next.config` / `withEndatix`.
- */
-export function resolveAzureBlobStorageHostname(
-  accountName: string,
-  customDomain?: string | null,
-): string {
-  const trimmed = customDomain?.trim();
-  if (!trimmed) {
-    return getDefaultAzureBlobHostname(accountName);
-  }
-
-  const hostnameResult = extractHostname(trimmed);
-  if (Result.isSuccess(hostnameResult)) {
-    return hostnameResult.value;
-  }
-
-  return getDefaultAzureBlobHostname(accountName);
-}
-
-/**
- * Returns the blob endpoint hostname for Next.js `images.remotePatterns`, or
- * `null` when Azure storage env is not configured.
- */
-export function getAzureStorageHostname(): string | null {
-  const { AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY } = process.env;
-
-  const isEnabled = !!AZURE_STORAGE_ACCOUNT_NAME && !!AZURE_STORAGE_ACCOUNT_KEY;
-  if (!isEnabled) {
+export function getAzureStoragePublicHostFromEnv(): StoragePublicHost | null {
+  if (!isAzureStorageCredentialsPresentInEnv()) {
     return null;
   }
 
-  const accountName = AZURE_STORAGE_ACCOUNT_NAME;
-  const host = resolveAzureBlobStorageHostname(
-    accountName,
-    process.env.AZURE_STORAGE_CUSTOM_DOMAIN,
-  );
-  return host || null;
+  return resolveStoragePublicHost({
+    provider: "azure",
+    publicBaseUrl: process.env.AZURE_STORAGE_CUSTOM_DOMAIN,
+    requireWhenEnabled: true,
+    missingEnvKeys: AZURE_PUBLIC_HOST_ENV_KEYS,
+    misconfiguredEnvKeys: AZURE_PUBLIC_HOST_ENV_KEYS,
+  });
+}
+
+/**
+ * Host segment for `next/image` remote patterns, or `null` when Azure storage is not enabled.
+ */
+export function getAzureStorageHostname(): string | null {
+  const resolved = getAzureStoragePublicHostFromEnv();
+  if (resolved === null) {
+    return null;
+  }
+  return resolved.host.length > 0 ? resolved.host : null;
 }

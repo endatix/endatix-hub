@@ -1,6 +1,6 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
-import { StorageConfig } from "./client";
+import type { ClientStorageConfig } from "./client";
 import { IContainerInfo } from "./types";
 
 const QUERY_STRING_START_CHAR = "?";
@@ -57,7 +57,7 @@ function getLastSegmentFromUrlPath(blobName: string): string {
  */
 function resolveContainerFromUrl(
   url: string,
-  storageConfig: StorageConfig | null,
+  storageConfig: ClientStorageConfig | null,
 ): IContainerInfo | null {
   if (!url) return null;
 
@@ -67,9 +67,9 @@ function resolveContainerFromUrl(
 
   try {
     const urlObj = new URL(url);
-    const hostname = urlObj.hostname.toLowerCase();
+    const requestHost = urlObj.host.toLowerCase();
 
-    if (storageConfig.hostName.toLowerCase() !== hostname) {
+    if (storageConfig.hostName.toLowerCase() !== requestHost) {
       return null;
     }
 
@@ -85,7 +85,7 @@ function resolveContainerFromUrl(
       return {
         containerType: "USER_FILES",
         containerName: containerName,
-        hostName: hostname,
+        hostName: requestHost,
         isPrivate: true,
         blobName: blobName,
       };
@@ -94,7 +94,7 @@ function resolveContainerFromUrl(
       return {
         containerType: "CONTENT",
         containerName: containerName,
-        hostName: hostname,
+        hostName: requestHost,
         isPrivate: true,
         blobName: blobName,
       };
@@ -111,7 +111,7 @@ function resolveContainerFromUrl(
 function isUrlFromContainer(
   url: string,
   containerName: string,
-  storageConfig: StorageConfig | null,
+  storageConfig: ClientStorageConfig | null,
 ): boolean {
   if (!containerName) return false;
 
@@ -185,10 +185,9 @@ function extractStorageUrls(
   // Escape hostName to prevent regex injection attacks
   const escapedHostName = escapeRegex(hostName);
 
-  // Matches https://{hostName}/{container}/{blob...}
-  // Avoids capturing quotes or query parameters that might already be there
+  // Matches http(s)://{hostName}/{container}/{blob...} (RustFS often uses http on LAN)
   const regex = new RegExp(
-    String.raw`https://${escapedHostName}/[^"\s?]+`,
+    String.raw`https?://${escapedHostName}/[^"\s?]+`,
     "g",
   );
   const matches: string[] = [];

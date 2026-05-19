@@ -19,6 +19,7 @@ describe("resolveEndatixSettings", () => {
     delete process.env.ENDATIX_RESOLVED_STORAGE_EXPLICIT;
     delete process.env.ENDATIX_RESOLVED_AZURE_CREDENTIALS;
     delete process.env.ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES;
+    delete process.env.ENDATIX_RESOLVED_S3_CREDENTIALS;
   });
 
   afterEach(() => {
@@ -55,8 +56,11 @@ describe("resolveEndatixSettings", () => {
       expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
-    it("STORAGE_PROVIDER=s3 still adds S3_PUBLIC_BASE_URL hostname for images", () => {
+    it("STORAGE_PROVIDER=s3 adds S3_PUBLIC_BASE_URL hostname when credentials are set", () => {
       process.env.STORAGE_PROVIDER = "s3";
+      process.env.S3_ENDPOINT = "http://internal:9000";
+      process.env.S3_ACCESS_KEY_ID = "k";
+      process.env.S3_SECRET_ACCESS_KEY = "secret";
       process.env.S3_PUBLIC_BASE_URL = "https://rust.example.com/bucket";
       const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
       expect(r.storage.imageRemoteHostnames).toEqual(["rust.example.com"]);
@@ -66,6 +70,7 @@ describe("resolveEndatixSettings", () => {
       process.env.STORAGE_PROVIDER = "azure";
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "myacct";
       process.env.AZURE_STORAGE_ACCOUNT_KEY = "secret";
+      process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "myacct.blob.core.windows.net";
       const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
       expect(r.storage.explicitProvider).toBe("azure");
       expect(r.storage.azureCredentialsPresent).toBe(true);
@@ -84,15 +89,13 @@ describe("resolveEndatixSettings", () => {
       expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
-    it("unset with credentials auto Azure semantics and default blob hostname", () => {
+    it("unset with credentials does not add Azure image hosts without STORAGE_PROVIDER=azure", () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "autoacct";
       process.env.AZURE_STORAGE_ACCOUNT_KEY = "k";
       const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
       expect(r.storage.explicitProvider).toBe(null);
       expect(r.storage.azureCredentialsPresent).toBe(true);
-      expect(r.storage.imageRemoteHostnames).toEqual([
-        "autoacct.blob.core.windows.net",
-      ]);
+      expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
     it("unset without credentials yields empty image hostnames", () => {
@@ -109,17 +112,35 @@ describe("resolveEndatixSettings", () => {
       const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
       expect(r.storage.explicitProvider).toBe(null);
       expect(r.storage.azureCredentialsPresent).toBe(true);
+      expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
-    it("appends S3_PUBLIC_BASE_URL hostname when set", () => {
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = "a";
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = "b";
+    it("S3_PUBLIC_BASE_URL adds hostname only when STORAGE_PROVIDER=s3", () => {
+      process.env.STORAGE_PROVIDER = "s3";
+      process.env.S3_ENDPOINT = "http://localhost:9000";
+      process.env.S3_ACCESS_KEY_ID = "k";
+      process.env.S3_SECRET_ACCESS_KEY = "secret";
       process.env.S3_PUBLIC_BASE_URL = "https://cdn.example.com/assets";
       const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
-      expect(r.storage.imageRemoteHostnames).toContain(
-        "a.blob.core.windows.net",
-      );
-      expect(r.storage.imageRemoteHostnames).toContain("cdn.example.com");
+      expect(r.storage.imageRemoteHostnames).toEqual(["cdn.example.com"]);
+    });
+
+    it("writes ENDATIX_RESOLVED_S3_CREDENTIALS when S3 endpoint and keys are set", () => {
+      process.env.STORAGE_PROVIDER = "s3";
+      process.env.S3_ENDPOINT = "http://localhost:9000";
+      process.env.S3_ACCESS_KEY_ID = "k";
+      process.env.S3_SECRET_ACCESS_KEY = "secret";
+      const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
+      expect(r.storage.s3CredentialsPresent).toBe(true);
+      expect(r.envPatch.ENDATIX_RESOLVED_S3_CREDENTIALS).toBe("1");
+    });
+
+    it("writes ENDATIX_RESOLVED_S3_CREDENTIALS 0 when S3 keys are incomplete", () => {
+      process.env.STORAGE_PROVIDER = "s3";
+      process.env.S3_ACCESS_KEY_ID = "k";
+      const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
+      expect(r.storage.s3CredentialsPresent).toBe(false);
+      expect(r.envPatch.ENDATIX_RESOLVED_S3_CREDENTIALS).toBe("0");
     });
 
     it("options.api overrides env for merged API URL in envPatch", () => {
@@ -152,6 +173,21 @@ describe("resolveEndatixSettings", () => {
       expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
+    it("prefers ENDATIX_RESOLVED_S3_CREDENTIALS over live S3 env when mirror version is 1", () => {
+      process.env.STORAGE_PROVIDER = "s3";
+      process.env.S3_ENDPOINT = "http://localhost:9000";
+      process.env.S3_ACCESS_KEY_ID = "k";
+      process.env.S3_SECRET_ACCESS_KEY = "secret";
+      process.env.ENDATIX_RESOLVED_STORAGE_VERSION = "1";
+      process.env.ENDATIX_RESOLVED_STORAGE_EXPLICIT = "s3";
+      process.env.ENDATIX_RESOLVED_AZURE_CREDENTIALS = "0";
+      process.env.ENDATIX_RESOLVED_S3_CREDENTIALS = "0";
+      process.env.ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES = "";
+      resetResolveEndatixSettingsCacheForTests();
+      const r = resolveEndatixSettings({ source: "runtime" });
+      expect(r.storage.s3CredentialsPresent).toBe(false);
+    });
+
     it("mirror empty ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES does not repopulate hosts from live env", () => {
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "liveacct";
       process.env.AZURE_STORAGE_ACCOUNT_KEY = "livekey";
@@ -165,8 +201,10 @@ describe("resolveEndatixSettings", () => {
     });
 
     it("falls back to env when mirror version missing", () => {
+      process.env.STORAGE_PROVIDER = "azure";
       process.env.AZURE_STORAGE_ACCOUNT_NAME = "z";
       process.env.AZURE_STORAGE_ACCOUNT_KEY = "k";
+      process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "z.blob.core.windows.net";
       resetResolveEndatixSettingsCacheForTests();
       const r = resolveEndatixSettings({ source: "runtime" });
       expect(r.storage.azureCredentialsPresent).toBe(true);

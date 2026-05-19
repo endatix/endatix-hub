@@ -1,84 +1,60 @@
-import type { AzureStorageConfig, StorageConfig } from "@endatix/storage-azure";
-import {
-  getAzureStorageConfig,
-  getContainerNames,
-  toClientStorageConfig,
-} from "@endatix/storage-azure";
-import {
-  getRuntimeStorageProfile,
-  type StorageProfileSlice,
-} from "@/features/config/resolve-endatix-settings";
+import { buildClientStorageConfig } from "./infrastructure/providers/shared/client-storage-config";
+import { getStorageContainerNames } from "./infrastructure/providers/shared/container-names";
 import { IMAGE_SERVICE_CONFIG } from "./infrastructure/image-service";
 import { storageRegistry } from "./infrastructure/core";
 import type { IStorageProvider } from "./infrastructure/core/storage-provider.interface";
+import type { ClientStorageConfig } from "./infrastructure/providers/shared/client-storage-config";
 import { ensureStorageRegistered } from "./infrastructure/storage-gateway";
 
-/**
- * Storage runtime settings.
- */
+/** Active storage provider state from the registry (after bootstrap registration). */
 export type StorageRuntimeSettings = {
   readonly providerId: string | null;
   readonly isEnabled: boolean;
   readonly isPrivate: boolean;
-  /** Bootstrap-safe storage profile (mirror or env); same semantics as {@link getRuntimeStorageProfile}. */
-  readonly storage: StorageProfileSlice;
-  /**
-   * Azure-shaped env resolution for admin, URL parsing, and legacy paths.
-   * Omitted when `STORAGE_PROVIDER` is `none` or `s3` (explicit opt-out / RustFS track);
-   * not tied to active registry provider.
-   */
-  readonly azure: AzureStorageConfig | null;
 };
 
 export { ensureStorageRegistered };
 
-/**
- * Returns the active storage provider.
- * @returns The active storage provider.
+/** Active storage provider from the registry (after bootstrap registration).
+ * Calls {@link ensureStorageRegistered} internally.
  */
 export function getActiveStorageProvider(): IStorageProvider | null {
   ensureStorageRegistered();
   return storageRegistry.getActiveProvider();
 }
 
-/**
- * Returns the storage runtime settings.
- * @returns The storage runtime settings.
- */
+/** Active storage provider state from the registry (after bootstrap registration). */
 export function getStorageRuntimeSettings(): StorageRuntimeSettings {
   ensureStorageRegistered();
   const provider = storageRegistry.getActiveProvider();
-  const storage = getRuntimeStorageProfile();
-  const providerId = provider?.id ?? null;
-  const isEnabled = provider?.isEnabled() ?? false;
-  const isPrivate = provider?.isPrivate() ?? false;
-  const azure =
-    storage.explicitProvider === "none" || storage.explicitProvider === "s3"
-      ? null
-      : getAzureStorageConfig();
 
   return {
-    providerId,
-    isEnabled,
-    isPrivate,
-    storage,
-    azure,
+    providerId: provider?.id ?? null,
+    isEnabled: provider?.isEnabled() ?? false,
+    isPrivate: provider?.isPrivate() ?? false,
   };
 }
 
-/** Client-safe subset for `AssetStorageClientProvider` (see `toClientStorageConfig` when `azure` is set). */
-export function getClientStorageConfig(
-  storageSettings: StorageRuntimeSettings,
-): StorageConfig {
-  if (storageSettings.azure !== null) {
-    return toClientStorageConfig(storageSettings.azure);
+/**
+ * Client-safe active storage config for URL parsing, presign, and gates.
+ * Delegates to the registered provider's {@link IStorageProvider.getClientConfig}.
+ */
+export function getClientStorageConfig(): ClientStorageConfig {
+  ensureStorageRegistered();
+  const provider = storageRegistry.getActiveProvider();
+
+  if (provider === null) {
+    return DISABLED_CLIENT_STORAGE_CONFIG;
   }
-  return {
-    isEnabled: storageSettings.isEnabled,
-    isPrivate: storageSettings.isPrivate,
-    hostName: "",
-    protocol: "https",
-    containerNames: getContainerNames(),
-    imageConfig: IMAGE_SERVICE_CONFIG,
-  };
+  
+  return provider.getClientConfig();
 }
+
+const DISABLED_CLIENT_STORAGE_CONFIG: ClientStorageConfig = Object.freeze({
+  isEnabled: false,
+  isPrivate: false,
+  hostName: "",
+  protocol: "https",
+  containerNames: getStorageContainerNames(),
+  imageConfig: IMAGE_SERVICE_CONFIG,
+});
