@@ -7,9 +7,16 @@ import {
 import { FileType } from "@/lib/questions/file/file-type";
 
 vi.mock("@/features/asset-storage/client", () => ({
-  useAssetStorage: vi.fn(() => ({
-    resolveStorageUrl: (url: string) => url,
+  useNearViewport: vi.fn(() => ({
+    ref: { current: null },
+    isNearViewport: true,
   })),
+  usePrivateStorageDisplayUrl: vi.fn(
+    (url: string | undefined, options?: { enabled?: boolean }) => ({
+      displayUrl: options?.enabled === false ? "" : (url ?? ""),
+      isResolving: options?.enabled === false,
+    }),
+  ),
 }));
 
 vi.mock("@/lib/questions/audio-recorder/audio-player", () => ({
@@ -113,7 +120,7 @@ describe("FileContentView", () => {
   });
 
   describe("Image rendering", () => {
-    it("renders image with fill prop for responsive sizing", () => {
+    it("renders native img with object-cover inside the aspect container", () => {
       render(
         <FileContentView
           src="https://example.com/image.jpg"
@@ -192,6 +199,31 @@ describe("FileContentView", () => {
 });
 
 describe("FileViewer", () => {
+  beforeEach(() => {
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root: Element | Document | null = null;
+      readonly rootMargin = "";
+      readonly thresholds: readonly number[] = [];
+
+      constructor(private readonly callback: IntersectionObserverCallback) {}
+
+      observe(): void {
+        this.callback(
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          this,
+        );
+      }
+
+      disconnect(): void {}
+      unobserve(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return [];
+      }
+    }
+
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  });
+
   it("resolves URL via context and passes to FileContentView", () => {
     const mockFile = {
       content: "https://storage.example/file.jpg",
@@ -212,9 +244,25 @@ describe("FileViewer", () => {
       name: "doc.pdf",
     };
 
-    const { container } = render(<FileViewer file={mockFile} />);
+    const { container } = render(
+      <FileViewer file={mockFile} lazyPresign={false} />,
+    );
 
     const wrapper = container.querySelector(".max-w-4xl");
     expect(wrapper).toBeDefined();
+  });
+
+  it("sets loading lazy on images", () => {
+    render(
+      <FileContentView
+        src="https://example.com/photo.jpg"
+        contentType="image/jpeg"
+        name="photo.jpg"
+        size="small"
+      />,
+    );
+
+    const img = document.querySelector("img");
+    expect(img?.getAttribute("loading")).toBe("lazy");
   });
 });

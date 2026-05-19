@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { BackToSubmissionsButton } from "@/features/submissions/ui/details/back-to-submissions-button";
 import { Result } from "@/lib/result";
-import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
+import { HubEditSubmission } from "@/features/submissions/ui/edit/edit-submission";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -53,10 +53,8 @@ export default async function EditSubmissionPage({ params }: Params) {
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
-        <DesignerRuntimeProvider
-          initialState={{ formId, submissionId }}
-        >
-          <EditSubmission submission={submission} />
+        <DesignerRuntimeProvider initialState={{ formId, submissionId }}>
+          <HubEditSubmission submission={submission} />
         </DesignerRuntimeProvider>
       </AssetStorageProvider>
     </Suspense>

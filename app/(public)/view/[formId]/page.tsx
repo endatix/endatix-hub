@@ -2,7 +2,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found/not-fou
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
-import ViewSubmission from "@/features/submissions/ui/view/view-submission";
+import { PublicViewSubmission } from "@/features/submissions/ui/view/view-submission";
 import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
@@ -134,7 +134,7 @@ export default async function PublicViewSubmissionPage({
             tokenType: "AccessToken",
           }}
         >
-          <ViewSubmission submission={submission} />
+          <PublicViewSubmission submission={submission} />
         </FormRuntimeProvider>
       </AssetStorageProvider>
     </Suspense>

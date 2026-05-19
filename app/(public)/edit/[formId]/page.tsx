@@ -2,7 +2,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found/not-fou
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
-import EditSubmission from "@/features/submissions/ui/edit/edit-submission";
+import { PublicEditSubmission } from "@/features/submissions/ui/edit/edit-submission";
 import { Result } from "@/lib/result";
 import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
@@ -134,7 +134,7 @@ export default async function PublicEditSubmissionPage({
             tokenType: "AccessToken",
           }}
         >
-          <EditSubmission
+          <PublicEditSubmission
             submission={submission}
             formId={validateFormIdResult.value}
             token={token}

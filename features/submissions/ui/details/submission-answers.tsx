@@ -1,7 +1,11 @@
 "use client";
 
+import {
+  useStorageReadRuntime,
+  useStorageView,
+} from "@/features/asset-storage/client";
 import { useSurveyModel } from "@/features/public-form/ui/use-survey-model.hook";
-import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
+import { useDesignerRuntime } from "@/lib/designer-runtime";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import { cn } from "@/lib/utils";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
@@ -30,12 +34,12 @@ export function SubmissionAnswers({
   customQuestions,
 }: Readonly<SubmissionAnswersProps>) {
   const { submission, submissionNavPages } = useSubmissionDetails();
-  const formRuntime = useFormRuntime();
-  const getRuntimeState = useCallback(() => {
-    return formRuntime.stateRef.current;
-  }, [formRuntime]);
+  const designerRuntime = useDesignerRuntime();
   const formId = submission.formId;
   const formDefinition = submission.formDefinition?.jsonData ?? "";
+  const getRuntimeState = useCallback(() => {
+    return designerRuntime.stateRef.current;
+  }, [designerRuntime]);
   const { isReady: isExtensionsReady, onModelCreated } = useSurveyExtensions({
     formJson: formDefinition,
     runtimeDeps: {
@@ -50,12 +54,23 @@ export function SubmissionAnswers({
     onModelCreated,
   });
 
+  const getReadRuntime = useStorageReadRuntime({ formId });
   const { setSurveyModel } = useSubmissionDetails();
   const { viewOptions } = useSubmissionDetailsViewOptions();
+  const { prefetchPrivateReadUrlsForModel } = useStorageView({
+    getReadRuntime,
+  });
 
   useEffect(() => {
     setSurveyModel(surveyModel);
   }, [surveyModel, setSurveyModel]);
+
+  useEffect(() => {
+    if (!surveyModel) {
+      return;
+    }
+    void prefetchPrivateReadUrlsForModel(surveyModel);
+  }, [surveyModel, prefetchPrivateReadUrlsForModel]);
 
   useEffect(() => {
     if (!surveyModel) {
