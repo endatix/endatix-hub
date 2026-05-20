@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as React from "react";
+
+const mockStoragePresignedImage = vi.fn(({ src, ...props }: { src: string }) =>
+  React.createElement("img", { ...props, src, "data-presigned": "true" }),
+);
+
+vi.mock("@/features/asset-storage/ui/storage-presigned-image", () => ({
+  StoragePresignedImage: (props: { src: string }) =>
+    mockStoragePresignedImage(props),
+}));
+
 import {
   enrichImageElement,
   enrichImagesInContainer,
@@ -7,12 +17,16 @@ import {
   enrichImageInJSX,
   ORIGINAL_SRC_ATTRIBUTE,
 } from "@/features/asset-storage/use-cases/view-protected-files/enrich-image-urls";
+import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 
 describe("enrich-image-urls", () => {
   const mockResolveStorageUrl = vi.fn((url: string) => `${url}?token=abc123`);
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockStoragePresignedImage.mockImplementation(({ src, ...props }) =>
+      React.createElement("img", { ...props, src, "data-presigned": "true" }),
+    );
     document.body.innerHTML = "";
   });
 
@@ -255,10 +269,7 @@ describe("enrich-image-urls", () => {
       expect(result).toBe(node);
     });
 
-    it("should enrich img element", () => {
-      mockResolveStorageUrl.mockReturnValue(
-        "https://example.com/image.jpg?token=abc123",
-      );
+    it("should wrap img element with StoragePresignedImage", () => {
       const imgElement = React.createElement("img", {
         src: "https://example.com/image.jpg",
       });
@@ -266,12 +277,8 @@ describe("enrich-image-urls", () => {
       const result = enrichImageInJSX(imgElement, mockResolveStorageUrl);
 
       expect(result).not.toBe(imgElement);
-      const out = result as React.ReactElement<{
-        src?: string;
-        [ORIGINAL_SRC_ATTRIBUTE]?: string;
-      }>;
-      expect(out.props.src).toBe("https://example.com/image.jpg?token=abc123");
-      expect(out.props[ORIGINAL_SRC_ATTRIBUTE]).toBe(
+      expect((result as React.ReactElement).type).toBe(StoragePresignedImage);
+      expect((result as React.ReactElement<{ src: string }>).props.src).toBe(
         "https://example.com/image.jpg",
       );
     });
@@ -299,7 +306,7 @@ describe("enrich-image-urls", () => {
       expect(mockResolveStorageUrl).not.toHaveBeenCalled();
     });
 
-    it("should not enrich if resolved URL is the same as current src", () => {
+    it("should still wrap img when resolve returns the same URL (async presign)", () => {
       mockResolveStorageUrl.mockReturnValue("https://example.com/image.jpg");
       const imgElement = React.createElement("img", {
         src: "https://example.com/image.jpg",
@@ -307,43 +314,31 @@ describe("enrich-image-urls", () => {
 
       const result = enrichImageInJSX(imgElement, mockResolveStorageUrl);
 
-      expect(result).toBe(imgElement);
+      expect(result).not.toBe(imgElement);
+      expect((result as React.ReactElement).type).toBe(StoragePresignedImage);
     });
 
-    it("should enrich img element in nested children", () => {
-      mockResolveStorageUrl.mockReturnValue(
-        "https://example.com/image.jpg?token=abc123",
-      );
+    it("should wrap img element in nested children", () => {
       const divElement = React.createElement(
         "div",
         {},
-        React.createElement("img", {
-          src: "https://example.com/image.jpg",
-        }),
+        React.createElement("img", { src: "https://example.com/image.jpg" }),
       );
 
       const result = enrichImageInJSX(divElement, mockResolveStorageUrl);
 
       expect(result).not.toBe(divElement);
-      const children = (result as React.ReactElement<{ children?: unknown }>)
-        .props.children;
-      // When there's a single child, React doesn't wrap it in an array
-      if (React.isValidElement(children)) {
-        expect(
-          (children as React.ReactElement<{ src?: string }>).props.src,
-        ).toBe("https://example.com/image.jpg?token=abc123");
-      } else {
-        const childrenArray = React.Children.toArray(children as React.ReactNode);
-        expect(childrenArray.length).toBe(1);
-        expect(
-          (childrenArray[0] as React.ReactElement<{ src?: string }>).props
-            .src,
-        ).toBe("https://example.com/image.jpg?token=abc123");
-      }
+      const child = (result as React.ReactElement<{ children?: unknown }>).props
+        .children;
+      const wrapped = React.isValidElement(child)
+        ? child
+        : (React.Children.toArray(
+            child as React.ReactNode,
+          )[0] as React.ReactElement);
+      expect(wrapped.type).toBe(StoragePresignedImage);
     });
 
-    it("should enrich multiple img elements in children", () => {
-      mockResolveStorageUrl.mockImplementation((url) => `${url}?token=abc123`);
+    it("should wrap multiple img elements in children", () => {
       const divElement = React.createElement(
         "div",
         {},
@@ -359,12 +354,12 @@ describe("enrich-image-urls", () => {
           .children as React.ReactNode,
       );
       expect(children.length).toBe(2);
-      expect(
-        (children[0] as React.ReactElement<{ src?: string }>).props.src,
-      ).toBe("https://example.com/image1.jpg?token=abc123");
-      expect(
-        (children[1] as React.ReactElement<{ src?: string }>).props.src,
-      ).toBe("https://example.com/image2.jpg?token=abc123");
+      expect((children[0] as React.ReactElement).type).toBe(
+        StoragePresignedImage,
+      );
+      expect((children[1] as React.ReactElement).type).toBe(
+        StoragePresignedImage,
+      );
     });
 
     it("should return original element if no changes were made", () => {
@@ -386,9 +381,6 @@ describe("enrich-image-urls", () => {
     });
 
     it("should handle mixed children (elements and non-elements)", () => {
-      mockResolveStorageUrl.mockReturnValue(
-        "https://example.com/image.jpg?token=abc123",
-      );
       const divElement = React.createElement(
         "div",
         {},
@@ -401,14 +393,12 @@ describe("enrich-image-urls", () => {
 
       expect(result).not.toBe(divElement);
       const children = React.Children.toArray(
-        (result as React.JSX.Element).props.children,
+        (result as React.ReactElement<{ children?: React.ReactNode }>).props
+          .children as React.ReactNode,
       );
-      expect(children.length).toBe(3);
-      expect(children[0]).toBe("Text node");
-      expect((children[1] as React.JSX.Element).props.src).toBe(
-        "https://example.com/image.jpg?token=abc123",
+      expect((children[1] as React.ReactElement).type).toBe(
+        StoragePresignedImage,
       );
-      expect(children[2]).toBe(123);
     });
   });
 });

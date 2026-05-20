@@ -1,10 +1,5 @@
-import { IFile } from "@/lib/questions/file/file-type";
-import {
-  Model,
-  QuestionImageModel,
-  QuestionImagePickerModel,
-  QuestionSignaturePadModel,
-} from "survey-core";
+import { Model } from "survey-core";
+import { collectModelStorageAssets } from "./collect-model-storage-assets";
 
 /**
  * @deprecated This function will be removed once server-side asset manifest generation is implemented.
@@ -19,63 +14,5 @@ import {
  * @returns A manifest of all storage URLs from the model
  */
 export function generateAssetsManifest(model: Model): string[] {
-  const urls: string[] = [];
-
-  if (model.logo) {
-    urls.push(model.logo);
-  }
-
-  if (model.backgroundImage) {
-    urls.push(model.backgroundImage);
-  }
-
-  model.getAllQuestions(true, true, true).forEach((question) => {
-    const type = question.getType();
-
-    switch (type) {
-      case "file":
-      case "audiorecorder": {
-        const files = question.value;
-        if (Array.isArray(files)) {
-          files.forEach((file: IFile) => {
-            if (file.content) {
-              urls.push(file.content);
-            }
-          });
-        }
-        break;
-      }
-      case "signaturepad": {
-        const sigModel = question as QuestionSignaturePadModel;
-        if (sigModel.backgroundImage) {
-          urls.push(sigModel.backgroundImage);
-        }
-        if (typeof sigModel.value === "string") {
-          urls.push(sigModel.value);
-        }
-        break;
-      }
-      case "imagepicker": {
-        const picker = question as QuestionImagePickerModel;
-        picker.choices?.forEach((choice) => {
-          const link = (choice as { imageLink?: string }).imageLink;
-          if (link) {
-            urls.push(link);
-          }
-        });
-        break;
-      }
-      case "image": {
-        const imgModel = question as QuestionImageModel;
-        if (imgModel.imageLink) {
-          urls.push(imgModel.imageLink);
-        }
-        break;
-      }
-      default:
-        break;
-    }
-  });
-
-  return [...new Set(urls)];
+  return [...collectModelStorageAssets(model).urls];
 }

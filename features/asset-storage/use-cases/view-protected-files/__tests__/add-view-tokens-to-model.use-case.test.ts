@@ -1,5 +1,11 @@
 import { Result } from "@/lib/result";
-import { Model, QuestionFileModel, QuestionImageModel, QuestionSignaturePadModel } from "survey-core";
+import {
+  Model,
+  QuestionFileModel,
+  QuestionImageModel,
+  QuestionImagePickerModel,
+  QuestionSignaturePadModel,
+} from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addViewTokensToModelUseCase } from "../add-view-tokens-to-model.use-case";
 import {
@@ -9,54 +15,38 @@ import {
 
 // Mock dependencies
 vi.mock("../../../storage-runtime", () => ({
-  getStorageRuntimeSettings: vi.fn(),
+  getClientStorageConfig: vi.fn(),
 }));
 
 vi.mock("../generate-granular-read-tokens.use-case", () => ({
   generateGranularReadTokensUseCase: vi.fn(),
 }));
 
-vi.mock("../generate-assets-manifest", () => ({
-  generateAssetsManifest: vi.fn(),
-}));
-
-import { getStorageRuntimeSettings } from "../../../storage-runtime";
-import { generateAssetsManifest } from "../generate-assets-manifest";
+import { getClientStorageConfig } from "../../../storage-runtime";
 import { generateGranularReadTokensUseCase } from "../generate-granular-read-tokens.use-case";
 
-const mockRuntimeStorageProfile = {
-  explicitProvider: null,
-  azureCredentialsPresent: true,
-  imageRemoteHostnames: [] as readonly string[],
-};
-
 describe("addViewTokensToModelUseCase", () => {
-  const mockStorageConfig = {
+  const mockClientStorageConfig = {
     isEnabled: true,
     isPrivate: true,
-    accountName: "testaccount",
-    accountKey: "testkey",
     hostName: "testaccount.blob.core.windows.net",
-    sasReadExpiryMinutes: 15,
+    protocol: "https" as const,
     containerNames: {
       USER_FILES: "user-files",
       CONTENT: "content",
     },
+    imageConfig: { isResizeEnabled: false, defaultResizeWidth: 800 },
   };
 
   let mockModel: Model;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getStorageRuntimeSettings).mockReturnValue({
-      providerId: "azure",
-      isEnabled: mockStorageConfig.isEnabled,
-      isPrivate: mockStorageConfig.isPrivate,
-      storage: mockRuntimeStorageProfile,
-      azure: mockStorageConfig as any,
-    });
+    vi.mocked(getClientStorageConfig).mockReturnValue(mockClientStorageConfig);
+    vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
+      Result.success({}),
+    );
 
-    // Create a fresh model for each test
     mockModel = new Model({
       pages: [
         {
@@ -69,70 +59,64 @@ describe("addViewTokensToModelUseCase", () => {
 
   describe("storage configuration checks", () => {
     it("should return early when storage is not enabled", async () => {
-      vi.mocked(getStorageRuntimeSettings).mockReturnValue({
-        providerId: null,
+      vi.mocked(getClientStorageConfig).mockReturnValue({
+        ...mockClientStorageConfig,
         isEnabled: false,
-        isPrivate: false,
-        storage: mockRuntimeStorageProfile,
-        azure: null,
       });
 
       await addViewTokensToModelUseCase(mockModel);
 
-      expect(generateAssetsManifest).not.toHaveBeenCalled();
       expect(generateGranularReadTokensUseCase).not.toHaveBeenCalled();
     });
 
     it("should return early when storage is not private", async () => {
-      vi.mocked(getStorageRuntimeSettings).mockReturnValue({
-        providerId: "azure",
-        isEnabled: true,
+      vi.mocked(getClientStorageConfig).mockReturnValue({
+        ...mockClientStorageConfig,
         isPrivate: false,
-        storage: mockRuntimeStorageProfile,
-        azure: { ...mockStorageConfig, isPrivate: false } as any,
       });
 
       await addViewTokensToModelUseCase(mockModel);
 
-      expect(generateAssetsManifest).not.toHaveBeenCalled();
       expect(generateGranularReadTokensUseCase).not.toHaveBeenCalled();
     });
   });
 
-  describe("asset manifest generation", () => {
-    it("should return early when manifest is empty", async () => {
-      vi.mocked(generateAssetsManifest).mockReturnValue([]);
-
+  describe("asset collection", () => {
+    it("should return early when the model has no storage assets", async () => {
       await addViewTokensToModelUseCase(mockModel);
 
-      expect(generateAssetsManifest).toHaveBeenCalledWith(mockModel);
       expect(generateGranularReadTokensUseCase).not.toHaveBeenCalled();
     });
 
-    it("should call generateGranularReadTokensUseCase with manifest URLs", async () => {
-      const manifestUrls = [
-        "https://testaccount.blob.core.windows.net/content/file1.jpg",
-        "https://testaccount.blob.core.windows.net/user-files/file2.pdf",
-      ];
-
-      vi.mocked(generateAssetsManifest).mockReturnValue(manifestUrls);
-      vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
-        Result.success({}),
-      );
+    it("should call generateGranularReadTokensUseCase with deduped collected URLs", async () => {
+      const sharedUrl =
+        "https://testaccount.blob.core.windows.net/content/file1.jpg";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/file2.pdf";
+      mockModel.logo = sharedUrl;
+      mockModel.backgroundImage = sharedUrl;
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        {
+          getType: () => "file",
+          value: [{ content: fileUrl }],
+        } as unknown as QuestionFileModel,
+      ]);
 
       await addViewTokensToModelUseCase(mockModel);
 
-      expect(generateAssetsManifest).toHaveBeenCalledWith(mockModel);
-      expect(generateGranularReadTokensUseCase).toHaveBeenCalledWith(manifestUrls);
+      expect(generateGranularReadTokensUseCase).toHaveBeenCalledWith([
+        sharedUrl,
+        fileUrl,
+      ]);
     });
   });
 
   describe("token application", () => {
     it("should apply tokens to model logo", async () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
       mockModel.logo = logoUrl;
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([logoUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [logoUrl]: "logo-token-123",
@@ -148,7 +132,6 @@ describe("addViewTokensToModelUseCase", () => {
       const bgUrl = "https://testaccount.blob.core.windows.net/content/bg.jpg";
       mockModel.backgroundImage = bgUrl;
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([bgUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [bgUrl]: "bg-token-456",
@@ -161,10 +144,10 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should not modify logo when token is missing", async () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
       mockModel.logo = logoUrl;
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([logoUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           // logoUrl is missing from tokens
@@ -177,7 +160,8 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should apply tokens to file question values", async () => {
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/document.pdf";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/document.pdf";
       const fileQuestion = {
         getType: () => "file",
         value: [
@@ -189,9 +173,10 @@ describe("addViewTokensToModelUseCase", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([fileUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [fileUrl]: "file-token-789",
@@ -204,8 +189,10 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should apply tokens to multiple files in file question", async () => {
-      const fileUrl1 = "https://testaccount.blob.core.windows.net/user-files/file1.pdf";
-      const fileUrl2 = "https://testaccount.blob.core.windows.net/user-files/file2.jpg";
+      const fileUrl1 =
+        "https://testaccount.blob.core.windows.net/user-files/file1.pdf";
+      const fileUrl2 =
+        "https://testaccount.blob.core.windows.net/user-files/file2.jpg";
       const fileQuestion = {
         getType: () => "file",
         value: [
@@ -214,9 +201,10 @@ describe("addViewTokensToModelUseCase", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([fileUrl1, fileUrl2]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [fileUrl1]: "token1",
@@ -231,17 +219,20 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should apply tokens to signature pad backgroundImage and value", async () => {
-      const bgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
-      const sigUrl = "https://testaccount.blob.core.windows.net/user-files/signature.png";
+      const bgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const sigUrl =
+        "https://testaccount.blob.core.windows.net/user-files/signature.png";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: bgUrl,
         value: sigUrl,
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([bgUrl, sigUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [bgUrl]: "bg-token",
@@ -256,17 +247,20 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should handle signature pad with data URL value (not storage URL)", async () => {
-      const bgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
-      const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const bgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const dataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: bgUrl,
         value: dataUrl,
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([bgUrl, dataUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [bgUrl]: "bg-token",
@@ -281,15 +275,17 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should apply tokens to image question imageLink", async () => {
-      const imageUrl = "https://testaccount.blob.core.windows.net/content/image.jpg";
+      const imageUrl =
+        "https://testaccount.blob.core.windows.net/content/image.jpg";
       const imageQuestion = {
         getType: () => "image",
         imageLink: imageUrl,
       } as unknown as QuestionImageModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([imageQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        imageQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([imageUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [imageUrl]: "image-token",
@@ -301,8 +297,33 @@ describe("addViewTokensToModelUseCase", () => {
       expect(imageQuestion.imageLink).toBe(`${imageUrl}?image-token`);
     });
 
+    it("should apply tokens to image picker choice imageLink", async () => {
+      const imageUrl =
+        "https://testaccount.blob.core.windows.net/content/choice.jpg";
+      const choice = { imageLink: imageUrl };
+      const imagePickerQuestion = {
+        getType: () => "imagepicker",
+        choices: [choice],
+      } as unknown as QuestionImagePickerModel;
+
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        imagePickerQuestion,
+      ] as any);
+
+      vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
+        Result.success({
+          [imageUrl]: "choice-token",
+        }),
+      );
+
+      await addViewTokensToModelUseCase(mockModel);
+
+      expect(choice.imageLink).toBe(`${imageUrl}?choice-token`);
+    });
+
     it("should handle audio recorder question type", async () => {
-      const audioUrl = "https://testaccount.blob.core.windows.net/user-files/audio.wav";
+      const audioUrl =
+        "https://testaccount.blob.core.windows.net/user-files/audio.wav";
       const audioQuestion = {
         getType: () => "audiorecorder",
         value: [
@@ -314,9 +335,10 @@ describe("addViewTokensToModelUseCase", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([audioQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        audioQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([audioUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [audioUrl]: "audio-token",
@@ -329,7 +351,8 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should skip questions without matching tokens", async () => {
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/file.pdf";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/file.pdf";
       const fileQuestion = {
         getType: () => "file",
         value: [
@@ -341,9 +364,10 @@ describe("addViewTokensToModelUseCase", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([fileUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           // fileUrl is missing from tokens
@@ -361,12 +385,9 @@ describe("addViewTokensToModelUseCase", () => {
         value: null, // Not an array
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
-
-      vi.mocked(generateAssetsManifest).mockReturnValue([]);
-      vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
-        Result.success({}),
-      );
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       await addViewTokensToModelUseCase(mockModel);
 
@@ -377,10 +398,10 @@ describe("addViewTokensToModelUseCase", () => {
 
   describe("error handling", () => {
     it("should not apply tokens when generateGranularReadTokensUseCase fails", async () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
       mockModel.logo = logoUrl;
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([logoUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.error("Failed to generate tokens"),
       );
@@ -392,10 +413,10 @@ describe("addViewTokensToModelUseCase", () => {
     });
 
     it("should handle URLs with existing query parameters", async () => {
-      const urlWithQuery = "https://testaccount.blob.core.windows.net/content/file.jpg?existing=param";
+      const urlWithQuery =
+        "https://testaccount.blob.core.windows.net/content/file.jpg?existing=param";
       mockModel.logo = urlWithQuery;
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([urlWithQuery]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [urlWithQuery]: "token123",
@@ -411,16 +432,22 @@ describe("addViewTokensToModelUseCase", () => {
 
   describe("complex scenarios", () => {
     it("should handle model with multiple question types", async () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/file.pdf";
-      const imageUrl = "https://testaccount.blob.core.windows.net/content/image.jpg";
-      const sigBgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/file.pdf";
+      const imageUrl =
+        "https://testaccount.blob.core.windows.net/content/image.jpg";
+      const sigBgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
 
       mockModel.logo = logoUrl;
 
       const fileQuestion = {
         getType: () => "file",
-        value: [{ name: "file.pdf", type: "application/pdf", content: fileUrl }],
+        value: [
+          { name: "file.pdf", type: "application/pdf", content: fileUrl },
+        ],
       } as unknown as QuestionFileModel;
 
       const imageQuestion = {
@@ -434,9 +461,12 @@ describe("addViewTokensToModelUseCase", () => {
         value: "data:image/png;base64,...",
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion, imageQuestion, sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+        imageQuestion,
+        sigQuestion,
+      ] as any);
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([logoUrl, fileUrl, imageUrl, sigBgUrl]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [logoUrl]: "logo-token",
@@ -460,12 +490,9 @@ describe("addViewTokensToModelUseCase", () => {
         value: [], // Empty array
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
-
-      vi.mocked(generateAssetsManifest).mockReturnValue([]);
-      vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
-        Result.success({}),
-      );
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       await addViewTokensToModelUseCase(mockModel);
 
@@ -484,12 +511,9 @@ describe("addViewTokensToModelUseCase", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
-
-      vi.mocked(generateAssetsManifest).mockReturnValue([]);
-      vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
-        Result.success({}),
-      );
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       await addViewTokensToModelUseCase(mockModel);
 
@@ -504,10 +528,6 @@ describe("addViewTokensToModelUseCase", () => {
       const imageUrl1 = nestedElementsExpectedUrls[0];
       const imageUrl2 = nestedElementsExpectedUrls[1];
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([
-        imageUrl1,
-        imageUrl2,
-      ]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [imageUrl1]: "token1",
@@ -526,11 +546,11 @@ describe("addViewTokensToModelUseCase", () => {
       expect(imageQuestions.length).toBeGreaterThanOrEqual(2);
 
       // Check that imageLink properties were updated with tokens
-      const imageQuestion1 = imageQuestions.find(
-        (q) => (q as QuestionImageModel).imageLink?.includes(imageUrl1),
+      const imageQuestion1 = imageQuestions.find((q) =>
+        (q as QuestionImageModel).imageLink?.includes(imageUrl1),
       ) as QuestionImageModel;
-      const imageQuestion2 = imageQuestions.find(
-        (q) => (q as QuestionImageModel).imageLink?.includes(imageUrl2),
+      const imageQuestion2 = imageQuestions.find((q) =>
+        (q as QuestionImageModel).imageLink?.includes(imageUrl2),
       ) as QuestionImageModel;
 
       expect(imageQuestion1?.imageLink).toBe(`${imageUrl1}?token1`);
@@ -542,10 +562,6 @@ describe("addViewTokensToModelUseCase", () => {
       const imageUrl1 = nestedElementsExpectedUrls[0];
       const imageUrl2 = nestedElementsExpectedUrls[1];
 
-      vi.mocked(generateAssetsManifest).mockReturnValue([
-        imageUrl1,
-        imageUrl2,
-      ]);
       vi.mocked(generateGranularReadTokensUseCase).mockResolvedValue(
         Result.success({
           [imageUrl1]: "token1",
@@ -561,11 +577,11 @@ describe("addViewTokensToModelUseCase", () => {
         (q) => q.getType() === "image",
       );
 
-      const imageQuestion1 = imageQuestions.find(
-        (q) => (q as QuestionImageModel).imageLink?.includes(imageUrl1),
+      const imageQuestion1 = imageQuestions.find((q) =>
+        (q as QuestionImageModel).imageLink?.includes(imageUrl1),
       ) as QuestionImageModel;
-      const imageQuestion2 = imageQuestions.find(
-        (q) => (q as QuestionImageModel).imageLink?.includes(imageUrl2),
+      const imageQuestion2 = imageQuestions.find((q) =>
+        (q as QuestionImageModel).imageLink?.includes(imageUrl2),
       ) as QuestionImageModel;
 
       expect(imageQuestion1?.imageLink).toBe(`${imageUrl1}?token1`);

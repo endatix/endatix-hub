@@ -1,8 +1,38 @@
 import * as React from "react";
+import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 
 const ORIGINAL_SRC_ATTRIBUTE = "data-original-src";
 
 type UrlResolverFn = (url: string) => string;
+
+const StoragePresignDatasetMarker = {
+  Managed: "storagePresignManaged",
+  Pending: "storagePresignPending",
+} as const;
+
+type StoragePresignDatasetMarker =
+  (typeof StoragePresignDatasetMarker)[keyof typeof StoragePresignDatasetMarker];
+
+/**
+ * Checks if a URL is from the asset storage host.
+ * @param url - The URL to check
+ * @param storageHostName - The name of the storage host
+ * @returns true if the URL is from the asset storage host, false otherwise
+ */
+function isAssetStorageHost(
+  url: string,
+  storageHostName: string | undefined,
+): boolean {
+  if (!url || url.startsWith("data:") || !storageHostName) {
+    return false;
+  }
+  try {
+    return new URL(url).host.toLowerCase() === storageHostName.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 type ImageElementProps = React.DetailedHTMLProps<
   React.ImgHTMLAttributes<HTMLImageElement>,
   HTMLImageElement
@@ -17,34 +47,76 @@ type ImageElementProps = React.DetailedHTMLProps<
  * @param resolveStorageUrl - Function to resolve storage URLs with tokens
  * @returns true if the image was enriched, false otherwise
  */
+function hasDatasetMarker(
+  element: HTMLElement,
+  marker: StoragePresignDatasetMarker,
+): boolean {
+  return marker in element.dataset;
+}
+
+function hasPendingStoragePresignAncestor(img: HTMLImageElement): boolean {
+  let currentElement = img.parentElement;
+
+  while (currentElement) {
+    if (hasDatasetMarker(currentElement, StoragePresignDatasetMarker.Pending)) {
+      return true;
+    }
+
+    currentElement = currentElement.parentElement;
+  }
+
+  return false;
+}
+
+function isReactManagedStorageImage(img: HTMLImageElement): boolean {
+  return (
+    hasDatasetMarker(img, StoragePresignDatasetMarker.Managed) ||
+    hasDatasetMarker(img, StoragePresignDatasetMarker.Pending) ||
+    hasPendingStoragePresignAncestor(img)
+  );
+}
+
 function enrichImageElement(
   img: HTMLImageElement,
   resolveStorageUrl: (url: string) => string,
+  storageHostName?: string,
 ): boolean {
-  if (!img || !resolveStorageUrl) return false;
+  if (!img || !resolveStorageUrl || isReactManagedStorageImage(img)) {
+    return false;
+  }
 
-  const currentSrc = img.src;
+  const currentSrc = img.getAttribute("src") ?? img.src;
   const storedOriginal = img.getAttribute(ORIGINAL_SRC_ATTRIBUTE);
 
-  // Determine the original source URL
   let originalSrc: string;
   if (storedOriginal) {
     const previouslyResolved = resolveStorageUrl(storedOriginal);
-    if (currentSrc === previouslyResolved) {
+    if (currentSrc === previouslyResolved || currentSrc.length === 0) {
       originalSrc = storedOriginal;
     } else {
       originalSrc = currentSrc;
-      img.setAttribute(ORIGINAL_SRC_ATTRIBUTE, originalSrc);
     }
+  } else if (currentSrc.length === 0) {
+    return false;
   } else {
     originalSrc = currentSrc;
-    img.setAttribute(ORIGINAL_SRC_ATTRIBUTE, originalSrc);
   }
 
-  // Resolve and update if needed
   const resolvedSrc = resolveStorageUrl(originalSrc);
+
   if (resolvedSrc !== currentSrc) {
+    img.setAttribute(ORIGINAL_SRC_ATTRIBUTE, originalSrc);
     img.src = resolvedSrc;
+    return true;
+  }
+
+  if (
+    resolvedSrc === originalSrc &&
+    isAssetStorageHost(originalSrc, storageHostName) &&
+    currentSrc === originalSrc
+  ) {
+    img.setAttribute(ORIGINAL_SRC_ATTRIBUTE, originalSrc);
+    img.removeAttribute("src");
     return true;
   }
 
@@ -61,11 +133,14 @@ function enrichImageElement(
 function enrichImagesInContainer(
   container: HTMLElement | null,
   resolveStorageUrl: (url: string) => string,
+  storageHostName?: string,
 ): void {
   if (!container || !resolveStorageUrl) return;
 
   const images = container.querySelectorAll("img");
-  images.forEach((img) => enrichImageElement(img, resolveStorageUrl));
+  images.forEach((img) => {
+    enrichImageElement(img, resolveStorageUrl, storageHostName);
+  });
 }
 
 /**
@@ -80,23 +155,19 @@ function enrichImageBySrc(
   container: Element | null,
   imageSrc: string,
   resolveStorageUrl: (url: string) => string,
+  storageHostName?: string,
 ): void {
   if (!imageSrc || !container || !resolveStorageUrl) return;
 
   const image = container.querySelector(
-    `img[src="${imageSrc}"]`,
+    `img[src="${imageSrc}"], img[data-original-src="${imageSrc}"]`,
   ) as HTMLImageElement;
 
   if (!image) return;
 
-  // Skip if already enriched (has original src attribute)
   if (image.getAttribute(ORIGINAL_SRC_ATTRIBUTE)) return;
 
-  const resolvedUrl = resolveStorageUrl(imageSrc);
-  if (resolvedUrl !== imageSrc) {
-    image.setAttribute(ORIGINAL_SRC_ATTRIBUTE, imageSrc);
-    image.src = resolvedUrl;
-  }
+  enrichImageElement(image, resolveStorageUrl, storageHostName);
 }
 
 /**
@@ -113,21 +184,20 @@ function enrichElement(
   if (!urlResolverFn) return element;
 
   if (isImgElement(element)) {
-    const { src, [ORIGINAL_SRC_ATTRIBUTE]: storedOriginal } = element.props;
+    const {
+      src,
+      [ORIGINAL_SRC_ATTRIBUTE]: storedOriginal,
+      ...imgProps
+    } = element.props;
 
     if (!src || storedOriginal) {
       return element;
     }
+
     const currentSrc = String(src);
-    const enrichedSrc = urlResolverFn(currentSrc);
-
-    if (currentSrc === enrichedSrc) {
-      return element;
-    }
-
-    return React.cloneElement(element, {
-      src: enrichedSrc,
-      [ORIGINAL_SRC_ATTRIBUTE]: currentSrc,
+    return React.createElement(StoragePresignedImage, {
+      ...imgProps,
+      src: currentSrc,
     });
   }
 
