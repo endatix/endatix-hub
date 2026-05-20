@@ -6,9 +6,9 @@ export {
   toClientStorageConfig,
   type AzureStorageConfig,
   type IStorageConfig,
-  type StorageConfig,
   type StorageConfigClient,
 } from "./azure-config";
+export type { ClientStorageConfig } from "../shared/client-storage-config";
 export { AzureBlobStorageProvider } from "./azure-storage-provider";
 export {
   blobMetadataParser,

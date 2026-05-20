@@ -3,23 +3,23 @@ import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyModel } from "survey-core";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
-import { Result } from "@/lib/result";
-import { ContainerReadToken } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
-import { StorageConfig } from "@/features/asset-storage/client";
+import { ClientStorageConfig } from "@/features/asset-storage/client";
 import { clientStorageConfig } from "../../test-storage-config";
 
 // Mock the hooks
 const mockSetModelMetadata = vi.fn();
-const mockRegisterViewHandlers = vi.fn();
 const mockRegisterUploadHandlers = vi.fn();
+const mockPrefetchPrivateReadUrlsForModel = vi
+  .fn()
+  .mockResolvedValue(undefined);
 
 vi.mock(
   "@/features/asset-storage/use-cases/view-protected-files/use-storage-view.hook",
   () => ({
     useStorageView: () => ({
       setModelMetadata: mockSetModelMetadata,
-      registerViewHandlers: mockRegisterViewHandlers,
+      prefetchPrivateReadUrlsForModel: mockPrefetchPrivateReadUrlsForModel,
     }),
   }),
 );
@@ -39,35 +39,14 @@ const createMockSurveyModel = (): SurveyModel => {
   } as unknown as SurveyModel;
 };
 
-const createReadTokenPromises = () => {
-  const resolvedTokenResult = Result.success<ContainerReadToken>({
-    token: "test-token-123",
-    containerName: "content",
-    expiresOn: new Date(),
-    generatedAt: new Date(),
-  });
-
-  const resolvedUserFilesTokenResult = Result.success<ContainerReadToken>({
-    token: "user-files-token-456",
-    containerName: "user-files",
-    expiresOn: new Date(),
-    generatedAt: new Date(),
-  });
-
-  return {
-    userFiles: Promise.resolve(resolvedUserFilesTokenResult),
-    content: Promise.resolve(resolvedTokenResult),
-  };
-};
-
 describe("useSurveyStorage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRegisterViewHandlers.mockReturnValue(() => { });
-    mockRegisterUploadHandlers.mockReturnValue(() => { });
+    mockRegisterUploadHandlers.mockReturnValue(() => {});
+    mockPrefetchPrivateReadUrlsForModel.mockResolvedValue(undefined);
   });
 
-  const wrapper = (config: StorageConfig | null) => {
+  const wrapper = (config: ClientStorageConfig | null) => {
     function TestStorageConfigWrapper({
       children,
     }: {
@@ -84,7 +63,7 @@ describe("useSurveyStorage", () => {
     return TestStorageConfigWrapper;
   };
 
-  it("should return registerStorageHandlers function immediately when readTokenPromises is not provided", () => {
+  it("should return registerStorageHandlers and set model metadata", () => {
     const model = createMockSurveyModel();
     const { result } = renderHook(
       () =>
@@ -100,163 +79,149 @@ describe("useSurveyStorage", () => {
     expect(result.current.registerStorageHandlers).toBeDefined();
     expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
 
-    let unregister: () => void = () => { };
+    let unregister: () => void = () => {};
     act(() => {
       unregister = result.current.registerStorageHandlers(model);
     });
-    expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
     expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
     unregister();
   });
 
-  describe("when readTokenPromises is provided", () => {
-    const readTokenPromises = createReadTokenPromises();
+  it("should handle disabled storage", async () => {
+    const disabledConfig: ClientStorageConfig = clientStorageConfig({
+      isEnabled: false,
+      isPrivate: false,
+    });
 
-    it("should handle disabled storage", async () => {
-      const disabledConfig: StorageConfig = clientStorageConfig({
-        isEnabled: false,
-        isPrivate: false,
-      });
+    const model = createMockSurveyModel();
+    let result: { current: ReturnType<typeof useStorageWithSurvey> };
+    await act(async () => {
+      const view = renderHook(
+        () =>
+          useStorageWithSurvey({
+            model,
+            formId: "test-form",
+          }),
+        {
+          wrapper: wrapper(disabledConfig),
+        },
+      );
+      result = view.result;
+      await Promise.resolve();
+    });
 
-      const model = createMockSurveyModel();
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useStorageWithSurvey({
-              model,
-              formId: "test-form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(disabledConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
+    expect(result!.current.registerStorageHandlers).toBeDefined();
+    expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
 
-      expect(result.current.registerStorageHandlers).toBeDefined();
-      expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result!.current.registerStorageHandlers(model);
+    });
+    expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
+    unregister();
+  });
 
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(model);
-      });
-      expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
-      expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
+  it("should register upload handlers but not view handlers when not private", async () => {
+    const publicConfig: ClientStorageConfig = clientStorageConfig({
+      isEnabled: true,
+      isPrivate: false,
+    });
+
+    const model = createMockSurveyModel();
+    let result: { current: ReturnType<typeof useStorageWithSurvey> };
+    await act(async () => {
+      const view = renderHook(
+        () =>
+          useStorageWithSurvey({
+            model,
+            formId: "test-form",
+          }),
+        {
+          wrapper: wrapper(publicConfig),
+        },
+      );
+      result = view.result;
+      await Promise.resolve();
+    });
+
+    expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
+
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result!.current.registerStorageHandlers(model);
+    });
+    expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
+    unregister();
+  });
+
+  it("should register upload handlers when private", async () => {
+    const privateConfig: ClientStorageConfig = clientStorageConfig({
+      isEnabled: true,
+      isPrivate: true,
+    });
+
+    const model = createMockSurveyModel();
+    let result: { current: ReturnType<typeof useStorageWithSurvey> };
+    await act(async () => {
+      const view = renderHook(
+        () =>
+          useStorageWithSurvey({
+            model,
+            formId: "test-form",
+          }),
+        {
+          wrapper: wrapper(privateConfig),
+        },
+      );
+      result = view.result;
+      await Promise.resolve();
+    });
+
+    expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
+
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result!.current.registerStorageHandlers(model);
+    });
+    expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
+    expect(result!.current.isStorageReady).toBe(true);
+    unregister();
+  });
+
+  it("should return a combined cleanup function", async () => {
+    const privateConfig: ClientStorageConfig = clientStorageConfig({
+      isEnabled: true,
+      isPrivate: true,
+    });
+
+    const model = createMockSurveyModel();
+    const unregisterUpload = vi.fn();
+    mockRegisterUploadHandlers.mockReturnValue(unregisterUpload);
+
+    let result: { current: ReturnType<typeof useStorageWithSurvey> };
+    await act(async () => {
+      const view = renderHook(
+        () =>
+          useStorageWithSurvey({
+            model,
+            formId: "test-form",
+          }),
+        {
+          wrapper: wrapper(privateConfig),
+        },
+      );
+      result = view.result;
+      await Promise.resolve();
+    });
+
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result!.current.registerStorageHandlers(model);
+    });
+    act(() => {
       unregister();
     });
 
-    it("should register upload handlers but not view handlers when not private", async () => {
-      const publicConfig: StorageConfig = clientStorageConfig({
-        isEnabled: true,
-        isPrivate: false,
-      });
-
-      const model = createMockSurveyModel();
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useStorageWithSurvey({
-              model,
-              formId: "test-form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(publicConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
-
-      expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(model);
-      });
-      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
-      expect(mockRegisterViewHandlers).not.toHaveBeenCalled();
-      unregister();
-    });
-
-    it("should register both upload and view handlers when private", async () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
-        isEnabled: true,
-        isPrivate: true,
-      });
-
-      const model = createMockSurveyModel();
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useStorageWithSurvey({
-              model,
-              formId: "test-form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(privateConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
-
-      expect(mockSetModelMetadata).toHaveBeenCalledWith(model);
-
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(model);
-      });
-      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(model);
-      expect(mockRegisterViewHandlers).toHaveBeenCalledWith(model);
-      unregister();
-    });
-
-    it("should return a combined cleanup function", async () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
-        isEnabled: true,
-        isPrivate: true,
-      });
-
-      const model = createMockSurveyModel();
-      const unregisterUpload = vi.fn();
-      const unregisterView = vi.fn();
-      mockRegisterUploadHandlers.mockReturnValue(unregisterUpload);
-      mockRegisterViewHandlers.mockReturnValue(unregisterView);
-
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useStorageWithSurvey({
-              model,
-              formId: "test-form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(privateConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
-
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(model);
-      });
-      act(() => {
-        unregister();
-      });
-
-      expect(unregisterUpload).toHaveBeenCalled();
-      expect(unregisterView).toHaveBeenCalled();
-    });
+    expect(unregisterUpload).toHaveBeenCalled();
   });
 });

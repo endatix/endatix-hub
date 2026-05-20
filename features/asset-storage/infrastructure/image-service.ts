@@ -1,6 +1,7 @@
 import { optimizeImage } from "next/dist/server/image-optimizer";
 
 const DEFAULT_IMAGE_WIDTH = 800;
+const SVG_CONTENT_TYPE = "image/svg+xml";
 
 /**
  * Parses a boolean env var: only "true" (case-insensitive) is true; everything else is false.
@@ -8,6 +9,11 @@ const DEFAULT_IMAGE_WIDTH = 800;
 function parseBooleanEnv(value: string | undefined): boolean {
   if (value === undefined || value === "") return false;
   return value.trim().toLowerCase() === "true";
+}
+
+function isResizableImageContentType(contentType: string): boolean {
+  const normalized = contentType.trim().toLowerCase();
+  return normalized.startsWith("image/") && normalized !== SVG_CONTENT_TYPE;
 }
 
 type ImageConfig = {
@@ -51,7 +57,8 @@ async function optimizeImageSize(
   }
 
   const shouldResize =
-    IMAGE_SERVICE_CONFIG.isResizeEnabled && contentType.startsWith("image/");
+    IMAGE_SERVICE_CONFIG.isResizeEnabled &&
+    isResizableImageContentType(contentType);
   if (!shouldResize) {
     return imageBuffer;
   }

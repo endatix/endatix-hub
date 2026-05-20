@@ -132,7 +132,6 @@ export type UpdateSubmissionStatusResponse = ApiResult<{
   formId: EntityId;
   dateUpdated: string;
 }>;
-export type GetSubmissionFilesResponse = ApiResult<Response>;
 export type ExportSubmissionsResponse = ApiResult<Response>;
 
 // ============================================================================

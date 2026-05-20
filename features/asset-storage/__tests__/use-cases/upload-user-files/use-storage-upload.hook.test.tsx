@@ -9,29 +9,10 @@ import {
   ClearFilesEvent,
   DownloadFileEvent,
 } from "survey-core";
-import { Result } from "@/lib/result";
 import { processUploadError } from "@/features/asset-storage/use-cases/upload";
 
 // Mock fetch globally
 global.fetch = vi.fn();
-
-const resolvedTokenResult = Result.success({
-  token: "",
-  isPrivate: false,
-  hostName: "test.blob.core.windows.net",
-  containerName: "user-files",
-  expiresOn: new Date(),
-  generatedAt: new Date(),
-});
-
-// Create promises that are already resolved
-// React's use hook should be able to read these without suspending
-const sharedResolvedPromise = Promise.resolve(resolvedTokenResult);
-
-const createDefaultReadTokenPromises = () => ({
-  userFiles: sharedResolvedPromise,
-  content: sharedResolvedPromise,
-});
 
 const mockStorageConfig = {
   isEnabled: true,
@@ -67,15 +48,11 @@ describe("useStorageUpload", () => {
 
   const createWrapper = (
     config: typeof mockStorageConfig | null = mockStorageConfig,
-    readTokenPromises = createDefaultReadTokenPromises(),
   ) => {
     function TestWrapper({ children }: { children: React.ReactNode }) {
       return (
         <Suspense fallback={<div>Loading...</div>}>
-          <AssetStorageClientProvider
-            config={config}
-            tokens={readTokenPromises}
-          >
+          <AssetStorageClientProvider config={config}>
             {children}
           </AssetStorageClientProvider>
         </Suspense>
@@ -94,9 +71,12 @@ describe("useStorageUpload", () => {
     return {
       formId: mockFormId,
       surveyModel: mockSurveyModel,
-      ...(submissionId
-        ? { getSubmissionId: () => submissionId }
-        : {}),
+      getReadRuntime: () => ({
+        policyName: "public" as const,
+        formId: mockFormId,
+        ...(submissionId ? { submissionId } : {}),
+      }),
+      ...(submissionId ? { getSubmissionId: () => submissionId } : {}),
       ...restOverrides,
     };
   };
@@ -121,7 +101,7 @@ describe("useStorageUpload", () => {
   describe("hook initialization", () => {
     it("should initialize with default submissionId", async () => {
       const props = createHookProps();
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
 
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
@@ -132,28 +112,6 @@ describe("useStorageUpload", () => {
       });
 
       // The hook should return after the promise resolves
-      expect(result!.current).not.toBeNull();
-      const hookResult = result!.current as ReturnType<typeof useStorageUpload>;
-      expect(hookResult.registerUploadHandlers).toBeDefined();
-      expect(hookResult.uploadFiles).toBeDefined();
-      expect(hookResult.deleteFiles).toBeDefined();
-    });
-
-    it("should initialize without readTokenPromises", async () => {
-      const props = {
-        formId: mockFormId,
-        surveyModel: mockSurveyModel,
-      };
-      let result: ReturnType<typeof renderHook>["result"];
-
-      await act(async () => {
-        const view = renderHook(() => useStorageUpload(props), {
-          wrapper: createWrapper(),
-        });
-        result = view.result;
-        await Promise.resolve();
-      });
-
       expect(result!.current).not.toBeNull();
       const hookResult = result!.current as ReturnType<typeof useStorageUpload>;
       expect(hookResult.registerUploadHandlers).toBeDefined();
@@ -249,7 +207,6 @@ describe("useStorageUpload", () => {
         },
       );
 
-      // Flush suspense so hook resolves (use() with readTokenPromises)
       await act(async () => {
         await Promise.resolve();
       });
@@ -481,12 +438,14 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
 
       await act(async () => {
         const view = renderHook(
           () =>
-            useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
+            useStorageUpload(
+              createHookProps({ submissionId: mockSubmissionId }),
+            ),
           {
             wrapper: createWrapper(),
           },
@@ -643,6 +602,41 @@ describe("useStorageUpload", () => {
           }),
         }),
       );
+    });
+
+    it("should not delete blobs when policy is hub (local detach only)", async () => {
+      const callback = vi.fn();
+      const hubClearOptions: ClearFilesEvent = {
+        ...mockClearOptions,
+        callback,
+      } as unknown as ClearFilesEvent;
+
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              submissionId: mockSubmissionId,
+              getReadRuntime: () => ({
+                policyName: "hub" as const,
+                formId: mockFormId,
+                submissionId: mockSubmissionId,
+              }),
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await act(async () => {
+        await result.current.deleteFiles(mockSurveyModel, hubClearOptions);
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledWith("success", [
+        { content: "https://test.blob.core.windows.net/test" },
+        { content: "https://test.blob.core.windows.net/test2" },
+      ]);
     });
 
     it("should handle empty file list", async () => {
@@ -1132,18 +1126,16 @@ describe("useStorageUpload", () => {
         onerror: ((event: ProgressEvent<FileReader>) => void) | null = null;
 
         readAsDataURL(_blob: Blob) {
-          setTimeout(() => {
-            if (this.onload) {
-              this.result = "data:application/pdf;base64,test";
-              const mockEvent = {
-                target: this,
-                lengthComputable: false,
-                loaded: 0,
-                total: 0,
-              } as unknown as ProgressEvent<FileReader>;
-              this.onload(mockEvent);
-            }
-          }, 0);
+          this.result = "data:application/pdf;base64,test";
+          if (this.onload) {
+            const mockEvent = {
+              target: this,
+              lengthComputable: false,
+              loaded: 0,
+              total: 0,
+            } as unknown as ProgressEvent<FileReader>;
+            this.onload(mockEvent);
+          }
         }
       }
 
@@ -1153,7 +1145,7 @@ describe("useStorageUpload", () => {
     it("should call read-token API and use token when storage is private", async () => {
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(mockStorageConfig),
@@ -1189,14 +1181,17 @@ describe("useStorageUpload", () => {
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];
         await downloadHandler(mockSurveyModel, mockDownloadOptions);
+        await new Promise((resolve) => setTimeout(resolve, 30));
       });
 
-      // Should call read-token API first
+      // Should call read-urls API via batch queue (form-gated public route)
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/public/v0/storage/read-urls",
         expect.objectContaining({
           method: "POST",
+          credentials: "include",
           body: JSON.stringify({
+            formId: mockFormId,
             urls: ["https://test.blob.core.windows.net/user-files/test.pdf"],
           }),
         }),
@@ -1221,7 +1216,7 @@ describe("useStorageUpload", () => {
     it("should call callback with error when read-token API fails", async () => {
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(mockStorageConfig),
@@ -1244,6 +1239,7 @@ describe("useStorageUpload", () => {
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];
         await downloadHandler(mockSurveyModel, mockDownloadOptions);
+        await new Promise((resolve) => setTimeout(resolve, 30));
       });
 
       expect(mockDownloadOptions.callback).toHaveBeenCalledWith("error");
@@ -1258,7 +1254,7 @@ describe("useStorageUpload", () => {
 
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(publicStorageConfig),
@@ -1303,7 +1299,7 @@ describe("useStorageUpload", () => {
     it("should handle network errors when fetching file", async () => {
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(mockStorageConfig),
@@ -1336,6 +1332,7 @@ describe("useStorageUpload", () => {
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];
         await downloadHandler(mockSurveyModel, mockDownloadOptions);
+        await new Promise((resolve) => setTimeout(resolve, 30));
       });
 
       expect(mockDownloadOptions.callback).toHaveBeenCalledWith("error");

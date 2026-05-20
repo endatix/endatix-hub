@@ -1,8 +1,8 @@
-import type { StorageConfig } from "@endatix/storage-azure";
+import type { ClientStorageConfig } from "@endatix/storage-azure";
 import { IMAGE_SERVICE_CONFIG } from "../infrastructure/image-service";
 
-/** Minimal valid {@link StorageConfig} for unit tests (client-safe subset). */
-export const TEST_CLIENT_STORAGE_CONFIG: StorageConfig = {
+/** Minimal valid {@link ClientStorageConfig} for unit tests (client-safe subset). */
+export const TEST_CLIENT_STORAGE_CONFIG: ClientStorageConfig = {
   isEnabled: true,
   isPrivate: false,
   hostName: "testaccount.blob.core.windows.net",
@@ -15,7 +15,7 @@ export const TEST_CLIENT_STORAGE_CONFIG: StorageConfig = {
 };
 
 export function clientStorageConfig(
-  overrides: Partial<StorageConfig> = {},
-): StorageConfig {
+  overrides: Partial<ClientStorageConfig> = {},
+): ClientStorageConfig {
   return { ...TEST_CLIENT_STORAGE_CONFIG, ...overrides };
 }

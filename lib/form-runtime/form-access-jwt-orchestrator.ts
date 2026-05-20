@@ -1,7 +1,9 @@
-import {
-  buildFormAccessTokenBody,
-  createFormAccessToken,
-} from "@/lib/endatix-api/public/forms/form-access-token.client";
+/**
+ * Browser-only JWT mint + caching.
+ * Server code (PDF, RSC, actions) should use `auth()` + `EndatixApi.forms.createFormAccessToken`.
+ */
+import { buildFormAccessTokenBody } from "@/lib/endatix-api/public/forms/form-access-token.shared";
+import { createFormAccessToken } from "@/lib/endatix-api/public/forms/form-access-token.client";
 import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 
 const MIN_VALIDITY_MS = 60_000;

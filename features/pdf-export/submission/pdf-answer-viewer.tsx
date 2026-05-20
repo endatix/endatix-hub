@@ -32,6 +32,10 @@ import PdfMatrixAnswer from "./answers/pdf-matrix-answer";
 import PdfCustomAnswer from "./answers/pdf-custom-answer";
 import PdfRankingAnswer from "./answers/pdf-ranking-answer";
 import PdfSliderAnswer from "./answers/pdf-slider-answer";
+import {
+  formatChoiceDisplay,
+  resolveChoiceLabelForQuestion,
+} from "./format-choice-display";
 
 export interface ViewAnswerProps {
   forQuestion: Question;
@@ -99,27 +103,27 @@ const PdfAnswerViewer = ({
     </View>
   );
 
-  const renderRadiogroupAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
-      {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {(forQuestion as QuestionRadiogroupModel).selectedItem?.text ||
-          forQuestion.value ||
-          "No Answer"}
-      </Text>
-    </View>
-  );
+  const renderSingleChoiceAnswer = (
+    question: QuestionRadiogroupModel | QuestionDropdownModel,
+  ) => {
+    const display = formatChoiceDisplay(
+      question.value,
+      resolveChoiceLabelForQuestion(question),
+    );
 
-  const renderDropdownAnswer = () => (
-    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
-      {renderTitle()}
-      <Text style={VIEWER_STYLES.answerText}>
-        {(forQuestion as QuestionDropdownModel).selectedItem?.text ||
-          forQuestion.value ||
-          "No Answer"}
-      </Text>
-    </View>
-  );
+    return (
+      <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+        {renderTitle()}
+        <Text style={VIEWER_STYLES.answerText}>{display || "No Answer"}</Text>
+      </View>
+    );
+  };
+
+  const renderRadiogroupAnswer = () =>
+    renderSingleChoiceAnswer(forQuestion as QuestionRadiogroupModel);
+
+  const renderDropdownAnswer = () =>
+    renderSingleChoiceAnswer(forQuestion as QuestionDropdownModel);
 
   const renderCommentAnswer = () => (
     <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>

@@ -1,9 +1,13 @@
 import "server-only";
-
 import { EndatixApi } from "@/lib/endatix-api";
 import { cache } from "react";
 import type { FormsHeaderData, FormsNavFolder } from "@/features/folders/types";
 
+/**
+ * Loads the forms header data from the API.
+ * @param accessToken - The access token to use for the API request.
+ * @returns The forms header data.
+ */
 const loadFormsHeaderData = cache(
   async (accessToken?: string): Promise<FormsHeaderData> => {
     const api = new EndatixApi(accessToken);
@@ -35,6 +39,11 @@ const loadFormsHeaderData = cache(
   },
 );
 
+/**
+ * Caches the forms header data from the API.
+ * @param accessToken - The access token to use for the API request.
+ * @returns The forms header data.
+ */
 export function getFormsHeaderDataCached(accessToken?: string) {
   return loadFormsHeaderData(accessToken);
 }

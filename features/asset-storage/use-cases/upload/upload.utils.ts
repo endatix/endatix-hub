@@ -1,10 +1,16 @@
 import { Result } from "@/lib/result";
 import type { ProcessedState } from "../../types";
-import type { UploadUrlDescriptor } from "../../infrastructure/storage-gateway";
+import type { UploadUrlDescriptor } from "../../infrastructure/core";
 import { uploadBlob, resizeImageOrFallback } from "./upload-blob";
 import { processUploadError } from "./upload-errors";
 
 const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
+const SVG_CONTENT_TYPE = "image/svg+xml";
+
+function isResizableImage(file: File): boolean {
+  const contentType = file.type.trim().toLowerCase();
+  return contentType.startsWith("image/") && contentType !== SVG_CONTENT_TYPE;
+}
 
 async function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
   if (typeof file.arrayBuffer === "function") {
@@ -50,7 +56,7 @@ export async function prepareUploadBytes(
 ): Promise<PreparedUploadBytes> {
   const shouldResize =
     resizeUrl !== undefined &&
-    file.type.startsWith("image/") &&
+    isResizableImage(file) &&
     file.size < LARGE_FILE_THRESHOLD;
 
   if (shouldResize) {

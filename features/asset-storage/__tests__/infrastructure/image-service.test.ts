@@ -186,6 +186,23 @@ describe("Image Service", () => {
       expect(result).toBe(mockBuffer);
     });
 
+    it("should not optimize SVG content types", async () => {
+      // Arrange
+      process.env.RESIZE_IMAGES = "true";
+      process.env.RESIZE_IMAGES_WIDTH = "800";
+      const imageModule = await import("../../infrastructure/image-service");
+
+      // Act
+      const result = await imageModule.optimizeImageSize(
+        mockBuffer,
+        "image/svg+xml",
+      );
+
+      // Assert
+      expect(optimizeImage).not.toHaveBeenCalled();
+      expect(result).toBe(mockBuffer);
+    });
+
     it("should use default quality when not specified", async () => {
       // Arrange
       process.env.RESIZE_IMAGES = "true";

@@ -1,10 +1,10 @@
 import {
   AssetStorageContext,
   AssetStorageContextValue,
-  StorageConfig,
+  ClientStorageConfig,
 } from "@/features/asset-storage/client";
 import type { ReactNode } from "react";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { SurveyModel } from "survey-core";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,7 +31,6 @@ const mockRenderButtons = vi.fn(() => {
 });
 
 vi.mock("survey-react-ui", async (importOriginal) => {
-   
   const React = await import("react");
   const actual = await importOriginal<typeof import("survey-react-ui")>();
   return {
@@ -50,7 +49,6 @@ vi.mock("survey-react-ui", async (importOriginal) => {
 });
 
 vi.mock("survey-creator-react", async (importOriginal) => {
-   
   const React = await import("react");
   const actual = await importOriginal<typeof import("survey-creator-react")>();
   return {
@@ -76,8 +74,27 @@ vi.mock("survey-creator-react", async (importOriginal) => {
   };
 });
 
+vi.mock(
+  "@/features/asset-storage/ui/storage-presigned-image",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@/features/asset-storage/ui/storage-presigned-image")
+      >();
+    return {
+      ...actual,
+      StoragePresignedImage: (props: { src: string }) => (
+        <img data-testid="storage-presigned-image" src={props.src} alt="" />
+      ),
+    };
+  },
+);
+
 // Import after mocks
-import { ProtectedLogoImage, ProtectedLogoImageComponent } from "@/features/asset-storage/client";
+import {
+  ProtectedLogoImage,
+  ProtectedLogoImageComponent,
+} from "@/features/asset-storage/client";
 
 // Helper to render ProtectedLogoImage with context
 const renderLogoImageWithContext = (
@@ -92,7 +109,14 @@ const renderLogoImageWithContext = (
   const view = instance.render();
 
   return render(
-    <AssetStorageContext.Provider value={contextValue || { config: null, resolveStorageUrl: vi.fn() }}>
+    <AssetStorageContext.Provider
+      value={
+        contextValue || {
+          config: null,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }
+      }
+    >
       {view}
     </AssetStorageContext.Provider>,
   );
@@ -113,7 +137,17 @@ const renderLogoImageComponentWithContext = (
   ).renderImage();
 
   return render(
-    <AssetStorageContext.Provider value={contextValue || { config: null, resolveStorageUrl: vi.fn() }}>
+    <AssetStorageContext.Provider
+      value={
+        contextValue || {
+          config: null,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
+        }
+      }
+    >
       {view}
     </AssetStorageContext.Provider>,
   );
@@ -122,8 +156,17 @@ const renderLogoImageComponentWithContext = (
 describe("ProtectedLogoImage", () => {
   const mockSurveyModel = {
     locLogo: {
-      renderedHtml: "https://testaccount.blob.core.windows.net/content/logo.png",
+      renderedHtml:
+        "https://testaccount.blob.core.windows.net/content/logo.png",
     },
+    locTitle: { renderedHtml: "Survey title" },
+    logoClassNames: "sv-logo",
+    css: { logoImage: "sd-logo__image" },
+    renderedLogoWidth: 120,
+    renderedLogoHeight: 40,
+    logoFit: "contain",
+    renderedStyleLogoWidth: "120px",
+    renderedStyleLogoHeight: "40px",
   } as unknown as SurveyModel;
 
   beforeEach(() => {
@@ -132,14 +175,17 @@ describe("ProtectedLogoImage", () => {
 
   describe("when storage is disabled", () => {
     it("should render default element without enrichment", () => {
-      const disabledConfig: StorageConfig = clientStorageConfig({
+      const disabledConfig: ClientStorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
       });
 
       renderLogoImageWithContext(mockSurveyModel, {
         config: disabledConfig,
-        resolveStorageUrl: vi.fn(),
+        getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRender).toHaveBeenCalledTimes(1);
@@ -148,14 +194,17 @@ describe("ProtectedLogoImage", () => {
 
   describe("when storage is enabled but not private", () => {
     it("should render default element without enrichment", () => {
-      const publicConfig: StorageConfig = clientStorageConfig({
+      const publicConfig: ClientStorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
       });
 
       renderLogoImageWithContext(mockSurveyModel, {
         config: publicConfig,
-        resolveStorageUrl: vi.fn(),
+        getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRender).toHaveBeenCalledTimes(1);
@@ -163,27 +212,25 @@ describe("ProtectedLogoImage", () => {
   });
 
   describe("when storage is enabled and private", () => {
-    it("should enrich logo when logoUrl exists", () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
+    it("uses StoragePresignedImage when logoUrl exists", () => {
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
       });
 
-      const mockResolveStorageUrl = vi.fn(
-        (url: string) => `${url}?token=abc123`,
-      );
-
       renderLogoImageWithContext(mockSurveyModel, {
         config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
-      expect(mockRender).toHaveBeenCalled();
-      // enrichImageInJSX is called with the src from the rendered element
-      expect(mockResolveStorageUrl).toHaveBeenCalled();
+      expect(screen.getByTestId("storage-presigned-image")).toBeDefined();
+      expect(mockRender).not.toHaveBeenCalled();
     });
 
     it("should render default element when logoUrl is missing", () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
       });
 
@@ -197,7 +244,10 @@ describe("ProtectedLogoImage", () => {
 
       renderLogoImageWithContext(surveyWithoutLogo, {
         config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRender).toHaveBeenCalledTimes(1);
@@ -218,7 +268,8 @@ describe("ProtectedLogoImageComponent", () => {
   const mockCreatorModel = {
     survey: {
       locLogo: {
-        renderedHtml: "https://testaccount.blob.core.windows.net/content/logo.png",
+        renderedHtml:
+          "https://testaccount.blob.core.windows.net/content/logo.png",
       },
     },
   } as unknown as SurveyCreatorModel;
@@ -228,13 +279,16 @@ describe("ProtectedLogoImageComponent", () => {
   });
 
   it("should render image component", () => {
-    const privateConfig: StorageConfig = clientStorageConfig({
+    const privateConfig: ClientStorageConfig = clientStorageConfig({
       isPrivate: true,
     });
 
     const view = renderLogoImageComponentWithContext(mockCreatorModel, {
       config: privateConfig,
-      resolveStorageUrl: vi.fn(),
+      getCachedPrivateReadUrl: vi.fn(() => null),
+      enqueuePrivateReadUrls: vi.fn(),
+      mergePrivateReadUrlCache: vi.fn(),
+      readUrlCacheVersion: 0,
     });
 
     // Component should render without errors

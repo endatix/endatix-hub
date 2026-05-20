@@ -4,31 +4,38 @@ import {
   ensureRuntimeFormAccessJwt,
   invalidateRuntimeFormAccessJwt,
 } from "@/lib/form-runtime/form-access-jwt-orchestrator";
+import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
+import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import {
   ChoicesLazyLoadEvent,
   GetChoiceDisplayValueEvent,
   Model,
 } from "survey-core";
-import { DATA_LIST_PROPERTY_NAME } from "../constants";
+import { getDataListIdFromQuestion } from "./data-list-survey-integration";
 import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
 
-function getDataListIdFromQuestion(
-  question:
-    | ChoicesLazyLoadEvent["question"]
-    | GetChoiceDisplayValueEvent["question"],
-): string | null {
-  const value = question?.getPropertyValue?.(DATA_LIST_PROPERTY_NAME);
-  if (typeof value === "string" && value.length > 0) {
-    return value;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
+async function withJwtRetry<T>(
+  runtimeState: FormRuntimeState,
+  call: (jwt: string) => Promise<ApiResult<T>>,
+): Promise<ApiResult<T>> {
+  let jwt = await ensureRuntimeFormAccessJwt(runtimeState);
+  if (!jwt) {
+    return ApiResult.authError<T>("Could not obtain form access token.");
   }
 
-  return null;
+  let response = await call(jwt);
+  if (!response.success && response.error.type === ApiErrorType.AuthError) {
+    invalidateRuntimeFormAccessJwt(runtimeState);
+    jwt = await ensureRuntimeFormAccessJwt(runtimeState);
+    if (!jwt) {
+      return response;
+    }
+    response = await call(jwt);
+  }
+  return response;
 }
 
 export function bindDataListsToSurvey(
@@ -45,38 +52,17 @@ export function bindDataListsToSurvey(
 
   const api = createEndatixPublicApi().dataLists;
 
-  async function withJwtRetry<T>(
-    runtimeState: ReturnType<ExtensionRuntimeDeps["getRuntimeState"]>,
-    call: (jwt: string) => Promise<ApiResult<T>>,
-  ): Promise<ApiResult<T>> {
-    let jwt = await ensureRuntimeFormAccessJwt(runtimeState);
-    if (!jwt) {
-      return ApiResult.authError<T>("Could not obtain form access token.");
-    }
-
-    let response = await call(jwt);
-    if (!response.success && response.error.type === ApiErrorType.AuthError) {
-      invalidateRuntimeFormAccessJwt(runtimeState);
-      jwt = await ensureRuntimeFormAccessJwt(runtimeState);
-      if (!jwt) {
-        return response;
-      }
-      response = await call(jwt);
-    }
-    return response;
-  }
-
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {
-    const context = deps.getRuntimeState();
+    const runtime = resolveFormRuntimeState(deps.getRuntimeState());
     const dataListId = getDataListIdFromQuestion(options.question);
-    if (!context || !dataListId) {
+    if (!runtime || !dataListId) {
       options.setItems([], 0);
       return;
     }
 
-    const response = await withJwtRetry(context, (jwt) =>
+    const response = await withJwtRetry(runtime, (jwt) =>
       api.search({
-        formId: context.formId,
+        formId: runtime.formId,
         dataListId,
         formAccessJwt: jwt,
         query: options.filter,
@@ -104,15 +90,15 @@ export function bindDataListsToSurvey(
     _: Model,
     options: GetChoiceDisplayValueEvent,
   ) => {
-    const context = deps.getRuntimeState();
+    const runtime = resolveFormRuntimeState(deps.getRuntimeState());
     const dataListId = getDataListIdFromQuestion(options.question);
-    if (!context || !dataListId || options.values.length === 0) {
+    if (!runtime || !dataListId || options.values.length === 0) {
       return;
     }
 
-    const response = await withJwtRetry(context, (jwt) =>
+    const response = await withJwtRetry(runtime, (jwt) =>
       api.getDisplayValues({
-        formId: context.formId,
+        formId: runtime.formId,
         dataListId,
         formAccessJwt: jwt,
         values: options.values.map(String),
@@ -120,10 +106,11 @@ export function bindDataListsToSurvey(
     );
 
     if (!response.success) {
-      console.error(
-        "Failed to resolve data list display values.",
-        response.error,
-      );
+      console.error("Failed to resolve data list display values.", {
+        type: response.error.type,
+        message: response.error.message,
+        errorCode: response.error.errorCode,
+      });
       options.setItems(options.values.map(String));
       return;
     }

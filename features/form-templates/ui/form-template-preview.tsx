@@ -31,6 +31,7 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
@@ -119,7 +120,9 @@ export function FormTemplatePreview({
       ) : error ? (
         <div className="text-center text-destructive">{error}</div>
       ) : template ? (
-        <SurveyPreviewComponent template={template} />
+        <DesignerRuntimeProvider initialState={{ templateId: template.id }}>
+          <SurveyPreviewComponent template={template} />
+        </DesignerRuntimeProvider>
       ) : null}
     </div>
   );

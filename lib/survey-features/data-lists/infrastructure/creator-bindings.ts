@@ -6,23 +6,15 @@ import {
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
+import {
+  DATA_LIST_QUESTION_TYPES,
+  parseDataListId,
+} from "./data-list-survey-integration";
 import { bindDataListsToSurvey } from "./survey-bindings";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
-
-function toDataListId(value: unknown): string | null {
-  if (typeof value === "string" && value.length > 0) {
-    return value;
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-
-  return null;
-}
 
 export function setDataListPropertyChoices(dataLists: DataList[]): void {
   registerDataListGlobals();
@@ -31,17 +23,11 @@ export function setDataListPropertyChoices(dataLists: DataList[]): void {
     text: item.name,
   }));
 
-  const dropdownProperty = Serializer.findProperty(
-    "dropdown",
-    DATA_LIST_PROPERTY_NAME,
-  );
-  dropdownProperty?.setChoices(choices);
-
-  const tagboxProperty = Serializer.findProperty(
-    "tagbox",
-    DATA_LIST_PROPERTY_NAME,
-  );
-  tagboxProperty?.setChoices(choices);
+  for (const questionType of DATA_LIST_QUESTION_TYPES) {
+    Serializer.findProperty(questionType, DATA_LIST_PROPERTY_NAME)?.setChoices(
+      choices,
+    );
+  }
 }
 
 export function bindDataListsToCreator(
@@ -71,7 +57,7 @@ export function bindDataListsToCreator(
       return;
     }
 
-    const dataListId = toDataListId(options.value);
+    const dataListId = parseDataListId(options.value);
     const creatorQuestion = question as unknown as Record<string, unknown>;
     creatorQuestion.choicesLazyLoadEnabled = Boolean(dataListId);
     if (dataListId) {

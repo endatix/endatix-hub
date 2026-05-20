@@ -1,27 +1,33 @@
 import { Result } from "@/lib/result";
-import { blobMetadataParser } from "@endatix/storage-azure";
-import { getStorageRuntimeSettings } from "../../storage-runtime";
-import { listBlobs } from "../../infrastructure/storage-gateway";
+import { blobMetadataParser } from "../../infrastructure/providers/shared/blob-metadata-parser";
+import {
+  getActiveStorageProvider,
+  getClientStorageConfig,
+} from "../../storage-runtime";
 import type { UserFileMetadata } from "../../types";
 
 /**
  * Returns list data (displayName, originalFileName, questionName, contentType) for all submission files.
- * Uses Azure Blob–specific metadata parsing via blob-metadata-parser.
+ * Uses blob metadata parsing (Azure and S3 HeadObject share the same metadata keys).
  */
 export async function listUserFiles(
   formId: string,
   submissionId: string,
 ): Promise<Result<UserFileMetadata[]>> {
-  const storageSettings = getStorageRuntimeSettings();
-  const config = storageSettings.azure;
-  if (!storageSettings.isEnabled || config === null) {
+  const clientConfig = getClientStorageConfig();
+
+  if (!clientConfig.isEnabled) {
     return Result.error("Storage is not enabled");
   }
 
-  const containerName = config.containerNames.USER_FILES;
+  const containerName = clientConfig.containerNames.USER_FILES;
+  const provider = getActiveStorageProvider();
+  if (provider === null || !provider.isEnabled()) {
+    return Result.error("Storage is not enabled");
+  }
 
   try {
-    const blobs = await listBlobs({
+    const blobs = await provider.listBlobs({
       containerName,
       formId,
       submissionId,

@@ -1,0 +1,12 @@
+{
+  "name": "@endatix/storage-s3",
+  "private": true,
+  "version": "0.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0"
+  }
+}

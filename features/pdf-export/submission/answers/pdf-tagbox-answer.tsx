@@ -1,6 +1,10 @@
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
-import { ItemValue, Question } from "survey-core";
+import { Question } from "survey-core";
 import { VIEWER_STYLES } from "../pdf-answer-viewer";
+import {
+  formatChoiceDisplay,
+  resolveChoiceLabel,
+} from "../format-choice-display";
 
 interface TagBoxAnswerProps {
   question: Question;
@@ -33,12 +37,13 @@ const PdfTagBoxAnswer = ({ question }: TagBoxAnswerProps) => {
   return (
     <View style={styles.tagsContainer}>
       {question.value.map((value: string) => {
-        const choice = question.choices.find(
-          (c: ItemValue) => c.value === value,
+        const display = formatChoiceDisplay(
+          value,
+          resolveChoiceLabel(question, value),
         );
         return (
           <Text key={value} style={styles.tag}>
-            {choice?.title || value}
+            {display}
           </Text>
         );
       })}

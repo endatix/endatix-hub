@@ -17,8 +17,8 @@ export type {
   PublicDataListDisplayValuesRequest,
 } from "./data-lists/types";
 
+export { buildFormAccessTokenBody } from "./forms/form-access-token.shared";
 export {
-  buildFormAccessTokenBody,
   createFormAccessToken,
   type CreateFormAccessTokenBody,
   type FormAccessTokenDto,

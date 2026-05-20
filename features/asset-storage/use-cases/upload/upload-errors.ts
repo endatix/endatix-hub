@@ -2,6 +2,7 @@ import { RestError } from "@azure/storage-blob";
 
 const AUTHENTICATION_FAILED_CODE = "AuthenticationFailed";
 const UNKNOWN_ERROR_MESSAGE = "Unknown error occurred while uploading the file";
+const HTTP_STATUS_PATTERN = /HTTP (\d{3})/;
 
 enum UploadCode {
   MissingSASUrl = "MissingSASUrl",
@@ -19,22 +20,15 @@ interface UploadErrorOptions {
   cause?: unknown;
 }
 
-/** A general error thrown when uploading a file to Azure Blob Storage. */
 class UploadError extends Error {
   readonly statusCode: number | undefined;
-
-  /** The URL of the file that caused the error. */
   readonly fileUrl: string;
-
   readonly description?: string;
-
   readonly code?: UploadCode;
 
   constructor(message: string, options: UploadErrorOptions) {
     const { fileUrl, code, statusCode, description, cause } = options;
-
     super(message, { cause });
-
     this.name = "UploadError";
     this.fileUrl = fileUrl;
     this.code = code;
@@ -43,7 +37,6 @@ class UploadError extends Error {
   }
 }
 
-/** Thrown when the upload is unauthorized (403). */
 class UploadUnauthorizedError extends UploadError {
   constructor(message: string, options: UploadErrorOptions) {
     super(message, { ...options, code: UploadCode.Unauthorized });
@@ -51,7 +44,6 @@ class UploadUnauthorizedError extends UploadError {
   }
 }
 
-/** Thrown when Azure Front Door WAF blocks the upload (also returns 403). */
 class UploadBlockedError extends UploadError {
   constructor(message: string, options: UploadErrorOptions) {
     super(message, { ...options, code: UploadCode.BlockedByWAF });
@@ -59,11 +51,50 @@ class UploadBlockedError extends UploadError {
   }
 }
 
+function throwFromHttpStatus(
+  statusCode: number,
+  message: string,
+  fileUrl: string,
+  cause: unknown,
+): never {
+  if (statusCode === 403) {
+    throw new UploadUnauthorizedError(message, {
+      fileUrl,
+      cause,
+      statusCode,
+      description:
+        "You must be authenticated to upload files. Please sign in and try again.",
+    });
+  }
+  if (statusCode === 401) {
+    throw new UploadUnauthorizedError(message, {
+      fileUrl,
+      cause,
+      statusCode,
+      description:
+        "Upload was rejected. The presigned URL may have expired or is invalid.",
+    });
+  }
+  throw new UploadError(message, {
+    fileUrl,
+    cause,
+    statusCode,
+    code: UploadCode.Unknown,
+    description: message,
+  });
+}
+
+function extractStatusFromFetchErrorMessage(message: string): number | null {
+  const [, statusCode] = HTTP_STATUS_PATTERN.exec(message) ?? [];
+  if (!statusCode) {
+    return null;
+  }
+  
+  return Number.parseInt(statusCode, 10);
+}
+
 /**
- * Throws an appropriate error based on the error type.
- * @param err - The error to throw.
- * @param fileUrl - The URL of the file that caused the error.
- * @returns Never.
+ * Throws an appropriate error for presigned PUT failures (Azure SDK or fetch).
  */
 function throwUploadError(err: unknown, fileUrl: string): never {
   if (err instanceof RestError) {
@@ -89,42 +120,34 @@ function throwUploadError(err: unknown, fileUrl: string): never {
     }
   }
 
+  if (err instanceof Error && err.message.startsWith("Blob upload failed:")) {
+    const status = extractStatusFromFetchErrorMessage(err.message);
+    if (status !== null) {
+      throwFromHttpStatus(status, err.message, fileUrl, err);
+    }
+  }
+
   throw new UploadError(err instanceof Error ? err.message : "Unknown error", {
     fileUrl,
     cause: err,
     code: UploadCode.Unknown,
-    description: "Unknown error occurred while uploading the file",
+    description: UNKNOWN_ERROR_MESSAGE,
   });
 }
 
-/**
- * Returns the message body for an upload error (no file prefix).
- * Uses strongly-typed description from UploadError and its descendants.
- */
 function getUploadErrorMessageBody(err: unknown): string {
   if (err instanceof UploadError) {
     const desc = err.description ?? UNKNOWN_ERROR_MESSAGE;
-
     if (desc === UNKNOWN_ERROR_MESSAGE) {
       return err.message || UNKNOWN_ERROR_MESSAGE;
     }
-
     return desc;
   }
-
   return err instanceof Error ? err.message : UNKNOWN_ERROR_MESSAGE;
 }
 
 const FILE_ERROR_PREFIX = "Could not upload file:";
 
-/**
- * Returns the full user-facing error message for the UI.
- * When fileName is provided, prefixes with "Could not upload file: {fileName}. {message}".
- *
- * @param err - The error to process.
- * @param fileName - Optional file name to include in the message.
- * @returns The complete message to show in the UI.
- */
 function processUploadError(err: unknown, fileName?: string): string {
   const body = getUploadErrorMessageBody(err);
   if (fileName !== undefined && fileName !== "") {

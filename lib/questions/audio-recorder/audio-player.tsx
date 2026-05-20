@@ -1,6 +1,6 @@
 "use client";
 
-import { useAssetStorage } from "@/features/asset-storage/client";
+import { usePrivateStorageDisplayUrl } from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
 import { Download, Pause, Play } from "lucide-react";
 import React, {
@@ -27,10 +27,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLInputElement>(null);
-  const { resolveStorageUrl } = useAssetStorage();
 
   const isArray = Array.isArray(file);
   const singleFile = !isArray ? file : undefined;
+
+  const { displayUrl: resolvedHttp } = usePrivateStorageDisplayUrl(
+    singleFile?.content?.startsWith("http") ? singleFile.content : undefined,
+  );
 
   const audioSource = useMemo(() => {
     if (!singleFile?.content) {
@@ -38,11 +41,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
 
     if (singleFile.content.startsWith("http")) {
-      // URL already enhanced with SAS token (has query) → use as-is
       if (singleFile.content.includes("?")) {
         return singleFile.content;
       }
-      return resolveStorageUrl(singleFile.content);
+      return resolvedHttp || singleFile.content;
     }
 
     if (singleFile.content.startsWith("data:")) {
@@ -52,7 +54,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     // If it's Base64 content without data URL prefix, add audio MIME type
     const mimeType = singleFile.type || "audio/wav";
     return `data:${mimeType};base64,${singleFile.content}`;
-  }, [singleFile, resolveStorageUrl]);
+  }, [singleFile, resolvedHttp]);
 
   const handleLoadStart = useCallback(() => {
     setIsLoading(true);

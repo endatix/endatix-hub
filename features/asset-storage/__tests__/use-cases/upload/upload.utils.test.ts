@@ -132,6 +132,18 @@ describe("prepareUploadBytes", () => {
     expect(out.contentType).toBe("image/png");
     expect(out.fileState).toBe("optimized");
   });
+
+  it("keeps SVG uploads as original bytes", async () => {
+    const file = new File(["<svg />"], "logo.svg", {
+      type: "image/svg+xml",
+    });
+
+    const out = await prepareUploadBytes(file, "/api/resize");
+
+    expect(out.contentType).toBe("image/svg+xml");
+    expect(out.fileState).toBe("original");
+    expect(mockResizeImageOrFallback).not.toHaveBeenCalled();
+  });
 });
 
 describe("processAndUploadFile", () => {

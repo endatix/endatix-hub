@@ -1,6 +1,6 @@
 import { ErrorType, Result } from "@/lib/result";
 import { describe, expect, it, vi } from "vitest";
-import type { StorageConfig } from "@endatix/storage-azure";
+import type { ClientStorageConfig } from "@endatix/storage-azure";
 import { clientStorageConfig } from "./test-storage-config";
 import {
   enhanceUrlWithToken,
@@ -8,7 +8,10 @@ import {
   extractStorageUrls,
   generateUniqueFileName,
   getLastSegmentFromUrlPath,
+  isCanonicalStorageObjectUrl,
+  isStorageHostUrl,
   isUrlFromContainer,
+  parseStorageObjectUrl,
   resolveContainerFromUrl,
 } from "../utils";
 
@@ -222,7 +225,7 @@ describe("generateUniqueFileName", () => {
 });
 
 describe("resolveContainerFromUrl", () => {
-  const mockStorageConfig: StorageConfig = clientStorageConfig({
+  const mockStorageConfig: ClientStorageConfig = clientStorageConfig({
     isPrivate: true,
   });
 
@@ -247,6 +250,30 @@ describe("resolveContainerFromUrl", () => {
     expect(result?.containerName).toBe("content");
     expect(result?.hostName).toBe("testaccount.blob.core.windows.net");
     expect(result?.isPrivate).toBe(true);
+  });
+
+  it("should set isPrivate from storage config", () => {
+    const publicStorageConfig: ClientStorageConfig = clientStorageConfig({
+      isPrivate: false,
+    });
+    const url = "https://testaccount.blob.core.windows.net/content/image.jpg";
+    const result = resolveContainerFromUrl(url, publicStorageConfig);
+
+    expect(result?.isPrivate).toBe(false);
+  });
+
+  it("should resolve when storage host includes a port (RustFS / MinIO)", () => {
+    const cfg: ClientStorageConfig = clientStorageConfig({
+      isPrivate: true,
+      hostName: "192.168.1.100:9000",
+    });
+    const url = "http://192.168.1.100:9000/user-files/s/f/sub/file.pdf";
+    const result = resolveContainerFromUrl(url, cfg);
+
+    expect(result).not.toBeNull();
+    expect(result?.containerType).toBe("USER_FILES");
+    expect(result?.hostName).toBe("192.168.1.100:9000");
+    expect(result?.blobName).toBe("s/f/sub/file.pdf");
   });
 
   it("should handle case-insensitive hostname matching", () => {
@@ -331,10 +358,68 @@ describe("resolveContainerFromUrl", () => {
 
     expect(result).toBeNull();
   });
+
+  it("should return null for container-only URLs", () => {
+    const url = "https://testaccount.blob.core.windows.net/content";
+    const result = parseStorageObjectUrl(url, mockStorageConfig);
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("isStorageHostUrl", () => {
+  it("returns true for URLs from the configured storage host", () => {
+    expect(
+      isStorageHostUrl(
+        "https://TESTACCOUNT.blob.core.windows.net/content/image.jpg",
+        "testaccount.blob.core.windows.net",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false for data URLs, invalid URLs, and other hosts", () => {
+    expect(isStorageHostUrl("data:image/png;base64,x", "host")).toBe(false);
+    expect(isStorageHostUrl("not-a-url", "host")).toBe(false);
+    expect(
+      isStorageHostUrl(
+        "https://other.blob.core.windows.net/content/image.jpg",
+        "testaccount.blob.core.windows.net",
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("isCanonicalStorageObjectUrl", () => {
+  it("returns true when URL has no query string", () => {
+    expect(
+      isCanonicalStorageObjectUrl(
+        "https://account.blob.core.windows.net/user-files/s/f1/s1/a.jpg",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false when URL has SAS or presign query parameters", () => {
+    expect(
+      isCanonicalStorageObjectUrl(
+        "https://account.blob.core.windows.net/user-files/s/f1/s1/a.jpg?sv=2021&sig=abc",
+      ),
+    ).toBe(false);
+    expect(
+      isCanonicalStorageObjectUrl(
+        "https://bucket.s3.amazonaws.com/key?X-Amz-Signature=abc",
+      ),
+    ).toBe(false);
+  });
+
+  it("returns false for empty, data URLs, and invalid URLs", () => {
+    expect(isCanonicalStorageObjectUrl("")).toBe(false);
+    expect(isCanonicalStorageObjectUrl("data:image/png;base64,x")).toBe(false);
+    expect(isCanonicalStorageObjectUrl("not-a-url")).toBe(false);
+  });
 });
 
 describe("isUrlFromContainer", () => {
-  const mockStorageConfig: StorageConfig = clientStorageConfig({
+  const mockStorageConfig: ClientStorageConfig = clientStorageConfig({
     isPrivate: true,
   });
 
@@ -630,6 +715,14 @@ describe("extractStorageUrls", () => {
     expect(result).toEqual([
       "https://testaccount.blob.core.windows.net/content/image.jpg",
     ]);
+  });
+
+  it("should extract http storage URLs (S3-compatible / RustFS)", () => {
+    const rustHost = "192.168.1.100:9000";
+    const content = `{"img":"http://${rustHost}/content/a.jpg"}`;
+    const result = extractStorageUrls(content, rustHost);
+
+    expect(result).toEqual([`http://${rustHost}/content/a.jpg`]);
   });
 
   it("should extract multiple storage URLs from string", () => {

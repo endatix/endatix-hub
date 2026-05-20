@@ -1,17 +1,24 @@
-import {
-  getContainerNames,
-  deleteBlob,
-  type FileOptions,
-} from "@/features/asset-storage/server";
+import { auth } from "@/auth";
+import { getClientStorageConfig } from "@/features/asset-storage/server";
+import { deleteUserFiles } from "@/features/asset-storage/use-cases/delete-user-files/delete-user-files";
 import { apiResponses } from "@/lib/utils/route-handlers";
+import {
+  assertPublicObjectAccess,
+  createFormStorageGateService,
+  mapGateResultToResponse,
+} from "@/features/form-access/server";
+import { Result } from "@/lib/result";
 
 interface DeleteFilesRequest {
   formId: string;
   fileUrls: string[];
   submissionId: string;
+  token?: string;
+  tokenType?: "AccessToken" | "SubmissionToken";
 }
 
 export async function DELETE(request: Request) {
+  const session = await auth();
   const data: DeleteFilesRequest = await request.json();
   const { formId, fileUrls, submissionId } = data;
 
@@ -27,60 +34,39 @@ export async function DELETE(request: Request) {
     return apiResponses.badRequest({ detail: "Submission ID is required" });
   }
 
-  const containerNames = getContainerNames();
-  const containerName = containerNames.USER_FILES;
-  const folderPath = `s/${formId}/${submissionId}`;
+  const accessResult = await createFormStorageGateService().authorizeRespondent(
+    {
+      formId,
+      submissionId,
+      token: data.token,
+      tokenType: data.tokenType,
+    },
+    session,
+    { allowCookieFallback: !session?.accessToken },
+  );
+
+  if (Result.isError(accessResult)) {
+    return mapGateResultToResponse(accessResult)!;
+  }
+
+  if (!accessResult.value.canDeleteFiles) {
+    return apiResponses.forbidden({ detail: "File delete is not permitted" });
+  }
+
+  const clientConfig = getClientStorageConfig();
+  const access = accessResult.value;
 
   try {
-    const deleteResults = await Promise.all(
-      fileUrls.map(async (fileUrl) => {
-        try {
-          const folderPathIndex = fileUrl.indexOf(folderPath);
-          if (folderPathIndex === -1) {
-            return {
-              fileUrl,
-              result: "error",
-              error: "File URL does not match expected folder path",
-            };
-          }
-
-          const fileName = fileUrl
-            .substring(folderPathIndex + folderPath.length)
-            .split("/")
-            .pop();
-
-          if (!fileName) {
-            return {
-              fileUrl,
-              result: "error",
-              error: "Could not extract filename from URL",
-            };
-          }
-
-          const fileOptions: FileOptions = {
-            containerName,
-            fileName,
-            folderPath,
-          };
-
-          await deleteBlob(fileOptions);
-          return {
-            fileUrl,
-            result: "success",
-          };
-        } catch (error) {
-          return {
-            fileUrl,
-            result: "error",
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
-        }
-      }),
-    );
+    const results = await deleteUserFiles({
+      fileUrls,
+      clientConfig,
+      assertObject: (parsed) =>
+        assertPublicObjectAccess(parsed, access, clientConfig),
+    });
 
     return Response.json({
       message: "Delete operation completed",
-      results: deleteResults,
+      results,
     });
   } catch (error) {
     console.error("Error in deleteFiles:", error);

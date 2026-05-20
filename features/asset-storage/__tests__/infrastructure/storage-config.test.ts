@@ -6,9 +6,22 @@ import {
   getContainerUrl,
   getAzureStorageConfig,
 } from "@endatix/storage-azure";
+import {
+  MisconfigurationError,
+  MissingConfigurationError,
+} from "@/lib/hosting/storage-configuration-errors";
 import { IMAGE_SERVICE_CONFIG } from "../../infrastructure/image-service";
 
-describe("StorageConfig", () => {
+function setAzureEnabledEnv(
+  accountName = "mock-account-name",
+  publicHost = `${accountName}.blob.core.windows.net`,
+): void {
+  process.env.AZURE_STORAGE_ACCOUNT_NAME = accountName;
+  process.env.AZURE_STORAGE_ACCOUNT_KEY = "mock-account-key";
+  process.env.AZURE_STORAGE_CUSTOM_DOMAIN = publicHost;
+}
+
+describe("AzureStorageConfig", () => {
   const mockAccountName = "mock-account-name";
   const mockAccountKey = "mock-account-key";
   const originalEnv = { ...process.env };
@@ -22,8 +35,7 @@ describe("StorageConfig", () => {
     describe("isEnabled", () => {
       it("should be true when account name and key are set", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
 
         // Act
         const config = getAzureStorageConfig();
@@ -31,7 +43,7 @@ describe("StorageConfig", () => {
         // Assert
         expect(config.isEnabled).toBe(true);
         expect(config.accountName).toBe(mockAccountName);
-        expect(config.accountKey).toBe(mockAccountKey);
+        expect(config.accountKey).toBe("mock-account-key");
         expect(config.hostName).toBe(
           `${mockAccountName}.blob.core.windows.net`,
         );
@@ -104,8 +116,7 @@ describe("StorageConfig", () => {
     describe("isPrivate", () => {
       it("should be true when AZURE_STORAGE_IS_PRIVATE is set", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_IS_PRIVATE = "true";
 
         // Act
@@ -117,8 +128,7 @@ describe("StorageConfig", () => {
 
       it("should be false when AZURE_STORAGE_IS_PRIVATE is not set", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         delete process.env.AZURE_STORAGE_IS_PRIVATE;
 
         // Act
@@ -130,8 +140,7 @@ describe("StorageConfig", () => {
 
       it("should be false when AZURE_STORAGE_IS_PRIVATE is empty string", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_IS_PRIVATE = "";
 
         // Act
@@ -143,8 +152,7 @@ describe("StorageConfig", () => {
 
       it("should be true when AZURE_STORAGE_IS_PRIVATE is any truthy value", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_IS_PRIVATE = "1";
 
         // Act
@@ -156,182 +164,84 @@ describe("StorageConfig", () => {
     });
 
     describe("hostName", () => {
-      it("should construct hostName from account name", () => {
-        // Arrange
+      it("throws MissingConfigurationError when enabled without AZURE_STORAGE_CUSTOM_DOMAIN", () => {
         process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
         delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
-        // Act
-        const config = getAzureStorageConfig();
-
-        // Assert
-        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
+        expect(() => getAzureStorageConfig()).toThrow(
+          MissingConfigurationError,
+        );
       });
 
       it("should be empty string when account name is not set", () => {
-        // Arrange
         process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
         process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
         delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
-        // Act
         const config = getAzureStorageConfig();
-
-        // Assert
         expect(config.hostName).toBe("");
       });
 
       it("should use custom domain when AZURE_STORAGE_CUSTOM_DOMAIN is set", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "cdn.example.com";
+        setAzureEnabledEnv("myaccount", "cdn.example.com");
 
-        // Act
         const config = getAzureStorageConfig();
-
-        // Assert
         expect(config.hostName).toBe("cdn.example.com");
-      });
-
-      it("should fallback to default Azure hostname when custom domain is empty string", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "";
-
-        // Act
-        const config = getAzureStorageConfig();
-
-        // Assert
-        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
-      });
-
-      it("should fallback to default Azure hostname when custom domain is unset", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
-
-        // Act
-        const config = getAzureStorageConfig();
-
-        // Assert
-        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
       });
 
       it("should trim whitespace from custom domain", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "  cdn.example.com  ";
+        setAzureEnabledEnv("myaccount", "  cdn.example.com  ");
 
-        // Act
         const config = getAzureStorageConfig();
-
-        // Assert
         expect(config.hostName).toBe("cdn.example.com");
       });
 
-      it("should extract hostname when custom domain includes https:// protocol", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://cdn.example.com";
+      it("should resolve host when custom domain includes https:// protocol", () => {
+        setAzureEnabledEnv("myaccount", "https://cdn.example.com");
 
-        // Act
         const config = getAzureStorageConfig();
-
-        // Assert
         expect(config.hostName).toBe("cdn.example.com");
       });
 
-      it("should extract hostname when custom domain includes http:// protocol", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "http://cdn.example.com";
+      it("should resolve host when custom domain includes http:// protocol", () => {
+        setAzureEnabledEnv("myaccount", "http://cdn.example.com");
 
-        // Act
         const config = getAzureStorageConfig();
-
-        // Assert
         expect(config.hostName).toBe("cdn.example.com");
       });
 
-      it("should extract hostname when custom domain includes protocol with path", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN =
-          "https://cdn.example.com/path";
+      it("should resolve host when custom domain includes protocol with path", () => {
+        setAzureEnabledEnv("myaccount", "https://cdn.example.com/path");
 
-        // Act
         const config = getAzureStorageConfig();
-
-        // Assert
         expect(config.hostName).toBe("cdn.example.com");
       });
 
-      it("should extract hostname when custom domain includes protocol with port", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://cdn.example.com:443";
+      it("should include non-default port in host when custom domain specifies port", () => {
+        setAzureEnabledEnv("myaccount", "https://cdn.example.com:9443");
 
-        // Act
         const config = getAzureStorageConfig();
-
-        // Assert
-        expect(config.hostName).toBe("cdn.example.com");
+        expect(config.hostName).toBe("cdn.example.com:9443");
       });
 
-      it("should fallback to default Azure hostname when custom domain is invalid", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://invalid url";
+      it("throws MisconfigurationError when custom domain is invalid", () => {
+        setAzureEnabledEnv("myaccount", "https://invalid url");
 
-        // Act
-        const config = getAzureStorageConfig();
-
-        // Assert - should fallback to default Azure hostname when URL parsing fails
-        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
+        expect(() => getAzureStorageConfig()).toThrow(MisconfigurationError);
       });
 
-      it("should fallback to default Azure hostname when custom domain is malformed", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "not a valid url://";
+      it("throws MisconfigurationError when custom domain is malformed", () => {
+        setAzureEnabledEnv("myaccount", "not a valid url://");
 
-        // Act
-        const config = getAzureStorageConfig();
-
-        // Assert
-        expect(config.hostName).toBe("myaccount.blob.core.windows.net");
-      });
-
-      it("should return empty string when custom domain is invalid and account name is not set", () => {
-        // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "https://invalid url";
-
-        // Act
-        const config = getAzureStorageConfig();
-
-        // Assert
-        expect(config.hostName).toBe("");
+        expect(() => getAzureStorageConfig()).toThrow(MisconfigurationError);
       });
     });
 
     describe("protocol", () => {
       it("should default to https", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
 
         // Act
         const config = getAzureStorageConfig();
@@ -342,8 +252,7 @@ describe("StorageConfig", () => {
 
       it("should always be https regardless of environment", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
 
         // Act
         const config = getAzureStorageConfig();
@@ -357,8 +266,7 @@ describe("StorageConfig", () => {
     describe("sasReadExpiryMinutes", () => {
       it("should use default value (15) when not set", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         delete process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES;
 
         // Act
@@ -370,8 +278,7 @@ describe("StorageConfig", () => {
 
       it("should parse valid positive integer from environment", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
 
         // Act
@@ -383,8 +290,7 @@ describe("StorageConfig", () => {
 
       it("should use default when value is NaN", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "invalid";
 
         // Act
@@ -396,8 +302,7 @@ describe("StorageConfig", () => {
 
       it("should use default when value is zero", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "0";
 
         // Act
@@ -409,8 +314,7 @@ describe("StorageConfig", () => {
 
       it("should use default when value is negative", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "-5";
 
         // Act
@@ -422,8 +326,7 @@ describe("StorageConfig", () => {
 
       it("should parse large positive values", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "1440"; // 24 hours
 
         // Act
@@ -435,8 +338,7 @@ describe("StorageConfig", () => {
 
       it("should parse decimal strings as integers (truncated)", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30.5";
 
         // Act
@@ -450,8 +352,7 @@ describe("StorageConfig", () => {
     describe("config immutability", () => {
       it("should return a frozen object", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
 
         // Act
         const config = getAzureStorageConfig();
@@ -462,8 +363,7 @@ describe("StorageConfig", () => {
 
       it("should return a new object each call", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
 
         // Act
         const config1 = getAzureStorageConfig();
@@ -601,12 +501,10 @@ describe("StorageConfig", () => {
   describe("createStorageConfigClient", () => {
     it("should return a client-safe config object", () => {
       // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+      setAzureEnabledEnv(mockAccountName);
       process.env.AZURE_STORAGE_IS_PRIVATE = "true";
       process.env.USER_FILES_STORAGE_CONTAINER_NAME = "custom-user-files";
       process.env.CONTENT_STORAGE_CONTAINER_NAME = "custom-content";
-      delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
 
       // Act
       const clientConfig = createStorageConfigClient();
@@ -635,9 +533,7 @@ describe("StorageConfig", () => {
 
     it("should use custom domain hostname when AZURE_STORAGE_CUSTOM_DOMAIN is set", () => {
       // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "cdn.example.com";
+      setAzureEnabledEnv(mockAccountName, "cdn.example.com");
 
       // Act
       const clientConfig = createStorageConfigClient();
@@ -780,11 +676,10 @@ describe("StorageConfig", () => {
       });
     });
 
-    describe("with StorageConfig (client config)", () => {
+    describe("with ClientStorageConfig (client config)", () => {
       it("should construct URL with https protocol from client config", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         const clientConfig = createStorageConfigClient();
 
         // Act
@@ -798,8 +693,7 @@ describe("StorageConfig", () => {
 
       it("should work with both container types from client config", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         const clientConfig = createStorageConfigClient();
 
         // Act
@@ -823,8 +717,7 @@ describe("StorageConfig", () => {
 
       it("should use protocol from client config", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        setAzureEnabledEnv(mockAccountName);
         const clientConfig = createStorageConfigClient();
 
         // Act

@@ -4,13 +4,12 @@ import React from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import {
   AssetStorageClientProvider,
-  StorageConfig,
+  ClientStorageConfig,
 } from "@/features/asset-storage/client";
 import { useContentUpload } from "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook";
 
 vi.mock("@azure/storage-blob", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@azure/storage-blob")>();
+  const actual = await importOriginal<typeof import("@azure/storage-blob")>();
   return {
     ...actual,
     BlockBlobClient: vi.fn().mockImplementation(function () {
@@ -80,7 +79,7 @@ describe("useContentUpload", () => {
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <AssetStorageClientProvider
-      config={mockStorageConfig as unknown as StorageConfig}
+      config={mockStorageConfig as unknown as ClientStorageConfig}
     >
       {children}
     </AssetStorageClientProvider>

@@ -1,11 +1,12 @@
-import { useAssetStorage } from "@/features/asset-storage/client";
+import {
+  useNearViewport,
+  usePrivateStorageDisplayUrl,
+} from '@/features/asset-storage/client';
 import { FileType, getFileType, IFile } from "@/lib/questions/file/file-type";
 import { AudioPlayer } from "@/lib/questions/audio-recorder/audio-player";
 import { cn } from "@/lib/utils";
 import { FileText, FileX2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
 
 export type FileViewSize = "small" | "medium" | "large";
 
@@ -49,6 +50,11 @@ const SIZE_CONFIG = {
  * Presentational file viewer for image, video, audio, PDF, and unknown types.
  * Does not use AssetStorage context; pass a fully resolved URL as src.
  *
+ * Images use a native {@link HTMLImageElement} (not `next/image`): presigned S3/SAS URLs and
+ * Private object URLs (SAS or S3 presigned) carry long query strings; Next 16+ rejects those on `next/image`
+ * unless every pattern is listed in `images.remotePatterns` / `images.localPatterns`, which
+ * does not fit short-lived tokens.
+ *
  * @param size - small (submission details), medium (modal), large (file page)
  */
 export function FileContentView({
@@ -67,31 +73,18 @@ export function FileContentView({
 
   const config = SIZE_CONFIG[size];
   const showPdfObject = size === "medium" || size === "large";
-  const sizes = useMemo(() => {
-    switch (size) {
-      case "small":
-        return "200px";
-      case "medium":
-        return "(max-width: 768px) 100vw, 672px";
-      case "large":
-        return "(max-width: 768px) 100vw, 896px";
-      default:
-        return "(max-width: 768px) 100vw, 896px";
-    }
-  }, [size]);
 
   return (
     <div className={cn("space-y-3", config.container, className)} {...props}>
       <div className="overflow-hidden rounded-md">
         {fileType === FileType.Image && (
           <div className={config.imageContainer}>
-            <Image
+            <img
               src={src}
               alt={name ?? ""}
-              fill
-              sizes={sizes}
+              loading="lazy"
               className={cn(
-                "object-cover transition-all hover:scale-105",
+                "absolute inset-0 h-full w-full object-cover transition-all hover:scale-105",
                 config.imageAspect,
               )}
             />
@@ -178,26 +171,51 @@ interface FileViewerProps extends React.HTMLAttributes<HTMLDivElement> {
   file: IFile;
   /** Size variant: small (submission details), medium (modal), large (file page). Default: large. */
   size?: FileViewSize;
+  /** Defer presign and media src until near viewport (default: true for small thumbnails). */
+  lazyPresign?: boolean;
+}
+
+function FileViewerPlaceholder({ size }: Readonly<{ size: FileViewSize }>) {
+  const heightClass =
+    size === "small" ? "min-h-[266px] w-[200px]" : "min-h-[200px] w-full";
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-muted", heightClass)}
+      aria-hidden
+    />
+  );
 }
 
 /** File viewer that resolves storage URLs via AssetStorage context (for survey answers). */
 export function FileViewer({
   file,
   size = "large",
+  lazyPresign = size === "small",
   className,
   ...props
 }: FileViewerProps) {
-  const { resolveStorageUrl } = useAssetStorage();
-  const src = resolveStorageUrl(file.content);
+  const { ref, isNearViewport } = useNearViewport({ disabled: !lazyPresign });
+  const presignEnabled = !lazyPresign || isNearViewport;
+  const { displayUrl: src, isResolving } = usePrivateStorageDisplayUrl(
+    file.content,
+    { enabled: presignEnabled },
+  );
+
+  const showMedia =
+    presignEnabled && (!isResolving || src.length > 0);
 
   return (
-    <FileContentView
-      src={src}
-      contentType={file.type}
-      name={file.name}
-      size={size}
-      className={className}
-      {...props}
-    />
+    <div ref={ref} className={className} {...props}>
+      {showMedia ? (
+        <FileContentView
+          src={src}
+          contentType={file.type}
+          name={file.name}
+          size={size}
+        />
+      ) : (
+        <FileViewerPlaceholder size={size} />
+      )}
+    </div>
   );
 }

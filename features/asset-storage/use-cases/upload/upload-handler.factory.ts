@@ -2,7 +2,7 @@ import type { SurveyModel, UploadFilesEvent } from "survey-core";
 import type { UploadFileEvent } from "survey-creator-core";
 import { Result, type ResultType } from "@/lib/result";
 import type { ContentItemType } from "../../types";
-import type { UploadUrlDescriptor } from "../../infrastructure/storage-gateway";
+import type { UploadUrlDescriptor } from "../../infrastructure/core";
 import {
   fetchUploadUrls,
   prepareUploadBytes,

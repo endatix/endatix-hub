@@ -1,4 +1,9 @@
-import { Model, QuestionFileModel, QuestionImageModel, QuestionSignaturePadModel } from "survey-core";
+import {
+  Model,
+  QuestionFileModel,
+  QuestionImageModel,
+  QuestionSignaturePadModel,
+} from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateAssetsManifest } from "../generate-assets-manifest";
 import {
@@ -22,7 +27,8 @@ describe("generateAssetsManifest", () => {
 
   describe("model-level properties", () => {
     it("should include logo URL when present", () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
       mockModel.logo = logoUrl;
 
       const result = generateAssetsManifest(mockModel);
@@ -42,7 +48,8 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should include both logo and backgroundImage when both are present", () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
       const bgUrl = "https://testaccount.blob.core.windows.net/content/bg.jpg";
       mockModel.logo = logoUrl;
       mockModel.backgroundImage = bgUrl;
@@ -72,7 +79,8 @@ describe("generateAssetsManifest", () => {
 
   describe("file question type", () => {
     it("should extract URLs from file question with single file", () => {
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/document.pdf";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/document.pdf";
       const fileQuestion = {
         getType: () => "file",
         value: [
@@ -84,7 +92,9 @@ describe("generateAssetsManifest", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -93,8 +103,10 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should extract URLs from file question with multiple files", () => {
-      const fileUrl1 = "https://testaccount.blob.core.windows.net/user-files/file1.pdf";
-      const fileUrl2 = "https://testaccount.blob.core.windows.net/user-files/file2.jpg";
+      const fileUrl1 =
+        "https://testaccount.blob.core.windows.net/user-files/file1.pdf";
+      const fileUrl2 =
+        "https://testaccount.blob.core.windows.net/user-files/file2.jpg";
       const fileQuestion = {
         getType: () => "file",
         value: [
@@ -103,7 +115,9 @@ describe("generateAssetsManifest", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -113,7 +127,8 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should skip files without content property", () => {
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/document.pdf";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/document.pdf";
       const fileQuestion = {
         getType: () => "file",
         value: [
@@ -130,7 +145,9 @@ describe("generateAssetsManifest", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -144,7 +161,9 @@ describe("generateAssetsManifest", () => {
         value: [],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -157,7 +176,9 @@ describe("generateAssetsManifest", () => {
         value: null,
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -170,7 +191,9 @@ describe("generateAssetsManifest", () => {
         value: "not-an-array",
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -180,7 +203,8 @@ describe("generateAssetsManifest", () => {
 
   describe("audiorecorder question type", () => {
     it("should extract URLs from audiorecorder question", () => {
-      const audioUrl = "https://testaccount.blob.core.windows.net/user-files/audio.wav";
+      const audioUrl =
+        "https://testaccount.blob.core.windows.net/user-files/audio.wav";
       const audioQuestion = {
         getType: () => "audiorecorder",
         value: [
@@ -192,7 +216,9 @@ describe("generateAssetsManifest", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([audioQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        audioQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -201,8 +227,10 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should extract URLs from audiorecorder question with multiple files", () => {
-      const audioUrl1 = "https://testaccount.blob.core.windows.net/user-files/audio1.wav";
-      const audioUrl2 = "https://testaccount.blob.core.windows.net/user-files/audio2.mp3";
+      const audioUrl1 =
+        "https://testaccount.blob.core.windows.net/user-files/audio1.wav";
+      const audioUrl2 =
+        "https://testaccount.blob.core.windows.net/user-files/audio2.mp3";
       const audioQuestion = {
         getType: () => "audiorecorder",
         value: [
@@ -211,7 +239,9 @@ describe("generateAssetsManifest", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([audioQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        audioQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -223,14 +253,17 @@ describe("generateAssetsManifest", () => {
 
   describe("signaturepad question type", () => {
     it("should extract backgroundImage URL from signature pad question", () => {
-      const bgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const bgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: bgUrl,
         value: null,
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -239,14 +272,17 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should extract value URL from signature pad question when value is a string", () => {
-      const sigUrl = "https://testaccount.blob.core.windows.net/user-files/signature.png";
+      const sigUrl =
+        "https://testaccount.blob.core.windows.net/user-files/signature.png";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: null,
         value: sigUrl,
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -255,15 +291,19 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should extract both backgroundImage and value URLs from signature pad question", () => {
-      const bgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
-      const sigUrl = "https://testaccount.blob.core.windows.net/user-files/signature.png";
+      const bgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const sigUrl =
+        "https://testaccount.blob.core.windows.net/user-files/signature.png";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: bgUrl,
         value: sigUrl,
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -273,15 +313,19 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should handle signature pad with data URL value", () => {
-      const bgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
-      const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const bgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const dataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: bgUrl,
         value: dataUrl,
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -291,14 +335,17 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should handle signature pad with non-string value", () => {
-      const bgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const bgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: bgUrl,
         value: { someObject: "value" },
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -307,14 +354,17 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should handle signature pad with null backgroundImage", () => {
-      const sigUrl = "https://testaccount.blob.core.windows.net/user-files/signature.png";
+      const sigUrl =
+        "https://testaccount.blob.core.windows.net/user-files/signature.png";
       const sigQuestion = {
         getType: () => "signaturepad",
         backgroundImage: null,
         value: sigUrl,
       } as unknown as QuestionSignaturePadModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([sigQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        sigQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -325,13 +375,16 @@ describe("generateAssetsManifest", () => {
 
   describe("image question type", () => {
     it("should extract imageLink URL from image question", () => {
-      const imageUrl = "https://testaccount.blob.core.windows.net/content/image.jpg";
+      const imageUrl =
+        "https://testaccount.blob.core.windows.net/content/image.jpg";
       const imageQuestion = {
         getType: () => "image",
         imageLink: imageUrl,
       } as unknown as QuestionImageModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([imageQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        imageQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -345,7 +398,9 @@ describe("generateAssetsManifest", () => {
         imageLink: null,
       } as unknown as QuestionImageModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([imageQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        imageQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -358,7 +413,9 @@ describe("generateAssetsManifest", () => {
         imageLink: "",
       } as unknown as QuestionImageModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([imageQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        imageQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -374,7 +431,9 @@ describe("generateAssetsManifest", () => {
         value: "some text",
       } as any;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([textQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        textQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -387,7 +446,9 @@ describe("generateAssetsManifest", () => {
         choices: ["option1", "option2"],
       } as any;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([dropdownQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        dropdownQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -397,7 +458,8 @@ describe("generateAssetsManifest", () => {
 
   describe("deduplication", () => {
     it("should deduplicate URLs from model-level properties", () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
       mockModel.logo = logoUrl;
       mockModel.backgroundImage = logoUrl; // Same URL
 
@@ -408,18 +470,26 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should deduplicate URLs from multiple file questions", () => {
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/document.pdf";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/document.pdf";
       const fileQuestion1 = {
         getType: () => "file",
-        value: [{ name: "doc1.pdf", type: "application/pdf", content: fileUrl }],
+        value: [
+          { name: "doc1.pdf", type: "application/pdf", content: fileUrl },
+        ],
       } as unknown as QuestionFileModel;
 
       const fileQuestion2 = {
         getType: () => "file",
-        value: [{ name: "doc2.pdf", type: "application/pdf", content: fileUrl }],
+        value: [
+          { name: "doc2.pdf", type: "application/pdf", content: fileUrl },
+        ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion1, fileQuestion2] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion1,
+        fileQuestion2,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -428,7 +498,8 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should deduplicate URLs across different question types", () => {
-      const sharedUrl = "https://testaccount.blob.core.windows.net/content/shared.jpg";
+      const sharedUrl =
+        "https://testaccount.blob.core.windows.net/content/shared.jpg";
       const fileQuestion = {
         getType: () => "file",
         value: [{ name: "file.jpg", type: "image/jpeg", content: sharedUrl }],
@@ -439,7 +510,10 @@ describe("generateAssetsManifest", () => {
         imageLink: sharedUrl,
       } as unknown as QuestionImageModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion, imageQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+        imageQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -448,7 +522,8 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should deduplicate URLs within a single file question", () => {
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/document.pdf";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/document.pdf";
       const fileQuestion = {
         getType: () => "file",
         value: [
@@ -457,7 +532,9 @@ describe("generateAssetsManifest", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([fileQuestion] as any);
+      vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
+        fileQuestion,
+      ] as any);
 
       const result = generateAssetsManifest(mockModel);
 
@@ -468,8 +545,10 @@ describe("generateAssetsManifest", () => {
 
   describe("nested elements", () => {
     it("should extract URLs from image questions nested in panels", () => {
-      const imageUrl1 = "https://testaccount.blob.core.windows.net/content/image1.jpg";
-      const imageUrl2 = "https://testaccount.blob.core.windows.net/content/image2.jpg";
+      const imageUrl1 =
+        "https://testaccount.blob.core.windows.net/content/image1.jpg";
+      const imageUrl2 =
+        "https://testaccount.blob.core.windows.net/content/image2.jpg";
 
       const topLevelImageQuestion = {
         getType: () => "image",
@@ -495,17 +574,23 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should extract URLs from file questions nested in panels", () => {
-      const fileUrl1 = "https://testaccount.blob.core.windows.net/user-files/file1.pdf";
-      const fileUrl2 = "https://testaccount.blob.core.windows.net/user-files/file2.pdf";
+      const fileUrl1 =
+        "https://testaccount.blob.core.windows.net/user-files/file1.pdf";
+      const fileUrl2 =
+        "https://testaccount.blob.core.windows.net/user-files/file2.pdf";
 
       const topLevelFileQuestion = {
         getType: () => "file",
-        value: [{ name: "file1.pdf", type: "application/pdf", content: fileUrl1 }],
+        value: [
+          { name: "file1.pdf", type: "application/pdf", content: fileUrl1 },
+        ],
       } as unknown as QuestionFileModel;
 
       const nestedFileQuestion = {
         getType: () => "file",
-        value: [{ name: "file2.pdf", type: "application/pdf", content: fileUrl2 }],
+        value: [
+          { name: "file2.pdf", type: "application/pdf", content: fileUrl2 },
+        ],
       } as unknown as QuestionFileModel;
 
       vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([
@@ -521,10 +606,14 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should extract URLs from signature pad questions nested in panels", () => {
-      const sigBgUrl1 = "https://testaccount.blob.core.windows.net/content/sig-bg1.png";
-      const sigUrl1 = "https://testaccount.blob.core.windows.net/user-files/sig1.png";
-      const sigBgUrl2 = "https://testaccount.blob.core.windows.net/content/sig-bg2.png";
-      const sigUrl2 = "https://testaccount.blob.core.windows.net/user-files/sig2.png";
+      const sigBgUrl1 =
+        "https://testaccount.blob.core.windows.net/content/sig-bg1.png";
+      const sigUrl1 =
+        "https://testaccount.blob.core.windows.net/user-files/sig1.png";
+      const sigBgUrl2 =
+        "https://testaccount.blob.core.windows.net/content/sig-bg2.png";
+      const sigUrl2 =
+        "https://testaccount.blob.core.windows.net/user-files/sig2.png";
 
       const topLevelSigQuestion = {
         getType: () => "signaturepad",
@@ -553,10 +642,14 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should extract URLs from multiple question types nested in panels", () => {
-      const imageUrl = "https://testaccount.blob.core.windows.net/content/image.jpg";
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/file.pdf";
-      const audioUrl = "https://testaccount.blob.core.windows.net/user-files/audio.wav";
-      const sigBgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const imageUrl =
+        "https://testaccount.blob.core.windows.net/content/image.jpg";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/file.pdf";
+      const audioUrl =
+        "https://testaccount.blob.core.windows.net/user-files/audio.wav";
+      const sigBgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
 
       const nestedImageQuestion = {
         getType: () => "image",
@@ -565,7 +658,9 @@ describe("generateAssetsManifest", () => {
 
       const nestedFileQuestion = {
         getType: () => "file",
-        value: [{ name: "file.pdf", type: "application/pdf", content: fileUrl }],
+        value: [
+          { name: "file.pdf", type: "application/pdf", content: fileUrl },
+        ],
       } as unknown as QuestionFileModel;
 
       const nestedAudioQuestion = {
@@ -596,9 +691,12 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should handle deeply nested questions (panels within panels)", () => {
-      const imageUrl1 = "https://testaccount.blob.core.windows.net/content/image1.jpg";
-      const imageUrl2 = "https://testaccount.blob.core.windows.net/content/image2.jpg";
-      const imageUrl3 = "https://testaccount.blob.core.windows.net/content/image3.jpg";
+      const imageUrl1 =
+        "https://testaccount.blob.core.windows.net/content/image1.jpg";
+      const imageUrl2 =
+        "https://testaccount.blob.core.windows.net/content/image2.jpg";
+      const imageUrl3 =
+        "https://testaccount.blob.core.windows.net/content/image3.jpg";
 
       const topLevelImageQuestion = {
         getType: () => "image",
@@ -631,7 +729,8 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should deduplicate URLs from nested and top-level questions", () => {
-      const sharedUrl = "https://testaccount.blob.core.windows.net/content/shared.jpg";
+      const sharedUrl =
+        "https://testaccount.blob.core.windows.net/content/shared.jpg";
 
       const topLevelImageQuestion = {
         getType: () => "image",
@@ -655,10 +754,14 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should handle mixed nested and top-level questions with model properties", () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
-      const topLevelImageUrl = "https://testaccount.blob.core.windows.net/content/top-image.jpg";
-      const nestedFileUrl = "https://testaccount.blob.core.windows.net/user-files/nested-file.pdf";
-      const nestedImageUrl = "https://testaccount.blob.core.windows.net/content/nested-image.jpg";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
+      const topLevelImageUrl =
+        "https://testaccount.blob.core.windows.net/content/top-image.jpg";
+      const nestedFileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/nested-file.pdf";
+      const nestedImageUrl =
+        "https://testaccount.blob.core.windows.net/content/nested-image.jpg";
 
       mockModel.logo = logoUrl;
 
@@ -669,7 +772,9 @@ describe("generateAssetsManifest", () => {
 
       const nestedFileQuestion = {
         getType: () => "file",
-        value: [{ name: "file.pdf", type: "application/pdf", content: nestedFileUrl }],
+        value: [
+          { name: "file.pdf", type: "application/pdf", content: nestedFileUrl },
+        ],
       } as unknown as QuestionFileModel;
 
       const nestedImageQuestion = {
@@ -708,20 +813,28 @@ describe("generateAssetsManifest", () => {
 
   describe("complex scenarios", () => {
     it("should collect URLs from all sources", () => {
-      const logoUrl = "https://testaccount.blob.core.windows.net/content/logo.png";
+      const logoUrl =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
       const bgUrl = "https://testaccount.blob.core.windows.net/content/bg.jpg";
-      const fileUrl = "https://testaccount.blob.core.windows.net/user-files/file.pdf";
-      const imageUrl = "https://testaccount.blob.core.windows.net/content/image.jpg";
-      const sigBgUrl = "https://testaccount.blob.core.windows.net/content/sig-bg.png";
-      const sigUrl = "https://testaccount.blob.core.windows.net/user-files/signature.png";
-      const audioUrl = "https://testaccount.blob.core.windows.net/user-files/audio.wav";
+      const fileUrl =
+        "https://testaccount.blob.core.windows.net/user-files/file.pdf";
+      const imageUrl =
+        "https://testaccount.blob.core.windows.net/content/image.jpg";
+      const sigBgUrl =
+        "https://testaccount.blob.core.windows.net/content/sig-bg.png";
+      const sigUrl =
+        "https://testaccount.blob.core.windows.net/user-files/signature.png";
+      const audioUrl =
+        "https://testaccount.blob.core.windows.net/user-files/audio.wav";
 
       mockModel.logo = logoUrl;
       mockModel.backgroundImage = bgUrl;
 
       const fileQuestion = {
         getType: () => "file",
-        value: [{ name: "file.pdf", type: "application/pdf", content: fileUrl }],
+        value: [
+          { name: "file.pdf", type: "application/pdf", content: fileUrl },
+        ],
       } as unknown as QuestionFileModel;
 
       const imageQuestion = {
@@ -760,13 +873,16 @@ describe("generateAssetsManifest", () => {
     });
 
     it("should handle model with no questions", () => {
-      mockModel.logo = "https://testaccount.blob.core.windows.net/content/logo.png";
+      mockModel.logo =
+        "https://testaccount.blob.core.windows.net/content/logo.png";
 
       vi.spyOn(mockModel, "getAllQuestions").mockReturnValue([]);
 
       const result = generateAssetsManifest(mockModel);
 
-      expect(result).toEqual(["https://testaccount.blob.core.windows.net/content/logo.png"]);
+      expect(result).toEqual([
+        "https://testaccount.blob.core.windows.net/content/logo.png",
+      ]);
       expect(result.length).toBe(1);
     });
 

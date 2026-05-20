@@ -6,6 +6,7 @@ import {
 } from "../../infrastructure/image-service";
 
 const LOGGER_NAME = "resize-image";
+const SVG_CONTENT_TYPE = "image/svg+xml";
 
 /**
  * Handles POST request with a single image file in multipart form data.
@@ -55,9 +56,19 @@ export async function handleResizeImageRequest(
     });
   }
 
+  if (contentType.trim().toLowerCase() === SVG_CONTENT_TYPE) {
+    return new Response(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": String(buffer.length),
+      },
+    });
+  }
+
   try {
     const optimizedBuffer = await optimizeImageSize(buffer, contentType);
-    return new Response(optimizedBuffer as unknown as BodyInit, {
+    return new Response(new Uint8Array(optimizedBuffer), {
       status: 200,
       headers: {
         "Content-Type": contentType,

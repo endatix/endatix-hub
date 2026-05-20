@@ -1,5 +1,10 @@
 export type { IStorageProvider } from "./storage-provider.interface";
-export {
-  StorageProviderRegistry,
-  storageRegistry,
-} from "./storage-registry";
+export type {
+  BlobPropertiesResult,
+  BulkReadUrlsOptions,
+  FileOptions,
+  FolderOptions,
+  StorageListBlobItem,
+  UploadUrlDescriptor,
+} from "./storage-operation-types";
+export { StorageProviderRegistry, storageRegistry } from "./storage-registry";
