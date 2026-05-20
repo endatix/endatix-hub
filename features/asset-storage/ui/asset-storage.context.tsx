@@ -144,7 +144,7 @@ export function AssetStorageClientProvider({
 
       return null;
     },
-    [resolvedConfig, readUrlCacheVersion],
+    [resolvedConfig],
   );
 
   const contextVal = useMemo(

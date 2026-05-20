@@ -240,10 +240,10 @@ class ProtectedSurveyQuestionImagePicker extends SurveyQuestionImagePicker {
       item,
       cssClasses,
     });
-    const survey = this.question?.survey as SurveyModel | undefined;
+    const survey = this.question?.survey;
     if (survey) {
       const wrappedItem = ReactSurveyElementsWrapper.wrapItemValue(
-        survey,
+        survey as unknown as SurveyModel,
         renderedItem,
         this.question,
         item,

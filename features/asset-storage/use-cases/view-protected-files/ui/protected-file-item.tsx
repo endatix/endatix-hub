@@ -25,7 +25,7 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     event: React.MouseEvent<HTMLElement>,
   ): void {
     this.question.doDownloadFileFromContainer(
-      event.nativeEvent as unknown as MouseEvent,
+      event.nativeEvent,
     );
   }
 
@@ -34,7 +34,7 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     event: React.MouseEvent<HTMLElement>,
   ): void {
     event.stopPropagation();
-    this.question.doRemoveFile(val, event.nativeEvent as unknown as MouseEvent);
+    this.question.doRemoveFile(val, event.nativeEvent);
   }
 
   private renderFileLink(
