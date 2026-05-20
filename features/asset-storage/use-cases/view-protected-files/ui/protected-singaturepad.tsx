@@ -4,10 +4,8 @@ import {
   ReactQuestionFactory,
   SurveyQuestionSignaturePad,
 } from "survey-react-ui";
-import {
-  isPrivateStorageContext,
-  StoragePresignedImage,
-} from "./protected-storage-media";
+import { isPrivateStorageContext } from "./protected-storage-media";
+import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 
 let isRegistered = false;
 

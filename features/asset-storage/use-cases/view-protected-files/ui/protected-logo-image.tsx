@@ -5,9 +5,9 @@ import { LogoImageComponent } from "survey-creator-react";
 import { LogoImage, ReactElementFactory, SurveyModel } from "survey-react-ui";
 import {
   isPrivateStorageContext,
-  StoragePresignedImage,
   toCssObjectFit,
 } from "./protected-storage-media";
+import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 
 let isRegistered = false;
 

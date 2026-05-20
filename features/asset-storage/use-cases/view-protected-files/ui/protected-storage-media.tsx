@@ -22,5 +22,3 @@ export function isPrivateStorageContext(
 ): boolean {
   return Boolean(ctx?.config?.isEnabled && ctx.config.isPrivate);
 }
-
-export { StoragePresignedImage };

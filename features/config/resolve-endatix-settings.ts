@@ -241,10 +241,7 @@ function resolveMergedApiConfig(
   }
 
   const envBase = process.env.ENDATIX_BASE_URL;
-  const envPrefix =
-    process.env.ENDATIX_API_PREFIX !== undefined
-      ? process.env.ENDATIX_API_PREFIX
-      : DEFAULT_API_PREFIX;
+  const envPrefix = (process.env.ENDATIX_API_PREFIX ??= DEFAULT_API_PREFIX);
 
   const baseUrl = apiOpts.baseUrl ?? envBase;
   if (!baseUrl) {
