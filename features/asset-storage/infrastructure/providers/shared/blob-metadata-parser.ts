@@ -77,10 +77,12 @@ function parseMetadataFields(
 export const blobMetadataParser = {
   parseFromBlob(blob: StorageListBlobItem): UserFileMetadata {
     const metadata = blob.metadata ?? {};
+    const metadataContentType = metadata["content-type"];
+    const blobContentType = blob.properties?.contentType;
+
     const rawContentType =
-      metadata["content-type"] ??
-      (blob.properties?.contentType as string | undefined) ??
-      LIST_CONTENT_TYPE_PLACEHOLDER;
+      metadataContentType ?? blobContentType ?? LIST_CONTENT_TYPE_PLACEHOLDER;
+
     const displayName = getLastSegmentFromUrlPath(blob.name);
     const contentType = resolveContentType(rawContentType, displayName);
     const fields = parseMetadataFields(metadata);

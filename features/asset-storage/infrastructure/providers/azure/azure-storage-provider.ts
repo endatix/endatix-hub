@@ -207,11 +207,11 @@ export class AzureBlobStorageProvider implements IStorageProvider {
     });
 
     const headers =
-      fileOptions.blobUploadFileMetadata !== undefined
-        ? toAzureBlockBlobPutHeaders(
+      fileOptions.blobUploadFileMetadata === undefined
+        ? { "x-ms-blob-type": "BlockBlob" }
+        : toAzureBlockBlobPutHeaders(
             toBlobUploadOptions(fileOptions.blobUploadFileMetadata),
-          )
-        : { "x-ms-blob-type": "BlockBlob" };
+          );
 
     return { url: sasToken, key: blobName, headers };
   }

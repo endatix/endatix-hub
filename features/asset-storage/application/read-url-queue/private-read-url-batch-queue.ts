@@ -109,7 +109,7 @@ export class PrivateReadUrlBatchQueue {
     }
 
     const promise = new Promise<string | null>((resolve) => {
-      bucket!.resolversByUrl.set(url, resolve);
+      bucket.resolversByUrl.set(url, resolve);
     });
     bucket.promiseByUrl.set(url, promise);
     bucket.pending.add(url);
@@ -129,9 +129,7 @@ export class PrivateReadUrlBatchQueue {
       return;
     }
 
-    if (this.firstEnqueueAt === null) {
-      this.firstEnqueueAt = Date.now();
-    }
+    this.firstEnqueueAt ??= Date.now();
 
     if (this.flushTimer !== null) {
       clearTimeout(this.flushTimer);
@@ -140,11 +138,9 @@ export class PrivateReadUrlBatchQueue {
       void this.flush();
     }, READ_URL_FLUSH_DEBOUNCE_MS);
 
-    if (this.maxWaitTimer === null) {
-      this.maxWaitTimer = setTimeout(() => {
-        void this.flush();
-      }, READ_URL_FLUSH_MAX_WAIT_MS);
-    }
+    this.maxWaitTimer ??= setTimeout(() => {
+      void this.flush();
+    }, READ_URL_FLUSH_MAX_WAIT_MS);
   }
 
   private clearTimers(): void {
