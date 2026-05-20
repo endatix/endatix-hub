@@ -27,9 +27,8 @@ export function sanitizeZipEntryName(name: string): string {
  */
 export function buildZipEntryNames(
   files: UserFileMetadata[],
-  fileNamesPrefix: string,
+  fileNamesPrefix: string = "",
 ): Map<UserFileMetadata, string> {
-  const prefix = fileNamesPrefix ?? "";
   const byQuestion = new Map<string, UserFileMetadata[]>();
 
   for (const file of files) {
@@ -45,7 +44,7 @@ export function buildZipEntryNames(
   const entryNames = new Map<UserFileMetadata, string>();
   for (const [questionName, group] of byQuestion) {
     group.forEach((file, index) => {
-      let base = `${prefix}${questionName}`;
+      let base = `${fileNamesPrefix}${questionName}`;
       if (group.length > 1) {
         base += `-${index + 1}`;
       }

@@ -89,7 +89,7 @@ describe("ProtectedSurveyFileItem", () => {
     expect(screen.getAllByTestId("storage-presigned-link").length).toBe(2);
   });
 
-  it("downloads from the container with keyboard activation", () => {
+  it("downloads from the container from a native button", () => {
     const instance = new ProtectedSurveyFileItem({
       question: mockQuestion,
       item: { content: fileContent, name: "photo.jpg" },
@@ -107,17 +107,12 @@ describe("ProtectedSurveyFileItem", () => {
       </AssetStorageContext.Provider>,
     );
 
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Download photo.jpg" }),
-      {
-        key: "Enter",
-      },
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Download photo.jpg" }));
 
     expect(mockQuestion.doDownloadFileFromContainer).toHaveBeenCalledTimes(1);
   });
 
-  it("removes the file with keyboard activation", () => {
+  it("removes the file from a native button", () => {
     const instance = new ProtectedSurveyFileItem({
       question: mockQuestion,
       item: { content: fileContent, name: "photo.jpg" },
@@ -135,12 +130,7 @@ describe("ProtectedSurveyFileItem", () => {
       </AssetStorageContext.Provider>,
     );
 
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Remove photo.jpg" }),
-      {
-        key: "Enter",
-      },
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Remove photo.jpg" }));
 
     expect(mockQuestion.doRemoveFile).toHaveBeenCalledTimes(1);
     expect(mockQuestion.doDownloadFileFromContainer).not.toHaveBeenCalled();

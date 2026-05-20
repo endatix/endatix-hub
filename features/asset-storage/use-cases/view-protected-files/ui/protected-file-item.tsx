@@ -22,48 +22,39 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
   }
 
   private downloadFileFromContainer(
-    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
+    event: React.MouseEvent<HTMLElement>,
   ): void {
     this.question.doDownloadFileFromContainer(
       event.nativeEvent as unknown as MouseEvent,
     );
   }
 
-  private handleDownloadKeyDown(event: React.KeyboardEvent<HTMLElement>): void {
-    if (
-      event.key !== "Enter" &&
-      event.key !== " " &&
-      event.key !== "Spacebar"
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    this.downloadFileFromContainer(event);
-  }
-
   private removeFile(
     val: { content?: string; name?: string },
-    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
+    event: React.MouseEvent<HTMLElement>,
   ): void {
     event.stopPropagation();
     this.question.doRemoveFile(val, event.nativeEvent as unknown as MouseEvent);
   }
 
-  private handleRemoveKeyDown(
+  private renderFileLink(
+    content: string,
     val: { content?: string; name?: string },
-    event: React.KeyboardEvent<HTMLElement>,
-  ): void {
-    if (
-      event.key !== "Enter" &&
-      event.key !== " " &&
-      event.key !== "Spacebar"
-    ) {
-      return;
+    linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement>,
+  ): React.JSX.Element {
+    if (isPrivateStorageContext(this.context) && content.length > 0) {
+      return (
+        <StoragePresignedLink href={content} {...linkProps}>
+          {val.name}
+        </StoragePresignedLink>
+      );
     }
 
-    event.preventDefault();
-    this.removeFile(val, event);
+    return (
+      <a href={content} {...linkProps}>
+        {val.name}
+      </a>
+    );
   }
 
   protected renderFileSign(
@@ -88,16 +79,76 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
 
     return (
       <div className={className}>
-        {isPrivateStorageContext(this.context) && content.length > 0 ? (
-          <StoragePresignedLink href={content} {...linkProps}>
-            {val.name}
-          </StoragePresignedLink>
-        ) : (
-          <a href={content} {...linkProps}>
-            {val.name}
-          </a>
-        )}
+        {this.renderFileLink(content, val, linkProps)}
       </div>
+    );
+  }
+
+  private renderPreviewContent(
+    content: string,
+    val: { content?: string; name?: string },
+  ): React.JSX.Element | null {
+    if (this.question.canPreviewImage(val)) {
+      return (
+        <StoragePresignedImage
+          src={content}
+          style={{
+            height: this.question.imageHeight,
+            width: this.question.imageWidth,
+          }}
+          alt="File preview"
+        />
+      );
+    }
+
+    if (!this.question.cssClasses.defaultImage) {
+      return null;
+    }
+
+    return (
+      <SvgIcon
+        iconName={this.question.cssClasses.defaultImageIconId}
+        size="auto"
+        className={this.question.cssClasses.defaultImage}
+      />
+    );
+  }
+
+  private renderRemoveButton(val: {
+    content?: string;
+    name?: string;
+  }): React.JSX.Element | null {
+    if (!val.name || this.question.isReadOnly) {
+      return null;
+    }
+
+    return (
+      <button
+        aria-label={`Remove ${val.name}`}
+        className={this.question.getRemoveButtonCss()}
+        onClick={(event) => this.removeFile(val, event)}
+        type="button"
+      >
+        <span className={this.question.cssClasses.removeFile}>
+          {this.question.removeFileCaption}
+        </span>
+        {this.renderRemoveIcon()}
+      </button>
+    );
+  }
+
+  private renderRemoveIcon(): React.JSX.Element | null {
+    if (!this.question.cssClasses.removeFileSvgIconId) {
+      return null;
+    }
+
+    return (
+      <SvgIcon
+        title={this.question.removeFileCaption}
+        iconName={this.question.cssClasses.removeFileSvgIconId}
+        size="auto"
+        className={this.question.cssClasses.removeFileSvg}
+      />
     );
   }
 
@@ -110,54 +161,18 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     const content = val.content ?? "";
 
     return (
-      <span
-        aria-label={val.name ? `Download ${val.name}` : "Download file"}
-        className={this.question.cssClasses.previewItem}
-        onClick={(event) => this.downloadFileFromContainer(event)}
-        onKeyDown={(event) => this.handleDownloadKeyDown(event)}
-        role="button"
-        tabIndex={0}
-      >
+      <span className={this.question.cssClasses.previewItem}>
         {this.renderFileSign(this.question.cssClasses.fileSign, val)}
         <div className={this.question.getImageWrapperCss(val)}>
-          {this.question.canPreviewImage(val) ? (
-            <StoragePresignedImage
-              src={content}
-              style={{
-                height: this.question.imageHeight,
-                width: this.question.imageWidth,
-              }}
-              alt="File preview"
-            />
-          ) : this.question.cssClasses.defaultImage ? (
-            <SvgIcon
-              iconName={this.question.cssClasses.defaultImageIconId}
-              size="auto"
-              className={this.question.cssClasses.defaultImage}
-            />
-          ) : null}
-          {val.name && !this.question.isReadOnly ? (
-            <div
-              aria-label={`Remove ${val.name}`}
-              className={this.question.getRemoveButtonCss()}
-              onClick={(event) => this.removeFile(val, event)}
-              onKeyDown={(event) => this.handleRemoveKeyDown(val, event)}
-              role="button"
-              tabIndex={0}
-            >
-              <span className={this.question.cssClasses.removeFile}>
-                {this.question.removeFileCaption}
-              </span>
-              {this.question.cssClasses.removeFileSvgIconId ? (
-                <SvgIcon
-                  title={this.question.removeFileCaption}
-                  iconName={this.question.cssClasses.removeFileSvgIconId}
-                  size="auto"
-                  className={this.question.cssClasses.removeFileSvg}
-                />
-              ) : null}
-            </div>
-          ) : null}
+          <button
+            aria-label={val.name ? `Download ${val.name}` : "Download file"}
+            className={this.question.cssClasses.previewItem}
+            onClick={(event) => this.downloadFileFromContainer(event)}
+            type="button"
+          >
+            {this.renderPreviewContent(content, val)}
+          </button>
+          {this.renderRemoveButton(val)}
         </div>
         {this.renderFileSign(this.question.cssClasses.fileSignBottom, val)}
       </span>

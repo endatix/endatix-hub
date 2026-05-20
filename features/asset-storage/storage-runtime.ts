@@ -1,4 +1,3 @@
-import { buildClientStorageConfig } from "./infrastructure/providers/shared/client-storage-config";
 import { getStorageContainerNames } from "./infrastructure/providers/shared/container-names";
 import { IMAGE_SERVICE_CONFIG } from "./infrastructure/image-service";
 import { storageRegistry } from "./infrastructure/core";
