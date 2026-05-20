@@ -11,6 +11,7 @@ import type {
 import { formAccessForbidden } from "@/features/form-access/server";
 import { appendStorageReadQuery } from "@/features/asset-storage/infrastructure/append-storage-read-query";
 import { getActiveStorageProvider } from "@/features/asset-storage/storage-runtime";
+import type { IStorageProvider } from "@/features/asset-storage/infrastructure/core/storage-provider.interface";
 import {
   parseStorageObjectUrl,
   type ParsedStorageObjectUrl,
@@ -27,6 +28,21 @@ interface ParsedReadUrl {
   originalUrl: string;
   containerName: string;
   blobName: string;
+}
+
+type StorageObjectAccessAssert = (
+  parsed: ParsedStorageObjectUrl,
+) => string | null;
+
+interface ResolvePresignedReadUrlsInput {
+  urls: string[];
+  clientConfig: ClientStorageConfig;
+  assertObject: StorageObjectAccessAssert;
+}
+
+interface PrivateReadUrlParseResult {
+  parsed: ParsedReadUrl[];
+  resolved: Record<string, ReadUrlResolvedEntry>;
 }
 
 /**
@@ -79,13 +95,41 @@ export async function resolveHubReadUrls(input: {
   });
 }
 
-async function resolvePresignedReadUrls(input: {
-  urls: string[];
-  clientConfig: ClientStorageConfig;
-  assertObject: (parsed: ParsedStorageObjectUrl) => string | null;
-}): Promise<Result<ReadUrlsResponse>> {
+async function resolvePresignedReadUrls(
+  input: ResolvePresignedReadUrlsInput,
+): Promise<Result<ReadUrlsResponse>> {
   const { urls, clientConfig, assertObject } = input;
 
+  const configResult = validateReadUrlConfig(clientConfig);
+  if (Result.isError(configResult)) {
+    return configResult;
+  }
+
+  if (!clientConfig.isPrivate) {
+    return Result.success(createPublicReadUrlsResponse(urls));
+  }
+
+  const parsedResult = parsePrivateReadUrls({
+    urls,
+    clientConfig,
+    assertObject,
+  });
+  const signedUrls = await resolvePrivateReadUrls(
+    parsedResult.parsed,
+    getActiveStorageProvider(),
+  );
+
+  return Result.success({
+    resolved: {
+      ...parsedResult.resolved,
+      ...signedUrls,
+    },
+  });
+}
+
+function validateReadUrlConfig(
+  clientConfig: ClientStorageConfig,
+): Result<void> {
   if (!clientConfig.isEnabled) {
     return Result.validationError("Storage is not enabled");
   }
@@ -96,23 +140,29 @@ async function resolvePresignedReadUrls(input: {
     );
   }
 
-  const resolved: Record<string, ReadUrlResolvedEntry> = {};
+  return Result.success(undefined);
+}
 
-  if (!clientConfig.isPrivate) {
-    for (const url of urls) {
-      resolved[url] = { url };
-    }
-    return Result.success({ resolved });
+function createPublicReadUrlsResponse(urls: string[]): ReadUrlsResponse {
+  const resolved: Record<string, ReadUrlResolvedEntry> = {};
+  for (const url of urls) {
+    resolved[url] = { url };
   }
 
+  return { resolved };
+}
+
+function parsePrivateReadUrls(
+  input: ResolvePresignedReadUrlsInput,
+): PrivateReadUrlParseResult {
+  const { urls, clientConfig, assertObject } = input;
   const parsed: ParsedReadUrl[] = [];
+  const resolved: Record<string, ReadUrlResolvedEntry> = {};
 
   for (const url of urls) {
     const located = parseStorageObjectUrl(url, clientConfig);
     if (located === null) {
-      resolved[url] = {
-        error: "URL does not match configured storage",
-      };
+      resolved[url] = { error: "URL does not match configured storage" };
       continue;
     }
 
@@ -129,36 +179,53 @@ async function resolvePresignedReadUrls(input: {
     });
   }
 
-  const provider = getActiveStorageProvider();
+  return { parsed, resolved };
+}
+
+async function resolvePrivateReadUrls(
+  parsed: ParsedReadUrl[],
+  provider: IStorageProvider | null,
+): Promise<Record<string, ReadUrlResolvedEntry>> {
+  const resolved: Record<string, ReadUrlResolvedEntry> = {};
+
   if (provider === null || !provider.isEnabled()) {
     for (const item of parsed) {
       resolved[item.originalUrl] = {
         error: "Failed to generate read token: Storage is not enabled",
       };
     }
-    return Result.success({ resolved });
+    return resolved;
   }
 
   for (const item of parsed) {
-    try {
-      const query = await provider.generateReadTokenQuery(
-        item.containerName,
-        item.blobName,
-      );
-
-      resolved[item.originalUrl] = {
-        url: appendStorageReadQuery(item.originalUrl, query),
-      };
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to generate read token";
-      resolved[item.originalUrl] = {
-        error: `Failed to generate read token: ${message}`,
-      };
-    }
+    resolved[item.originalUrl] = await resolvePrivateReadUrl(provider, item);
   }
 
-  return Result.success({ resolved });
+  return resolved;
+}
+
+async function resolvePrivateReadUrl(
+  provider: IStorageProvider,
+  item: ParsedReadUrl,
+): Promise<ReadUrlResolvedEntry> {
+  try {
+    const query = await provider.generateReadTokenQuery(
+      item.containerName,
+      item.blobName,
+    );
+
+    return {
+      url: appendStorageReadQuery(item.originalUrl, query),
+    };
+  } catch (error) {
+    return {
+      error: `Failed to generate read token: ${getReadTokenErrorMessage(error)}`,
+    };
+  }
+}
+
+function getReadTokenErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : "Failed to generate read token";
 }

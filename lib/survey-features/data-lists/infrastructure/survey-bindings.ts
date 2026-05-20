@@ -17,6 +17,27 @@ import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
 
+async function withJwtRetry<T>(
+  runtimeState: FormRuntimeState,
+  call: (jwt: string) => Promise<ApiResult<T>>,
+): Promise<ApiResult<T>> {
+  let jwt = await ensureRuntimeFormAccessJwt(runtimeState);
+  if (!jwt) {
+    return ApiResult.authError<T>("Could not obtain form access token.");
+  }
+
+  let response = await call(jwt);
+  if (!response.success && response.error.type === ApiErrorType.AuthError) {
+    invalidateRuntimeFormAccessJwt(runtimeState);
+    jwt = await ensureRuntimeFormAccessJwt(runtimeState);
+    if (!jwt) {
+      return response;
+    }
+    response = await call(jwt);
+  }
+  return response;
+}
+
 export function bindDataListsToSurvey(
   model: Model,
   deps: ExtensionRuntimeDeps,
@@ -30,27 +51,6 @@ export function bindDataListsToSurvey(
   modelWithFlags[DATA_LIST_HANDLERS_ATTACHED_KEY] = true;
 
   const api = createEndatixPublicApi().dataLists;
-
-  async function withJwtRetry<T>(
-    runtimeState: FormRuntimeState,
-    call: (jwt: string) => Promise<ApiResult<T>>,
-  ): Promise<ApiResult<T>> {
-    let jwt = await ensureRuntimeFormAccessJwt(runtimeState);
-    if (!jwt) {
-      return ApiResult.authError<T>("Could not obtain form access token.");
-    }
-
-    let response = await call(jwt);
-    if (!response.success && response.error.type === ApiErrorType.AuthError) {
-      invalidateRuntimeFormAccessJwt(runtimeState);
-      jwt = await ensureRuntimeFormAccessJwt(runtimeState);
-      if (!jwt) {
-        return response;
-      }
-      response = await call(jwt);
-    }
-    return response;
-  }
 
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {
     const runtime = resolveFormRuntimeState(deps.getRuntimeState());
