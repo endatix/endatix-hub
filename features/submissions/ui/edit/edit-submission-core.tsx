@@ -72,17 +72,18 @@ export function EditSubmissionCore({
     ) => {
       const originalQuestionValue = submissionData[event.question.name];
       const newQuestionValue = event.question?.value;
-      if (originalQuestionValue !== newQuestionValue) {
-        setChanges((prev) => ({
-          ...prev,
-          [event.question.name]: event.question,
-        }));
-      } else {
+
+      if (originalQuestionValue === newQuestionValue) {
         setChanges((prev) => {
           const newChanges = { ...prev };
           delete newChanges[event.question.name];
           return newChanges;
         });
+      } else {
+        setChanges((prev) => ({
+          ...prev,
+          [event.question.name]: event.question,
+        }));
       }
 
       setSurveyModel(sender);

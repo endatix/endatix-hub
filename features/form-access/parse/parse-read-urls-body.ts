@@ -34,7 +34,7 @@ function parseUrlsField(urls: unknown): Result<string[]> {
     return Result.validationError("urls must be an array of strings");
   }
 
-  const list = urls as string[];
+  const list = urls;
   if (list.length === 0) {
     return Result.validationError("urls must not be empty");
   }

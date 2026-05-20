@@ -1,5 +1,4 @@
 import type { AssetStorageContextValue } from "@/features/asset-storage/ui/asset-storage.context";
-import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 import type { CSSProperties } from "react";
 
 export function toCssObjectFit(
