@@ -30,6 +30,9 @@ const privateModelReadTokens = {
   content: null,
 } as const;
 
+const compareAlphabetically = (left: string, right: string): number =>
+  left.localeCompare(right);
+
 export interface UseStorageViewOptions {
   getReadRuntime: () => StorageReadRuntime | null;
 }
@@ -81,7 +84,7 @@ export function useStorageView({ getReadRuntime }: UseStorageViewOptions) {
         return;
       }
 
-      const prefetchKey = urls.slice().sort().join("\0");
+      const prefetchKey = urls.slice().sort(compareAlphabetically).join("\0");
       const existing = prefetchStateByModel.get(model);
 
       if (existing?.completedKey === prefetchKey) {

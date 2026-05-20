@@ -21,6 +21,51 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
     return this.props.item;
   }
 
+  private downloadFileFromContainer(
+    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
+  ): void {
+    this.question.doDownloadFileFromContainer(
+      event.nativeEvent as unknown as MouseEvent,
+    );
+  }
+
+  private handleDownloadKeyDown(event: React.KeyboardEvent<HTMLElement>): void {
+    if (
+      event.key !== "Enter" &&
+      event.key !== " " &&
+      event.key !== "Spacebar"
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    this.downloadFileFromContainer(event);
+  }
+
+  private removeFile(
+    val: { content?: string; name?: string },
+    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
+  ): void {
+    event.stopPropagation();
+    this.question.doRemoveFile(val, event.nativeEvent as unknown as MouseEvent);
+  }
+
+  private handleRemoveKeyDown(
+    val: { content?: string; name?: string },
+    event: React.KeyboardEvent<HTMLElement>,
+  ): void {
+    if (
+      event.key !== "Enter" &&
+      event.key !== " " &&
+      event.key !== "Spacebar"
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    this.removeFile(val, event);
+  }
+
   protected renderFileSign(
     className: string,
     val: { content?: string; name?: string },
@@ -66,10 +111,12 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
 
     return (
       <span
+        aria-label={val.name ? `Download ${val.name}` : "Download file"}
         className={this.question.cssClasses.previewItem}
-        onClick={(event) =>
-          this.question.doDownloadFileFromContainer(event.nativeEvent)
-        }
+        onClick={(event) => this.downloadFileFromContainer(event)}
+        onKeyDown={(event) => this.handleDownloadKeyDown(event)}
+        role="button"
+        tabIndex={0}
       >
         {this.renderFileSign(this.question.cssClasses.fileSign, val)}
         <div className={this.question.getImageWrapperCss(val)}>
@@ -91,10 +138,12 @@ class ProtectedSurveyFileItem extends SurveyFileItem {
           ) : null}
           {val.name && !this.question.isReadOnly ? (
             <div
+              aria-label={`Remove ${val.name}`}
               className={this.question.getRemoveButtonCss()}
-              onClick={(event) =>
-                this.question.doRemoveFile(val, event.nativeEvent)
-              }
+              onClick={(event) => this.removeFile(val, event)}
+              onKeyDown={(event) => this.handleRemoveKeyDown(val, event)}
+              role="button"
+              tabIndex={0}
             >
               <span className={this.question.cssClasses.removeFile}>
                 {this.question.removeFileCaption}

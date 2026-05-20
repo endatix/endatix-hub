@@ -2,7 +2,7 @@ import {
   AssetStorageContext,
   type AssetStorageContextValue,
 } from "@/features/asset-storage/ui/asset-storage.context";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QuestionFileModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
@@ -87,5 +87,62 @@ describe("ProtectedSurveyFileItem", () => {
 
     expect(screen.getByTestId("storage-presigned-image")).toBeDefined();
     expect(screen.getAllByTestId("storage-presigned-link").length).toBe(2);
+  });
+
+  it("downloads from the container with keyboard activation", () => {
+    const instance = new ProtectedSurveyFileItem({
+      question: mockQuestion,
+      item: { content: fileContent, name: "photo.jpg" },
+    } as never);
+    (instance as { context: AssetStorageContextValue }).context =
+      buildContext();
+
+    const view = (
+      instance as unknown as { renderElement(): React.ReactNode }
+    ).renderElement();
+
+    render(
+      <AssetStorageContext.Provider value={buildContext()}>
+        {view}
+      </AssetStorageContext.Provider>,
+    );
+
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Download photo.jpg" }),
+      {
+        key: "Enter",
+      },
+    );
+
+    expect(mockQuestion.doDownloadFileFromContainer).toHaveBeenCalledTimes(1);
+  });
+
+  it("removes the file with keyboard activation", () => {
+    const instance = new ProtectedSurveyFileItem({
+      question: mockQuestion,
+      item: { content: fileContent, name: "photo.jpg" },
+    } as never);
+    (instance as { context: AssetStorageContextValue }).context =
+      buildContext();
+
+    const view = (
+      instance as unknown as { renderElement(): React.ReactNode }
+    ).renderElement();
+
+    render(
+      <AssetStorageContext.Provider value={buildContext()}>
+        {view}
+      </AssetStorageContext.Provider>,
+    );
+
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Remove photo.jpg" }),
+      {
+        key: "Enter",
+      },
+    );
+
+    expect(mockQuestion.doRemoveFile).toHaveBeenCalledTimes(1);
+    expect(mockQuestion.doDownloadFileFromContainer).not.toHaveBeenCalled();
   });
 });
