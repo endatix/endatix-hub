@@ -1,6 +1,6 @@
 /** Server-only form-access API (uses next/headers via cookie gate resolution). */
 export type {
-  DesignerStorageScope,
+  HubStorageScope,
   FormStorageAccess,
   FormStorageGateInput,
   FormStorageTokenType,
@@ -18,13 +18,13 @@ export {
   type IFormStorageGateService,
 } from "./authorize/form-storage-gate.factory";
 export { authorizeFormStorageAccess } from "./authorize/authorize-form-storage-access";
-export { assertStorageObjectAccess } from "./assert-path/assert-respondent-object-access";
-export { assertDesignerObjectAccess } from "./assert-path/assert-designer-object-access";
+export { assertPublicObjectAccess } from "./assert-path/assert-public-object-access";
+export { assertHubObjectAccess } from "./assert-path/assert-hub-object-access";
 export {
   parseHubReadUrlsBody,
   parsePublicReadUrlsBody,
 } from "./parse/parse-read-urls-body";
-export { resolveRespondentGate } from "./parse/resolve-respondent-gate";
+export { resolvePublicStorageGate } from "./parse/resolve-public-storage-gate";
 export { resolveStorageGateInput } from "./parse/resolve-gate-from-request";
 export type { ResolveStorageGateInputOptions } from "./parse/resolve-gate-from-request";
 export {

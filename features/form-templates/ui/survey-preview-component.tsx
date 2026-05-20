@@ -25,7 +25,7 @@ export default function SurveyPreviewComponent({
   const [error, setError] = useState<string | null>(null);
 
   const getReadRuntime = useStorageReadRuntime({
-    designerOnly: true,
+    hubOnly: true,
     creatorTemplateId: template.id,
   });
 

@@ -24,7 +24,7 @@ export interface FormStorageAccess {
   canDeleteFiles: boolean;
 }
 
-export type DesignerStorageScope = {
+export type HubStorageScope = {
   formId?: string;
   templateId?: string;
   submissionId?: string;

@@ -1,6 +1,6 @@
 /** Client-safe exports only (no next/headers). Server routes use `./server`. */
 export type {
-  DesignerStorageScope,
+  HubStorageScope,
   FormStorageAccess,
   FormStorageGateInput,
   FormStorageTokenType,

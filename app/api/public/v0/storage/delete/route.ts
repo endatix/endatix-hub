@@ -3,7 +3,7 @@ import { getClientStorageConfig } from "@/features/asset-storage/server";
 import { deleteUserFiles } from "@/features/asset-storage/use-cases/delete-user-files/delete-user-files";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import {
-  assertStorageObjectAccess,
+  assertPublicObjectAccess,
   createFormStorageGateService,
   mapGateResultToResponse,
 } from "@/features/form-access/server";
@@ -61,7 +61,7 @@ export async function DELETE(request: Request) {
       fileUrls,
       clientConfig,
       assertObject: (parsed) =>
-        assertStorageObjectAccess(parsed, access, clientConfig),
+        assertPublicObjectAccess(parsed, access, clientConfig),
     });
 
     return Response.json({

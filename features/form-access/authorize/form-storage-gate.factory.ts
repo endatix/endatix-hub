@@ -1,6 +1,6 @@
 import type { Session } from "next-auth";
 import { Result } from "@/lib/result";
-import { resolveRespondentGate } from "../parse/resolve-respondent-gate";
+import { resolvePublicStorageGate } from "../parse/resolve-public-storage-gate";
 import type { ResolveStorageGateInputOptions } from "../parse/resolve-gate-from-request";
 import { validateGateInput } from "../parse/validate-gate-input";
 import type { FormStorageAccess, FormStorageGateInput } from "../types";
@@ -40,7 +40,7 @@ export function createFormStorageGateService(
     },
 
     async authorizeRespondent(gate, session, options = {}) {
-      const validated = await resolveRespondentGate(gate, session, options);
+      const validated = await resolvePublicStorageGate(gate, session, options);
       if (Result.isError(validated)) {
         return validated;
       }
