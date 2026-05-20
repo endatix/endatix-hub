@@ -53,7 +53,7 @@ export function useStorageWithSurvey({
     if (!model || !needsPrivatePrefetch) {
       return;
     }
-    void prefetchPrivateReadUrlsForModel(model);
+    prefetchPrivateReadUrlsForModel(model);
   }, [model, needsPrivatePrefetch, prefetchPrivateReadUrlsForModel]);
 
   const registerStorageHandlers = useCallback(

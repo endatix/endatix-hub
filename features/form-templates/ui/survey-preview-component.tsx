@@ -67,7 +67,7 @@ export default function SurveyPreviewComponent({
       survey.applyTheme(SharpLightPanelless);
 
       setModelMetadata(survey);
-      void prefetchPrivateReadUrlsForModel(survey);
+      prefetchPrivateReadUrlsForModel(survey);
 
       setModel(survey);
       setError(null);

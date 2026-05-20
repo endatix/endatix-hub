@@ -48,7 +48,7 @@ export function useStorageWithCreator({
         return;
       }
 
-      void prefetchPrivateReadUrlsForModel(survey);
+      prefetchPrivateReadUrlsForModel(survey);
     },
     [needsPrivateView, prefetchPrivateReadUrlsForModel],
   );
