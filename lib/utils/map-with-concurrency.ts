@@ -20,7 +20,7 @@ export async function mapWithConcurrency<T, R>(
         return;
       }
 
-      results[current] = await worker(items[current]!);
+      results[current] = await worker(items[current]);
     }
   }
 

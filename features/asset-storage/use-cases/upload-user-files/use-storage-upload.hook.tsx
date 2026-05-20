@@ -168,9 +168,7 @@ export function useStorageUpload({
       if (storageConfig?.isPrivate) {
         try {
           const cached = getCachedPrivateReadUrl(options.content);
-          if (cached !== null) {
-            url = cached;
-          } else {
+          if (cached === null) {
             const runtime = getReadRuntime();
             const batch = await enqueuePrivateReadUrls(
               [options.content],
@@ -185,6 +183,8 @@ export function useStorageUpload({
             }
 
             url = presigned;
+          } else {
+            url = cached;
           }
         } catch (error) {
           console.error("Error getting read token:", error);

@@ -2,6 +2,7 @@ import { RestError } from "@azure/storage-blob";
 
 const AUTHENTICATION_FAILED_CODE = "AuthenticationFailed";
 const UNKNOWN_ERROR_MESSAGE = "Unknown error occurred while uploading the file";
+const HTTP_STATUS_PATTERN = /HTTP (\d{3})/;
 
 enum UploadCode {
   MissingSASUrl = "MissingSASUrl",
@@ -84,11 +85,12 @@ function throwFromHttpStatus(
 }
 
 function extractStatusFromFetchErrorMessage(message: string): number | null {
-  const match = message.match(/HTTP (\d{3})/);
-  if (!match) {
+  const [, statusCode] = HTTP_STATUS_PATTERN.exec(message) ?? [];
+  if (!statusCode) {
     return null;
   }
-  return Number.parseInt(match[1]!, 10);
+  
+  return Number.parseInt(statusCode, 10);
 }
 
 /**
