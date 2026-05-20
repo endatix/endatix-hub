@@ -75,11 +75,11 @@ vi.mock("survey-creator-react", async (importOriginal) => {
 });
 
 vi.mock(
-  "@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media",
+  "@/features/asset-storage/ui/storage-presigned-image",
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import("@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media")
+        typeof import("@/features/asset-storage/ui/storage-presigned-image")
       >();
     return {
       ...actual,
@@ -142,6 +142,9 @@ const renderLogoImageComponentWithContext = (
         contextValue || {
           config: null,
           getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
         }
       }
     >
@@ -180,6 +183,9 @@ describe("ProtectedLogoImage", () => {
       renderLogoImageWithContext(mockSurveyModel, {
         config: disabledConfig,
         getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRender).toHaveBeenCalledTimes(1);
@@ -196,6 +202,9 @@ describe("ProtectedLogoImage", () => {
       renderLogoImageWithContext(mockSurveyModel, {
         config: publicConfig,
         getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRender).toHaveBeenCalledTimes(1);
@@ -236,6 +245,9 @@ describe("ProtectedLogoImage", () => {
       renderLogoImageWithContext(surveyWithoutLogo, {
         config: privateConfig,
         getCachedPrivateReadUrl: mockResolveStorageUrl,
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRender).toHaveBeenCalledTimes(1);
@@ -274,6 +286,9 @@ describe("ProtectedLogoImageComponent", () => {
     const view = renderLogoImageComponentWithContext(mockCreatorModel, {
       config: privateConfig,
       getCachedPrivateReadUrl: vi.fn(() => null),
+      enqueuePrivateReadUrls: vi.fn(),
+      mergePrivateReadUrlCache: vi.fn(),
+      readUrlCacheVersion: 0,
     });
 
     // Component should render without errors

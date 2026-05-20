@@ -15,11 +15,11 @@ const mockRenderElement = vi.fn(() => {
 });
 
 vi.mock(
-  "@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media",
+  "@/features/asset-storage/ui/storage-presigned-image",
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import("@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media")
+        typeof import("@/features/asset-storage/ui/storage-presigned-image")
       >();
     return {
       ...actual,

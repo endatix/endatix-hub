@@ -42,11 +42,11 @@ vi.mock("survey-react-ui", async (importOriginal) => {
 });
 
 vi.mock(
-  "@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media",
+  "@/features/asset-storage/ui/storage-presigned-image",
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import("@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media")
+        typeof import("@/features/asset-storage/ui/storage-presigned-image")
       >();
     return {
       ...actual,
@@ -86,6 +86,9 @@ const renderWithContext = (
         contextValue || {
           config: null,
           getCachedPrivateReadUrl: vi.fn(() => null),
+          enqueuePrivateReadUrls: vi.fn(),
+          mergePrivateReadUrlCache: vi.fn(),
+          readUrlCacheVersion: 0,
         }
       }
     >
@@ -115,6 +118,9 @@ describe("ProtectedSignaturePad", () => {
       renderWithContext(mockQuestion, {
         config: disabledConfig,
         getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRenderBackgroundImage).toHaveBeenCalledTimes(1);
@@ -131,6 +137,9 @@ describe("ProtectedSignaturePad", () => {
       renderWithContext(mockQuestion, {
         config: publicConfig,
         getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRenderBackgroundImage).toHaveBeenCalledTimes(1);
@@ -169,6 +178,9 @@ describe("ProtectedSignaturePad", () => {
       const { container } = renderWithContext(questionWithoutBackground, {
         config: privateConfig,
         getCachedPrivateReadUrl: mockResolveStorageUrl,
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRenderBackgroundImage).not.toHaveBeenCalled();
