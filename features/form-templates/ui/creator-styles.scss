@@ -20,4 +20,15 @@
 .sv-creator-tab {
   height: 95% !important;
   overflow: auto;
-} 
+}
+
+/*
+ * SurveyJS sizes logos through component props and defaults logoHeight to 40px.
+ */
+.svc-creator__content-holder .sd-logo__image,
+.svc-logo-image .sd-logo__image {
+  display: inline-block;
+  width: auto;
+  height: 40px;
+  max-width: none;
+}
