@@ -3,7 +3,8 @@ const UTF8_HEADER_PREFIX = "utf8:";
 /** Checks if a string is a Latin-1 header value. */
 function isLatin1HeaderValue(value: string): boolean {
   for (let i = 0; i < value.length; i += 1) {
-    if (value.charCodeAt(i) > 255) {
+    const codePoint = value.codePointAt(i);
+    if (codePoint === undefined || codePoint > 255) {
       return false;
     }
   }

@@ -145,6 +145,7 @@ class ProtectedImagePickerItem extends ReactSurveyElement<ImagePickerItemProps> 
       control = (
         <video
           controls
+          muted
           className={cssClasses.image}
           src={imageSrc}
           width={question.renderedImageWidth}
