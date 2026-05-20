@@ -6,6 +6,7 @@ import {
 } from "../../infrastructure/image-service";
 
 const LOGGER_NAME = "resize-image";
+const SVG_CONTENT_TYPE = "image/svg+xml";
 
 /**
  * Handles POST request with a single image file in multipart form data.
@@ -52,6 +53,16 @@ export async function handleResizeImageRequest(
     return apiResponses.badRequest({
       detail:
         "Invalid or missing file. Send one image as multipart field 'file'.",
+    });
+  }
+
+  if (contentType.trim().toLowerCase() === SVG_CONTENT_TYPE) {
+    return new Response(buffer as unknown as BodyInit, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": String(buffer.length),
+      },
     });
   }
 

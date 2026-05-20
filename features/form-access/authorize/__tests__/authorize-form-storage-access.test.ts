@@ -95,6 +95,35 @@ describe("authorizeFormStorageAccess", () => {
     expect(mockGetPublicFormAccess).toHaveBeenCalledWith("100", {}, true);
   });
 
+  it("allows file delete for logged-in submitter with file upload policy", async () => {
+    mockGet.mockResolvedValue(
+      ApiResult.authError("Forbidden", "access_forbidden", { statusCode: 403 }),
+    );
+    mockGetPublicFormAccess.mockResolvedValue(
+      ApiResult.success({
+        formId: "100",
+        submissionId: "200",
+        formPermissions: [Form.View],
+        submissionPermissions: [Submission.FileUpload],
+        cachedAt: "",
+        expiresAt: "",
+        eTag: "e1",
+      }),
+    );
+
+    const result = await authorizeFormStorageAccess(
+      { formId: "100", submissionId: "200" },
+      { hubAccessToken: "hub-jwt" },
+    );
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value.canUploadFiles).toBe(true);
+      expect(result.value.canDeleteFiles).toBe(true);
+      expect(result.value.submissionId).toBe("200");
+    }
+  });
+
   it("prefers hub policy over anonymous public form for file delete", async () => {
     mockGet.mockResolvedValue(ApiResult.success({}));
     mockGetPublicFormAccess.mockResolvedValue(

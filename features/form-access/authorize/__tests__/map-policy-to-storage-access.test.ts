@@ -21,7 +21,7 @@ describe("mapPublicFormAccessToStorageAccess", () => {
 
     expect(access.canViewFiles).toBe(true);
     expect(access.canUploadFiles).toBe(true);
-    expect(access.canDeleteFiles).toBe(false);
+    expect(access.canDeleteFiles).toBe(true);
     expect(access.isPublicForm).toBe(false);
   });
 
@@ -60,6 +60,25 @@ describe("mapPublicFormAccessToStorageAccess", () => {
 
     expect(access.canUploadFiles).toBe(false);
     expect(access.canDeleteFiles).toBe(false);
+  });
+
+  it("allows delete when submission file upload is permitted", () => {
+    const access = mapPublicFormAccessToStorageAccess(
+      {
+        formId: "100",
+        submissionId: "200",
+        formPermissions: [],
+        submissionPermissions: [Submission.FileUpload],
+        cachedAt: "",
+        expiresAt: "",
+        eTag: "",
+      },
+      "100",
+      "200",
+    );
+
+    expect(access.canUploadFiles).toBe(true);
+    expect(access.canDeleteFiles).toBe(true);
   });
 
   it("uses policy submissionId over gate body", () => {

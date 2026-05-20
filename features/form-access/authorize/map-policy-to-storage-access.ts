@@ -15,13 +15,12 @@ export function mapPublicFormAccessToStorageAccess(
   const canViewFiles =
     formPermissions.includes(FormPerm.FileView) ||
     submissionPermissions.includes(SubmissionPerm.FileView);
-  
+
   const canUploadFiles = submissionPermissions.includes(
     SubmissionPerm.FileUpload,
   );
-  const canDeleteFiles = submissionPermissions.includes(
-    SubmissionPerm.FileDelete,
-  );
+  const canDeleteFiles =
+    canUploadFiles || submissionPermissions.includes(SubmissionPerm.FileDelete);
 
   return {
     formId: gateFormId,
