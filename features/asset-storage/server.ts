@@ -14,6 +14,8 @@ export {
   ensureStorageRegistered,
   getActiveStorageProvider,
   getClientStorageConfig,
+  requireActiveStorageProvider,
+  resetActiveStorageProviderClient,
   getStorageRuntimeSettings,
   type StorageRuntimeSettings,
 } from "./storage-runtime";
@@ -34,16 +36,12 @@ export {
   type StorageAdminSummary,
 } from "./use-cases/view-settings-summary/storage-admin-summary";
 export {
-  bulkGenerateReadTokens as generateReadTokens,
-  deleteBlob,
-  generateUploadUrl,
-  getBlobProperties,
-  listBlobs as listFiles,
-  resetBlobServiceClient,
   type BlobPropertiesResult,
   type FileOptions,
+  type FolderOptions,
+  type StorageListBlobItem,
   type UploadUrlDescriptor,
-} from "./infrastructure/storage-gateway";
+} from "./infrastructure/core";
 export * from "./types";
 export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export {

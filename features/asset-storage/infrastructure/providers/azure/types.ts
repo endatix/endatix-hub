@@ -5,4 +5,4 @@ export type {
   FolderOptions,
   StorageListBlobItem,
   UploadUrlDescriptor,
-} from "../shared/blob-route-types";
+} from "../../core/storage-operation-types";

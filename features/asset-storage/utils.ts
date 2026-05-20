@@ -1,11 +1,19 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
-import type { ClientStorageConfig } from "./client";
-import { IContainerInfo } from "./types";
+import type { ClientStorageConfig } from "./infrastructure/providers/shared/client-storage-config";
+import type { ContainerType } from "./types";
 
 const QUERY_STRING_START_CHAR = "?";
 const QUERY_STRING_SEPARATOR = "&";
 const FORWARD_SLASH_CHAR = "/";
+
+export interface ParsedStorageObjectUrl {
+  containerType: ContainerType;
+  containerName: string;
+  blobName: string;
+  hostName: string;
+  isPrivate: boolean;
+}
 
 /**
  * Generates a unique file name by appending a UUID to the file name.
@@ -49,21 +57,46 @@ function getLastSegmentFromUrlPath(blobName: string): string {
   return segments.at(-1) ?? "";
 }
 
+function isStorageHostUrl(
+  url: string,
+  storageHostName: string | undefined,
+): boolean {
+  if (!url || url.startsWith("data:") || !storageHostName) {
+    return false;
+  }
+
+  try {
+    return new URL(url).host.toLowerCase() === storageHostName.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+function resolveContainerType(
+  containerName: string,
+  storageConfig: ClientStorageConfig,
+): ContainerType | null {
+  if (containerName === storageConfig.containerNames.USER_FILES.toLowerCase()) {
+    return "USER_FILES";
+  }
+
+  if (containerName === storageConfig.containerNames.CONTENT.toLowerCase()) {
+    return "CONTENT";
+  }
+
+  return null;
+}
+
 /**
- * Resolves the container information for a given URL.
- * @param url - The URL to resolve
- * @param storageConfig - The storage configuration
- * @returns The container information if the URL matches a known container, null otherwise
+ * Parses path-style storage URLs: `https://host/{container}/{blobKey...}`.
  */
-function resolveContainerFromUrl(
+function parseStorageObjectUrl(
   url: string,
   storageConfig: ClientStorageConfig | null,
-): IContainerInfo | null {
-  if (!url) return null;
-
-  if (url.startsWith("data:")) return null;
-
-  if (!storageConfig) return null;
+): ParsedStorageObjectUrl | null {
+  if (!url || url.startsWith("data:") || storageConfig === null) {
+    return null;
+  }
 
   try {
     const urlObj = new URL(url);
@@ -76,35 +109,35 @@ function resolveContainerFromUrl(
     const pathParts = urlObj.pathname
       .split(FORWARD_SLASH_CHAR)
       .filter((part) => part.length > 0);
-    if (pathParts.length < 1) return null;
+    if (pathParts.length < 2) return null;
 
     const containerName = pathParts[0].toLowerCase();
-    const blobName = pathParts.slice(1).join(FORWARD_SLASH_CHAR);
+    const containerType = resolveContainerType(containerName, storageConfig);
+    if (containerType === null) return null;
 
-    if (containerName === storageConfig.containerNames.USER_FILES) {
-      return {
-        containerType: "USER_FILES",
-        containerName: containerName,
-        hostName: requestHost,
-        isPrivate: true,
-        blobName: blobName,
-      };
-    }
-    if (containerName === storageConfig.containerNames.CONTENT) {
-      return {
-        containerType: "CONTENT",
-        containerName: containerName,
-        hostName: requestHost,
-        isPrivate: true,
-        blobName: blobName,
-      };
-    }
-
-    // No matching container found, so return null
-    return null;
+    return {
+      containerType,
+      containerName,
+      hostName: requestHost,
+      isPrivate: storageConfig.isPrivate,
+      blobName: pathParts.slice(1).join(FORWARD_SLASH_CHAR),
+    };
   } catch {
     return null;
   }
+}
+
+/**
+ * Resolves the container information for a given URL.
+ * @param url - The URL to resolve
+ * @param storageConfig - The storage configuration
+ * @returns The container information if the URL matches a known container, null otherwise
+ */
+function resolveContainerFromUrl(
+  url: string,
+  storageConfig: ClientStorageConfig | null,
+): ParsedStorageObjectUrl | null {
+  return parseStorageObjectUrl(url, storageConfig);
 }
 
 /* Small helper function to check if a URL is from a specific container */
@@ -115,11 +148,24 @@ function isUrlFromContainer(
 ): boolean {
   if (!containerName) return false;
 
-  const resolvedContainer = resolveContainerFromUrl(url, storageConfig);
+  const resolvedContainer = parseStorageObjectUrl(url, storageConfig);
+  return resolvedContainer?.containerName === containerName.toLowerCase();
+}
 
-  if (!resolvedContainer) return false;
+/**
+ * Canonical blob URLs stored in submission JSON have no query string.
+ * Presigned GET URLs always include SAS / signature query parameters.
+ */
+function isCanonicalStorageObjectUrl(url: string): boolean {
+  if (!url || url.startsWith("data:")) {
+    return false;
+  }
 
-  return resolvedContainer.containerName === containerName;
+  try {
+    return new URL(url).search.length === 0;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -208,6 +254,9 @@ export {
   extractStorageUrls,
   generateUniqueFileName,
   getLastSegmentFromUrlPath,
+  isCanonicalStorageObjectUrl,
+  isStorageHostUrl,
   isUrlFromContainer,
+  parseStorageObjectUrl,
   resolveContainerFromUrl,
 };

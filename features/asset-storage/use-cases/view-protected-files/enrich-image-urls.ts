@@ -1,5 +1,6 @@
 import * as React from "react";
 import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
+import { isStorageHostUrl } from "@/features/asset-storage/utils";
 
 const ORIGINAL_SRC_ATTRIBUTE = "data-original-src";
 
@@ -12,26 +13,6 @@ const StoragePresignDatasetMarker = {
 
 type StoragePresignDatasetMarker =
   (typeof StoragePresignDatasetMarker)[keyof typeof StoragePresignDatasetMarker];
-
-/**
- * Checks if a URL is from the asset storage host.
- * @param url - The URL to check
- * @param storageHostName - The name of the storage host
- * @returns true if the URL is from the asset storage host, false otherwise
- */
-function isAssetStorageHost(
-  url: string,
-  storageHostName: string | undefined,
-): boolean {
-  if (!url || url.startsWith("data:") || !storageHostName) {
-    return false;
-  }
-  try {
-    return new URL(url).host.toLowerCase() === storageHostName.toLowerCase();
-  } catch {
-    return false;
-  }
-}
 
 type ImageElementProps = React.DetailedHTMLProps<
   React.ImgHTMLAttributes<HTMLImageElement>,
@@ -112,7 +93,7 @@ function enrichImageElement(
 
   if (
     resolvedSrc === originalSrc &&
-    isAssetStorageHost(originalSrc, storageHostName) &&
+    isStorageHostUrl(originalSrc, storageHostName) &&
     currentSrc === originalSrc
   ) {
     img.setAttribute(ORIGINAL_SRC_ATTRIBUTE, originalSrc);

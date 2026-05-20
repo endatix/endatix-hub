@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { ClearFilesEvent, DownloadFileEvent, SurveyModel } from "survey-core";
 import type { StorageReadRuntime } from "../../infrastructure/storage-read-runtime";
-import { pickStorageDeleteEndpoint } from "../../infrastructure/storage-delete-endpoints";
+import { pickStorageDeleteEndpoint } from "../../infrastructure/storage-api-policy";
 import { buildPublicStorageGateBody } from "../../infrastructure/storage-read-request";
 import { useAssetStorage } from "../../ui/asset-storage.context";
 import { createUserUpload } from "../upload/upload-handler.factory";
@@ -76,7 +76,7 @@ export function useStorageUpload({
         }
 
         const runtime = getReadRuntime();
-        const policyName = runtime?.plane ?? "public";
+        const policyName = runtime?.policyName ?? "public";
 
         // Hub submission edit: detach files in the model only so Discard can restore URLs.
         // Blobs are not deleted until a dedicated save/purge flow exists.

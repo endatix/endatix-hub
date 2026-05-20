@@ -1,7 +1,9 @@
 import { Result } from "@/lib/result";
 import { blobMetadataParser } from "../../infrastructure/providers/shared/blob-metadata-parser";
-import { listBlobs } from "../../infrastructure/storage-gateway";
-import { getClientStorageConfig } from "../../storage-runtime";
+import {
+  getActiveStorageProvider,
+  getClientStorageConfig,
+} from "../../storage-runtime";
 import type { UserFileMetadata } from "../../types";
 
 /**
@@ -19,9 +21,13 @@ export async function listUserFiles(
   }
 
   const containerName = clientConfig.containerNames.USER_FILES;
+  const provider = getActiveStorageProvider();
+  if (provider === null || !provider.isEnabled()) {
+    return Result.error("Storage is not enabled");
+  }
 
   try {
-    const blobs = await listBlobs({
+    const blobs = await provider.listBlobs({
       containerName,
       formId,
       submissionId,

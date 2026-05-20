@@ -1,6 +1,6 @@
 import { Result } from "@/lib/result";
 import type { ProcessedState } from "../../types";
-import type { UploadUrlDescriptor } from "../../infrastructure/storage-gateway";
+import type { UploadUrlDescriptor } from "../../infrastructure/core";
 import { uploadBlob, resizeImageOrFallback } from "./upload-blob";
 import { processUploadError } from "./upload-errors";
 

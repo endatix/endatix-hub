@@ -10,11 +10,11 @@ import type {
 } from "@/features/form-access/server";
 import { formAccessForbidden } from "@/features/form-access/server";
 import { appendStorageReadQuery } from "@/features/asset-storage/infrastructure/append-storage-read-query";
-import { generateReadTokenQuery } from "@/features/asset-storage/infrastructure/storage-gateway";
+import { getActiveStorageProvider } from "@/features/asset-storage/storage-runtime";
 import {
   parseStorageObjectUrl,
   type ParsedStorageObjectUrl,
-} from "@/features/asset-storage/infrastructure/providers/shared/storage-url-parse";
+} from "@/features/asset-storage/utils";
 import type { ClientStorageConfig } from "@/features/asset-storage/infrastructure/providers/shared/client-storage-config";
 
 export type ReadUrlResolvedEntry = { url: string } | { error: string };
@@ -129,22 +129,35 @@ async function resolvePresignedReadUrls(input: {
     });
   }
 
-  for (const item of parsed) {
-    const tokenResult = await generateReadTokenQuery(
-      item.containerName,
-      item.blobName,
-    );
-
-    if (Result.isError(tokenResult)) {
+  const provider = getActiveStorageProvider();
+  if (provider === null || !provider.isEnabled()) {
+    for (const item of parsed) {
       resolved[item.originalUrl] = {
-        error: `Failed to generate read token: ${tokenResult.message}`,
+        error: "Failed to generate read token: Storage is not enabled",
       };
-      continue;
     }
+    return Result.success({ resolved });
+  }
 
-    resolved[item.originalUrl] = {
-      url: appendStorageReadQuery(item.originalUrl, tokenResult.value),
-    };
+  for (const item of parsed) {
+    try {
+      const query = await provider.generateReadTokenQuery(
+        item.containerName,
+        item.blobName,
+      );
+
+      resolved[item.originalUrl] = {
+        url: appendStorageReadQuery(item.originalUrl, query),
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to generate read token";
+      resolved[item.originalUrl] = {
+        error: `Failed to generate read token: ${message}`,
+      };
+    }
   }
 
   return Result.success({ resolved });

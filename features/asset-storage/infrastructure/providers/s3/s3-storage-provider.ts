@@ -9,11 +9,11 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Result } from "@/lib/result";
+import { mapWithConcurrency } from "@/lib/utils/map-with-concurrency";
 import type { ReadTokensResult as BulkReadTokensResult } from "../../../types";
 import type { IStorageProvider } from "../../core/storage-provider.interface";
 import { buildStorageObjectKey } from "../shared/storage-object-key";
 import { buildUserFileFolderPath } from "../../storage-utils";
-import { mapPool } from "../shared/async-pool";
 import {
   computeReadTokenExpiry,
   validateBulkReadUrlsOptions,
@@ -31,7 +31,7 @@ import type {
   FolderOptions,
   StorageListBlobItem,
   UploadUrlDescriptor,
-} from "../shared/blob-route-types";
+} from "../../core/storage-operation-types";
 import { toBlobUploadOptions } from "../shared/upload-metadata";
 import { toS3ObjectMetadata, toS3PresignedPutHeaders } from "./s3-put-headers";
 import {
@@ -307,7 +307,7 @@ export class S3StorageProvider implements IStorageProvider {
       return [];
     }
 
-    const heads = await mapPool(
+    const heads = await mapWithConcurrency(
       keys,
       LIST_HEAD_CONCURRENCY,
       async (objectKey) => {

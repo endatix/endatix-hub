@@ -5,10 +5,8 @@ import {
   mapGateResultToResponse,
   type FormStorageTokenType,
 } from "@/features/form-access/server";
-import {
-  getContainerNames,
-  generateUploadUrl,
-} from "@/features/asset-storage/server";
+import { getContainerNames } from "@/features/asset-storage/server";
+import { requireActiveStorageProvider } from "@/features/asset-storage/storage-runtime";
 import { generateUniqueFileName } from "@/features/asset-storage";
 import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
@@ -17,7 +15,7 @@ import {
   buildUserFileFolderPath,
   buildUserFileMetadata,
 } from "@/features/asset-storage/infrastructure/storage-utils";
-import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
+import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/core";
 import type { ProcessedState } from "@/features/asset-storage/types";
 interface UploadUrlsRequest {
   formId: string;
@@ -131,12 +129,14 @@ export async function POST(request: Request): Promise<Response> {
         ...(fileState !== undefined ? { fileState } : {}),
       });
 
-      const descriptor = await generateUploadUrl({
-        containerName,
-        folderPath,
-        fileName: uniqueFileNameResult.value,
-        blobUploadFileMetadata,
-      });
+      const descriptor = await requireActiveStorageProvider().generateUploadUrl(
+        {
+          containerName,
+          folderPath,
+          fileName: uniqueFileNameResult.value,
+          blobUploadFileMetadata,
+        },
+      );
       uploads[fileName] = descriptor;
     } catch (error) {
       const errorMessage =

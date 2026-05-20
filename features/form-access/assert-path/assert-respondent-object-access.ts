@@ -1,5 +1,5 @@
 import type { ClientStorageConfig } from "@/features/asset-storage/infrastructure/providers/shared/client-storage-config";
-import type { ParsedStorageObjectUrl } from "@/features/asset-storage/infrastructure/providers/shared/storage-url-parse";
+import type { ParsedStorageObjectUrl } from "@/features/asset-storage/utils";
 import type { FormStorageAccess } from "../types";
 import { assertUserFileBlobPath } from "./assert-user-file-blob-path";
 

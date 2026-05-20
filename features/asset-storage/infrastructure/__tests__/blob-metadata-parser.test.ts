@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  blobMetadataParser,
-  toBlobUploadOptions,
-} from "../providers/azure/azure-blob-metadata-parser";
+import { blobMetadataParser } from "../providers/shared/blob-metadata-parser";
+import { toBlobUploadOptions } from "../providers/shared/upload-metadata";
 import type { BlobItem } from "@azure/storage-blob";
 
 describe("blobMetadataParser.parseFromProperties", () => {
@@ -66,6 +64,25 @@ describe("blobMetadataParser.parseFromProperties", () => {
 
     // Assert
     expect(result.contentType).toBe("application/octet-stream");
+  });
+
+  it("decodes utf8:-prefixed filename metadata from fetch-safe encoding", () => {
+    // Arrange
+    const encoded = "utf8:" + encodeURIComponent("Билет - Будапеща.png");
+    const properties = {
+      contentType: "image/png",
+      sizeInBytes: 10,
+      metadata: { filename: encoded },
+    };
+
+    // Act
+    const result = blobMetadataParser.parseFromProperties(
+      properties,
+      "s/f1/s1/uuid.png",
+    );
+
+    // Assert
+    expect(result.originalFileName).toBe("Билет - Будапеща.png");
   });
 
   it("supports Azure lowercased metadata keys (filename, questionname)", () => {

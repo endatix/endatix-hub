@@ -2,8 +2,12 @@ import { Result } from "@/lib/result";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateGranularReadTokensUseCase } from "../generate-granular-read-tokens.use-case";
 
-const { mockGetClientStorageConfig } = vi.hoisted(() => ({
+const { mockGetClientStorageConfig, mockStorageProvider } = vi.hoisted(() => ({
   mockGetClientStorageConfig: vi.fn(),
+  mockStorageProvider: {
+    isEnabled: vi.fn(() => true),
+    bulkGenerateReadTokens: vi.fn(),
+  },
 }));
 
 // Mock dependencies
@@ -13,19 +17,18 @@ vi.mock("../../../storage-runtime", async (importOriginal) => {
   return {
     ...actual,
     getClientStorageConfig: mockGetClientStorageConfig,
+    getActiveStorageProvider: vi.fn(() => mockStorageProvider),
   };
 });
-
-vi.mock("../../../infrastructure/storage-gateway", () => ({
-  bulkGenerateReadTokens: vi.fn(),
-}));
 
 vi.mock("../../../utils", () => ({
   resolveContainerFromUrl: vi.fn(),
 }));
 
-import { getClientStorageConfig } from "../../../storage-runtime";
-import { bulkGenerateReadTokens } from "../../../infrastructure/storage-gateway";
+import {
+  getActiveStorageProvider,
+  getClientStorageConfig,
+} from "../../../storage-runtime";
 import { resolveContainerFromUrl } from "../../../utils";
 
 describe("generateGranularReadTokensUseCase", () => {
@@ -44,6 +47,10 @@ describe("generateGranularReadTokensUseCase", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getClientStorageConfig).mockReturnValue(mockClientStorageConfig);
+    mockStorageProvider.isEnabled.mockReturnValue(true);
+    vi.mocked(getActiveStorageProvider).mockReturnValue(
+      mockStorageProvider as never,
+    );
   });
 
   describe("storage configuration checks", () => {
@@ -88,7 +95,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
+      expect(mockStorageProvider.bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should return empty tokens for null urls", async () => {
@@ -98,7 +105,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
+      expect(mockStorageProvider.bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should return empty tokens for undefined urls", async () => {
@@ -108,7 +115,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
+      expect(mockStorageProvider.bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
   });
 
@@ -125,7 +132,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
+      expect(mockStorageProvider.bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should skip URLs that cannot resolve blob name", async () => {
@@ -145,7 +152,7 @@ describe("generateGranularReadTokensUseCase", () => {
       if (Result.isSuccess(result)) {
         expect(result.value).toEqual({});
       }
-      expect(bulkGenerateReadTokens).not.toHaveBeenCalled();
+      expect(mockStorageProvider.bulkGenerateReadTokens).not.toHaveBeenCalled();
     });
 
     it("should group URLs by container", async () => {
@@ -187,7 +194,7 @@ describe("generateGranularReadTokensUseCase", () => {
         return null;
       });
 
-      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file1.jpg": "token1",
@@ -205,13 +212,15 @@ describe("generateGranularReadTokensUseCase", () => {
         userFilesUrl,
       ]);
 
-      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(2);
-      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledTimes(
+        2,
+      );
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "content",
         resourceType: "file",
         resourceNames: ["file1.jpg", "file2.jpg"],
       });
-      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "user-files",
         resourceType: "file",
         resourceNames: ["doc.pdf"],
@@ -241,7 +250,7 @@ describe("generateGranularReadTokensUseCase", () => {
         blobName: "file.jpg",
       });
 
-      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file.jpg": "token123",
@@ -258,8 +267,10 @@ describe("generateGranularReadTokensUseCase", () => {
       ]);
 
       // Should only call once with unique blob name
-      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(1);
-      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "content",
         resourceType: "file",
         resourceNames: ["file.jpg"],
@@ -287,7 +298,7 @@ describe("generateGranularReadTokensUseCase", () => {
         blobName: "image.jpg",
       });
 
-      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "image.jpg": "sas-token-123",
@@ -319,7 +330,7 @@ describe("generateGranularReadTokensUseCase", () => {
         blobName: "folder/subfolder/file.pdf",
       });
 
-      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "folder/subfolder/file.pdf": "nested-token",
@@ -365,25 +376,29 @@ describe("generateGranularReadTokensUseCase", () => {
       });
 
       // First container fails, second succeeds
-      vi.mocked(bulkGenerateReadTokens).mockImplementation(async (options) => {
-        if (options.containerName === "content") {
-          return Result.error("Failed to generate tokens");
-        }
-        return Result.success({
-          readTokens: {
-            "file2.pdf": "token2",
-          },
-          expiresOn: new Date(),
-          generatedAt: new Date(),
-        });
-      });
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockImplementation(
+        async (options) => {
+          if (options.containerName === "content") {
+            return Result.error("Failed to generate tokens");
+          }
+          return Result.success({
+            readTokens: {
+              "file2.pdf": "token2",
+            },
+            expiresOn: new Date(),
+            generatedAt: new Date(),
+          });
+        },
+      );
 
       const result = await generateGranularReadTokensUseCase([
         contentUrl,
         userFilesUrl,
       ]);
 
-      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(2);
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledTimes(
+        2,
+      );
       expect(Result.isSuccess(result)).toBe(true);
       if (Result.isSuccess(result)) {
         // Only user-files token should be present
@@ -411,7 +426,7 @@ describe("generateGranularReadTokensUseCase", () => {
       });
 
       // Only file1.jpg gets a token, file2.jpg doesn't
-      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file1.jpg": "token1",
@@ -453,7 +468,7 @@ describe("generateGranularReadTokensUseCase", () => {
         return null;
       });
 
-      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens: {
             "file.jpg": "token",
@@ -504,7 +519,7 @@ describe("generateGranularReadTokensUseCase", () => {
         }
       });
 
-      vi.mocked(bulkGenerateReadTokens).mockResolvedValue(
+      vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
         Result.success({
           readTokens,
           expiresOn: new Date(),
@@ -515,8 +530,10 @@ describe("generateGranularReadTokensUseCase", () => {
       const result = await generateGranularReadTokensUseCase(urls);
 
       expect(Result.isSuccess(result)).toBe(true);
-      expect(bulkGenerateReadTokens).toHaveBeenCalledTimes(1);
-      expect(bulkGenerateReadTokens).toHaveBeenCalledWith({
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledWith({
         containerName: "content",
         resourceType: "file",
         resourceNames: expect.arrayContaining([

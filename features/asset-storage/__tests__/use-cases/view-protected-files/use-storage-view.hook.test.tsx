@@ -19,7 +19,7 @@ const mockStorageConfig: ClientStorageConfig = clientStorageConfig({
 });
 
 const mockGetReadRuntime = () => ({
-  plane: "hub" as const,
+  policyName: "hub" as const,
   formId: "form-1",
 });
 

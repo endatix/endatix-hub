@@ -1,9 +1,11 @@
 "use client";
 
-import { extractStorageUrls } from "@/features/asset-storage/utils";
+import {
+  extractStorageUrls,
+  isCanonicalStorageObjectUrl,
+} from "@/features/asset-storage/utils";
 import type { StorageReadRuntime } from "@/features/asset-storage/infrastructure/storage-read-runtime";
 import { generateAssetsManifest } from "./generate-assets-manifest";
-import { isCanonicalStorageObjectUrl } from "../../infrastructure/providers/shared/storage-url-parse";
 import { useCallback, useMemo } from "react";
 import { SurveyModel } from "survey-core";
 import { SurveyModelWithTokens } from "../../types";
@@ -85,7 +87,7 @@ export function useStorageView({ getReadRuntime }: UseStorageViewOptions) {
       if (existing?.completedKey === prefetchKey) {
         return;
       }
-      
+
       if (existing?.inflight) {
         await existing.inflight;
         return;

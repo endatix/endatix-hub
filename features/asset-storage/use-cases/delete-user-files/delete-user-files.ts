@@ -1,8 +1,10 @@
-import { deleteBlob } from "@/features/asset-storage/server";
+import { requireActiveStorageProvider } from "@/features/asset-storage/storage-runtime";
 import type { ClientStorageConfig } from "@/features/asset-storage/infrastructure/providers/shared/client-storage-config";
-import { parseStorageObjectUrl } from "@/features/asset-storage/infrastructure/providers/shared/storage-url-parse";
-import type { ParsedStorageObjectUrl } from "@/features/asset-storage/infrastructure/providers/shared/storage-url-parse";
-import { getLastSegmentFromUrlPath } from "@/features/asset-storage/utils";
+import {
+  getLastSegmentFromUrlPath,
+  parseStorageObjectUrl,
+  type ParsedStorageObjectUrl,
+} from "@/features/asset-storage/utils";
 
 export type DeleteUserFileResult =
   | { fileUrl: string; result: "success" }
@@ -65,7 +67,7 @@ export async function deleteUserFiles(
           parsed.blobName.length - fileName.length - 1,
         );
 
-        await deleteBlob({
+        await requireActiveStorageProvider().deleteBlob({
           containerName: parsed.containerName,
           fileName,
           folderPath,

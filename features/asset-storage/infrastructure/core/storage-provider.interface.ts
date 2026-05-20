@@ -11,7 +11,7 @@ import type {
 
 /**
  * Storage provider contract (Azure and S3).
- * Hub routes and {@link ../storage-gateway} call these methods on the active provider.
+ * Use cases and routes call these methods on the active provider.
  */
 export interface IStorageProvider {
   readonly id: string;

@@ -1,5 +1,5 @@
 import type { StorageReadRuntime } from "../../infrastructure/fetch-storage-read-urls";
-import { isCanonicalStorageObjectUrl } from "../../infrastructure/providers/shared/storage-url-parse";
+import { isCanonicalStorageObjectUrl } from "../../utils";
 import type { AssetStorageContextValue } from "../../ui/asset-storage.context";
 
 /**
@@ -27,6 +27,6 @@ export async function resolveProtectedMediaDisplayUrl(
     [rawUrl],
     runtime,
   );
-  
+
   return resolved.get(rawUrl) ?? null;
 }

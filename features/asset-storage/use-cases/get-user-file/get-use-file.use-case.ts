@@ -2,11 +2,10 @@ import { Result } from "@/lib/result";
 import { appendStorageReadQuery } from "../../infrastructure/append-storage-read-query";
 import { getContainerUrl } from "@endatix/storage-azure";
 import { blobMetadataParser } from "../../infrastructure/providers/shared/blob-metadata-parser";
-import { getClientStorageConfig } from "../../storage-runtime";
 import {
-  bulkGenerateReadTokens,
-  getBlobProperties,
-} from "../../infrastructure/storage-gateway";
+  getActiveStorageProvider,
+  getClientStorageConfig,
+} from "../../storage-runtime";
 import { buildUserFilePath } from "../../infrastructure/storage-utils";
 import type { UserFileMetadata } from "../../types";
 
@@ -35,8 +34,12 @@ async function getUserFile(
 
   const blobName = pathNameResult.value;
   const containerName = clientConfig.containerNames.USER_FILES;
+  const provider = getActiveStorageProvider();
+  if (provider === null || !provider.isEnabled()) {
+    return Result.error("Storage is not enabled");
+  }
 
-  const properties = await getBlobProperties(containerName, blobName);
+  const properties = await provider.getBlobProperties(containerName, blobName);
   if (!properties) {
     return Result.error("File not found");
   }
@@ -49,7 +52,7 @@ async function getUserFile(
   let url = `${baseUrl}/${filePath.value}`;
 
   if (clientConfig.isPrivate) {
-    const tokensResult = await bulkGenerateReadTokens({
+    const tokensResult = await provider.bulkGenerateReadTokens({
       containerName,
       resourceType: "file",
       resourceNames: [blobName],

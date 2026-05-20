@@ -6,9 +6,6 @@ export { toBlobUploadOptions } from "../shared/upload-metadata";
 
 /**
  * HTTP headers for a client-side `fetch` PUT to an Azure block blob SAS URL.
- */
-/**
- * HTTP headers for a client-side `fetch` PUT to an Azure block blob SAS URL.
  * @param options - The options for the HTTP headers.
  * @returns The HTTP headers.
  */
@@ -31,7 +28,7 @@ export function toAzureBlockBlobPutHeaders(
       blobHTTPHeaders.blobContentDisposition,
     );
   }
-  
+
   if (
     blobHTTPHeaders.blobContentLanguage !== undefined &&
     blobHTTPHeaders.blobContentLanguage !== ""

@@ -1,11 +1,13 @@
 import { zipSync } from "fflate";
 import { appendStorageReadQuery } from "@/features/asset-storage/infrastructure/append-storage-read-query";
-import { mapPool } from "@/features/asset-storage/infrastructure/providers/shared/async-pool";
+import { mapWithConcurrency } from "@/lib/utils/map-with-concurrency";
 import { getContainerUrl } from "@endatix/storage-azure";
-import { bulkGenerateReadTokens } from "@/features/asset-storage/infrastructure/storage-gateway";
 import { buildUserFilePath } from "@/features/asset-storage/infrastructure/storage-utils";
 import { listUserFiles } from "@/features/asset-storage/server";
-import { getClientStorageConfig } from "@/features/asset-storage/storage-runtime";
+import {
+  getActiveStorageProvider,
+  getClientStorageConfig,
+} from "@/features/asset-storage/storage-runtime";
 import type { UserFileMetadata } from "@/features/asset-storage/types";
 import { Result } from "@/lib/result";
 import path from "node:path";
@@ -110,7 +112,12 @@ export async function buildSubmissionFilesZipFromStorage({
 
   let readTokens: Record<string, string> = {};
   if (clientConfig.isPrivate) {
-    const tokensResult = await bulkGenerateReadTokens({
+    const provider = getActiveStorageProvider();
+    if (provider === null || !provider.isEnabled()) {
+      return Result.error("Storage is not enabled");
+    }
+
+    const tokensResult = await provider.bulkGenerateReadTokens({
       containerName,
       resourceType: "file",
       resourceNames: blobNames,
@@ -125,7 +132,7 @@ export async function buildSubmissionFilesZipFromStorage({
   const entryNames = buildZipEntryNames(files, fileNamesPrefix);
   const zipEntries: Record<string, Uint8Array> = {};
 
-  const downloaded = await mapPool(
+  const downloaded = await mapWithConcurrency(
     files,
     DOWNLOAD_CONCURRENCY,
     async (file) => {

@@ -1,60 +1,61 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SurveyModel } from "survey-core";
 import { useStorageView } from "../../use-cases/view-protected-files/use-storage-view.hook";
 import { useStorageUpload } from "../../use-cases/upload-user-files/use-storage-upload.hook";
-import { useAssetStorage, AssetStorageTokens } from "../asset-storage.context";
-import { registerProtectedFilePreview } from "../../use-cases/view-protected-files/ui/protected-file-preview";
+import { useAssetStorage } from "../asset-storage.context";
+import { useStorageReadRuntime } from "../use-storage-read-runtime";
 
 interface UseSurveyStorageProps {
   model: SurveyModel | null;
   formId: string;
   getSubmissionId?: () => string | undefined;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
-  readTokenPromises?: AssetStorageTokens;
 }
 
 /**
- * Orchestrator hook to activate and configure storage functionality with SurveyModel
- * @returns {Object} { registerStorageHandlers, isStorageReady } - Function to register all storage event handlers and readiness flag.
+ * Orchestrator hook for SurveyJS runtime storage using public or hub storage policy.
  */
 export function useStorageWithSurvey({
   model,
   formId,
   getSubmissionId,
   onSubmissionIdChange,
-  readTokenPromises: propsReadTokenPromises,
 }: UseSurveyStorageProps) {
   const [isStorageReady, setIsStorageReady] = useState(false);
-  const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
-  const readTokenPromises = propsReadTokenPromises ?? contextTokens;
+  const { config: storageConfig } = useAssetStorage();
 
-  const { setModelMetadata, registerViewHandlers } =
-    useStorageView(readTokenPromises);
+  const getReadRuntime = useStorageReadRuntime({ formId, getSubmissionId });
+
+  const { setModelMetadata, prefetchPrivateReadUrlsForModel } = useStorageView({
+    getReadRuntime,
+  });
+
   const { registerUploadHandlers } = useStorageUpload({
     surveyModel: model ?? null,
     formId,
     getSubmissionId,
     onSubmissionIdChange,
-    readTokenPromises,
+    getReadRuntime,
   });
 
-  useMemo(() => {
+  const needsPrivatePrefetch =
+    Boolean(storageConfig?.isEnabled) && Boolean(storageConfig?.isPrivate);
+
+  useEffect(() => {
     if (model) {
       setModelMetadata(model);
     }
   }, [model, setModelMetadata]);
 
   useEffect(() => {
-    registerProtectedFilePreview();
-  }, []);
+    if (!model || !needsPrivatePrefetch) {
+      return;
+    }
+    void prefetchPrivateReadUrlsForModel(model);
+  }, [model, needsPrivatePrefetch, prefetchPrivateReadUrlsForModel]);
 
-  /**
-   * Registers all storage-related handlers (upload and view) to the provided model.
-   * @param surveyModel The model to register handlers on.
-   * @returns A cleanup function to unregister all handlers.
-   */
   const registerStorageHandlers = useCallback(
     (surveyModel: SurveyModel) => {
       if (!storageConfig?.isEnabled) {
@@ -63,21 +64,15 @@ export function useStorageWithSurvey({
       }
 
       const unregisterUpload = registerUploadHandlers(surveyModel);
-      let unregisterView = () => {};
-
-      if (storageConfig.isPrivate) {
-        unregisterView = registerViewHandlers(surveyModel);
-      }
 
       setIsStorageReady(true);
 
       return () => {
         setIsStorageReady(false);
         unregisterUpload?.();
-        unregisterView?.();
       };
     },
-    [storageConfig, registerUploadHandlers, registerViewHandlers],
+    [storageConfig, registerUploadHandlers],
   );
 
   return { registerStorageHandlers, isStorageReady };

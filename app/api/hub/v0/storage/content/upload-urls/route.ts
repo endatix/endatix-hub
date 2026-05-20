@@ -2,15 +2,18 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
 import {
   getContainerNames,
-  generateUploadUrl,
   type ContentItemType,
 } from "@/features/asset-storage/server";
+import { requireActiveStorageProvider } from "@/features/asset-storage/storage-runtime";
 import { generateUniqueFileName } from "@/features/asset-storage";
 import { buildContentFolderPath } from "@/features/asset-storage/infrastructure/storage-utils";
 import { Result } from "@/lib/result";
 import { apiResponses } from "@/lib/utils/route-handlers";
-import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/storage-gateway";
-import type { FileMetadata, ProcessedState } from "@/features/asset-storage/types";
+import type { UploadUrlDescriptor } from "@/features/asset-storage/infrastructure/core";
+import type {
+  FileMetadata,
+  ProcessedState,
+} from "@/features/asset-storage/types";
 
 interface ContentUploadUrlsRequest {
   itemId: string;
@@ -81,8 +84,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     try {
-      const contentType =
-        fileTypes?.[fileName] ?? "application/octet-stream";
+      const contentType = fileTypes?.[fileName] ?? "application/octet-stream";
       const fileState = fileStates?.[fileName];
       const blobUploadFileMetadata: FileMetadata = {
         kind: "content",
@@ -95,12 +97,14 @@ export async function POST(request: Request): Promise<Response> {
         ...(fileState !== undefined ? { fileState } : {}),
       };
 
-      const descriptor = await generateUploadUrl({
-        containerName,
-        folderPath,
-        fileName: uniqueFileNameResult.value,
-        blobUploadFileMetadata,
-      });
+      const descriptor = await requireActiveStorageProvider().generateUploadUrl(
+        {
+          containerName,
+          folderPath,
+          fileName: uniqueFileNameResult.value,
+          blobUploadFileMetadata,
+        },
+      );
       uploads[fileName] = descriptor;
     } catch (error) {
       uploads[fileName] = {

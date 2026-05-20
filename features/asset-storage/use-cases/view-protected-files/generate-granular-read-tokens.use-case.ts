@@ -1,7 +1,9 @@
 import { Result } from "@/lib/result";
 import type { ClientStorageConfig } from "@endatix/storage-azure";
-import { getClientStorageConfig } from "../../storage-runtime";
-import { bulkGenerateReadTokens } from "../../infrastructure/storage-gateway";
+import {
+  getActiveStorageProvider,
+  getClientStorageConfig,
+} from "../../storage-runtime";
 import { ContainerType, ReadTokensResult, StorageTokenMap } from "../../types";
 import { resolveContainerFromUrl } from "../../utils";
 
@@ -128,9 +130,14 @@ export async function generateGranularReadTokensUseCase(
     return emptyResult;
   }
 
+  const provider = getActiveStorageProvider();
+  if (provider === null || !provider.isEnabled()) {
+    return Result.error("Storage is not enabled");
+  }
+
   const contentTokensPromise =
     byContentContainer.size > 0
-      ? bulkGenerateReadTokens({
+      ? provider.bulkGenerateReadTokens({
           containerName: storageConfig.containerNames.CONTENT,
           resourceType: "file",
           resourceNames: Array.from(byContentContainer),
@@ -138,7 +145,7 @@ export async function generateGranularReadTokensUseCase(
       : emptyTokensResultPromise;
   const userFilesTokensPromise =
     byUserFilesContainer.size > 0
-      ? bulkGenerateReadTokens({
+      ? provider.bulkGenerateReadTokens({
           containerName: storageConfig.containerNames.USER_FILES,
           resourceType: "file",
           resourceNames: Array.from(byUserFilesContainer),

@@ -72,7 +72,7 @@ describe("useStorageUpload", () => {
       formId: mockFormId,
       surveyModel: mockSurveyModel,
       getReadRuntime: () => ({
-        plane: "public" as const,
+        policyName: "public" as const,
         formId: mockFormId,
         ...(submissionId ? { submissionId } : {}),
       }),
@@ -604,9 +604,9 @@ describe("useStorageUpload", () => {
       );
     });
 
-    it("should not delete blobs when plane is hub (local detach only)", async () => {
+    it("should not delete blobs when policy is hub (local detach only)", async () => {
       const callback = vi.fn();
-      const designerClearOptions: ClearFilesEvent = {
+      const hubClearOptions: ClearFilesEvent = {
         ...mockClearOptions,
         callback,
       } as unknown as ClearFilesEvent;
@@ -617,7 +617,7 @@ describe("useStorageUpload", () => {
             createHookProps({
               submissionId: mockSubmissionId,
               getReadRuntime: () => ({
-                plane: "hub" as const,
+                policyName: "hub" as const,
                 formId: mockFormId,
                 submissionId: mockSubmissionId,
               }),
@@ -629,7 +629,7 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
-        await result.current.deleteFiles(mockSurveyModel, designerClearOptions);
+        await result.current.deleteFiles(mockSurveyModel, hubClearOptions);
       });
 
       expect(global.fetch).not.toHaveBeenCalled();

@@ -20,14 +20,6 @@ import {
   assertGenerateUploadUrlInputs,
   assertStorageEnabled,
 } from "../shared/storage-guards";
-import type {
-  BlobPropertiesResult,
-  BulkReadUrlsOptions,
-  FileOptions,
-  FolderOptions,
-  StorageListBlobItem,
-  UploadUrlDescriptor,
-} from "../shared/blob-route-types";
 import {
   getAzureStorageConfig,
   toClientStorageConfig,
@@ -38,6 +30,14 @@ import {
   toAzureBlockBlobPutHeaders,
   toBlobUploadOptions,
 } from "./azure-blob-metadata-parser";
+import {
+  BlobPropertiesResult,
+  BulkReadUrlsOptions,
+  FileOptions,
+  FolderOptions,
+  StorageListBlobItem,
+  UploadUrlDescriptor,
+} from "../../core/storage-operation-types";
 
 const READ_ONLY_PERMISSIONS = BlobSASPermissions.parse("r");
 const PROVIDER_LABEL = "Azure";

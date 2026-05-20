@@ -18,25 +18,17 @@ export function registerStorageProviders(): void {
 
   const storage = getRuntimeStorageProfile();
 
-  if (storage.explicitProvider === "none") {
+  if (storage.provider === "none") {
     return;
   }
 
-  if (
-    storage.explicitProvider === "s3" ||
-    storage.explicitProvider === "azure"
-  ) {
+  if (storage.provider === "s3" || storage.provider === "azure") {
     assertStorageProfileValid(storage);
 
-    if (storage.explicitProvider === "s3") {
+    if (storage.provider === "s3") {
       storageRegistry.register(new S3StorageProvider());
     } else {
       storageRegistry.register(new AzureBlobStorageProvider());
     }
-    return;
   }
-
-  console.warn(
-    "[storage] STORAGE_PROVIDER must be set to azure, s3, or none. Skipping storage registration.",
-  );
 }

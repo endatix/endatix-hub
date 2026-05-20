@@ -2,14 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
 import { getUserFile } from "@/features/asset-storage/use-cases/get-user-file/get-use-file.use-case";
 import * as storageRuntime from "@/features/asset-storage/storage-runtime";
-import * as storageService from "@/features/asset-storage/infrastructure/storage-gateway";
 import * as storageConfig from "@endatix/storage-azure";
 import * as blobMetadataParserModule from "@/features/asset-storage/infrastructure/providers/shared/blob-metadata-parser";
 import * as storageUtils from "@/features/asset-storage/infrastructure/storage-utils";
-import type {
-  AzureStorageConfig,
-  ClientStorageConfig,
-} from "@endatix/storage-azure";
+import type { ClientStorageConfig } from "@endatix/storage-azure";
+
+const { mockStorageProvider } = vi.hoisted(() => ({
+  mockStorageProvider: {
+    isEnabled: vi.fn(() => true),
+    getBlobProperties: vi.fn(),
+    bulkGenerateReadTokens: vi.fn(),
+  },
+}));
 
 vi.mock("@/features/asset-storage/storage-runtime", async (importOriginal) => {
   const actual =
@@ -19,6 +23,7 @@ vi.mock("@/features/asset-storage/storage-runtime", async (importOriginal) => {
   return {
     ...actual,
     getClientStorageConfig: vi.fn(),
+    getActiveStorageProvider: vi.fn(() => mockStorageProvider),
   };
 });
 
@@ -35,11 +40,6 @@ vi.mock(
     },
   }),
 );
-
-vi.mock("@/features/asset-storage/infrastructure/storage-gateway", () => ({
-  getBlobProperties: vi.fn(),
-  bulkGenerateReadTokens: vi.fn(),
-}));
 
 vi.mock("@/features/asset-storage/infrastructure/storage-utils", () => ({
   buildUserFilePath: vi.fn(),
@@ -86,14 +86,6 @@ const mockMetadata = {
   uploadedBy: "user-1",
 };
 
-const mockRuntimeStorageProfile = {
-  provider: "none",
-  invalidProviderRaw: null,
-  azureCredentialsPresent: true,
-  s3CredentialsPresent: false,
-  imageRemoteHostnames: [] as readonly string[],
-};
-
 describe("getUserFile", () => {
   const formId = "f1";
   const submissionId = "s1";
@@ -108,7 +100,11 @@ describe("getUserFile", () => {
     vi.mocked(storageUtils.buildUserFilePath).mockReturnValue(
       Result.success(mockBlobName),
     );
-    vi.mocked(storageService.getBlobProperties).mockResolvedValue(
+    mockStorageProvider.isEnabled.mockReturnValue(true);
+    vi.mocked(storageRuntime.getActiveStorageProvider).mockReturnValue(
+      mockStorageProvider as never,
+    );
+    vi.mocked(mockStorageProvider.getBlobProperties).mockResolvedValue(
       mockProperties,
     );
     vi.mocked(
@@ -128,7 +124,7 @@ describe("getUserFile", () => {
     if (Result.isError(result)) {
       expect(result.message).toBe("Storage is not enabled");
     }
-    expect(storageService.getBlobProperties).not.toHaveBeenCalled();
+    expect(mockStorageProvider.getBlobProperties).not.toHaveBeenCalled();
   });
 
   it("returns path validation error when buildUserFilePath fails", async () => {
@@ -142,11 +138,11 @@ describe("getUserFile", () => {
     if (Result.isError(result)) {
       expect(result.message).toBe("File name is required");
     }
-    expect(storageService.getBlobProperties).not.toHaveBeenCalled();
+    expect(mockStorageProvider.getBlobProperties).not.toHaveBeenCalled();
   });
 
   it('returns "File not found" when getBlobProperties returns null', async () => {
-    vi.mocked(storageService.getBlobProperties).mockResolvedValue(null);
+    vi.mocked(mockStorageProvider.getBlobProperties).mockResolvedValue(null);
 
     const result = await getUserFile(formId, submissionId, fileName);
 
@@ -154,7 +150,7 @@ describe("getUserFile", () => {
     if (Result.isError(result)) {
       expect(result.message).toBe("File not found");
     }
-    expect(storageService.getBlobProperties).toHaveBeenCalledWith(
+    expect(mockStorageProvider.getBlobProperties).toHaveBeenCalledWith(
       mockContainerName,
       mockBlobName,
     );
@@ -181,21 +177,21 @@ describe("getUserFile", () => {
       submissionId,
       fileName,
     );
-    expect(storageService.getBlobProperties).toHaveBeenCalledWith(
+    expect(mockStorageProvider.getBlobProperties).toHaveBeenCalledWith(
       mockContainerName,
       mockBlobName,
     );
     expect(
       blobMetadataParserModule.blobMetadataParser.parseFromProperties,
     ).toHaveBeenCalledWith(mockProperties, mockBlobName);
-    expect(storageService.bulkGenerateReadTokens).not.toHaveBeenCalled();
+    expect(mockStorageProvider.bulkGenerateReadTokens).not.toHaveBeenCalled();
   });
 
   it("returns success with URL including token when storage is private", async () => {
     vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue(
       privateClientConfig,
     );
-    vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
+    vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
       Result.success({
         readTokens: { [mockBlobName]: "sig=abc&se=123" },
         expiresOn: new Date(),
@@ -211,7 +207,7 @@ describe("getUserFile", () => {
         `${mockBaseUrl}/${mockBlobName}?sig=abc&se=123`,
       );
     }
-    expect(storageService.bulkGenerateReadTokens).toHaveBeenCalledWith({
+    expect(mockStorageProvider.bulkGenerateReadTokens).toHaveBeenCalledWith({
       containerName: mockContainerName,
       resourceType: "file",
       resourceNames: [mockBlobName],
@@ -222,7 +218,7 @@ describe("getUserFile", () => {
     vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue(
       privateClientConfig,
     );
-    vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
+    vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
       Result.success({
         readTokens: { [mockBlobName]: "?sig=xyz&se=456" },
         expiresOn: new Date(),
@@ -244,7 +240,7 @@ describe("getUserFile", () => {
     vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue(
       privateClientConfig,
     );
-    vi.mocked(storageService.bulkGenerateReadTokens).mockResolvedValue(
+    vi.mocked(mockStorageProvider.bulkGenerateReadTokens).mockResolvedValue(
       Result.error("Token generation failed"),
     );
 
