@@ -1,12 +1,13 @@
- 
-import {
-  AssetStorageContext,
-  enrichImageInJSX,
-} from "@/features/asset-storage/client";
+import { AssetStorageContext } from "@/features/asset-storage/ui/asset-storage.context";
 import * as React from "react";
 import { LogoImageViewModel, SurveyCreatorModel } from "survey-creator-core";
 import { LogoImageComponent } from "survey-creator-react";
 import { LogoImage, ReactElementFactory, SurveyModel } from "survey-react-ui";
+import {
+  isPrivateStorageContext,
+  StoragePresignedImage,
+  toCssObjectFit,
+} from "./protected-storage-media";
 
 let isRegistered = false;
 
@@ -18,11 +19,6 @@ interface ILogoImageProps {
   data: SurveyModel;
 }
 
-/**
- * A custom logo image adorner that wraps the LogoImageComponent and ensures logos in private storage
- * are rendered with a SAS token.
- * To be used within the Survey Creator only.
- */
 class ProtectedLogoImageComponent extends LogoImageComponent {
   constructor(props: ILogoImageComponentProps) {
     super(props);
@@ -32,52 +28,56 @@ class ProtectedLogoImageComponent extends LogoImageComponent {
     return this.getStateElement() as LogoImageViewModel;
   }
 
-  override renderImage() {
+  override renderImage(): React.JSX.Element {
     return (
       <div className={this.getViewModel().containerCss}>
         {super.renderButtons()}
-        <ProtectedLogoImage data={this.props.data.survey}></ProtectedLogoImage>
+        <ProtectedLogoImage data={this.props.data.survey} />
       </div>
     );
   }
 }
 
-/**
- * A custom logo image component that ensures logos in private storage
- * are rendered with a SAS token.
- * To be used within the Survey Creator only.
- */
 class ProtectedLogoImage extends LogoImage {
   declare context: React.ContextType<typeof AssetStorageContext>;
-
-  constructor(props: ILogoImageProps) {
-    super(props);
-  }
-
-  private get surveyModel(): SurveyModel | undefined {
-    return this.props?.data;
-  }
 
   render(): React.JSX.Element {
     if (!this.props?.data) {
       return super.render();
     }
-    const ctx = this.context;
-    const logoUrl = this.surveyModel?.locLogo?.renderedHtml;
-    const isPrivatedStorageEnabled =
-      ctx?.config?.isEnabled && ctx.config.isPrivate && ctx.resolveStorageUrl;
 
-    if (!isPrivatedStorageEnabled || !logoUrl) {
+    const survey = this.props.data;
+    const logoUrl = survey.locLogo?.renderedHtml ?? "";
+
+    if (!isPrivateStorageContext(this.context) || logoUrl.length === 0) {
       return super.render();
     }
 
-    const baseElement = super.render();
-    return enrichImageInJSX(baseElement, ctx.resolveStorageUrl);
+    return (
+      <>
+        <div className={survey.logoClassNames}>
+          <StoragePresignedImage
+            className={survey.css.logoImage}
+            src={logoUrl}
+            alt={survey.locTitle.renderedHtml}
+            width={survey.renderedLogoWidth}
+            height={survey.renderedLogoHeight}
+            style={{
+              objectFit: toCssObjectFit(survey.logoFit),
+              width: survey.renderedStyleLogoWidth,
+              height: survey.renderedStyleLogoHeight,
+            }}
+          />
+        </div>
+      </>
+    );
   }
 }
 
-function registerProtectedLogoImage() {
-  if (globalThis.window === undefined || isRegistered) return;
+function registerProtectedLogoImage(): void {
+  if (globalThis.window === undefined || isRegistered) {
+    return;
+  }
 
   ReactElementFactory.Instance.registerElement(
     "svc-logo-image",
@@ -92,6 +92,7 @@ function registerProtectedLogoImage() {
       return React.createElement(ProtectedLogoImage, props);
     },
   );
+
   ProtectedLogoImage.contextType = AssetStorageContext;
 
   isRegistered = true;

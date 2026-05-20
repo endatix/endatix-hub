@@ -1,33 +1,52 @@
-import { renderSurveyJsComponent } from "@/__tests__/utils/test-utils";
 import {
   AssetStorageContext,
-  AssetStorageContextValue,
-  StorageConfig,
-} from "@/features/asset-storage/client";
+  type AssetStorageContextValue,
+} from "@/features/asset-storage/ui/asset-storage.context";
 import type { ReactNode } from "react";
-import { render } from "@testing-library/react";
-import type { QuestionFileModel } from "survey-core";
+import { render, screen } from "@testing-library/react";
 import { QuestionImageModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clientStorageConfig } from "../../../test-storage-config";
 
-// Mock SurveyQuestionImage - must be before imports that use it
 const mockRenderElement = vi.fn(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react");
   return React.createElement("img", { src: "https://example.com/image.jpg" });
 });
 
+vi.mock(
+  "@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media")
+      >();
+    return {
+      ...actual,
+      StoragePresignedImage: (props: { src: string }) => (
+        <img data-testid="storage-presigned-image" src={props.src} alt="" />
+      ),
+    };
+  },
+);
+
 vi.mock("survey-react-ui", async (importOriginal) => {
-   
   const React = await import("react");
   const actual = await importOriginal<typeof import("survey-react-ui")>();
   return {
     ...actual,
     SurveyQuestionImage: class MockSurveyQuestionImage extends React.Component {
-      protected get question() {
-        return (this.props as any).question;
+      declare questionBase: QuestionImageModel;
+
+      constructor(props: { question: QuestionImageModel }) {
+        super(props);
+        this.questionBase = props.question;
       }
+
+      protected get question(): QuestionImageModel {
+        return this.questionBase;
+      }
+
       protected renderElement() {
         return mockRenderElement();
       }
@@ -40,26 +59,27 @@ vi.mock("survey-react-ui", async (importOriginal) => {
   };
 });
 
-// Import after mocks
-import { ProtectedQuestionImage } from "@/features/asset-storage/client";
+import { ProtectedQuestionImage } from "@/features/asset-storage/use-cases/view-protected-files/ui/protected-image";
 
-// Helper to render with context
-const renderWithContext = (
+function buildContext(
+  overrides: Partial<AssetStorageContextValue> = {},
+): AssetStorageContextValue {
+  return {
+    config: clientStorageConfig({ isPrivate: true }),
+    enqueuePrivateReadUrls: vi.fn().mockResolvedValue(new Map()),
+    mergePrivateReadUrlCache: vi.fn(),
+    getCachedPrivateReadUrl: vi.fn(() => null),
+    readUrlCacheVersion: 0,
+    ...overrides,
+  };
+}
+
+function renderProtectedImage(
   question: QuestionImageModel,
-  contextValue?: AssetStorageContextValue | undefined,
-) => {
-  if (contextValue === undefined) {
-    return renderSurveyJsComponent(
-      ProtectedQuestionImage,
-      question as unknown as QuestionFileModel,
-    );
-  }
-
-  // Create instance and manually set context
-  const instance = new ProtectedQuestionImage({ question } as any);
-  if (contextValue) {
-    (instance as any).context = contextValue;
-  }
+  contextValue: AssetStorageContextValue,
+) {
+  const instance = new ProtectedQuestionImage({ question } as never);
+  (instance as { context: AssetStorageContextValue }).context = contextValue;
 
   const view = (
     instance as unknown as { renderElement(): ReactNode }
@@ -70,99 +90,66 @@ const renderWithContext = (
       {view}
     </AssetStorageContext.Provider>,
   );
-};
+}
 
 describe("ProtectedQuestionImage", () => {
   const mockQuestion = {
-    locImageLink: {
-      renderedHtml: "https://testaccount.blob.core.windows.net/content/image.jpg",
+    imageLink: "https://testaccount.blob.core.windows.net/content/image.jpg",
+    renderedMode: "image",
+    getImageCss: () => "sd-image",
+    imageFit: "contain",
+    renderedStyleWidth: "100%",
+    renderedStyleHeight: "auto",
+    renderedAltText: "alt",
+    renderedWidth: 200,
+    renderedHeight: 100,
+    contentNotLoaded: false,
+    cssClasses: {
+      root: "sd-image__root",
+      noImage: "sd-image__no-image",
+      noImageSvgIconId: "icon-no-image",
     },
+    locImageLink: {
+      renderedHtml:
+        "https://testaccount.blob.core.windows.net/content/image.jpg",
+      onChanged: () => {},
+    },
+    onLoadHandler: vi.fn(),
+    onErrorHandler: vi.fn(),
   } as unknown as QuestionImageModel;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("when storage is disabled", () => {
-    it("should render default element without enrichment", () => {
-      const disabledConfig: StorageConfig = clientStorageConfig({
-        isEnabled: false,
-        isPrivate: false,
-      });
+  it("uses StoragePresignedImage when private storage is enabled", () => {
+    renderProtectedImage(mockQuestion, buildContext());
 
-      renderWithContext(mockQuestion, {
-        config: disabledConfig,
-        resolveStorageUrl: vi.fn(),
-      });
-
-      expect(mockRenderElement).toHaveBeenCalledTimes(1);
-    });
+    expect(screen.getByTestId("storage-presigned-image")).toBeDefined();
+    expect(mockRenderElement).not.toHaveBeenCalled();
   });
 
-  describe("when storage is enabled but not private", () => {
-    it("should render default element without enrichment", () => {
-      const publicConfig: StorageConfig = clientStorageConfig({
-        isEnabled: true,
-        isPrivate: false,
-      });
+  it("delegates to super when storage is disabled", () => {
+    renderProtectedImage(
+      mockQuestion,
+      buildContext({
+        config: clientStorageConfig({ isEnabled: false, isPrivate: false }),
+      }),
+    );
 
-      renderWithContext(mockQuestion, {
-        config: publicConfig,
-        resolveStorageUrl: vi.fn(),
-      });
-
-      expect(mockRenderElement).toHaveBeenCalledTimes(1);
-    });
+    expect(mockRenderElement).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("storage-presigned-image")).toBeNull();
   });
 
-  describe("when storage is enabled and private", () => {
-    it("should attempt enrichment when imageLink exists", () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
-        isPrivate: true,
-      });
+  it("delegates to super when image link is empty", () => {
+    const questionWithoutImage = {
+      ...mockQuestion,
+      imageLink: "",
+      locImageLink: { renderedHtml: "", onChanged: () => {} },
+    } as unknown as QuestionImageModel;
 
-      const mockResolveStorageUrl = vi.fn(
-        (url: string) => `${url}?token=abc123`,
-      );
+    renderProtectedImage(questionWithoutImage, buildContext());
 
-      renderWithContext(mockQuestion, {
-        config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
-      });
-
-      // Component should call renderElement (which calls super.renderElement)
-      // and then attempt to enrich the result
-      expect(mockRenderElement).toHaveBeenCalled();
-    });
-
-    it("should render default element when imageLink is missing", () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
-        isPrivate: true,
-      });
-
-      const questionWithoutImage = {
-        locImageLink: {
-          renderedHtml: "",
-        },
-      } as unknown as QuestionImageModel;
-
-      const mockResolveStorageUrl = vi.fn();
-
-      renderWithContext(questionWithoutImage, {
-        config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
-      });
-
-      expect(mockRenderElement).toHaveBeenCalledTimes(1);
-      expect(mockResolveStorageUrl).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("when context is undefined", () => {
-    it("should render default element without enrichment", () => {
-      renderWithContext(mockQuestion, undefined);
-
-      expect(mockRenderElement).toHaveBeenCalledTimes(1);
-    });
+    expect(mockRenderElement).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,9 +1,9 @@
 import {
   AssetStorageContext,
   AssetStorageContextValue,
-  StorageConfig,
+  ClientStorageConfig,
 } from "@/features/asset-storage/client";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { QuestionSignaturePadModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,12 +19,13 @@ const mockRenderBackgroundImage = vi.fn(() => {
 });
 
 vi.mock("survey-react-ui", async (importOriginal) => {
-   
   const React = await import("react");
   const actual = await importOriginal<typeof import("survey-react-ui")>();
   return {
     ...actual,
-    SurveyQuestionSignaturePad: class MockSurveyQuestionSignaturePad extends React.Component {
+    SurveyQuestionSignaturePad: class MockSurveyQuestionSignaturePad
+      extends React.Component
+    {
       protected get question() {
         return (this.props as any).question;
       }
@@ -40,6 +41,22 @@ vi.mock("survey-react-ui", async (importOriginal) => {
   };
 });
 
+vi.mock(
+  "@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@/features/asset-storage/use-cases/view-protected-files/ui/protected-storage-media")
+      >();
+    return {
+      ...actual,
+      StoragePresignedImage: (props: { src: string }) => (
+        <img data-testid="storage-presigned-image" src={props.src} alt="" />
+      ),
+    };
+  },
+);
+
 // Import after mocks
 import { ProtectedSignaturePad } from "@/features/asset-storage/client";
 
@@ -53,7 +70,10 @@ const renderWithContext = (
   if (contextValue) {
     (instance as any).context = contextValue;
   } else {
-    (instance as any).context = { config: null, resolveStorageUrl: vi.fn() };
+    (instance as any).context = {
+      config: null,
+      getCachedPrivateReadUrl: vi.fn(() => null),
+    };
   }
 
   const view = (
@@ -61,7 +81,14 @@ const renderWithContext = (
   ).renderBackgroundImage();
 
   return render(
-    <AssetStorageContext.Provider value={contextValue || { config: null, resolveStorageUrl: vi.fn() }}>
+    <AssetStorageContext.Provider
+      value={
+        contextValue || {
+          config: null,
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }
+      }
+    >
       {view}
     </AssetStorageContext.Provider>,
   );
@@ -70,6 +97,8 @@ const renderWithContext = (
 describe("ProtectedSignaturePad", () => {
   const mockQuestion = {
     backgroundImage: "https://testaccount.blob.core.windows.net/content/bg.png",
+    cssClasses: { backgroundImage: "sd-signaturepad__background" },
+    renderedCanvasWidth: 300,
   } as unknown as QuestionSignaturePadModel;
 
   beforeEach(() => {
@@ -78,14 +107,14 @@ describe("ProtectedSignaturePad", () => {
 
   describe("when storage is disabled", () => {
     it("should render default background image without enrichment", () => {
-      const disabledConfig: StorageConfig = clientStorageConfig({
+      const disabledConfig: ClientStorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
       });
 
       renderWithContext(mockQuestion, {
         config: disabledConfig,
-        resolveStorageUrl: vi.fn(),
+        getCachedPrivateReadUrl: vi.fn(() => null),
       });
 
       expect(mockRenderBackgroundImage).toHaveBeenCalledTimes(1);
@@ -94,14 +123,14 @@ describe("ProtectedSignaturePad", () => {
 
   describe("when storage is enabled but not private", () => {
     it("should render default background image without enrichment", () => {
-      const publicConfig: StorageConfig = clientStorageConfig({
+      const publicConfig: ClientStorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
       });
 
       renderWithContext(mockQuestion, {
         config: publicConfig,
-        resolveStorageUrl: vi.fn(),
+        getCachedPrivateReadUrl: vi.fn(() => null),
       });
 
       expect(mockRenderBackgroundImage).toHaveBeenCalledTimes(1);
@@ -109,28 +138,25 @@ describe("ProtectedSignaturePad", () => {
   });
 
   describe("when storage is enabled and private", () => {
-    it("should enrich background image when backgroundImage exists", () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
+    it("uses StoragePresignedImage when backgroundImage exists", () => {
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
       });
 
-      const mockResolveStorageUrl = vi.fn(
-        (url: string) => `${url}?token=abc123`,
-      );
-
       renderWithContext(mockQuestion, {
         config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: vi.fn(() => null),
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
-      expect(mockRenderBackgroundImage).toHaveBeenCalledTimes(1);
-      // The enrichImageInJSX is called on the result, so we verify resolveStorageUrl was called
-      // Note: The actual enrichment happens in enrichImageInJSX which we can't easily verify here
-      // but we can verify the component logic path was taken
+      expect(screen.getByTestId("storage-presigned-image")).toBeDefined();
+      expect(mockRenderBackgroundImage).not.toHaveBeenCalled();
     });
 
     it("should return null when backgroundImage is missing", () => {
-      const privateConfig: StorageConfig = clientStorageConfig({
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
       });
 
@@ -142,7 +168,7 @@ describe("ProtectedSignaturePad", () => {
 
       const { container } = renderWithContext(questionWithoutBackground, {
         config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
       });
 
       expect(mockRenderBackgroundImage).not.toHaveBeenCalled();

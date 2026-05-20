@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getStorageAdminSummary } from "../../../use-cases/view-settings-summary/storage-admin-summary";
 import * as storageRuntime from "../../../storage-runtime";
 import * as resolveSettings from "@/features/config/resolve-endatix-settings";
+import * as validateStorageProfileModule from "../../../infrastructure/bootstrap/validate-storage-profile";
 
-vi.mock("../storage-runtime", async (importOriginal) => {
+vi.mock("../../../storage-runtime", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("../../../storage-runtime")>();
   return {
@@ -26,15 +27,33 @@ vi.mock("@endatix/storage-azure", async (importOriginal) => {
   };
 });
 
-vi.mock("../infrastructure/providers/s3/s3-config", () => ({
+vi.mock("../../../infrastructure/providers/s3/s3-config", () => ({
   getS3StorageConfig: vi.fn(),
 }));
+
+vi.mock(
+  "../../../infrastructure/bootstrap/validate-storage-profile",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../../../infrastructure/bootstrap/validate-storage-profile")
+      >();
+    return {
+      ...actual,
+      validateStorageProfile: vi.fn(),
+    };
+  },
+);
 
 describe("getStorageAdminSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(
+      validateStorageProfileModule.validateStorageProfile,
+    ).mockReturnValue([]);
     vi.mocked(resolveSettings.getRuntimeStorageProfile).mockReturnValue({
-      explicitProvider: "azure",
+      provider: "azure",
+      invalidProviderRaw: null,
       azureCredentialsPresent: true,
       s3CredentialsPresent: false,
       imageRemoteHostnames: [],
@@ -51,6 +70,14 @@ describe("getStorageAdminSummary", () => {
 
   it("returns Azure details when azure is active", async () => {
     const { getAzureStorageConfig } = await import("@endatix/storage-azure");
+
+    vi.mocked(resolveSettings.getRuntimeStorageProfile).mockReturnValue({
+      provider: "azure",
+      invalidProviderRaw: null,
+      azureCredentialsPresent: true,
+      s3CredentialsPresent: false,
+      imageRemoteHostnames: [],
+    });
 
     vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
       providerId: "azure",
@@ -83,6 +110,14 @@ describe("getStorageAdminSummary", () => {
     const { getS3StorageConfig } =
       await import("../../../infrastructure/providers/s3/s3-config");
 
+    vi.mocked(resolveSettings.getRuntimeStorageProfile).mockReturnValue({
+      provider: "s3",
+      invalidProviderRaw: null,
+      azureCredentialsPresent: false,
+      s3CredentialsPresent: true,
+      imageRemoteHostnames: [],
+    });
+
     vi.mocked(storageRuntime.getStorageRuntimeSettings).mockReturnValue({
       providerId: "s3",
       isEnabled: true,
@@ -112,5 +147,30 @@ describe("getStorageAdminSummary", () => {
     expect(summary.s3?.endpoint).toBe("http://localhost:9000");
     expect(summary.azure).toBeNull();
     expect(summary.isPrivate).toBe(true);
+    expect(summary.configurationErrors).toEqual([]);
+  });
+
+  it("surfaces validation errors without registering a provider", () => {
+    vi.mocked(
+      validateStorageProfileModule.validateStorageProfile,
+    ).mockReturnValue([
+      "STORAGE_PROVIDER=azure requires AZURE_STORAGE_CUSTOM_DOMAIN.",
+    ]);
+    vi.mocked(resolveSettings.getRuntimeStorageProfile).mockReturnValue({
+      provider: "azure",
+      invalidProviderRaw: null,
+      azureCredentialsPresent: true,
+      s3CredentialsPresent: false,
+      imageRemoteHostnames: [],
+    });
+
+    const summary = getStorageAdminSummary();
+
+    expect(summary.configurationErrors).toHaveLength(1);
+    expect(summary.isEnabled).toBe(false);
+    expect(summary.activeProviderId).toBeNull();
+    expect(storageRuntime.getStorageRuntimeSettings).not.toHaveBeenCalled();
+    expect(summary.azure).toBeNull();
+    expect(summary.s3).toBeNull();
   });
 });
