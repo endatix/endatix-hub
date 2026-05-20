@@ -2,7 +2,6 @@
 
 import { Submission } from "@/lib/endatix-api";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
-import { ActiveDefinition } from "@/types";
 import { ViewSubmissionCore } from "./view-submission-core";
 
 export interface PublicViewSubmissionProps {
@@ -17,9 +16,7 @@ export function PublicViewSubmission({
 }: Readonly<PublicViewSubmissionProps>) {
   const formRuntime = useFormRuntime();
 
-  const customQuestions = (
-    submission.formDefinition as ActiveDefinition | undefined
-  )?.customQuestions;
+  const customQuestions = submission.formDefinition?.customQuestions;
 
   return (
     <ViewSubmissionCore

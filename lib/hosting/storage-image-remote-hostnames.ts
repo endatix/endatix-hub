@@ -1,9 +1,6 @@
 import { getAzureStoragePublicHostFromEnv } from "./azure-blob-remote-hostname";
 import { resolveStoragePublicHost } from "./resolve-storage-public-host";
-import {
-  isAzureStorageCredentialsPresentInEnv,
-  isS3StorageCredentialsPresentInEnv,
-} from "./storage-env-predicates";
+import { isS3StorageCredentialsPresentInEnv } from "./storage-env-predicates";
 
 /**
  * Normalized `STORAGE_PROVIDER` env value.

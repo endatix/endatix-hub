@@ -57,16 +57,18 @@ function appendStorageHostRemotePatterns(
   if (trimmed.length === 0) {
     return;
   }
-  remotePatterns.push({
-    protocol: "https",
-    hostname: trimmed,
-    pathname: STORAGE_IMAGE_PATHNAME,
-  });
-  remotePatterns.push({
-    protocol: "http",
-    hostname: trimmed,
-    pathname: STORAGE_IMAGE_PATHNAME,
-  });
+  remotePatterns.push(
+    {
+      protocol: "https",
+      hostname: trimmed,
+      pathname: STORAGE_IMAGE_PATHNAME,
+    },
+    {
+      protocol: "http",
+      hostname: trimmed,
+      pathname: STORAGE_IMAGE_PATHNAME,
+    },
+  );
 }
 
 /** Same sequence as `withEndatix`: `REMOTE_IMAGE_HOSTNAMES` / fallback, then storage-derived hostnames. */

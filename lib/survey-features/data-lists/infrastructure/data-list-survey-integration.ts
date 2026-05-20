@@ -1,5 +1,4 @@
-import type { Model, Question } from "survey-core";
-import { QuestionSelectBase } from "survey-core";
+import type { Question } from "survey-core";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
 
 /** Question types that support the data-list custom property (Serializer registration). */

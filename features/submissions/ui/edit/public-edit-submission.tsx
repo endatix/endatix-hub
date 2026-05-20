@@ -4,7 +4,6 @@ import { toast } from "@/components/ui/toast";
 import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
 import { Submission } from "@/lib/endatix-api";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
-import { ActiveDefinition } from "@/types";
 import { useCallback, useEffect } from "react";
 import { EditSubmissionCore } from "./edit-submission-core";
 import { usePublicEditTokenExpiry } from "./use-public-edit-token-expiry";
@@ -36,9 +35,7 @@ export function PublicEditSubmission({
     });
   }, [formRuntime, formId, submission.id, token]);
 
-  const customQuestions = (
-    submission.formDefinition as ActiveDefinition | undefined
-  )?.customQuestions;
+  const customQuestions = submission.formDefinition?.customQuestions;
 
   const onSave = useCallback(
     async (jsonData: Record<string, unknown>) => {

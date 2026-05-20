@@ -22,7 +22,7 @@ function resolveChoiceDisplayValues(
       values,
       setItems: (displayValues) => {
         if (!displayValues) {
-          resolve(values.map((value) => String(value)));
+          resolve(values.map(String));
           return;
         }
         resolve(displayValues);
@@ -69,12 +69,9 @@ function applyDisplayLabelsToQuestion(
 function finalizeLazyLoadQuestion(question: Question): void {
   if (
     "choicesLazyLoadEnabled" in question &&
-    (question as Question & { choicesLazyLoadEnabled?: boolean })
-      .choicesLazyLoadEnabled === true
+    question.choicesLazyLoadEnabled === true
   ) {
-    (
-      question as Question & { choicesLazyLoadEnabled: boolean }
-    ).choicesLazyLoadEnabled = false;
+    question.choicesLazyLoadEnabled = false;
   }
 }
 

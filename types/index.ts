@@ -23,15 +23,14 @@ export type FormDefinition = {
   isActive: boolean;
   createdAt: Date;
   modifiedAt: Date;
-};
-
-export type ActiveDefinition = FormDefinition & {
   themeModel?: string;
-  requiresReCaptcha?: boolean;
   customQuestions?: string[];
+  requiresReCaptcha?: boolean;
   hasUserSubmitted?: boolean;
   metadata?: string;
 };
+
+export type ActiveDefinition = FormDefinition;
 
 export type FormTemplate = {
   id: string;

@@ -54,22 +54,20 @@ class ProtectedLogoImage extends LogoImage {
     }
 
     return (
-      <>
-        <div className={survey.logoClassNames}>
-          <StoragePresignedImage
-            className={survey.css.logoImage}
-            src={logoUrl}
-            alt={survey.locTitle.renderedHtml}
-            width={survey.renderedLogoWidth}
-            height={survey.renderedLogoHeight}
-            style={{
-              objectFit: toCssObjectFit(survey.logoFit),
-              width: survey.renderedStyleLogoWidth,
-              height: survey.renderedStyleLogoHeight,
-            }}
-          />
-        </div>
-      </>
+      <div className={survey.logoClassNames}>
+        <StoragePresignedImage
+          className={survey.css.logoImage}
+          src={logoUrl}
+          alt={survey.locTitle.renderedHtml}
+          width={survey.renderedLogoWidth}
+          height={survey.renderedLogoHeight}
+          style={{
+            objectFit: toCssObjectFit(survey.logoFit),
+            width: survey.renderedStyleLogoWidth,
+            height: survey.renderedStyleLogoHeight,
+          }}
+        />
+      </div>
     );
   }
 }
