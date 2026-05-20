@@ -57,7 +57,7 @@ export async function handleResizeImageRequest(
   }
 
   if (contentType.trim().toLowerCase() === SVG_CONTENT_TYPE) {
-    return new Response(buffer as unknown as BodyInit, {
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": contentType,
@@ -68,7 +68,7 @@ export async function handleResizeImageRequest(
 
   try {
     const optimizedBuffer = await optimizeImageSize(buffer, contentType);
-    return new Response(optimizedBuffer as unknown as BodyInit, {
+    return new Response(new Uint8Array(optimizedBuffer), {
       status: 200,
       headers: {
         "Content-Type": contentType,

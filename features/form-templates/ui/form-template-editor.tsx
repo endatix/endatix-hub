@@ -276,7 +276,12 @@ function FormTemplateEditorContent({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
+      const target = e.target;
+      if (
+        inputRef.current &&
+        target instanceof Node &&
+        !inputRef.current.contains(target)
+      ) {
         console.log("Clicked outside, waiting to save name...");
         setTimeout(() => {
           handleNameSave();
