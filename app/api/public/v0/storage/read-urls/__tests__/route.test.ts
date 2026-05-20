@@ -6,13 +6,13 @@ const {
   mockAuth,
   mockGetClientStorageConfig,
   mockParsePublicReadUrlsBody,
-  mockResolveRespondentGate,
+  mockResolvePublicStorageGate,
   mockResolvePublicReadUrls,
 } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockGetClientStorageConfig: vi.fn(),
   mockParsePublicReadUrlsBody: vi.fn(),
-  mockResolveRespondentGate: vi.fn(),
+  mockResolvePublicStorageGate: vi.fn(),
   mockResolvePublicReadUrls: vi.fn(),
 }));
 
@@ -30,7 +30,7 @@ vi.mock("@/features/form-access/server", async (importOriginal) => {
   return {
     ...actual,
     parsePublicReadUrlsBody: mockParsePublicReadUrlsBody,
-    resolveRespondentGate: mockResolveRespondentGate,
+    resolvePublicStorageGate: mockResolvePublicStorageGate,
   };
 });
 
@@ -62,7 +62,7 @@ describe("POST /api/public/v0/storage/read-urls", () => {
       hostName: "test.blob.core.windows.net",
       containerNames: { USER_FILES: "user-files", CONTENT: "content" },
     });
-    mockResolveRespondentGate.mockImplementation(async (gate) =>
+    mockResolvePublicStorageGate.mockImplementation(async (gate) =>
       Result.success(gate),
     );
   });
@@ -91,7 +91,7 @@ describe("POST /api/public/v0/storage/read-urls", () => {
         urls: ["https://test.blob.core.windows.net/user-files/s/100/200/a.pdf"],
       }),
     );
-    mockResolveRespondentGate.mockResolvedValue(
+    mockResolvePublicStorageGate.mockResolvedValue(
       formAccessForbidden("Form access denied"),
     );
 
@@ -99,7 +99,7 @@ describe("POST /api/public/v0/storage/read-urls", () => {
       request({ formId: "100", urls: ["https://example/x"] }),
     );
     expect(response.status).toBe(403);
-    expect(mockResolveRespondentGate).toHaveBeenCalled();
+    expect(mockResolvePublicStorageGate).toHaveBeenCalled();
   });
 
   it("passes hub session token into resolvePublicReadUrls", async () => {

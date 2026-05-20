@@ -50,7 +50,7 @@ function mapS3AdminDetails(): StorageAdminS3Details {
 export type StorageAdminSummary = {
   readonly activeProviderId: string | null;
   readonly activeProviderLabel: string;
-  readonly explicitProviderLabel: string;
+  readonly configuredProviderLabel: string;
   readonly isEnabled: boolean;
   readonly isPrivate: boolean;
   readonly hostName: string;
@@ -64,19 +64,13 @@ export type StorageAdminSummary = {
   readonly s3: StorageAdminS3Details | null;
 };
 
-function formatExplicitProvider(
-  explicit: ReturnType<typeof getRuntimeStorageProfile>["explicitProvider"],
+function formatConfiguredProvider(
+  profile: ReturnType<typeof getRuntimeStorageProfile>,
 ): string {
-  if (explicit === null) {
-    return "Auto";
+  if (profile.invalidProviderRaw !== null) {
+    return `invalid (${profile.invalidProviderRaw})`;
   }
-  if (explicit === "azure") {
-    return "azure";
-  }
-  if (explicit === "s3") {
-    return "s3";
-  }
-  return "none";
+  return profile.provider;
 }
 
 function activeProviderLabel(providerId: string | null): string {
@@ -113,9 +107,7 @@ export function getStorageAdminSummary(): StorageAdminSummary {
     return {
       activeProviderId: null,
       activeProviderLabel: activeProviderLabel(null),
-      explicitProviderLabel: formatExplicitProvider(
-        envProfile.explicitProvider,
-      ),
+      configuredProviderLabel: formatConfiguredProvider(envProfile),
       isEnabled: false,
       isPrivate: false,
       hostName: client.hostName,
@@ -136,7 +128,7 @@ export function getStorageAdminSummary(): StorageAdminSummary {
   return {
     activeProviderId: settings.providerId,
     activeProviderLabel: activeProviderLabel(settings.providerId),
-    explicitProviderLabel: formatExplicitProvider(envProfile.explicitProvider),
+    configuredProviderLabel: formatConfiguredProvider(envProfile),
     isEnabled: settings.isEnabled,
     isPrivate: settings.isPrivate,
     hostName: client.hostName,
@@ -146,8 +138,7 @@ export function getStorageAdminSummary(): StorageAdminSummary {
     azureCredentialsPresent: envProfile.azureCredentialsPresent,
     s3CredentialsPresent: envProfile.s3CredentialsPresent,
     configurationErrors: [],
-    azure:
-      envProfile.explicitProvider === "azure" ? mapAzureAdminDetails() : null,
-    s3: envProfile.explicitProvider === "s3" ? mapS3AdminDetails() : null,
+    azure: envProfile.provider === "azure" ? mapAzureAdminDetails() : null,
+    s3: envProfile.provider === "s3" ? mapS3AdminDetails() : null,
   };
 }

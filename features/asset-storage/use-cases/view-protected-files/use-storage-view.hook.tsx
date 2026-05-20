@@ -1,92 +1,45 @@
 "use client";
 
-import { Result } from "@/lib/result";
-import { use, useCallback, useEffect, useMemo } from "react";
-import {
-  AfterRenderHeaderEvent,
-  AfterRenderQuestionEvent,
-  ChoiceItem,
-  QuestionImageModel,
-  QuestionImagePickerModel,
-  QuestionSignaturePadModel,
-  SurveyModel
-} from "survey-core";
-import {
-  ContainerReadToken,
-  ReadTokenResult,
-  SurveyModelWithTokens
-} from "../../types";
-import {
-  useAssetStorage,
-} from "../../ui/asset-storage.context";
-import { registerProtectedFilePreview } from "./ui/protected-file-preview";
+import { extractStorageUrls } from "@/features/asset-storage/utils";
+import type { StorageReadRuntime } from "@/features/asset-storage/infrastructure/storage-read-runtime";
+import { generateAssetsManifest } from "./generate-assets-manifest";
+import { isCanonicalStorageObjectUrl } from "../../infrastructure/providers/shared/storage-url-parse";
+import { useCallback, useMemo } from "react";
+import { SurveyModel } from "survey-core";
+import { SurveyModelWithTokens } from "../../types";
+import { useAssetStorage } from "../../ui/asset-storage.context";
 
-/**
- * Updates the src attribute of an image element to include a SAS token if the image is in private storage.
- */
-function updateImageSrc(
-  htmlContainer: Element,
-  imageSrc: string,
-  resolveStorageUrl: (url: string) => string,
-): void {
-  if (!imageSrc || !htmlContainer) return;
+/** State for tracking prefetching of private read URLs. */
+type PrefetchState = {
+  completedKey: string;
+  inflight: Promise<void> | null;
+};
 
-  const image = htmlContainer.querySelector(
-    `img[src="${imageSrc}"]`,
-  ) as HTMLImageElement;
-  if (!image) return;
+const prefetchStateByModel = new WeakMap<SurveyModel, PrefetchState>();
 
-  const resolvedUrl = resolveStorageUrl(imageSrc);
-
-  if (resolvedUrl !== imageSrc) {
-    image.src = resolvedUrl;
-  }
+/** Collects unsigned URLs for prefetching. */
+function collectUnsignedUrlsForPrefetch(urls: string[]): string[] {
+  const unique = [...new Set(urls)];
+  return unique.filter((url) => isCanonicalStorageObjectUrl(url));
 }
 
-interface UseStorageViewProps {
-  userFiles: Promise<ReadTokenResult>;
-  content: Promise<ReadTokenResult>;
+const privateModelReadTokens = {
+  userFiles: null,
+  content: null,
+} as const;
+
+export interface UseStorageViewOptions {
+  getReadRuntime: () => StorageReadRuntime | null;
 }
 
-const defaultReadTokensResult = Result.success<ContainerReadToken>({
-  token: null,
-  containerName: "",
-  expiresOn: new Date(),
-  generatedAt: new Date(),
-});
-
-const defaultReadTokensPromise = Promise.resolve(defaultReadTokensResult);
-
 /**
- * Custom hook to handle viewing protected files from storage.
- * @param promises - The promises to use to get the read tokens. If not provided, it will try to get them from the StorageConfigContext.
- * @returns The isPrivate, setModelMetadata, and registerEventHandlers functions.
+ * Handles viewing protected files from storage (presigned GET URLs via batch queue).
  */
-export function useStorageView(promises?: UseStorageViewProps) {
-  const { config: storageConfig, tokens: contextTokens, resolveStorageUrl } = useAssetStorage();
+export function useStorageView({ getReadRuntime }: UseStorageViewOptions) {
+  const { config: storageConfig, enqueuePrivateReadUrls } = useAssetStorage();
 
-  const userFilesResult = use(
-    promises?.userFiles ??
-    contextTokens?.userFiles ??
-    defaultReadTokensPromise,
-  );
-  const contentResult = use(
-    promises?.content ?? contextTokens?.content ?? defaultReadTokensPromise,
-  );
+  const tokens = useMemo(() => privateModelReadTokens, []);
 
-  const tokens = useMemo(
-    () => ({
-      userFiles: Result.isSuccess(userFilesResult)
-        ? userFilesResult.value
-        : null,
-      content: Result.isSuccess(contentResult) ? contentResult.value : null,
-    }),
-    [userFilesResult, contentResult],
-  );
-
-  // Set metadata synchronously so it's available immediately
-  // This runs during render, before useEffect, ensuring the model has the flags
-  // even if event handlers haven't been registered yet
   const setModelMetadata = useCallback(
     (model: SurveyModel) => {
       if (storageConfig?.isPrivate) {
@@ -96,83 +49,70 @@ export function useStorageView(promises?: UseStorageViewProps) {
     [storageConfig?.isPrivate, tokens],
   );
 
-  useEffect(() => {
-    registerProtectedFilePreview();
-  }, []);
+  const prefetchPrivateReadUrlsForModel = useCallback(
+    async (model: SurveyModel) => {
+      if (
+        !storageConfig?.isEnabled ||
+        !storageConfig.isPrivate ||
+        !storageConfig.hostName
+      ) {
+        return;
+      }
 
-  const registerViewHandlers = useCallback(
-    (model: SurveyModel) => {
-      if (!storageConfig?.isPrivate) return () => { };
-
-      const onAfterRenderQuestion = (
-        _sender: SurveyModel,
-        event: AfterRenderQuestionEvent,
-      ) => {
-        const question = event.question;
-        const questionHtml = event.htmlElement;
-
-        const type = question.getType();
-
-        switch (type) {
-          case "imagepicker": {
-            const imagePickerQuestion = question as QuestionImagePickerModel;
-            imagePickerQuestion.choices.forEach((choice: ChoiceItem) => {
-              updateImageSrc(
-                questionHtml,
-                choice.imageLink,
-                resolveStorageUrl,
-              );
-            });
-            break;
-          }
-          case "image": {
-            const imageQuestion = question as QuestionImageModel;
-            updateImageSrc(
-              questionHtml,
-              imageQuestion.imageLink,
-              resolveStorageUrl,
-            );
-            break;
-          }
-          case "signaturepad": {
-            const signatureQuestion = question as QuestionSignaturePadModel;
-            updateImageSrc(
-              questionHtml,
-              signatureQuestion.backgroundImage,
-              resolveStorageUrl,
-            );
-            break;
-          }
-          default:
-            break;
+      const hostLower = storageConfig.hostName.toLowerCase();
+      const fromData = extractStorageUrls(
+        JSON.stringify(model.data ?? {}),
+        storageConfig.hostName,
+      );
+      const fromManifest = generateAssetsManifest(model).filter((url) => {
+        try {
+          return new URL(url).host.toLowerCase() === hostLower;
+        } catch {
+          return false;
         }
-      };
+      });
+      const urls = collectUnsignedUrlsForPrefetch([
+        ...new Set([...fromData, ...fromManifest]),
+      ]);
 
-      const onAfterRenderHeader = (
-        sender: SurveyModel,
-        event: AfterRenderHeaderEvent,
-      ) => {
-        const header = event.htmlElement;
-        updateImageSrc(
-          header,
-          sender.locLogo.renderedHtml,
-          resolveStorageUrl,
-        );
-      };
+      if (urls.length === 0) {
+        return;
+      }
 
-      model.onAfterRenderQuestion.add(onAfterRenderQuestion);
-      model.onAfterRenderHeader.add(onAfterRenderHeader);
+      const prefetchKey = urls.slice().sort().join("\0");
+      const existing = prefetchStateByModel.get(model);
 
-      return () => {
-        model.onAfterRenderQuestion.remove(onAfterRenderQuestion);
-        model.onAfterRenderHeader.remove(onAfterRenderHeader);
-      };
+      if (existing?.completedKey === prefetchKey) {
+        return;
+      }
+      
+      if (existing?.inflight) {
+        await existing.inflight;
+        return;
+      }
+
+      const runtime = getReadRuntime();
+      const inflight = (async (): Promise<void> => {
+        await enqueuePrivateReadUrls(urls, runtime);
+      })();
+
+      prefetchStateByModel.set(model, { completedKey: prefetchKey, inflight });
+      try {
+        await inflight;
+        prefetchStateByModel.set(model, {
+          completedKey: prefetchKey,
+          inflight: null,
+        });
+      } catch (error) {
+        prefetchStateByModel.delete(model);
+        throw error;
+      }
     },
-    [storageConfig, resolveStorageUrl],
+    [storageConfig, enqueuePrivateReadUrls, getReadRuntime],
   );
 
   return {
     setModelMetadata,
-    registerViewHandlers,
+    prefetchPrivateReadUrlsForModel,
   };
 }

@@ -1,14 +1,14 @@
 import type { ClientStorageConfig } from "@/features/asset-storage/infrastructure/providers/shared/client-storage-config";
 import type { ParsedStorageObjectUrl } from "@/features/asset-storage/infrastructure/providers/shared/storage-url-parse";
-import type { DesignerStorageScope } from "../types";
 import { assertUserFileBlobPath } from "./assert-user-file-blob-path";
+import { DesignerScope } from "@/lib/designer-runtime";
 
 const CONTENT_FORM_PREFIX = "f/";
 
 /** Hub designer read-urls: content allows scoped or elevated `f/*` keys; user-files require form + submission. */
 export function assertDesignerObjectAccess(
   parsed: ParsedStorageObjectUrl,
-  scope: DesignerStorageScope,
+  scope: DesignerScope,
   storageConfig: ClientStorageConfig,
 ): string | null {
   const userFilesContainer =

@@ -1,6 +1,6 @@
 import { Result } from "@/lib/result";
-import type { AzureStorageConfig } from "@endatix/storage-azure";
-import { getStorageRuntimeSettings } from "../../storage-runtime";
+import type { ClientStorageConfig } from "@endatix/storage-azure";
+import { getClientStorageConfig } from "../../storage-runtime";
 import { bulkGenerateReadTokens } from "../../infrastructure/storage-gateway";
 import { ContainerType, ReadTokensResult, StorageTokenMap } from "../../types";
 import { resolveContainerFromUrl } from "../../utils";
@@ -39,7 +39,7 @@ const emptyTokensResultPromise: Promise<ReadTokensResult> = Promise.resolve(
  */
 function groupUrlsByContainerType(
   urls: string[],
-  storageConfig: AzureStorageConfig,
+  storageConfig: ClientStorageConfig,
 ): GroupedUrlsMap {
   const data: GroupedUrlsMap = {
     allUrlsMap: new Map<string, UrlMapping>(),
@@ -106,15 +106,10 @@ function mapTokensToUrls(
 export async function generateGranularReadTokensUseCase(
   urls: string[],
 ): Promise<Result<StorageTokenMap>> {
-  const readModel = getStorageRuntimeSettings();
-  const storageConfig = readModel.azure;
+  const storageConfig = getClientStorageConfig();
 
-  if (!readModel.isEnabled) {
-    return Result.error("Azure storage is not enabled");
-  }
-
-  if (storageConfig === null) {
-    return Result.error("Azure storage configuration is not available");
+  if (!storageConfig.isEnabled) {
+    return Result.error("Storage is not enabled");
   }
 
   if (!storageConfig.isPrivate) {
