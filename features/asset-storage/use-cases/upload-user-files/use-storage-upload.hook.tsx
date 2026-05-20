@@ -2,31 +2,25 @@
 
 import { useCallback, useMemo } from "react";
 import { ClearFilesEvent, DownloadFileEvent, SurveyModel } from "survey-core";
-import { Result } from "@/lib/result";
-import {
-  AssetStorageTokens,
-  useAssetStorage,
-} from "../../ui/asset-storage.context";
+import type { StorageReadRuntime } from "../../infrastructure/storage-read-runtime";
+import { pickStorageDeleteEndpoint } from "../../infrastructure/storage-delete-endpoints";
+import { buildPublicStorageGateBody } from "../../infrastructure/storage-read-request";
+import { useAssetStorage } from "../../ui/asset-storage.context";
 import { createUserUpload } from "../upload/upload-handler.factory";
+
+function toClearedFileEntries(
+  files: Array<{ content: string }>,
+): Array<{ content: string }> {
+  return files.map((file) => ({ content: file.content }));
+}
 
 interface UseStorageUploadProps {
   formId: string;
   surveyModel: SurveyModel | null;
   getSubmissionId?: () => string | undefined;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
-  readTokenPromises?: AssetStorageTokens;
+  getReadRuntime: () => StorageReadRuntime | null;
 }
-
-const DEFAULT_READ_TOKEN_RESULT = Result.success({
-  token: null,
-  containerName: "",
-  isPrivate: false,
-  hostName: "",
-  expiresOn: new Date(),
-  generatedAt: new Date(),
-});
-
-const DEFAULT_READ_TOKEN_PROMISE = Promise.resolve(DEFAULT_READ_TOKEN_RESULT);
 
 /**
  * Hook to upload files to storage.
@@ -37,11 +31,13 @@ export function useStorageUpload({
   getSubmissionId,
   onSubmissionIdChange,
   surveyModel,
-  readTokenPromises: propsReadTokenPromises,
+  getReadRuntime,
 }: UseStorageUploadProps) {
-  const { config: storageConfig, tokens: contextTokens } = useAssetStorage();
-  const readTokenPromises = propsReadTokenPromises ?? contextTokens;
-
+  const {
+    config: storageConfig,
+    enqueuePrivateReadUrls,
+    getCachedPrivateReadUrl,
+  } = useAssetStorage();
 
   const onUploadFiles = useMemo(() => {
     return createUserUpload({
@@ -79,6 +75,16 @@ export function useStorageUpload({
           return options.callback("error");
         }
 
+        const runtime = getReadRuntime();
+        const policyName = runtime?.plane ?? "public";
+
+        // Hub submission edit: detach files in the model only so Discard can restore URLs.
+        // Blobs are not deleted until a dedicated save/purge flow exists.
+        if (policyName === "hub") {
+          options.callback("success", toClearedFileEntries(filesToDelete));
+          return;
+        }
+
         const fileUrls = filesToDelete.map(
           (file: { content: string }) => file.content,
         );
@@ -86,29 +92,47 @@ export function useStorageUpload({
         console.debug(`Deleting ${fileUrls.length} files:`, fileUrls);
 
         const currentSubmissionId = getSubmissionId?.();
-        const deleteResponse = await fetch("/api/public/v0/storage/delete", {
+        const endpoint = pickStorageDeleteEndpoint(policyName);
+
+        const deleteResponse = await fetch(endpoint, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            formId,
-            submissionId: currentSubmissionId,
+            ...buildPublicStorageGateBody(
+              { formId, submissionId: currentSubmissionId },
+              runtime,
+            ),
             fileUrls,
           }),
         });
 
-        const responseData = await deleteResponse.json();
+        const responseData = (await deleteResponse.json()) as {
+          detail?: string;
+          error?: string;
+          title?: string;
+          results?: Array<{
+            fileUrl: string;
+            result: string;
+            error?: string;
+          }>;
+        };
 
         if (!deleteResponse.ok) {
-          console.error("Delete API error:", responseData.error);
+          const apiMessage =
+            responseData.detail ??
+            responseData.error ??
+            responseData.title ??
+            `HTTP ${deleteResponse.status}`;
+          console.error("Delete API error:", apiMessage);
           return options.callback("error");
         }
 
         const successfulDeletions: Array<{ content: string }> = [];
         const failedDeletions: string[] = [];
 
-        responseData.results.forEach(
+        responseData.results?.forEach(
           (result: { fileUrl: string; result: string; error?: string }) => {
             if (result.result === "success") {
               successfulDeletions.push({ content: result.fileUrl });
@@ -134,7 +158,7 @@ export function useStorageUpload({
         options.callback("error");
       }
     },
-    [formId, getSubmissionId],
+    [formId, getSubmissionId, getReadRuntime],
   );
 
   const onDownloadFile = useCallback(
@@ -143,43 +167,29 @@ export function useStorageUpload({
 
       if (storageConfig?.isPrivate) {
         try {
-          const tokenResponse = await fetch(
-            "/api/public/v0/storage/read-urls",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ urls: [options.content] }),
-            },
-          );
-
-          if (!tokenResponse.ok) {
-            console.error(
-              "Failed to get read token:",
-              tokenResponse.statusText,
+          const cached = getCachedPrivateReadUrl(options.content);
+          if (cached !== null) {
+            url = cached;
+          } else {
+            const runtime = getReadRuntime();
+            const batch = await enqueuePrivateReadUrls(
+              [options.content],
+              runtime,
             );
-            options.callback("error");
-            return;
-          }
+            const presigned = batch.get(options.content);
 
-          const data = (await tokenResponse.json()) as {
-            resolved?: Record<
-              string,
-              { url: string } | { error: string }
-            >;
-          };
-          const entry = data.resolved?.[options.content];
-          if (!entry || "error" in entry) {
-            console.error(
-              "Failed to resolve read URL:",
-              entry && "error" in entry ? entry.error : "missing entry",
-            );
-            options.callback("error");
-            return;
+            if (!presigned) {
+              console.error("Failed to resolve read URL for download");
+              options.callback("error");
+              return;
+            }
+
+            url = presigned;
           }
-          url = entry.url;
         } catch (error) {
           console.error("Error getting read token:", error);
           options.callback("error");
+          return;
         }
       }
 
@@ -200,7 +210,12 @@ export function useStorageUpload({
           options.callback("error");
         });
     },
-    [storageConfig],
+    [
+      storageConfig,
+      getReadRuntime,
+      enqueuePrivateReadUrls,
+      getCachedPrivateReadUrl,
+    ],
   );
 
   const registerUploadHandlers = useCallback(

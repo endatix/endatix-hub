@@ -3,9 +3,7 @@ import {
   uploadBlob,
   resizeImageOrFallback,
 } from "@/features/asset-storage/use-cases/upload/upload-blob";
-import {
-  UploadError,
-} from "@/features/asset-storage/use-cases/upload/upload-errors";
+import { UploadError } from "@/features/asset-storage/use-cases/upload/upload-errors";
 
 global.fetch = vi.fn();
 
@@ -40,6 +38,34 @@ describe("uploadBlob", () => {
         method: "PUT",
         body: data,
         headers,
+      }),
+    );
+  });
+
+  it("strips non-ISO-8859-1 header values before fetch so Unicode filenames do not throw", async () => {
+    // Arrange
+    const sasUrl = "https://account.blob.core.windows.net/c/f.png?s=1";
+    const data = new ArrayBuffer(4);
+    const headers = {
+      "Content-Type": "image/png",
+      "x-amz-meta-filename": "Билет.png",
+    };
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(""),
+    });
+
+    // Act
+    await uploadBlob(sasUrl, data, headers);
+
+    // Assert
+    expect(global.fetch).toHaveBeenCalledWith(
+      sasUrl,
+      expect.objectContaining({
+        headers: {
+          "Content-Type": "image/png",
+        },
       }),
     );
   });

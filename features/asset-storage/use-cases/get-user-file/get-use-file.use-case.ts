@@ -1,6 +1,8 @@
 import { Result } from "@/lib/result";
-import { blobMetadataParser, getContainerUrl } from "@endatix/storage-azure";
-import { getStorageRuntimeSettings } from "../../storage-runtime";
+import { appendStorageReadQuery } from "../../infrastructure/append-storage-read-query";
+import { getContainerUrl } from "@endatix/storage-azure";
+import { blobMetadataParser } from "../../infrastructure/providers/shared/blob-metadata-parser";
+import { getClientStorageConfig } from "../../storage-runtime";
 import {
   bulkGenerateReadTokens,
   getBlobProperties,
@@ -21,9 +23,8 @@ async function getUserFile(
   submissionId: string,
   fileName: string,
 ): Promise<Result<UserFileViewData>> {
-  const storageSettings = getStorageRuntimeSettings();
-  const config = storageSettings.azure;
-  if (!storageSettings.isEnabled || config === null) {
+  const clientConfig = getClientStorageConfig();
+  if (!clientConfig.isEnabled) {
     return Result.error("Storage is not enabled");
   }
 
@@ -33,21 +34,21 @@ async function getUserFile(
   }
 
   const blobName = pathNameResult.value;
-  const containerName = config.containerNames.USER_FILES;
+  const containerName = clientConfig.containerNames.USER_FILES;
 
   const properties = await getBlobProperties(containerName, blobName);
   if (!properties) {
     return Result.error("File not found");
   }
 
-  const baseUrl = getContainerUrl(containerName, config);
+  const baseUrl = getContainerUrl(containerName, clientConfig);
   const filePath = buildUserFilePath(formId, submissionId, fileName);
   if (Result.isError(filePath)) {
     return Result.error(filePath.message);
   }
   let url = `${baseUrl}/${filePath.value}`;
 
-  if (config.isPrivate) {
+  if (clientConfig.isPrivate) {
     const tokensResult = await bulkGenerateReadTokens({
       containerName,
       resourceType: "file",
@@ -58,7 +59,10 @@ async function getUserFile(
     }
     const token = tokensResult.value.readTokens[blobName];
     if (token) {
-      url = `${url}?${token.startsWith("?") ? token.slice(1) : token}`;
+      url = appendStorageReadQuery(
+        url,
+        token.startsWith("?") ? token.slice(1) : token,
+      );
     }
   }
 

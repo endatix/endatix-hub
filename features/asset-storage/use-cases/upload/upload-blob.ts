@@ -1,3 +1,4 @@
+import { sanitizeFetchHeaders } from "../../infrastructure/fetch-header-utils";
 import { throwUploadError } from "./upload-errors";
 
 /**
@@ -12,10 +13,11 @@ export async function uploadBlob(
   headers: Record<string, string>,
 ): Promise<string> {
   try {
+    const safeHeaders = sanitizeFetchHeaders(headers);
     const response = await fetch(uploadUrl, {
       method: "PUT",
       body: data,
-      headers,
+      headers: safeHeaders,
     });
 
     if (!response.ok) {
