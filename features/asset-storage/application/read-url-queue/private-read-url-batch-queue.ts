@@ -18,8 +18,6 @@ export interface PrivateReadUrlBatchQueueDeps {
   onBatchResolved: (entries: Record<string, string>) => void;
 }
 
-type RuntimeBucketKey = string;
-
 interface BucketState {
   runtime: StorageReadRuntime | null;
   pending: Set<string>;
@@ -27,9 +25,7 @@ interface BucketState {
   promiseByUrl: Map<string, Promise<string | null>>;
 }
 
-function runtimeBucketKey(
-  runtime: StorageReadRuntime | null,
-): RuntimeBucketKey {
+function runtimeBucketKey(runtime: StorageReadRuntime | null): string {
   if (runtime === null) {
     return "__null__";
   }
@@ -41,7 +37,7 @@ function runtimeBucketKey(
  * Mirrors {@link SubmissionQueue} structure; owned by AssetStorageClientProvider via useRef.
  */
 export class PrivateReadUrlBatchQueue {
-  private readonly buckets = new Map<RuntimeBucketKey, BucketState>();
+  private readonly buckets = new Map<string, BucketState>();
 
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -196,7 +192,7 @@ export class PrivateReadUrlBatchQueue {
     }
   }
 
-  private async flushBucket(bucketKey: RuntimeBucketKey): Promise<void> {
+  private async flushBucket(bucketKey: string): Promise<void> {
     const bucket = this.buckets.get(bucketKey);
     if (bucket === undefined || bucket.pending.size === 0) {
       return;

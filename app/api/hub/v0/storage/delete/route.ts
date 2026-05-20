@@ -66,7 +66,7 @@ export async function DELETE(request: Request): Promise<Response> {
     return apiResponses.badRequest({ detail: "File URLs must be strings" });
   }
 
-  const fileUrls = data.fileUrls as string[];
+  const fileUrls = data.fileUrls;
   const scope = {
     formId: formIdResult.value,
     submissionId: submissionIdResult.value,
