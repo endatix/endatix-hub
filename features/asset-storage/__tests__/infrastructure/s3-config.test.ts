@@ -10,7 +10,6 @@ describe("getS3StorageConfig", () => {
     delete process.env.S3_ENDPOINT;
     delete process.env.S3_ACCESS_KEY_ID;
     delete process.env.S3_SECRET_ACCESS_KEY;
-    delete process.env.S3_PUBLIC_BASE_URL;
   });
 
   it("returns empty clientHostName when storage is disabled", () => {
@@ -33,20 +32,16 @@ describe("getS3StorageConfig", () => {
     expect(config.protocol).toBe("http");
   });
 
-  it("prefers S3_PUBLIC_BASE_URL for clientHostName when set", () => {
-    process.env.S3_ENDPOINT = "http://internal:9000";
-    process.env.S3_PUBLIC_BASE_URL = "https://cdn.example.com";
+  it("throws when enabled but endpoint URL is invalid", () => {
+    process.env.S3_ENDPOINT = "https://invalid url";
     process.env.S3_ACCESS_KEY_ID = "key";
     process.env.S3_SECRET_ACCESS_KEY = "secret";
 
-    const config = getS3StorageConfig();
-
-    expect(config.clientHostName).toBe("cdn.example.com");
-    expect(config.protocol).toBe("https");
+    expect(() => getS3StorageConfig()).toThrow(MisconfigurationError);
   });
 
-  it("throws when enabled but endpoint URL is invalid", () => {
-    process.env.S3_ENDPOINT = "https://invalid url";
+  it("throws when endpoint includes a path", () => {
+    process.env.S3_ENDPOINT = "https://rustfs.local:9000/bucket";
     process.env.S3_ACCESS_KEY_ID = "key";
     process.env.S3_SECRET_ACCESS_KEY = "secret";
 

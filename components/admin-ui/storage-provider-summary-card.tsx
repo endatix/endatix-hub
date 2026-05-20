@@ -146,12 +146,6 @@ export function StorageProviderSummaryCard({
                 label="Path-style"
                 value={summary.s3.forcePathStyle ? "Yes" : "No"}
               />
-              {summary.s3.publicBaseUrl !== undefined && (
-                <DetailRow
-                  label="Public base URL"
-                  value={summary.s3.publicBaseUrl}
-                />
-              )}
               <DetailRow
                 label="Read presign expiry"
                 value={`${summary.s3.sasReadExpiryMinutes} min`}

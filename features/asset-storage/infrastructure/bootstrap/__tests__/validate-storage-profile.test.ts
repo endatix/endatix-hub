@@ -15,7 +15,6 @@ describe("validateStorageProfile", () => {
     delete process.env.S3_ENDPOINT;
     delete process.env.S3_ACCESS_KEY_ID;
     delete process.env.S3_SECRET_ACCESS_KEY;
-    delete process.env.S3_PUBLIC_BASE_URL;
     delete process.env.AZURE_STORAGE_ACCOUNT_NAME;
     delete process.env.AZURE_STORAGE_ACCOUNT_KEY;
     delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;

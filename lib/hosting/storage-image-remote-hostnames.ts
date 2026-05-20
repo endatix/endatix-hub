@@ -16,7 +16,7 @@ export {
   isS3StorageCredentialsPresentInEnv,
 } from "./storage-env-predicates";
 
-const S3_PUBLIC_HOST_ENV_KEYS = ["S3_ENDPOINT", "S3_PUBLIC_BASE_URL"] as const;
+const S3_ENDPOINT_ENV_KEYS = ["S3_ENDPOINT"] as const;
 
 function collectS3ImageHostname(): string | null {
   if (!isS3StorageCredentialsPresentInEnv()) {
@@ -25,11 +25,11 @@ function collectS3ImageHostname(): string | null {
 
   const resolved = resolveStoragePublicHost({
     provider: "s3",
-    endpoint: process.env.S3_ENDPOINT,
-    publicBaseUrl: process.env.S3_PUBLIC_BASE_URL,
+    url: process.env.S3_ENDPOINT,
     requireWhenEnabled: true,
-    missingEnvKeys: S3_PUBLIC_HOST_ENV_KEYS,
-    misconfiguredEnvKeys: S3_PUBLIC_HOST_ENV_KEYS,
+    missingEnvKeys: S3_ENDPOINT_ENV_KEYS,
+    misconfiguredEnvKeys: S3_ENDPOINT_ENV_KEYS,
+    requireOriginOnly: true,
   });
   return resolved.host.length > 0 ? resolved.host : null;
 }

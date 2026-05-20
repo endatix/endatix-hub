@@ -14,7 +14,6 @@ describe("resolveEndatixSettings", () => {
     delete process.env.AZURE_STORAGE_ACCOUNT_NAME;
     delete process.env.AZURE_STORAGE_ACCOUNT_KEY;
     delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
-    delete process.env.S3_PUBLIC_BASE_URL;
     delete process.env.ENDATIX_RESOLVED_STORAGE_VERSION;
     delete process.env.ENDATIX_RESOLVED_STORAGE_PROVIDER;
     delete process.env.ENDATIX_RESOLVED_AZURE_CREDENTIALS;
@@ -58,12 +57,11 @@ describe("resolveEndatixSettings", () => {
       expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
-    it("STORAGE_PROVIDER=s3 adds S3_PUBLIC_BASE_URL hostname when credentials are set", () => {
+    it("STORAGE_PROVIDER=s3 adds S3_ENDPOINT hostname when credentials are set", () => {
       process.env.STORAGE_PROVIDER = "s3";
-      process.env.S3_ENDPOINT = "http://internal:9000";
+      process.env.S3_ENDPOINT = "https://rust.example.com";
       process.env.S3_ACCESS_KEY_ID = "k";
       process.env.S3_SECRET_ACCESS_KEY = "secret";
-      process.env.S3_PUBLIC_BASE_URL = "https://rust.example.com/bucket";
       const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
       expect(r.storage.imageRemoteHostnames).toEqual(["rust.example.com"]);
     });
@@ -119,12 +117,11 @@ describe("resolveEndatixSettings", () => {
       expect(r.storage.imageRemoteHostnames).toEqual([]);
     });
 
-    it("S3_PUBLIC_BASE_URL adds hostname only when STORAGE_PROVIDER=s3", () => {
+    it("S3_ENDPOINT adds hostname only when STORAGE_PROVIDER=s3", () => {
       process.env.STORAGE_PROVIDER = "s3";
-      process.env.S3_ENDPOINT = "http://localhost:9000";
+      process.env.S3_ENDPOINT = "https://cdn.example.com";
       process.env.S3_ACCESS_KEY_ID = "k";
       process.env.S3_SECRET_ACCESS_KEY = "secret";
-      process.env.S3_PUBLIC_BASE_URL = "https://cdn.example.com/assets";
       const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
       expect(r.storage.imageRemoteHostnames).toEqual(["cdn.example.com"]);
     });

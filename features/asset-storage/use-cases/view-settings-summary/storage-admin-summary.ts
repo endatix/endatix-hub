@@ -20,7 +20,6 @@ export type StorageAdminS3Details = {
   readonly endpoint: string;
   readonly region: string;
   readonly forcePathStyle: boolean;
-  readonly publicBaseUrl: string | undefined;
   readonly sasReadExpiryMinutes: number;
   readonly sasWriteExpirySeconds: number;
 };
@@ -40,7 +39,6 @@ function mapS3AdminDetails(): StorageAdminS3Details {
     endpoint: config.endpoint,
     region: config.region,
     forcePathStyle: config.forcePathStyle,
-    publicBaseUrl: config.publicBaseUrl,
     sasReadExpiryMinutes: config.sasReadExpiryMinutes,
     sasWriteExpirySeconds: config.sasWriteExpirySeconds,
   };

@@ -17,7 +17,7 @@ export function getAzureStoragePublicHostFromEnv(): StoragePublicHost | null {
 
   return resolveStoragePublicHost({
     provider: "azure",
-    publicBaseUrl: process.env.AZURE_STORAGE_CUSTOM_DOMAIN,
+    url: process.env.AZURE_STORAGE_CUSTOM_DOMAIN,
     requireWhenEnabled: true,
     missingEnvKeys: AZURE_PUBLIC_HOST_ENV_KEYS,
     misconfiguredEnvKeys: AZURE_PUBLIC_HOST_ENV_KEYS,

@@ -49,7 +49,6 @@ declare namespace NodeJS {
     S3_SECRET_ACCESS_KEY?: string;
     S3_REGION?: string;
     S3_FORCE_PATH_STYLE?: string;
-    S3_PUBLIC_BASE_URL?: string;
     S3_IS_PRIVATE?: string;
     S3_SAS_READ_EXPIRY_MINUTES?: string;
     S3_SAS_WRITE_EXPIRY_SECONDS?: string;

@@ -5,7 +5,7 @@ import {
   MissingConfigurationError,
 } from "../storage-configuration-errors";
 
-const S3_KEYS = ["S3_ENDPOINT", "S3_PUBLIC_BASE_URL"] as const;
+const S3_KEYS = ["S3_ENDPOINT"] as const;
 
 describe("resolveStoragePublicHost", () => {
   it("returns empty host when not required and no source", () => {
@@ -29,23 +29,22 @@ describe("resolveStoragePublicHost", () => {
     ).toThrow(MissingConfigurationError);
   });
 
-  it("prefers publicBaseUrl over endpoint", () => {
+  it("resolves configured endpoint", () => {
     const result = resolveStoragePublicHost({
       provider: "s3",
-      endpoint: "http://internal:9000",
-      publicBaseUrl: "https://cdn.example.com",
+      url: "https://rust.example.com",
       requireWhenEnabled: true,
       missingEnvKeys: S3_KEYS,
       misconfiguredEnvKeys: S3_KEYS,
     });
-    expect(result.host).toBe("cdn.example.com");
+    expect(result.host).toBe("rust.example.com");
     expect(result.protocol).toBe("https");
   });
 
   it("includes port in host for RustFS endpoints", () => {
     const result = resolveStoragePublicHost({
       provider: "s3",
-      endpoint: "http://rustfs.local:9000",
+      url: "http://rustfs.local:9000",
       requireWhenEnabled: true,
       missingEnvKeys: S3_KEYS,
       misconfiguredEnvKeys: S3_KEYS,
@@ -58,7 +57,7 @@ describe("resolveStoragePublicHost", () => {
     expect(() =>
       resolveStoragePublicHost({
         provider: "s3",
-        endpoint: "https://invalid url",
+        url: "https://invalid url",
         requireWhenEnabled: true,
         missingEnvKeys: S3_KEYS,
         misconfiguredEnvKeys: S3_KEYS,
@@ -69,12 +68,25 @@ describe("resolveStoragePublicHost", () => {
   it("normalizes bare hostname with https", () => {
     const result = resolveStoragePublicHost({
       provider: "azure",
-      publicBaseUrl: "myaccount.blob.core.windows.net",
+      url: "myaccount.blob.core.windows.net",
       requireWhenEnabled: true,
       missingEnvKeys: ["AZURE_STORAGE_CUSTOM_DOMAIN"],
       misconfiguredEnvKeys: ["AZURE_STORAGE_CUSTOM_DOMAIN"],
     });
     expect(result.host).toBe("myaccount.blob.core.windows.net");
     expect(result.protocol).toBe("https");
+  });
+
+  it("rejects paths when origin-only mode is required", () => {
+    expect(() =>
+      resolveStoragePublicHost({
+        provider: "s3",
+        url: "https://rust.example.com/bucket",
+        requireWhenEnabled: true,
+        missingEnvKeys: S3_KEYS,
+        misconfiguredEnvKeys: S3_KEYS,
+        requireOriginOnly: true,
+      }),
+    ).toThrow(MisconfigurationError);
   });
 });

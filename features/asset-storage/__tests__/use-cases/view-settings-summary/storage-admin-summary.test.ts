@@ -132,7 +132,6 @@ describe("getStorageAdminSummary", () => {
       accessKeyId: "key",
       secretAccessKey: "secret",
       forcePathStyle: true,
-      publicBaseUrl: undefined,
       sasReadExpiryMinutes: 20,
       sasWriteExpirySeconds: 300,
       containerNames: { USER_FILES: "user-files", CONTENT: "content" },

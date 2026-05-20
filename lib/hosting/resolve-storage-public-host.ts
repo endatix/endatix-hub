@@ -11,11 +11,11 @@ export type StoragePublicHost = {
 
 export type ResolveStoragePublicHostParams = {
   provider: StorageProviderId;
-  endpoint?: string;
-  publicBaseUrl?: string;
+  url?: string;
   requireWhenEnabled: boolean;
   missingEnvKeys: readonly string[];
   misconfiguredEnvKeys: readonly string[];
+  requireOriginOnly?: boolean;
 };
 
 function normalizeUrlSource(value: string): string {
@@ -38,9 +38,7 @@ function normalizeUrlSource(value: string): string {
 export function resolveStoragePublicHost(
   params: ResolveStoragePublicHostParams,
 ): StoragePublicHost {
-  const endpoint = params.endpoint?.trim() ?? "";
-  const publicBaseUrl = params.publicBaseUrl?.trim() ?? "";
-  const source = publicBaseUrl.length > 0 ? publicBaseUrl : endpoint;
+  const source = params.url?.trim() ?? "";
 
   if (source.length === 0) {
     if (!params.requireWhenEnabled) {
@@ -76,6 +74,20 @@ export function resolveStoragePublicHost(
   }
 
   const protocol = storageHostUrl.protocol === "http:" ? "http" : "https";
+
+  if (
+    params.requireOriginOnly === true &&
+    (storageHostUrl.pathname !== "/" ||
+      storageHostUrl.search.length > 0 ||
+      storageHostUrl.hash.length > 0)
+  ) {
+    throw new MisconfigurationError(
+      `Invalid storage URL "${source}". URL must be an origin without path, query, or fragment.`,
+      params.misconfiguredEnvKeys,
+      params.provider,
+      source,
+    );
+  }
 
   return { host: storageHostUrl.host, protocol };
 }

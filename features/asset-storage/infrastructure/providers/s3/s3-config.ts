@@ -23,7 +23,6 @@ export interface S3StorageConfig {
   accessKeyId: string;
   secretAccessKey: string;
   forcePathStyle: boolean;
-  publicBaseUrl: string | undefined;
   sasReadExpiryMinutes: number;
   sasWriteExpirySeconds: number;
   containerNames: Record<ContainerType, string>;
@@ -35,7 +34,7 @@ export interface S3StorageConfig {
 const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
 const DEFAULT_REGION = "us-east-1";
 
-const S3_PUBLIC_HOST_ENV_KEYS = ["S3_ENDPOINT", "S3_PUBLIC_BASE_URL"] as const;
+const S3_ENDPOINT_ENV_KEYS = ["S3_ENDPOINT"] as const;
 
 export function getS3StorageConfig(): S3StorageConfig {
   const endpoint = process.env.S3_ENDPOINT?.trim() ?? "";
@@ -45,15 +44,14 @@ export function getS3StorageConfig(): S3StorageConfig {
 
   const region = process.env.S3_REGION?.trim() || DEFAULT_REGION;
   const forcePathStyle = process.env.S3_FORCE_PATH_STYLE !== "false";
-  const publicBaseUrl = process.env.S3_PUBLIC_BASE_URL?.trim() || undefined;
 
   const { host: clientHostName, protocol } = resolveStoragePublicHost({
     provider: "s3",
-    endpoint,
-    publicBaseUrl,
+    url: endpoint,
     requireWhenEnabled: isEnabled,
-    missingEnvKeys: S3_PUBLIC_HOST_ENV_KEYS,
-    misconfiguredEnvKeys: S3_PUBLIC_HOST_ENV_KEYS,
+    missingEnvKeys: S3_ENDPOINT_ENV_KEYS,
+    misconfiguredEnvKeys: S3_ENDPOINT_ENV_KEYS,
+    requireOriginOnly: true,
   });
 
   const sasReadExpiryMinutes = parsePositiveInt(
@@ -73,7 +71,6 @@ export function getS3StorageConfig(): S3StorageConfig {
     accessKeyId,
     secretAccessKey,
     forcePathStyle,
-    publicBaseUrl,
     sasReadExpiryMinutes,
     sasWriteExpirySeconds,
     containerNames: getStorageContainerNames(),
