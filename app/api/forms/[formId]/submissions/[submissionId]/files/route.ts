@@ -6,7 +6,7 @@ import { Result } from "@/lib/result";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getClientStorageConfig } from "@/features/asset-storage/storage-runtime";
 import { EMPTY_FILE_HEADER } from "@/lib/utils/files-download";
-import { authorization, getSession, Permissions } from "@/features/auth";
+import { authorization, Permissions } from "@/features/auth";
 import { auth } from "@/auth";
 
 export async function GET(

@@ -126,8 +126,11 @@ export async function POST(request: Request): Promise<Response> {
         submissionId: effectiveSubmissionId,
         formLang: data.formLocale,
         questionName: data.questionName ?? "",
-        ...(fileState !== undefined ? { fileState } : {}),
       });
+
+      if (fileState !== undefined) {
+        blobUploadFileMetadata.fileState = fileState;
+      }
 
       const descriptor = await requireActiveStorageProvider().generateUploadUrl(
         {
