@@ -123,9 +123,25 @@ function isSafeRedirectUrl(url: string): boolean {
   return isValidAbsoluteUrl(trimmedUrl);
 }
 
+/**
+ * Trims trailing slashes from a string.
+ * @param value - The string to trim trailing slashes from.
+ * @returns The string with trailing slashes trimmed.
+ */
+function trimTrailingSlashes(value: string): string {
+  let end = value.length - 1;
+
+  while (end >= 0 && value[end] === "/") {
+    end -= 1;
+  }
+
+  return value.slice(0, end + 1);
+}
+
 export {
   extractHostname,
   toSafeRelativeUrl,
   isSafeRedirectUrl,
   isValidAbsoluteUrl,
+  trimTrailingSlashes,
 };

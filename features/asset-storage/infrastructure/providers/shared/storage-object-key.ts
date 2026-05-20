@@ -1,3 +1,5 @@
+import { trimTrailingSlashes } from "@/lib/utils/url-utils";
+
 /**
  * Builds object/blob key used by Azure and S3 providers (`folderPath/fileName` or `fileName`).
  */
@@ -7,7 +9,7 @@ export function buildStorageObjectKey(
 ): string {
   const trimmedFolder = folderPath?.trim();
   if (trimmedFolder !== undefined && trimmedFolder.length > 0) {
-    const folder = trimmedFolder.replace(/\/+$/, "");
+    const folder = trimTrailingSlashes(trimmedFolder);
 
     return `${folder}/${fileName}`;
   }
