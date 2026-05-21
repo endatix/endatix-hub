@@ -30,6 +30,15 @@ export const LEGACY_AZURE_STORAGE_ENV = {
   sasTokenExpiryMinutes: "AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES",
 } as const;
 
+const AZURE_LEGACY_FALLBACK: Partial<
+  Record<keyof typeof STORAGE_AZURE_ENV, string>
+> = {
+  accountName: LEGACY_AZURE_STORAGE_ENV.accountName,
+  accountKey: LEGACY_AZURE_STORAGE_ENV.accountKey,
+  endpoint: LEGACY_AZURE_STORAGE_ENV.customDomain,
+  sasReadExpiryMinutes: LEGACY_AZURE_STORAGE_ENV.sasTokenExpiryMinutes,
+};
+
 const STORAGE_IS_PRIVATE_ENV = "STORAGE_IS_PRIVATE";
 const STORAGE_PROVIDER_ENV = "STORAGE_PROVIDER";
 
@@ -46,30 +55,14 @@ export const STORAGE_S3_ENV = {
 export function readAzureStorageEnv(
   key: keyof typeof STORAGE_AZURE_ENV,
 ): string {
-  if (key === "accountName") {
-    return readEnvWithFallback(
-      STORAGE_AZURE_ENV.accountName,
-      LEGACY_AZURE_STORAGE_ENV.accountName,
-    );
-  }
-  if (key === "accountKey") {
-    return readEnvWithFallback(
-      STORAGE_AZURE_ENV.accountKey,
-      LEGACY_AZURE_STORAGE_ENV.accountKey,
-    );
-  }
-  if (key === "endpoint") {
-    return readEnvWithFallback(
-      STORAGE_AZURE_ENV.endpoint,
-      LEGACY_AZURE_STORAGE_ENV.customDomain,
-    );
-  }
-  if (key === "sasReadExpiryMinutes") {
-    const value = readEnvWithFallback(
-      STORAGE_AZURE_ENV.sasReadExpiryMinutes,
-      LEGACY_AZURE_STORAGE_ENV.sasTokenExpiryMinutes,
-    );
+  const canonical = STORAGE_AZURE_ENV[key];
+  const legacy = AZURE_LEGACY_FALLBACK[key];
+  const value =
+    legacy === undefined
+      ? readTrimmedEnv(canonical)
+      : readEnvWithFallback(canonical, legacy);
 
+  if (key === "sasReadExpiryMinutes") {
     if (
       value.length > 0 &&
       readTrimmedEnv(STORAGE_AZURE_ENV.sasReadExpiryMinutes).length === 0
@@ -79,7 +72,8 @@ export function readAzureStorageEnv(
 
     return value;
   }
-  return readTrimmedEnv(STORAGE_AZURE_ENV[key]);
+
+  return value;
 }
 
 export function readS3StorageEnv(key: keyof typeof STORAGE_S3_ENV): string {
