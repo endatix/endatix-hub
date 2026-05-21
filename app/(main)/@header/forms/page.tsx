@@ -2,8 +2,11 @@ import { auth } from "@/auth";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildFormsBreadcrumbModel } from "@/features/folders/view-forms-header";
-import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
+import {
+  getFormsHeaderDataCached,
+  buildFormsBreadcrumbModel,
+} from "@/features/folders/view-forms-header";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
@@ -62,12 +65,14 @@ async function FormsHeaderActions({
   const headerData = await headerDataPromise;
 
   return (
-    <FormAssistantProvider
-      isAssistantEnabled={aiFeatureFlag}
-      requireFolderForNewForms={headerData.requireFolderForNewForms}
-      assignableFolders={headerData.assignableFolders}
-    >
-      <CreateFormSheet />
-    </FormAssistantProvider>
+    <AssetStorageProvider>
+      <FormAssistantProvider
+        isAssistantEnabled={aiFeatureFlag}
+        requireFolderForNewForms={headerData.requireFolderForNewForms}
+        assignableFolders={headerData.assignableFolders}
+      >
+        <CreateFormSheet />
+      </FormAssistantProvider>
+    </AssetStorageProvider>
   );
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Result } from "@/lib/result";
 import {
   USER_FILES_PREFIX,
+  buildContentFolderPath,
   buildUserFileFolderPath,
   buildUserFilePath,
   buildUserFileMetadata,
@@ -179,5 +180,25 @@ describe("buildUserFileMetadata", () => {
 describe("USER_FILES_PREFIX", () => {
   it("is s/", () => {
     expect(USER_FILES_PREFIX).toBe("s/");
+  });
+});
+
+describe("buildContentFolderPath", () => {
+  it("returns f/{formId} for form content", () => {
+    const result = buildContentFolderPath("form", "form-1");
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value).toBe("f/form-1");
+    }
+  });
+
+  it("returns t/{templateId} for template content", () => {
+    const result = buildContentFolderPath("template", "template-1");
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value).toBe("t/template-1");
+    }
   });
 });

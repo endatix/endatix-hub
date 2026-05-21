@@ -31,6 +31,51 @@ describe("assertDesignerObjectAccess", () => {
     expect(error).toBeNull();
   });
 
+  it("allows scoped template content under templateId", () => {
+    const error = assertDesignerObjectAccess(
+      {
+        containerName: "content",
+        blobName: "t/template-1/logo.svg",
+        hostName: "storage.example.com",
+        containerType: "CONTENT",
+        isPrivate: true,
+      },
+      { templateId: "template-1" },
+      storageConfig,
+    );
+    expect(error).toBeNull();
+  });
+
+  it("allows copied template content while editing a form", () => {
+    const error = assertDesignerObjectAccess(
+      {
+        containerName: "content",
+        blobName: "t/template-1/logo.svg",
+        hostName: "storage.example.com",
+        containerType: "CONTENT",
+        isPrivate: true,
+      },
+      { formId: "42" },
+      storageConfig,
+    );
+    expect(error).toBeNull();
+  });
+
+  it("denies content outside form and template namespaces", () => {
+    const error = assertDesignerObjectAccess(
+      {
+        containerName: "content",
+        blobName: "x/42/logo.svg",
+        hostName: "storage.example.com",
+        containerType: "CONTENT",
+        isPrivate: false,
+      },
+      { formId: "42" },
+      storageConfig,
+    );
+    expect(error).toContain("content namespace");
+  });
+
   it("denies user-files without submissionId", () => {
     const error = assertDesignerObjectAccess(
       {

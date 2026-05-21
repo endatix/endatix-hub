@@ -37,7 +37,11 @@ const createMockFile = (name = "test.jpg"): File => {
   return file;
 };
 
-const mockFetchSuccess = (questionName: string) => {
+const mockFetchSuccess = (
+  questionName: string,
+  itemType: "form" | "template" = "form",
+) => {
+  const contentPrefix = itemType === "form" ? "f" : "t";
   global.fetch = vi
     .fn()
     .mockResolvedValueOnce({
@@ -46,15 +50,15 @@ const mockFetchSuccess = (questionName: string) => {
         Promise.resolve({
           uploads: {
             "test.jpg": {
-              url: `https://account.blob.core.windows.net/content/f/test-item/unique.jpg?sas=token`,
+              url: `https://account.blob.core.windows.net/content/${contentPrefix}/test-item/unique.jpg?sas=token`,
               headers: { "x-ms-blob-type": "BlockBlob" },
-              key: "f/test-item/unique.jpg",
+              key: `${contentPrefix}/test-item/unique.jpg`,
             },
           },
           uploadMetadata: {
             userId: "user-1",
             itemId: "test-item",
-            contentItemType: "form",
+            contentItemType: itemType,
             questionName,
           },
         }),
@@ -174,6 +178,52 @@ describe("useContentUpload", () => {
     expect(options.callback).toHaveBeenCalledWith(
       "success",
       "https://account.blob.core.windows.net/content/f/test-item/unique.jpg",
+    );
+  });
+
+  it("should request template content upload urls for template editor uploads", async () => {
+    const creator = createMockCreatorModel();
+    const { result } = renderHook(
+      () => useContentUpload({ itemId: "test-item", itemType: "template" }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.registerUploadHandlers(creator);
+    });
+
+    const options: UploadFileEvent = {
+      files: [createMockFile()],
+      callback: vi.fn(),
+      element: { name: "templateLogo" } as any,
+      elementType: "question",
+      propertyName: "templateLogo",
+      question: {} as any,
+    };
+
+    mockFetchSuccess("templateLogo", "template");
+
+    await act(async () => {
+      await creator._handlers.onUploadFile(creator, options);
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/hub/v0/storage/content/upload-urls",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          itemId: "test-item",
+          itemType: "template",
+          fileNames: ["test.jpg"],
+          questionName: "templateLogo",
+          fileTypes: { "test.jpg": "image/jpeg" },
+          fileStates: { "test.jpg": "original" },
+        }),
+      }),
+    );
+    expect(options.callback).toHaveBeenCalledWith(
+      "success",
+      "https://account.blob.core.windows.net/content/t/test-item/unique.jpg",
     );
   });
 

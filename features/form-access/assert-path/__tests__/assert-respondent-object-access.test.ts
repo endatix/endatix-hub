@@ -100,6 +100,21 @@ describe("assertStorageObjectAccess", () => {
     expect(error).toContain("content namespace");
   });
 
+  it("rejects content under an unknown namespace", () => {
+    const error = assertStorageObjectAccess(
+      {
+        containerName: "content",
+        blobName: "x/100/logo.png",
+        hostName: "storage.example.com",
+        containerType: "CONTENT",
+        isPrivate: true,
+      },
+      access,
+      storageConfig,
+    );
+    expect(error).toContain("content namespace");
+  });
+
   it("rejects user-files for another form", () => {
     const error = assertStorageObjectAccess(
       {
