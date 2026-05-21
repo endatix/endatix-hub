@@ -94,8 +94,17 @@ describe("Admin Environment Page", () => {
         expect(body).not.toContain("my-secret-key");
         expect(body).not.toContain("my-secret-access-key");
       } finally {
-        process.env.STORAGE_AZURE_ACCOUNT_KEY = origKey;
-        process.env.STORAGE_S3_SECRET_ACCESS_KEY = origSecret;
+        if (origKey === undefined) {
+          delete process.env.STORAGE_AZURE_ACCOUNT_KEY;
+        } else {
+          process.env.STORAGE_AZURE_ACCOUNT_KEY = origKey;
+        }
+
+        if (origSecret === undefined) {
+          delete process.env.STORAGE_S3_SECRET_ACCESS_KEY;
+        } else {
+          process.env.STORAGE_S3_SECRET_ACCESS_KEY = origSecret;
+        }
       }
     });
   });

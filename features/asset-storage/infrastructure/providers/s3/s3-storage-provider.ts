@@ -109,6 +109,10 @@ export class S3StorageProvider implements IStorageProvider {
     this._client = null;
   }
 
+  __setClientForTests(client: S3Client): void {
+    this._client = client;
+  }
+
   /**
    * Check if the S3 storage is enabled.
    * @returns True if the S3 storage is enabled, false otherwise.

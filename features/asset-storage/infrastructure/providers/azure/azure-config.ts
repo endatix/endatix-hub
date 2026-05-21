@@ -5,6 +5,7 @@ import {
 import type { ContainerType } from "@/features/asset-storage/types";
 import { getAzureStoragePublicHostFromEnv } from "@/lib/hosting/azure-blob-remote-hostname";
 import {
+  LEGACY_AZURE_STORAGE_ENV,
   isStoragePrivateFromEnv,
   isAzureStorageCredentialsPresentInEnv,
   readAzureStorageEnv,
@@ -14,9 +15,9 @@ import {
   type ClientStorageConfig,
 } from "../shared/client-storage-config";
 import {
-  DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS,
   getStorageContainerNames,
   parsePositiveInt,
+  parseWriteExpirySecondsFromEnv,
 } from "../shared/container-names";
 
 export interface IStorageConfig {
@@ -55,9 +56,9 @@ export function getAzureStorageConfig(): AzureStorageConfig {
     DEFAULT_SAS_READ_EXPIRY_MINUTES,
   );
 
-  const sasWriteExpirySeconds = parsePositiveInt(
+  const sasWriteExpirySeconds = parseWriteExpirySecondsFromEnv(
     readAzureStorageEnv("sasWriteExpirySeconds"),
-    DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS,
+    process.env[LEGACY_AZURE_STORAGE_ENV.sasTokenExpiryMinutes],
   );
 
   return Object.freeze({

@@ -262,8 +262,6 @@ describe("Active storage provider", () => {
 
     it("should return error when storage is not private", async () => {
       // Arrange
-      process.env.STORAGE_AZURE_ACCOUNT_NAME = mockAccountName;
-      process.env.STORAGE_AZURE_ACCOUNT_KEY = mockAccountKey;
       process.env.STORAGE_IS_PRIVATE = "false";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =

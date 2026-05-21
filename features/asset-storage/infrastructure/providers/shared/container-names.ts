@@ -37,3 +37,19 @@ export function parsePositiveInt(
 
 /** Default write presign TTL in seconds (Azure SAS and S3 PUT). */
 export const DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS = 180;
+
+export function parseWriteExpirySecondsFromEnv(
+  writeSecondsEnv: string | undefined,
+  legacyAzureMinutesEnv: string | undefined,
+): number {
+  if (writeSecondsEnv !== undefined && writeSecondsEnv.length > 0) {
+    return parsePositiveInt(writeSecondsEnv, DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS);
+  }
+
+  if (legacyAzureMinutesEnv !== undefined && legacyAzureMinutesEnv.length > 0) {
+    const minutes = parsePositiveInt(legacyAzureMinutesEnv, 3);
+    return minutes * 60;
+  }
+
+  return DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS;
+}

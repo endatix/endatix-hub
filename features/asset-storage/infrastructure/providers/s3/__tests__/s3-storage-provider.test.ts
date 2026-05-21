@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  S3Client,
 } from "@aws-sdk/client-s3";
 import { Result } from "@/lib/result";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,11 +21,8 @@ describe("S3StorageProvider", () => {
     provider: S3StorageProvider,
     send: SendMock,
   ): void {
-    (
-      provider as unknown as {
-        _client: { send: SendMock };
-      }
-    )._client = { send };
+    const client = Object.assign(new S3Client({}), { send });
+    provider.__setClientForTests(client);
   }
 
   beforeEach(() => {
@@ -186,7 +184,8 @@ describe("S3StorageProvider", () => {
     const provider = new S3StorageProvider();
     const send = vi.fn(async (command: S3Command) => {
       expect(command).toBeInstanceOf(HeadObjectCommand);
-      if (command.input.Key === "missing.txt") {
+      const input = (command as HeadObjectCommand).input;
+      if (input.Key === "missing.txt") {
         throw new Error("not found");
       }
       return {
@@ -244,6 +243,10 @@ describe("S3StorageProvider", () => {
     });
 
     expect(Result.isError(result)).toBe(true);
-    expect(result.message).toContain("not private");
+    if (Result.isError(result)) {
+      expect(result.message).toContain("not private");
+    } else {
+      expect.fail("Expected bulkGenerateReadTokens to fail for public storage");
+    }
   });
 });

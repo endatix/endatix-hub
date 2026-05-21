@@ -29,6 +29,7 @@ describe("AzureStorageConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
+    delete process.env.STORAGE_PROVIDER;
     delete process.env.STORAGE_AZURE_ACCOUNT_NAME;
     delete process.env.STORAGE_AZURE_ACCOUNT_KEY;
     delete process.env.STORAGE_AZURE_ENDPOINT;
@@ -164,7 +165,7 @@ describe("AzureStorageConfig", () => {
         expect(config.isPrivate).toBe(true);
       });
 
-      it("should keep typo values private", () => {
+      it("treats any value other than 'false' as private (fail-secure default)", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
         process.env.STORAGE_IS_PRIVATE = "1";
@@ -179,6 +180,7 @@ describe("AzureStorageConfig", () => {
       it("uses AZURE_STORAGE_IS_PRIVATE as legacy fallback", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
+        process.env.STORAGE_PROVIDER = "azure";
         process.env.AZURE_STORAGE_IS_PRIVATE = "false";
 
         // Act

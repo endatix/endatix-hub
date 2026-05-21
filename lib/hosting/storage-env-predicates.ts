@@ -27,9 +27,11 @@ export const LEGACY_AZURE_STORAGE_ENV = {
   accountKey: "AZURE_STORAGE_ACCOUNT_KEY",
   customDomain: "AZURE_STORAGE_CUSTOM_DOMAIN",
   isPrivate: "AZURE_STORAGE_IS_PRIVATE",
+  sasTokenExpiryMinutes: "AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES",
 } as const;
 
 const STORAGE_IS_PRIVATE_ENV = "STORAGE_IS_PRIVATE";
+const STORAGE_PROVIDER_ENV = "STORAGE_PROVIDER";
 
 export const STORAGE_S3_ENV = {
   endpoint: "STORAGE_S3_ENDPOINT",
@@ -62,6 +64,21 @@ export function readAzureStorageEnv(
       LEGACY_AZURE_STORAGE_ENV.customDomain,
     );
   }
+  if (key === "sasReadExpiryMinutes") {
+    const value = readEnvWithFallback(
+      STORAGE_AZURE_ENV.sasReadExpiryMinutes,
+      LEGACY_AZURE_STORAGE_ENV.sasTokenExpiryMinutes,
+    );
+
+    if (
+      value.length > 0 &&
+      readTrimmedEnv(STORAGE_AZURE_ENV.sasReadExpiryMinutes).length === 0
+    ) {
+      process.env[STORAGE_AZURE_ENV.sasReadExpiryMinutes] = value;
+    }
+
+    return value;
+  }
   return readTrimmedEnv(STORAGE_AZURE_ENV[key]);
 }
 
@@ -70,10 +87,14 @@ export function readS3StorageEnv(key: keyof typeof STORAGE_S3_ENV): string {
 }
 
 export function isStoragePrivateFromEnv(): boolean {
+  const storageProvider = readTrimmedEnv(STORAGE_PROVIDER_ENV).toLowerCase();
+  const legacyFallback =
+    storageProvider === "azure" ? LEGACY_AZURE_STORAGE_ENV.isPrivate : "";
+
   return (
     readEnvWithFallback(
       STORAGE_IS_PRIVATE_ENV,
-      LEGACY_AZURE_STORAGE_ENV.isPrivate,
+      legacyFallback,
     ).toLowerCase() !== "false"
   );
 }

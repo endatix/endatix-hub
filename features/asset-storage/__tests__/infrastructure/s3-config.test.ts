@@ -14,6 +14,8 @@ describe("getS3StorageConfig", () => {
     delete process.env.STORAGE_S3_ACCESS_KEY_ID;
     delete process.env.STORAGE_S3_SECRET_ACCESS_KEY;
     delete process.env.STORAGE_IS_PRIVATE;
+    delete process.env.STORAGE_PROVIDER;
+    delete process.env.AZURE_STORAGE_IS_PRIVATE;
   });
 
   it("returns empty clientHostName when storage is disabled", () => {
@@ -63,6 +65,18 @@ describe("getS3StorageConfig", () => {
     const config = getS3StorageConfig();
 
     expect(config.isPrivate).toBe(false);
+  });
+
+  it("ignores Azure legacy privacy fallback for S3 storage", () => {
+    process.env.STORAGE_PROVIDER = "s3";
+    process.env.STORAGE_S3_ENDPOINT = "http://rustfs.local:9000";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
+    process.env.AZURE_STORAGE_IS_PRIVATE = "false";
+
+    const config = getS3StorageConfig();
+
+    expect(config.isPrivate).toBe(true);
   });
 
   it("throws when endpoint includes a path", () => {
