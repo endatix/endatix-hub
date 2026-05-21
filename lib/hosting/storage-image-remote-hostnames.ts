@@ -1,6 +1,10 @@
 import { getAzureStoragePublicHostFromEnv } from "./azure-blob-remote-hostname";
 import { resolveStoragePublicHost } from "./resolve-storage-public-host";
-import { isS3StorageCredentialsPresentInEnv } from "./storage-env-predicates";
+import {
+  STORAGE_S3_ENV,
+  isS3StorageCredentialsPresentInEnv,
+  readS3StorageEnv,
+} from "./storage-env-predicates";
 
 /**
  * Normalized `STORAGE_PROVIDER` env value.
@@ -13,7 +17,7 @@ export {
   isS3StorageCredentialsPresentInEnv,
 } from "./storage-env-predicates";
 
-const S3_ENDPOINT_ENV_KEYS = ["S3_ENDPOINT"] as const;
+const S3_ENDPOINT_ENV_KEYS = [STORAGE_S3_ENV.endpoint] as const;
 
 function collectS3ImageHostname(): string | null {
   if (!isS3StorageCredentialsPresentInEnv()) {
@@ -22,7 +26,7 @@ function collectS3ImageHostname(): string | null {
 
   const resolved = resolveStoragePublicHost({
     provider: "s3",
-    url: process.env.S3_ENDPOINT,
+    url: readS3StorageEnv("endpoint"),
     requireWhenEnabled: true,
     missingEnvKeys: S3_ENDPOINT_ENV_KEYS,
     misconfiguredEnvKeys: S3_ENDPOINT_ENV_KEYS,

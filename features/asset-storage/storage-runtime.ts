@@ -3,7 +3,7 @@ import { IMAGE_SERVICE_CONFIG } from "./infrastructure/image-service";
 import { storageRegistry } from "./infrastructure/core";
 import { registerStorageProviders } from "./infrastructure/bootstrap/register-providers";
 import type { IStorageProvider } from "./infrastructure/core/storage-provider.interface";
-import type { ClientStorageConfig } from "./infrastructure/providers/shared/client-storage-config";
+import type { ClientStorageConfig } from "@endatix/storage-core";
 
 /** Active storage provider state from the registry (after bootstrap registration). */
 export type StorageRuntimeSettings = {

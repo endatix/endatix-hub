@@ -37,28 +37,37 @@ declare namespace NodeJS {
     SLACK_REDIRECT_URI?: string;
 
     // Storage:General
-    
     /** Set to `azure`, `s3`, or `none`. Required for storage registration (no credential-only auto mode). */
     STORAGE_PROVIDER?: string;
-    USER_FILES_STORAGE_CONTAINER_NAME?: string;
-    CONTENT_STORAGE_CONTAINER_NAME?: string;
+    /** Defaults to true. Set to "false" only for public storage. */
+    STORAGE_IS_PRIVATE?: string;
+    STORAGE_USER_FILES_CONTAINER_NAME?: string;
+    STORAGE_CONTENT_FILES_CONTAINER_NAME?: string;
 
     // Storage: S3-compatible (RustFS)
-    S3_ENDPOINT?: string;
-    S3_ACCESS_KEY_ID?: string;
-    S3_SECRET_ACCESS_KEY?: string;
-    S3_REGION?: string;
-    S3_FORCE_PATH_STYLE?: string;
-    S3_IS_PRIVATE?: string;
-    S3_SAS_READ_EXPIRY_MINUTES?: string;
-    S3_SAS_WRITE_EXPIRY_SECONDS?: string;
+    STORAGE_S3_ENDPOINT?: string;
+    STORAGE_S3_ACCESS_KEY_ID?: string;
+    STORAGE_S3_SECRET_ACCESS_KEY?: string;
+    STORAGE_S3_REGION?: string;
+    STORAGE_S3_FORCE_PATH_STYLE?: string;
+    STORAGE_S3_READ_EXPIRY_MINUTES?: string;
+    STORAGE_S3_WRITE_EXPIRY_SECONDS?: string;
 
     // Storage:Azure
+    STORAGE_AZURE_ACCOUNT_NAME?: string;
+    STORAGE_AZURE_ACCOUNT_KEY?: string;
+    STORAGE_AZURE_ENDPOINT?: string;
+    STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES?: string;
+    STORAGE_AZURE_SAS_WRITE_EXPIRY_SECONDS?: string;
+
+    // Storage:Azure legacy fallbacks
     AZURE_STORAGE_ACCOUNT_NAME?: string;
     AZURE_STORAGE_ACCOUNT_KEY?: string;
     AZURE_STORAGE_CUSTOM_DOMAIN?: string;
     AZURE_STORAGE_IS_PRIVATE?: string;
     AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES?: string;
+    USER_FILES_STORAGE_CONTAINER_NAME?: string;
+    CONTENT_STORAGE_CONTAINER_NAME?: string;
 
     // Image Resize
     RESIZE_IMAGES?: string;

@@ -2,10 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
 import { getUserFile } from "@/features/asset-storage/use-cases/get-user-file/get-use-file.use-case";
 import * as storageRuntime from "@/features/asset-storage/storage-runtime";
-import * as storageConfig from "@endatix/storage-azure";
 import * as blobMetadataParserModule from "@/features/asset-storage/infrastructure/providers/shared/blob-metadata-parser";
 import * as storageUtils from "@/features/asset-storage/infrastructure/storage-utils";
-import type { ClientStorageConfig } from "@endatix/storage-azure";
+import type { ClientStorageConfig } from "@endatix/storage-core";
 
 const { mockStorageProvider } = vi.hoisted(() => ({
   mockStorageProvider: {
@@ -26,10 +25,6 @@ vi.mock("@/features/asset-storage/storage-runtime", async (importOriginal) => {
     getActiveStorageProvider: vi.fn(() => mockStorageProvider),
   };
 });
-
-vi.mock("@endatix/storage-azure", () => ({
-  getContainerUrl: vi.fn(),
-}));
 
 vi.mock(
   "@/features/asset-storage/infrastructure/providers/shared/blob-metadata-parser",
@@ -96,7 +91,6 @@ describe("getUserFile", () => {
     vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue(
       publicClientConfig,
     );
-    vi.mocked(storageConfig.getContainerUrl).mockReturnValue(mockBaseUrl);
     vi.mocked(storageUtils.buildUserFilePath).mockReturnValue(
       Result.success(mockBlobName),
     );
@@ -168,10 +162,6 @@ describe("getUserFile", () => {
       expect(result.value.originalFileName).toBe(mockMetadata.originalFileName);
       expect(result.value.questionName).toBe(mockMetadata.questionName);
     }
-    expect(storageConfig.getContainerUrl).toHaveBeenCalledWith(
-      mockContainerName,
-      publicClientConfig,
-    );
     expect(storageUtils.buildUserFilePath).toHaveBeenCalledWith(
       formId,
       submissionId,

@@ -112,9 +112,9 @@ describe("Active storage provider", () => {
     vi.clearAllMocks();
     vi.resetModules();
     process.env.STORAGE_PROVIDER = "azure";
-    process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-    process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-    process.env.AZURE_STORAGE_CUSTOM_DOMAIN = `${mockAccountName}.blob.core.windows.net`;
+    process.env.STORAGE_AZURE_ACCOUNT_NAME = mockAccountName;
+    process.env.STORAGE_AZURE_ACCOUNT_KEY = mockAccountKey;
+    process.env.STORAGE_AZURE_ENDPOINT = `${mockAccountName}.blob.core.windows.net`;
   });
 
   describe("generateUploadUrl", () => {
@@ -262,9 +262,7 @@ describe("Active storage provider", () => {
 
     it("should return error when storage is not private", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-      delete process.env.AZURE_STORAGE_IS_PRIVATE;
+      process.env.STORAGE_IS_PRIVATE = "false";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -285,7 +283,7 @@ describe("Active storage provider", () => {
 
     it("should return validation error when containerName is not provided", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -306,7 +304,7 @@ describe("Active storage provider", () => {
 
     it("should return validation error when resourceType is not provided", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -327,7 +325,7 @@ describe("Active storage provider", () => {
 
     it("should return validation error when resourceNames are missing for file type", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -349,7 +347,7 @@ describe("Active storage provider", () => {
     });
 
     it("rejects container-level read token requests", async () => {
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -371,7 +369,7 @@ describe("Active storage provider", () => {
 
     it("should generate blob-level tokens for multiple files", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -413,7 +411,7 @@ describe("Active storage provider", () => {
 
     it("should use custom expiresInMinutes when provided", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -443,8 +441,8 @@ describe("Active storage provider", () => {
 
     it("should use default expiresInMinutes when not provided", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
-      process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
+      process.env.STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES = "30";
       vi.resetModules();
       const { bulkGenerateReadTokens: generateReadTokens } =
         await loadStorageProvider();
@@ -470,7 +468,7 @@ describe("Active storage provider", () => {
 
     it("should handle errors gracefully", async () => {
       // Arrange
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_IS_PRIVATE = "true";
       vi.resetModules();
       const error = new Error("SAS generation failed");
       vi.mocked(generateBlobSASQueryParameters).mockImplementationOnce(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ClientStorageConfig } from "@endatix/storage-azure";
+import type { ClientStorageConfig } from "@endatix/storage-core";
 import React, {
   createContext,
   use,

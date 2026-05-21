@@ -4,7 +4,12 @@ import {
 } from "@/features/asset-storage/infrastructure/image-service";
 import type { ContainerType } from "@/features/asset-storage/types";
 import { getAzureStoragePublicHostFromEnv } from "@/lib/hosting/azure-blob-remote-hostname";
-import { isAzureStorageCredentialsPresentInEnv } from "@/lib/hosting/storage-env-predicates";
+import {
+  LEGACY_AZURE_STORAGE_ENV,
+  isStoragePrivateFromEnv,
+  isAzureStorageCredentialsPresentInEnv,
+  readAzureStorageEnv,
+} from "@/lib/hosting/storage-env-predicates";
 import {
   buildClientStorageConfig,
   type ClientStorageConfig,
@@ -38,30 +43,29 @@ export interface StorageConfigClient {
 const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
 
 export function getAzureStorageConfig(): AzureStorageConfig {
-  const { AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY } = process.env;
-
   const isEnabled = isAzureStorageCredentialsPresentInEnv();
-  const accountName = AZURE_STORAGE_ACCOUNT_NAME || "";
+  const accountName = readAzureStorageEnv("accountName");
+  const accountKey = readAzureStorageEnv("accountKey");
 
   const publicHost = isEnabled ? getAzureStoragePublicHostFromEnv() : null;
   const hostName = publicHost?.host ?? "";
   const protocol = publicHost?.protocol ?? "https";
 
   const sasReadExpiryMinutes = parsePositiveInt(
-    process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES,
+    readAzureStorageEnv("sasReadExpiryMinutes"),
     DEFAULT_SAS_READ_EXPIRY_MINUTES,
   );
 
   const sasWriteExpirySeconds = parseWriteExpirySecondsFromEnv(
-    process.env.AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES,
-    process.env.S3_SAS_WRITE_EXPIRY_SECONDS,
+    readAzureStorageEnv("sasWriteExpirySeconds"),
+    process.env[LEGACY_AZURE_STORAGE_ENV.sasTokenExpiryMinutes],
   );
 
   return Object.freeze({
     isEnabled,
-    isPrivate: !!process.env.AZURE_STORAGE_IS_PRIVATE,
+    isPrivate: isStoragePrivateFromEnv(),
     accountName,
-    accountKey: AZURE_STORAGE_ACCOUNT_KEY || "",
+    accountKey,
     hostName,
     protocol,
     sasReadExpiryMinutes,

@@ -9,9 +9,15 @@ describe("collectStorageImageRemoteHostnamesFromEnv", () => {
     delete process.env.AZURE_STORAGE_ACCOUNT_NAME;
     delete process.env.AZURE_STORAGE_ACCOUNT_KEY;
     delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
+    delete process.env.STORAGE_AZURE_ACCOUNT_NAME;
+    delete process.env.STORAGE_AZURE_ACCOUNT_KEY;
+    delete process.env.STORAGE_AZURE_ENDPOINT;
     delete process.env.S3_ENDPOINT;
     delete process.env.S3_ACCESS_KEY_ID;
     delete process.env.S3_SECRET_ACCESS_KEY;
+    delete process.env.STORAGE_S3_ENDPOINT;
+    delete process.env.STORAGE_S3_ACCESS_KEY_ID;
+    delete process.env.STORAGE_S3_SECRET_ACCESS_KEY;
   });
 
   afterEach(() => {
@@ -27,26 +33,36 @@ describe("collectStorageImageRemoteHostnamesFromEnv", () => {
   });
 
   it("includes Azure public host when explicit azure and credentials are set", () => {
-    process.env.AZURE_STORAGE_ACCOUNT_NAME = "myacct";
-    process.env.AZURE_STORAGE_ACCOUNT_KEY = "fake-key-for-test";
-    process.env.AZURE_STORAGE_CUSTOM_DOMAIN = "myacct.blob.core.windows.net";
+    process.env.STORAGE_AZURE_ACCOUNT_NAME = "myacct";
+    process.env.STORAGE_AZURE_ACCOUNT_KEY = "fake-key-for-test";
+    process.env.STORAGE_AZURE_ENDPOINT = "myacct.blob.core.windows.net";
     const hosts = collectStorageImageRemoteHostnamesFromEnv("azure");
     expect(hosts).toContain("myacct.blob.core.windows.net");
   });
 
   it("includes S3 endpoint host when explicit s3 and credentials are set", () => {
-    process.env.S3_ENDPOINT = "https://rust.example.com";
-    process.env.S3_ACCESS_KEY_ID = "key";
-    process.env.S3_SECRET_ACCESS_KEY = "secret";
+    process.env.STORAGE_S3_ENDPOINT = "https://rust.example.com";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
     const hosts = collectStorageImageRemoteHostnamesFromEnv("s3");
     expect(hosts).toEqual(["rust.example.com"]);
   });
 
   it("includes S3 endpoint host when credentials are set and public base is unset", () => {
+    process.env.STORAGE_S3_ENDPOINT = "https://minio.local:9000";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
+    const hosts = collectStorageImageRemoteHostnamesFromEnv("s3");
+    expect(hosts).toEqual(["minio.local:9000"]);
+  });
+
+  it("does not include S3 host from legacy S3_* names", () => {
     process.env.S3_ENDPOINT = "https://minio.local:9000";
     process.env.S3_ACCESS_KEY_ID = "key";
     process.env.S3_SECRET_ACCESS_KEY = "secret";
+
     const hosts = collectStorageImageRemoteHostnamesFromEnv("s3");
-    expect(hosts).toEqual(["minio.local:9000"]);
+
+    expect(hosts).toEqual([]);
   });
 });

@@ -1,3 +1,7 @@
+export type {
+  ClientImageConfig,
+  ClientStorageConfig,
+} from "./client-storage-config";
 export type { IStorageProvider } from "./storage-provider.interface";
 export type {
   BlobPropertiesResult,

@@ -62,6 +62,60 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["features/asset-storage/infrastructure/core/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "../providers/*",
+                "../providers/**",
+                "@endatix/storage-azure",
+                "@endatix/storage-s3",
+                "next",
+                "next/*",
+                "react",
+                "react/*",
+                "@/*",
+              ],
+              message:
+                "storage-core must stay provider-agnostic and framework-free for package extraction.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      "features/asset-storage/infrastructure/providers/azure/**/*.ts",
+      "features/asset-storage/infrastructure/providers/s3/**/*.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "../azure/*",
+                "../azure/**",
+                "../s3/*",
+                "../s3/**",
+                "@endatix/storage-azure",
+                "@endatix/storage-s3",
+              ],
+              message:
+                "storage providers must not depend on each other; compose them only in bootstrap.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["e2e/**/*.ts", "e2e/**/*.tsx"],
     languageOptions: {
       parserOptions: { project },

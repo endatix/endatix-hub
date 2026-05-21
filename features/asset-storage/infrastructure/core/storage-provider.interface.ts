@@ -1,5 +1,5 @@
 import type { ReadTokensResult as BulkReadTokensResult } from "../../types";
-import type { ClientStorageConfig } from "../providers/shared/client-storage-config";
+import type { ClientStorageConfig } from "./client-storage-config";
 import type {
   BlobPropertiesResult,
   BulkReadUrlsOptions,

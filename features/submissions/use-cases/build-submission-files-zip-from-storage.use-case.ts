@@ -1,7 +1,7 @@
 import { zipSync } from "fflate";
 import { appendStorageReadQuery } from "@/features/asset-storage/infrastructure/append-storage-read-query";
+import { getStorageContainerUrl } from "@/features/asset-storage/utils";
 import { mapWithConcurrency } from "@/lib/utils/map-with-concurrency";
-import { getContainerUrl } from "@endatix/storage-azure";
 import { buildUserFilePath } from "@/features/asset-storage/infrastructure/storage-utils";
 import { listUserFiles } from "@/features/asset-storage/server";
 import {
@@ -127,7 +127,7 @@ export async function buildSubmissionFilesZipFromStorage({
     readTokens = tokensResult.value.readTokens;
   }
 
-  const baseUrl = getContainerUrl(containerName, clientConfig);
+  const baseUrl = getStorageContainerUrl(containerName, clientConfig);
   const entryNames = buildZipEntryNames(files, fileNamesPrefix);
   const zipEntries: Record<string, Uint8Array> = {};
 

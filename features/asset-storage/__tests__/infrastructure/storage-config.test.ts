@@ -16,9 +16,9 @@ function setAzureEnabledEnv(
   accountName = "mock-account-name",
   publicHost = `${accountName}.blob.core.windows.net`,
 ): void {
-  process.env.AZURE_STORAGE_ACCOUNT_NAME = accountName;
-  process.env.AZURE_STORAGE_ACCOUNT_KEY = "mock-account-key";
-  process.env.AZURE_STORAGE_CUSTOM_DOMAIN = publicHost;
+  process.env.STORAGE_AZURE_ACCOUNT_NAME = accountName;
+  process.env.STORAGE_AZURE_ACCOUNT_KEY = "mock-account-key";
+  process.env.STORAGE_AZURE_ENDPOINT = publicHost;
 }
 
 describe("AzureStorageConfig", () => {
@@ -29,6 +29,21 @@ describe("AzureStorageConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
+    delete process.env.STORAGE_PROVIDER;
+    delete process.env.STORAGE_AZURE_ACCOUNT_NAME;
+    delete process.env.STORAGE_AZURE_ACCOUNT_KEY;
+    delete process.env.STORAGE_AZURE_ENDPOINT;
+    delete process.env.STORAGE_IS_PRIVATE;
+    delete process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES;
+    delete process.env.STORAGE_AZURE_SAS_WRITE_EXPIRY_SECONDS;
+    delete process.env.STORAGE_USER_FILES_CONTAINER_NAME;
+    delete process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME;
+    delete process.env.USER_FILES_STORAGE_CONTAINER_NAME;
+    delete process.env.CONTENT_STORAGE_CONTAINER_NAME;
+    delete process.env.AZURE_STORAGE_ACCOUNT_NAME;
+    delete process.env.AZURE_STORAGE_ACCOUNT_KEY;
+    delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
+    delete process.env.AZURE_STORAGE_IS_PRIVATE;
   });
 
   describe("getAzureStorageConfig", () => {
@@ -51,8 +66,8 @@ describe("AzureStorageConfig", () => {
 
       it("should be false when account name is not set", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        process.env.STORAGE_AZURE_ACCOUNT_NAME = "";
+        process.env.STORAGE_AZURE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
         const config = getAzureStorageConfig();
@@ -65,8 +80,8 @@ describe("AzureStorageConfig", () => {
 
       it("should be false when account key is not set", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = "";
+        process.env.STORAGE_AZURE_ACCOUNT_NAME = mockAccountName;
+        process.env.STORAGE_AZURE_ACCOUNT_KEY = "";
 
         // Act
         const config = getAzureStorageConfig();
@@ -78,8 +93,8 @@ describe("AzureStorageConfig", () => {
 
       it("should be false when both account name and key are not set", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = "";
+        process.env.STORAGE_AZURE_ACCOUNT_NAME = "";
+        process.env.STORAGE_AZURE_ACCOUNT_KEY = "";
 
         // Act
         const config = getAzureStorageConfig();
@@ -90,8 +105,8 @@ describe("AzureStorageConfig", () => {
 
       it("should be false when account name is undefined", () => {
         // Arrange
-        delete process.env.AZURE_STORAGE_ACCOUNT_NAME;
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
+        delete process.env.STORAGE_AZURE_ACCOUNT_NAME;
+        process.env.STORAGE_AZURE_ACCOUNT_KEY = mockAccountKey;
 
         // Act
         const config = getAzureStorageConfig();
@@ -102,8 +117,8 @@ describe("AzureStorageConfig", () => {
 
       it("should be false when account key is undefined", () => {
         // Arrange
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = mockAccountName;
-        delete process.env.AZURE_STORAGE_ACCOUNT_KEY;
+        process.env.STORAGE_AZURE_ACCOUNT_NAME = mockAccountName;
+        delete process.env.STORAGE_AZURE_ACCOUNT_KEY;
 
         // Act
         const config = getAzureStorageConfig();
@@ -114,10 +129,10 @@ describe("AzureStorageConfig", () => {
     });
 
     describe("isPrivate", () => {
-      it("should be true when AZURE_STORAGE_IS_PRIVATE is set", () => {
+      it("should default to private when STORAGE_IS_PRIVATE is not set", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_IS_PRIVATE = "true";
+        delete process.env.STORAGE_IS_PRIVATE;
 
         // Act
         const config = getAzureStorageConfig();
@@ -126,10 +141,10 @@ describe("AzureStorageConfig", () => {
         expect(config.isPrivate).toBe(true);
       });
 
-      it("should be false when AZURE_STORAGE_IS_PRIVATE is not set", () => {
+      it("should be false when STORAGE_IS_PRIVATE is false", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        delete process.env.AZURE_STORAGE_IS_PRIVATE;
+        process.env.STORAGE_IS_PRIVATE = "false";
 
         // Act
         const config = getAzureStorageConfig();
@@ -138,10 +153,35 @@ describe("AzureStorageConfig", () => {
         expect(config.isPrivate).toBe(false);
       });
 
-      it("should be false when AZURE_STORAGE_IS_PRIVATE is empty string", () => {
+      it("should remain private when STORAGE_IS_PRIVATE is empty string", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_IS_PRIVATE = "";
+        process.env.STORAGE_IS_PRIVATE = "";
+
+        // Act
+        const config = getAzureStorageConfig();
+
+        // Assert
+        expect(config.isPrivate).toBe(true);
+      });
+
+      it("treats any value other than 'false' as private (fail-secure default)", () => {
+        // Arrange
+        setAzureEnabledEnv(mockAccountName);
+        process.env.STORAGE_IS_PRIVATE = "1";
+
+        // Act
+        const config = getAzureStorageConfig();
+
+        // Assert
+        expect(config.isPrivate).toBe(true);
+      });
+
+      it("uses AZURE_STORAGE_IS_PRIVATE as legacy fallback", () => {
+        // Arrange
+        setAzureEnabledEnv(mockAccountName);
+        process.env.STORAGE_PROVIDER = "azure";
+        process.env.AZURE_STORAGE_IS_PRIVATE = "false";
 
         // Act
         const config = getAzureStorageConfig();
@@ -150,10 +190,11 @@ describe("AzureStorageConfig", () => {
         expect(config.isPrivate).toBe(false);
       });
 
-      it("should be true when AZURE_STORAGE_IS_PRIVATE is any truthy value", () => {
+      it("uses STORAGE_IS_PRIVATE before AZURE_STORAGE_IS_PRIVATE", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_IS_PRIVATE = "1";
+        process.env.STORAGE_IS_PRIVATE = "true";
+        process.env.AZURE_STORAGE_IS_PRIVATE = "false";
 
         // Act
         const config = getAzureStorageConfig();
@@ -164,10 +205,10 @@ describe("AzureStorageConfig", () => {
     });
 
     describe("hostName", () => {
-      it("throws MissingConfigurationError when enabled without AZURE_STORAGE_CUSTOM_DOMAIN", () => {
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "myaccount";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
+      it("throws MissingConfigurationError when enabled without STORAGE_AZURE_ENDPOINT", () => {
+        process.env.STORAGE_AZURE_ACCOUNT_NAME = "myaccount";
+        process.env.STORAGE_AZURE_ACCOUNT_KEY = mockAccountKey;
+        delete process.env.STORAGE_AZURE_ENDPOINT;
 
         expect(() => getAzureStorageConfig()).toThrow(
           MissingConfigurationError,
@@ -175,15 +216,15 @@ describe("AzureStorageConfig", () => {
       });
 
       it("should be empty string when account name is not set", () => {
-        process.env.AZURE_STORAGE_ACCOUNT_NAME = "";
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = mockAccountKey;
-        delete process.env.AZURE_STORAGE_CUSTOM_DOMAIN;
+        process.env.STORAGE_AZURE_ACCOUNT_NAME = "";
+        process.env.STORAGE_AZURE_ACCOUNT_KEY = mockAccountKey;
+        delete process.env.STORAGE_AZURE_ENDPOINT;
 
         const config = getAzureStorageConfig();
         expect(config.hostName).toBe("");
       });
 
-      it("should use custom domain when AZURE_STORAGE_CUSTOM_DOMAIN is set", () => {
+      it("should use endpoint when STORAGE_AZURE_ENDPOINT is set", () => {
         setAzureEnabledEnv("myaccount", "cdn.example.com");
 
         const config = getAzureStorageConfig();
@@ -267,7 +308,7 @@ describe("AzureStorageConfig", () => {
       it("should use default value (15) when not set", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        delete process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES;
+        delete process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES;
 
         // Act
         const config = getAzureStorageConfig();
@@ -279,7 +320,7 @@ describe("AzureStorageConfig", () => {
       it("should parse valid positive integer from environment", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30";
+        process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES = "30";
 
         // Act
         const config = getAzureStorageConfig();
@@ -291,7 +332,7 @@ describe("AzureStorageConfig", () => {
       it("should use default when value is NaN", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "invalid";
+        process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES = "invalid";
 
         // Act
         const config = getAzureStorageConfig();
@@ -303,7 +344,7 @@ describe("AzureStorageConfig", () => {
       it("should use default when value is zero", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "0";
+        process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES = "0";
 
         // Act
         const config = getAzureStorageConfig();
@@ -315,7 +356,7 @@ describe("AzureStorageConfig", () => {
       it("should use default when value is negative", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "-5";
+        process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES = "-5";
 
         // Act
         const config = getAzureStorageConfig();
@@ -327,7 +368,7 @@ describe("AzureStorageConfig", () => {
       it("should parse large positive values", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "1440"; // 24 hours
+        process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES = "1440"; // 24 hours
 
         // Act
         const config = getAzureStorageConfig();
@@ -339,7 +380,7 @@ describe("AzureStorageConfig", () => {
       it("should parse decimal strings as integers (truncated)", () => {
         // Arrange
         setAzureEnabledEnv(mockAccountName);
-        process.env.AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES = "30.5";
+        process.env.STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES = "30.5";
 
         // Act
         const config = getAzureStorageConfig();
@@ -382,7 +423,7 @@ describe("AzureStorageConfig", () => {
     describe("USER_FILES", () => {
       it("should use default value when not set", () => {
         // Arrange
-        delete process.env.USER_FILES_STORAGE_CONTAINER_NAME;
+        delete process.env.STORAGE_USER_FILES_CONTAINER_NAME;
 
         // Act
         const containerNames = getContainerNames();
@@ -393,7 +434,7 @@ describe("AzureStorageConfig", () => {
 
       it("should use custom value when set", () => {
         // Arrange
-        process.env.USER_FILES_STORAGE_CONTAINER_NAME = "custom-user-files";
+        process.env.STORAGE_USER_FILES_CONTAINER_NAME = "custom-user-files";
 
         // Act
         const containerNames = getContainerNames();
@@ -402,22 +443,23 @@ describe("AzureStorageConfig", () => {
         expect(containerNames.USER_FILES).toBe("custom-user-files");
       });
 
-      it("should use custom value even when empty string", () => {
+      it("should use legacy value when canonical is empty string", () => {
         // Arrange
-        process.env.USER_FILES_STORAGE_CONTAINER_NAME = "";
+        process.env.STORAGE_USER_FILES_CONTAINER_NAME = "";
+        process.env.USER_FILES_STORAGE_CONTAINER_NAME = "legacy-user-files";
 
         // Act
         const containerNames = getContainerNames();
 
         // Assert
-        expect(containerNames.USER_FILES).toBe("");
+        expect(containerNames.USER_FILES).toBe("legacy-user-files");
       });
     });
 
     describe("CONTENT", () => {
       it("should use default value when not set", () => {
         // Arrange
-        delete process.env.CONTENT_STORAGE_CONTAINER_NAME;
+        delete process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME;
 
         // Act
         const containerNames = getContainerNames();
@@ -428,7 +470,7 @@ describe("AzureStorageConfig", () => {
 
       it("should use custom value when set", () => {
         // Arrange
-        process.env.CONTENT_STORAGE_CONTAINER_NAME = "custom-content";
+        process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME = "custom-content";
 
         // Act
         const containerNames = getContainerNames();
@@ -437,23 +479,24 @@ describe("AzureStorageConfig", () => {
         expect(containerNames.CONTENT).toBe("custom-content");
       });
 
-      it("should use custom value even when empty string", () => {
+      it("should use legacy value when canonical is empty string", () => {
         // Arrange
-        process.env.CONTENT_STORAGE_CONTAINER_NAME = "";
+        process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME = "";
+        process.env.CONTENT_STORAGE_CONTAINER_NAME = "legacy-content";
 
         // Act
         const containerNames = getContainerNames();
 
         // Assert
-        expect(containerNames.CONTENT).toBe("");
+        expect(containerNames.CONTENT).toBe("legacy-content");
       });
     });
 
     describe("both containers", () => {
       it("should use both custom values when both are set", () => {
         // Arrange
-        process.env.USER_FILES_STORAGE_CONTAINER_NAME = "my-user-files";
-        process.env.CONTENT_STORAGE_CONTAINER_NAME = "my-content";
+        process.env.STORAGE_USER_FILES_CONTAINER_NAME = "my-user-files";
+        process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME = "my-content";
 
         // Act
         const containerNames = getContainerNames();
@@ -463,10 +506,38 @@ describe("AzureStorageConfig", () => {
         expect(containerNames.CONTENT).toBe("my-content");
       });
 
+      it("should prefer canonical values over legacy values", () => {
+        // Arrange
+        process.env.STORAGE_USER_FILES_CONTAINER_NAME = "my-user-files";
+        process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME = "my-content";
+        process.env.USER_FILES_STORAGE_CONTAINER_NAME = "legacy-user-files";
+        process.env.CONTENT_STORAGE_CONTAINER_NAME = "legacy-content";
+
+        // Act
+        const containerNames = getContainerNames();
+
+        // Assert
+        expect(containerNames.USER_FILES).toBe("my-user-files");
+        expect(containerNames.CONTENT).toBe("my-content");
+      });
+
+      it("should use legacy values when canonical values are missing", () => {
+        // Arrange
+        process.env.USER_FILES_STORAGE_CONTAINER_NAME = "legacy-user-files";
+        process.env.CONTENT_STORAGE_CONTAINER_NAME = "legacy-content";
+
+        // Act
+        const containerNames = getContainerNames();
+
+        // Assert
+        expect(containerNames.USER_FILES).toBe("legacy-user-files");
+        expect(containerNames.CONTENT).toBe("legacy-content");
+      });
+
       it("should use defaults when neither is set", () => {
         // Arrange
-        delete process.env.USER_FILES_STORAGE_CONTAINER_NAME;
-        delete process.env.CONTENT_STORAGE_CONTAINER_NAME;
+        delete process.env.STORAGE_USER_FILES_CONTAINER_NAME;
+        delete process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME;
 
         // Act
         const containerNames = getContainerNames();
@@ -502,9 +573,9 @@ describe("AzureStorageConfig", () => {
     it("should return a client-safe config object", () => {
       // Arrange
       setAzureEnabledEnv(mockAccountName);
-      process.env.AZURE_STORAGE_IS_PRIVATE = "true";
-      process.env.USER_FILES_STORAGE_CONTAINER_NAME = "custom-user-files";
-      process.env.CONTENT_STORAGE_CONTAINER_NAME = "custom-content";
+      process.env.STORAGE_IS_PRIVATE = "true";
+      process.env.STORAGE_USER_FILES_CONTAINER_NAME = "custom-user-files";
+      process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME = "custom-content";
 
       // Act
       const clientConfig = createStorageConfigClient();
@@ -531,7 +602,7 @@ describe("AzureStorageConfig", () => {
       ).toBeUndefined();
     });
 
-    it("should use custom domain hostname when AZURE_STORAGE_CUSTOM_DOMAIN is set", () => {
+    it("should use custom domain hostname when STORAGE_AZURE_ENDPOINT is set", () => {
       // Arrange
       setAzureEnabledEnv(mockAccountName, "cdn.example.com");
 

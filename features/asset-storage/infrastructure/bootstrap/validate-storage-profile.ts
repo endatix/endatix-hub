@@ -5,6 +5,11 @@ import {
   MissingConfigurationError,
   type StorageProviderId,
 } from "@/lib/hosting/storage-configuration-errors";
+import {
+  LEGACY_AZURE_STORAGE_ENV,
+  STORAGE_AZURE_ENV,
+  STORAGE_S3_ENV,
+} from "@/lib/hosting/storage-env-predicates";
 import { getAzureStorageConfig } from "../providers/azure/azure-config";
 import { getS3StorageConfig } from "../providers/s3/s3-config";
 
@@ -13,14 +18,14 @@ export type StorageConfigurationError =
   | MisconfigurationError;
 
 const S3_CREDENTIAL_ENV_KEYS = [
-  "S3_ENDPOINT",
-  "S3_ACCESS_KEY_ID",
-  "S3_SECRET_ACCESS_KEY",
+  STORAGE_S3_ENV.endpoint,
+  STORAGE_S3_ENV.accessKeyId,
+  STORAGE_S3_ENV.secretAccessKey,
 ] as const;
 
 const AZURE_CREDENTIAL_ENV_KEYS = [
-  "AZURE_STORAGE_ACCOUNT_NAME",
-  "AZURE_STORAGE_ACCOUNT_KEY",
+  `${STORAGE_AZURE_ENV.accountName} (or ${LEGACY_AZURE_STORAGE_ENV.accountName})`,
+  `${STORAGE_AZURE_ENV.accountKey} (or ${LEGACY_AZURE_STORAGE_ENV.accountKey})`,
 ] as const;
 
 function missingS3CredentialsError(): MissingConfigurationError {
