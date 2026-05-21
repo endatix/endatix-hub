@@ -10,6 +10,10 @@ describe("getS3StorageConfig", () => {
     delete process.env.S3_ENDPOINT;
     delete process.env.S3_ACCESS_KEY_ID;
     delete process.env.S3_SECRET_ACCESS_KEY;
+    delete process.env.STORAGE_S3_ENDPOINT;
+    delete process.env.STORAGE_S3_ACCESS_KEY_ID;
+    delete process.env.STORAGE_S3_SECRET_ACCESS_KEY;
+    delete process.env.STORAGE_IS_PRIVATE;
   });
 
   it("returns empty clientHostName when storage is disabled", () => {
@@ -20,10 +24,10 @@ describe("getS3StorageConfig", () => {
     expect(config.protocol).toBe("https");
   });
 
-  it("resolves clientHostName from S3_ENDPOINT when enabled", () => {
-    process.env.S3_ENDPOINT = "http://rustfs.local:9000";
-    process.env.S3_ACCESS_KEY_ID = "key";
-    process.env.S3_SECRET_ACCESS_KEY = "secret";
+  it("resolves clientHostName from STORAGE_S3_ENDPOINT when enabled", () => {
+    process.env.STORAGE_S3_ENDPOINT = "http://rustfs.local:9000";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
 
     const config = getS3StorageConfig();
 
@@ -33,18 +37,50 @@ describe("getS3StorageConfig", () => {
   });
 
   it("throws when enabled but endpoint URL is invalid", () => {
-    process.env.S3_ENDPOINT = "https://invalid url";
-    process.env.S3_ACCESS_KEY_ID = "key";
-    process.env.S3_SECRET_ACCESS_KEY = "secret";
+    process.env.STORAGE_S3_ENDPOINT = "https://invalid url";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
 
     expect(() => getS3StorageConfig()).toThrow(MisconfigurationError);
   });
 
+  it("defaults to private storage", () => {
+    process.env.STORAGE_S3_ENDPOINT = "http://rustfs.local:9000";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
+
+    const config = getS3StorageConfig();
+
+    expect(config.isPrivate).toBe(true);
+  });
+
+  it("uses STORAGE_IS_PRIVATE=false for public storage", () => {
+    process.env.STORAGE_S3_ENDPOINT = "http://rustfs.local:9000";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
+    process.env.STORAGE_IS_PRIVATE = "false";
+
+    const config = getS3StorageConfig();
+
+    expect(config.isPrivate).toBe(false);
+  });
+
   it("throws when endpoint includes a path", () => {
-    process.env.S3_ENDPOINT = "https://rustfs.local:9000/bucket";
+    process.env.STORAGE_S3_ENDPOINT = "https://rustfs.local:9000/bucket";
+    process.env.STORAGE_S3_ACCESS_KEY_ID = "key";
+    process.env.STORAGE_S3_SECRET_ACCESS_KEY = "secret";
+
+    expect(() => getS3StorageConfig()).toThrow(MisconfigurationError);
+  });
+
+  it("does not enable S3 from legacy S3_* env names", () => {
+    process.env.S3_ENDPOINT = "http://rustfs.local:9000";
     process.env.S3_ACCESS_KEY_ID = "key";
     process.env.S3_SECRET_ACCESS_KEY = "secret";
 
-    expect(() => getS3StorageConfig()).toThrow(MisconfigurationError);
+    const config = getS3StorageConfig();
+
+    expect(config.isEnabled).toBe(false);
+    expect(config.clientHostName).toBe("");
   });
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import type { ClientStorageConfig } from "@endatix/storage-azure";
+import type { ClientStorageConfig } from "@endatix/storage-core";
 import { getClientStorageConfig } from "../storage-runtime";
 import { AssetStorageClientProvider } from "./asset-storage.context";
 

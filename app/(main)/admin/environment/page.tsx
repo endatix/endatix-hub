@@ -18,28 +18,41 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 
-// Storage & image env vars (from storage-config.ts and image-service) – shown together for cohesion
-const STORAGE_AND_IMAGE_ENV_VARS = [
+const CANONICAL_STORAGE_AND_IMAGE_ENV_VARS = [
   "STORAGE_PROVIDER",
+  "STORAGE_IS_PRIVATE",
+  "STORAGE_USER_FILES_CONTAINER_NAME",
+  "STORAGE_CONTENT_FILES_CONTAINER_NAME",
+  "STORAGE_AZURE_ACCOUNT_NAME",
+  "STORAGE_AZURE_ACCOUNT_KEY",
+  "STORAGE_AZURE_ENDPOINT",
+  "STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES",
+  "STORAGE_AZURE_SAS_WRITE_EXPIRY_SECONDS",
+  "STORAGE_S3_ENDPOINT",
+  "STORAGE_S3_ACCESS_KEY_ID",
+  "STORAGE_S3_SECRET_ACCESS_KEY",
+  "STORAGE_S3_REGION",
+  "STORAGE_S3_FORCE_PATH_STYLE",
+  "STORAGE_S3_READ_EXPIRY_MINUTES",
+  "STORAGE_S3_WRITE_EXPIRY_SECONDS",
+  "RESIZE_IMAGES",
+  "RESIZE_IMAGES_WIDTH",
+  "REMOTE_IMAGE_HOSTNAMES",
+] as const;
+
+const LEGACY_STORAGE_ENV_VARS = [
   "AZURE_STORAGE_ACCOUNT_NAME",
   "AZURE_STORAGE_ACCOUNT_KEY",
   "AZURE_STORAGE_CUSTOM_DOMAIN",
   "AZURE_STORAGE_IS_PRIVATE",
-  "AZURE_STORAGE_SAS_READ_EXPIRY_MINUTES",
-  "AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES",
-  "S3_ENDPOINT",
-  "S3_ACCESS_KEY_ID",
-  "S3_SECRET_ACCESS_KEY",
-  "S3_REGION",
-  "S3_FORCE_PATH_STYLE",
-  "S3_IS_PRIVATE",
-  "S3_SAS_READ_EXPIRY_MINUTES",
-  "S3_SAS_WRITE_EXPIRY_SECONDS",
   "USER_FILES_STORAGE_CONTAINER_NAME",
   "CONTENT_STORAGE_CONTAINER_NAME",
-  "RESIZE_IMAGES",
-  "RESIZE_IMAGES_WIDTH",
-  "REMOTE_IMAGE_HOSTNAMES",
+] as const;
+
+// Storage & image env vars – shown together for cohesion.
+const STORAGE_AND_IMAGE_ENV_VARS = [
+  ...CANONICAL_STORAGE_AND_IMAGE_ENV_VARS,
+  ...LEGACY_STORAGE_ENV_VARS,
 ] as const;
 
 // Define our known environment variables from env.d.ts
@@ -166,8 +179,8 @@ export default async function EnvironmentPage() {
             Storage & Image Variables ({STORAGE_AND_IMAGE_ENV_VARS.length})
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Env vars that drive the configuration above (order matches
-            storage-config)
+            Canonical storage env vars first, followed by Azure legacy
+            fallback names for migration visibility.
           </p>
         </CardHeader>
         <CardContent>

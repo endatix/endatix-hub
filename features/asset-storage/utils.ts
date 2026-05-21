@@ -1,6 +1,6 @@
 import { Result } from "@/lib/result";
 import { v4 as uuidv4 } from "uuid";
-import type { ClientStorageConfig } from "./infrastructure/providers/shared/client-storage-config";
+import type { ClientStorageConfig } from "./infrastructure/core";
 import type { ContainerType } from "./types";
 
 const QUERY_STRING_START_CHAR = "?";
@@ -70,6 +70,13 @@ function isStorageHostUrl(
   } catch {
     return false;
   }
+}
+
+function getStorageContainerUrl(
+  containerName: string,
+  storageConfig: ClientStorageConfig,
+): string {
+  return `${storageConfig.protocol}://${storageConfig.hostName}/${containerName}`;
 }
 
 function resolveContainerType(
@@ -253,6 +260,7 @@ export {
   escapeRegex,
   extractStorageUrls,
   generateUniqueFileName,
+  getStorageContainerUrl,
   getLastSegmentFromUrlPath,
   isCanonicalStorageObjectUrl,
   isStorageHostUrl,

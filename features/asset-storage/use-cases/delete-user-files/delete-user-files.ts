@@ -1,5 +1,5 @@
 import { requireActiveStorageProvider } from "@/features/asset-storage/storage-runtime";
-import type { ClientStorageConfig } from "@/features/asset-storage/infrastructure/providers/shared/client-storage-config";
+import type { ClientStorageConfig } from "@endatix/storage-core";
 import {
   getLastSegmentFromUrlPath,
   parseStorageObjectUrl,

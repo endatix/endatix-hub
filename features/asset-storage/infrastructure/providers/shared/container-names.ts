@@ -6,10 +6,12 @@ const DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME = "content";
 /** Bucket/container names from env (shared by Azure and S3 config). */
 export function getStorageContainerNames(): Record<ContainerType, string> {
   const userFilesContainerName =
-    process.env.USER_FILES_STORAGE_CONTAINER_NAME ??
+    process.env.STORAGE_USER_FILES_CONTAINER_NAME?.trim() ||
+    process.env.USER_FILES_STORAGE_CONTAINER_NAME?.trim() ||
     DEFAULT_USER_FILES_CONTAINER_NAME;
   const contentContainerName =
-    process.env.CONTENT_STORAGE_CONTAINER_NAME ??
+    process.env.STORAGE_CONTENT_FILES_CONTAINER_NAME?.trim() ||
+    process.env.CONTENT_STORAGE_CONTAINER_NAME?.trim() ||
     DEFAULT_FORM_CONTENT_FILES_CONTAINER_NAME;
 
   return Object.freeze({
@@ -35,17 +37,3 @@ export function parsePositiveInt(
 
 /** Default write presign TTL in seconds (Azure SAS and S3 PUT). */
 export const DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS = 180;
-
-export function parseWriteExpirySecondsFromEnv(
-  azureMinutesEnv: string | undefined,
-  s3SecondsEnv: string | undefined,
-): number {
-  if (s3SecondsEnv !== undefined && s3SecondsEnv.length > 0) {
-    return parsePositiveInt(s3SecondsEnv, DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS);
-  }
-  if (azureMinutesEnv !== undefined && azureMinutesEnv.length > 0) {
-    const minutes = parsePositiveInt(azureMinutesEnv, 3);
-    return minutes * 60;
-  }
-  return DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS;
-}

@@ -4,15 +4,20 @@ import {
 } from "@/features/asset-storage/infrastructure/image-service";
 import type { ContainerType } from "@/features/asset-storage/types";
 import { resolveStoragePublicHost } from "@/lib/hosting/resolve-storage-public-host";
-import { isS3StorageCredentialsPresentInEnv } from "@/lib/hosting/storage-env-predicates";
+import {
+  STORAGE_S3_ENV,
+  isS3StorageCredentialsPresentInEnv,
+  isStoragePrivateFromEnv,
+  readS3StorageEnv,
+} from "@/lib/hosting/storage-env-predicates";
 import {
   buildClientStorageConfig,
   type ClientStorageConfig,
 } from "../shared/client-storage-config";
 import {
+  DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS,
   getStorageContainerNames,
   parsePositiveInt,
-  parseWriteExpirySecondsFromEnv,
 } from "../shared/container-names";
 
 export interface S3StorageConfig {
@@ -34,16 +39,16 @@ export interface S3StorageConfig {
 const DEFAULT_SAS_READ_EXPIRY_MINUTES = 15;
 const DEFAULT_REGION = "us-east-1";
 
-const S3_ENDPOINT_ENV_KEYS = ["S3_ENDPOINT"] as const;
+const S3_ENDPOINT_ENV_KEYS = [STORAGE_S3_ENV.endpoint] as const;
 
 export function getS3StorageConfig(): S3StorageConfig {
-  const endpoint = process.env.S3_ENDPOINT?.trim() ?? "";
-  const accessKeyId = process.env.S3_ACCESS_KEY_ID?.trim() ?? "";
-  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY?.trim() ?? "";
+  const endpoint = readS3StorageEnv("endpoint");
+  const accessKeyId = readS3StorageEnv("accessKeyId");
+  const secretAccessKey = readS3StorageEnv("secretAccessKey");
   const isEnabled = isS3StorageCredentialsPresentInEnv();
 
-  const region = process.env.S3_REGION?.trim() || DEFAULT_REGION;
-  const forcePathStyle = process.env.S3_FORCE_PATH_STYLE !== "false";
+  const region = readS3StorageEnv("region") || DEFAULT_REGION;
+  const forcePathStyle = readS3StorageEnv("forcePathStyle") !== "false";
 
   const { host: clientHostName, protocol } = resolveStoragePublicHost({
     provider: "s3",
@@ -55,17 +60,17 @@ export function getS3StorageConfig(): S3StorageConfig {
   });
 
   const sasReadExpiryMinutes = parsePositiveInt(
-    process.env.S3_SAS_READ_EXPIRY_MINUTES,
+    readS3StorageEnv("readExpiryMinutes"),
     DEFAULT_SAS_READ_EXPIRY_MINUTES,
   );
-  const sasWriteExpirySeconds = parseWriteExpirySecondsFromEnv(
-    process.env.AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES,
-    process.env.S3_SAS_WRITE_EXPIRY_SECONDS,
+  const sasWriteExpirySeconds = parsePositiveInt(
+    readS3StorageEnv("writeExpirySeconds"),
+    DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS,
   );
 
   return Object.freeze({
     isEnabled,
-    isPrivate: process.env.S3_IS_PRIVATE === "true",
+    isPrivate: isStoragePrivateFromEnv(),
     endpoint,
     region,
     accessKeyId,

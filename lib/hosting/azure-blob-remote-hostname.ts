@@ -2,12 +2,20 @@ import {
   resolveStoragePublicHost,
   type StoragePublicHost,
 } from "./resolve-storage-public-host";
-import { isAzureStorageCredentialsPresentInEnv } from "./storage-env-predicates";
+import {
+  LEGACY_AZURE_STORAGE_ENV,
+  readAzureStorageEnv,
+  STORAGE_AZURE_ENV,
+  isAzureStorageCredentialsPresentInEnv,
+} from "./storage-env-predicates";
 
-const AZURE_PUBLIC_HOST_ENV_KEYS = ["AZURE_STORAGE_CUSTOM_DOMAIN"] as const;
+const AZURE_PUBLIC_HOST_ENV_KEYS = [
+  STORAGE_AZURE_ENV.endpoint,
+  LEGACY_AZURE_STORAGE_ENV.customDomain,
+] as const;
 
 /**
- * Resolves Azure public blob host from explicit `AZURE_STORAGE_CUSTOM_DOMAIN` only.
+ * Resolves the Azure Blob endpoint from canonical env, with legacy Azure fallback.
  * Returns `null` when Azure credentials are not configured.
  */
 export function getAzureStoragePublicHostFromEnv(): StoragePublicHost | null {
@@ -17,7 +25,7 @@ export function getAzureStoragePublicHostFromEnv(): StoragePublicHost | null {
 
   return resolveStoragePublicHost({
     provider: "azure",
-    url: process.env.AZURE_STORAGE_CUSTOM_DOMAIN,
+    url: readAzureStorageEnv("endpoint"),
     requireWhenEnabled: true,
     missingEnvKeys: AZURE_PUBLIC_HOST_ENV_KEYS,
     misconfiguredEnvKeys: AZURE_PUBLIC_HOST_ENV_KEYS,

@@ -153,7 +153,7 @@ describe("getStorageAdminSummary", () => {
     vi.mocked(
       validateStorageProfileModule.validateStorageProfile,
     ).mockReturnValue([
-      "STORAGE_PROVIDER=azure requires AZURE_STORAGE_CUSTOM_DOMAIN.",
+      "STORAGE_PROVIDER=azure requires STORAGE_AZURE_ENDPOINT.",
     ]);
     vi.mocked(resolveSettings.getRuntimeStorageProfile).mockReturnValue({
       provider: "azure",

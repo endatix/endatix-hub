@@ -78,19 +78,24 @@ describe("Admin Environment Page", () => {
   describe("env variable masking", () => {
     it("masks sensitive env vars in output", async () => {
       vi.mocked(requireAdmin).mockResolvedValue({} as never);
-      const origKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = "my-secret-key";
+      const origKey = process.env.STORAGE_AZURE_ACCOUNT_KEY;
+      const origSecret = process.env.STORAGE_S3_SECRET_ACCESS_KEY;
+      process.env.STORAGE_AZURE_ACCOUNT_KEY = "my-secret-key";
+      process.env.STORAGE_S3_SECRET_ACCESS_KEY = "my-secret-access-key";
 
       try {
         const result = await EnvironmentPage();
         render(result);
 
-        expect(screen.getByText("AZURE_STORAGE_ACCOUNT_KEY")).toBeDefined();
+        expect(screen.getByText("STORAGE_AZURE_ACCOUNT_KEY")).toBeDefined();
+        expect(screen.getByText("STORAGE_S3_SECRET_ACCESS_KEY")).toBeDefined();
         const body = document.body.textContent ?? "";
         expect(body).toMatch(/•+/);
         expect(body).not.toContain("my-secret-key");
+        expect(body).not.toContain("my-secret-access-key");
       } finally {
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = origKey;
+        process.env.STORAGE_AZURE_ACCOUNT_KEY = origKey;
+        process.env.STORAGE_S3_SECRET_ACCESS_KEY = origSecret;
       }
     });
   });

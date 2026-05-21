@@ -1,6 +1,5 @@
 import { Result } from "@/lib/result";
 import { appendStorageReadQuery } from "../../infrastructure/append-storage-read-query";
-import { getContainerUrl } from "@endatix/storage-azure";
 import { blobMetadataParser } from "../../infrastructure/providers/shared/blob-metadata-parser";
 import {
   getActiveStorageProvider,
@@ -8,6 +7,7 @@ import {
 } from "../../storage-runtime";
 import { buildUserFilePath } from "../../infrastructure/storage-utils";
 import type { UserFileMetadata } from "../../types";
+import { getStorageContainerUrl } from "../../utils";
 
 export interface UserFileViewData extends UserFileMetadata {
   url: string;
@@ -44,7 +44,7 @@ async function getUserFile(
     return Result.error("File not found");
   }
 
-  const baseUrl = getContainerUrl(containerName, clientConfig);
+  const baseUrl = getStorageContainerUrl(containerName, clientConfig);
   const filePath = buildUserFilePath(formId, submissionId, fileName);
   if (Result.isError(filePath)) {
     return Result.error(filePath.message);

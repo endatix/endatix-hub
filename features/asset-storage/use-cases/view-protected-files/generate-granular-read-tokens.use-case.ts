@@ -1,5 +1,5 @@
 import { Result } from "@/lib/result";
-import type { ClientStorageConfig } from "@endatix/storage-azure";
+import type { ClientStorageConfig } from "@endatix/storage-core";
 import {
   getActiveStorageProvider,
   getClientStorageConfig,

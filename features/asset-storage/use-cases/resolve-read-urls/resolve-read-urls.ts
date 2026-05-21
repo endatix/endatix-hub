@@ -16,7 +16,7 @@ import {
   parseStorageObjectUrl,
   type ParsedStorageObjectUrl,
 } from "@/features/asset-storage/utils";
-import type { ClientStorageConfig } from "@/features/asset-storage/infrastructure/providers/shared/client-storage-config";
+import type { ClientStorageConfig } from "@endatix/storage-core";
 
 export type ReadUrlResolvedEntry = { url: string } | { error: string };
 

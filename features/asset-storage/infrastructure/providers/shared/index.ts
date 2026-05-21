@@ -9,7 +9,6 @@ export type {
 export {
   getStorageContainerNames,
   parsePositiveInt,
-  parseWriteExpirySecondsFromEnv,
   DEFAULT_STORAGE_WRITE_EXPIRY_SECONDS,
 } from "./container-names";
 export {

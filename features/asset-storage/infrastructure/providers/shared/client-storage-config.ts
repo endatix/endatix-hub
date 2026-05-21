@@ -1,16 +1,10 @@
 import type { ImageConfig } from "../../image-service";
 import type { ContainerType } from "../../../types";
+import type { ClientStorageConfig } from "../../core/client-storage-config";
+
+export type { ClientStorageConfig } from "../../core/client-storage-config";
 
 /** Client-safe storage config (browser URL parsing, prefetch). */
-export interface ClientStorageConfig {
-  isEnabled: boolean;
-  isPrivate: boolean;
-  hostName: string;
-  protocol: "https" | "http";
-  containerNames: Record<ContainerType, string>;
-  imageConfig: ImageConfig;
-}
-
 /** Builds a client storage config. */
 export function buildClientStorageConfig(input: {
   isEnabled: boolean;
