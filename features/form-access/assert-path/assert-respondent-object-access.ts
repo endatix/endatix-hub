@@ -2,10 +2,7 @@ import type { ClientStorageConfig } from "@/features/asset-storage/infrastructur
 import type { ParsedStorageObjectUrl } from "@/features/asset-storage/utils";
 import type { FormStorageAccess } from "../types";
 import { assertUserFileBlobPath } from "./assert-user-file-blob-path";
-
-function isContentNamespace(blobName: string): boolean {
-  return blobName.startsWith("f/") || blobName.startsWith("t/");
-}
+import { isContentObjectPath } from "./content-object-path";
 
 /** Returns an error message when the object key is not allowed for respondent access, or null if allowed. */
 export function assertStorageObjectAccess(
@@ -20,7 +17,7 @@ export function assertStorageObjectAccess(
   const blobName = parsed.blobName;
 
   if (container === contentContainer) {
-    if (!isContentNamespace(blobName)) {
+    if (!isContentObjectPath(blobName)) {
       return "Content object is not in form content namespace";
     }
     return null;

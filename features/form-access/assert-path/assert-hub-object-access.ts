@@ -2,10 +2,13 @@ import type { ClientStorageConfig } from "@/features/asset-storage/infrastructur
 import type { ParsedStorageObjectUrl } from "@/features/asset-storage/utils";
 import type { HubStorageScope } from "../types";
 import { assertUserFileBlobPath } from "./assert-user-file-blob-path";
+import {
+  isContentObjectPath,
+  isFormContentObjectPath,
+  isTemplateContentObjectPath,
+} from "./content-object-path";
 
-const CONTENT_FORM_PREFIX = "f/";
-
-/** Hub read-urls: content allows scoped or elevated `f/*` keys; user-files require form + submission. */
+/** Hub read-urls: content allows scoped or elevated `f/*`/`t/*` keys; user-files require form + submission. */
 export function assertHubObjectAccess(
   parsed: ParsedStorageObjectUrl,
   scope: HubStorageScope,
@@ -18,25 +21,22 @@ export function assertHubObjectAccess(
   const blobName = parsed.blobName;
 
   if (container === contentContainer) {
-    if (!blobName.startsWith(CONTENT_FORM_PREFIX)) {
+    if (!isContentObjectPath(blobName)) {
       return "Content object is not in hub content namespace";
     }
 
-    if (
-      scope.formId &&
-      blobName.startsWith(`${CONTENT_FORM_PREFIX}${scope.formId}/`)
-    ) {
+    if (scope.formId && isFormContentObjectPath(blobName, scope.formId)) {
       return null;
     }
 
     if (
       scope.templateId &&
-      blobName.startsWith(`${CONTENT_FORM_PREFIX}${scope.templateId}/`)
+      isTemplateContentObjectPath(blobName, scope.templateId)
     ) {
       return null;
     }
 
-    // Hub editors may presign any content/f/* asset until per-image DB permissions exist.
+    // Hub editors may presign any content asset until per-image DB permissions exist.
     return null;
   }
 
