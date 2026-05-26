@@ -1,6 +1,10 @@
 import { ClipboardCheck } from "lucide-react";
+import styles from "./already-responded.module.css";
+import { EmbedAlreadyRespondedReporter } from "./embed-already-responded-reporter";
 
 interface AlreadyRespondedProps {
+  formId: string;
+  isEmbed: boolean;
   metadata?: string;
 }
 
@@ -15,7 +19,16 @@ type AlreadyRespondedMetadata = {
   };
 };
 
-function getAlreadyRespondedContent(metadata?: string): {
+const embedStyles = {
+  container: "already-responded-container",
+  content: "already-responded-content",
+  title: "already-responded-title",
+  message: "already-responded-message",
+  iconWrapper: "already-responded-icon-wrapper",
+  icon: "already-responded-icon",
+} as const;
+
+export function getAlreadyRespondedContent(metadata?: string): {
   title: string;
   message: string;
 } {
@@ -29,7 +42,7 @@ function getAlreadyRespondedContent(metadata?: string): {
   try {
     const parsedMetadata = JSON.parse(metadata) as AlreadyRespondedMetadata;
 
-    if (typeof parsedMetadata !== 'object' || parsedMetadata === null) {
+    if (typeof parsedMetadata !== "object" || parsedMetadata === null) {
       return {
         title: DEFAULT_TITLE,
         message: DEFAULT_ALREADY_RESPONDED_MESSAGE,
@@ -51,30 +64,27 @@ function getAlreadyRespondedContent(metadata?: string): {
   }
 }
 
-export default function AlreadyResponded({ metadata }: AlreadyRespondedProps) {
-  const { title, message } = getAlreadyRespondedContent(metadata);
+export default function AlreadyResponded(props: AlreadyRespondedProps) {
+  const { title, message } = getAlreadyRespondedContent(props.metadata);
+  const isEmbed = props.isEmbed === true;
+  const classNames = isEmbed ? embedStyles : styles;
 
   return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center py-16 text-center">
-      <h1 className="endatix-error-h1 text-6xl text-primary mb-4">{title}</h1>
-      <p className="mt-2 text-muted-foreground">{message}</p>
-      <div className="mt-6 flex justify-center">
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: "96px",
-            height: "96px",
-            borderRadius: "9999px",
-            backgroundColor: "#e0f2fe",
-          }}
-        >
+    <div className={classNames.container}>
+      {isEmbed && (
+        <EmbedAlreadyRespondedReporter
+          formId={props.formId}
+          message={message}
+        />
+      )}
+      <div className={classNames.content}>
+        <h1 className={classNames.title}>{title}</h1>
+        <p className={classNames.message}>{message}</p>
+        <div className={classNames.iconWrapper}>
           <ClipboardCheck
+            className={classNames.icon}
             size={48}
             strokeWidth={1.8}
-            style={{
-              color: "hsl(var(--primary, 221 83% 53%))",
-              stroke: "hsl(var(--primary, 221 83% 53%))",
-            }}
           />
         </div>
       </div>
