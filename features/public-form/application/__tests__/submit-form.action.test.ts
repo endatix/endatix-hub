@@ -109,7 +109,85 @@ describe("submitFormAction", () => {
     expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
     expect(ApiResult.isSuccess(actionResult)).toBe(true);
     if (ApiResult.isSuccess(actionResult)) {
-      expect(actionResult.data).toEqual({ submissionId: "submission-123" });
+      expect(actionResult.data).toMatchObject({
+        submissionId: "submission-123",
+        isComplete: false,
+      });
+    }
+  });
+
+  it("should map submission status and valid completion date", async () => {
+    // Arrange
+    mockTokenStore.getToken.mockReturnValue(Result.error("No token found"));
+
+    const mockSubmissionData = {
+      jsonData: '{"test": true}',
+      isComplete: true,
+      currentPage: 3,
+    };
+
+    const mockCreateResponse = {
+      token: "completed-token",
+      isComplete: true,
+      id: "submission-123",
+      status: "completed",
+      completedAt: "2026-05-26T10:00:00Z",
+    };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.create.mockResolvedValue(
+      ApiResult.success(mockCreateResponse),
+    );
+
+    // Act
+    const actionResult = await submitFormAction("form-1", mockSubmissionData);
+
+    // Assert
+    expect(ApiResult.isSuccess(actionResult)).toBe(true);
+    if (ApiResult.isSuccess(actionResult)) {
+      expect(actionResult.data).toEqual({
+        submissionId: "submission-123",
+        isComplete: true,
+        status: "completed",
+        completedAt: "2026-05-26T10:00:00.000Z",
+      });
+    }
+  });
+
+  it("should omit invalid completion dates from the submission operation", async () => {
+    // Arrange
+    mockTokenStore.getToken.mockReturnValue(Result.error("No token found"));
+
+    const mockCreateResponse = {
+      token: "completed-token",
+      isComplete: true,
+      id: "submission-123",
+      status: "completed",
+      completedAt: "not-a-date",
+    };
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.create.mockResolvedValue(
+      ApiResult.success(mockCreateResponse),
+    );
+
+    // Act
+    const actionResult = await submitFormAction("form-1", {
+      jsonData: '{"test": true}',
+      isComplete: true,
+    });
+
+    // Assert
+    expect(ApiResult.isSuccess(actionResult)).toBe(true);
+    if (ApiResult.isSuccess(actionResult)) {
+      expect(actionResult.data).toMatchObject({
+        submissionId: "submission-123",
+        isComplete: true,
+        status: "completed",
+      });
+      expect(actionResult.data.completedAt).toBeUndefined();
     }
   });
 
@@ -158,7 +236,10 @@ describe("submitFormAction", () => {
     expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
     expect(ApiResult.isSuccess(actionResult)).toBe(true);
     if (ApiResult.isSuccess(actionResult)) {
-      expect(actionResult.data).toEqual({ submissionId: "submission-123" });
+      expect(actionResult.data).toMatchObject({
+        submissionId: "submission-123",
+        isComplete: false,
+      });
     }
   });
 
@@ -285,7 +366,8 @@ describe("submitFormAction", () => {
     expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
 
     expect(
-      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions.public.create
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.create,
     ).toHaveBeenCalledWith("form-1", {
       jsonData: '{"test": true}',
       isComplete: false,

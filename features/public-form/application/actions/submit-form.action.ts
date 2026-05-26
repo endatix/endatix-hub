@@ -5,12 +5,16 @@ import { getSession } from "@/features/auth";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
+import type { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { isAccessToken } from "@/lib/utils";
 import { cookies } from "next/headers";
 
 export type SubmissionOperation = {
   submissionId: string;
+  isComplete?: boolean;
+  status?: string;
+  completedAt?: string;
 };
 
 export type SubmissionOperationResult = ApiResult<SubmissionOperation>;
@@ -25,6 +29,28 @@ function logExceptionPostHog<T>(
       postHog.captureException(result.error, "", properties);
     }
   }
+}
+
+/**
+ * Maps a Submission entity to a SubmissionOperation object.
+ *
+ * @param submission - The Submission entity to map
+ * @returns A SubmissionOperation object
+ */
+function toSubmissionOperation(submission: Submission): SubmissionOperation {
+  const completedAt = submission.completedAt
+    ? new Date(submission.completedAt)
+    : undefined;
+
+  return {
+    submissionId: submission.id,
+    isComplete: submission.isComplete,
+    status: submission.status,
+    completedAt:
+      completedAt && !Number.isNaN(completedAt.getTime())
+        ? completedAt.toISOString()
+        : undefined,
+  };
 }
 
 /**
@@ -97,7 +123,7 @@ async function updateExistingSubmissionViaToken(
       tokenStore.deleteToken(formId);
     }
 
-    return ApiResult.success({ submissionId: updateByTokenResult.data.id });
+    return ApiResult.success(toSubmissionOperation(updateByTokenResult.data));
   } else {
     if (
       performCookieOperations &&
@@ -149,7 +175,7 @@ async function recoverFromExpiredToken(
     });
   }
 
-  return ApiResult.success({ submissionId: createResult.data.id });
+  return ApiResult.success(toSubmissionOperation(createResult.data));
 }
 
 async function createNewSubmission(
@@ -170,7 +196,9 @@ async function createNewSubmission(
     } else {
       tokenStore.setToken({ formId, token: createSubmissionResult.data.token });
     }
-    return ApiResult.success({ submissionId: createSubmissionResult.data.id });
+    return ApiResult.success(
+      toSubmissionOperation(createSubmissionResult.data),
+    );
   } else {
     if (
       createSubmissionResult.error.errorCode ===
