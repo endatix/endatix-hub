@@ -26,6 +26,7 @@ export type FormDefinition = {
   themeModel?: string;
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
+  limitOnePerUser?: boolean;
   hasUserSubmitted?: boolean;
   metadata?: string;
 };
