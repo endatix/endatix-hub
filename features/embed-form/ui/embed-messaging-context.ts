@@ -29,7 +29,7 @@ function parseEmbedId(value: string | null): string | undefined {
 }
 
 export function getEmbedMessagingContext(): EmbedMessagingContext {
-  if (typeof globalThis.window === "undefined") {
+  if (globalThis.window === undefined) {
     return {};
   }
 

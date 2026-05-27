@@ -64,7 +64,9 @@ export function getAlreadyRespondedContent(metadata?: string): {
   }
 }
 
-export default function AlreadyResponded(props: AlreadyRespondedProps) {
+export default function AlreadyResponded(
+  props: Readonly<AlreadyRespondedProps>,
+) {
   const { title, message } = getAlreadyRespondedContent(props.metadata);
   const isEmbed = props.isEmbed === true;
   const classNames = isEmbed ? embedStyles : styles;

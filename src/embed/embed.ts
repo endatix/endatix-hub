@@ -213,6 +213,129 @@ function dispatchEmbedEvent(
   );
 }
 
+function handleResizeMessage(
+  instance: EmbedInstance,
+  data: Record<string, unknown>,
+): void {
+  const height = data.height;
+  if (
+    typeof height !== "number" ||
+    !Number.isFinite(height) ||
+    height < 0
+  ) {
+    return;
+  }
+
+  const clampedHeight = Math.min(Math.ceil(height), MAX_IFRAME_HEIGHT);
+  instance.iframe.style.height = `${clampedHeight}px`;
+}
+
+function handleScrollMessage(instance: EmbedInstance): void {
+  requestAnimationFrame(() => {
+    instance.iframe.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+}
+
+function handleNavigateMessage(data: Record<string, unknown>): void {
+  const url = data.url;
+  const href = typeof url === "string" ? getSafeNavigationHref(url) : null;
+
+  if (href) {
+    globalThis.window.location.href = href;
+    return;
+  }
+
+  console.warn("Endatix Embed: Blocked unsafe navigation URL", url);
+}
+
+function handleFormLoadedMessage(
+  instance: EmbedInstance,
+  type: string,
+  data: Record<string, unknown>,
+): void {
+  dispatchEmbedEvent(instance, type, {
+    definitionId: toStringValue(data.definitionId),
+    limitOnePerUser: toBooleanValue(data.limitOnePerUser),
+    requiresReCaptcha: toBooleanValue(data.requiresReCaptcha),
+    metadata: toStringValue(data.metadata),
+    title: toStringValue(data.title),
+  });
+}
+
+function handleFormCompleteMessage(
+  instance: EmbedInstance,
+  type: string,
+  data: Record<string, unknown>,
+): void {
+  const submissionId = toStringValue(data.submissionId);
+  if (!submissionId || data.success !== true) {
+    return;
+  }
+
+  dispatchEmbedEvent(instance, type, {
+    submissionId,
+    success: true,
+    isComplete: toBooleanValue(data.isComplete),
+    status: toStringValue(data.status),
+    completedAt: toStringValue(data.completedAt),
+  });
+}
+
+function handleFormErrorMessage(
+  instance: EmbedInstance,
+  type: string,
+  data: Record<string, unknown>,
+): void {
+  const error = data.error;
+  if (!isRecord(error) || data.success !== false) {
+    return;
+  }
+
+  const message = toStringValue(error.message);
+  if (!message) {
+    return;
+  }
+
+  dispatchEmbedEvent(instance, type, {
+    success: false,
+    error: {
+      type: toStringValue(error.type),
+      code: toStringValue(error.code),
+      message,
+    },
+  });
+}
+
+function handleEmbedMessage(
+  instance: EmbedInstance,
+  type: string,
+  data: Record<string, unknown>,
+): void {
+  switch (type) {
+    case "endatix:resize":
+      handleResizeMessage(instance, data);
+      return;
+    case "endatix:scroll":
+      handleScrollMessage(instance);
+      return;
+    case "endatix:navigate":
+      handleNavigateMessage(data);
+      return;
+    case "endatix:form-loaded":
+      handleFormLoadedMessage(instance, type, data);
+      return;
+    case "endatix:form-complete":
+      handleFormCompleteMessage(instance, type, data);
+      return;
+    case "endatix:form-error":
+      handleFormErrorMessage(instance, type, data);
+      return;
+  }
+}
+
 const endatixEmbed: EndatixEmbedApi = {
   version: "1.0.0",
   loaded: true,
@@ -337,88 +460,7 @@ const endatixEmbed: EndatixEmbedApi = {
         return;
       }
 
-      if (type === "endatix:resize") {
-        const height = event.data.height;
-        if (
-          typeof height === "number" &&
-          Number.isFinite(height) &&
-          height >= 0
-        ) {
-          const clampedHeight = Math.min(Math.ceil(height), MAX_IFRAME_HEIGHT);
-          instance.iframe.style.height = `${clampedHeight}px`;
-        }
-        return;
-      }
-
-      if (type === "endatix:scroll") {
-        requestAnimationFrame(() => {
-          instance.iframe.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        });
-        return;
-      }
-
-      if (type === "endatix:navigate") {
-        const url = event.data.url;
-        const href =
-          typeof url === "string" ? getSafeNavigationHref(url) : null;
-        if (href) {
-          globalThis.window.location.href = href;
-        } else {
-          console.warn("Endatix Embed: Blocked unsafe navigation URL", url);
-        }
-        return;
-      }
-
-      if (type === "endatix:form-loaded") {
-        dispatchEmbedEvent(instance, type, {
-          definitionId: toStringValue(event.data.definitionId),
-          limitOnePerUser: toBooleanValue(event.data.limitOnePerUser),
-          requiresReCaptcha: toBooleanValue(event.data.requiresReCaptcha),
-          metadata: toStringValue(event.data.metadata),
-          title: toStringValue(event.data.title),
-        });
-        return;
-      }
-
-      if (type === "endatix:form-complete") {
-        const submissionId = toStringValue(event.data.submissionId);
-        if (!submissionId || event.data.success !== true) {
-          return;
-        }
-
-        dispatchEmbedEvent(instance, type, {
-          submissionId,
-          success: true,
-          isComplete: toBooleanValue(event.data.isComplete),
-          status: toStringValue(event.data.status),
-          completedAt: toStringValue(event.data.completedAt),
-        });
-        return;
-      }
-
-      if (type === "endatix:form-error") {
-        const error = event.data.error;
-        if (!isRecord(error) || event.data.success !== false) {
-          return;
-        }
-
-        const message = toStringValue(error.message);
-        if (!message) {
-          return;
-        }
-
-        dispatchEmbedEvent(instance, type, {
-          success: false,
-          error: {
-            type: toStringValue(error.type),
-            code: toStringValue(error.code),
-            message,
-          },
-        });
-      }
+      handleEmbedMessage(instance, type, event.data);
     });
   },
 };
