@@ -2,4 +2,4 @@ export {
   getPublicAssetPath,
   InvalidPublicAssetPathError,
 } from "./public-assets";
-export { withBasePath } from "./base-path";
+export { normalizeBasePath, withBasePath } from "./base-path";

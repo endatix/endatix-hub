@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Link2, Code } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import CopyToClipboard from "@/components/copy-to-clipboard";
+import { withBasePath } from "@/lib/hosting";
 
 interface ShareDialogProps {
   formId: string;
@@ -21,18 +22,20 @@ interface ShareDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const sharePath = (formId: string): string => withBasePath(`/share/${formId}`);
+const embedScriptPath = withBasePath("/embed/v1/embed.js");
 
 const getShareUrl = (formId: string): string => {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}${basePath}/share/${formId}`;
+  const path = sharePath(formId);
+  if (globalThis.window !== undefined) {
+    return `${globalThis.window.location.origin}${path}`;
   }
-  return `${basePath}/share/${formId}`;
+  return path;
 };
 
 const getEmbedCode = (formId: string): string => {
   if (typeof globalThis.window !== "undefined") {
-    return `<script src="${globalThis.window.location.origin}${basePath}/embed/v1/embed.js" data-form-id="${formId}"></script>`;
+    return `<script src="${globalThis.window.location.origin}${embedScriptPath}" data-form-id="${formId}"></script>`;
   }
   return ``;
 };

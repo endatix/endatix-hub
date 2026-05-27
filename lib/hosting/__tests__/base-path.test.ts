@@ -12,6 +12,8 @@ describe("normalizeBasePath", () => {
   it("adds a leading slash and removes a trailing slash", () => {
     expect(normalizeBasePath("app")).toBe("/app");
     expect(normalizeBasePath("/app/")).toBe("/app");
+    expect(normalizeBasePath("/app//")).toBe("/app");
+    expect(normalizeBasePath("/app///")).toBe("/app");
   });
 });
 
