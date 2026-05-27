@@ -31,8 +31,8 @@ const getShareUrl = (formId: string): string => {
 };
 
 const getEmbedCode = (formId: string): string => {
-  if (typeof window !== "undefined") {
-    return `<script src="${window.location.origin}${basePath}/embed/v1/embed.js" data-form-id="${formId}"></script>`;
+  if (typeof globalThis.window !== "undefined") {
+    return `<script src="${globalThis.window.location.origin}${basePath}/embed/v1/embed.js" data-form-id="${formId}"></script>`;
   }
   return ``;
 };

@@ -23,7 +23,7 @@ interface CreateAccountActionState {
 
 const CreateAccountForm = () => {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState<
+  const [state, formAction, _] = useActionState<
     CreateAccountActionState,
     FormData
   >(

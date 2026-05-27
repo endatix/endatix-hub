@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { getPublicAssetPath } from "../public-assets";
+import {
+  getPublicAssetPath,
+  InvalidPublicAssetPathError,
+} from "../public-assets";
 
 describe("getPublicAssetPath", () => {
   it("prefixes absolute public asset paths with the configured base path", () => {
@@ -26,22 +29,34 @@ describe("getPublicAssetPath", () => {
   });
 
   it("rejects external URLs", () => {
-    expect(() =>
-      getPublicAssetPath("https://example.com/assets/icon.svg", "/app"),
-    ).toThrow("Absolute URIs are not allowed for internal public assets.");
+    const action = () =>
+      getPublicAssetPath("https://example.com/assets/icon.svg", "/app");
+
+    expect(action).toThrow(InvalidPublicAssetPathError);
+    expect(action).toThrow(
+      "Absolute URIs are not allowed for internal public assets.",
+    );
   });
 
   it("rejects protocol-relative URLs", () => {
-    expect(() => getPublicAssetPath("//example.com/icon.svg", "/app")).toThrow(
-      "Protocol-relative URLs are not allowed.",
-    );
+    const action = () => getPublicAssetPath("//example.com/icon.svg", "/app");
+
+    expect(action).toThrow(InvalidPublicAssetPathError);
+    expect(action).toThrow("Protocol-relative URLs are not allowed.");
   });
 
   it("rejects query strings and hashes to keep the helper path-only", () => {
-    expect(() => getPublicAssetPath("/assets/icon.svg?v=1", "/app")).toThrow(
+    const queryAction = () =>
+      getPublicAssetPath("/assets/icon.svg?v=1", "/app");
+    const hashAction = () =>
+      getPublicAssetPath("/assets/icon.svg#logo", "/app");
+
+    expect(queryAction).toThrow(InvalidPublicAssetPathError);
+    expect(queryAction).toThrow(
       "Public asset paths must not include query strings or hashes.",
     );
-    expect(() => getPublicAssetPath("/assets/icon.svg#logo", "/app")).toThrow(
+    expect(hashAction).toThrow(InvalidPublicAssetPathError);
+    expect(hashAction).toThrow(
       "Public asset paths must not include query strings or hashes.",
     );
   });

@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default async function PublicLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: Readonly<React.ReactNode>;
 }) {
   const requestHeaders = await headers();
   const osClass = getOsClass(requestHeaders);

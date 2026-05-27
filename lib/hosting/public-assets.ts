@@ -2,6 +2,13 @@ import { DEFAULT_BASE_PATH, withBasePath } from "./base-path";
 
 const internalAssetBaseUrl = "https://internal-endatix.local";
 
+export class InvalidPublicAssetPathError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidPublicAssetPathError";
+  }
+}
+
 /**
  * Resolves the public asset path relative to the internal asset base URL.
  * @param assetPath - The asset path to resolve.
@@ -25,24 +32,26 @@ export function getPublicAssetPath(
     trimmedAssetPath.startsWith("//") ||
     trimmedAssetPath.startsWith("\\\\")
   ) {
-    throw new Error("Protocol-relative URLs are not allowed.");
+    throw new InvalidPublicAssetPathError(
+      "Protocol-relative URLs are not allowed.",
+    );
   }
 
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(trimmedAssetPath, internalAssetBaseUrl);
   } catch (err) {
-    throw new Error("Invalid URL format.");
+    throw new InvalidPublicAssetPathError("Invalid URL format.");
   }
 
   if (parsedUrl.origin !== internalAssetBaseUrl) {
-    throw new Error(
+    throw new InvalidPublicAssetPathError(
       "Absolute URIs are not allowed for internal public assets.",
     );
   }
 
   if (parsedUrl.search.length > 0 || parsedUrl.hash.length > 0) {
-    throw new Error(
+    throw new InvalidPublicAssetPathError(
       "Public asset paths must not include query strings or hashes.",
     );
   }
