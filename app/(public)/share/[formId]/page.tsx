@@ -133,7 +133,11 @@ async function ShareSurveyPage({ params, searchParams }: ShareSurveyPage) {
     return (
       <div className={styles.surveyPage}>
         <div className={styles.surveyContent}>
-          <AlreadyResponded metadata={activeDefinition.metadata} />
+          <AlreadyResponded
+            formId={formId}
+            isEmbed={false}
+            metadata={activeDefinition.metadata}
+          />
         </div>
       </div>
     );

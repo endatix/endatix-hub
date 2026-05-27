@@ -63,7 +63,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
   }) => {
     // 1. Locate the iframe created by embed.js
     const frame = page.frameLocator(
-      `iframe[id^="endatix-form-${TEST_FORM_ID}"]`,
+      `iframe[id^="edxf-${TEST_FORM_ID}"]`,
     );
 
     // 2. Wait for the real SurveyJS component to render inside the iframe
@@ -85,7 +85,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     page,
   }) => {
     const frame = page.frameLocator(
-      `iframe[id^="endatix-form-${TEST_FORM_ID}"]`,
+      `iframe[id^="edxf-${TEST_FORM_ID}"]`,
     );
     await expect(frame.locator(".sd-root-modern")).toBeVisible();
 
@@ -114,7 +114,7 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     page,
   }) => {
     const frame = page.frameLocator(
-      `iframe[id^="endatix-form-${TEST_FORM_ID}"]`,
+      `iframe[id^="edxf-${TEST_FORM_ID}"]`,
     );
     await expect(frame.locator(".sd-root-modern")).toBeVisible();
 
