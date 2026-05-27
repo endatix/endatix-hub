@@ -19,11 +19,13 @@ export const metadata: Metadata = {
   description: "Customizable form management platform",
 };
 
+interface MaintenanceLayoutProps {
+  children: React.ReactNode;
+}
+
 export default async function PublicLayout({
   children,
-}: {
-  children: Readonly<React.ReactNode>;
-}) {
+}: Readonly<MaintenanceLayoutProps>) {
   const requestHeaders = await headers();
   const osClass = getOsClass(requestHeaders);
 
