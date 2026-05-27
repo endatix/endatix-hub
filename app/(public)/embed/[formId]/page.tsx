@@ -4,6 +4,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found/not-fou
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import AlreadyResponded from "@/features/public-form/ui/already-responded";
+import "@/features/public-form/ui/already-responded-standalone.css";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
@@ -136,7 +137,11 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
         }}
       >
         <EmbedHeightReporter />
-        <AlreadyResponded metadata={activeDefinition.metadata} />
+        <AlreadyResponded
+          isEmbed={true}
+          formId={formId}
+          metadata={activeDefinition.metadata}
+        />
       </div>
     );
   }
@@ -174,6 +179,9 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
               customQuestions={activeDefinition.customQuestions}
               requiresReCaptcha={activeDefinition.requiresReCaptcha}
               isEmbed={true}
+              definitionId={activeDefinition.id}
+              limitOnePerUser={activeDefinition.limitOnePerUser}
+              metadata={activeDefinition.metadata}
               urlToken={urlToken}
             />
           </AssetStorageProvider>

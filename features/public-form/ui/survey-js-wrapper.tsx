@@ -6,6 +6,7 @@ import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import dynamic from "next/dynamic";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
+import type { EmbedFormInfo } from "@/features/embed-form/types";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
@@ -14,29 +15,39 @@ const SurveyComponent = dynamic(() => import("./survey-component"), {
 registerAudioQuestion();
 addRandomizeGroupFeature();
 
-export interface SurveyJsWrapperProps {
+export type SurveyJsWrapperProps = {
   definition: string;
   formId: string;
-  submission?: Submission | undefined;
+  submission?: Submission;
   theme?: string;
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
-  isEmbed?: boolean;
   urlToken?: string;
   extensionIdsToLoad?: string[];
-}
+} & (
+  | {
+      isEmbed: true;
+      definitionId: string;
+      limitOnePerUser?: boolean;
+      metadata?: string;
+    }
+  | {
+      isEmbed?: false;
+    }
+);
 
-const SurveyJsWrapper = ({
-  formId,
-  definition,
-  submission,
-  theme,
-  customQuestions,
-  requiresReCaptcha,
-  isEmbed = false,
-  urlToken,
-  extensionIdsToLoad,
-}: SurveyJsWrapperProps) => {
+const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
+  const {
+    formId,
+    definition,
+    submission,
+    theme,
+    customQuestions,
+    requiresReCaptcha,
+    urlToken,
+    extensionIdsToLoad,
+  } = props;
+
   const formRuntime = useFormRuntime();
   const { isReady, onModelCreated } = useSurveyExtensions({
     formJson: definition,
@@ -50,6 +61,16 @@ const SurveyJsWrapper = ({
     return null;
   }
 
+  const embedForm: EmbedFormInfo | undefined = props.isEmbed
+    ? {
+        formId,
+        definitionId: props.definitionId,
+        limitOnePerUser: props.limitOnePerUser ?? false,
+        requiresReCaptcha: requiresReCaptcha ?? false,
+        metadata: props.metadata,
+      }
+    : undefined;
+
   return (
     <SurveyComponent
       formId={formId}
@@ -58,7 +79,8 @@ const SurveyJsWrapper = ({
       theme={theme}
       customQuestions={customQuestions}
       requiresReCaptcha={requiresReCaptcha}
-      isEmbed={isEmbed}
+      isEmbed={props.isEmbed ?? false}
+      embedForm={embedForm}
       urlToken={urlToken}
       onModelCreated={onModelCreated}
     />

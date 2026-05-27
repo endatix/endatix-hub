@@ -37,7 +37,7 @@ describe("useSurveyEmbedBehavior", () => {
         useSurveyEmbedBehavior({ isEmbed: false, formId: "123" }),
       );
 
-      result.current.sendEmbedMessage("form-loaded");
+      result.current.sendEmbedMessage("scroll");
 
       expect(mockPostMessage).not.toHaveBeenCalled();
     });
@@ -66,12 +66,21 @@ describe("useSurveyEmbedBehavior", () => {
       Object.defineProperty(globalThis, "window", {
         value: {
           ...originalWindow,
-          parent: globalThis,
+          parent: {
+            postMessage: mockPostMessage,
+          },
           location: { origin: "https://endatix.com" },
         },
         writable: true,
       });
-      globalThis.window.parent.postMessage = mockPostMessage;
+      Object.defineProperty(globalThis.window, "location", {
+        value: {
+          origin: "https://endatix.com",
+          search:
+            "?parentOrigin=https%3A%2F%2Fembedder.example&embedId=embed-123",
+        },
+        writable: true,
+      });
     });
 
     it("sends embed message to parent window", () => {
@@ -79,14 +88,22 @@ describe("useSurveyEmbedBehavior", () => {
         useSurveyEmbedBehavior({ isEmbed: true, formId: "123" }),
       );
 
-      result.current.sendEmbedMessage("form-loaded");
+      result.current.sendEmbedMessage("form-loaded", {
+        definitionId: "def-123",
+        limitOnePerUser: false,
+        requiresReCaptcha: false,
+      });
 
       expect(mockPostMessage).toHaveBeenCalledWith(
         {
           type: "endatix:form-loaded",
+          embedId: "embed-123",
           formId: "123",
+          definitionId: "def-123",
+          limitOnePerUser: false,
+          requiresReCaptcha: false,
         },
-        "*",
+        "https://embedder.example",
       );
     });
 
@@ -102,10 +119,11 @@ describe("useSurveyEmbedBehavior", () => {
       expect(mockPostMessage).toHaveBeenCalledWith(
         {
           type: "endatix:navigate",
+          embedId: "embed-123",
           formId: "123",
           url: "https://example.com/success",
         },
-        "*",
+        "https://embedder.example",
       );
     });
 
@@ -126,7 +144,7 @@ describe("useSurveyEmbedBehavior", () => {
         useSurveyEmbedBehavior({ isEmbed: true, formId: "123" }),
       );
 
-      result.current.sendEmbedMessage("form-loaded");
+      result.current.sendEmbedMessage("scroll");
 
       expect(mockPostMessage).not.toHaveBeenCalled();
     });
@@ -191,7 +209,17 @@ describe("useSurveyEmbedBehavior", () => {
         } as unknown as SurveyModel;
 
         const { result } = renderHook(() =>
-          useSurveyEmbedBehavior({ isEmbed: true, formId: "123" }),
+          useSurveyEmbedBehavior({
+            isEmbed: true,
+            formId: "123",
+            embedForm: {
+              formId: "123",
+              definitionId: "def-123",
+              limitOnePerUser: true,
+              requiresReCaptcha: false,
+              metadata: '{"source":"test"}',
+            },
+          }),
         );
 
         result.current.registerEmbedHandlers(mockModel);
@@ -209,9 +237,14 @@ describe("useSurveyEmbedBehavior", () => {
         expect(mockPostMessage).toHaveBeenCalledWith(
           expect.objectContaining({
             type: "endatix:form-loaded",
+            embedId: "embed-123",
             formId: "123",
+            definitionId: "def-123",
+            limitOnePerUser: true,
+            requiresReCaptcha: false,
+            metadata: '{"source":"test"}',
           }),
-          "*",
+          "https://embedder.example",
         );
       });
 
@@ -301,9 +334,10 @@ describe("useSurveyEmbedBehavior", () => {
           expect(mockPostMessage).toHaveBeenCalledWith(
             expect.objectContaining({
               type: "endatix:navigate",
+              embedId: "embed-123",
               url: "https://example.com/success",
             }),
-            "*",
+            "https://embedder.example",
           );
         }
       });
@@ -346,9 +380,10 @@ describe("useSurveyEmbedBehavior", () => {
           expect(mockPostMessage).toHaveBeenCalledWith(
             expect.objectContaining({
               type: "endatix:navigate",
+              embedId: "embed-123",
               url: "/thank-you",
             }),
-            "*",
+            "https://embedder.example",
           );
         }
       });

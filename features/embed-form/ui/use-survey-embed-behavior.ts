@@ -3,12 +3,19 @@
 import { SurveyModel } from "survey-core";
 import { useCallback, useRef } from "react";
 import { isSafeRedirectUrl } from "@/lib/utils/url-utils";
-import { EmbedMessageType } from "../types";
+import { EmbedFormInfo, EmbedMessagePayload, EmbedMessageType } from "../types";
+import { getEmbedMessagingContext } from "./embed-messaging-context";
 
 export interface UseSurveyEmbedBehaviorOptions {
   isEmbed: boolean;
   formId: string;
+  embedForm?: EmbedFormInfo;
 }
+
+type EmbedMessageData<T extends EmbedMessageType> = Omit<
+  EmbedMessagePayload<T>,
+  "formId"
+>;
 
 interface EmbedHookResult {
   /**
@@ -22,9 +29,9 @@ interface EmbedHookResult {
    * @param type - The type of event to send.
    * @param data - The data to send with the event.
    */
-  sendEmbedMessage: (
-    type: EmbedMessageType,
-    data?: Record<string, unknown>,
+  sendEmbedMessage: <T extends EmbedMessageType>(
+    type: T,
+    data?: EmbedMessageData<T>,
   ) => void;
 }
 
@@ -37,8 +44,10 @@ interface EmbedHookResult {
 export function useSurveyEmbedBehavior({
   isEmbed,
   formId,
+  embedForm,
 }: UseSurveyEmbedBehaviorOptions): EmbedHookResult {
   const pageNavigationOccurred = useRef(false);
+  const messageFormId = embedForm?.formId ?? formId;
 
   /**
    * Sends a message to the parent window to notify the embed form that an event has occurred.
@@ -46,23 +55,27 @@ export function useSurveyEmbedBehavior({
    * @param data - The data to send with the event.
    */
   const sendEmbedMessage = useCallback(
-    (type: EmbedMessageType, data?: Record<string, unknown>) => {
+    <T extends EmbedMessageType>(type: T, data?: EmbedMessageData<T>) => {
+      const messagingContext = getEmbedMessagingContext();
+
       if (
         isEmbed &&
         globalThis.window !== undefined &&
-        window.parent !== globalThis.window
+        globalThis.window.parent !== globalThis.window &&
+        messagingContext.parentOrigin
       ) {
-        window.parent.postMessage(
+        globalThis.window.parent.postMessage(
           {
             type: `endatix:${type}`,
-            formId,
+            embedId: messagingContext.embedId,
+            formId: messageFormId,
             ...data,
           },
-          "*",
+          messagingContext.parentOrigin,
         );
       }
     },
-    [isEmbed, formId],
+    [isEmbed, messageFormId],
   );
 
   /**
@@ -77,7 +90,20 @@ export function useSurveyEmbedBehavior({
       }
 
       const handleAfterRenderSurvey = () => {
-        sendEmbedMessage("form-loaded");
+        if (!embedForm) {
+          return;
+        }
+
+        sendEmbedMessage("form-loaded", {
+          definitionId: embedForm.definitionId,
+          limitOnePerUser: embedForm.limitOnePerUser,
+          requiresReCaptcha: embedForm.requiresReCaptcha,
+          metadata: embedForm.metadata,
+          title:
+            typeof model.title === "string" && model.title.trim().length > 0
+              ? model.title
+              : undefined,
+        });
       };
 
       const handlePageChanged = () => {
@@ -122,7 +148,7 @@ export function useSurveyEmbedBehavior({
         model.onNavigateToUrl.remove(handleNavigateToUrl);
       };
     },
-    [isEmbed, sendEmbedMessage],
+    [embedForm, isEmbed, sendEmbedMessage],
   );
 
   return { registerEmbedHandlers, sendEmbedMessage };

@@ -1,5 +1,6 @@
 "use client";
 
+import { getEmbedMessagingContext } from "@/features/embed-form/ui/embed-messaging-context";
 import { useEffect, useRef } from "react";
 
 export function EmbedHeightReporter() {
@@ -7,14 +8,23 @@ export function EmbedHeightReporter() {
 
   useEffect(() => {
     function reportHeight() {
+      const messagingContext = getEmbedMessagingContext();
+      if (
+        !messagingContext.parentOrigin ||
+        globalThis.window.parent === globalThis.window
+      ) {
+        return;
+      }
+
       const height = document.body.scrollHeight;
       if (height !== lastReportedHeight.current) {
         window.parent.postMessage(
           {
             type: "endatix:resize",
+            embedId: messagingContext.embedId,
             height: height,
           },
-          "*"
+          messagingContext.parentOrigin,
         );
         lastReportedHeight.current = height;
       }

@@ -3,6 +3,7 @@
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { useSurveyEmbedBehavior } from "@/features/embed-form";
+import type { EmbedFormInfo } from "@/features/embed-form/types";
 import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
@@ -38,6 +39,7 @@ interface SurveyComponentProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
+  embedForm?: EmbedFormInfo;
   urlToken?: string;
   onModelCreated?: (model: Model) => void;
 }
@@ -56,6 +58,7 @@ export default function SurveyComponent({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
+  embedForm,
   urlToken,
   onModelCreated,
 }: SurveyComponentProps) {
@@ -103,6 +106,7 @@ export default function SurveyComponent({
   const { sendEmbedMessage, registerEmbedHandlers } = useSurveyEmbedBehavior({
     isEmbed: isEmbed ?? false,
     formId,
+    embedForm,
   });
 
   useEffect(() => {
@@ -180,6 +184,9 @@ export default function SurveyComponent({
           sendEmbedMessage("form-complete", {
             submissionId: result.data.submissionId,
             success: true,
+            isComplete: result.data.isComplete,
+            status: result.data.status,
+            completedAt: result.data.completedAt,
           });
         } else {
           submissionUpdateGuard.current = false;
@@ -192,8 +199,12 @@ export default function SurveyComponent({
             error_message: result.error.message,
           });
           sendEmbedMessage("form-error", {
-            error: result.error.message,
             success: false,
+            error: {
+              type: result.error.type,
+              code: result.error.errorCode,
+              message: result.error.message,
+            },
           });
         }
       });
