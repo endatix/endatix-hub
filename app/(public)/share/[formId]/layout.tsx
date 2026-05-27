@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-provider";
+import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -28,7 +29,11 @@ export default async function ShareLayout({
       <head>
         <link rel="preconnect" href="https://www.google.com" />
         <link rel="preconnect" href="https://www.gstatic.com" crossOrigin="" />
-        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href={getPublicAssetPath("/assets/icons/icon.svg")}
+          type="image/svg+xml"
+        />
       </head>
       <body>
         <AppProvider options={AppOptions.PublicPages} session={session}>

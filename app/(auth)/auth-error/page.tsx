@@ -9,6 +9,7 @@ import Link from "next/link";
 import AuthErrorDetails from "@/features/auth/ui/auth-error";
 import { AuthErrorType, ErrorDetails } from "@/features/auth";
 import { auth } from "@/auth";
+import { getPublicAssetPath } from "@/lib/hosting";
 
 export const metadata: Metadata = {
   title: "Authentication failed | Endatix Hub",
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
       "Authentication failed the Endatix Hub form management portal.",
     images: [
       {
-        url: "/assets/endatix-og-image.jpg",
+        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
       },
     ],
   },
@@ -91,8 +92,8 @@ export default async function AuthErrorPage({
     : "Authentication failed";
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <div className="flex items-center justify-center gap-3 mb-2">
+    <div className="flex h-screen flex-col items-center justify-center">
+      <div className="mb-2 flex items-center justify-center gap-3">
         <XCircle className="h-6 w-6 text-red-500" />
         <h1 className="text-2xl font-semibold tracking-tight">
           {authErrorTitle}

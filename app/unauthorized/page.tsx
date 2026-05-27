@@ -3,6 +3,7 @@ import { UnauthorizedComponent } from "@/components/error-handling/unauthorized"
 import { Button } from "@/components/ui/button";
 import { SIGNIN_PATH, SIGNOUT_PATH } from "@/features/auth";
 import { Metadata } from "next";
+import { getPublicAssetPath } from "@/lib/hosting";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     description: "You don't have permission to access this page.",
     images: [
       {
-        url: "/assets/endatix-og-image.jpg",
+        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
       },
     ],
   },

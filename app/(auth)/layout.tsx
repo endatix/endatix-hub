@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
+import { getPublicAssetPath } from "@/lib/hosting";
 import Image from "next/image";
 import { Metadata } from "next";
 
@@ -34,7 +35,11 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href={getPublicAssetPath("/assets/icons/icon.svg")}
+          type="image/svg+xml"
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider session={session}>
@@ -45,7 +50,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
               </div>
               <div className="hidden items-center justify-center lg:flex">
                 <Image
-                  src="/assets/lines-and-stuff.svg"
+                  src={getPublicAssetPath("/assets/lines-and-stuff.svg")}
                   alt="Lines and dots pattern"
                   width="600"
                   height="600"

@@ -1,5 +1,6 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import "@/components/error-handling/not-found/not-found-styles-standalone.css";
+import { getPublicAssetPath } from "@/lib/hosting";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -21,7 +22,11 @@ export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href={getPublicAssetPath("/assets/icons/icon.svg")}
+          type="image/svg+xml"
+        />
       </head>
       <body>
         <div className="not-found-container">

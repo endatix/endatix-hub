@@ -6,6 +6,7 @@ import Image from "next/image";
 import { verifyEmailAction } from "@/features/auth/use-cases/verify-email/verify-email.action";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
+import { getPublicAssetPath } from "@/lib/hosting";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -62,7 +63,7 @@ export default function VerifyEmailPage() {
         return (
           <>
             <div className="grid gap-2 text-center">
-              <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="mb-2 flex items-center justify-center gap-3">
                 <Spinner className="h-6 w-6" />
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Verifying Your Email
@@ -79,7 +80,7 @@ export default function VerifyEmailPage() {
         return (
           <>
             <div className="grid gap-2 text-center">
-              <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="mb-2 flex items-center justify-center gap-3">
                 <CheckCircle className="h-6 w-6 text-green-500" />
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Email verified successfully!
@@ -102,7 +103,7 @@ export default function VerifyEmailPage() {
         return (
           <>
             <div className="grid gap-2 text-center">
-              <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="mb-2 flex items-center justify-center gap-3">
                 <XCircle className="h-6 w-6 text-red-500" />
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Verification failed
@@ -126,7 +127,7 @@ export default function VerifyEmailPage() {
         return (
           <>
             <div className="grid gap-2 text-center">
-              <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="mb-2 flex items-center justify-center gap-3">
                 <AlertCircle className="h-6 w-6 text-yellow-500" />
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Invalid Verification Link
@@ -154,9 +155,9 @@ export default function VerifyEmailPage() {
 
   return (
     <>
-      <div className="flex justify-center mb-2">
+      <div className="mb-2 flex justify-center">
         <Image
-          src="/assets/icons/endatix.svg"
+          src={getPublicAssetPath("/assets/icons/endatix.svg")}
           alt="Endatix logo"
           width={180}
           height={60}

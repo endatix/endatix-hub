@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
+import { getPublicAssetPath } from "@/lib/hosting";
 import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
@@ -42,7 +43,11 @@ export default async function RootLayout({
   return (
     <html lang="en" className={osClass} suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href={getPublicAssetPath("/assets/icons/icon.svg")}
+          type="image/svg+xml"
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider session={session} sidebarDefaultOpen={defaultSidebarOpen}>

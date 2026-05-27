@@ -17,6 +17,7 @@ import {
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure";
 import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
+import { getPublicAssetPath } from "@/lib/hosting";
 
 export const metadata: Metadata = {
   title: "Sign in | Endatix Hub",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     description: "Sign in the Endatix Hub form management portal.",
     images: [
       {
-        url: "/assets/endatix-og-image.jpg",
+        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
       },
     ],
   },
@@ -101,7 +102,7 @@ const SignedInSuccessMessage = ({
         <Card className="bg-background">
           <CardHeader className="pb-3">
             <CardTitle>Welcome!</CardTitle>
-            <CardDescription className="max-w-lg text-balance leading-relaxed">
+            <CardDescription className="max-w-lg leading-relaxed text-balance">
               You are now signed in as {username}
             </CardDescription>
           </CardHeader>
@@ -117,7 +118,7 @@ const SignedInSuccessMessage = ({
             </Link>
           </CardFooter>
         </Card>
-        <p className="max-w-lg text-balance leading-relaxed text-sm text-muted-foreground px-6">
+        <p className="max-w-lg px-6 text-sm leading-relaxed text-balance text-muted-foreground">
           Or{" "}
           <Link href="/signout" className="text-blue-500">
             sign out

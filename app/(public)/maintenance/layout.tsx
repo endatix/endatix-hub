@@ -1,6 +1,7 @@
 import "@/app/globals.css";
 import { AppProvider } from "@/components/providers";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
+import { getPublicAssetPath } from "@/lib/hosting";
 import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { headers } from "next/headers";
@@ -33,7 +34,11 @@ export default async function PublicLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href={getPublicAssetPath("/assets/icons/icon.svg")}
+          type="image/svg+xml"
+        />
       </head>
       <body>
         <AppProvider options={appOptions}>{children}</AppProvider>
