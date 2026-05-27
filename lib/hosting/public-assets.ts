@@ -3,8 +3,8 @@ import { DEFAULT_BASE_PATH, withBasePath } from "./base-path";
 const internalAssetBaseUrl = "https://internal-endatix.local";
 
 export class InvalidPublicAssetPathError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "InvalidPublicAssetPathError";
   }
 }
@@ -41,7 +41,9 @@ export function getPublicAssetPath(
   try {
     parsedUrl = new URL(trimmedAssetPath, internalAssetBaseUrl);
   } catch (err) {
-    throw new InvalidPublicAssetPathError("Invalid URL format.");
+    throw new InvalidPublicAssetPathError("Invalid URL format.", {
+      cause: err,
+    });
   }
 
   if (parsedUrl.origin !== internalAssetBaseUrl) {
