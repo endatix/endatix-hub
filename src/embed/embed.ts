@@ -154,11 +154,18 @@ function getCurrentParentOrigin(): string | null {
 }
 
 function createEmbedId(formId: string, index: number): string {
-  const randomValue =
-    globalThis.crypto?.randomUUID?.() ??
-    Math.random().toString(36).slice(2, 12);
+  const randomValue = globalThis.crypto?.randomUUID?.() ?? createRandomHexId();
 
   return `edxf-${formId}-${index}-${randomValue}`;
+}
+
+function createRandomHexId(): string {
+  const randomValues = new Uint32Array(4);
+  globalThis.crypto.getRandomValues(randomValues);
+
+  return Array.from(randomValues, (value) =>
+    value.toString(16).padStart(8, "0"),
+  ).join("");
 }
 
 function appendSearchParams(url: URL, query: string): void {
