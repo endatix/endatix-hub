@@ -13,7 +13,12 @@ export function normalizeBasePath(
   }
 
   const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return withLeadingSlash.replace(/\/+$/, "");
+  let endIndex = withLeadingSlash.length;
+  while (endIndex > 0 && withLeadingSlash[endIndex - 1] === "/") {
+    endIndex -= 1;
+  }
+
+  return withLeadingSlash.slice(0, endIndex);
 }
 
 export function withBasePath(
