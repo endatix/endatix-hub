@@ -1,6 +1,6 @@
 import { DEFAULT_BASE_PATH, withBasePath } from "./base-path";
 
-const internalAssetBaseUrl = "http://internal-endatix.local";
+const internalAssetBaseUrl = "https://internal-endatix.local";
 
 /**
  * Resolves the public asset path relative to the internal asset base URL.
