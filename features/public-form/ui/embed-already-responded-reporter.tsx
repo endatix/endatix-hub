@@ -20,7 +20,6 @@ export function EmbedAlreadyRespondedReporter({
     }
 
     const messagingContext = getEmbedMessagingContext();
-    debugger
     if (
       !messagingContext.parentOrigin ||
       globalThis.window.parent === globalThis.window

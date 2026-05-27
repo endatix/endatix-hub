@@ -39,8 +39,6 @@ export function getEmbedMessagingContext(): EmbedMessagingContext {
       : "";
   const searchParams = new URLSearchParams(search);
 
-  debugger;
-
   return {
     embedId: parseEmbedId(searchParams.get(EMBED_ID_QUERY_PARAM)),
     parentOrigin: parseHttpOrigin(searchParams.get(PARENT_ORIGIN_QUERY_PARAM)),
