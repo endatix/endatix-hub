@@ -195,18 +195,6 @@ export function getSafeNavigationHref(urlString: string): string | null {
   );
 }
 
-function isTrustedMessage(
-  event: MessageEvent,
-  instance: EmbedInstance | null,
-): instance is EmbedInstance {
-  return Boolean(
-    instance?.iframe &&
-    event.origin === instance.expectedOrigin &&
-    isRecord(event.data) &&
-    event.data.embedId === instance.embedId,
-  );
-}
-
 function dispatchEmbedEvent(
   instance: EmbedInstance,
   type: string,
@@ -336,7 +324,11 @@ const endatixEmbed: EndatixEmbedApi = {
       }
 
       const instance = this.findInstanceBySource(event.source as Window);
-      if (!isTrustedMessage(event, instance)) {
+      if (
+        !instance?.iframe ||
+        event.origin !== instance.expectedOrigin ||
+        event.data.embedId !== instance.embedId
+      ) {
         return;
       }
 
