@@ -14,6 +14,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { AUTH_ERROR_PATH } from "../../infrastructure/auth-constants";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { toAuthRedirectUrl } from "@/features/auth/utils";
 
 export type SignInFormState = ServerActionState<{
   email?: string;
@@ -42,7 +43,7 @@ export async function signInWithEndatixAction(
     await signIn(ENDATIX_AUTH_PROVIDER_ID, {
       email: validatedData.data.email,
       password: validatedData.data.password,
-      redirectTo: validatedData.data.returnUrl,
+      redirectTo: toAuthRedirectUrl(validatedData.data.returnUrl),
     });
   } catch (error: unknown) {
     // handle redirect error, which is handled by Next.js to complete the redirect

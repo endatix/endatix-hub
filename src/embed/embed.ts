@@ -218,11 +218,7 @@ function handleResizeMessage(
   data: Record<string, unknown>,
 ): void {
   const height = data.height;
-  if (
-    typeof height !== "number" ||
-    !Number.isFinite(height) ||
-    height < 0
-  ) {
+  if (typeof height !== "number" || !Number.isFinite(height) || height < 0) {
     return;
   }
 
@@ -394,8 +390,14 @@ const endatixEmbed: EndatixEmbedApi = {
       );
     }
 
+    let basePath = "";
+    const index = resolvedUrl.pathname.indexOf("/embed/v1/embed.js");
+    if (index !== -1) {
+      basePath = resolvedUrl.pathname.slice(0, index);
+    }
+
     const iframeUrl = new URL(
-      `${embedProtocol}//${resolvedUrl.host}/embed/${validatedFormId}`,
+      `${embedProtocol}//${resolvedUrl.host}${basePath}/embed/${validatedFormId}`,
     );
 
     if (options.token) {

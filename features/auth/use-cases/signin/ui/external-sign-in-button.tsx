@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AuthPresentation } from "@/features/auth/infrastructure";
+import { toAuthRedirectUrl } from "@/features/auth/utils";
 import { signIn } from "next-auth/react";
 import { FC } from "react";
 
@@ -17,6 +18,8 @@ const ExternalSignInOptions: FC<ExternalSignInOptionsProps> = ({
   if (externalAuthProviders.length === 0) {
     return null;
   }
+
+  const redirectTo = toAuthRedirectUrl(returnUrl);
 
   return (
     <div className="grid gap-4">
@@ -34,7 +37,7 @@ const ExternalSignInOptions: FC<ExternalSignInOptionsProps> = ({
         <Button
           key={provider.id}
           type="button"
-          onClick={() => signIn(provider.id, { redirectTo: returnUrl })}
+          onClick={() => signIn(provider.id, { redirectTo })}
         >
           {provider.signInLabel}
         </Button>
