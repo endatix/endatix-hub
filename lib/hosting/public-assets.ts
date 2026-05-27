@@ -1,26 +1,6 @@
-const configuredBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+import { DEFAULT_BASE_PATH, withBasePath } from "./base-path";
+
 const internalAssetBaseUrl = "http://internal-endatix.local";
-
-/**
- * Normalizes the base path to a string that can be used to resolve the public asset path.
- * @param basePath - The base path to normalize.
- * @returns The normalized base path.
- */
-function normalizeBasePath(basePath: string): string {
-  if (typeof basePath !== "string") {
-    return "";
-  }
-
-  const trimmed = basePath.trim();
-  if (trimmed.length === 0 || trimmed === "/") {
-    return "";
-  }
-
-  const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return withLeadingSlash.endsWith("/")
-    ? withLeadingSlash.slice(0, -1)
-    : withLeadingSlash;
-}
 
 /**
  * Resolves the public asset path relative to the internal asset base URL.
@@ -30,7 +10,7 @@ function normalizeBasePath(basePath: string): string {
  */
 export function getPublicAssetPath(
   assetPath: string,
-  basePath: string = configuredBasePath,
+  basePath: string = DEFAULT_BASE_PATH,
 ): string {
   if (typeof assetPath !== "string") {
     return "";
@@ -67,16 +47,5 @@ export function getPublicAssetPath(
     );
   }
 
-  const normalizedAssetPath = parsedUrl.pathname;
-  const normalizedBasePath = normalizeBasePath(basePath);
-
-  if (
-    normalizedBasePath.length === 0 ||
-    normalizedAssetPath === normalizedBasePath ||
-    normalizedAssetPath.startsWith(`${normalizedBasePath}/`)
-  ) {
-    return normalizedAssetPath;
-  }
-
-  return `${normalizedBasePath}${normalizedAssetPath}`;
+  return withBasePath(parsedUrl.pathname, basePath);
 }
