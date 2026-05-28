@@ -90,13 +90,20 @@ export default async function FormDesignerPage({ params }: Params) {
     slkVal: process.env.NEXT_PUBLIC_SLK,
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,
+    formIsEnabled: form.isEnabled,
   };
 
   return (
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
         <DesignerRuntimeProvider
-          initialState={{ formId }}
+          initialState={{
+            formId,
+            formName: form.name,
+            folderId: form.folderId,
+            isPublic: form.isPublic,
+            formIsEnabled: form.isEnabled,
+          }}
         >
           <AssetStorageProvider>
             <FormAssistantProvider

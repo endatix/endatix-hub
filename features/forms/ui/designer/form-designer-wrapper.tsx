@@ -18,6 +18,7 @@ export interface FormDesignerWrapperProps {
   slkVal?: string;
   themeId?: string;
   isPublic?: boolean;
+  formIsEnabled?: boolean;
 }
 
 interface FormDesignerContentProps extends FormDesignerWrapperProps {
@@ -34,6 +35,7 @@ function FormDesignerContent({
   slkVal,
   themeId,
   isPublic,
+  formIsEnabled,
   isCurrentThemeModified,
   setIsCurrentThemeModified,
   formSaveHandlerRef,
@@ -77,6 +79,8 @@ function FormDesignerContent({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
+          isPublic={isPublic}
+          formIsEnabled={formIsEnabled}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
@@ -88,6 +92,8 @@ function FormDesignerContent({
           options={options}
           slkVal={slkVal}
           themeId={themeId}
+          isPublic={isPublic}
+          formIsEnabled={formIsEnabled}
           onThemeModificationChange={setIsCurrentThemeModified}
           onSaveHandlerReady={setSaveHandler}
         />
@@ -104,6 +110,7 @@ export default function FormDesignerWrapper({
   slkVal,
   themeId,
   isPublic,
+  formIsEnabled,
 }: FormDesignerWrapperProps) {
   const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
@@ -118,6 +125,7 @@ export default function FormDesignerWrapper({
         slkVal={slkVal}
         themeId={themeId}
         isPublic={isPublic}
+        formIsEnabled={formIsEnabled}
         isCurrentThemeModified={isCurrentThemeModified}
         setIsCurrentThemeModified={setIsCurrentThemeModified}
         formSaveHandlerRef={formSaveHandlerRef}

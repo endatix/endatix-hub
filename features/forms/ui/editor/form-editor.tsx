@@ -20,12 +20,15 @@ import {
   JsonEditorState,
   useJsonEditor,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
+import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import {
+  ConvertInlineChoicesDialog,
+  useConvertInlineChoicesUi,
   useDataLists,
   useDataListsLoader,
 } from "@/lib/survey-features/data-lists";
@@ -116,6 +119,8 @@ interface FormEditorProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
+  isPublic?: boolean;
+  formIsEnabled?: boolean;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
@@ -146,9 +151,12 @@ function nameToTitle(name: string): string {
 function FormEditor({
   formJson,
   formId,
+  formName,
   options,
   slkVal,
   themeId,
+  isPublic,
+  formIsEnabled,
   initialPropertyGridVisible = true,
   onThemeModificationChange,
   onSaveHandlerReady,
@@ -195,7 +203,7 @@ function FormEditor({
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
-  const handleThemeIdChanged = useCallback(() => {
+  const markFormModified = useCallback(() => {
     setHasUnsavedChanges(true);
   }, [setHasUnsavedChanges]);
   useRichTextEditing(creator);
@@ -206,16 +214,36 @@ function FormEditor({
   } = useQuestionLoops();
   const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
     useDataLists();
-  const { dataLists, isLoading: isDataListsLoading } = useDataListsLoader();
+  const {
+    dataLists,
+    isLoading: isDataListsLoading,
+    error: dataListsError,
+    refetch: refetchDataLists,
+  } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
+
+  const {
+    initGlobals: initFormDiagnosticsGlobals,
+    bindToCreator: bindFormDiagnostics,
+  } = useFormDiagnostics(creator, { dataLists });
 
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);
   creatorThemeRef.current = creatorTheme;
 
   useEffect(() => {
-    setAvailableDataLists(dataLists);
-  }, [dataLists, setAvailableDataLists]);
+    if (dataListsError) {
+      return;
+    }
+    setAvailableDataLists(dataLists ?? []);
+  }, [dataLists, dataListsError, setAvailableDataLists]);
+
+  const convertInlineChoicesUi = useConvertInlineChoicesUi({
+    creator,
+    dataLists,
+    refetchDataLists,
+    markFormModified,
+  });
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -360,7 +388,7 @@ function FormEditor({
     formId,
     creator,
     themeId,
-    onThemeIdChanged: handleThemeIdChanged,
+    onThemeIdChanged: markFormModified,
     onPostThemeSave: saveForm,
   });
 
@@ -500,6 +528,7 @@ function FormEditor({
         };
         initAnyAnsweredGlobals();
         initQuestionLoopsGlobals();
+        initFormDiagnosticsGlobals();
         initDataListsGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         const resolvedTheme = resolveCreatorThemeCssVariables(
@@ -508,6 +537,7 @@ function FormEditor({
         );
         newCreator.applyCreatorTheme(resolvedTheme);
         const cleanupQuestionLoops = bindQuestionLoops(newCreator);
+        const cleanupFormDiagnostics = bindFormDiagnostics(newCreator);
 
         setCreator(newCreator);
 
@@ -547,6 +577,7 @@ function FormEditor({
 
         return () => {
           cleanupQuestionLoops?.();
+          cleanupFormDiagnostics?.();
           unregisterJsonEditor();
           unregisterStorage();
         };
@@ -571,8 +602,10 @@ function FormEditor({
     onCreatorCreated,
     designerRuntime,
     bindQuestionLoops,
+    bindFormDiagnostics,
     initAnyAnsweredGlobals,
     initDataListsGlobals,
+    initFormDiagnosticsGlobals,
     initQuestionLoopsGlobals,
   ]);
 
@@ -663,6 +696,8 @@ function FormEditor({
 
   return (
     <div id="creator">
+      <ConvertInlineChoicesDialog {...convertInlineChoicesUi.dialog} />
+
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">
           <div className="flex flex-col items-center gap-4">

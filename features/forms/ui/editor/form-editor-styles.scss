@@ -18,6 +18,34 @@ global {
   .svc-flex-row {
     background: transparent !important;
   }
+
+  /* Choices toolbar: Survey puts `css` on the wrapper; primary blue lives on `.spg-action-button`. */
+  .endatix-convert-datalist-title-action {
+    .spg-action-button {
+      color: var(
+        --ctr-label-text-color,
+        var(--sjs-layer-1-foreground-50, rgba(0, 0, 0, 0.5))
+      );
+
+      .spg-action-button__icon use {
+        fill: none;
+      }
+
+      &:hover,
+      &:focus {
+        color: var(
+          --ctr-actionbar-button-text-color,
+          var(--sjs-primary-background-500, #{$primary-color})
+        );
+      }
+    }
+
+    /* Beat `.spg-action-button:hover use` (otherwise hover forces neutral icon fill). */
+    .spg-action-button:hover .spg-action-button__icon use,
+    .spg-action-button:focus .spg-action-button__icon use {
+      fill: none;
+    }
+  }
 }
 
 .creator-dialog {
@@ -113,6 +141,15 @@ global {
         background-color: hsl(var(--destructive) / 0.9);
       }
     }
+  }
+
+}
+
+.edx-convert-inline-choices-dialog {
+  .sv-popup,
+  .sv-popup__container,
+  .sv-popup__body {
+    background-color: hsl(var(--background));
   }
 }
 

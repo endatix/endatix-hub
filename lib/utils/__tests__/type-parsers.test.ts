@@ -1,4 +1,8 @@
-import { parseBoolean, parseNumber } from "@/lib/utils/type-parsers";
+import {
+  parseBoolean,
+  parseNumber,
+  parseScalarString,
+} from "@/lib/utils/type-parsers";
 import { describe, expect, it } from "vitest";
 
 describe("parseBoolean", () => {
@@ -78,5 +82,24 @@ describe("parseNumber", () => {
 
   it("should use custom defaultValue for NaN from string", () => {
     expect(parseNumber("nope", -1)).toBe(-1);
+  });
+});
+
+describe("parseScalarString", () => {
+  it("returns null for null and undefined", () => {
+    expect(parseScalarString(null)).toBeNull();
+    expect(parseScalarString(undefined)).toBeNull();
+  });
+
+  it("returns strings and primitive coercions unchanged", () => {
+    expect(parseScalarString("choice")).toBe("choice");
+    expect(parseScalarString(42)).toBe("42");
+    expect(parseScalarString(false)).toBe("false");
+    expect(parseScalarString(0n)).toBe("0");
+  });
+
+  it("returns null for objects and arrays", () => {
+    expect(parseScalarString({ id: 1 })).toBeNull();
+    expect(parseScalarString(["a"])).toBeNull();
   });
 });

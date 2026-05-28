@@ -31,14 +31,45 @@ export function registerDataListGlobals(): void {
   for (const questionType of DATA_LIST_QUESTION_TYPES) {
     Serializer.addProperty(questionType, dataListProperty);
 
-    const lazyLoadPageSize = Serializer.findProperty(
-      questionType,
+    // SurveyJS validates dropdown-type properties against the current `choices` array.
+    // Choices come from the Hub API and may not yet include every ID present in JSON
+    // (e.g. after bulk conversion before refetch, or API paging). Those IDs are still valid.
+    for (const className of ["dropdown", "tagbox"] as const) {
+      const prop = Serializer.findProperty(
+        className,
+        DATA_LIST_PROPERTY_NAME,
+      ) as { validateValue?: (obj: unknown, value: unknown) => boolean } | null;
+      if (prop) {
+        prop.validateValue = () => true;
+      }
+    }
+
+    // Legacy: remove standalone property-row UI (replaced by Choices toolbar action).
+    try {
+      Serializer.removeProperty("dropdown", "edxConvertInlineChoices");
+      Serializer.removeProperty("tagbox", "edxConvertInlineChoices");
+    } catch {
+      /* property may not exist */
+    }
+
+    // Reduce JSON churn by keeping default page size at serializer level.
+    const dropdownLazyLoadPageSize = Serializer.findProperty(
+      "dropdown",
       "choicesLazyLoadPageSize",
     );
-    if (lazyLoadPageSize) {
-      lazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+    if (dropdownLazyLoadPageSize) {
+      dropdownLazyLoadPageSize.defaultValue =
+        DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
     }
-  }
 
-  isDataListRegistryInitialized = true;
+    const tagboxLazyLoadPageSize = Serializer.findProperty(
+      "tagbox",
+      "choicesLazyLoadPageSize",
+    );
+    if (tagboxLazyLoadPageSize) {
+      tagboxLazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+    }
+
+    isDataListRegistryInitialized = true;
+  }
 }

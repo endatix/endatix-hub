@@ -34,6 +34,8 @@ export interface FormEditorWithChatProps {
   options?: ICreatorOptions;
   slkVal?: string;
   themeId?: string;
+  isPublic?: boolean;
+  formIsEnabled?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
 }
@@ -45,6 +47,8 @@ export default function FormEditorWithChat({
   options,
   slkVal,
   themeId,
+  isPublic,
+  formIsEnabled,
   onThemeModificationChange,
   onSaveHandlerReady,
 }: FormEditorWithChatProps) {
@@ -136,6 +140,8 @@ export default function FormEditorWithChat({
               options={options}
               slkVal={slkVal}
               themeId={themeId}
+              isPublic={isPublic}
+              formIsEnabled={formIsEnabled}
               initialPropertyGridVisible={isCollapsed}
               onThemeModificationChange={onThemeModificationChange}
               onSaveHandlerReady={onSaveHandlerReady}

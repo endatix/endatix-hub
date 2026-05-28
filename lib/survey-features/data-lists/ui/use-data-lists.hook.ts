@@ -4,10 +4,8 @@ import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { Model } from "survey-core";
-import {
-  bindDataListsToCreator,
-  setDataListPropertyChoices,
-} from "../infrastructure/creator-bindings";
+import { bindDataListsToCreator } from "../infrastructure/creator-bindings";
+import { setDataListPropertyChoices } from "../infrastructure/data-list-property-choices";
 import { registerDataListGlobals } from "../infrastructure/registry";
 import { bindDataListsToSurvey } from "../infrastructure/survey-bindings";
 
@@ -79,26 +77,51 @@ export function useDataLists(): UseDataListsApi {
 }
 
 export function useDataListsLoader() {
-  const [dataLists, setDataLists] = useState<DataList[]>([]);
+  const [dataLists, setDataLists] = useState<DataList[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const requestIdRef = useRef(0);
 
-  useEffect(() => {
-    const loadDataLists = async () => {
-      setIsLoading(true);
-      try {
-        const result = await getDataListsAction();
-        if (!result.success) {
-          console.error("Failed to fetch data lists for creator.");
-          return;
-        }
-        setDataLists(result.data);
-      } finally {
+  const loadDataLists = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await getDataListsAction();
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      if (!result.success) {
+        const nextError = new Error(
+          result.error.message || "Failed to fetch data lists for creator.",
+        );
+        setDataLists([]);
+        setError(nextError);
+        console.error(nextError.message);
+        return;
+      }
+      setDataLists(result.data);
+    } catch (error) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      const nextError =
+        error instanceof Error
+          ? error
+          : new Error("Failed to fetch data lists for creator.");
+      setDataLists([]);
+      setError(nextError);
+      console.error(nextError.message);
+    } finally {
+      if (requestId === requestIdRef.current) {
         setIsLoading(false);
       }
-    };
-
-    loadDataLists();
+    }
   }, []);
 
-  return { dataLists, isLoading };
+  useEffect(() => {
+    loadDataLists();
+  }, [loadDataLists]);
+
+  return { dataLists, isLoading, error, refetch: loadDataLists };
 }

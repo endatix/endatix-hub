@@ -1,6 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useDataLists, useDataListsLoader } from "../use-data-lists.hook";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api";
 
 const { mockGetDataListsAction } = vi.hoisted(() => ({
@@ -10,14 +9,29 @@ const { mockGetDataListsAction } = vi.hoisted(() => ({
 vi.mock("@/features/data-lists/view-lists/get-data-lists.action", () => ({
   getDataListsAction: mockGetDataListsAction,
 }));
+vi.mock("@/auth", () => ({
+  auth: vi.fn(),
+}));
+vi.mock("@/features/auth/authorization", () => ({
+  authorization: vi.fn(),
+}));
+
+const loadUseDataListsHook = () => import("../use-data-lists.hook");
 
 describe("useDataLists hooks", () => {
+  let hooksModule: Awaited<ReturnType<typeof loadUseDataListsHook>>;
+
+  beforeAll(async () => {
+    hooksModule = await loadUseDataListsHook();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("does not fetch data lists when only binding hook is used", () => {
     // Arrange
+    const { useDataLists } = hooksModule;
     renderHook(() => useDataLists());
 
     // Act & Assert
@@ -26,6 +40,7 @@ describe("useDataLists hooks", () => {
 
   it("fetches data lists in loader hook and exposes loading state", async () => {
     // Arrange
+    const { useDataListsLoader } = hooksModule;
     const dataLists = [{ id: 1, name: "Countries" }];
     mockGetDataListsAction.mockResolvedValue(ApiResult.success(dataLists));
 
@@ -38,5 +53,23 @@ describe("useDataLists hooks", () => {
     });
     expect(mockGetDataListsAction).toHaveBeenCalledTimes(1);
     expect(result.current.dataLists).toEqual(dataLists);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("surfaces fetch failures via error and empty dataLists", async () => {
+    // Arrange
+    const { useDataListsLoader } = hooksModule;
+    mockGetDataListsAction.mockResolvedValue(ApiResult.authError("Unauthorized"));
+
+    // Act
+    const { result } = renderHook(() => useDataListsLoader());
+
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.dataLists).toEqual([]);
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect(result.current.error?.message).toBe("Unauthorized");
   });
 });
