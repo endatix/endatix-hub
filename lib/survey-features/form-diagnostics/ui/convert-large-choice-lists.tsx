@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { convertChoicesToDataListAction } from "@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action";
 import { createFormAction } from "@/features/forms/application/actions/create-form.action";
-import type {
+import {
   ConvertibleChoiceQuestionRef,
   findConvertibleChoiceQuestions,
 } from "@/lib/survey-features/data-lists/conversion/inline-choice-conversion";
@@ -175,7 +175,8 @@ export function ConvertLargeChoiceLists({
     if (!parsedPayload.ok) {
       return [];
     }
-    return findConvertibleChoiceQuestions(parsedPayload.payload, t);
+    const questions = findConvertibleChoiceQuestions(parsedPayload.payload, t);
+    return questions;
   }, [parsedPayload, threshold]);
 
   const totalChoicesToMove = useMemo(

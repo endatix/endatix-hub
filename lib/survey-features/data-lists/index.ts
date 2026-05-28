@@ -9,5 +9,14 @@ export {
   findConvertibleChoiceQuestions,
   isInlineChoicesQuestion,
 } from "./conversion/inline-choice-conversion";
+export {
+  ConvertInlineChoicesDialog,
+  type ConvertInlineChoicesDialogProps,
+} from "./ui/convert-inline-choices-dialog";
+export {
+  useConvertInlineChoicesUi,
+  type UseConvertInlineChoicesUiOptions,
+  type UseConvertInlineChoicesUiResult,
+} from "./ui/use-convert-inline-choices-ui.hook";
 export { useDataLists, useDataListsLoader } from "./ui/use-data-lists.hook";
 export { dataListsExtension } from "./infrastructure/data-lists.extension";

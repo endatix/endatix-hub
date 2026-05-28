@@ -42,7 +42,7 @@ export async function runConvertInlineChoicesToDataList(
 
   const reserved = getReservedNames();
   const defaultListName = getQuestionDataListName(
-    { title: question.title, name: question.name },
+    { title: undefined, name: question.name },
     reserved,
   );
 

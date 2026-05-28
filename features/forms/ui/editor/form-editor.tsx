@@ -1,14 +1,6 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
@@ -38,8 +30,9 @@ import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
-import { registerConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion";
 import {
+  ConvertInlineChoicesDialog,
+  useConvertInlineChoicesUi,
   useDataLists,
   useDataListsLoader,
 } from "@/lib/survey-features/data-lists";
@@ -214,7 +207,7 @@ function FormEditor({
   const [questionClasses, setQuestionClasses] = useState<
     SpecializedSurveyQuestionType[]
   >([]);
-  const handleThemeIdChanged = useCallback(() => {
+  const markFormModified = useCallback(() => {
     setHasUnsavedChanges(true);
   }, [setHasUnsavedChanges]);
   useRichTextEditing(creator);
@@ -239,70 +232,16 @@ function FormEditor({
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);
   creatorThemeRef.current = creatorTheme;
-  const convertChoicesConfirmResolverRef = useRef<
-    ((value: string | null) => void) | null
-  >(null);
-  const convertChoicesConfirmPromiseRef = useRef<Promise<string | null> | null>(
-    null,
-  );
-  const [convertChoicesDialog, setConvertChoicesDialog] = useState<{
-    isOpen: boolean;
-    name: string;
-    errorMessage?: string;
-  }>({ isOpen: false, name: "" });
 
   useEffect(() => {
     setAvailableDataLists(dataLists ?? []);
   }, [dataLists, setAvailableDataLists]);
 
-  const closeConvertChoicesDialog = useCallback((value: string | null) => {
-    const resolve = convertChoicesConfirmResolverRef.current;
-    convertChoicesConfirmResolverRef.current = null;
-    convertChoicesConfirmPromiseRef.current = null;
-    setConvertChoicesDialog({
-      isOpen: false,
-      name: "",
-      errorMessage: undefined,
-    });
-    resolve?.(value);
-  }, []);
-
-  const requestConvertChoicesConfirmation = useCallback(
-    (input?: {
-      initialName: string;
-      errorMessage?: string;
-    }): Promise<string | null> => {
-      if (convertChoicesConfirmPromiseRef.current) {
-        return convertChoicesConfirmPromiseRef.current;
-      }
-      const promise = new Promise<string | null>((resolve) => {
-        convertChoicesConfirmResolverRef.current = resolve;
-        setConvertChoicesDialog({
-          isOpen: true,
-          name: input?.initialName ?? "",
-          errorMessage: input?.errorMessage,
-        });
-      });
-      convertChoicesConfirmPromiseRef.current = promise;
-      return promise;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    registerConvertChoicesUiDeps({
-      getDataListNames: () => (dataLists ?? []).map((d) => d.name),
-      refreshDataLists: () => refetchDataLists(),
-      markFormModified: () => setHasUnsavedChanges(true),
-      confirmConvertInlineChoices: requestConvertChoicesConfirmation,
-    });
-    return () => registerConvertChoicesUiDeps(null);
-  }, [
+  const convertInlineChoicesUi = useConvertInlineChoicesUi({
     dataLists,
     refetchDataLists,
-    setHasUnsavedChanges,
-    requestConvertChoicesConfirmation,
-  ]);
+    markFormModified,
+  });
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {
@@ -447,7 +386,7 @@ function FormEditor({
     formId,
     creator,
     themeId,
-    onThemeIdChanged: handleThemeIdChanged,
+    onThemeIdChanged: markFormModified,
     onPostThemeSave: saveForm,
   });
 
@@ -773,80 +712,7 @@ function FormEditor({
 
   return (
     <div id="creator">
-      <Dialog
-        open={convertChoicesDialog.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeConvertChoicesDialog(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Convert inline choices to a data list?</DialogTitle>
-            <DialogDescription asChild>
-              <div className="space-y-2 text-left text-sm">
-                <p>
-                  A new data list will be created and populated with these
-                  choices.
-                </p>
-                <p>
-                  <strong>This question</strong> will use that data list as its
-                  choice source.
-                </p>
-                <p>Inline choices will be removed from the question.</p>
-                <p>Save the form to persist this change.</p>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-1.5">
-            <label
-              className="block text-sm font-medium"
-              htmlFor="edx-convert-list-name"
-            >
-              Data list name
-            </label>
-            <input
-              id="edx-convert-list-name"
-              type="text"
-              value={convertChoicesDialog.name}
-              maxLength={100}
-              onChange={(e) =>
-                setConvertChoicesDialog((prev) => ({
-                  ...prev,
-                  name: e.target.value,
-                  errorMessage: undefined,
-                }))
-              }
-              className="w-full rounded-md border border-input bg-background px-3 py-2"
-              autoFocus
-            />
-            {convertChoicesDialog.errorMessage ? (
-              <p className="text-xs text-destructive">
-                {convertChoicesDialog.errorMessage}
-              </p>
-            ) : null}
-          </div>
-          <DialogFooter>
-            <button
-              type="button"
-              className="rounded-md border px-4 py-2 text-sm"
-              onClick={() => closeConvertChoicesDialog(null)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-              onClick={() =>
-                closeConvertChoicesDialog(convertChoicesDialog.name)
-              }
-            >
-              Convert
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConvertInlineChoicesDialog {...convertInlineChoicesUi.dialog} />
 
       {isCreatorLoading ? (
         <div className="flex h-[calc(100vh-80px)] items-center justify-center">
