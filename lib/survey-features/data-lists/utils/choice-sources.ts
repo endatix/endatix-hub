@@ -17,7 +17,8 @@ function hasDynamicChoiceSourcesInRecord(
   if (
     choicesFromQuestion !== undefined &&
     choicesFromQuestion !== null &&
-    String(choicesFromQuestion).trim().length > 0
+    typeof choicesFromQuestion === "string" &&
+    choicesFromQuestion.trim().length > 0
   ) {
     return true;
   }

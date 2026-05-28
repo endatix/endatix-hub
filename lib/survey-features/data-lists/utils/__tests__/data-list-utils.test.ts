@@ -62,6 +62,34 @@ describe("data-list utils", () => {
       }
     });
 
+    it("coerces numeric choice values to strings", () => {
+      const r = normalizeChoicesToDataListItems([{ value: 42, text: "Forty-two" }]);
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.items).toEqual([{ label: "Forty-two", value: "42" }]);
+      }
+    });
+
+    it("resolves localized object values without object stringification", () => {
+      const r = normalizeChoicesToDataListItems([
+        { value: { default: "bg", en: "bg" }, text: "Bulgaria" },
+      ]);
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.items).toEqual([{ label: "Bulgaria", value: "bg" }]);
+      }
+    });
+
+    it("falls back to label when value is a non-localized object", () => {
+      const r = normalizeChoicesToDataListItems([
+        { value: { nested: true }, text: "Label only" },
+      ]);
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.items).toEqual([{ label: "Label only", value: "Label only" }]);
+      }
+    });
+
     it("rejects duplicate values", () => {
       const r = normalizeChoicesToDataListItems([
         { value: "x", text: "A" },

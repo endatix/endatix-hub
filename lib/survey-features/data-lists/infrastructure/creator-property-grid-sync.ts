@@ -19,6 +19,9 @@ export function syncDataListPropertyGridAfterBinding(
   }
 
   const creatorWithGrid = creator as CreatorWithPropertyGrid;
-  creatorWithGrid.designerPropertyGrid?.refresh();
+
+  if (creatorWithGrid?.designerPropertyGrid) {
+    creatorWithGrid.designerPropertyGrid.refresh();
+  }
   creator.selectElement(question, DATA_LIST_PROPERTY_NAME, false);
 }

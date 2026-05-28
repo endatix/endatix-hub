@@ -1,5 +1,6 @@
 import { ItemValue, Question } from "survey-core";
 import type { DataListChoiceItem } from "@/lib/endatix-api/data-lists/types";
+import { parseScalarString } from "@/lib/utils/type-parsers";
 import { DATA_LIST_ITEM_MAX_LENGTH } from "../constants";
 import { resolveLocalizedText } from "./survey-localized-text";
 
@@ -29,6 +30,12 @@ function resolveChoiceTextFromRecord(o: Record<string, unknown>): string {
   );
 }
 
+function resolveChoiceScalarValue(value: unknown): string {
+  return (
+    parseScalarString(value) ?? resolveLocalizedText(value) ?? ""
+  );
+}
+
 function resolveLabelAndValueFromRaw(
   raw: unknown,
 ): { label: string; value: string } | null {
@@ -42,7 +49,7 @@ function resolveLabelAndValueFromRaw(
 
   const o = raw as Record<string, unknown>;
   const labelText = resolveChoiceTextFromRecord(o);
-  const val = o.value !== undefined && o.value !== null ? String(o.value) : "";
+  const val = resolveChoiceScalarValue(o.value);
   const label = labelText || val;
   const value = val || label;
   return { label, value };
@@ -134,7 +141,7 @@ export function getPlainChoiceValuesForNormalization(q: Question): unknown[] {
         ? json.value
         : iv.value;
 
-    return { value: val, text: text || String(val ?? "") };
+    return { value: val, text: text || resolveChoiceScalarValue(val) };
   });
 }
 

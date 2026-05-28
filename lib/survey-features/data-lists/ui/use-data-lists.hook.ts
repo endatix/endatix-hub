@@ -101,13 +101,13 @@ export function useDataListsLoader() {
         return;
       }
       setDataLists(result.data);
-    } catch (caught) {
+    } catch (error) {
       if (requestId !== requestIdRef.current) {
         return;
       }
       const nextError =
-        caught instanceof Error
-          ? caught
+        error instanceof Error
+          ? error
           : new Error("Failed to fetch data lists for creator.");
       setDataLists([]);
       setError(nextError);

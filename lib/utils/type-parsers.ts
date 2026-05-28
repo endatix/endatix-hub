@@ -58,4 +58,28 @@ function parseNumber(
   return Number.isNaN(parsed) ? defaultValue : parsed;
 }
 
-export { parseBoolean, tryParseJson, parseNumber };
+/**
+ * Converts JSON primitives to a string for ids, keys, and choice values.
+ * Returns null for null/undefined and non-scalars (objects, arrays, functions).
+ */
+function parseScalarString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+
+  return null;
+}
+
+export { parseBoolean, parseScalarString, tryParseJson, parseNumber };
