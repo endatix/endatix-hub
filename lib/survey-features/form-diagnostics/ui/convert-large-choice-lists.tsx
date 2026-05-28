@@ -227,7 +227,7 @@ export function ConvertLargeChoiceLists({
     }[] = [];
     for (const c of candidates) {
       const listName = getQuestionDataListName(
-        { title: c.title, name: c.name },
+        { title: c.title, name: c.name, type: c.type },
         reserved,
       );
       plans.push({ candidate: c, listName });

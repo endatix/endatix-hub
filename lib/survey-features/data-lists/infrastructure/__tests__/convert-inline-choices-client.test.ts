@@ -22,7 +22,7 @@ describe("runConvertInlineChoicesToDataList", () => {
         {
           type: "dropdown",
           name: "games",
-          title: "dropdown (3)",
+          title: "Dropdown",
           choices: ["A", "B"],
         },
       ],

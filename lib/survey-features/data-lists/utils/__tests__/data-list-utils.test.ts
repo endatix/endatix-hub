@@ -91,6 +91,26 @@ describe("data-list utils", () => {
       ).toBe("my_question");
     });
 
+    it("uses question name when title is a generic Survey type label", () => {
+      const set = new Set<string>();
+      expect(
+        getQuestionDataListName(
+          { name: "games", title: "Dropdown", type: "dropdown" },
+          set,
+        ),
+      ).toBe("games");
+    });
+
+    it("uses question name when title is a numbered generic Survey type label", () => {
+      const set = new Set<string>();
+      expect(
+        getQuestionDataListName(
+          { name: "games", title: "Dropdown (3)", type: "dropdown" },
+          set,
+        ),
+      ).toBe("games");
+    });
+
     it("strips html from localized title before naming", () => {
       const set = new Set<string>();
       expect(

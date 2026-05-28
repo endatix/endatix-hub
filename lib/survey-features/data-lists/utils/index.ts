@@ -13,7 +13,10 @@ export {
   normalizeChoicesToDataListItems,
   type NormalizeChoicesResult,
 } from "./data-list-items";
-export { getQuestionDataListName } from "./data-list-naming";
+export {
+  getQuestionDataListName,
+  isGenericChoiceQuestionTitle,
+} from "./data-list-naming";
 export {
   applyDataListBindingByQuestionName,
   applyDataListBindingToQuestionJson,
