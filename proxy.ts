@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { isMaintenanceMode } from "@/lib/maintenance/maintenance-config";
 import { rewriteToMaintenance } from "@/lib/maintenance/maintenance-response";
 import { toSafeRelativeUrl } from "@/lib/utils/url-utils";
+import { withBasePath } from "@/lib/hosting/base-path";
 import { NextRequest, NextResponse } from "next/server";
 import {
   AUTH_ROUTES,
@@ -80,8 +81,13 @@ function redirectToLogin(req: NextRequest): NextResponse<unknown> {
     req.nextUrl.origin,
     DEFAULT_RETURN_URL,
   );
+  const signinPath = withBasePath(
+    SIGNIN_PATH,
+    process.env.NEXT_PUBLIC_BASE_PATH,
+  );
+
   const loginUrl = new URL(
-    `${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodeURIComponent(returnUrl)}`,
+    `${signinPath}?${RETURN_URL_PARAM}=${encodeURIComponent(returnUrl)}`,
     req.nextUrl.origin,
   );
   return NextResponse.redirect(loginUrl);

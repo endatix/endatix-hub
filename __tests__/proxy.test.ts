@@ -26,6 +26,7 @@ async function getProxy(): Promise<ProxyHandler> {
 describe("proxy", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe("auth routes", () => {
@@ -171,6 +172,24 @@ describe("proxy", () => {
       const location = response.headers.get("Location");
       expect(location).toContain(encodeURIComponent("/forms?tab=submissions"));
     });
+
+    it("should include the configured base path in the signin redirect", async () => {
+      vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "/app");
+      const { auth } = await import("@/auth");
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
+
+      const proxy = await getProxy();
+      const request = createRequest("/forms");
+      const response = await proxy(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get("Location")).toBe(
+        `${BASE_URL}/app${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodeURIComponent(
+          "/forms",
+        )}`,
+      );
+    });
+
   });
 
   describe("non-auth, non-hub paths", () => {
@@ -188,7 +207,7 @@ describe("proxy", () => {
 
     it("should allow request when path is not auth and not hub", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(auth).mockResolvedValue(null as unknown as NextProxy);
 
       const proxy = await getProxy();
       const request = createRequest("/some-other-path");

@@ -55,6 +55,11 @@ const nextConfig: NextConfig = {
   },
   redirects: async () => [
     {
+      source: "/",
+      destination: "/signin",
+      permanent: false,
+    },
+    {
       source: "/login",
       destination: "/signin",
       permanent: true,
