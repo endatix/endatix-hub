@@ -15,6 +15,8 @@ import { Conversations } from "./conversations/conversations";
 import Tenant from "./tenant/tenant";
 import Users from "./users/users";
 import Stats from "./stats/stats";
+import { Folders } from "./folders/folders";
+import { FormTemplates } from "./form-templates/form-templates";
 
 /**
  * Gets the validated and cached API URL
@@ -63,6 +65,8 @@ export class EndatixApi {
   private _tenant?: Tenant;
   private _users?: Users;
   private _stats?: Stats;
+  private _folders?: Folders;
+  private _formTemplates?: FormTemplates;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -199,6 +203,16 @@ export class EndatixApi {
   get stats(): Stats {
     this._stats ??= new Stats(this);
     return this._stats;
+  }
+
+  get folders(): Folders {
+    this._folders ??= new Folders(this);
+    return this._folders;
+  }
+
+  get formTemplates(): FormTemplates {
+    this._formTemplates ??= new FormTemplates(this);
+    return this._formTemplates;
   }
 
   /**

@@ -3,18 +3,24 @@ import {
   AssetStorageContext,
   AssetStorageContextValue,
   ProtectedFilePreview,
-  StorageConfig,
+  ClientStorageConfig,
 } from "@/features/asset-storage/client";
 import { IFile } from "@/lib/questions/file/file-type";
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { QuestionFileModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clientStorageConfig } from "../../../test-storage-config";
 
 // Mock SurveyFilePreview - must be before imports that use it
 const mockRenderElement = vi.fn(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react");
-  return React.createElement("div", { "data-testid": "default-preview" }, "Default Preview");
+  return React.createElement(
+    "div",
+    { "data-testid": "default-preview" },
+    "Default Preview",
+  );
 });
 
 vi.mock("survey-react-ui", async (importOriginal) => {
@@ -43,17 +49,19 @@ const renderWithContext = (
   if (contextValue === undefined) {
     return renderSurveyJsComponent(ProtectedFilePreview, question);
   }
-  
+
   // Create instance and manually set context since renderElement is called directly
   const instance = new ProtectedFilePreview({ question });
   if (contextValue) {
     // Manually set the context on the instance
     (instance as any).context = contextValue;
   }
-  
+
   // Call renderElement to trigger the modification logic
-  const view = instance.renderElement();
-  
+  const view = (
+    instance as unknown as { renderElement(): ReactNode }
+  ).renderElement();
+
   // Render the result with context provider for any child components
   return render(
     <AssetStorageContext.Provider value={contextValue}>
@@ -116,18 +124,15 @@ describe("ProtectedFilePreview", () => {
 
   describe("when storage is disabled", () => {
     it("should render default preview without token injection", () => {
-      const disabledConfig: StorageConfig = {
+      const disabledConfig: ClientStorageConfig = clientStorageConfig({
         isEnabled: false,
         isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
-      renderWithContext(mockQuestion, { config: disabledConfig, resolveStorageUrl: vi.fn() });
+      renderWithContext(mockQuestion, {
+        config: disabledConfig,
+        getCachedPrivateReadUrl: vi.fn(() => null),
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -144,17 +149,15 @@ describe("ProtectedFilePreview", () => {
 
   describe("when storage is enabled but not private", () => {
     it("should render default preview without token injection", () => {
-      const publicConfig: StorageConfig = {
+      const publicConfig: ClientStorageConfig = clientStorageConfig({
         isEnabled: true,
         isPrivate: false,
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
-      renderWithContext(mockQuestion, { config: publicConfig });
+      renderWithContext(mockQuestion, {
+        config: publicConfig,
+        getCachedPrivateReadUrl: vi.fn(() => null),
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -170,64 +173,34 @@ describe("ProtectedFilePreview", () => {
   });
 
   describe("when storage is enabled and private", () => {
-    it("should inject tokens into file content URLs", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+    it("renders preview without mutating file item content", () => {
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
-
-      const mockResolveStorageUrl = vi.fn((url: string) => {
-        if (url.includes("file1.pdf")) {
-          return `${url}?token-123`;
-        }
-        if (url.includes("file2.jpg")) {
-          return `${url}?token-456`;
-        }
-        return url;
       });
+
+      const mockResolveStorageUrl = vi.fn((url: string) => url);
 
       renderWithContext(mockQuestion, {
         config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
+      expect(mockResolveStorageUrl).not.toHaveBeenCalled();
 
-      // Verify resolveStorageUrl was called with the correct URLs
-      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
-        "https://testaccount.blob.core.windows.net/content/file1.pdf",
-      );
-      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
-        "https://testaccount.blob.core.windows.net/content/file2.jpg",
-      );
-
-      // Verify items were modified with tokens via resolveStorageUrl
       expect(mockQuestion.renderedPages[0].items[0].content).toBe(
-        "https://testaccount.blob.core.windows.net/content/file1.pdf?token-123",
-      );
-      expect(mockQuestion.renderedPages[0].items[1].content).toBe(
-        "https://testaccount.blob.core.windows.net/content/file2.jpg?token-456",
+        "https://testaccount.blob.core.windows.net/content/file1.pdf",
       );
     });
 
     it("should not modify items without matching tokens", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       // Create question with items that don't have matching tokens
       const questionWithoutTokens = {
@@ -254,12 +227,11 @@ describe("ProtectedFilePreview", () => {
         ],
       } as unknown as QuestionFileModel;
 
-      // resolveStorageUrl returns original URL when no token is available
-      const mockResolveStorageUrl = vi.fn((url: string) => url);
+      const mockResolveStorageUrl = vi.fn(() => null);
 
       renderWithContext(questionWithoutTokens, {
         config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
       });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
@@ -270,98 +242,33 @@ describe("ProtectedFilePreview", () => {
       );
     });
 
-    it("should handle partial token matches correctly", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+    it("does not mutate items when only some would resolve", () => {
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
-      // Create question where only one item has a token
       const questionWithPartialTokens = {
         ...mockQuestion,
-        renderedPages: [
-          {
-            items: [
-              {
-                content:
-                  "https://testaccount.blob.core.windows.net/content/file1.pdf",
-                name: "file1.pdf",
-                type: "application/pdf",
-              } as IFile,
-              {
-                content:
-                  "https://testaccount.blob.core.windows.net/content/file2.jpg",
-                name: "file2.jpg",
-                type: "image/jpeg",
-              } as IFile,
-            ],
-          },
-        ],
-        value: [
-          {
-            content:
-              "https://testaccount.blob.core.windows.net/content/file1.pdf",
-            name: "file1.pdf",
-            token: "token-123",
-          } as IFile & { token?: string },
-          {
-            content:
-              "https://testaccount.blob.core.windows.net/content/file2.jpg",
-            name: "file2.jpg",
-            // No token for file2
-          } as IFile,
-        ],
       } as unknown as QuestionFileModel;
 
-      const mockResolveStorageUrl = vi.fn((url: string) => {
-        if (url.includes("file1.pdf")) {
-          return `${url}?token-123`;
-        }
-        // Return original URL for file2 (no token)
-        return url;
-      });
+      const mockResolveStorageUrl = vi.fn((url: string) => url);
 
       renderWithContext(questionWithPartialTokens, {
         config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
+        enqueuePrivateReadUrls: vi.fn(),
+        mergePrivateReadUrlCache: vi.fn(),
+        readUrlCacheVersion: 0,
       });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
-
-      // Verify resolveStorageUrl was called for both items
-      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
-        "https://testaccount.blob.core.windows.net/content/file1.pdf",
-      );
-      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
-        "https://testaccount.blob.core.windows.net/content/file2.jpg",
-      );
-
-      // Verify only the item with token was modified
-      expect(questionWithPartialTokens.renderedPages[0].items[0].content).toBe(
-        "https://testaccount.blob.core.windows.net/content/file1.pdf?token-123",
-      );
-      expect(questionWithPartialTokens.renderedPages[0].items[1].content).toBe(
-        "https://testaccount.blob.core.windows.net/content/file2.jpg",
-      );
+      expect(mockResolveStorageUrl).not.toHaveBeenCalled();
     });
 
     it("should handle empty renderedPages gracefully", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const questionWithEmptyPages = {
         ...mockQuestion,
@@ -369,30 +276,29 @@ describe("ProtectedFilePreview", () => {
         indexToShow: 0,
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithEmptyPages, { config: privateConfig, resolveStorageUrl: vi.fn() });
+      renderWithContext(questionWithEmptyPages, {
+        config: privateConfig,
+        getCachedPrivateReadUrl: vi.fn(() => null),
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
     });
 
     it("should handle missing currentShownPage gracefully", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
+      const privateConfig: ClientStorageConfig = clientStorageConfig({
         isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+      });
 
       const questionWithInvalidIndex = {
         ...mockQuestion,
         indexToShow: 999, // Invalid index
       } as unknown as QuestionFileModel;
 
-      renderWithContext(questionWithInvalidIndex, { config: privateConfig, resolveStorageUrl: vi.fn() });
+      renderWithContext(questionWithInvalidIndex, {
+        config: privateConfig,
+        getCachedPrivateReadUrl: vi.fn(() => null),
+      });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("default-preview")).toBeDefined();
@@ -418,7 +324,7 @@ describe("ProtectedFilePreview", () => {
       const mockResolveStorageUrl = vi.fn((url: string) => url);
       renderWithContext(mockQuestion, {
         config: null,
-        resolveStorageUrl: mockResolveStorageUrl,
+        getCachedPrivateReadUrl: mockResolveStorageUrl,
       });
 
       expect(mockRenderElement).toHaveBeenCalledTimes(1);

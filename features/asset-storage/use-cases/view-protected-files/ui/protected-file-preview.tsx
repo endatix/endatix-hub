@@ -1,15 +1,13 @@
-import { AssetStorageContext } from "@/features/asset-storage/client";
-import { IFile } from "@/lib/questions/file/file-type";
-import * as React from "react";
+import { AssetStorageContext } from "@/features/asset-storage/ui/asset-storage.context";
 import { QuestionFileModel } from "survey-core";
 import { ReactElementFactory, SurveyFilePreview } from "survey-react-ui";
+import * as React from "react";
+import { isPrivateStorageContext } from "./protected-storage-media";
 
 let isRegistered = false;
 
 /**
- * A custom file preview component that renders the file preview for a file question.
- * It will only render the file preview if the storage is enabled and private.
- * It will also add the token to the file content if the file is in private storage.
+ * File preview container. Per-item presign is handled by {@link ProtectedSurveyFileItem}.
  */
 class ProtectedFilePreview extends SurveyFilePreview {
   declare context: React.ContextType<typeof AssetStorageContext>;
@@ -19,29 +17,18 @@ class ProtectedFilePreview extends SurveyFilePreview {
   }
 
   protected renderElement(): React.JSX.Element | null {
-    const question = this.question;
-    const config = this.context?.config;
-    if (!config?.isEnabled || !config?.isPrivate) {
+    if (!isPrivateStorageContext(this.context)) {
       return super.renderElement();
-    }
-
-    const resolveStorageUrl = this.context?.resolveStorageUrl;
-
-    const currentShownPage = question.renderedPages[question.indexToShow];
-    if (currentShownPage && resolveStorageUrl) {
-      currentShownPage.items.forEach((item: IFile) => {
-        if (item.content) {
-          item.content = resolveStorageUrl(item.content);
-        }
-      });
     }
 
     return super.renderElement();
   }
 }
 
-function registerProtectedFilePreview() {
-  if (globalThis.window === undefined || isRegistered) return;
+function registerProtectedFilePreview(): void {
+  if (globalThis.window === undefined || isRegistered) {
+    return;
+  }
 
   ReactElementFactory.Instance.registerElement("sv-file-preview", (props) => {
     return React.createElement(ProtectedFilePreview, props);

@@ -3,13 +3,15 @@ import { renderHook, act } from "@testing-library/react";
 import React, { Suspense } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
-import { Result } from "@/lib/result";
-import { ContainerReadToken } from "@/features/asset-storage/types";
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
-import { StorageConfig } from "@/features/asset-storage/client";
+import { ClientStorageConfig } from "@/features/asset-storage/client";
+import { clientStorageConfig } from "../../test-storage-config";
 
 // Mock the hooks
 const mockRegisterUploadHandlers = vi.fn();
+const mockPrefetchPrivateReadUrlsForModel = vi
+  .fn()
+  .mockResolvedValue(undefined);
 
 vi.mock(
   "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook",
@@ -20,38 +22,36 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  "@/features/asset-storage/use-cases/view-protected-files/use-storage-view.hook",
+  () => ({
+    useStorageView: () => ({
+      prefetchPrivateReadUrlsForModel: mockPrefetchPrivateReadUrlsForModel,
+    }),
+  }),
+);
+
+const createMockSurveyModel = () =>
+  ({
+    render: vi.fn(),
+  }) as unknown as import("survey-core").SurveyModel;
+
 const createMockCreatorModel = (): SurveyCreatorModel => {
-  return {} as unknown as SurveyCreatorModel;
-};
-
-const createReadTokenPromises = () => {
-  const resolvedTokenResult = Result.success<ContainerReadToken>({
-    token: "test-token-123",
-    containerName: "content",
-    expiresOn: new Date(),
-    generatedAt: new Date(),
-  });
-
-  const resolvedUserFilesTokenResult = Result.success<ContainerReadToken>({
-    token: "user-files-token-456",
-    containerName: "user-files",
-    expiresOn: new Date(),
-    generatedAt: new Date(),
-  });
-
   return {
-    userFiles: Promise.resolve(resolvedUserFilesTokenResult),
-    content: Promise.resolve(resolvedTokenResult),
-  };
+    survey: createMockSurveyModel(),
+    onActiveTabChanged: { add: vi.fn(), remove: vi.fn() },
+    onSurveyInstanceCreated: { add: vi.fn(), remove: vi.fn() },
+  } as unknown as SurveyCreatorModel;
 };
 
 describe("useStorageWithCreator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRegisterUploadHandlers.mockReturnValue(() => { });
+    mockRegisterUploadHandlers.mockReturnValue(() => {});
+    mockPrefetchPrivateReadUrlsForModel.mockResolvedValue(undefined);
   });
 
-  const wrapper = (config: StorageConfig | null) => {
+  const wrapper = (config: ClientStorageConfig | null) => {
     function TestStorageConfigWrapper({
       children,
     }: {
@@ -84,123 +84,99 @@ describe("useStorageWithCreator", () => {
     expect(result.current.isStorageReady).toBe(false);
   });
 
-  describe("when readTokenPromises is provided", () => {
-    const readTokenPromises = createReadTokenPromises();
-
-    it("should handle disabled storage", async () => {
-      const disabledConfig: StorageConfig = {
-        isEnabled: false,
-        isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
-
-      const creator = createMockCreatorModel();
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useStorageWithCreator({
-              itemId: "test-item",
-              itemType: "form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(disabledConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
-
-      expect(result.current.registerStorageHandlers).toBeDefined();
-
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(creator);
-      });
-      expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
-      unregister();
+  it("should handle disabled storage", async () => {
+    const disabledConfig: ClientStorageConfig = clientStorageConfig({
+      isEnabled: false,
+      isPrivate: false,
     });
 
-    it("should register upload handlers but not view handlers when not private", async () => {
-      const publicConfig: StorageConfig = {
-        isEnabled: true,
-        isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
+    const creator = createMockCreatorModel();
+    let result: { current: ReturnType<typeof useStorageWithCreator> };
+    await act(async () => {
+      const view = renderHook(
+        () =>
+          useStorageWithCreator({
+            itemId: "test-item",
+            itemType: "form",
+          }),
+        {
+          wrapper: wrapper(disabledConfig),
         },
-      };
-
-      const creator = createMockCreatorModel();
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useStorageWithCreator({
-              itemId: "test-item",
-              itemType: "form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(publicConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
-
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(creator);
-      });
-      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
-      unregister();
+      );
+      result = view.result;
+      await Promise.resolve();
     });
 
-    it("should register both upload and view handlers when private", async () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
-        isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+    expect(result!.current.registerStorageHandlers).toBeDefined();
 
-      const creator = createMockCreatorModel();
-      let result: any;
-      await act(async () => {
-        const view = renderHook(
-          () =>
-            useStorageWithCreator({
-              itemId: "test-item",
-              itemType: "form",
-              readTokenPromises,
-            }),
-          {
-            wrapper: wrapper(privateConfig),
-          },
-        );
-        result = view.result;
-        await Promise.resolve();
-      });
-
-      let unregister: () => void = () => { };
-      act(() => {
-        unregister = result.current.registerStorageHandlers(creator);
-      });
-      expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
-      unregister();
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result!.current.registerStorageHandlers(creator);
     });
+    expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
+    unregister();
+  });
+
+  it("should register upload handlers when enabled and not private", async () => {
+    const publicConfig: ClientStorageConfig = clientStorageConfig({
+      isEnabled: true,
+      isPrivate: false,
+    });
+
+    const creator = createMockCreatorModel();
+    let result: { current: ReturnType<typeof useStorageWithCreator> };
+    await act(async () => {
+      const view = renderHook(
+        () =>
+          useStorageWithCreator({
+            itemId: "test-item",
+            itemType: "form",
+          }),
+        {
+          wrapper: wrapper(publicConfig),
+        },
+      );
+      result = view.result;
+      await Promise.resolve();
+    });
+
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result!.current.registerStorageHandlers(creator);
+    });
+    expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
+    unregister();
+  });
+
+  it("should register upload handlers when private", async () => {
+    const privateConfig: ClientStorageConfig = clientStorageConfig({
+      isEnabled: true,
+      isPrivate: true,
+    });
+
+    const creator = createMockCreatorModel();
+    let result: { current: ReturnType<typeof useStorageWithCreator> };
+    await act(async () => {
+      const view = renderHook(
+        () =>
+          useStorageWithCreator({
+            itemId: "test-item",
+            itemType: "form",
+          }),
+        {
+          wrapper: wrapper(privateConfig),
+        },
+      );
+      result = view.result;
+      await Promise.resolve();
+    });
+
+    let unregister: () => void = () => {};
+    act(() => {
+      unregister = result!.current.registerStorageHandlers(creator);
+    });
+    expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
+    expect(mockPrefetchPrivateReadUrlsForModel).toHaveBeenCalled();
+    unregister();
   });
 });

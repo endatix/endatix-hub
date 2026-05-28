@@ -1,20 +1,14 @@
-import { Result } from "@/lib/result";
-import {
-  act,
-  render,
-  renderHook,
-  screen,
-} from "@testing-library/react";
-import { Suspense } from "react";
+import { act, render, renderHook, screen } from "@testing-library/react";
+import { Suspense, useLayoutEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { StorageConfig } from "../../infrastructure/storage-config-client";
+import type { ClientStorageConfig } from "@endatix/storage-azure";
+import { IMAGE_SERVICE_CONFIG } from "../../infrastructure/image-service";
 import {
   AssetStorageClientProvider,
   useAssetStorage,
-  type AssetStorageTokens,
 } from "../../ui/asset-storage.context";
 
-const mockStorageConfig: StorageConfig = {
+const mockStorageConfig: ClientStorageConfig = {
   isEnabled: true,
   isPrivate: true,
   hostName: "testaccount.blob.core.windows.net",
@@ -23,6 +17,7 @@ const mockStorageConfig: StorageConfig = {
     USER_FILES: "user-files",
     CONTENT: "content",
   },
+  imageConfig: IMAGE_SERVICE_CONFIG,
 };
 
 describe("AssetStorageContext", () => {
@@ -81,7 +76,7 @@ describe("AssetStorageContext", () => {
 
     it("should handle promise rejection gracefully", async () => {
       let rejectConfig: (reason?: any) => void;
-      const rejectedPromise = new Promise<StorageConfig>((_, reject) => {
+      const rejectedPromise = new Promise<ClientStorageConfig>((_, reject) => {
         rejectConfig = reject;
       });
 
@@ -91,7 +86,9 @@ describe("AssetStorageContext", () => {
       };
 
       // Silence expected error logs during this test
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => { });
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       render(
         <Suspense fallback={<div>Loading...</div>}>
@@ -136,51 +133,64 @@ describe("AssetStorageContext", () => {
       // Suppress console.error for this test since React will log the error
       const consoleSpy = vi
         .spyOn(console, "error")
-        .mockImplementation(() => { });
+        .mockImplementation(() => {});
 
       expect(() => {
         renderHook(() => useAssetStorage());
-      }).toThrow(
-        "useAssetStorage must be used within an AssetStorageProvider",
-      );
+      }).toThrow("useAssetStorage must be used within an AssetStorageProvider");
 
       consoleSpy.mockRestore();
     });
 
-    it("should return tokens when provided to provider", async () => {
-      const mockTokens: AssetStorageTokens = {
-        userFiles: Promise.resolve(
-          Result.success({
-            token: "user-token",
-            containerName: "user-files",
-            expiresOn: new Date(),
-            generatedAt: new Date(),
-          }),
-        ),
-        content: Promise.resolve(
-          Result.success({
-            token: "content-token",
-            containerName: "content",
-            expiresOn: new Date(),
-            generatedAt: new Date(),
-          }),
-        ),
+    it("returns null until read-urls cache is merged", async () => {
+      const blobUrl =
+        "https://testaccount.blob.core.windows.net/user-files/folder/file.jpg";
+      const TestComponent = () => {
+        const { getCachedPrivateReadUrl } = useAssetStorage();
+        return (
+          <div data-testid="resolved">
+            {getCachedPrivateReadUrl(blobUrl) ?? "missing"}
+          </div>
+        );
       };
 
-      const { result } = await act(async () => {
-        return renderHook(() => useAssetStorage(), {
-          wrapper: ({ children }) => (
-            <AssetStorageClientProvider
-              config={mockStorageConfig}
-              tokens={mockTokens}
-            >
-              {children}
-            </AssetStorageClientProvider>
-          ),
-        })
+      await act(async () => {
+        render(
+          <AssetStorageClientProvider config={mockStorageConfig}>
+            <TestComponent />
+          </AssetStorageClientProvider>,
+        );
       });
 
-      expect(result.current.tokens).toEqual(mockTokens);
+      expect(screen.getByTestId("resolved").textContent).toBe("missing");
+    });
+
+    it("uses presigned URL from mergePrivateReadUrlCache when present", async () => {
+      const blobUrl =
+        "https://testaccount.blob.core.windows.net/user-files/folder/file.jpg";
+      const presigned = `${blobUrl}?sig=from-read-urls`;
+      const TestComponent = () => {
+        const { getCachedPrivateReadUrl, mergePrivateReadUrlCache } =
+          useAssetStorage();
+        useLayoutEffect(() => {
+          mergePrivateReadUrlCache({ [blobUrl]: presigned });
+        }, [mergePrivateReadUrlCache]);
+        return (
+          <div data-testid="resolved">
+            {getCachedPrivateReadUrl(blobUrl) ?? "missing"}
+          </div>
+        );
+      };
+
+      await act(async () => {
+        render(
+          <AssetStorageClientProvider config={mockStorageConfig}>
+            <TestComponent />
+          </AssetStorageClientProvider>,
+        );
+      });
+
+      expect(screen.getByTestId("resolved").textContent).toBe(presigned);
     });
   });
 });

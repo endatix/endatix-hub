@@ -4,15 +4,19 @@ import React from "react";
 import { SurveyCreatorModel, UploadFileEvent } from "survey-creator-core";
 import {
   AssetStorageClientProvider,
-  StorageConfig,
+  ClientStorageConfig,
 } from "@/features/asset-storage/client";
 import { useContentUpload } from "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook";
 
-vi.mock("@azure/storage-blob", () => ({
-  BlockBlobClient: vi.fn().mockImplementation(function () {
-    return { uploadData: vi.fn().mockResolvedValue(undefined) };
-  }),
-}));
+vi.mock("@azure/storage-blob", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@azure/storage-blob")>();
+  return {
+    ...actual,
+    BlockBlobClient: vi.fn().mockImplementation(function () {
+      return { uploadData: vi.fn().mockResolvedValue(undefined) };
+    }),
+  };
+});
 
 const mockStorageConfig = {
   isEnabled: true,
@@ -33,25 +37,36 @@ const createMockFile = (name = "test.jpg"): File => {
   return file;
 };
 
-const mockFetchSuccess = (questionName: string) => {
-  global.fetch = vi.fn().mockResolvedValueOnce({
-    ok: true,
-    json: () =>
-      Promise.resolve({
-        sasTokens: {
-          "test.jpg": {
-            success: true,
-            url: `https://account.blob.core.windows.net/content/f/test-item/unique.jpg?sas=token`,
+const mockFetchSuccess = (
+  questionName: string,
+  itemType: "form" | "template" = "form",
+) => {
+  const contentPrefix = itemType === "form" ? "f" : "t";
+  global.fetch = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          uploads: {
+            "test.jpg": {
+              url: `https://account.blob.core.windows.net/content/${contentPrefix}/test-item/unique.jpg?sas=token`,
+              headers: { "x-ms-blob-type": "BlockBlob" },
+              key: `${contentPrefix}/test-item/unique.jpg`,
+            },
           },
-        },
-        uploadMetadata: {
-          userId: "user-1",
-          itemId: "test-item",
-          contentItemType: "form",
-          questionName,
-        },
-      }),
-  });
+          uploadMetadata: {
+            userId: "user-1",
+            itemId: "test-item",
+            contentItemType: itemType,
+            questionName,
+          },
+        }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(""),
+    });
 };
 
 const mockFetchError = (detail = "Unauthorized") => {
@@ -68,7 +83,7 @@ describe("useContentUpload", () => {
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <AssetStorageClientProvider
-      config={mockStorageConfig as unknown as StorageConfig}
+      config={mockStorageConfig as unknown as ClientStorageConfig}
     >
       {children}
     </AssetStorageClientProvider>
@@ -136,6 +151,8 @@ describe("useContentUpload", () => {
       callback: vi.fn(),
       element: { name: "testQuestion" } as any,
       elementType: "question",
+      propertyName: "testQuestion",
+      question: {} as any,
     };
 
     mockFetchSuccess("testQuestion");
@@ -145,7 +162,7 @@ describe("useContentUpload", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/hub/v0/storage/content/sas-token",
+      "/api/hub/v0/storage/content/upload-urls",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -153,12 +170,60 @@ describe("useContentUpload", () => {
           itemType: "form",
           fileNames: ["test.jpg"],
           questionName: "testQuestion",
+          fileTypes: { "test.jpg": "image/jpeg" },
+          fileStates: { "test.jpg": "original" },
         }),
       }),
     );
     expect(options.callback).toHaveBeenCalledWith(
       "success",
       "https://account.blob.core.windows.net/content/f/test-item/unique.jpg",
+    );
+  });
+
+  it("should request template content upload urls for template editor uploads", async () => {
+    const creator = createMockCreatorModel();
+    const { result } = renderHook(
+      () => useContentUpload({ itemId: "test-item", itemType: "template" }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.registerUploadHandlers(creator);
+    });
+
+    const options: UploadFileEvent = {
+      files: [createMockFile()],
+      callback: vi.fn(),
+      element: { name: "templateLogo" } as any,
+      elementType: "question",
+      propertyName: "templateLogo",
+      question: {} as any,
+    };
+
+    mockFetchSuccess("templateLogo", "template");
+
+    await act(async () => {
+      await creator._handlers.onUploadFile(creator, options);
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/hub/v0/storage/content/upload-urls",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          itemId: "test-item",
+          itemType: "template",
+          fileNames: ["test.jpg"],
+          questionName: "templateLogo",
+          fileTypes: { "test.jpg": "image/jpeg" },
+          fileStates: { "test.jpg": "original" },
+        }),
+      }),
+    );
+    expect(options.callback).toHaveBeenCalledWith(
+      "success",
+      "https://account.blob.core.windows.net/content/t/test-item/unique.jpg",
     );
   });
 
@@ -206,6 +271,8 @@ describe("useContentUpload", () => {
       callback: vi.fn(),
       element: { name: "testQuestion" } as any,
       elementType: "question",
+      propertyName: "testQuestion",
+      question: {} as any,
     };
 
     mockFetchSuccess("testQuestion");

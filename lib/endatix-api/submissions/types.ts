@@ -43,7 +43,7 @@ export interface Submission extends ApiEntity {
 
   // Optional navigation properties
   formDefinition?: FormDefinition;
-}  
+}
 
 export interface SubmissionFile {
   id: EntityId;
@@ -89,10 +89,34 @@ export type ExportSubmissionsDto = {
   };
 };
 
-export interface ExportSubmissionsRequest{
+export type ExportFormat = ExportSubmissionsDto["exportFormat"];
+export type BooleanFilterValue = "true" | "false";
+export type SubmissionReviewStatus = "new" | "read" | "approved";
+
+export interface ExportSubmissionsRequest {
   formId: string;
-  exportFormat?: string;
+  exportFormat?: ExportFormat;
   exportId?: string;
+}
+
+export interface ListSubmissionsRequest {
+  page?: number;
+  pageSize?: number;
+  isComplete?: BooleanFilterValue[];
+  status?: SubmissionReviewStatus[];
+  isTestSubmission?: BooleanFilterValue[];
+  createdAtFrom?: string;
+  createdAtTo?: string;
+  completedAtFrom?: string;
+  completedAtTo?: string;
+}
+
+export interface ListSubmissionsResponse {
+  items: Submission[];
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
 }
 
 // ============================================================================
@@ -102,13 +126,12 @@ export interface ExportSubmissionsRequest{
 export type CreateSubmissionResponse = ApiResult<Submission>;
 export type UpdateSubmissionResponse = ApiResult<Submission>;
 export type GetSubmissionResponse = ApiResult<Submission>;
-export type GetSubmissionsResponse = ApiResult<Submission[]>;
+export type GetSubmissionsResponse = ApiResult<ListSubmissionsResponse>;
 export type UpdateSubmissionStatusResponse = ApiResult<{
   status: SubmissionStatus;
   formId: EntityId;
   dateUpdated: string;
 }>;
-export type GetSubmissionFilesResponse = ApiResult<Response>;
 export type ExportSubmissionsResponse = ApiResult<Response>;
 
 // ============================================================================

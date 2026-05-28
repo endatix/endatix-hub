@@ -1,8 +1,9 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AssetStorageProvider } from '@/features/asset-storage/server';
+import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
-import ViewSubmission from "@/features/submissions/ui/view/view-submission";
+import { PublicViewSubmission } from "@/features/submissions/ui/view/view-submission";
+import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { validateEndatixId } from "@/lib/utils/type-validators";
@@ -78,7 +79,10 @@ export default async function PublicViewSubmissionPage({
       );
     }
 
-    if (errorMessage.includes("permission") || errorMessage.includes("forbidden")) {
+    if (
+      errorMessage.includes("permission") ||
+      errorMessage.includes("forbidden")
+    ) {
       return (
         <NotFoundComponent
           notFoundTitle="Access Denied"
@@ -122,7 +126,16 @@ export default async function PublicViewSubmissionPage({
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
-        <ViewSubmission submission={submission} />
+        <FormRuntimeProvider
+          initialState={{
+            formId: submission.formId,
+            submissionId: submission.id,
+            token,
+            tokenType: "AccessToken",
+          }}
+        >
+          <PublicViewSubmission submission={submission} />
+        </FormRuntimeProvider>
       </AssetStorageProvider>
     </Suspense>
   );
@@ -133,7 +146,7 @@ function SubmissionDataSkeleton() {
 
   return (
     <div className="w-full overflow-auto p-4">
-      <div className="flex flex-col space-y-4 items-center max-w-4xl mx-auto">
+      <div className="mx-auto flex max-w-4xl flex-col items-center space-y-4">
         <Skeleton className="h-12 w-full" />
         {questions.map((question) => (
           <Skeleton className="h-16 w-full" key={question} />

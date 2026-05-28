@@ -2,6 +2,10 @@ import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { Question } from "survey-core";
 import { GripVerticalIcon } from "@/features/pdf-export/submission/icons";
+import {
+  formatChoiceDisplay,
+  resolveChoiceLabel,
+} from "../format-choice-display";
 
 interface PdfRankingAnswerProps {
   question: Question;
@@ -21,16 +25,14 @@ const styles = StyleSheet.create({
   },
   noAnswer: {
     fontSize: 10,
-    color: "#888"
+    color: "#888",
   },
 });
 
 const PdfRankingAnswer = ({ question }: PdfRankingAnswerProps) => {
   const rankedAnswers: string[] = question.value ?? [];
-  const getDisplayText = (val: string) => {
-    const choice = (question as any).choices?.find((c: any) => c.value === val);
-    return choice?.title ?? choice?.text ?? val;
-  };
+  const getDisplayText = (val: string) =>
+    formatChoiceDisplay(val, resolveChoiceLabel(question, val));
   return (
     <View style={styles.container}>
       {rankedAnswers.length > 0 ? (

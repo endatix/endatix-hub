@@ -7,6 +7,7 @@ import { createForm, getFormTemplate } from "@/services/api";
 
 export type CreateFormFromTemplateRequest = {
   templateId: string;
+  folderId?: string;
 };
 
 export type CreateFormFromTemplateResult = Result<string>;
@@ -29,6 +30,7 @@ export async function createFormFromTemplateAction(
       name: `Form from template: ${template.name}`,
       isEnabled: true,
       formDefinitionJsonData: template.jsonData,
+      folderId: request.folderId ?? template.folderId ?? undefined,
     });
 
     if (newForm.id?.length > 0) {

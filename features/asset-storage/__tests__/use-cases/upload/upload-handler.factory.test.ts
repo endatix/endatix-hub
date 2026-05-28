@@ -18,11 +18,17 @@ const { mockFetchUploadUrls, mockProcessAndUploadFile } = vi.hoisted(() => ({
   mockProcessAndUploadFile: vi.fn(),
 }));
 
-vi.mock("@/features/asset-storage/use-cases/upload/upload.utils", () => ({
-  fetchUploadUrls: (...args: unknown[]) => mockFetchUploadUrls(...args),
-  processAndUploadFile: (...args: unknown[]) =>
-    mockProcessAndUploadFile(...args),
-}));
+vi.mock("@/features/asset-storage/use-cases/upload/upload.utils", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/asset-storage/use-cases/upload/upload.utils")
+  >("@/features/asset-storage/use-cases/upload/upload.utils");
+  return {
+    ...actual,
+    fetchUploadUrls: (...args: unknown[]) => mockFetchUploadUrls(...args),
+    processAndUploadFile: (...args: unknown[]) =>
+      mockProcessAndUploadFile(...args),
+  };
+});
 
 describe("createUserUpload", () => {
   const userConfig: UserUploadConfig = {
@@ -72,22 +78,26 @@ describe("createUserUpload", () => {
       ["Failed to generate upload URLs"],
     );
     expect(mockFetchUploadUrls).toHaveBeenCalledWith(
-      "/api/public/v0/storage/sas-token",
+      "/api/public/v0/storage/upload-urls",
       expect.objectContaining({
         fileNames: ["a.pdf"],
         formId: "form-1",
         submissionId: "sub-1",
         formLocale: "en",
+        fileTypes: { "a.pdf": "application/pdf" },
+        fileStates: { "a.pdf": "original" },
+        questionName: "q1",
       }),
     );
   });
 
   it("calls onSubmissionIdChange when SAS returns new submissionId", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
+      uploads: {
         "a.pdf": {
-          success: true,
           url: "https://storage.blob/core/file?sas",
+          headers: { "x-ms-blob-type": "BlockBlob" },
+          key: "k",
         },
       },
       submissionId: "sub-new",
@@ -135,8 +145,8 @@ describe("createUserUpload", () => {
 
   it("calls callback with error when token missing for file", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
-        "a.pdf": { success: false, message: "No URL for a.pdf" },
+      uploads: {
+        "a.pdf": { error: "No URL for a.pdf" },
       },
       userId: "user-1",
     };
@@ -204,10 +214,11 @@ describe("createContentUpload", () => {
 
   it("calls callback success with first URL when uploads succeed", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
+      uploads: {
         "img.png": {
-          success: true,
           url: "https://storage.blob/core/img?sas",
+          headers: { "x-ms-blob-type": "BlockBlob" },
+          key: "k",
         },
       },
       uploadMetadata: {
@@ -243,10 +254,11 @@ describe("createContentUpload", () => {
 
   it("calls callback error when processAndUploadFile returns error", async () => {
     const sasData: UploadUrlsData = {
-      sasTokens: {
+      uploads: {
         "img.png": {
-          success: true,
           url: "https://storage.blob/core/img?sas",
+          headers: { "x-ms-blob-type": "BlockBlob" },
+          key: "k",
         },
       },
       uploadMetadata: {

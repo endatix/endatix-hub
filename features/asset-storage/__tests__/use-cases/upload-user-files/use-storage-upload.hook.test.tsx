@@ -9,43 +9,10 @@ import {
   ClearFilesEvent,
   DownloadFileEvent,
 } from "survey-core";
-import { BlockBlobClient } from "@azure/storage-blob";
-import { Result } from "@/lib/result";
 import { processUploadError } from "@/features/asset-storage/use-cases/upload";
 
 // Mock fetch globally
 global.fetch = vi.fn();
-
-// Mock BlockBlobClient
-vi.mock("@azure/storage-blob", async () => {
-  const actual = await vi.importActual<typeof import("@azure/storage-blob")>(
-    "@azure/storage-blob",
-  );
-  return {
-    ...actual,
-    BlockBlobClient: vi.fn().mockImplementation(function () {
-      return { uploadData: vi.fn().mockResolvedValue(undefined) };
-    }),
-  };
-});
-
-const resolvedTokenResult = Result.success({
-  token: "",
-  isPrivate: false,
-  hostName: "test.blob.core.windows.net",
-  containerName: "user-files",
-  expiresOn: new Date(),
-  generatedAt: new Date(),
-});
-
-// Create promises that are already resolved
-// React's use hook should be able to read these without suspending
-const sharedResolvedPromise = Promise.resolve(resolvedTokenResult);
-
-const createDefaultReadTokenPromises = () => ({
-  userFiles: sharedResolvedPromise,
-  content: sharedResolvedPromise,
-});
 
 const mockStorageConfig = {
   isEnabled: true,
@@ -81,15 +48,11 @@ describe("useStorageUpload", () => {
 
   const createWrapper = (
     config: typeof mockStorageConfig | null = mockStorageConfig,
-    readTokenPromises = createDefaultReadTokenPromises(),
   ) => {
     function TestWrapper({ children }: { children: React.ReactNode }) {
       return (
         <Suspense fallback={<div>Loading...</div>}>
-          <AssetStorageClientProvider
-            config={config}
-            tokens={readTokenPromises}
-          >
+          <AssetStorageClientProvider config={config}>
             {children}
           </AssetStorageClientProvider>
         </Suspense>
@@ -108,9 +71,12 @@ describe("useStorageUpload", () => {
     return {
       formId: mockFormId,
       surveyModel: mockSurveyModel,
-      ...(submissionId
-        ? { getSubmissionId: () => submissionId }
-        : {}),
+      getReadRuntime: () => ({
+        policyName: "public" as const,
+        formId: mockFormId,
+        ...(submissionId ? { submissionId } : {}),
+      }),
+      ...(submissionId ? { getSubmissionId: () => submissionId } : {}),
       ...restOverrides,
     };
   };
@@ -135,7 +101,7 @@ describe("useStorageUpload", () => {
   describe("hook initialization", () => {
     it("should initialize with default submissionId", async () => {
       const props = createHookProps();
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
 
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
@@ -146,28 +112,6 @@ describe("useStorageUpload", () => {
       });
 
       // The hook should return after the promise resolves
-      expect(result!.current).not.toBeNull();
-      const hookResult = result!.current as ReturnType<typeof useStorageUpload>;
-      expect(hookResult.registerUploadHandlers).toBeDefined();
-      expect(hookResult.uploadFiles).toBeDefined();
-      expect(hookResult.deleteFiles).toBeDefined();
-    });
-
-    it("should initialize without readTokenPromises", async () => {
-      const props = {
-        formId: mockFormId,
-        surveyModel: mockSurveyModel,
-      };
-      let result: ReturnType<typeof renderHook>["result"];
-
-      await act(async () => {
-        const view = renderHook(() => useStorageUpload(props), {
-          wrapper: createWrapper(),
-        });
-        result = view.result;
-        await Promise.resolve();
-      });
-
       expect(result!.current).not.toBeNull();
       const hookResult = result!.current as ReturnType<typeof useStorageUpload>;
       expect(hookResult.registerUploadHandlers).toBeDefined();
@@ -227,34 +171,34 @@ describe("useStorageUpload", () => {
     } as unknown as UploadFilesEvent;
 
     beforeEach(() => {
-      // Mock: first SAS token, then resize-image response (for small images)
+      vi.clearAllMocks();
+    });
+
+    it("should upload small image via resize then SAS (browser-to-storage)", async () => {
       (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
-              sasTokens: {
+              uploads: {
                 "test.jpg": {
-                  success: true,
                   url: "https://test.blob.core.windows.net/test?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
                 },
               },
             }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
-      // Mock BlockBlobClient
-      const mockUploadData = vi.fn().mockResolvedValue(undefined);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
-        return { uploadData: mockUploadData };
-      });
-    });
-
-    it("should upload small image via resize then SAS (browser-to-storage)", async () => {
       const { result } = renderHook(
         () =>
           useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
@@ -263,7 +207,6 @@ describe("useStorageUpload", () => {
         },
       );
 
-      // Flush suspense so hook resolves (use() with readTokenPromises)
       await act(async () => {
         await Promise.resolve();
       });
@@ -273,9 +216,13 @@ describe("useStorageUpload", () => {
         await result.current!.uploadFiles(mockSurveyModel, mockUploadOptions);
       });
 
-      // Should call SAS token first, then resize-image for small images (browser-to-storage)
+      // Resize-image first (bytes + MIME), then upload-urls, then PUT to blob
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/sas-token",
+        "/api/public/v0/storage/resize-image",
+        expect.objectContaining({ method: "POST" }),
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/public/v0/storage/upload-urls",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
@@ -283,17 +230,40 @@ describe("useStorageUpload", () => {
             submissionId: mockSubmissionId,
             formId: mockFormId,
             formLocale: "en",
+            fileTypes: { "test.jpg": "image/jpeg" },
+            fileStates: { "test.jpg": "optimized" },
+            questionName: "",
           }),
         }),
-      );
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/resize-image",
-        expect.objectContaining({ method: "POST" }),
       );
     });
 
     it("should resolve submissionId from getSubmissionId when submissionId prop is omitted", async () => {
       const runtimeSubmissionId = "runtime-submission-456";
+
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              uploads: {
+                "test.jpg": {
+                  url: "https://test.blob.core.windows.net/test?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
+                },
+              },
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(""),
+        });
 
       const { result } = renderHook(
         () =>
@@ -316,7 +286,7 @@ describe("useStorageUpload", () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/sas-token",
+        "/api/public/v0/storage/upload-urls",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
@@ -324,6 +294,9 @@ describe("useStorageUpload", () => {
             submissionId: runtimeSubmissionId,
             formId: mockFormId,
             formLocale: "en",
+            fileTypes: { "test.jpg": "image/jpeg" },
+            fileStates: { "test.jpg": "optimized" },
+            questionName: "",
           }),
         }),
       );
@@ -335,61 +308,23 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      const { result } = renderHook(
-        () =>
-          useStorageUpload(createHookProps({ submissionId: mockSubmissionId })),
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await act(async () => {
-        await result.current.uploadFiles(mockSurveyModel, largeFileOptions);
-      });
-
-      // Should call SAS token endpoint for large files
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/sas-token",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            fileNames: ["large-video.mp4"],
-            submissionId: mockSubmissionId,
-            formId: mockFormId,
-            formLocale: "en",
-          }),
-        }),
-      );
-    });
-
-    it("should handle mixed file types correctly", async () => {
-      const mixedFilesOptions: UploadFilesEvent = {
-        files: [mockFile, mockLargeFile],
-        callback: vi.fn(),
-      } as unknown as UploadFilesEvent;
-
-      // Mock: one SAS request for all files, then resize-image for the small image
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
-              sasTokens: {
-                "test.jpg": {
-                  success: true,
-                  url: "https://test.blob.core.windows.net/test?sas-token",
-                },
+              uploads: {
                 "large-video.mp4": {
-                  success: true,
                   url: "https://test.blob.core.windows.net/large?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
                 },
               },
             }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -401,24 +336,74 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
-        await result.current.uploadFiles(mockSurveyModel, mixedFilesOptions);
+        await Promise.resolve();
       });
 
-      // SAS token once for all files, then resize-image for the small image
+      await act(async () => {
+        await result.current.uploadFiles(mockSurveyModel, largeFileOptions);
+      });
+
+      // Should call SAS token endpoint for large files
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/sas-token",
-        expect.any(Object),
-      );
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/resize-image",
-        expect.any(Object),
+        "/api/public/v0/storage/upload-urls",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            fileNames: ["large-video.mp4"],
+            submissionId: mockSubmissionId,
+            formId: mockFormId,
+            formLocale: "en",
+            fileTypes: { "large-video.mp4": "video/mp4" },
+            fileStates: { "large-video.mp4": "original" },
+            questionName: "",
+          }),
+        }),
       );
     });
 
-    it("should handle upload errors gracefully", async () => {
-      (global.fetch as ReturnType<typeof vi.fn>)
-        .mockReset()
-        .mockRejectedValue(new Error("Network error"));
+    it("should handle mixed file types correctly", async () => {
+      const mixedFilesOptions: UploadFilesEvent = {
+        files: [mockFile, mockLargeFile],
+        callback: vi.fn(),
+      } as unknown as UploadFilesEvent;
+
+      const uploadsPayload = {
+        uploads: {
+          "test.jpg": {
+            url: "https://test.blob.core.windows.net/test?sas-token",
+            headers: { "x-ms-blob-type": "BlockBlob" },
+            key: "mock/blob-key",
+          },
+          "large-video.mp4": {
+            url: "https://test.blob.core.windows.net/large?sas-token",
+            headers: { "x-ms-blob-type": "BlockBlob" },
+            key: "mock/blob-key",
+          },
+        },
+      };
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        async (input: RequestInfo | URL) => {
+          const u = typeof input === "string" ? input : input.toString();
+          if (u.includes("/upload-urls")) {
+            return {
+              ok: true,
+              json: () => Promise.resolve(uploadsPayload),
+            };
+          }
+          if (u.includes("/resize-image")) {
+            return {
+              ok: true,
+              arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+              headers: new Headers({ "Content-Type": "image/jpeg" }),
+            };
+          }
+          return {
+            ok: true,
+            text: () => Promise.resolve(""),
+          };
+        },
+      );
 
       const { result } = renderHook(
         () =>
@@ -429,34 +414,103 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
-        await result.current.uploadFiles(mockSurveyModel, mockUploadOptions);
+        await Promise.resolve();
       });
 
-      expect(mockUploadOptions.callback).toHaveBeenCalledWith(
+      await act(async () => {
+        await result.current.uploadFiles(mockSurveyModel, mixedFilesOptions);
+      });
+
+      // Resize for the small image, then upload-urls for the batch, then PUTs
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/public/v0/storage/resize-image",
+        expect.any(Object),
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/public/v0/storage/upload-urls",
+        expect.any(Object),
+      );
+    });
+
+    it("should handle upload errors gracefully", async () => {
+      const largeOnlyOptions: UploadFilesEvent = {
+        files: [mockLargeFile],
+        callback: vi.fn(),
+      } as unknown as UploadFilesEvent;
+
+      let result: { current: ReturnType<typeof useStorageUpload> };
+
+      await act(async () => {
+        const view = renderHook(
+          () =>
+            useStorageUpload(
+              createHookProps({ submissionId: mockSubmissionId }),
+            ),
+          {
+            wrapper: createWrapper(),
+          },
+        );
+        result = view.result;
+        await Promise.resolve();
+      });
+
+      expect(result!.current).not.toBeNull();
+
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockReset()
+        .mockRejectedValue(new Error("Network error"));
+
+      await act(async () => {
+        await result.current!.uploadFiles(mockSurveyModel, largeOnlyOptions);
+      });
+
+      expect(largeOnlyOptions.callback).toHaveBeenCalledWith(
         [],
         ["Network error"],
       );
     });
 
     it("should call callback with results", async () => {
+      const file = new File(["test content"], "test.jpg", {
+        type: "image/jpeg",
+      });
+      Object.defineProperty(file, "size", { value: 100, writable: true });
+      Object.defineProperty(file, "arrayBuffer", {
+        value: () => Promise.resolve(new ArrayBuffer(8)),
+        writable: true,
+      });
+
       const mockCallback = vi.fn();
       const uploadOptions: UploadFilesEvent = {
-        files: [mockFile],
+        files: [file],
         callback: mockCallback,
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            files: [
-              {
-                name: "test.jpg",
-                url: "https://test.blob.core.windows.net/test",
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              uploads: {
+                "test.jpg": {
+                  url: "https://test.blob.core.windows.net/test?sas=1",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/key",
+                },
               },
-            ],
-          }),
-      });
+              submissionId: mockSubmissionId,
+              userId: "user-1",
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(""),
+        });
 
       const { result } = renderHook(
         () =>
@@ -473,7 +527,7 @@ describe("useStorageUpload", () => {
       expect(mockCallback).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            file: mockFile,
+            file,
             content: "https://test.blob.core.windows.net/test",
           }),
         ]),
@@ -548,6 +602,41 @@ describe("useStorageUpload", () => {
           }),
         }),
       );
+    });
+
+    it("should not delete blobs when policy is hub (local detach only)", async () => {
+      const callback = vi.fn();
+      const hubClearOptions: ClearFilesEvent = {
+        ...mockClearOptions,
+        callback,
+      } as unknown as ClearFilesEvent;
+
+      const { result } = renderHook(
+        () =>
+          useStorageUpload(
+            createHookProps({
+              submissionId: mockSubmissionId,
+              getReadRuntime: () => ({
+                policyName: "hub" as const,
+                formId: mockFormId,
+                submissionId: mockSubmissionId,
+              }),
+            }),
+          ),
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await act(async () => {
+        await result.current.deleteFiles(mockSurveyModel, hubClearOptions);
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledWith("success", [
+        { content: "https://test.blob.core.windows.net/test" },
+        { content: "https://test.blob.core.windows.net/test2" },
+      ]);
     });
 
     it("should handle empty file list", async () => {
@@ -754,20 +843,25 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
-              sasTokens: {
+              uploads: {
                 "small.jpg": {
-                  success: true,
                   url: "https://test.blob.core.windows.net/small?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
                 },
               },
             }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -779,16 +873,20 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
-      // Should call SAS token then resize-image for small images
+      // Resize-image then upload-urls for small images
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/sas-token",
+        "/api/public/v0/storage/resize-image",
         expect.any(Object),
       );
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/resize-image",
+        "/api/public/v0/storage/upload-urls",
         expect.any(Object),
       );
     });
@@ -806,18 +904,24 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            sasTokens: {
-              "large.jpg": {
-                success: true,
-                url: "https://test.blob.core.windows.net/large?sas-token",
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              uploads: {
+                "large.jpg": {
+                  url: "https://test.blob.core.windows.net/large?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
+                },
               },
-            },
-          }),
-      });
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(""),
+        });
 
       const { result } = renderHook(
         () =>
@@ -828,12 +932,16 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
       // Should call SAS token endpoint
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/sas-token",
+        "/api/public/v0/storage/upload-urls",
         expect.any(Object),
       );
     });
@@ -849,18 +957,24 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            sasTokens: {
-              "document.pdf": {
-                success: true,
-                url: "https://test.blob.core.windows.net/document?sas-token",
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              uploads: {
+                "document.pdf": {
+                  url: "https://test.blob.core.windows.net/document?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
+                },
               },
-            },
-          }),
-      });
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(""),
+        });
 
       const { result } = renderHook(
         () =>
@@ -871,12 +985,16 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
       // Should call SAS token endpoint for non-image files
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/sas-token",
+        "/api/public/v0/storage/upload-urls",
         expect.any(Object),
       );
     });
@@ -892,22 +1010,27 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               submissionId: "new-submission-id",
               userId: "user-1",
-              sasTokens: {
+              uploads: {
                 "test.jpg": {
-                  success: true,
                   url: "https://test.blob.core.windows.net/test?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
                 },
               },
             }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -941,22 +1064,27 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               submissionId: mockSubmissionId, // Same as current
               userId: "user-1",
-              sasTokens: {
+              uploads: {
                 "test.jpg": {
-                  success: true,
                   url: "https://test.blob.core.windows.net/test?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
                 },
               },
             }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "video/mp4" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -998,18 +1126,16 @@ describe("useStorageUpload", () => {
         onerror: ((event: ProgressEvent<FileReader>) => void) | null = null;
 
         readAsDataURL(_blob: Blob) {
-          setTimeout(() => {
-            if (this.onload) {
-              this.result = "data:application/pdf;base64,test";
-              const mockEvent = {
-                target: this,
-                lengthComputable: false,
-                loaded: 0,
-                total: 0,
-              } as unknown as ProgressEvent<FileReader>;
-              this.onload(mockEvent);
-            }
-          }, 0);
+          this.result = "data:application/pdf;base64,test";
+          if (this.onload) {
+            const mockEvent = {
+              target: this,
+              lengthComputable: false,
+              loaded: 0,
+              total: 0,
+            } as unknown as ProgressEvent<FileReader>;
+            this.onload(mockEvent);
+          }
         }
       }
 
@@ -1019,7 +1145,7 @@ describe("useStorageUpload", () => {
     it("should call read-token API and use token when storage is private", async () => {
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(mockStorageConfig),
@@ -1029,13 +1155,17 @@ describe("useStorageUpload", () => {
       });
 
       // Mock the read-token API response
+      const fileUrl = "https://test.blob.core.windows.net/user-files/test.pdf";
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
-              token: "on-demand-token-123",
-              expiresOn: new Date().toISOString(),
+              resolved: {
+                [fileUrl]: {
+                  url: `${fileUrl}?on-demand-token-123`,
+                },
+              },
             }),
         })
         .mockResolvedValueOnce({
@@ -1051,15 +1181,18 @@ describe("useStorageUpload", () => {
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];
         await downloadHandler(mockSurveyModel, mockDownloadOptions);
+        await new Promise((resolve) => setTimeout(resolve, 30));
       });
 
-      // Should call read-token API first
+      // Should call read-urls API via batch queue (form-gated public route)
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/public/v0/storage/read-token",
+        "/api/public/v0/storage/read-urls",
         expect.objectContaining({
           method: "POST",
+          credentials: "include",
           body: JSON.stringify({
-            url: "https://test.blob.core.windows.net/user-files/test.pdf",
+            formId: mockFormId,
+            urls: ["https://test.blob.core.windows.net/user-files/test.pdf"],
           }),
         }),
       );
@@ -1083,7 +1216,7 @@ describe("useStorageUpload", () => {
     it("should call callback with error when read-token API fails", async () => {
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(mockStorageConfig),
@@ -1106,6 +1239,7 @@ describe("useStorageUpload", () => {
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];
         await downloadHandler(mockSurveyModel, mockDownloadOptions);
+        await new Promise((resolve) => setTimeout(resolve, 30));
       });
 
       expect(mockDownloadOptions.callback).toHaveBeenCalledWith("error");
@@ -1120,7 +1254,7 @@ describe("useStorageUpload", () => {
 
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(publicStorageConfig),
@@ -1165,7 +1299,7 @@ describe("useStorageUpload", () => {
     it("should handle network errors when fetching file", async () => {
       const props = createHookProps();
 
-      let result: ReturnType<typeof renderHook>["result"];
+      let result: { current: ReturnType<typeof useStorageUpload> };
       await act(async () => {
         const view = renderHook(() => useStorageUpload(props), {
           wrapper: createWrapper(mockStorageConfig),
@@ -1175,13 +1309,17 @@ describe("useStorageUpload", () => {
       });
 
       // Mock successful read-token but failed file fetch
+      const fileUrl = "https://test.blob.core.windows.net/user-files/test.pdf";
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
-              token: "on-demand-token-123",
-              expiresOn: new Date().toISOString(),
+              resolved: {
+                [fileUrl]: {
+                  url: `${fileUrl}?on-demand-token-123`,
+                },
+              },
             }),
         })
         .mockRejectedValue(new Error("Network error"));
@@ -1194,6 +1332,7 @@ describe("useStorageUpload", () => {
           mockSurveyModel.onDownloadFile.add as ReturnType<typeof vi.fn>
         ).mock.calls[0][0];
         await downloadHandler(mockSurveyModel, mockDownloadOptions);
+        await new Promise((resolve) => setTimeout(resolve, 30));
       });
 
       expect(mockDownloadOptions.callback).toHaveBeenCalledWith("error");
@@ -1243,6 +1382,10 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
@@ -1262,10 +1405,9 @@ describe("useStorageUpload", () => {
         ok: true,
         json: () =>
           Promise.resolve({
-            sasTokens: {
+            uploads: {
               "large-video.mp4": {
-                success: false,
-                message: "File not allowed",
+                error: "File not allowed",
               },
             },
           }),
@@ -1278,6 +1420,10 @@ describe("useStorageUpload", () => {
           wrapper: createWrapper(),
         },
       );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
@@ -1299,24 +1445,22 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            sasTokens: {
-              "large-video.mp4": {
-                success: true,
-                url: "https://test.blob.core.windows.net/large?sas-token",
+      const uploadError = new Error("Upload failed");
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              uploads: {
+                "large-video.mp4": {
+                  url: "https://test.blob.core.windows.net/large?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
+                },
               },
-            },
-          }),
-      });
-
-      const error = new Error("Upload failed");
-      const mockUploadData = vi.fn().mockRejectedValue(error);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
-        return { uploadData: mockUploadData };
-      });
+            }),
+        })
+        .mockRejectedValueOnce(uploadError);
 
       const { result } = renderHook(
         () =>
@@ -1326,6 +1470,10 @@ describe("useStorageUpload", () => {
         },
       );
 
+      await act(async () => {
+        await Promise.resolve();
+      });
+
       // Act
       await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
@@ -1333,7 +1481,7 @@ describe("useStorageUpload", () => {
 
       // Assert
       const callbackSucessses: any[] = [];
-      const callbackErrors = [processUploadError(error)];
+      const callbackErrors = [processUploadError(uploadError)];
       expect(uploadOptions.callback).toHaveBeenCalledWith(
         callbackSucessses,
         callbackErrors,
@@ -1346,24 +1494,25 @@ describe("useStorageUpload", () => {
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            submissionId: "new-submission-id",
-            sasTokens: {
-              "large-video.mp4": {
-                success: true,
-                url: "https://test.blob.core.windows.net/large?sas-token",
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              submissionId: "new-submission-id",
+              uploads: {
+                "large-video.mp4": {
+                  url: "https://test.blob.core.windows.net/large?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
+                },
               },
-            },
-          }),
-      });
-
-      const mockUploadData = vi.fn().mockResolvedValue(undefined);
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
-        return { uploadData: mockUploadData };
-      });
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(""),
+        });
 
       const { result } = renderHook(
         () =>
@@ -1379,6 +1528,10 @@ describe("useStorageUpload", () => {
       );
 
       await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         await result.current.uploadFiles(mockSurveyModel, uploadOptions);
       });
 
@@ -1390,9 +1543,7 @@ describe("useStorageUpload", () => {
 
   describe("upload (SAS + resize) edge cases", () => {
     beforeEach(() => {
-      (BlockBlobClient as ReturnType<typeof vi.fn>).mockImplementation(function () {
-        return { uploadData: vi.fn().mockResolvedValue(undefined) };
-      });
+      vi.clearAllMocks();
     });
 
     it("should handle empty files array", async () => {
@@ -1419,7 +1570,7 @@ describe("useStorageUpload", () => {
 
     it("should handle SAS token API errors", async () => {
       const uploadOptions: UploadFilesEvent = {
-        files: [mockFile],
+        files: [mockLargeFile],
         callback: vi.fn(),
       } as unknown as UploadFilesEvent;
 
@@ -1455,21 +1606,26 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
               submissionId: "new-submission-id",
-              sasTokens: {
+              uploads: {
                 "test.jpg": {
-                  success: true,
                   url: "https://test.blob.core.windows.net/test?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
                 },
               },
             }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(
@@ -1503,20 +1659,25 @@ describe("useStorageUpload", () => {
       (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: () =>
             Promise.resolve({
-              sasTokens: {
+              uploads: {
                 "test.jpg": {
-                  success: true,
                   url: "https://test.blob.core.windows.net/test?sas-token",
+                  headers: { "x-ms-blob-type": "BlockBlob" },
+                  key: "mock/blob-key",
                 },
               },
             }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          text: () => Promise.resolve(""),
         });
 
       const { result } = renderHook(

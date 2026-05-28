@@ -3,6 +3,7 @@ import {
   DATA_LIST_PROPERTY_NAME,
   DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE,
 } from "../constants";
+import { DATA_LIST_QUESTION_TYPES } from "./data-list-survey-integration";
 
 let isDataListRegistryInitialized = false;
 
@@ -21,51 +22,54 @@ export function registerDataListGlobals(): void {
     category: "choices",
     visibleIndex: 0,
     dependsOn: "choicesFromQuestion",
-    visibleIf: (obj: any) => {
+    visibleIf: (obj: { choicesFromQuestion?: unknown }) => {
       return !obj.choicesFromQuestion;
     },
     choices: [],
   };
 
-  Serializer.addProperty("dropdown", dataListProperty);
-  Serializer.addProperty("tagbox", dataListProperty);
+  for (const questionType of DATA_LIST_QUESTION_TYPES) {
+    Serializer.addProperty(questionType, dataListProperty);
 
-  // SurveyJS validates dropdown-type properties against the current `choices` array.
-  // Choices come from the Hub API and may not yet include every ID present in JSON
-  // (e.g. after bulk conversion before refetch, or API paging). Those IDs are still valid.
-  for (const className of ["dropdown", "tagbox"] as const) {
-    const prop = Serializer.findProperty(className, DATA_LIST_PROPERTY_NAME) as
-      | { validateValue?: (obj: unknown, value: unknown) => boolean }
-      | null;
-    if (prop) {
-      prop.validateValue = () => true;
+    // SurveyJS validates dropdown-type properties against the current `choices` array.
+    // Choices come from the Hub API and may not yet include every ID present in JSON
+    // (e.g. after bulk conversion before refetch, or API paging). Those IDs are still valid.
+    for (const className of ["dropdown", "tagbox"] as const) {
+      const prop = Serializer.findProperty(
+        className,
+        DATA_LIST_PROPERTY_NAME,
+      ) as { validateValue?: (obj: unknown, value: unknown) => boolean } | null;
+      if (prop) {
+        prop.validateValue = () => true;
+      }
     }
-  }
 
-  // Legacy: remove standalone property-row UI (replaced by Choices toolbar action).
-  try {
-    Serializer.removeProperty("dropdown", "edxConvertInlineChoices");
-    Serializer.removeProperty("tagbox", "edxConvertInlineChoices");
-  } catch {
-    /* property may not exist */
-  }
+    // Legacy: remove standalone property-row UI (replaced by Choices toolbar action).
+    try {
+      Serializer.removeProperty("dropdown", "edxConvertInlineChoices");
+      Serializer.removeProperty("tagbox", "edxConvertInlineChoices");
+    } catch {
+      /* property may not exist */
+    }
 
-  // Reduce JSON churn by keeping default page size at serializer level.
-  const dropdownLazyLoadPageSize = Serializer.findProperty(
-    "dropdown",
-    "choicesLazyLoadPageSize",
-  );
-  if (dropdownLazyLoadPageSize) {
-    dropdownLazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
-  }
+    // Reduce JSON churn by keeping default page size at serializer level.
+    const dropdownLazyLoadPageSize = Serializer.findProperty(
+      "dropdown",
+      "choicesLazyLoadPageSize",
+    );
+    if (dropdownLazyLoadPageSize) {
+      dropdownLazyLoadPageSize.defaultValue =
+        DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+    }
 
-  const tagboxLazyLoadPageSize = Serializer.findProperty(
-    "tagbox",
-    "choicesLazyLoadPageSize",
-  );
-  if (tagboxLazyLoadPageSize) {
-    tagboxLazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
-  }
+    const tagboxLazyLoadPageSize = Serializer.findProperty(
+      "tagbox",
+      "choicesLazyLoadPageSize",
+    );
+    if (tagboxLazyLoadPageSize) {
+      tagboxLazyLoadPageSize.defaultValue = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
+    }
 
-  isDataListRegistryInitialized = true;
+    isDataListRegistryInitialized = true;
+  }
 }

@@ -20,7 +20,16 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@endatix/storage-core": [
+        "./features/asset-storage/infrastructure/core/index.ts"
+      ],
+      "@endatix/storage-azure": [
+        "./features/asset-storage/infrastructure/providers/azure/index.ts"
+      ],
+      "@endatix/storage-s3": [
+        "./features/asset-storage/infrastructure/providers/s3/index.ts"
+      ]
     },
     "typeRoots": ["./types", "./node_modules/@types"]
   },

@@ -1,7 +1,10 @@
 import { RemotePattern } from "next/dist/shared/lib/image-config";
 import {
+  appendEndatixImageRemotePatterns,
+  formatRemotePatternsForDisplay,
   getRewriteRuleFor,
   includesRemoteImageHostnames,
+  mergeEndatixImageLocalPatterns,
 } from "@/lib/hosting/next-config-helper";
 import { describe, expect, it } from "vitest";
 
@@ -87,6 +90,59 @@ describe("includesRemoteImageHostnames", () => {
         hostname: "images.pexels.com",
       },
     ]);
+  });
+});
+
+describe("appendEndatixImageRemotePatterns", () => {
+  it("appends storage hostnames after REMOTE_IMAGE_HOSTNAMES patterns", () => {
+    process.env.REMOTE_IMAGE_HOSTNAMES = "cdn.example.com";
+    const remotePatterns: RemotePattern[] = [];
+    appendEndatixImageRemotePatterns(remotePatterns, ["blob.core.windows.net"]);
+    expect(remotePatterns).toEqual([
+      { protocol: "https", hostname: "cdn.example.com" },
+      {
+        protocol: "https",
+        hostname: "blob.core.windows.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "blob.core.windows.net",
+        pathname: "/**",
+      },
+    ]);
+  });
+});
+
+describe("mergeEndatixImageLocalPatterns", () => {
+  it("returns undefined when existing is undefined or empty", () => {
+    expect(mergeEndatixImageLocalPatterns(undefined)).toBeUndefined();
+    expect(mergeEndatixImageLocalPatterns([])).toBeUndefined();
+  });
+
+  it("appends storage API pathname patterns when existing is non-empty", () => {
+    const merged = mergeEndatixImageLocalPatterns([
+      { pathname: "/uploads/**" },
+    ]);
+    expect(merged).toEqual([
+      { pathname: "/uploads/**" },
+      { pathname: "/api/public/v0/storage/**" },
+    ]);
+  });
+});
+
+describe("formatRemotePatternsForDisplay", () => {
+  it("returns None configured for empty or undefined", () => {
+    expect(formatRemotePatternsForDisplay(undefined)).toBe("None configured");
+    expect(formatRemotePatternsForDisplay([])).toBe("None configured");
+  });
+
+  it("formats RemotePattern entries", () => {
+    const text = formatRemotePatternsForDisplay([
+      { protocol: "https", hostname: "a.example.com" },
+      { protocol: "https", hostname: "**" } as RemotePattern,
+    ]);
+    expect(text).toBe("https://a.example.com, https://**");
   });
 });
 

@@ -41,22 +41,26 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, useRef } from "react";
+import { useRef, useState, useTransition } from "react";
 import { deleteTemplateAction } from "../application/delete-template.action";
 import { runCreateFormFromTemplate } from "../application/run-create-form-from-template.client";
 
-interface FormTemplateSheetProps
-  extends Omit<React.ComponentProps<typeof Sheet>, "open" | "onOpenChange" | "modal"> {
+interface FormTemplateSheetProps extends Omit<
+  React.ComponentProps<typeof Sheet>,
+  "open" | "onOpenChange" | "modal"
+> {
   selectedTemplate: FormTemplate | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   enableEditing?: boolean;
   onPreviewClick?: (templateId: string) => void;
+  requireFolderAssignment?: boolean;
 }
 
 const FormTemplateSheet = ({
   selectedTemplate,
   onPreviewClick,
+  requireFolderAssignment = false,
   ...props
 }: FormTemplateSheetProps) => {
   const [pendingCreateForm, startCreateFormTransition] = useTransition();
@@ -72,6 +76,14 @@ const FormTemplateSheet = ({
   }
 
   const handleUseTemplate = () => {
+    if (requireFolderAssignment) {
+      toast.info({
+        title: "Folder selection is required",
+        description: "Use Create a Form flow to select a folder first.",
+      });
+      return;
+    }
+
     startCreateFormTransition(async () => {
       await runCreateFormFromTemplate(selectedTemplate.id, router);
     });
@@ -152,9 +164,14 @@ const FormTemplateSheet = ({
               Preview
             </Button>
             <Button
-              disabled={pendingCreateForm}
+              disabled={pendingCreateForm || requireFolderAssignment}
               variant={"outline"}
               onClick={handleUseTemplate}
+              title={
+                requireFolderAssignment
+                  ? "Folder selection is required. Use Create a Form."
+                  : undefined
+              }
             >
               {pendingCreateForm ? (
                 <Spinner className="mr-1 h-4 w-4" />

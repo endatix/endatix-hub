@@ -1,34 +1,30 @@
 import {
   AssetStorageContext,
   AssetStorageContextValue,
-  StorageConfig,
+  ClientStorageConfig,
 } from "@/features/asset-storage/client";
 import { render } from "@testing-library/react";
 import { ImageItemValue, QuestionImagePickerModel } from "survey-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockRenderItem = vi.fn((item: ImageItemValue) => {
+const mockStoragePresignedImage = vi.fn(({ src }: { src: string }) => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react");
-  return React.createElement("div", {
-    "data-testid": "image-item",
-    "data-src": item.locImageLink?.renderedHtml || item.imageLink,
+  return React.createElement("img", {
+    src,
+    "data-testid": "storage-presigned-image",
   });
 });
 
+vi.mock("@/features/asset-storage/ui/storage-presigned-image", () => ({
+  StoragePresignedImage: (props: { src: string }) =>
+    mockStoragePresignedImage(props),
+}));
+
 vi.mock("survey-react-ui", async (importOriginal) => {
-   
-  const React = await import("react");
   const actual = await importOriginal<typeof import("survey-react-ui")>();
   return {
     ...actual,
-    SurveyQuestionImagePicker: class MockSurveyQuestionImagePicker
-      extends React.Component
-    {
-      protected renderItem(item: ImageItemValue) {
-        return mockRenderItem(item);
-      }
-    },
     ReactQuestionFactory: {
       Instance: {
         registerQuestion: vi.fn(),
@@ -43,7 +39,6 @@ vi.mock("survey-react-ui", async (importOriginal) => {
 });
 
 vi.mock("survey-creator-react", async (importOriginal) => {
-   
   const React = await import("react");
   const actual = await importOriginal<typeof import("survey-creator-react")>();
   return {
@@ -57,8 +52,8 @@ vi.mock("survey-creator-react", async (importOriginal) => {
       get model() {
         return this._model;
       }
-      set model(value: any) {
-        this._model = value;
+      set model(value: unknown) {
+        this._model = value as { itemsRoot: HTMLElement };
       }
       componentDidMount() {
         // Mock implementation
@@ -73,306 +68,194 @@ vi.mock("survey-creator-react", async (importOriginal) => {
   };
 });
 
-// Import after mocks
 import {
+  ProtectedImagePickerItem,
   ProtectedSurveyQuestionImagePicker,
   ProtectedImageItemValueAdorner,
 } from "@/features/asset-storage/client";
+import type { ReactElement } from "react";
+import { clientStorageConfig } from "../../../test-storage-config";
 
-// Helper to render ProtectedSurveyQuestionImagePicker with context
-const renderImagePickerWithContext = (
-  question: QuestionImagePickerModel,
-  contextValue?: AssetStorageContextValue | undefined,
-) => {
-  const instance = new ProtectedSurveyQuestionImagePicker({ question });
-  if (contextValue) {
-    (instance as any).context = contextValue;
-  }
+const BLOB_URL = "https://testaccount.blob.core.windows.net/content/image.jpg";
 
-  // Create a test item
-  const testItem = {
-    imageLink: "https://testaccount.blob.core.windows.net/content/image.jpg",
-    locImageLink: {
-      renderedHtml:
-        "https://testaccount.blob.core.windows.net/content/image.jpg",
-    },
-    clone: function () {
-      return {
-        ...this,
-        imageLink: this.imageLink,
-        locImageLink: { ...this.locImageLink },
-      };
-    },
-  } as unknown as ImageItemValue;
+function buildImagePickerQuestion(): QuestionImagePickerModel {
+  const question = new QuestionImagePickerModel("picker1");
+  question.fromJSON({
+    type: "imagepicker",
+    name: "picker1",
+    choices: [{ value: "a", imageLink: BLOB_URL }],
+  });
+  return question;
+}
 
-  const view = instance.renderItem(testItem, {});
+function buildPickerItem(question: QuestionImagePickerModel): ImageItemValue {
+  return question.visibleChoices[0] as ImageItemValue;
+}
 
-  return render(
-    <AssetStorageContext.Provider
-      value={contextValue || { config: null, resolveStorageUrl: vi.fn() }}
-    >
-      {view}
-    </AssetStorageContext.Provider>,
-  );
+const pickerCssClasses = {
+  image: "sd-imagepicker__image",
+  label: "sd-imagepicker__label",
+  itemControl: "sd-imagepicker__control",
+  itemNoImage: "sd-imagepicker__no-image",
 };
 
 describe("ProtectedSurveyQuestionImagePicker", () => {
-  const mockQuestion = {} as unknown as QuestionImagePickerModel;
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("when storage is disabled", () => {
-    it("should render item without enrichment", () => {
-      const disabledConfig: StorageConfig = {
-        isEnabled: false,
-        isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+  it("uses default Survey item when storage is not private", () => {
+    const question = buildImagePickerQuestion();
+    const instance = new ProtectedSurveyQuestionImagePicker({ question });
+    (instance as { context: AssetStorageContextValue }).context = {
+      config: clientStorageConfig({ isPrivate: false }),
+      getCachedPrivateReadUrl: vi.fn(() => null),
+    };
 
-      const mockResolveStorageUrl = vi.fn();
+    const node = instance.renderItem(
+      buildPickerItem(question),
+      pickerCssClasses,
+    );
 
-      renderImagePickerWithContext(mockQuestion, {
-        config: disabledConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
-      });
-
-      expect(mockRenderItem).toHaveBeenCalledTimes(1);
-      expect(mockResolveStorageUrl).not.toHaveBeenCalled();
-    });
+    expect((node as ReactElement).type).not.toBe(ProtectedImagePickerItem);
   });
 
-  describe("when storage is enabled but not private", () => {
-    it("should render item without enrichment", () => {
-      const publicConfig: StorageConfig = {
-        isEnabled: true,
-        isPrivate: false,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+  it("renders ProtectedImagePickerItem when storage is private", () => {
+    const question = buildImagePickerQuestion();
+    const instance = new ProtectedSurveyQuestionImagePicker({ question });
+    (instance as { context: AssetStorageContextValue }).context = {
+      config: clientStorageConfig({ isPrivate: true }),
+      getCachedPrivateReadUrl: vi.fn(() => null),
+    };
 
-      const mockResolveStorageUrl = vi.fn();
+    const node = instance.renderItem(
+      buildPickerItem(question),
+      pickerCssClasses,
+    );
 
-      renderImagePickerWithContext(mockQuestion, {
-        config: publicConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
-      });
+    expect((node as ReactElement).type).toBe(ProtectedImagePickerItem);
+  });
+});
 
-      expect(mockRenderItem).toHaveBeenCalledTimes(1);
-      expect(mockResolveStorageUrl).not.toHaveBeenCalled();
-    });
+describe("ProtectedImagePickerItem", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  describe("when storage is enabled and private", () => {
-    it("should enrich item when renderedHtml exists and URL changes", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
-        isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
+  it("renders StoragePresignedImage for image choices", () => {
+    const question = buildImagePickerQuestion();
+    const item = buildPickerItem(question);
 
-      const mockResolveStorageUrl = vi.fn(
-        (url: string) => `${url}?token=abc123`,
-      );
+    render(
+      <AssetStorageContext.Provider
+        value={{
+          config: clientStorageConfig({ isPrivate: true }),
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }}
+      >
+        <ProtectedImagePickerItem
+          question={question}
+          item={item}
+          cssClasses={pickerCssClasses}
+        />
+      </AssetStorageContext.Provider>,
+    );
 
-      renderImagePickerWithContext(mockQuestion, {
-        config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
-      });
-
-      expect(mockRenderItem).toHaveBeenCalledTimes(1);
-      expect(mockResolveStorageUrl).toHaveBeenCalledWith(
-        "https://testaccount.blob.core.windows.net/content/image.jpg",
-      );
-    });
-
-    it("should not enrich when resolved URL is the same", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
-        isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
-
-      const originalUrl =
-        "https://testaccount.blob.core.windows.net/content/image.jpg";
-      const mockResolveStorageUrl = vi.fn((url: string) => url);
-
-      const instance = new ProtectedSurveyQuestionImagePicker({
-        question: mockQuestion,
-      } as any);
-      (instance as any).context = {
-        config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
-      };
-
-      const testItem = {
-        imageLink: originalUrl,
-        locImageLink: {
-          renderedHtml: originalUrl,
-        },
-        clone: function () {
-          return {
-            ...this,
-            imageLink: this.imageLink,
-            locImageLink: { ...this.locImageLink },
-          };
-        },
-      } as unknown as ImageItemValue;
-
-      instance.renderItem(testItem, {});
-
-      expect(mockResolveStorageUrl).toHaveBeenCalledWith(originalUrl);
-      // When URL doesn't change, it should call super.renderItem with original item
-      expect(mockRenderItem).toHaveBeenCalled();
-    });
-
-    it("should render default item when renderedHtml is missing", () => {
-      const privateConfig: StorageConfig = {
-        isEnabled: true,
-        isPrivate: true,
-        protocol: "https",
-        hostName: "testaccount.blob.core.windows.net",
-        containerNames: {
-          USER_FILES: "user-files",
-          CONTENT: "content",
-        },
-      };
-
-      const mockResolveStorageUrl = vi.fn();
-
-      const instance = new ProtectedSurveyQuestionImagePicker({
-        question: mockQuestion,
-      });
-      (instance as any).context = {
-        config: privateConfig,
-        resolveStorageUrl: mockResolveStorageUrl,
-      };
-
-      const testItem = {
-        imageLink: "https://example.com/image.jpg",
-        locImageLink: {
-          renderedHtml: "",
-        },
-        clone: function () {
-          return {
-            ...this,
-            imageLink: this.imageLink,
-            locImageLink: { ...this.locImageLink },
-          };
-        },
-      } as unknown as ImageItemValue;
-
-      instance.renderItem(testItem, {});
-
-      expect(mockResolveStorageUrl).not.toHaveBeenCalled();
-      expect(mockRenderItem).toHaveBeenCalled();
-    });
+    expect(mockStoragePresignedImage).toHaveBeenCalled();
+    expect(mockStoragePresignedImage.mock.calls[0][0].src).toContain(
+      "testaccount.blob.core.windows.net",
+    );
   });
 
-  describe("when context is undefined", () => {
-    it("should render item without enrichment", () => {
-      renderImagePickerWithContext(mockQuestion, undefined);
+  it("shows placeholder when image link is missing", () => {
+    const question = buildImagePickerQuestion();
+    const item = buildPickerItem(question);
+    item.locImageLink.setValue("");
+    item.imageLink = "";
 
-      expect(mockRenderItem).toHaveBeenCalledTimes(1);
-    });
+    render(
+      <AssetStorageContext.Provider
+        value={{
+          config: clientStorageConfig({ isPrivate: true }),
+          getCachedPrivateReadUrl: vi.fn(() => null),
+        }}
+      >
+        <ProtectedImagePickerItem
+          question={question}
+          item={item}
+          cssClasses={pickerCssClasses}
+        />
+      </AssetStorageContext.Provider>,
+    );
+
+    expect(mockStoragePresignedImage).not.toHaveBeenCalled();
   });
 });
 
 describe("ProtectedImageItemValueAdorner", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset DOM
     document.body.innerHTML = "";
   });
 
   it("should not update images when storage is disabled", async () => {
-    const disabledConfig: StorageConfig = {
+    const disabledConfig: ClientStorageConfig = clientStorageConfig({
       isEnabled: false,
       isPrivate: false,
-      protocol: "https",
-      hostName: "testaccount.blob.core.windows.net",
-      containerNames: {
-        USER_FILES: "user-files",
-        CONTENT: "content",
-      },
-    };
+    });
 
     const mockResolveStorageUrl = vi.fn();
 
     const instance = new ProtectedImageItemValueAdorner({
       question: {
         isItemInList: () => true,
-      } as any,
-      item: {} as any,
+      } as never,
+      item: {} as never,
     });
-    (instance as any).context = {
+    (instance as { context: AssetStorageContextValue }).context = {
       config: disabledConfig,
-      resolveStorageUrl: mockResolveStorageUrl,
+      getCachedPrivateReadUrl: mockResolveStorageUrl,
     };
-    (instance as any).model = {
+    (instance as { model: { itemsRoot: HTMLElement } }).model = {
       itemsRoot: document.createElement("div"),
     };
 
     instance.componentDidUpdate({}, {});
 
-    // Wait for setTimeout
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    // Component should not call resolveStorageUrl when storage is disabled
-    // The updateImages method checks config.isEnabled && config.isPrivate
     expect(mockResolveStorageUrl).not.toHaveBeenCalled();
   });
 
-  it("should update images when storage is enabled and private", async () => {
-    const privateConfig: StorageConfig = {
-      isEnabled: true,
+  it("should update images when cache version changes", async () => {
+    const privateConfig: ClientStorageConfig = clientStorageConfig({
       isPrivate: true,
-      protocol: "https",
-      hostName: "testaccount.blob.core.windows.net",
-      containerNames: {
-        USER_FILES: "user-files",
-        CONTENT: "content",
-      },
-    };
+    });
 
-    const mockResolveStorageUrl = vi.fn();
+    const mockResolveStorageUrl = vi.fn((url: string) => `${url}?token=abc`);
+
+    const itemsRoot = document.createElement("div");
+    const img = document.createElement("img");
+    img.src = "https://testaccount.blob.core.windows.net/content/x.jpg";
+    itemsRoot.appendChild(img);
 
     const instance = new ProtectedImageItemValueAdorner({
       question: {
         isItemInList: () => true,
-      } as any,
-      item: {} as any,
+      } as never,
+      item: {} as never,
     });
-    (instance as any).context = {
+    (instance as { context: AssetStorageContextValue }).context = {
       config: privateConfig,
-      resolveStorageUrl: mockResolveStorageUrl,
+      getCachedPrivateReadUrl: mockResolveStorageUrl,
+      readUrlCacheVersion: 1,
     };
-    (instance as any).model = {
-      itemsRoot: document.createElement("div"),
-    };
+    (instance as { model: { itemsRoot: HTMLElement } }).model = { itemsRoot };
 
     instance.componentDidUpdate({}, {});
 
     await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(mockResolveStorageUrl).toHaveBeenCalled();
   });
 });

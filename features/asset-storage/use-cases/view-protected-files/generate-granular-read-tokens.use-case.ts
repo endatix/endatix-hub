@@ -1,6 +1,9 @@
 import { Result } from "@/lib/result";
-import { AzureStorageConfig, getStorageConfig } from "../../infrastructure/storage-config";
-import { bulkGenerateReadTokens } from '../../infrastructure/storage-service';
+import type { ClientStorageConfig } from "@endatix/storage-core";
+import {
+  getActiveStorageProvider,
+  getClientStorageConfig,
+} from "../../storage-runtime";
 import { ContainerType, ReadTokensResult, StorageTokenMap } from "../../types";
 import { resolveContainerFromUrl } from "../../utils";
 
@@ -21,25 +24,31 @@ interface GroupedUrlsMap {
   groupedBlobNames: {
     byContentContainer: Set<string>;
     byUserFilesContainer: Set<string>;
-  }
+  };
 }
 
 const emptyResult: Result<StorageTokenMap> = Result.success({});
-const emptyTokensResultPromise: Promise<ReadTokensResult> = Promise.resolve(Result.success({ readTokens: {}, expiresOn: new Date(), generatedAt: new Date() }));
+const emptyTokensResultPromise: Promise<ReadTokensResult> = Promise.resolve(
+  Result.success({
+    readTokens: {},
+    expiresOn: new Date(),
+    generatedAt: new Date(),
+  }),
+);
 
 /**
  * Groups URLs by container type and creates a Map for efficient URL lookups
  */
 function groupUrlsByContainerType(
   urls: string[],
-  storageConfig: AzureStorageConfig,
+  storageConfig: ClientStorageConfig,
 ): GroupedUrlsMap {
   const data: GroupedUrlsMap = {
     allUrlsMap: new Map<string, UrlMapping>(),
     groupedBlobNames: {
       byContentContainer: new Set<string>(),
       byUserFilesContainer: new Set<string>(),
-    }
+    },
   };
 
   for (const url of urls) {
@@ -82,7 +91,10 @@ function mapTokensToUrls(
 
   const readTokens = tokensResult.value.readTokens;
   for (const [url, mapping] of urlMappings) {
-    if (mapping.containerType === containerType && readTokens[mapping.blobName]) {
+    if (
+      mapping.containerType === containerType &&
+      readTokens[mapping.blobName]
+    ) {
       storageTokenMap[url] = readTokens[mapping.blobName];
     }
   }
@@ -96,10 +108,10 @@ function mapTokensToUrls(
 export async function generateGranularReadTokensUseCase(
   urls: string[],
 ): Promise<Result<StorageTokenMap>> {
-  const storageConfig = getStorageConfig();
+  const storageConfig = getClientStorageConfig();
 
   if (!storageConfig.isEnabled) {
-    return Result.error("Azure storage is not enabled");
+    return Result.error("Storage is not enabled");
   }
 
   if (!storageConfig.isPrivate) {
@@ -110,25 +122,35 @@ export async function generateGranularReadTokensUseCase(
     return emptyResult;
   }
 
-  const { allUrlsMap, groupedBlobNames: { byContentContainer, byUserFilesContainer } } = groupUrlsByContainerType(urls, storageConfig);
+  const {
+    allUrlsMap,
+    groupedBlobNames: { byContentContainer, byUserFilesContainer },
+  } = groupUrlsByContainerType(urls, storageConfig);
   if (byContentContainer.size === 0 && byUserFilesContainer.size === 0) {
     return emptyResult;
   }
 
-  const contentTokensPromise = byContentContainer.size > 0
-    ? bulkGenerateReadTokens({
-      containerName: storageConfig.containerNames.CONTENT,
-      resourceType: "file",
-      resourceNames: Array.from(byContentContainer),
-    })
-    : emptyTokensResultPromise;
-  const userFilesTokensPromise = byUserFilesContainer.size > 0
-    ? bulkGenerateReadTokens({
-      containerName: storageConfig.containerNames.USER_FILES,
-      resourceType: "file",
-      resourceNames: Array.from(byUserFilesContainer),
-    })
-    : emptyTokensResultPromise;
+  const provider = getActiveStorageProvider();
+  if (provider === null || !provider.isEnabled()) {
+    return Result.error("Storage is not enabled");
+  }
+
+  const contentTokensPromise =
+    byContentContainer.size > 0
+      ? provider.bulkGenerateReadTokens({
+          containerName: storageConfig.containerNames.CONTENT,
+          resourceType: "file",
+          resourceNames: Array.from(byContentContainer),
+        })
+      : emptyTokensResultPromise;
+  const userFilesTokensPromise =
+    byUserFilesContainer.size > 0
+      ? provider.bulkGenerateReadTokens({
+          containerName: storageConfig.containerNames.USER_FILES,
+          resourceType: "file",
+          resourceNames: Array.from(byUserFilesContainer),
+        })
+      : emptyTokensResultPromise;
 
   const [contentTokensResult, userFilesTokensResult] = await Promise.all([
     contentTokensPromise,

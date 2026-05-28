@@ -4,28 +4,49 @@ export {
 } from "./infrastructure/image-service";
 export {
   createStorageConfigClient,
+  getAzureStorageConfig,
   getContainerNames,
-  getStorageConfig,
+  toClientStorageConfig,
   type AzureStorageConfig,
   type IStorageConfig,
-} from "./infrastructure/storage-config";
+} from "@endatix/storage-azure";
 export {
-  deleteBlob,
-  bulkGenerateReadTokens as generateReadTokens,
-  generateUploadUrl,
-  getBlobProperties,
-  listBlobs as listFiles,
-  resetBlobServiceClient,
-  uploadToStorage,
+  ensureStorageRegistered,
+  getActiveStorageProvider,
+  getClientStorageConfig,
+  requireActiveStorageProvider,
+  resetActiveStorageProviderClient,
+  getStorageRuntimeSettings,
+  type StorageRuntimeSettings,
+} from "./storage-runtime";
+export {
+  assertStorageProfileValid,
+  collectStorageProfileValidationErrors,
+  validateStorageProfile,
+} from "./infrastructure/bootstrap/validate-storage-profile";
+export {
+  MissingConfigurationError,
+  MisconfigurationError,
+  formatStorageConfigurationError,
+  isMissingConfigurationError,
+  isMisconfigurationError,
+} from "@/lib/hosting/storage-configuration-errors";
+export {
+  getStorageAdminSummary,
+  type StorageAdminSummary,
+} from "./use-cases/view-settings-summary/storage-admin-summary";
+export {
   type BlobPropertiesResult,
   type FileOptions,
-} from "./infrastructure/storage-service";
+  type FolderOptions,
+  type StorageListBlobItem,
+  type UploadUrlDescriptor,
+} from "./infrastructure/core";
 export * from "./types";
 export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export {
   addViewTokensToModelUseCase,
   generateGranularReadTokensUseCase,
-  generateReadTokensAction,
   listUserFiles,
   getUserFile,
   handleResizeImageRequest,

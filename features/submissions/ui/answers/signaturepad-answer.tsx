@@ -1,7 +1,7 @@
-import { useAssetStorage } from "@/features/asset-storage/client";
+import { LazyStorageMedia } from "@/features/asset-storage/ui/lazy-storage-media";
+import { usePrivateStorageDisplayUrl } from "@/features/asset-storage/client";
 import { cn } from "@/lib/utils";
 import { Signature } from "lucide-react";
-import Image from "next/image";
 import { QuestionSignaturePadModel } from "survey-core";
 
 interface FileAnswerProps extends React.HtmlHTMLAttributes<HTMLDivElement> {
@@ -29,18 +29,23 @@ const getSignatureContainerStyle = (
   return undefined;
 };
 
-export function SignaturePadAnswer({
+function SignaturePadAnswerContent({
   question,
   className,
   ...props
-}: FileAnswerProps) {
-  const { resolveStorageUrl } = useAssetStorage();
+}: Readonly<FileAnswerProps>) {
+  const { displayUrl: signatureImageUrl } = usePrivateStorageDisplayUrl(
+    question.value,
+  );
+  const { displayUrl: backgroundImageUrl } = usePrivateStorageDisplayUrl(
+    question.backgroundImage,
+  );
 
   if (!question.value) {
     return (
       <div className={cn("col-span-3", className)} {...props}>
-        <div className="flex items-center justify-start text-sm text-muted-foreground space-x-4 pb-1">
-          <Signature className="w-4 h-4 mr-2" />
+        <div className="flex h-auto items-center justify-start space-x-4 pb-1 text-sm text-muted-foreground">
+          <Signature className="mr-2 h-4 w-4" />
           No signature provided
         </div>
       </div>
@@ -49,8 +54,6 @@ export function SignaturePadAnswer({
 
   const imageWidth = 350;
   const imageHeight = 450;
-  const signatureImageUrl = resolveStorageUrl(question.value);
-  const backgroundImageUrl = resolveStorageUrl(question.backgroundImage);
 
   return (
     <div className={cn("col-span-3", className)} {...props}>
@@ -60,16 +63,35 @@ export function SignaturePadAnswer({
       >
         <div
           className="absolute inset-0"
-          style={getSignatureContainerStyle(backgroundImageUrl, question.backgroundColor)}
+          style={getSignatureContainerStyle(
+            backgroundImageUrl,
+            question.backgroundColor,
+          )}
         />
-        <Image
+        <img
           src={signatureImageUrl}
           alt={question.name || ""}
           width={imageWidth}
           height={imageHeight}
+          loading="lazy"
           className="relative z-10 h-full w-full object-contain transition-all"
         />
       </div>
     </div>
+  );
+}
+
+export function SignaturePadAnswer(props: Readonly<FileAnswerProps>) {
+  if (!props.question.value) {
+    return <SignaturePadAnswerContent {...props} />;
+  }
+
+  return (
+    <LazyStorageMedia
+      className={cn("col-span-3", props.className)}
+      placeholderClassName="min-h-[450px] w-[350px]"
+    >
+      <SignaturePadAnswerContent {...props} className={undefined} />
+    </LazyStorageMedia>
   );
 }

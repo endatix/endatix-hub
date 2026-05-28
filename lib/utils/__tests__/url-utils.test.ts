@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { extractHostname, toSafeRelativeUrl, isValidAbsoluteUrl, isSafeRedirectUrl } from "../url-utils";
+import {
+  extractHostname,
+  toSafeRelativeUrl,
+  isValidAbsoluteUrl,
+  isSafeRedirectUrl,
+  trimTrailingSlashes,
+} from "../url-utils";
 import { Result } from "../../result";
 
 const originalWindow = globalThis.window;
@@ -85,6 +91,29 @@ describe("toSafeRelativeUrl", () => {
         DEFAULT_RETURN_PATH,
       ),
     ).toBe("/forms/abc%2F123");
+  });
+});
+
+describe("trimTrailingSlashes", () => {
+  it("returns unchanged value when there are no trailing slashes", () => {
+    expect(trimTrailingSlashes("s/form-1/sub-1")).toBe("s/form-1/sub-1");
+    expect(trimTrailingSlashes("photo.jpg")).toBe("photo.jpg");
+  });
+
+  it("removes one or more trailing slashes", () => {
+    expect(trimTrailingSlashes("s/form-1/sub-1/")).toBe("s/form-1/sub-1");
+    expect(trimTrailingSlashes("s/form-1/sub-1///")).toBe("s/form-1/sub-1");
+  });
+
+  it("preserves slashes that are not trailing", () => {
+    expect(trimTrailingSlashes("s//form-1/sub-1")).toBe("s//form-1/sub-1");
+    expect(trimTrailingSlashes("/s/form-1/sub-1")).toBe("/s/form-1/sub-1");
+  });
+
+  it("returns empty string for empty or all-slash values", () => {
+    expect(trimTrailingSlashes("")).toBe("");
+    expect(trimTrailingSlashes("/")).toBe("");
+    expect(trimTrailingSlashes("////")).toBe("");
   });
 });
 
@@ -358,7 +387,9 @@ describe("isValidAbsoluteUrl", () => {
     it("returns true for valid https URLs", () => {
       expect(isValidAbsoluteUrl("https://example.com")).toBe(true);
       expect(isValidAbsoluteUrl("https://example.com/path")).toBe(true);
-      expect(isValidAbsoluteUrl("https://example.com/path?query=value")).toBe(true);
+      expect(isValidAbsoluteUrl("https://example.com/path?query=value")).toBe(
+        true,
+      );
     });
 
     it("returns true for valid http URLs", () => {
@@ -375,7 +406,9 @@ describe("isValidAbsoluteUrl", () => {
     });
 
     it("returns false for data: protocol", () => {
-      expect(isValidAbsoluteUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+      expect(
+        isValidAbsoluteUrl("data:text/html,<script>alert(1)</script>"),
+      ).toBe(false);
       expect(isValidAbsoluteUrl("data:,Hello%2C%20World!")).toBe(false);
     });
 
@@ -436,7 +469,9 @@ describe("isSafeRedirectUrl", () => {
     it("returns true for valid https URLs", () => {
       expect(isSafeRedirectUrl("https://example.com")).toBe(true);
       expect(isSafeRedirectUrl("https://example.com/path")).toBe(true);
-      expect(isSafeRedirectUrl("https://example.com/path?query=value")).toBe(true);
+      expect(isSafeRedirectUrl("https://example.com/path?query=value")).toBe(
+        true,
+      );
     });
 
     it("returns true for valid http URLs", () => {
@@ -468,7 +503,9 @@ describe("isSafeRedirectUrl", () => {
     });
 
     it("returns false for data: protocol", () => {
-      expect(isSafeRedirectUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+      expect(
+        isSafeRedirectUrl("data:text/html,<script>alert(1)</script>"),
+      ).toBe(false);
     });
 
     it("returns false for vbscript: protocol", () => {

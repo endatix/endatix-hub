@@ -1,6 +1,5 @@
 import type { Model } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
-import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 
 /**
  * Extension type. Defines the type of the extension.
@@ -98,8 +97,20 @@ export interface ExtensionModule {
   ) => void;
 }
 
+/** Runtime slice for extension hooks (respondent, designer, or template scope). */
+export interface ExtensionRuntimeState {
+  formId?: string;
+  templateId?: string;
+  submissionId?: string;
+  token?: string;
+  tokenType?: string;
+  surveyModel?: Model;
+  formAccessJwt?: string;
+  formAccessJwtExpiresAtUtc?: string;
+}
+
 export interface ExtensionRuntimeDeps {
-  getRuntimeState: () => FormRuntimeState;
+  getRuntimeState: () => ExtensionRuntimeState;
 }
 
 export type { ExtensionDefinition as Extension };

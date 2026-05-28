@@ -1,37 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Result } from "@/lib/result";
 import { listUserFiles } from "@/features/asset-storage/use-cases/list-user-files/list-user-files.use-case";
-import * as storageConfig from "@/features/asset-storage/infrastructure/storage-config";
-import * as storageService from "@/features/asset-storage/infrastructure/storage-service";
-import * as blobMetadataParser from "@/features/asset-storage/infrastructure/blob-metadata-parser";
-import type { BlobItem } from "@azure/storage-blob";
+import * as storageRuntime from "@/features/asset-storage/storage-runtime";
+import * as blobMetadataParserModule from "@/features/asset-storage/infrastructure/providers/shared/blob-metadata-parser";
+import type { StorageListBlobItem } from "@/features/asset-storage/infrastructure/providers/shared/blob-route-types";
+import type { ClientStorageConfig } from "@endatix/storage-azure";
 
-vi.mock("@/features/asset-storage/infrastructure/storage-config", () => ({
-  getStorageConfig: vi.fn(),
-}));
-
-vi.mock("@/features/asset-storage/infrastructure/storage-service", () => ({
-  listBlobs: vi.fn(),
-}));
-
-vi.mock("@/features/asset-storage/infrastructure/blob-metadata-parser", () => ({
-  blobMetadataParser: {
-    parseFromBlob: vi.fn(),
+const { mockStorageProvider } = vi.hoisted(() => ({
+  mockStorageProvider: {
+    isEnabled: vi.fn(() => true),
+    listBlobs: vi.fn(),
   },
 }));
 
 const mockContainerName = "user-files";
-const mockPublicConfig = {
+
+const enabledClientStorageConfig: ClientStorageConfig = {
   isEnabled: true,
+  isPrivate: false,
+  hostName: "test.blob.core.windows.net",
+  protocol: "https",
   containerNames: { USER_FILES: mockContainerName, CONTENT: "content" },
+  imageConfig: { isResizeEnabled: false, defaultResizeWidth: 800 },
 };
 
-function createMockBlobItem(name: string): BlobItem {
+vi.mock("@/features/asset-storage/storage-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@/features/asset-storage/storage-runtime")
+    >();
+  return {
+    ...actual,
+    getClientStorageConfig: vi.fn(),
+    getActiveStorageProvider: vi.fn(() => mockStorageProvider),
+  };
+});
+
+vi.mock(
+  "@/features/asset-storage/infrastructure/providers/shared/blob-metadata-parser",
+  () => ({
+    blobMetadataParser: {
+      parseFromProperties: vi.fn(),
+      parseFromBlob: vi.fn(),
+    },
+  }),
+);
+
+function createMockBlobItem(name: string): StorageListBlobItem {
   return {
     name,
     metadata: {},
     properties: { contentLength: 100, contentType: "application/pdf" },
-  } as unknown as BlobItem;
+  } as StorageListBlobItem;
 }
 
 const mockMetadata1 = {
@@ -55,20 +75,24 @@ describe("listUserFiles", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue(
-      mockPublicConfig as ReturnType<typeof storageConfig.getStorageConfig>,
+    vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue(
+      enabledClientStorageConfig,
     );
-    vi.mocked(storageService.listBlobs).mockResolvedValue([]);
+    mockStorageProvider.isEnabled.mockReturnValue(true);
+    vi.mocked(storageRuntime.getActiveStorageProvider).mockReturnValue(
+      mockStorageProvider as never,
+    );
+    vi.mocked(mockStorageProvider.listBlobs).mockResolvedValue([]);
     vi.mocked(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      blobMetadataParserModule.blobMetadataParser.parseFromBlob,
     ).mockReturnValue(mockMetadata1);
   });
 
   it("returns error when storage is not enabled", async () => {
-    vi.mocked(storageConfig.getStorageConfig).mockReturnValue({
-      ...mockPublicConfig,
+    vi.mocked(storageRuntime.getClientStorageConfig).mockReturnValue({
+      ...enabledClientStorageConfig,
       isEnabled: false,
-    } as ReturnType<typeof storageConfig.getStorageConfig>);
+    });
 
     const result = await listUserFiles(formId, submissionId);
 
@@ -76,11 +100,11 @@ describe("listUserFiles", () => {
     if (Result.isError(result)) {
       expect(result.message).toBe("Storage is not enabled");
     }
-    expect(storageService.listBlobs).not.toHaveBeenCalled();
+    expect(mockStorageProvider.listBlobs).not.toHaveBeenCalled();
   });
 
   it("returns success with empty array when listBlobs returns no blobs", async () => {
-    vi.mocked(storageService.listBlobs).mockResolvedValue([]);
+    vi.mocked(mockStorageProvider.listBlobs).mockResolvedValue([]);
 
     const result = await listUserFiles(formId, submissionId);
 
@@ -88,21 +112,21 @@ describe("listUserFiles", () => {
     if (Result.isSuccess(result)) {
       expect(result.value).toEqual([]);
     }
-    expect(storageService.listBlobs).toHaveBeenCalledWith({
+    expect(mockStorageProvider.listBlobs).toHaveBeenCalledWith({
       containerName: mockContainerName,
       formId,
       submissionId,
     });
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      blobMetadataParserModule.blobMetadataParser.parseFromBlob,
     ).not.toHaveBeenCalled();
   });
 
   it("returns success with mapped metadata when listBlobs returns blobs", async () => {
     const blob1 = createMockBlobItem("s/f1/s1/doc.pdf");
     const blob2 = createMockBlobItem("s/f1/s1/image.jpg");
-    vi.mocked(storageService.listBlobs).mockResolvedValue([blob1, blob2]);
-    vi.mocked(blobMetadataParser.blobMetadataParser.parseFromBlob)
+    vi.mocked(mockStorageProvider.listBlobs).mockResolvedValue([blob1, blob2]);
+    vi.mocked(blobMetadataParserModule.blobMetadataParser.parseFromBlob)
       .mockReturnValueOnce(mockMetadata1)
       .mockReturnValueOnce(mockMetadata2);
 
@@ -114,24 +138,24 @@ describe("listUserFiles", () => {
       expect(result.value[0]).toEqual(mockMetadata1);
       expect(result.value[1]).toEqual(mockMetadata2);
     }
-    expect(storageService.listBlobs).toHaveBeenCalledWith({
+    expect(mockStorageProvider.listBlobs).toHaveBeenCalledWith({
       containerName: mockContainerName,
       formId,
       submissionId,
     });
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      blobMetadataParserModule.blobMetadataParser.parseFromBlob,
     ).toHaveBeenCalledTimes(2);
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      blobMetadataParserModule.blobMetadataParser.parseFromBlob,
     ).toHaveBeenNthCalledWith(1, blob1);
     expect(
-      blobMetadataParser.blobMetadataParser.parseFromBlob,
+      blobMetadataParserModule.blobMetadataParser.parseFromBlob,
     ).toHaveBeenNthCalledWith(2, blob2);
   });
 
   it("returns error when listBlobs throws an Error", async () => {
-    vi.mocked(storageService.listBlobs).mockRejectedValue(
+    vi.mocked(mockStorageProvider.listBlobs).mockRejectedValue(
       new Error("Network error"),
     );
 
@@ -144,7 +168,7 @@ describe("listUserFiles", () => {
   });
 
   it('returns "Failed to list files" when listBlobs throws non-Error', async () => {
-    vi.mocked(storageService.listBlobs).mockRejectedValue("string error");
+    vi.mocked(mockStorageProvider.listBlobs).mockRejectedValue("string error");
 
     const result = await listUserFiles(formId, submissionId);
 

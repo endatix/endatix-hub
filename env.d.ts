@@ -6,7 +6,7 @@ declare namespace NodeJS {
     ROBOTS_ALLOWED_DOMAINS?: string;
     ENDATIX_BASE_URL?: string;
     AI_API_BASE_URL?: string;
- 
+
     // Experimental features
     ENDATIX_ENABLE_EXTENSIONS?: string;
 
@@ -37,15 +37,37 @@ declare namespace NodeJS {
     SLACK_REDIRECT_URI?: string;
 
     // Storage:General
-    USER_FILES_STORAGE_CONTAINER_NAME?: string;
-    CONTENT_STORAGE_CONTAINER_NAME?: string;
+    /** Set to `azure`, `s3`, or `none`. Required for storage registration (no credential-only auto mode). */
+    STORAGE_PROVIDER?: string;
+    /** Defaults to true. Set to "false" only for public storage. */
+    STORAGE_IS_PRIVATE?: string;
+    STORAGE_USER_FILES_CONTAINER_NAME?: string;
+    STORAGE_CONTENT_FILES_CONTAINER_NAME?: string;
+
+    // Storage: S3-compatible (RustFS)
+    STORAGE_S3_ENDPOINT?: string;
+    STORAGE_S3_ACCESS_KEY_ID?: string;
+    STORAGE_S3_SECRET_ACCESS_KEY?: string;
+    STORAGE_S3_REGION?: string;
+    STORAGE_S3_FORCE_PATH_STYLE?: string;
+    STORAGE_S3_READ_EXPIRY_MINUTES?: string;
+    STORAGE_S3_WRITE_EXPIRY_SECONDS?: string;
 
     // Storage:Azure
+    STORAGE_AZURE_ACCOUNT_NAME?: string;
+    STORAGE_AZURE_ACCOUNT_KEY?: string;
+    STORAGE_AZURE_ENDPOINT?: string;
+    STORAGE_AZURE_SAS_READ_EXPIRY_MINUTES?: string;
+    STORAGE_AZURE_SAS_WRITE_EXPIRY_SECONDS?: string;
+
+    // Storage:Azure legacy fallbacks
     AZURE_STORAGE_ACCOUNT_NAME?: string;
     AZURE_STORAGE_ACCOUNT_KEY?: string;
     AZURE_STORAGE_CUSTOM_DOMAIN?: string;
     AZURE_STORAGE_IS_PRIVATE?: string;
     AZURE_STORAGE_SAS_TOKEN_EXPIRY_MINUTES?: string;
+    USER_FILES_STORAGE_CONTAINER_NAME?: string;
+    CONTENT_STORAGE_CONTAINER_NAME?: string;
 
     // Image Resize
     RESIZE_IMAGES?: string;
@@ -64,7 +86,26 @@ declare namespace NodeJS {
     NEXT_PUBLIC_POSTHOG_HOST?: string;
     NEXT_PUBLIC_POSTHOG_UI_HOST?: string;
     ENABLE_POSTHOG_ADAPTER?: string;
+
+    // Build-time mirror from withEndatix (resolveEndatixSettings envPatch) — flags and hostnames only, never secrets
+    ENDATIX_RESOLVED_STORAGE_VERSION?: string;
+    ENDATIX_RESOLVED_STORAGE_PROVIDER?: string;
+    ENDATIX_RESOLVED_AZURE_CREDENTIALS?: string;
+    ENDATIX_RESOLVED_S3_CREDENTIALS?: string;
+    ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES?: string;
+
     // Application settings
     NEXT_PUBLIC_IS_DEBUG_MODE?: string; // Application-level debug flag
+
+    // Hub maintenance (see docs — proxy rewrite + /maintenance page)
+    MAINTENANCE_MODE?: string;
+    MAINTENANCE_RETRY_AFTER_SECONDS?: string;
+    MAINTENANCE_BADGE_LABEL?: string;
+    MAINTENANCE_TITLE?: string;
+    MAINTENANCE_CARD_DESCRIPTION?: string;
+    MAINTENANCE_BODY?: string;
+    MAINTENANCE_FOOTER?: string;
+    MAINTENANCE_METADATA_TITLE?: string;
+    MAINTENANCE_METADATA_DESCRIPTION?: string;
   }
 }

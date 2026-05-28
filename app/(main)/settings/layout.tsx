@@ -17,6 +17,10 @@ const sidebarNavItems = [
     title: "Users",
     href: "/settings/organization/users",
   },
+  {
+    title: "Organization settings",
+    href: "/settings/organization/forms",
+  },
 ];
 
 interface SettingsLayoutProps {

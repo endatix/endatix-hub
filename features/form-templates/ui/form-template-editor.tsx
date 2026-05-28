@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { useDesignerRuntime } from "@/lib/designer-runtime";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
@@ -93,12 +94,11 @@ function FormTemplateEditorContent({
     setIsOnJsonTab,
     setIsJsonModified,
   } = useSurveyDesigner();
+  const designerRuntime = useDesignerRuntime();
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     extensionIdsToLoad: TEMPLATE_EXTENSION_IDS,
     runtimeDeps: {
-      getRuntimeState: () => ({
-        formId: templateId,
-      }),
+      getRuntimeState: () => designerRuntime.stateRef.current,
     },
   });
   const { registerStorageHandlers, isStorageReady } = useStorageWithCreator({
@@ -276,7 +276,12 @@ function FormTemplateEditorContent({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
+      const target = e.target;
+      if (
+        inputRef.current &&
+        target instanceof Node &&
+        !inputRef.current.contains(target)
+      ) {
         console.log("Clicked outside, waiting to save name...");
         setTimeout(() => {
           handleNameSave();

@@ -9,8 +9,9 @@ import {
   DEFAULT_COOKIE_DURATION,
   DEFAULT_COOKIE_NAME,
 } from "@/features/public-form/infrastructure/cookie-store";
+import { validateStorageProfile } from "@/features/asset-storage/infrastructure/bootstrap/validate-storage-profile";
+import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-settings";
 import styles from "../utils/console-styles";
-import { getStorageConfig } from "@/features/asset-storage/infrastructure/storage-config";
 
 type EnvConfig = {
   name: string;
@@ -103,11 +104,19 @@ function validateEnv(): { valid: boolean; errors: string[] } {
     }
   }
 
-  const storageConfig = getStorageConfig();
-  if (!storageConfig.isEnabled) {
+  const storageProfile = getRuntimeStorageProfile();
+  const storageErrors = validateStorageProfile(storageProfile);
+  for (const storageError of storageErrors) {
+    errors.push(storageError);
+  }
+
+  const isBlobStorageEnabled =
+    storageProfile.provider === "azure" || storageProfile.provider === "s3";
+
+  if (storageErrors.length === 0 && !isBlobStorageEnabled) {
     console.log(
       `${styles.warning(
-        "Storage service is not enabled, so no files will be uploaded to storage. Please check your environment variables to enable it.",
+        "Storage service is not enabled. Set STORAGE_PROVIDER to azure or s3 and configure the provider env vars.",
       )}`,
     );
   }

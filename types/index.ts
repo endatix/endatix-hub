@@ -12,6 +12,7 @@ export type Form = {
   themeId?: string;
   webHookSettingsJson?: string;
   activeDefinitionId?: string;
+  folderId: string | null;
 };
 
 export type FormDefinition = {
@@ -22,15 +23,15 @@ export type FormDefinition = {
   isActive: boolean;
   createdAt: Date;
   modifiedAt: Date;
-};
-
-export type ActiveDefinition = FormDefinition & {
   themeModel?: string;
-  requiresReCaptcha?: boolean;
   customQuestions?: string[];
+  requiresReCaptcha?: boolean;
+  limitOnePerUser?: boolean;
   hasUserSubmitted?: boolean;
   metadata?: string;
 };
+
+export type ActiveDefinition = FormDefinition;
 
 export type FormTemplate = {
   id: string;
@@ -39,6 +40,7 @@ export type FormTemplate = {
   createdAt: Date;
   modifiedAt?: Date;
   jsonData?: string;
+  folderId: string | null;
 };
 
 export type SlackAuthResponse = {
@@ -80,6 +82,7 @@ export type TenantSettings = {
   tenantId: string;
   submissionTokenExpiryHours: number;
   isSubmissionTokenValidAfterCompletion: boolean;
+  requireFolderAssignment: boolean;
   slackSettings?: SlackSettings;
   webHookSettings?: WebHookSettings;
   modifiedAt?: string | null;

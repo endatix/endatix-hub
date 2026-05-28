@@ -20,6 +20,10 @@ interface JsonEditorProps {
   style?: CSSProperties;
   errors?: JsonErrorAnnotation[];
   activeError?: { row: number; column: number } | null;
+  readOnly?: boolean;
+  minLines?: number;
+  maxLines?: number;
+  height?: string;
 }
 
 export function JsonEditor({
@@ -28,6 +32,10 @@ export function JsonEditor({
   style,
   errors,
   activeError,
+  readOnly = false,
+  minLines = 10,
+  maxLines = 20,
+  height = "250px",
 }: Readonly<JsonEditorProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
@@ -71,8 +79,8 @@ export function JsonEditor({
       editor.session.setUseWorker(false);
 
       editor.setOptions({
-        minLines: 10,
-        maxLines: 20,
+        minLines,
+        maxLines,
         showGutter: true,
         showPrintMargin: false,
         showLineNumbers: false,
@@ -87,7 +95,7 @@ export function JsonEditor({
           "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
       });
 
-      container.style.height = "250px";
+      container.style.height = height;
       container.style.width = "100%";
 
       editor.setTheme(activeAceTheme);
@@ -139,7 +147,7 @@ export function JsonEditor({
       container?.replaceChildren();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [height, maxLines, minLines]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -147,6 +155,13 @@ export function JsonEditor({
 
     editor.setTheme(activeAceTheme);
   }, [activeAceTheme]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !isReady) return;
+
+    editor.setReadOnly(readOnly);
+  }, [readOnly, isReady]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -199,7 +214,7 @@ export function JsonEditor({
   return (
     <div
       ref={containerRef}
-      style={{ ...DEFAULT_STYLE, ...style }}
+      style={{ ...DEFAULT_STYLE, height, minHeight: height, ...style }}
       className="overflow-hidden rounded-md border"
     />
   );

@@ -44,9 +44,14 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
     [defaultColumns],
   );
 
-  const [columnOrder, setColumnOrderState] = useState<string[]>(() => {
+  const [columnOrder, setColumnOrderState] =
+    useState<string[]>(defaultColumnOrder);
+
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
     if (globalThis.window === undefined) {
-      return defaultColumnOrder;
+      return;
     }
 
     const store = createColumnOrderStore(formId);
@@ -54,19 +59,16 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
 
     if (saved && saved.length > 0) {
       const validOrder = saved.filter((id) => defaultColumnOrder.includes(id));
-
       const missingColumns = defaultColumnOrder.filter(
         (id) => !validOrder.includes(id),
       );
-
       const finalOrder = [...validOrder, ...missingColumns];
-      return finalOrder;
+
+      setColumnOrderState((prev) =>
+        JSON.stringify(prev) === JSON.stringify(finalOrder) ? prev : finalOrder,
+      );
     }
-
-    return defaultColumnOrder;
-  });
-
-  const isFirstRender = useRef(true);
+  }, [formId, defaultColumnOrder]);
 
   useEffect(() => {
     if (globalThis.window === undefined) {
@@ -102,7 +104,7 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
       const newOrder = arrayMove(columnOrder, oldIndex, newIndex);
       setColumnOrderState(newOrder);
     },
-    [columnOrder]
+    [columnOrder],
   );
 
   const resetToDefault = useCallback(() => {
@@ -125,13 +127,18 @@ export function ColumnOrderProvider<TData extends Submission = Submission>({
       resetToDefault,
       hasCustomOrder,
     }),
-    [columnOrder, defaultColumnOrder, setColumnOrder, reorderColumn, resetToDefault, hasCustomOrder],
+    [
+      columnOrder,
+      defaultColumnOrder,
+      setColumnOrder,
+      reorderColumn,
+      resetToDefault,
+      hasCustomOrder,
+    ],
   );
 
   return (
-    <ColumnOrderContext value={contextValue}>
-      {children}
-    </ColumnOrderContext>
+    <ColumnOrderContext value={contextValue}>{children}</ColumnOrderContext>
   );
 }
 

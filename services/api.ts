@@ -3,8 +3,6 @@ import { SubmissionData } from "@/features/submissions/types";
 import { Submission } from "@/lib/endatix-api";
 import {
   CreateFormRequest,
-  CreateFormTemplateRequest,
-  CreateFormTemplateResult,
 } from "@/lib/form-types";
 import { Result } from "@/lib/result";
 import {
@@ -384,49 +382,6 @@ export const deleteTheme = async (themeId: string): Promise<string> => {
   return response.text();
 };
 
-export const createFormTemplate = async (
-  formTemplateRequest: CreateFormTemplateRequest,
-): Promise<CreateFormTemplateResult> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const response = await fetch(`${API_BASE_URL}/form-templates`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(formTemplateRequest),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to create form template");
-  }
-
-  const result = await response.json();
-  return {
-    isSuccess: response.ok,
-    error: response.statusText,
-    formTemplateId: result.id,
-  };
-};
-
-export const getFormTemplates = async (): Promise<FormTemplate[]> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder().withAuth(session).build();
-
-  const response = await fetch(`${API_BASE_URL}/form-templates`, {
-    headers: headers,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch form templates");
-  }
-
-  return response.json();
-};
-
 export const getFormTemplate = async (
   templateId: string,
 ): Promise<FormTemplate> => {
@@ -726,62 +681,6 @@ export const getSubmission = async (
 
   return response.json();
 };
-
-export const getSubmissionFiles = async (
-  formId: string,
-  submissionId: string,
-  fileNamesPrefix?: string,
-): Promise<Response> => {
-  const session = await getSession();
-
-  if (!session?.isLoggedIn) {
-    redirect("/login");
-  }
-  const validateFormIdResult = validateEndatixId(formId, "formId");
-  if (Result.isError(validateFormIdResult)) {
-    throw new TypeError(validateFormIdResult.message);
-  }
-
-  const validateSubmissionIdResult = validateEndatixId(
-    submissionId,
-    "submissionId",
-  );
-  if (Result.isError(validateSubmissionIdResult)) {
-    throw new TypeError(validateSubmissionIdResult.message);
-  }
-
-  const headers = new HeaderBuilder().withAuth(session).provideJson().build();
-
-  const requestUrl = `${API_BASE_URL}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/files`;
-  const requestBody = fileNamesPrefix ? { fileNamesPrefix } : {};
-
-  const response = await fetch(requestUrl, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    let errorMessage = "Failed to download submission files";
-    if (response.status === 400) {
-      const error = await response.json();
-
-      // Extract fileNamesPrefix error if present
-      const fileNamesPrefixError =
-        error?.errors?.fileNamesPrefix?.length > 0
-          ? error.errors.fileNamesPrefix.join(", ")
-          : undefined;
-
-      // Use the extracted error or fallback to the general message
-      errorMessage = fileNamesPrefixError || error.message || errorMessage;
-    }
-
-    throw new Error(errorMessage);
-  }
-
-  return response;
-};
-
 
 export interface CustomQuestion {
   id: string;

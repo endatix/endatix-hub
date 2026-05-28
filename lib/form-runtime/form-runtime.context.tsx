@@ -9,7 +9,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   startTransition,
@@ -65,12 +64,6 @@ export function FormRuntimeProvider({
     return ensureRuntimeFormAccessJwt(stateRef.current);
   }, []);
 
-  useEffect(() => {
-    startTransition(() => {
-      ensureFormAccessJwt();
-    });
-  }, [ensureFormAccessJwt]);
-
   const contextValue = useMemo(() => {
     return {
       stateRef,
@@ -93,4 +86,12 @@ export const useFormRuntime = (): FormRuntimeContextValue => {
     throw new Error("useFormRuntime must be used within a FormRuntimeProvider");
   }
   return context;
+};
+
+/**
+ * Optional form runtime context value.
+ * @returns Optional form runtime context value.
+ */
+export const useOptionalFormRuntime = (): FormRuntimeContextValue | null => {
+  return useContext(FormRuntimeContext);
 };

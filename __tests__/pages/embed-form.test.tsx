@@ -80,6 +80,22 @@ vi.mock("@/features/public-form/ui/embed-height-reporter", () => ({
   EmbedHeightReporter: () => <div data-testid="embed-height-reporter" />,
 }));
 
+vi.mock("@/features/public-form/ui/embed-already-responded-reporter", () => ({
+  EmbedAlreadyRespondedReporter: ({
+    formId,
+    message,
+  }: {
+    formId: string;
+    message: string;
+  }) => (
+    <div
+      data-form-id={formId}
+      data-message={message}
+      data-testid="embed-already-responded-reporter"
+    />
+  ),
+}));
+
 vi.mock("@/features/recaptcha/recaptcha-config", () => ({
   recaptchaConfig: {
     isReCaptchaEnabled: vi.fn().mockReturnValue(false),
@@ -98,9 +114,15 @@ vi.mock("@/features/asset-storage/server", () => ({
 }));
 
 vi.mock("@/features/public-form/ui/survey-js-wrapper", () => ({
-  default: ({ formId }: SurveyJsWrapperProps) => (
-    <div data-testid="survey-js-wrapper">
-      <div data-testid="form-id">{formId}</div>
+  default: (props: SurveyJsWrapperProps) => (
+    <div
+      data-definition-id={props.isEmbed ? props.definitionId : undefined}
+      data-limit-one-per-user={
+        props.isEmbed ? String(props.limitOnePerUser ?? false) : undefined
+      }
+      data-testid="survey-js-wrapper"
+    >
+      <div data-testid="form-id">{props.formId}</div>
     </div>
   ),
 }));
@@ -113,6 +135,7 @@ describe("EmbedForm Page", () => {
   it("renders already responded when user already submitted without token", async () => {
     // Arrange
     const mockDefinition = {
+      id: "definition-123",
       jsonData: { title: "Test Form" },
       hasUserSubmitted: true,
       metadata: JSON.stringify({
@@ -144,11 +167,17 @@ describe("EmbedForm Page", () => {
     ).toBeDefined();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
     expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
+    expect(
+      screen
+        .getByTestId("embed-already-responded-reporter")
+        .getAttribute("data-message"),
+    ).toBe("You already completed this survey.");
   });
 
   it("does not gate token edit flow when user already submitted", async () => {
     // Arrange
     const mockDefinition = {
+      id: "definition-123",
       jsonData: { title: "Test Form" },
       hasUserSubmitted: true,
       metadata: JSON.stringify({
@@ -181,6 +210,9 @@ describe("EmbedForm Page", () => {
     // Assert
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
+    expect(
+      screen.getByTestId("survey-js-wrapper").getAttribute("data-definition-id"),
+    ).toBe("definition-123");
     expect(screen.queryByText("Already Responded")).toBeNull();
     expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
   });
@@ -188,8 +220,10 @@ describe("EmbedForm Page", () => {
   it("does not gate cookie draft flow when user already submitted but current draft exists", async () => {
     // Arrange
     const mockDefinition = {
+      id: "definition-123",
       jsonData: { title: "Test Form" },
       hasUserSubmitted: true,
+      limitOnePerUser: true,
       metadata: JSON.stringify({
         alreadyResponded: { message: "You already completed this survey." },
       }),
@@ -220,6 +254,11 @@ describe("EmbedForm Page", () => {
     // Assert
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
+    expect(
+      screen
+        .getByTestId("survey-js-wrapper")
+        .getAttribute("data-limit-one-per-user"),
+    ).toBe("true");
     expect(screen.queryByText("Already Responded")).toBeNull();
     expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
   });

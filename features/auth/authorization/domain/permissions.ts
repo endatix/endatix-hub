@@ -26,6 +26,24 @@ export const Permissions = {
     ManageSettings: "tenant.settings.manage",
     ViewUsage: "tenant.usage.view",
   },
+  Submissions: {
+    View: "submissions.view",
+    Create: "submissions.create",
+    Edit: "submissions.edit",
+    Delete: "submissions.delete",
+    Export: "submissions.export",
+  },
+  Forms: {
+    View: "forms.view",
+    Create: "forms.create",
+    Edit: "forms.edit",
+    Delete: "forms.delete",
+    Test: "forms.test",
+  },
+  Folders: {
+    Manage: "folders.manage",
+    Unlock: "folders.unlock",
+  },
 } as const;
 
 /**

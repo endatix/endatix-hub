@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import type {
-  StorageConfig,
+  ClientStorageConfig,
   StorageConfigClient,
 } from "@/features/asset-storage/client";
 import type { AzureStorageConfig } from "@/features/asset-storage/server";
 import { IMAGE_SERVICE_CONFIG } from "@/features/asset-storage/infrastructure/image-service";
 
 describe("storage-config-client", () => {
-  describe("StorageConfig type", () => {
-    it("should be a valid StorageConfig object", () => {
-      const config: StorageConfig = {
+  describe("ClientStorageConfig type", () => {
+    it("should be a valid ClientStorageConfig object", () => {
+      const config: ClientStorageConfig = {
         isEnabled: true,
         isPrivate: true,
         hostName: "testaccount.blob.core.windows.net",
@@ -29,9 +29,9 @@ describe("storage-config-client", () => {
     });
 
     it("should not include server-only properties", () => {
-      // Create a StorageConfig manually (as it would be created in practice)
-      // This verifies that StorageConfig type correctly excludes server-only properties
-      const clientConfig: StorageConfig = {
+      // Create a ClientStorageConfig manually (as it would be created in practice)
+      // This verifies that ClientStorageConfig type correctly excludes server-only properties
+      const clientConfig: ClientStorageConfig = {
         isEnabled: true,
         isPrivate: false,
         hostName: "testaccount.blob.core.windows.net",
@@ -44,7 +44,7 @@ describe("storage-config-client", () => {
       };
 
       // Verify that accountKey, accountName, expiryMinutes, and sasReadExpiryMinutes
-      // are not part of StorageConfig
+      // are not part of ClientStorageConfig
       expect("accountKey" in clientConfig).toBe(false);
       expect("accountName" in clientConfig).toBe(false);
       expect("expiryMinutes" in clientConfig).toBe(false);
@@ -73,8 +73,8 @@ describe("storage-config-client", () => {
         imageConfig: IMAGE_SERVICE_CONFIG,
       };
 
-      // StorageConfig should be assignable from AzureStorageConfig (minus server props)
-      const clientConfig: StorageConfig = {
+      // ClientStorageConfig should be assignable from AzureStorageConfig (minus server props)
+      const clientConfig: ClientStorageConfig = {
         isEnabled: azureConfig.isEnabled,
         isPrivate: azureConfig.isPrivate,
         hostName: azureConfig.hostName,
@@ -90,8 +90,8 @@ describe("storage-config-client", () => {
     });
 
     it("should support custom domain hostnames", () => {
-      // This test documents that StorageConfig supports custom domain/CDN hostnames
-      const config: StorageConfig = {
+      // This test documents that ClientStorageConfig supports custom domain/CDN hostnames
+      const config: ClientStorageConfig = {
         isEnabled: true,
         isPrivate: false,
         hostName: "cdn.example.com",
@@ -108,7 +108,7 @@ describe("storage-config-client", () => {
   });
 
   describe("StorageConfigClient interface", () => {
-    it("should have config property of type StorageConfig", () => {
+    it("should have config property of type ClientStorageConfig", () => {
       const client: StorageConfigClient = {
         config: {
           isEnabled: true,

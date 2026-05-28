@@ -13,6 +13,7 @@ const {
   mockEnqueueSubmission,
   mockClearQueue,
   mockUseSurveyModel,
+  mockSendEmbedMessage,
 } = vi.hoisted(() => ({
   mockSubmitFormAction: vi.fn(),
   mockEnqueueSubmission: vi.fn(),
@@ -20,6 +21,7 @@ const {
     // This will be called synchronously, so we can add logging if needed
   }),
   mockUseSurveyModel: vi.fn(),
+  mockSendEmbedMessage: vi.fn(),
 }));
 
 // --- MOCK DEPENDENCIES ---
@@ -42,6 +44,13 @@ vi.mock("../../application/submission-queue", () => {
 
 vi.mock("../use-survey-model.hook", () => ({
   useSurveyModel: (...args: unknown[]) => mockUseSurveyModel(...args),
+}));
+
+vi.mock("@/features/embed-form", () => ({
+  useSurveyEmbedBehavior: vi.fn(() => ({
+    sendEmbedMessage: mockSendEmbedMessage,
+    registerEmbedHandlers: vi.fn(() => () => {}),
+  })),
 }));
 
 vi.mock("@/features/analytics/posthog/client", () => ({
@@ -266,6 +275,34 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     await expect(completeEventMocks.showSaveSuccess).toHaveBeenCalled();
   });
 
+  it("sends a structured embed completion payload after successful submission", async () => {
+    // Arrange
+    mockSubmitFormAction.mockResolvedValue({
+      success: true,
+      data: {
+        submissionId: "sub-456",
+        isComplete: true,
+        status: "completed",
+        completedAt: "2026-05-26T10:00:00.000Z",
+      },
+    });
+    renderSurveyComponent();
+
+    // Act
+    await act(async () => {
+      fireCompleteEvent();
+    });
+
+    // Assert
+    expect(mockSendEmbedMessage).toHaveBeenCalledWith("form-complete", {
+      submissionId: "sub-456",
+      success: true,
+      isComplete: true,
+      status: "completed",
+      completedAt: "2026-05-26T10:00:00.000Z",
+    });
+  });
+
   it("should reset the guard flag on submission failure", async () => {
     // Arrange
     mockSubmitFormAction.mockResolvedValue(
@@ -293,6 +330,29 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     const callArgs = mockEnqueueSubmission.mock.calls[0][0];
     expect(callArgs.isComplete).toBe(false);
     expect(JSON.parse(callArgs.jsonData).question1).toBe("new value");
+  });
+
+  it("sends a structured embed error payload after failed submission", async () => {
+    // Arrange
+    mockSubmitFormAction.mockResolvedValue(
+      ApiResult.networkError("Network error"),
+    );
+    renderSurveyComponent();
+
+    // Act
+    await act(async () => {
+      fireCompleteEvent();
+    });
+
+    // Assert
+    expect(mockSendEmbedMessage).toHaveBeenCalledWith("form-error", {
+      success: false,
+      error: {
+        type: "NetworkError",
+        code: "NETWORK_ERROR",
+        message: "Network error",
+      },
+    });
   });
 
   it("should prevent a second concurrent submission attempt", async () => {

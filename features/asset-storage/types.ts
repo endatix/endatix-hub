@@ -5,14 +5,6 @@ import { SurveyModel } from "survey-react-ui";
 export type ContainerType = "USER_FILES" | "CONTENT";
 
 export type ContentItemType = "form" | "template";
-
-export interface IContainerInfo {
-  containerType: ContainerType;
-  containerName: string;
-  hostName: string;
-  isPrivate: boolean;
-  blobName: string;
-}
 export interface ProtectedFile extends IFile {
   token?: string;
 }

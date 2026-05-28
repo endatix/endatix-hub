@@ -1,5 +1,6 @@
 export interface FormsListRequest {
   filter?: string;
+  folderId?: string;
 }
 
 export interface UpdateFormRequest {
@@ -10,6 +11,8 @@ export interface UpdateFormRequest {
   metadata?: string | null;
   themeId?: string | null;
   webHookSettingsJson?: string;
+  folderId?: string | null;
+  clearFolderId?: boolean;
 }
 
 /** Optional body for POST /public/forms/{formId}/access-tokens. */
@@ -21,4 +24,21 @@ export interface CreateFormAccessTokenRequest {
 export interface FormAccessTokenResponse {
   token: string;
   expiresAtUtc: string;
+}
+
+/** Query for GET /access/public/forms/{formId}. */
+export interface GetPublicFormAccessRequest {
+  token?: string;
+  tokenType?: "AccessToken" | "SubmissionToken";
+}
+
+/** Response from GET /access/public/forms/{formId}. */
+export interface PublicFormAccessResponse {
+  formId: string;
+  submissionId: string | null;
+  formPermissions: string[];
+  submissionPermissions: string[];
+  cachedAt: string;
+  expiresAt: string;
+  eTag: string;
 }

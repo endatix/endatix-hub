@@ -110,7 +110,6 @@ vi.mock("@/features/asset-storage/server", () => ({
       },
     },
   })),
-  generateReadTokensAction: vi.fn(() => Promise.resolve(Result.success({}))),
 }));
 
 // Mock storage client components

@@ -39,7 +39,10 @@ import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-t
 import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { registerConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion/convert-inline-choices-deps";
-import { useDataLists, useDataListsLoader } from "@/lib/survey-features/data-lists";
+import {
+  useDataLists,
+  useDataListsLoader,
+} from "@/lib/survey-features/data-lists";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -76,7 +79,7 @@ import {
 import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
 import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
 import { StoredTheme } from "../../domain/models/theme";
-import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
+import { useDesignerRuntime } from "@/lib/designer-runtime";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -171,7 +174,7 @@ function FormEditor({
   onSaveHandlerReady,
   onPropertyGridControllerReady,
 }: Readonly<FormEditorProps>) {
-  const formRuntime = useFormRuntime();
+  const designerRuntime = useDesignerRuntime();
   const isCreatorInitializedRef = useRef(false);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -205,7 +208,7 @@ function FormEditor({
   });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     runtimeDeps: {
-      getRuntimeState: () => formRuntime.stateRef.current,
+      getRuntimeState: () => designerRuntime.stateRef.current,
     },
   });
 
@@ -257,7 +260,11 @@ function FormEditor({
     const resolve = convertChoicesConfirmResolverRef.current;
     convertChoicesConfirmResolverRef.current = null;
     convertChoicesConfirmPromiseRef.current = null;
-    setConvertChoicesDialog({ isOpen: false, name: "", errorMessage: undefined });
+    setConvertChoicesDialog({
+      isOpen: false,
+      name: "",
+      errorMessage: undefined,
+    });
     resolve?.(value);
   }, []);
 
@@ -653,7 +660,7 @@ function FormEditor({
     registerJsonEditor,
     isExtensionsReady,
     onCreatorCreated,
-    formRuntime,
+    designerRuntime,
     bindQuestionLoops,
     bindFormDiagnostics,
     initAnyAnsweredGlobals,
@@ -689,7 +696,7 @@ function FormEditor({
 
     const setAsModified = (_: SurveyCreatorModel, options: ModifiedEvent) => {
       if (options.type === JSON_CHANGED_TYPE) return;
-      
+
       setHasUnsavedChanges(true);
     };
     creator.onModified.add(setAsModified);
@@ -751,7 +758,8 @@ function FormEditor({
     };
 
     globalThis.window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
+    return () =>
+      globalThis.window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges, isCurrentThemeModified]);
 
   useEffect(() => {
@@ -780,7 +788,8 @@ function FormEditor({
             <DialogDescription asChild>
               <div className="space-y-2 text-left text-sm">
                 <p>
-                  A new data list will be created and populated with these choices.
+                  A new data list will be created and populated with these
+                  choices.
                 </p>
                 <p>
                   <strong>This question</strong> will use that data list as its
@@ -792,7 +801,10 @@ function FormEditor({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium" htmlFor="edx-convert-list-name">
+            <label
+              className="block text-sm font-medium"
+              htmlFor="edx-convert-list-name"
+            >
               Data list name
             </label>
             <input
@@ -827,7 +839,9 @@ function FormEditor({
             <button
               type="button"
               className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-              onClick={() => closeConvertChoicesDialog(convertChoicesDialog.name)}
+              onClick={() =>
+                closeConvertChoicesDialog(convertChoicesDialog.name)
+              }
             >
               Convert
             </button>

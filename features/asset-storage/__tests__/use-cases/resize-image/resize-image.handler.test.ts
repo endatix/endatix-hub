@@ -115,6 +115,26 @@ describe("handleResizeImageRequest", () => {
     );
   });
 
+  it("returns original SVG bytes without resizing", async () => {
+    const svg = Buffer.from("<svg />");
+    const fileLike = {
+      type: "image/svg+xml",
+      arrayBuffer: () => Promise.resolve(new Uint8Array(svg).buffer),
+    };
+    const request = {
+      formData: () =>
+        Promise.resolve({
+          get: (key: string) => (key === "file" ? fileLike : null),
+        }),
+    } as unknown as Request;
+
+    const response = await handleResizeImageRequest(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(imageService.optimizeImageSize).not.toHaveBeenCalled();
+  });
+
   it("passes image buffer and content type to optimizeImageSize", async () => {
     const fileLike = {
       type: "image/jpeg",

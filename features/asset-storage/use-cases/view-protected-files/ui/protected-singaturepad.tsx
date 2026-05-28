@@ -1,42 +1,41 @@
-import {
-  AssetStorageContext,
-  enrichImageInJSX,
-} from "@/features/asset-storage/client";
+import { AssetStorageContext } from "@/features/asset-storage/ui/asset-storage.context";
 import React from "react";
 import {
   ReactQuestionFactory,
   SurveyQuestionSignaturePad,
 } from "survey-react-ui";
+import { isPrivateStorageContext } from "./protected-storage-media";
+import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 
 let isRegistered = false;
 
-/**
- * A custom signature pad wrapper component that renders the signature pad with a protected background image.
- * It will only render the signature pad if the storage is enabled and private.
- * To be used within the Survey Creator only.
- */
 class ProtectedSignaturePad extends SurveyQuestionSignaturePad {
   declare context: React.ContextType<typeof AssetStorageContext>;
+
   renderBackgroundImage(): React.JSX.Element | null {
     if (!this.question.backgroundImage) {
       return null;
     }
 
-    const ctx = this.context;
-    const isPrivatedStorageEnabled =
-      ctx?.config?.isEnabled && ctx.config.isPrivate && ctx.resolveStorageUrl;
-
-    const baseImage = super.renderBackgroundImage();
-    if (!isPrivatedStorageEnabled || !baseImage) {
-      return baseImage;
+    if (!isPrivateStorageContext(this.context)) {
+      return super.renderBackgroundImage();
     }
 
-    return enrichImageInJSX(baseImage, ctx.resolveStorageUrl);
+    return (
+      <StoragePresignedImage
+        className={this.question.cssClasses.backgroundImage}
+        src={this.question.backgroundImage}
+        style={{ width: this.question.renderedCanvasWidth }}
+        role="presentation"
+      />
+    );
   }
 }
 
-function registerProtectedSignaturePad() {
-  if (globalThis.window === undefined || isRegistered) return;
+function registerProtectedSignaturePad(): void {
+  if (globalThis.window === undefined || isRegistered) {
+    return;
+  }
 
   ReactQuestionFactory.Instance.registerQuestion("signaturepad", (props) => {
     return React.createElement(ProtectedSignaturePad, props);

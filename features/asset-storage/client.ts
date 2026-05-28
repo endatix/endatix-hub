@@ -1,9 +1,7 @@
 "use client";
 
-export type {
-  StorageConfig,
-  StorageConfigClient,
-} from "./infrastructure/storage-config-client";
+export type { ClientStorageConfig } from "@endatix/storage-core";
+export type { StorageConfigClient } from "@endatix/storage-azure";
 export {
   ProtectedFilePreview,
   registerProtectedFilePreview,
@@ -22,17 +20,30 @@ export {
   registerProtectedSignaturePad,
 } from "./use-cases/view-protected-files/ui/protected-singaturepad";
 export {
+  ProtectedImagePickerItem,
   ProtectedSurveyQuestionImagePicker,
   ProtectedImageItemValueAdorner,
   registerProtectedImageItem,
 } from "./use-cases/view-protected-files/ui/protected-image-item";
 export {
+  ProtectedSurveyFileItem,
+  registerProtectedFileItem,
+} from "./use-cases/view-protected-files/ui/protected-file-item";
+export { StoragePresignedLink } from "./ui/storage-presigned-link";
+export {
   AssetStorageContext,
   AssetStorageClientProvider,
   useAssetStorage,
   type AssetStorageContextValue,
-  type AssetStorageTokens,
 } from "./ui/asset-storage.context";
+export {
+  usePrivateStorageDisplayUrl,
+  type UsePrivateStorageDisplayUrlOptions,
+} from "./ui/use-resolved-private-storage-url";
+export { LazyStorageMedia } from "./ui/lazy-storage-media";
+export { useNearViewport } from "./ui/use-near-viewport";
+export { useStorageReadRuntime } from "./ui/use-storage-read-runtime";
+export { StoragePresignedImage } from "./ui/storage-presigned-image";
 
 // Hooks
 export { useStorageWithSurvey } from "./ui/hooks/use-storage-with-survey.hook";

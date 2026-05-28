@@ -23,11 +23,13 @@ import { Result } from "@/lib/result";
 interface ExportSubmissionsButtonProps {
   formId: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export const ExportSubmissionsButton = ({
   formId,
   className,
+  disabled = false,
 }: ExportSubmissionsButtonProps) => {
   const [isExporting, setIsExporting] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -126,7 +128,7 @@ export const ExportSubmissionsButton = ({
       <Button
         variant="outline"
         onClick={() => handleExport()}
-        disabled={isExporting}
+        disabled={disabled || isExporting}
         className={className}
       >
         {isExporting ? (
@@ -143,7 +145,7 @@ export const ExportSubmissionsButton = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={isExporting} className={className}>
+        <Button variant="outline" disabled={disabled || isExporting} className={className}>
           {isExporting && !currentExportName ? (
             <Spinner className="h-4 w-4 mr-2" />
           ) : (
@@ -157,7 +159,7 @@ export const ExportSubmissionsButton = ({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleExport()} disabled={isExporting}>
+        <DropdownMenuItem onClick={() => handleExport()} disabled={disabled || isExporting}>
           {isExporting && !currentExportName ? (
             <Spinner className="h-4 w-4 mr-2" />
           ) : (
@@ -172,7 +174,7 @@ export const ExportSubmissionsButton = ({
           <DropdownMenuItem
             key={exportOption.id}
             onClick={() => handleExport(exportOption.id, exportOption.name)}
-            disabled={isExporting}
+            disabled={disabled || isExporting}
           >
             {isExporting && currentExportName === exportOption.name ? (
               <Spinner className="h-4 w-4 mr-2" />

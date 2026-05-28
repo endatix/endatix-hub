@@ -31,12 +31,13 @@ import { customQuestions } from "@/customizations/questions/question-registry";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 
 const SurveyPreviewComponent = dynamic(
   () => import("./survey-preview-component"),
   {
     ssr: false,
-    loading: () => <Spinner className="w-8 h-8 mx-auto my-12" />,
+    loading: () => <Spinner className="mx-auto my-12 h-8 w-8" />,
   },
 );
 
@@ -59,12 +60,14 @@ interface FormTemplatePreviewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templateId: string;
+  requireFolderAssignment?: boolean;
 }
 
 export function FormTemplatePreview({
   open,
   onOpenChange,
   templateId,
+  requireFolderAssignment = false,
 }: FormTemplatePreviewProps) {
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,13 +114,15 @@ export function FormTemplatePreview({
   const PreviewContent = (
     <div className="mt-0 px-1">
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Spinner className="w-8 h-8" />
+        <div className="flex h-64 items-center justify-center">
+          <Spinner className="h-8 w-8" />
         </div>
       ) : error ? (
-        <div className="text-destructive text-center">{error}</div>
+        <div className="text-center text-destructive">{error}</div>
       ) : template ? (
-        <SurveyPreviewComponent template={template} />
+        <DesignerRuntimeProvider initialState={{ templateId: template.id }}>
+          <SurveyPreviewComponent template={template} />
+        </DesignerRuntimeProvider>
       ) : null}
     </div>
   );
@@ -125,7 +130,7 @@ export function FormTemplatePreview({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[875px] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[875px]">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">
               {loading ? "Loading..." : template?.name}
@@ -137,7 +142,10 @@ export function FormTemplatePreview({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <UseTemplateButton template={template} />
+            <UseTemplateButton
+              template={template}
+              requireFolderAssignment={requireFolderAssignment}
+            />
           </DialogFooter>
           {PreviewContent}
         </DialogContent>
@@ -160,7 +168,10 @@ export function FormTemplatePreview({
         </DrawerHeader>
         <div className="overflow-y-auto">{PreviewContent}</div>
         <DrawerFooter>
-          <UseTemplateButton template={template} />
+          <UseTemplateButton
+            template={template}
+            requireFolderAssignment={requireFolderAssignment}
+          />
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

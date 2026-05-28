@@ -1,6 +1,6 @@
 import EnvironmentPage from "@/app/(main)/admin/environment/page";
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
-import { getStorageConfig } from "@/features/asset-storage/server";
+import { getStorageAdminSummary } from "@/features/asset-storage/server";
 import { render, screen } from "@testing-library/react";
 import { redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,8 +14,11 @@ vi.mock("@/components/admin-ui/admin-protection", () => ({
 }));
 
 vi.mock("@/features/asset-storage/server", () => ({
-  getStorageConfig: vi.fn(),
-  AzureStorageConfig: {},
+  getStorageAdminSummary: vi.fn(),
+  IMAGE_SERVICE_CONFIG: {
+    isResizeEnabled: false,
+    defaultResizeWidth: 800,
+  },
 }));
 
 vi.mock("@/next.config", () => ({
@@ -27,67 +30,81 @@ vi.mock("@/next.config", () => ({
 describe("Admin Environment Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getStorageConfig).mockReturnValue({
+    vi.mocked(getStorageAdminSummary).mockReturnValue({
+      activeProviderId: "azure",
+      activeProviderLabel: "Azure Blob Storage",
+      configuredProviderLabel: "azure",
       isEnabled: true,
       isPrivate: false,
-      hostName: "test.blob.core.windows.net",
       protocol: "https",
-      containerNames: { USER_FILES: "user-files", CONTENT: "content" },
-      imageConfig: {
-        isResizeEnabled: false,
-        defaultResizeWidth: 800,
+      hostName: "test.blob.core.windows.net",
+      userFilesContainer: "user-files",
+      contentContainer: "content",
+      azureCredentialsPresent: true,
+      s3CredentialsPresent: false,
+      azure: {
+        accountName: "testaccount",
+        sasReadExpiryMinutes: 15,
+        sasWriteExpirySeconds: 3600,
       },
-    } as ReturnType<typeof getStorageConfig>);
+      s3: null,
+      configurationErrors: [],
+    });
   });
 
   describe("requireAdmin", () => {
     it("redirects to unauthorized when not admin", async () => {
-      // Arrange: requireAdmin calls redirect (non-admin)
       vi.mocked(requireAdmin).mockImplementation(() => {
         vi.mocked(redirect)("/unauthorized");
         throw new Error("redirect");
       });
 
-      // Act & Assert: page throws (redirect) and redirect was called
       await expect(EnvironmentPage()).rejects.toThrow("redirect");
       expect(redirect).toHaveBeenCalledWith("/unauthorized");
     });
 
     it("renders page content when admin", async () => {
-      // Arrange
       vi.mocked(requireAdmin).mockResolvedValue({} as never);
 
-      // Act
       const result = await EnvironmentPage();
       render(result);
 
-      // Assert
       expect(screen.getByText(/Environment Variables/)).toBeDefined();
-      expect(
-        screen.getByText(/Azure Storage & Image Configuration/),
-      ).toBeDefined();
+      expect(screen.getByText(/Storage configuration/)).toBeDefined();
+      expect(screen.getByText(/Image service/)).toBeDefined();
     });
   });
 
   describe("env variable masking", () => {
     it("masks sensitive env vars in output", async () => {
-      // Arrange
       vi.mocked(requireAdmin).mockResolvedValue({} as never);
-      const origKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-      process.env.AZURE_STORAGE_ACCOUNT_KEY = "my-secret-key";
+      const origKey = process.env.STORAGE_AZURE_ACCOUNT_KEY;
+      const origSecret = process.env.STORAGE_S3_SECRET_ACCESS_KEY;
+      process.env.STORAGE_AZURE_ACCOUNT_KEY = "my-secret-key";
+      process.env.STORAGE_S3_SECRET_ACCESS_KEY = "my-secret-access-key";
 
       try {
-        // Act
         const result = await EnvironmentPage();
         render(result);
 
-        // Assert: masked value (•) appears; raw secret must not appear in document
-        expect(screen.getByText("AZURE_STORAGE_ACCOUNT_KEY")).toBeDefined();
+        expect(screen.getByText("STORAGE_AZURE_ACCOUNT_KEY")).toBeDefined();
+        expect(screen.getByText("STORAGE_S3_SECRET_ACCESS_KEY")).toBeDefined();
         const body = document.body.textContent ?? "";
         expect(body).toMatch(/•+/);
         expect(body).not.toContain("my-secret-key");
+        expect(body).not.toContain("my-secret-access-key");
       } finally {
-        process.env.AZURE_STORAGE_ACCOUNT_KEY = origKey;
+        if (origKey === undefined) {
+          delete process.env.STORAGE_AZURE_ACCOUNT_KEY;
+        } else {
+          process.env.STORAGE_AZURE_ACCOUNT_KEY = origKey;
+        }
+
+        if (origSecret === undefined) {
+          delete process.env.STORAGE_S3_SECRET_ACCESS_KEY;
+        } else {
+          process.env.STORAGE_S3_SECRET_ACCESS_KEY = origSecret;
+        }
       }
     });
   });
