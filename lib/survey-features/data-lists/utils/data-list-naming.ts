@@ -22,7 +22,7 @@ export function isGenericChoiceQuestionTitle(
     return true;
   }
 
-  const numbered = normalizedTitle.match(/^([a-z]+)\s*\(\d+\)$/);
+  const numbered = RegExp(/^([a-z]+)\s*\(\d+\)$/).exec(normalizedTitle);
   return numbered?.[1] === normalizedType;
 }
 

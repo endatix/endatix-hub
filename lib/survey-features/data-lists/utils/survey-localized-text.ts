@@ -32,8 +32,8 @@ export function toPlainText(input: string): string {
   }
 
   const normalizedLineBreaks = withoutTags
-    .replace(/\r?\n/g, " ")
-    .replace(/\t/g, " ");
+    .replaceAll(/\r?\n/g, " ")
+    .replaceAll("\t", " ");
   return normalizeControlAndWhitespace(
     decodeCommonHtmlEntities(normalizedLineBreaks),
   );

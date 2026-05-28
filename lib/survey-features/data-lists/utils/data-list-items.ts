@@ -31,9 +31,7 @@ function resolveChoiceTextFromRecord(o: Record<string, unknown>): string {
 }
 
 function resolveChoiceScalarValue(value: unknown): string {
-  return (
-    parseScalarString(value) ?? resolveLocalizedText(value) ?? ""
-  );
+  return parseScalarString(value) ?? resolveLocalizedText(value) ?? "";
 }
 
 function resolveLabelAndValueFromRaw(
@@ -127,19 +125,19 @@ export function normalizeChoicesToDataListItems(
 /**
  * Reads plain choice label/value pairs from a Survey question for data list import.
  */
-export function getPlainChoiceValuesForNormalization(q: Question): unknown[] {
-  return q.choices.map((iv: ItemValue) => {
-    const json =
-      typeof iv.toJSON === "function"
-        ? (iv.toJSON() as Record<string, unknown>)
+export function getPlainChoiceValuesForNormalization(
+  question: Question,
+): unknown[] {
+  return question.choices.map((itemValue: ItemValue) => {
+    const jsonValue =
+      typeof itemValue.toJSON === "function"
+        ? (itemValue.toJSON() as Record<string, unknown>)
         : null;
     const text =
-      (json ? resolveChoiceTextFromRecord(json) : "").trim() ||
-      iv.calculatedText.trim();
-    const val =
-      json && json.value !== undefined && json.value !== null
-        ? json.value
-        : iv.value;
+      (jsonValue ? resolveChoiceTextFromRecord(jsonValue) : "").trim() ||
+      itemValue.calculatedText.trim();
+
+    const val = jsonValue?.value ? jsonValue.value : itemValue.value;
 
     return { value: val, text: text || resolveChoiceScalarValue(val) };
   });

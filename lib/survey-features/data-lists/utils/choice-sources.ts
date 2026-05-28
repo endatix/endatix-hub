@@ -1,15 +1,13 @@
 import type { Question } from "survey-core";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
+import { parseScalarString } from "@/lib/utils/type-parsers";
 
 function hasDynamicChoiceSourcesInRecord(
   source: Record<string, unknown>,
 ): boolean {
   const dataListId = source[DATA_LIST_PROPERTY_NAME];
-  if (
-    dataListId !== undefined &&
-    dataListId !== null &&
-    String(dataListId).length > 0
-  ) {
+  const parsedDataListId = parseScalarString(dataListId);
+  if (parsedDataListId !== null && parsedDataListId.length > 0) {
     return true;
   }
 
@@ -68,4 +66,7 @@ export function hasDynamicChoiceSources(q: Question): boolean {
     choicesFromQuestion: readQuestionProp(q, "choicesFromQuestion"),
     choicesByUrl: readQuestionProp(q, "choicesByUrl"),
   });
+}
+function isScalarString(dataListId: unknown) {
+  throw new Error("Function not implemented.");
 }

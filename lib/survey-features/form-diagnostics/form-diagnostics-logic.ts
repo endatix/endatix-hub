@@ -1,4 +1,5 @@
-import { JsonObject, type SurveyModel } from "survey-core";
+import { JsonObject, type Question, type SurveyModel } from "survey-core";
+import { parseScalarString } from "@/lib/utils/type-parsers";
 
 const DATA_URL_PREFIX = "data:image/";
 const BASE64_MARKER = ";base64,";
@@ -186,7 +187,7 @@ function getNonEmptyLocalizedValues(source: unknown): unknown | undefined {
     source != null &&
     typeof source === "object" &&
     !Array.isArray(source) &&
-    Object.keys(source as Record<string, unknown>).length > 0
+    Object.keys(source).length > 0
   ) {
     return source;
   }
@@ -362,7 +363,7 @@ export function analyzeSurveyModel(
   const questions = survey.getAllQuestions(false, undefined, true);
   partial.totalQuestions = questions.length;
 
-  function countDropdownChoices(question: unknown): void {
+  function countDropdownChoices(question: Question): void {
     const q = question as Record<string, unknown>;
     partial.dropdownCount!++;
     const choices = q.choices;
@@ -374,14 +375,14 @@ export function analyzeSurveyModel(
     );
   }
 
-  function measureQuestionChoicesSize(question: unknown): void {
-    const q = question as { jsonObj?: unknown };
+  function measureQuestionChoicesSize(question: Question): void {
+    const q = question as unknown as { jsonObj?: unknown };
     const qJson = q.jsonObj ?? jsonObj.toJsonObject(question);
     const choices = (qJson as Record<string, unknown> | undefined)?.choices;
     measureChoicesSize(choices);
   }
 
-  function handleMatrixColumnChoices(question: unknown): void {
+  function handleMatrixColumnChoices(question: Question): void {
     const columns = (question as { columns?: unknown[] }).columns ?? [];
     for (const col of columns) {
       const c = col as Record<string, unknown>;
@@ -412,7 +413,7 @@ export function analyzeSurveyModel(
     }
   }
 
-  function extractImagesFromQuestion(question: unknown): void {
+  function extractImagesFromQuestion(question: Question): void {
     addImageStatsFromValues(
       getAllLocalizedStrings(readLocalizedField(question, "locTitle", "title")),
     );
@@ -422,7 +423,7 @@ export function analyzeSurveyModel(
       ),
     );
 
-    const qType = (question as { getType: () => string }).getType();
+    const qType = question.getType();
     if (SELECT_BASE_TYPES.has(qType)) {
       const choices = (question as { choices?: unknown[] }).choices ?? [];
       for (const choice of choices) {
@@ -448,7 +449,8 @@ export function analyzeSurveyModel(
 
     if (qType === "image") {
       addImageStatsFromValues([
-        String((question as Record<string, unknown>).imageLink ?? ""),
+        parseScalarString((question as Record<string, unknown>).imageLink) ??
+          "",
       ]);
     }
 
@@ -484,8 +486,8 @@ export function analyzeSurveyModel(
     extractImagesFromQuestion(q);
   }
 
-  const logoStr = (survey as any).logo;
-  const logo = extractBase64ImagesFromString(logoStr);
+  const logoStr = parseScalarString((survey as { logo?: unknown }).logo);
+  const logo = extractBase64ImagesFromString(logoStr ?? undefined);
   partial.embeddedImagesCount! += logo.count;
   partial.embeddedImagesSizeBytes! += logo.sizeBytes;
 
