@@ -75,6 +75,15 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     this.setPropertyValue("formIsEnabled", val);
   }
 
+  /** Folder of the form being edited; used when creating a copied form from diagnostics. */
+  public get folderId(): string | null | undefined {
+    return this.getPropertyValue("folderId");
+  }
+
+  public set folderId(val: string | null | undefined) {
+    this.setPropertyValue("folderId", val);
+  }
+
   public get availableDataListNames(): string[] {
     return this.getPropertyValue("availableDataListNames") ?? [];
   }

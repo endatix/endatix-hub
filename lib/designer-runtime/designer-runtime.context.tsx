@@ -1,7 +1,14 @@
 "use client";
 
 import { Model } from "survey-core";
-import { createContext, useCallback, useContext, useMemo, useRef } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 /**
  * The scope of the designer runtime. Supports form, template, and submission scopes.
@@ -16,6 +23,10 @@ export type DesignerScope = {
  * The state of the designer runtime.
  */
 export interface DesignerRuntimeState extends DesignerScope {
+  formName?: string;
+  folderId?: string | null;
+  isPublic?: boolean;
+  formIsEnabled?: boolean;
   surveyModel?: Model;
   formAccessJwt?: string;
   formAccessJwtExpiresAtUtc?: string;
@@ -26,6 +37,8 @@ export interface DesignerRuntimeState extends DesignerScope {
  */
 export interface DesignerRuntimeContextValue {
   stateRef: React.RefObject<DesignerRuntimeState>;
+  /** Bumped on each updateState call so consumers can react to ref changes. */
+  revision: number;
   updateState: (partial: Partial<DesignerRuntimeState>) => void;
 }
 
@@ -51,20 +64,23 @@ export function DesignerRuntimeProvider({
   initialState,
 }: Readonly<DesignerRuntimeProviderProps>) {
   const stateRef = useRef<DesignerRuntimeState>({ ...initialState });
+  const [revision, setRevision] = useState(0);
 
   const updateState = useCallback((partial: Partial<DesignerRuntimeState>) => {
     stateRef.current = {
       ...stateRef.current,
       ...partial,
     };
+    setRevision((current) => current + 1);
   }, []);
 
   const contextValue = useMemo(
     () => ({
       stateRef,
+      revision,
       updateState,
     }),
-    [updateState],
+    [revision, updateState],
   );
 
   return (

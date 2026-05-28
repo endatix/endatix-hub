@@ -224,13 +224,7 @@ function FormEditor({
   const {
     initGlobals: initFormDiagnosticsGlobals,
     bindToCreator: bindFormDiagnostics,
-  } = useFormDiagnostics(creator, {
-    isPublic,
-    formId,
-    formName,
-    formIsEnabled,
-    dataLists,
-  });
+  } = useFormDiagnostics(creator, { dataLists });
 
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);

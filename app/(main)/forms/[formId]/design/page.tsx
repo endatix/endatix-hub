@@ -96,7 +96,15 @@ export default async function FormDesignerPage({ params }: Params) {
   return (
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
-        <DesignerRuntimeProvider initialState={{ formId }}>
+        <DesignerRuntimeProvider
+          initialState={{
+            formId,
+            formName: form.name,
+            folderId: form.folderId,
+            isPublic: form.isPublic,
+            formIsEnabled: form.isEnabled,
+          }}
+        >
           <AssetStorageProvider>
             <FormAssistantProvider
               isAssistantEnabled={aiFeaturesEnabled}

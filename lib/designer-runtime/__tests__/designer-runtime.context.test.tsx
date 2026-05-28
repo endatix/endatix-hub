@@ -62,6 +62,21 @@ describe("DesignerRuntimeProvider", () => {
     });
   });
 
+  it("bumps revision when updateState is called", () => {
+    const { result } = renderHook(() => useDesignerRuntime(), {
+      wrapper: createWrapper(initialState),
+    });
+
+    expect(result.current.revision).toBe(0);
+
+    act(() => {
+      result.current.updateState({ formName: "Updated" });
+    });
+
+    expect(result.current.revision).toBe(1);
+    expect(result.current.stateRef.current.formName).toBe("Updated");
+  });
+
   it("keeps the same stateRef object across updates", () => {
     const { result } = renderHook(() => useDesignerRuntime(), {
       wrapper: createWrapper(initialState),

@@ -10,6 +10,7 @@ export interface FormDiagnosticsContext {
   formId?: string;
   formName?: string;
   formIsEnabled?: boolean;
+  folderId?: string | null;
   availableDataListNames?: string[];
 }
 
@@ -18,7 +19,24 @@ export interface FormDiagnosticsContextInput {
   formId?: string;
   formName?: string;
   formIsEnabled?: boolean;
+  folderId?: string | null;
   dataLists?: DataList[] | null;
+}
+
+/** Form metadata carried on designer runtime (no data lists). */
+export type FormDiagnosticsRuntimeSlice = Omit<
+  FormDiagnosticsContextInput,
+  "dataLists"
+>;
+
+export function createFormDiagnosticsContextFromRuntime(
+  runtime: FormDiagnosticsRuntimeSlice,
+  dataLists?: DataList[] | null,
+): FormDiagnosticsContext {
+  return createFormDiagnosticsContext({
+    ...runtime,
+    dataLists,
+  });
 }
 
 export function createFormDiagnosticsContext(
@@ -29,6 +47,7 @@ export function createFormDiagnosticsContext(
     formId: input.formId,
     formName: input.formName,
     formIsEnabled: input.formIsEnabled,
+    folderId: input.folderId,
     availableDataListNames: (input.dataLists ?? []).map(
       (dataList) => dataList.name,
     ),
@@ -60,5 +79,6 @@ export function applyFormDiagnosticsContext(
   plugin.formId = context.formId;
   plugin.formName = context.formName;
   plugin.formIsEnabled = context.formIsEnabled;
+  plugin.folderId = context.folderId;
   plugin.availableDataListNames = context.availableDataListNames ?? [];
 }

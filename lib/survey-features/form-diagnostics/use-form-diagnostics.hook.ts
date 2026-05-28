@@ -1,11 +1,12 @@
 "use client";
 
+import { useDesignerRuntime } from "@/lib/designer-runtime";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { DataList } from "@/lib/endatix-api/data-lists/types";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import {
   applyFormDiagnosticsContext,
-  createFormDiagnosticsContext,
-  type FormDiagnosticsContextInput,
+  createFormDiagnosticsContextFromRuntime,
 } from "./form-diagnostics-context";
 import {
   FormDiagnosticsPlugin,
@@ -25,15 +26,33 @@ type DiagnosticsTabApi = {
   removeTab?: (name: string) => void;
 };
 
+export interface UseFormDiagnosticsOptions {
+  dataLists?: DataList[] | null;
+}
+
 /**
- * Hook to add the Form Diagnostics feature to the Survey Creator.
- * Syncs form-level context onto the diagnostics plugin when creator or context changes.
+ * Adds Form Diagnostics to Survey Creator and syncs plugin context from designer runtime.
  */
 export function useFormDiagnostics(
   creator: SurveyCreatorModel | null,
-  input: FormDiagnosticsContextInput,
+  options: UseFormDiagnosticsOptions = {},
 ) {
-  const context = useMemo(() => createFormDiagnosticsContext(input), [input]);
+  const { stateRef, revision } = useDesignerRuntime();
+  const { dataLists } = options;
+  const runtime = stateRef.current;
+
+  const context = useMemo(
+    () => createFormDiagnosticsContextFromRuntime(runtime, dataLists),
+    [
+      revision,
+      runtime.formId,
+      runtime.formName,
+      runtime.formIsEnabled,
+      runtime.isPublic,
+      runtime.folderId,
+      dataLists,
+    ],
+  );
 
   const contextRef = useRef(context);
   contextRef.current = context;

@@ -3,6 +3,7 @@ import { SurveyCreatorModel } from "survey-creator-core";
 import {
   applyFormDiagnosticsContext,
   createFormDiagnosticsContext,
+  createFormDiagnosticsContextFromRuntime,
   getFormDiagnosticsPlugin,
 } from "../form-diagnostics-context";
 import {
@@ -11,6 +12,30 @@ import {
 } from "../form-diagnostics-plugin";
 
 describe("form-diagnostics-context", () => {
+  it("builds context from designer runtime slice and data lists", () => {
+    const context = createFormDiagnosticsContextFromRuntime(
+      {
+        formId: "form-1",
+        formName: "Games",
+        folderId: "folder-9",
+        isPublic: true,
+        formIsEnabled: false,
+      },
+      [
+        {
+          id: "1",
+          name: "Countries",
+          isActive: true,
+          createdAt: new Date(),
+          itemsCount: 0,
+        },
+      ],
+    );
+
+    expect(context.folderId).toBe("folder-9");
+    expect(context.availableDataListNames).toEqual(["Countries"]);
+  });
+
   it("builds context with data list names from loaded lists", () => {
     // Arrange & Act
     const context = createFormDiagnosticsContext({
@@ -53,6 +78,7 @@ describe("form-diagnostics-context", () => {
       formId: "form-1",
       formName: "Games survey",
       formIsEnabled: false,
+      folderId: "folder-42",
       availableDataListNames: ["Countries", "Regions"],
     });
 
@@ -63,6 +89,7 @@ describe("form-diagnostics-context", () => {
     expect(resolved?.formId).toBe("form-1");
     expect(resolved?.formName).toBe("Games survey");
     expect(resolved?.formIsEnabled).toBe(false);
+    expect(resolved?.folderId).toBe("folder-42");
     expect(resolved?.availableDataListNames).toEqual(["Countries", "Regions"]);
   });
 });

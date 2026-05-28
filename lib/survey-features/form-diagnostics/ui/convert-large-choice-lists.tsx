@@ -382,6 +382,7 @@ export function ConvertLargeChoiceLists({
         description: undefined,
         isEnabled: model.formIsEnabled ?? true,
         formDefinitionJsonData: JSON.stringify(cloned),
+        folderId: model.folderId ?? undefined,
       });
     } catch (e) {
       const message =
@@ -420,6 +421,7 @@ export function ConvertLargeChoiceLists({
     candidates,
     model.availableDataListNames,
     model.formIsEnabled,
+    model.folderId,
     model.formName,
     parsedPayload,
   ]);
