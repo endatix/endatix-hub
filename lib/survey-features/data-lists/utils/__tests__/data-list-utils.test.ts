@@ -10,6 +10,7 @@ import {
   applyDataListBindingToQuestionJson,
   getQuestionDataListName,
   normalizeChoicesToDataListItems,
+  normalizeQuestionChoicesToDataListItems,
   resolveLocalizedText,
 } from "../index";
 import { isInlineChoicesQuestion } from "../../conversion/inline-choice-conversion";
@@ -186,6 +187,33 @@ describe("data-list utils", () => {
       const panel = (page.elements as unknown[])[0] as Record<string, unknown>;
       const dd = (panel.elements as unknown[])[0] as Record<string, unknown>;
       expect(dd[DATA_LIST_PROPERTY_NAME]).toBe("id1");
+    });
+  });
+
+  describe("normalizeQuestionChoicesToDataListItems", () => {
+    it("normalizes choices from a live dropdown question", () => {
+      const m = new Model({
+        elements: [
+          {
+            type: "dropdown",
+            name: "q",
+            choices: [
+              { value: "v1", text: "One" },
+              { value: "v2", text: "Two" },
+            ],
+          },
+        ],
+      });
+      const q = m.getQuestionByName("q") as Question;
+      const r = normalizeQuestionChoicesToDataListItems(q);
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.items).toEqual([
+          { label: "One", value: "v1" },
+          { label: "Two", value: "v2" },
+        ]);
+      }
+      m.dispose?.();
     });
   });
 

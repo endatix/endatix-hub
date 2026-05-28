@@ -7,46 +7,60 @@ export type NormalizeChoicesResult =
   | { ok: true; items: DataListChoiceItem[] }
   | { ok: false; error: string };
 
+function resolveChoiceTextFromRecord(o: Record<string, unknown>): string {
+  let text = "";
+  if (typeof o.text === "string") {
+    text = o.text;
+  } else if (o.text !== undefined && o.text !== null) {
+    text = resolveLocalizedText(o.text);
+  } else if (typeof o.html === "string") {
+    text = o.html;
+  } else if (o.html !== undefined && o.html !== null) {
+    text = resolveLocalizedText(o.html);
+  }
+
+  const locDefault =
+    o.locText &&
+    typeof o.locText === "object" &&
+    (o.locText as { text?: string }).text;
+
+  return (
+    text.trim() || (typeof locDefault === "string" ? locDefault.trim() : "")
+  );
+}
+
+function resolveLabelAndValueFromRaw(
+  raw: unknown,
+): { label: string; value: string } | null {
+  if (typeof raw === "string") {
+    return { label: raw, value: raw };
+  }
+
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const o = raw as Record<string, unknown>;
+  const labelText = resolveChoiceTextFromRecord(o);
+  const val = o.value !== undefined && o.value !== null ? String(o.value) : "";
+  const label = labelText || val;
+  const value = val || label;
+  return { label, value };
+}
+
 function extractLabelAndValueFromChoice(
   raw: unknown,
   index: number,
 ): { ok: true; label: string; value: string } | { ok: false; error: string } {
-  let label: string;
-  let value: string;
-
-  if (typeof raw === "string") {
-    label = raw;
-    value = raw;
-  } else if (raw && typeof raw === "object") {
-    const o = raw as Record<string, unknown>;
-    let text = "";
-    if (typeof o.text === "string") {
-      text = o.text;
-    } else if (o.text !== undefined && o.text !== null) {
-      text = resolveLocalizedText(o.text);
-    } else if (typeof o.html === "string") {
-      text = o.html;
-    } else if (o.html !== undefined && o.html !== null) {
-      text = resolveLocalizedText(o.html);
-    }
-    const val =
-      o.value !== undefined && o.value !== null ? String(o.value) : "";
-    const locDefault =
-      o.locText &&
-      typeof o.locText === "object" &&
-      (o.locText as { text?: string }).text;
-    label =
-      text.trim() ||
-      (typeof locDefault === "string" ? locDefault.trim() : "") ||
-      val;
-    value = val || label;
-  } else {
+  const resolved = resolveLabelAndValueFromRaw(raw);
+  if (!resolved) {
     return {
       ok: false,
       error: `Unsupported choice format at index ${index}.`,
     };
   }
 
+  const { label, value } = resolved;
   if (!label.trim() || !value.trim()) {
     return {
       ok: false,
@@ -103,41 +117,34 @@ export function normalizeChoicesToDataListItems(
   return { ok: true, items };
 }
 
-function resolveItemValueLabel(iv: ItemValue): string {
-  if (typeof iv.text === "string") {
-    return iv.text;
-  }
-  if (iv.text !== undefined && iv.text !== null) {
-    return resolveLocalizedText(iv.text as unknown);
-  }
-  return "";
-}
-
 /**
  * Reads plain choice label/value pairs from a Survey question for data list import.
  */
 export function getPlainChoiceValuesForNormalization(q: Question): unknown[] {
   return q.choices.map((iv: ItemValue) => {
-    const anyIv = iv as { toJSON?: () => unknown };
-    const json = typeof anyIv.toJSON === "function" ? anyIv.toJSON() : null;
-    if (json && typeof json === "object") {
-      const o = json as Record<string, unknown>;
-      const textFromJson =
-        typeof o.text === "string"
-          ? o.text
-          : o.text !== undefined && o.text !== null
-            ? resolveLocalizedText(o.text)
-            : "";
-      const label = textFromJson.trim() || resolveItemValueLabel(iv).trim();
-      const val =
-        o.value !== undefined && o.value !== null ? o.value : iv.value;
-      return { value: val, text: label || String(val ?? "") };
-    }
+    const json =
+      typeof iv.toJSON === "function"
+        ? (iv.toJSON() as Record<string, unknown>)
+        : null;
+    const text =
+      (json ? resolveChoiceTextFromRecord(json) : "").trim() ||
+      iv.calculatedText.trim();
+    const val =
+      json && json.value !== undefined && json.value !== null
+        ? json.value
+        : iv.value;
 
-    const itemLabel = resolveItemValueLabel(iv).trim();
-    return {
-      value: iv.value,
-      text: itemLabel || String(iv.value ?? ""),
-    };
+    return { value: val, text: text || String(val ?? "") };
   });
+}
+
+/**
+ * Normalizes a live Survey question's inline choices to API data list items.
+ */
+export function normalizeQuestionChoicesToDataListItems(
+  question: Question,
+): NormalizeChoicesResult {
+  return normalizeChoicesToDataListItems(
+    getPlainChoiceValuesForNormalization(question),
+  );
 }

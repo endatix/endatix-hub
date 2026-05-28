@@ -3,9 +3,8 @@ import { convertChoicesToDataListAction } from "@/features/data-lists/convert-in
 import {
   applyDataListBindingOnQuestion,
   DATA_LIST_NAME_MAX_LENGTH,
-  getPlainChoiceValuesForNormalization,
   getQuestionDataListName,
-  normalizeChoicesToDataListItems,
+  normalizeQuestionChoicesToDataListItems,
 } from "@/lib/survey-features/data-lists/utils";
 import { getConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion/convert-inline-choices-deps";
 import { Result } from "@/lib/result";
@@ -44,9 +43,7 @@ export async function runConvertInlineChoicesToDataList(
     reserved,
   );
 
-  const normalized = normalizeChoicesToDataListItems(
-    getPlainChoiceValuesForNormalization(question),
-  );
+  const normalized = normalizeQuestionChoicesToDataListItems(question);
   if (!normalized.ok) {
     toast.error(normalized.error);
     return;

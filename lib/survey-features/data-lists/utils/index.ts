@@ -11,6 +11,7 @@ export {
 export {
   getPlainChoiceValuesForNormalization,
   normalizeChoicesToDataListItems,
+  normalizeQuestionChoicesToDataListItems,
   type NormalizeChoicesResult,
 } from "./data-list-items";
 export {
