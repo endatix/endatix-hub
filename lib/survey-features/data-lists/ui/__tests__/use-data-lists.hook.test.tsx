@@ -55,4 +55,21 @@ describe("useDataLists hooks", () => {
     expect(result.current.dataLists).toEqual(dataLists);
     expect(result.current.error).toBeNull();
   });
+
+  it("surfaces fetch failures via error and empty dataLists", async () => {
+    // Arrange
+    const { useDataListsLoader } = hooksModule;
+    mockGetDataListsAction.mockResolvedValue(ApiResult.authError("Unauthorized"));
+
+    // Act
+    const { result } = renderHook(() => useDataListsLoader());
+
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.dataLists).toEqual([]);
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect(result.current.error?.message).toBe("Unauthorized");
+  });
 });

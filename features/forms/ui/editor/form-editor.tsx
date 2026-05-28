@@ -217,6 +217,7 @@ function FormEditor({
   const {
     dataLists,
     isLoading: isDataListsLoading,
+    error: dataListsError,
     refetch: refetchDataLists,
   } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
@@ -231,8 +232,11 @@ function FormEditor({
   creatorThemeRef.current = creatorTheme;
 
   useEffect(() => {
+    if (dataListsError) {
+      return;
+    }
     setAvailableDataLists(dataLists ?? []);
-  }, [dataLists, setAvailableDataLists]);
+  }, [dataLists, dataListsError, setAvailableDataLists]);
 
   const convertInlineChoicesUi = useConvertInlineChoicesUi({
     creator,
