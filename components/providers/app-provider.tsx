@@ -8,8 +8,9 @@ import type { ThemeProviderProps } from "next-themes";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "../ui/sidebar";
 import { Session } from "next-auth";
+import { withBasePath } from "@/lib/hosting/base-path";
 
-const authBasePath = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/auth`;
+const authBasePath = withBasePath("/api/auth");
 
 // Options for enabling specific features
 interface AppProviderOptions {
