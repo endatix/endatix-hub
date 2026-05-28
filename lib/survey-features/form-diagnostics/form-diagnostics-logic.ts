@@ -203,10 +203,7 @@ export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
           if (type === "paneldynamic") {
             stats.totalQuestions++;
           }
-        } else if (
-          type === "matrixdynamic" ||
-          type === "matrixdropdown"
-        ) {
+        } else if (type === "matrixdynamic" || type === "matrixdropdown") {
           stats.totalQuestions++;
           if (Array.isArray(obj.columns)) {
             obj.columns.forEach((col) => {
@@ -218,7 +215,9 @@ export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
               const colType = colObj.type;
               if (cellType === "dropdown" || colType === "dropdown") {
                 stats.dropdownCount++;
-                const choices = Array.isArray(colObj.choices) ? colObj.choices : [];
+                const choices = Array.isArray(colObj.choices)
+                  ? colObj.choices
+                  : [];
                 const choicesCount = choices.length;
                 stats.totalDropdownChoicesCount += choicesCount;
                 stats.maxDropdownChoicesCount = Math.max(
@@ -350,8 +349,11 @@ export function analyzeSurveyModel(
           partial.maxDropdownChoicesCount ?? 0,
           count,
         );
-        const colJson = (c as { jsonObj?: unknown }).jsonObj ?? jsonObj.toJsonObject(c);
-        measureChoicesSize((colJson as Record<string, unknown> | undefined)?.choices);
+        const colJson =
+          (c as { jsonObj?: unknown }).jsonObj ?? jsonObj.toJsonObject(c);
+        measureChoicesSize(
+          (colJson as Record<string, unknown> | undefined)?.choices,
+        );
       }
     }
   }
@@ -390,7 +392,9 @@ export function analyzeSurveyModel(
         const colChoices = (col as { choices?: unknown[] }).choices ?? [];
         for (const choice of colChoices) {
           addImageStatsFromValues(
-            getAllLocalizedStrings(readLocalizedField(choice, "locText", "text")),
+            getAllLocalizedStrings(
+              readLocalizedField(choice, "locText", "text"),
+            ),
           );
         }
       }

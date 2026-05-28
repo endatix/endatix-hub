@@ -1,10 +1,10 @@
-'use server';
+"use server";
 
-import { auth } from '@/auth';
-import { authorization } from '@/features/auth/authorization';
-import { EndatixApi } from '@/lib/endatix-api';
-import type { DataListDetails } from '@/lib/endatix-api/data-lists/types';
-import { Result } from '@/lib/result';
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import { EndatixApi } from "@/lib/endatix-api";
+import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
+import { Result } from "@/lib/result";
 
 export type CreateDataListResult = Result<DataListDetails>;
 const DATA_LIST_NAME_MAX_LENGTH = 100;
@@ -21,9 +21,11 @@ export async function createDataListAction(
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
-  const normalizedName = (input.name ?? '').trim().slice(0, DATA_LIST_NAME_MAX_LENGTH);
+  const normalizedName = (input.name ?? "")
+    .trim()
+    .slice(0, DATA_LIST_NAME_MAX_LENGTH);
   if (!normalizedName) {
-    return Result.error('Name: data list name is required.');
+    return Result.error("Name: data list name is required.");
   }
 
   const api = new EndatixApi(session?.accessToken);
@@ -38,13 +40,13 @@ export async function createDataListAction(
       .flatMap(([field, messages]) =>
         (messages ?? []).map((message) => `${field}: ${message}`),
       )
-      .join('; ');
-    const details = result.error.details?.details?.trim() ?? '';
+      .join("; ");
+    const details = result.error.details?.details?.trim() ?? "";
     const message =
       fieldMessages ||
       details ||
       result.error.message ||
-      'Failed to create data list';
+      "Failed to create data list";
     return Result.error(message);
   }
 

@@ -1,13 +1,13 @@
-import { ItemValue, Question } from 'survey-core';
-import type { DataListChoiceItem } from '@/lib/endatix-api/data-lists/types';
-import { DATA_LIST_PROPERTY_NAME } from '../constants';
+import { ItemValue, Question } from "survey-core";
+import type { DataListChoiceItem } from "@/lib/endatix-api/data-lists/types";
+import { DATA_LIST_PROPERTY_NAME } from "../constants";
 
 export const DATA_LIST_ITEM_MAX_LENGTH = 255;
 export const DATA_LIST_NAME_MAX_LENGTH = 100;
 
 export interface ConvertibleChoiceQuestionRef {
   name: string;
-  type: 'dropdown' | 'tagbox';
+  type: "dropdown" | "tagbox";
   choiceCount: number;
   title: string;
 }
@@ -17,32 +17,30 @@ export type NormalizeChoicesResult =
   | { ok: false; error: string };
 
 export function resolveLocalizedText(title: unknown): string {
-  if (typeof title === 'string') {
+  if (typeof title === "string") {
     return title.trim();
   }
-  if (title && typeof title === 'object' && !Array.isArray(title)) {
+  if (title && typeof title === "object" && !Array.isArray(title)) {
     const o = title as Record<string, unknown>;
     const preferred =
-      o.default ??
-      o.en ??
-      Object.values(o).find((v) => typeof v === 'string');
-    if (typeof preferred === 'string') {
+      o.default ?? o.en ?? Object.values(o).find((v) => typeof v === "string");
+    if (typeof preferred === "string") {
       return preferred.trim();
     }
   }
-  return '';
+  return "";
 }
 
 function toPlainText(input: string): string {
-  let withoutTags = '';
+  let withoutTags = "";
   let inTag = false;
   for (const ch of input) {
-    if (ch === '<') {
+    if (ch === "<") {
       inTag = true;
-      withoutTags += ' ';
+      withoutTags += " ";
       continue;
     }
-    if (ch === '>') {
+    if (ch === ">") {
       inTag = false;
       continue;
     }
@@ -52,28 +50,30 @@ function toPlainText(input: string): string {
   }
 
   const normalizedLineBreaks = withoutTags
-    .replace(/\r?\n/g, ' ')
-    .replace(/\t/g, ' ');
+    .replace(/\r?\n/g, " ")
+    .replace(/\t/g, " ");
   return normalizeControlAndWhitespace(
     decodeCommonHtmlEntities(normalizedLineBreaks),
   );
 }
 
 function decodeCommonHtmlEntities(input: string): string {
-  return input
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    // Decode ampersand last to avoid double-unescaping sequences like &amp;quot;.
-    .replace(/&amp;/gi, '&');
+  return (
+    input
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      // Decode ampersand last to avoid double-unescaping sequences like &amp;quot;.
+      .replace(/&amp;/gi, "&")
+  );
 }
 
 function normalizeControlAndWhitespace(input: string): string {
   return input
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -99,17 +99,17 @@ export function hasDynamicChoiceSources(q: Question): boolean {
   ) {
     return true;
   }
-  const cfq = readQuestionProp(q, 'choicesFromQuestion');
+  const cfq = readQuestionProp(q, "choicesFromQuestion");
   if (cfq !== undefined && cfq !== null && String(cfq).trim().length > 0) {
     return true;
   }
-  const cbu = readQuestionProp(q, 'choicesByUrl');
-  if (typeof cbu === 'string' && cbu.trim().length > 0) {
+  const cbu = readQuestionProp(q, "choicesByUrl");
+  if (typeof cbu === "string" && cbu.trim().length > 0) {
     return true;
   }
-  if (cbu && typeof cbu === 'object') {
+  if (cbu && typeof cbu === "object") {
     const url = (cbu as { url?: unknown }).url;
-    if (typeof url === 'string' && url.trim().length > 0) {
+    if (typeof url === "string" && url.trim().length > 0) {
       return true;
     }
   }
@@ -119,41 +119,42 @@ export function hasDynamicChoiceSources(q: Question): boolean {
 export function getPlainChoiceValuesForNormalization(q: Question): unknown[] {
   return q.choices.map((iv: ItemValue) => {
     const anyIv = iv as { toJSON?: () => unknown };
-    const json = typeof anyIv.toJSON === 'function' ? anyIv.toJSON() : null;
-    if (json && typeof json === 'object') {
+    const json = typeof anyIv.toJSON === "function" ? anyIv.toJSON() : null;
+    if (json && typeof json === "object") {
       const o = json as Record<string, unknown>;
       const textFromJson =
-        typeof o.text === 'string'
+        typeof o.text === "string"
           ? o.text
           : o.text !== undefined && o.text !== null
             ? resolveLocalizedText(o.text)
-            : '';
+            : "";
       const textFromItem =
-        typeof iv.text === 'string'
+        typeof iv.text === "string"
           ? iv.text
           : iv.text !== undefined && iv.text !== null
             ? resolveLocalizedText(iv.text as unknown)
-            : '';
+            : "";
       const label = textFromJson.trim() || textFromItem.trim();
-      const val = o.value !== undefined && o.value !== null ? o.value : iv.value;
-      return { value: val, text: label || String(val ?? '') };
+      const val =
+        o.value !== undefined && o.value !== null ? o.value : iv.value;
+      return { value: val, text: label || String(val ?? "") };
     }
     const itemLabel =
-      typeof iv.text === 'string'
+      typeof iv.text === "string"
         ? iv.text
         : iv.text !== undefined && iv.text !== null
           ? resolveLocalizedText(iv.text as unknown)
-          : '';
+          : "";
     return {
       value: iv.value,
-      text: itemLabel.trim() || String(iv.value ?? ''),
+      text: itemLabel.trim() || String(iv.value ?? ""),
     };
   });
 }
 
 export function isInlineChoicesQuestion(q: Question): boolean {
   const t = q.getType();
-  if (t !== 'dropdown' && t !== 'tagbox') {
+  if (t !== "dropdown" && t !== "tagbox") {
     return false;
   }
   if (hasDynamicChoiceSources(q)) {
@@ -166,7 +167,7 @@ export function normalizeChoicesToDataListItems(
   choices: unknown,
 ): NormalizeChoicesResult {
   if (!Array.isArray(choices) || choices.length === 0) {
-    return { ok: false, error: 'No choices to convert.' };
+    return { ok: false, error: "No choices to convert." };
   }
 
   const items: DataListChoiceItem[] = [];
@@ -177,30 +178,30 @@ export function normalizeChoicesToDataListItems(
     let label: string;
     let value: string;
 
-    if (typeof raw === 'string') {
+    if (typeof raw === "string") {
       label = raw;
       value = raw;
-    } else if (raw && typeof raw === 'object') {
+    } else if (raw && typeof raw === "object") {
       const o = raw as Record<string, unknown>;
-      let text = '';
-      if (typeof o.text === 'string') {
+      let text = "";
+      if (typeof o.text === "string") {
         text = o.text;
       } else if (o.text !== undefined && o.text !== null) {
         text = resolveLocalizedText(o.text);
-      } else if (typeof o.html === 'string') {
+      } else if (typeof o.html === "string") {
         text = o.html;
       } else if (o.html !== undefined && o.html !== null) {
         text = resolveLocalizedText(o.html);
       }
       const val =
-        o.value !== undefined && o.value !== null ? String(o.value) : '';
+        o.value !== undefined && o.value !== null ? String(o.value) : "";
       const locDefault =
         o.locText &&
-        typeof o.locText === 'object' &&
+        typeof o.locText === "object" &&
         (o.locText as { text?: string }).text;
       label =
         text.trim() ||
-        (typeof locDefault === 'string' ? locDefault.trim() : '') ||
+        (typeof locDefault === "string" ? locDefault.trim() : "") ||
         val;
       value = val || label;
     } else {
@@ -250,25 +251,25 @@ export function getQuestionDataListName(
   existingNames: Set<string>,
 ): string {
   const fromTitle = toPlainText(resolveLocalizedText(question.title));
-  const fromName = toPlainText(question.name || '');
+  const fromName = toPlainText(question.name || "");
   const baseSource =
-    fromTitle ||
-    (fromName.length > 0
-      ? fromName
-      : 'Data list');
+    fromTitle || (fromName.length > 0 ? fromName : "Data list");
   const sanitized = baseSource
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .trim()
     .slice(0, DATA_LIST_NAME_MAX_LENGTH);
-  const base = sanitized.length > 0 ? sanitized : 'Data list';
+  const base = sanitized.length > 0 ? sanitized : "Data list";
 
   let candidate = base;
   let n = 2;
   while (existingNames.has(candidate.toLowerCase())) {
     const suffix = ` (${n})`;
-    const maxBaseLength = Math.max(1, DATA_LIST_NAME_MAX_LENGTH - suffix.length);
+    const maxBaseLength = Math.max(
+      1,
+      DATA_LIST_NAME_MAX_LENGTH - suffix.length,
+    );
     const trimmedBase = base.slice(0, maxBaseLength).trim();
-    const normalizedBase = trimmedBase.length > 0 ? trimmedBase : 'Data list';
+    const normalizedBase = trimmedBase.length > 0 ? trimmedBase : "Data list";
     candidate = `${normalizedBase}${suffix}`;
     n++;
   }
@@ -294,7 +295,7 @@ export function applyDataListBindingByQuestionName(
   dataListId: string,
 ): boolean {
   const walk = (node: unknown): boolean => {
-    if (!node || typeof node !== 'object') {
+    if (!node || typeof node !== "object") {
       return false;
     }
     if (Array.isArray(node)) {
@@ -302,9 +303,9 @@ export function applyDataListBindingByQuestionName(
     }
     const o = node as Record<string, unknown>;
     if (
-      typeof o.name === 'string' &&
+      typeof o.name === "string" &&
       o.name === questionName &&
-      (o.type === 'dropdown' || o.type === 'tagbox')
+      (o.type === "dropdown" || o.type === "tagbox")
     ) {
       applyDataListBindingToQuestionJson(o, dataListId);
       return true;
@@ -347,12 +348,12 @@ function hasPlainDynamicChoiceSources(el: Record<string, unknown>): boolean {
     return true;
   }
   const cbu = el.choicesByUrl;
-  if (typeof cbu === 'string' && cbu.trim().length > 0) {
+  if (typeof cbu === "string" && cbu.trim().length > 0) {
     return true;
   }
-  if (cbu && typeof cbu === 'object') {
+  if (cbu && typeof cbu === "object") {
     const url = (cbu as { url?: unknown }).url;
-    if (typeof url === 'string' && url.trim().length > 0) {
+    if (typeof url === "string" && url.trim().length > 0) {
       return true;
     }
   }
@@ -369,7 +370,7 @@ function walkChoiceQuestions(
   out: ConvertibleChoiceQuestionRef[],
   threshold: number | undefined,
 ): void {
-  if (!node || typeof node !== 'object') {
+  if (!node || typeof node !== "object") {
     return;
   }
   if (Array.isArray(node)) {
@@ -381,8 +382,8 @@ function walkChoiceQuestions(
   const o = node as Record<string, unknown>;
   const qType = o.type;
   if (
-    (qType === 'dropdown' || qType === 'tagbox') &&
-    typeof o.name === 'string'
+    (qType === "dropdown" || qType === "tagbox") &&
+    typeof o.name === "string"
   ) {
     if (!hasPlainDynamicChoiceSources(o)) {
       const count = inlineChoiceCount(o);
@@ -392,10 +393,7 @@ function walkChoiceQuestions(
             name: o.name,
             type: qType,
             choiceCount: count,
-            title:
-              resolveLocalizedText(o.title) ||
-              o.name ||
-              qType,
+            title: resolveLocalizedText(o.title) || o.name || qType,
           });
         }
       }
@@ -422,7 +420,7 @@ export function findConvertibleChoiceQuestions(
   let surveyJson: Record<string, unknown>;
   try {
     surveyJson =
-      typeof json === 'string'
+      typeof json === "string"
         ? (JSON.parse(json) as Record<string, unknown>)
         : (json as Record<string, unknown>);
   } catch {

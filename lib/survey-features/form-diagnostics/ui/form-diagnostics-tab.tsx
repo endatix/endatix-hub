@@ -132,11 +132,15 @@ export const FormDiagnosticsView = ({
   const largestChoicesThreshold = 200;
   const hasLargeJson = stats.uncompressedSize > jsonSizeThreshold;
   const hasHighQuestionCount = stats.totalQuestions > questionCountThreshold;
-  const hasManyEmbeddedImages = stats.embeddedImagesCount > embeddedImagesThreshold;
+  const hasManyEmbeddedImages =
+    stats.embeddedImagesCount > embeddedImagesThreshold;
   const hasComplexLogic = stats.logicConditionsCount > logicConditionsThreshold;
-  const hasLargeChoiceList = stats.maxDropdownChoicesCount > largestChoicesThreshold;
-  const hasLargeChoicesJsonTotal = stats.totalChoicesJsonSize > choicesJsonThreshold;
-  const hasLargeSingleChoicesJson = stats.maxChoicesJsonSize > maxSingleChoicesThreshold;
+  const hasLargeChoiceList =
+    stats.maxDropdownChoicesCount > largestChoicesThreshold;
+  const hasLargeChoicesJsonTotal =
+    stats.totalChoicesJsonSize > choicesJsonThreshold;
+  const hasLargeSingleChoicesJson =
+    stats.maxChoicesJsonSize > maxSingleChoicesThreshold;
   const shouldHighlightConverter =
     hasLargeChoiceList || hasLargeChoicesJsonTotal || hasLargeSingleChoicesJson;
   const converterAttentionMessage = shouldHighlightConverter

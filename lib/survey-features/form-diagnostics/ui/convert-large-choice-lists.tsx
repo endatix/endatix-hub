@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,13 +11,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { convertChoicesToDataListAction } from '@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action';
-import { createFormAction } from '@/features/forms/application/actions/create-form.action';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { convertChoicesToDataListAction } from "@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action";
+import { createFormAction } from "@/features/forms/application/actions/create-form.action";
 import {
   applyDataListBindingByQuestionName,
   findConvertibleChoiceQuestions,
@@ -25,17 +25,17 @@ import {
   getQuestionDataListName,
   normalizeChoicesToDataListItems,
   type ConvertibleChoiceQuestionRef,
-} from '@/lib/survey-features/data-lists/conversion/choice-conversion.utils';
-import { Result } from '@/lib/result';
-import { useCallback, useMemo, useState } from 'react';
-import { Info } from 'lucide-react';
-import { Model, Question } from 'survey-core';
-import type { FormDiagnosticsPlugin } from '../form-diagnostics-plugin';
+} from "@/lib/survey-features/data-lists/conversion/choice-conversion.utils";
+import { Result } from "@/lib/result";
+import { useCallback, useMemo, useState } from "react";
+import { Info } from "lucide-react";
+import { Model, Question } from "survey-core";
+import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 const PREVIEW_LIMIT = 12;
 const CONCURRENCY = 4;
 
-type Phase = 'idle' | 'lists' | 'form' | 'done';
+type Phase = "idle" | "lists" | "form" | "done";
 
 type ConversionOutcome =
   | { ok: true; name: string; dataListId: string }
@@ -50,28 +50,30 @@ function isDuplicateDataListNameError(message: string | undefined): boolean {
     return false;
   }
   const m = message.toLowerCase();
-  return m.includes('data list') && m.includes('already exists');
+  return m.includes("data list") && m.includes("already exists");
 }
 
 function parseSurveyPayloadSafely(
   surveyText: string,
   creatorJson: unknown,
-): { ok: true; payload: Record<string, unknown> } | { ok: false; error: string } {
+):
+  | { ok: true; payload: Record<string, unknown> }
+  | { ok: false; error: string } {
   const fromText = (() => {
     if (!surveyText || !surveyText.trim()) {
       return null;
     }
     // Some imported forms can carry a UTF BOM or replacement chars prefix.
     const sanitized = surveyText
-      .replace(/^\uFEFF+/, '')
-      .replace(/^\uFFFD+/, '')
+      .replace(/^\uFEFF+/, "")
+      .replace(/^\uFFFD+/, "")
       .trim();
     if (!sanitized) {
       return null;
     }
     try {
       const parsed = JSON.parse(sanitized) as unknown;
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         return parsed as Record<string, unknown>;
       }
     } catch {
@@ -84,17 +86,24 @@ function parseSurveyPayloadSafely(
     return { ok: true, payload: fromText };
   }
 
-  if (creatorJson && typeof creatorJson === 'object' && !Array.isArray(creatorJson)) {
+  if (
+    creatorJson &&
+    typeof creatorJson === "object" &&
+    !Array.isArray(creatorJson)
+  ) {
     return {
       ok: true,
-      payload: JSON.parse(JSON.stringify(creatorJson)) as Record<string, unknown>,
+      payload: JSON.parse(JSON.stringify(creatorJson)) as Record<
+        string,
+        unknown
+      >,
     };
   }
 
   return {
     ok: false,
     error:
-      'Could not parse the form JSON. Please re-open the form or switch to JSON mode and save to normalize encoding before converting.',
+      "Could not parse the form JSON. Please re-open the form or switch to JSON mode and save to normalize encoding before converting.",
   };
 }
 
@@ -137,8 +146,8 @@ export function ConvertLargeChoiceLists({
   attentionClassName,
 }: Readonly<ConvertLargeChoiceListsProps>) {
   const [threshold, setThreshold] = useState(10);
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [phaseLabel, setPhaseLabel] = useState('');
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [phaseLabel, setPhaseLabel] = useState("");
   const [completed, setCompleted] = useState(0);
   const [doneMessage, setDoneMessage] = useState<string | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -151,7 +160,7 @@ export function ConvertLargeChoiceLists({
   >([]);
   const [createdFormId, setCreatedFormId] = useState<string | null>(null);
 
-  const surveyText = model.creator?.text ?? '';
+  const surveyText = model.creator?.text ?? "";
   const creatorJson = (model.creator as { JSON?: unknown } | undefined)?.JSON;
 
   const parsedPayload = useMemo(
@@ -175,8 +184,8 @@ export function ConvertLargeChoiceLists({
   const candidatePreview = candidates.slice(0, PREVIEW_LIMIT);
 
   const resetRun = useCallback(() => {
-    setPhase('idle');
-    setPhaseLabel('');
+    setPhase("idle");
+    setPhaseLabel("");
     setCompleted(0);
     setDoneMessage(null);
     setErrorBanner(null);
@@ -193,13 +202,13 @@ export function ConvertLargeChoiceLists({
     setCreatedFormId(null);
 
     if (candidates.length === 0) {
-      setErrorBanner('Nothing to convert at this threshold.');
+      setErrorBanner("Nothing to convert at this threshold.");
       return;
     }
 
     if (!parsedPayload.ok) {
-      setPhase('done');
-      setPhaseLabel('Done');
+      setPhase("done");
+      setPhaseLabel("Done");
       setErrorBanner(parsedPayload.error);
       return;
     }
@@ -209,8 +218,10 @@ export function ConvertLargeChoiceLists({
       model.availableDataListNames.map((n) => n.toLowerCase()),
     );
 
-    const plans: { candidate: ConvertibleChoiceQuestionRef; listName: string }[] =
-      [];
+    const plans: {
+      candidate: ConvertibleChoiceQuestionRef;
+      listName: string;
+    }[] = [];
     for (const c of candidates) {
       const listName = getQuestionDataListName(
         { title: c.title, name: c.name },
@@ -233,10 +244,7 @@ export function ConvertLargeChoiceLists({
           if (!q) {
             choicesByName.set(name, null);
           } else {
-            choicesByName.set(
-              name,
-              getPlainChoiceValuesForNormalization(q),
-            );
+            choicesByName.set(name, getPlainChoiceValuesForNormalization(q));
           }
         }
       } finally {
@@ -246,15 +254,15 @@ export function ConvertLargeChoiceLists({
       const message =
         e instanceof Error
           ? e.message
-          : 'Failed to read choices from the survey.';
-      setPhase('done');
-      setPhaseLabel('Done');
+          : "Failed to read choices from the survey.";
+      setPhase("done");
+      setPhaseLabel("Done");
       setErrorBanner(message);
       return;
     }
 
-    setPhase('lists');
-    setPhaseLabel('Creating data lists');
+    setPhase("lists");
+    setPhaseLabel("Creating data lists");
     setCompleted(0);
 
     const convertOne = async (
@@ -266,7 +274,7 @@ export function ConvertLargeChoiceLists({
           return {
             ok: false,
             name: plan.candidate.name,
-            error: 'Question not found',
+            error: "Question not found",
           };
         }
         const normalized = normalizeChoicesToDataListItems(plain);
@@ -316,7 +324,7 @@ export function ConvertLargeChoiceLists({
         };
       } catch (e) {
         const message =
-          e instanceof Error ? e.message : 'Unexpected error during conversion';
+          e instanceof Error ? e.message : "Unexpected error during conversion";
         return {
           ok: false,
           name: plan.candidate.name,
@@ -327,10 +335,8 @@ export function ConvertLargeChoiceLists({
       }
     };
 
-    const outcomes = await mapPool(
-      plans,
-      CONCURRENCY,
-      (plan) => convertOne(plan),
+    const outcomes = await mapPool(plans, CONCURRENCY, (plan) =>
+      convertOne(plan),
     );
 
     const successes = outcomes.filter(
@@ -344,16 +350,16 @@ export function ConvertLargeChoiceLists({
     setLastFailures(failures.map((f) => ({ name: f.name, error: f.error })));
 
     if (successes.length === 0) {
-      setPhase('done');
-      setPhaseLabel('Done');
+      setPhase("done");
+      setPhaseLabel("Done");
       setDoneMessage(
         `No data lists were created. ${outcomes.length} candidate(s) failed or were skipped.`,
       );
       return;
     }
 
-    setPhase('form');
-    setPhaseLabel('Creating copied form');
+    setPhase("form");
+    setPhaseLabel("Creating copied form");
 
     const cloned = JSON.parse(JSON.stringify(surveyPayload)) as Record<
       string,
@@ -363,7 +369,7 @@ export function ConvertLargeChoiceLists({
       applyDataListBindingByQuestionName(cloned, s.name, s.dataListId);
     }
 
-    const baseName = model.formName?.trim().length ? model.formName : 'Form';
+    const baseName = model.formName?.trim().length ? model.formName : "Form";
     const newFormName = `${baseName} - Data Lists`;
 
     let createResult: Awaited<ReturnType<typeof createFormAction>>;
@@ -376,9 +382,9 @@ export function ConvertLargeChoiceLists({
       });
     } catch (e) {
       const message =
-        e instanceof Error ? e.message : 'Failed to create the new form.';
-      setPhase('done');
-      setPhaseLabel('Done');
+        e instanceof Error ? e.message : "Failed to create the new form.";
+      setPhase("done");
+      setPhaseLabel("Done");
       setErrorBanner(
         `${message} Data lists were created; you may attach the definition manually.`,
       );
@@ -389,11 +395,11 @@ export function ConvertLargeChoiceLists({
     }
 
     if (!Result.isSuccess(createResult)) {
-      setPhase('done');
-      setPhaseLabel('Done');
+      setPhase("done");
+      setPhaseLabel("Done");
       setErrorBanner(
         createResult.message ||
-          'Data lists were created but the new form could not be created.',
+          "Data lists were created but the new form could not be created.",
       );
       setDoneMessage(
         `Converted ${successes.length} question(s). You may need to attach the new definition manually.`,
@@ -401,8 +407,8 @@ export function ConvertLargeChoiceLists({
       return;
     }
 
-    setPhase('done');
-    setPhaseLabel('Done');
+    setPhase("done");
+    setPhaseLabel("Done");
     setDoneMessage(
       `Created "${newFormName}" with ${successes.length} conversion(s). ${failed} failed or skipped.`,
     );
@@ -427,12 +433,12 @@ export function ConvertLargeChoiceLists({
       </h4>
       <p className="mb-4 text-sm text-muted-foreground">
         Convert dropdown and tagbox questions that have at least the threshold
-        number of inline choices into data lists. The open form is not
-        modified; a new copy is created when at least one conversion succeeds.
+        number of inline choices into data lists. The open form is not modified;
+        a new copy is created when at least one conversion succeeds.
       </p>
 
       {attentionMessage ? (
-        <Alert className={`mb-4 ${attentionClassName ?? ''}`.trim()}>
+        <Alert className={`mb-4 ${attentionClassName ?? ""}`.trim()}>
           <Info className="h-4 w-4" />
           <AlertTitle>Recommended for this form</AlertTitle>
           <AlertDescription>{attentionMessage}</AlertDescription>
@@ -449,7 +455,7 @@ export function ConvertLargeChoiceLists({
             type="number"
             min={1}
             value={threshold}
-            disabled={phase !== 'idle' && phase !== 'done'}
+            disabled={phase !== "idle" && phase !== "done"}
             onChange={(e) => {
               const v = Number(e.target.value);
               setThreshold(Number.isFinite(v) && v >= 1 ? v : 1);
@@ -479,15 +485,15 @@ export function ConvertLargeChoiceLists({
       {candidatePreview.length > 0 ? (
         <div className="mb-4">
           <div className="mb-2 text-xs font-medium text-muted-foreground">
-            Preview{' '}
+            Preview{" "}
             {candidatePreview.length < candidates.length
               ? `(first ${candidatePreview.length})`
-              : ''}
+              : ""}
           </div>
           <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5 text-sm">
             {candidatePreview.map((c) => (
               <li key={c.name}>
-                <span className="font-medium">{c.name}</span>{' '}
+                <span className="font-medium">{c.name}</span>{" "}
                 <span className="text-muted-foreground">
                   ({c.type}, {c.choiceCount} choices)
                 </span>
@@ -508,21 +514,21 @@ export function ConvertLargeChoiceLists({
         </Alert>
       ) : null}
 
-      {doneMessage && phase === 'done' ? (
+      {doneMessage && phase === "done" ? (
         <Alert className="mb-4">
           <AlertTitle>Finished</AlertTitle>
           <AlertDescription>{doneMessage}</AlertDescription>
         </Alert>
       ) : null}
 
-      {lastSummary && phase === 'done' ? (
+      {lastSummary && phase === "done" ? (
         <p className="mb-4 text-sm text-muted-foreground">
-          Last run: {lastSummary.succeeded} succeeded, {lastSummary.failed}{' '}
+          Last run: {lastSummary.succeeded} succeeded, {lastSummary.failed}{" "}
           failed or skipped.
         </p>
       ) : null}
 
-      {phase === 'done' && lastFailures.length > 0 ? (
+      {phase === "done" && lastFailures.length > 0 ? (
         <Alert variant="destructive" className="mb-4">
           <AlertTitle>Failed conversions ({lastFailures.length})</AlertTitle>
           <AlertDescription>
@@ -537,7 +543,7 @@ export function ConvertLargeChoiceLists({
         </Alert>
       ) : null}
 
-      {phase === 'done' && createdFormId ? (
+      {phase === "done" && createdFormId ? (
         <div className="mb-4">
           <Button asChild type="button" variant="outline">
             <a href={`/forms/${createdFormId}/design`}>Open copied form</a>
@@ -545,7 +551,7 @@ export function ConvertLargeChoiceLists({
         </div>
       ) : null}
 
-      {phase === 'lists' || phase === 'form' ? (
+      {phase === "lists" || phase === "form" ? (
         <div className="mb-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span>{phaseLabel}</span>
@@ -564,7 +570,7 @@ export function ConvertLargeChoiceLists({
               type="button"
               disabled={
                 candidates.length === 0 ||
-                (phase !== 'idle' && phase !== 'done')
+                (phase !== "idle" && phase !== "done")
               }
             >
               Convert with confirmation…
@@ -581,8 +587,10 @@ export function ConvertLargeChoiceLists({
                     questions (at least {threshold} inline choices each).
                   </p>
                   <p>
-                    After processing, a new form named like{' '}
-                    <strong>{(model.formName || 'Form') + ' - Data Lists'}</strong>{' '}
+                    After processing, a new form named like{" "}
+                    <strong>
+                      {(model.formName || "Form") + " - Data Lists"}
+                    </strong>{" "}
                     will be created with successful conversions applied. Failed
                     conversions stay as inline choices in that copy.
                   </p>
@@ -603,7 +611,7 @@ export function ConvertLargeChoiceLists({
           </AlertDialogContent>
         </AlertDialog>
 
-        {phase === 'done' ? (
+        {phase === "done" ? (
           <Button type="button" variant="outline" onClick={resetRun}>
             Reset status
           </Button>

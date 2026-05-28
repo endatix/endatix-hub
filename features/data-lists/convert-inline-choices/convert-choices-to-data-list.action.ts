@@ -1,17 +1,19 @@
-'use server';
+"use server";
 
-import { createDataListAction } from '@/features/data-lists/create-list/create-data-list.action';
-import { deleteDataListAction } from '@/features/data-lists/delete-list/delete-data-list.action';
-import { replaceDataListItemsAction } from '@/features/data-lists/replace-items/replace-data-list-items.action';
-import { TelemetryLogger } from '@/features/telemetry';
+import { createDataListAction } from "@/features/data-lists/create-list/create-data-list.action";
+import { deleteDataListAction } from "@/features/data-lists/delete-list/delete-data-list.action";
+import { replaceDataListItemsAction } from "@/features/data-lists/replace-items/replace-data-list-items.action";
+import { TelemetryLogger } from "@/features/telemetry";
 import type {
   DataListChoiceItem,
   DataListDetails,
-} from '@/lib/endatix-api/data-lists/types';
-import { Result } from '@/lib/result';
+} from "@/lib/endatix-api/data-lists/types";
+import { Result } from "@/lib/result";
 
-export type ConvertChoicesToDataListResult = Result<{ dataList: DataListDetails }>;
-const LOGGER_NAME = 'data-lists';
+export type ConvertChoicesToDataListResult = Result<{
+  dataList: DataListDetails;
+}>;
+const LOGGER_NAME = "data-lists";
 
 export async function convertChoicesToDataListAction(input: {
   name: string;
