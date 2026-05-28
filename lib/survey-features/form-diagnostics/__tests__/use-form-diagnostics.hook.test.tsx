@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SurveyCreatorModel } from "survey-creator-core";
 import {
   DesignerRuntimeProvider,
@@ -8,6 +8,10 @@ import {
 } from "@/lib/designer-runtime";
 import { getFormDiagnosticsPlugin } from "../form-diagnostics-context";
 import { useFormDiagnostics } from "../use-form-diagnostics.hook";
+
+vi.mock("../ui/form-diagnostics-tab", () => ({
+  registerFormDiagnosticsTab: vi.fn(),
+}));
 
 function createWrapper(initialState: DesignerRuntimeState) {
   return function Wrapper({ children }: { children: ReactNode }) {

@@ -31,7 +31,7 @@ import {
 import { Result } from "@/lib/result";
 import { useCallback, useMemo, useState } from "react";
 import { Info } from "lucide-react";
-import { Model, Question } from "survey-core";
+import { Model } from "survey-core";
 import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 
 const PREVIEW_LIMIT = 12;
@@ -130,7 +130,7 @@ function loadChoicesByQuestionName(
 ): Map<string, unknown[] | null> {
   const surveyForModel = structuredClone(surveyPayload);
   const choicesByName = new Map<string, unknown[] | null>();
-  const surveyModel = new Model(surveyForModel as object);
+  const surveyModel = new Model(surveyForModel);
 
   try {
     for (const name of questionNames) {
