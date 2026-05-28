@@ -1,7 +1,12 @@
 "use client";
 
-import { useCallback } from "react";
-import { SurveyCreatorModel } from "survey-creator-core";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { SurveyCreatorModel } from "survey-creator-core";
+import {
+  applyFormDiagnosticsContext,
+  createFormDiagnosticsContext,
+  type FormDiagnosticsContextInput,
+} from "./form-diagnostics-context";
 import {
   FormDiagnosticsPlugin,
   FORM_DIAGNOSTICS_PLUGIN_NAME,
@@ -22,19 +27,28 @@ type DiagnosticsTabApi = {
 
 /**
  * Hook to add the Form Diagnostics feature to the Survey Creator.
+ * Syncs form-level context onto the diagnostics plugin when creator or context changes.
  */
-export function useFormDiagnostics() {
+export function useFormDiagnostics(
+  creator: SurveyCreatorModel | null,
+  input: FormDiagnosticsContextInput,
+) {
+  const context = useMemo(() => createFormDiagnosticsContext(input), [input]);
+
+  const contextRef = useRef(context);
+  contextRef.current = context;
+
   const initGlobals = useCallback(() => {
     registerFormDiagnosticsTab();
   }, []);
 
-  const bindToCreator = useCallback((creator: SurveyCreatorModel) => {
-    if (!creator) {
+  const bindToCreator = useCallback((boundCreator: SurveyCreatorModel) => {
+    if (!boundCreator) {
       return;
     }
 
-    const creatorWithTabs = creator as unknown as DiagnosticsTabApi;
-    const plugin = new FormDiagnosticsPlugin(creator);
+    const creatorWithTabs = boundCreator as unknown as DiagnosticsTabApi;
+    const plugin = new FormDiagnosticsPlugin(boundCreator);
     creatorWithTabs.addTab({
       name: FORM_DIAGNOSTICS_PLUGIN_NAME,
       plugin,
@@ -44,25 +58,32 @@ export function useFormDiagnostics() {
       componentName: "svc-tab-form-diagnostics",
     });
 
+    applyFormDiagnosticsContext(boundCreator, contextRef.current);
+
     return () => {
       if (typeof creatorWithTabs.removeTab === "function") {
         creatorWithTabs.removeTab(FORM_DIAGNOSTICS_PLUGIN_NAME);
       } else {
-        const tabIndex = creator.tabs.findIndex(
-          (tab) => {
-            const tabWithName = tab as { id?: string; name?: string };
-            return (
-              tabWithName.id === FORM_DIAGNOSTICS_PLUGIN_NAME ||
-              tabWithName.name === FORM_DIAGNOSTICS_PLUGIN_NAME
-            );
-          },
-        );
+        const tabIndex = boundCreator.tabs.findIndex((tab) => {
+          const tabWithName = tab as { id?: string; name?: string };
+          return (
+            tabWithName.id === FORM_DIAGNOSTICS_PLUGIN_NAME ||
+            tabWithName.name === FORM_DIAGNOSTICS_PLUGIN_NAME
+          );
+        });
         if (tabIndex !== -1) {
-          creator.tabs.splice(tabIndex, 1);
+          boundCreator.tabs.splice(tabIndex, 1);
         }
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!creator) {
+      return;
+    }
+    applyFormDiagnosticsContext(creator, context);
+  }, [creator, context]);
 
   return {
     initGlobals,
