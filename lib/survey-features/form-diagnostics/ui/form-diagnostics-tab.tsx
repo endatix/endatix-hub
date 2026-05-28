@@ -54,7 +54,7 @@ function formatSize(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 export const FormDiagnosticsView = ({
@@ -83,9 +83,13 @@ export const FormDiagnosticsView = ({
     }
 
     if (stats.embeddedImagesCount > 5) {
+      const embeddedImagesSizeText =
+        stats.embeddedImagesSizeBytes > 0
+          ? ` (${formatSize(stats.embeddedImagesSizeBytes)} total).`
+          : ".";
       list.push({
         title: "Embedded Images Detected",
-        description: `Found ${formatNumber(stats.embeddedImagesCount)} base64 embedded images${stats.embeddedImagesSizeBytes > 0 ? ` (${formatSize(stats.embeddedImagesSizeBytes)} total).` : "."} Use external URLs if possible.`,
+        description: `Found ${formatNumber(stats.embeddedImagesCount)} base64 embedded images${embeddedImagesSizeText} Use external URLs if possible.`,
         severity: "warning",
       });
     }
@@ -146,6 +150,8 @@ export const FormDiagnosticsView = ({
   const converterAttentionMessage = shouldHighlightConverter
     ? `Large choices detected (max dropdown: ${formatNumber(stats.maxDropdownChoicesCount)}, choices JSON total: ${formatSize(stats.totalChoicesJsonSize)}, max single: ${formatSize(stats.maxChoicesJsonSize)}). Use bulk conversion below to move inline choices into data lists.`
     : undefined;
+  const formAccessLabel =
+    isPublic === true ? "Public" : isPublic === false ? "Private" : "-";
   const metricCardClass = (isWarning: boolean) =>
     `flex flex-col gap-1.5 rounded-lg border bg-card p-4 ${
       isWarning ? warningCardClassName : ""
@@ -304,11 +310,7 @@ export const FormDiagnosticsView = ({
                   Form access
                 </span>
                 <span className="text-xl font-semibold">
-                  {isPublic === true
-                    ? "Public"
-                    : isPublic === false
-                      ? "Private"
-                      : "-"}
+                  {formAccessLabel}
                 </span>
               </div>
             </div>
@@ -326,8 +328,8 @@ export const FormDiagnosticsView = ({
                 Potential Issues{" "}
                 <Badge variant="secondary">{formatNumber(issues.length)}</Badge>
               </h4>
-              {issues.map((issue, index) => (
-                <Alert key={index} className={getSeverityColor(issue.severity)}>
+              {issues.map((issue) => (
+                <Alert key={issue.title} className={getSeverityColor(issue.severity)}>
                   {getSeverityIcon(issue.severity)}
                   <AlertTitle className="text-sm font-semibold">
                     {issue.title}
