@@ -34,7 +34,7 @@ const getShareUrl = (formId: string): string => {
 };
 
 const getEmbedCode = (formId: string): string => {
-  if (typeof globalThis.window !== "undefined") {
+  if (globalThis.window !== undefined) {
     return `<script src="${globalThis.window.location.origin}${embedScriptPath}" data-form-id="${formId}"></script>`;
   }
   return ``;
