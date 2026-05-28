@@ -20,11 +20,7 @@ import {
   JsonEditorState,
   useJsonEditor,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
-import {
-  FORM_DIAGNOSTICS_PLUGIN_NAME,
-  FormDiagnosticsPlugin,
-  useFormDiagnostics,
-} from "@/lib/survey-features/form-diagnostics";
+import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
@@ -216,10 +212,6 @@ function FormEditor({
     initGlobals: initQuestionLoopsGlobals,
     bindToCreator: bindQuestionLoops,
   } = useQuestionLoops();
-  const {
-    initGlobals: initFormDiagnosticsGlobals,
-    bindToCreator: bindFormDiagnostics,
-  } = useFormDiagnostics();
   const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
     useDataLists();
   const {
@@ -228,6 +220,17 @@ function FormEditor({
     refetch: refetchDataLists,
   } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
+
+  const {
+    initGlobals: initFormDiagnosticsGlobals,
+    bindToCreator: bindFormDiagnostics,
+  } = useFormDiagnostics(creator, {
+    isPublic,
+    formId,
+    formName,
+    formIsEnabled,
+    dataLists,
+  });
 
   const creatorTheme = useEndatixCreatorTheme();
   const creatorThemeRef = useRef(creatorTheme);
@@ -641,24 +644,6 @@ function FormEditor({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
-
-  useEffect(() => {
-    if (!creator) return;
-
-    const tab = creator.tabs?.find(
-      (t: { id?: string; name?: string }) =>
-        t.id === FORM_DIAGNOSTICS_PLUGIN_NAME ||
-        t.name === FORM_DIAGNOSTICS_PLUGIN_NAME,
-    );
-    const plugin = tab?.plugin;
-    if (plugin instanceof FormDiagnosticsPlugin) {
-      plugin.isPublic = isPublic;
-      plugin.formId = formId;
-      plugin.formName = formName;
-      plugin.formIsEnabled = formIsEnabled;
-      plugin.availableDataListNames = (dataLists ?? []).map((d) => d.name);
-    }
-  }, [creator, isPublic, formId, formName, formIsEnabled, dataLists]);
 
   useEffect(() => {
     if (!creator) return;
