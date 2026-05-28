@@ -4,10 +4,8 @@ import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { Model } from "survey-core";
-import {
-  bindDataListsToCreator,
-  setDataListPropertyChoices,
-} from "../infrastructure/creator-bindings";
+import { bindDataListsToCreator } from "../infrastructure/creator-bindings";
+import { setDataListPropertyChoices } from "../infrastructure/data-list-property-choices";
 import { registerDataListGlobals } from "../infrastructure/registry";
 import { bindDataListsToSurvey } from "../infrastructure/survey-bindings";
 

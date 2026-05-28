@@ -1,11 +1,37 @@
 "use client";
 
 import type { DataList } from "@/lib/endatix-api/data-lists/types";
+import { applyDataListBindingOnQuestion } from "@/lib/survey-features/data-lists/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Question } from "survey-core";
+import type { SurveyCreatorModel } from "survey-creator-core";
 import { registerConvertChoicesUiDeps } from "../conversion/convert-inline-choices-deps";
+import { setDataListPropertyChoices } from "../infrastructure/data-list-property-choices";
+import { syncDataListPropertyGridAfterBinding } from "../infrastructure/creator-property-grid-sync";
 import type { ConvertInlineChoicesDialogProps } from "./convert-inline-choices-dialog";
 
+function mergeDataLists(
+  existing: DataList[],
+  created: Pick<DataList, "id" | "name">,
+): DataList[] {
+  const createdId = String(created.id);
+  const withoutDuplicate = existing.filter(
+    (list) => String(list.id) !== createdId,
+  );
+  return [
+    ...withoutDuplicate,
+    {
+      id: created.id,
+      name: created.name,
+      isActive: true,
+      createdAt: new Date(),
+      itemsCount: 0,
+    },
+  ];
+}
+
 export interface UseConvertInlineChoicesUiOptions {
+  creator: SurveyCreatorModel | null;
   dataLists: DataList[] | null;
   refetchDataLists: () => Promise<void>;
   markFormModified: () => void;
@@ -22,6 +48,7 @@ interface ConvertInlineChoicesDialogState {
 }
 
 export function useConvertInlineChoicesUi({
+  creator,
   dataLists,
   refetchDataLists,
   markFormModified,
@@ -84,17 +111,33 @@ export function useConvertInlineChoicesUi({
     }));
   }, []);
 
+  const completeDataListBinding = useCallback(
+    (question: Question, created: Pick<DataList, "id" | "name">) => {
+      setDataListPropertyChoices(mergeDataLists(dataLists ?? [], created));
+      applyDataListBindingOnQuestion(question, String(created.id));
+      syncDataListPropertyGridAfterBinding(creator, question);
+    },
+    [creator, dataLists],
+  );
+
   useEffect(() => {
     registerConvertChoicesUiDeps({
       getDataListNames: () =>
         (dataLists ?? []).map((dataList) => dataList.name),
       refreshDataLists: () => refetchDataLists(),
+      completeDataListBinding,
       markFormModified,
       confirmConvertInlineChoices: requestConfirmation,
     });
 
     return () => registerConvertChoicesUiDeps(null);
-  }, [dataLists, markFormModified, refetchDataLists, requestConfirmation]);
+  }, [
+    completeDataListBinding,
+    dataLists,
+    markFormModified,
+    refetchDataLists,
+    requestConfirmation,
+  ]);
 
   useEffect(() => {
     return () => resolvePendingConfirmation(null);

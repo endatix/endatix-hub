@@ -1,8 +1,21 @@
+import type { Question } from "survey-core";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
 import {
   forEachSurveyJsonNode,
   forEachSurveyJsonRoot,
 } from "./survey-json-walk";
+
+/**
+ * Binds a data list to a live survey question (Creator / runtime model).
+ */
+export function applyDataListBindingOnQuestion(
+  question: Question,
+  dataListId: string,
+): void {
+  question.setPropertyValue(DATA_LIST_PROPERTY_NAME, dataListId);
+  question.setPropertyValue("choicesLazyLoadEnabled", true);
+  question.setPropertyValue("choices", []);
+}
 
 /**
  * Applies a data list binding to a question JSON node.

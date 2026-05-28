@@ -1,6 +1,7 @@
 import { toast } from "@/components/ui/toast";
 import { convertChoicesToDataListAction } from "@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action";
 import {
+  applyDataListBindingOnQuestion,
   DATA_LIST_NAME_MAX_LENGTH,
   getPlainChoiceValuesForNormalization,
   getQuestionDataListName,
@@ -9,13 +10,6 @@ import {
 import { getConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion/convert-inline-choices-deps";
 import { Result } from "@/lib/result";
 import { Question } from "survey-core";
-import { DATA_LIST_PROPERTY_NAME } from "../constants";
-
-function applyDataListBindingOnQuestion(q: Question, dataListId: string): void {
-  q.setPropertyValue(DATA_LIST_PROPERTY_NAME, dataListId);
-  q.setPropertyValue("choicesLazyLoadEnabled", true);
-  q.setPropertyValue("choices", []);
-}
 
 function isNameValidationError(message: string): boolean {
   const m = message.toLowerCase();
@@ -93,8 +87,13 @@ export async function runConvertInlineChoicesToDataList(
       return;
     }
 
-    applyDataListBindingOnQuestion(question, result.value.dataList.id);
-    await uiDeps?.refreshDataLists();
+    const createdDataList = result.value.dataList;
+    if (uiDeps?.completeDataListBinding) {
+      uiDeps.completeDataListBinding(question, createdDataList);
+    } else {
+      applyDataListBindingOnQuestion(question, createdDataList.id);
+    }
+    void uiDeps?.refreshDataLists();
     uiDeps?.markFormModified();
     toast.success("Data list created and attached. Save the form when ready.");
     return;

@@ -19,6 +19,7 @@ export {
 } from "./data-list-naming";
 export {
   applyDataListBindingByQuestionName,
+  applyDataListBindingOnQuestion,
   applyDataListBindingToQuestionJson,
 } from "./question-binding";
 export {

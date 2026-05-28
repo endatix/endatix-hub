@@ -1,35 +1,18 @@
-import { DataList } from "@/lib/endatix-api/data-lists/types";
-import { Serializer } from "survey-core";
 import {
   AfterPropertyChangedEvent,
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
 import { DATA_LIST_PROPERTY_NAME } from "../constants";
-import {
-  DATA_LIST_QUESTION_TYPES,
-  parseDataListId,
-} from "./data-list-survey-integration";
+import { parseDataListId } from "./data-list-survey-integration";
 import { bindDataListsToSurvey } from "./survey-bindings";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { bindConvertInlineChoicesTitleActions } from "./convert-inline-choices-title-actions";
 import { registerDataListGlobals } from "./registry";
 
+export { setDataListPropertyChoices } from "./data-list-property-choices";
+
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
-
-export function setDataListPropertyChoices(dataLists: DataList[]): void {
-  registerDataListGlobals();
-  const choices = dataLists.map((item) => ({
-    value: String(item.id),
-    text: item.name,
-  }));
-
-  for (const questionType of DATA_LIST_QUESTION_TYPES) {
-    Serializer.findProperty(questionType, DATA_LIST_PROPERTY_NAME)?.setChoices(
-      choices,
-    );
-  }
-}
 
 export function bindDataListsToCreator(
   creator: SurveyCreatorModel,

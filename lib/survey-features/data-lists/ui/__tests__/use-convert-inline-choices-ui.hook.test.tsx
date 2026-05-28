@@ -30,6 +30,7 @@ describe("useConvertInlineChoicesUi", () => {
     // Act
     renderHook(() =>
       useConvertInlineChoicesUi({
+        creator: null,
         dataLists,
         refetchDataLists,
         markFormModified,
@@ -52,6 +53,7 @@ describe("useConvertInlineChoicesUi", () => {
     // Arrange
     const { result } = renderHook(() =>
       useConvertInlineChoicesUi({
+        creator: null,
         dataLists,
         refetchDataLists: vi.fn().mockResolvedValue(undefined),
         markFormModified: vi.fn(),
@@ -95,6 +97,7 @@ describe("useConvertInlineChoicesUi", () => {
     // Arrange
     const { result } = renderHook(() =>
       useConvertInlineChoicesUi({
+        creator: null,
         dataLists,
         refetchDataLists: vi.fn().mockResolvedValue(undefined),
         markFormModified: vi.fn(),

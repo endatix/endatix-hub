@@ -29,9 +29,11 @@ describe("runConvertInlineChoicesToDataList", () => {
     });
     const question = model.getQuestionByName("games") as Question;
     const confirmConvertInlineChoices = vi.fn().mockResolvedValue(null);
+    const completeDataListBinding = vi.fn();
     registerConvertChoicesUiDeps({
       getDataListNames: () => [],
       refreshDataLists: vi.fn().mockResolvedValue(undefined),
+      completeDataListBinding,
       markFormModified: vi.fn(),
       confirmConvertInlineChoices,
     });

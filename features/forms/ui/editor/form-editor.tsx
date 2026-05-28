@@ -235,6 +235,7 @@ function FormEditor({
   }, [dataLists, setAvailableDataLists]);
 
   const convertInlineChoicesUi = useConvertInlineChoicesUi({
+    creator,
     dataLists,
     refetchDataLists,
     markFormModified,
