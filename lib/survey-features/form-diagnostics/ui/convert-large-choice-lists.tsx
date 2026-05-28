@@ -18,14 +18,16 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { convertChoicesToDataListAction } from "@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action";
 import { createFormAction } from "@/features/forms/application/actions/create-form.action";
+import type {
+  ConvertibleChoiceQuestionRef,
+  findConvertibleChoiceQuestions,
+} from "@/lib/survey-features/data-lists/conversion/inline-choice-conversion";
 import {
   applyDataListBindingByQuestionName,
-  findConvertibleChoiceQuestions,
   getPlainChoiceValuesForNormalization,
   getQuestionDataListName,
   normalizeChoicesToDataListItems,
-  type ConvertibleChoiceQuestionRef,
-} from "@/lib/survey-features/data-lists/conversion/choice-conversion.utils";
+} from "@/lib/survey-features/data-lists/utils";
 import { Result } from "@/lib/result";
 import { useCallback, useMemo, useState } from "react";
 import { Info } from "lucide-react";

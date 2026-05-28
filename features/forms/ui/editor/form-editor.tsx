@@ -38,7 +38,7 @@ import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
 import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
-import { registerConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion/convert-inline-choices-deps";
+import { registerConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion";
 import {
   useDataLists,
   useDataListsLoader,
@@ -131,7 +131,6 @@ interface FormEditorProps {
   slkVal?: string;
   themeId?: string;
   isPublic?: boolean;
-  /** When set, bulk conversion uses this for the copied form's enabled flag. */
   formIsEnabled?: boolean;
   initialPropertyGridVisible?: boolean;
   onThemeModificationChange?: (isModified: boolean) => void;

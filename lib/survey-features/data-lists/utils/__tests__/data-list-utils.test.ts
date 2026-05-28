@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { Model, Question } from "survey-core";
 import {
-  DATA_LIST_NAME_MAX_LENGTH,
   DATA_LIST_ITEM_MAX_LENGTH,
+  DATA_LIST_NAME_MAX_LENGTH,
+  DATA_LIST_PROPERTY_NAME,
+} from "../../constants";
+import {
   applyDataListBindingByQuestionName,
   applyDataListBindingToQuestionJson,
-  findConvertibleChoiceQuestions,
-  isInlineChoicesQuestion,
   getQuestionDataListName,
   normalizeChoicesToDataListItems,
   resolveLocalizedText,
-} from "../choice-conversion.utils";
-import { DATA_LIST_PROPERTY_NAME } from "../../constants";
+} from "../index";
+import { isInlineChoicesQuestion } from "../../conversion/inline-choice-conversion";
 
-describe("choice-conversion.utils", () => {
+describe("data-list utils", () => {
   describe("resolveLocalizedText", () => {
     it("returns plain string titles", () => {
       expect(resolveLocalizedText(" Hello ")).toBe("Hello");
@@ -124,103 +125,6 @@ describe("choice-conversion.utils", () => {
     });
   });
 
-  describe("findConvertibleChoiceQuestions", () => {
-    it("detects dropdown and tagbox with inline choices", () => {
-      const json = {
-        pages: [
-          {
-            elements: [
-              {
-                type: "dropdown",
-                name: "q1",
-                choices: ["a", "b"],
-              },
-              {
-                type: "tagbox",
-                name: "q2",
-                choices: [{ value: "1", text: "One" }],
-              },
-            ],
-          },
-        ],
-      };
-      const found = findConvertibleChoiceQuestions(json);
-      expect(found.map((f) => f.name).sort()).toEqual(["q1", "q2"]);
-    });
-
-    it("skips edxDataListId", () => {
-      const json = {
-        pages: [
-          {
-            elements: [
-              {
-                type: "dropdown",
-                name: "q1",
-                choices: ["a"],
-                [DATA_LIST_PROPERTY_NAME]: "list-1",
-              },
-            ],
-          },
-        ],
-      };
-      expect(findConvertibleChoiceQuestions(json)).toHaveLength(0);
-    });
-
-    it("skips choicesByUrl", () => {
-      const json = {
-        pages: [
-          {
-            elements: [
-              {
-                type: "dropdown",
-                name: "q1",
-                choices: ["a"],
-                choicesByUrl: "https://example.com",
-              },
-            ],
-          },
-        ],
-      };
-      expect(findConvertibleChoiceQuestions(json)).toHaveLength(0);
-    });
-
-    it("skips choicesFromQuestion", () => {
-      const json = {
-        pages: [
-          {
-            elements: [
-              {
-                type: "dropdown",
-                name: "q1",
-                choices: ["a"],
-                choicesFromQuestion: "q0",
-              },
-            ],
-          },
-        ],
-      };
-      expect(findConvertibleChoiceQuestions(json)).toHaveLength(0);
-    });
-
-    it("applies threshold", () => {
-      const json = {
-        pages: [
-          {
-            elements: [
-              {
-                type: "dropdown",
-                name: "q1",
-                choices: Array.from({ length: 9 }, (_, i) => `c${i}`),
-              },
-            ],
-          },
-        ],
-      };
-      expect(findConvertibleChoiceQuestions(json, 10)).toHaveLength(0);
-      expect(findConvertibleChoiceQuestions(json, 9)).toHaveLength(1);
-    });
-  });
-
   describe("applyDataListBindingToQuestionJson", () => {
     it("sets data list id and clears choices", () => {
       const q: Record<string, unknown> = {
@@ -265,7 +169,7 @@ describe("choice-conversion.utils", () => {
     });
   });
 
-  describe("hasDynamicChoiceSources via Model", () => {
+  describe("isInlineChoicesQuestion via Model", () => {
     it("treats plain dropdown as convertible", () => {
       const json = {
         pages: [

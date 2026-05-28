@@ -1,8 +1,8 @@
 import { DataListChoiceItem } from "@/lib/endatix-api";
+import { DATA_LIST_ITEM_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
 import { JsonErrorAnnotation, ParsedValidation } from "./types";
 
 export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-export const MAX_FIELD_LENGTH = 255;
 export const MAX_PREVIEW_ERRORS = 20;
 
 export const FILE_SIZE_ERROR = "File is too large. Max file size is 5MB.";
@@ -89,14 +89,15 @@ export function validateJsonInput(value: string): ParsedValidation {
     },
     {
       check: (_item: unknown, _label: string, valueField: string) =>
-        valueField.length > MAX_FIELD_LENGTH,
+        valueField.length > DATA_LIST_ITEM_MAX_LENGTH,
       getError: (_item: unknown, index: number) =>
-        `Choice item ${index + 1}: value exceeds ${MAX_FIELD_LENGTH} characters.`,
+        `Choice item ${index + 1}: value exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`,
     },
     {
-      check: (_item: unknown, label: string) => label.length > MAX_FIELD_LENGTH,
+      check: (_item: unknown, label: string) =>
+        label.length > DATA_LIST_ITEM_MAX_LENGTH,
       getError: (_item: unknown, index: number) =>
-        `Choice item ${index + 1}: label exceeds ${MAX_FIELD_LENGTH} characters.`,
+        `Choice item ${index + 1}: label exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`,
     },
   ];
 

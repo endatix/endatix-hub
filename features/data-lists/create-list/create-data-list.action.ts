@@ -4,11 +4,11 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
+import { DATA_LIST_NAME_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
 import { Result } from "@/lib/result";
 import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
 
 export type CreateDataListResult = Result<DataListDetails>;
-const DATA_LIST_NAME_MAX_LENGTH = 100;
 
 interface CreateDataListInput {
   name: string;

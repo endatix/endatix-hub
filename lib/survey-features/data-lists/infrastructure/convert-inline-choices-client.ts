@@ -5,7 +5,7 @@ import {
   getPlainChoiceValuesForNormalization,
   getQuestionDataListName,
   normalizeChoicesToDataListItems,
-} from "@/lib/survey-features/data-lists/conversion/choice-conversion.utils";
+} from "@/lib/survey-features/data-lists/utils";
 import { getConvertChoicesUiDeps } from "@/lib/survey-features/data-lists/conversion/convert-inline-choices-deps";
 import { Result } from "@/lib/result";
 import { Question } from "survey-core";

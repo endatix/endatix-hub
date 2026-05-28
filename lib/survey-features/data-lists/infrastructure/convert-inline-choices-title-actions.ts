@@ -1,4 +1,4 @@
-import { isInlineChoicesQuestion } from "@/lib/survey-features/data-lists/conversion/choice-conversion.utils";
+import { isInlineChoicesQuestion } from "@/lib/survey-features/data-lists/conversion/inline-choice-conversion";
 import { runConvertInlineChoicesToDataList } from "@/lib/survey-features/data-lists/infrastructure/convert-inline-choices-client";
 import { Action, Question, SvgRegistry } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";

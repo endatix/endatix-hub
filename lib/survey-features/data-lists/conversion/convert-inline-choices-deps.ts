@@ -1,3 +1,6 @@
+/**
+ * The convert choices UI dependencies.
+ */
 export type ConvertChoicesUiDeps = {
   getDataListNames: () => string[];
   refreshDataLists: () => Promise<void>;
@@ -14,12 +17,20 @@ export type ConvertChoicesUiDeps = {
 
 let deps: ConvertChoicesUiDeps | null = null;
 
+/**
+ * Registers the convert choices UI dependencies.
+ * @param next - The next dependencies to register.
+ */
 export function registerConvertChoicesUiDeps(
   next: ConvertChoicesUiDeps | null,
 ): void {
   deps = next;
 }
 
+/**
+ * Gets the convert choices UI dependencies.
+ * @returns The convert choices UI dependencies.
+ */
 export function getConvertChoicesUiDeps(): ConvertChoicesUiDeps | null {
   return deps;
 }
