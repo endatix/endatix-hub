@@ -14,6 +14,7 @@ describe("mapApiErrorToResult", () => {
       error: {
         type: ApiErrorType.ValidationError,
         message: "One or more errors occurred!",
+        errorCode: "data_list_name_already_exists",
         fields: {
           slug: ["slug must be a valid URL slug."],
         },
@@ -33,6 +34,7 @@ describe("mapApiErrorToResult", () => {
     }
     expect(result.errorType).toBe(ErrorType.ValidationError);
     expect(result.message).toBe("slug must be a valid URL slug.");
+    expect(result.errorCode).toBe("data_list_name_already_exists");
   });
 
   it("falls back to top-level message for non-validation errors", () => {
@@ -42,6 +44,7 @@ describe("mapApiErrorToResult", () => {
       error: {
         type: ApiErrorType.ServerError,
         message: "Server exploded",
+        errorCode: "server_error",
       },
     };
 
@@ -57,5 +60,6 @@ describe("mapApiErrorToResult", () => {
     }
     expect(result.errorType).toBe(ErrorType.Error);
     expect(result.message).toBe("Server exploded");
+    expect(result.errorCode).toBe("server_error");
   });
 });

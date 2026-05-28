@@ -8,6 +8,7 @@ type Error = {
   errorType: ErrorType;
   message: string;
   details?: string;
+  errorCode?: string;
 };
 
 type Result<T> = Success<T> | Error;
@@ -28,18 +29,28 @@ const Result = {
     value,
   }),
 
-  error: <T>(message: string, details?: string): Result<T> => ({
+  error: <T>(
+    message: string,
+    details?: string,
+    errorCode?: string,
+  ): Result<T> => ({
     kind: Kind.Error,
     errorType: ErrorType.Error,
     message,
     details,
+    errorCode,
   }),
 
-  validationError: <T>(message: string, details?: string): Result<T> => ({
+  validationError: <T>(
+    message: string,
+    details?: string,
+    errorCode?: string,
+  ): Result<T> => ({
     kind: Kind.Error,
     errorType: ErrorType.ValidationError,
     message,
     details,
+    errorCode,
   }),
 
   isSuccess: <T>(result: Result<T>): result is Success<T> =>

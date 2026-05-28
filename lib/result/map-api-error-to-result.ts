@@ -40,10 +40,11 @@ export function mapApiErrorToResult<T>(
   const fieldMessage = pickFieldMessage(apiError.error.fields, preferredFields);
   const message = fieldMessage || apiError.error.message || fallbackMessage;
   const details = apiError.error.details?.details;
+  const errorCode = apiError.error.errorCode;
 
   if (apiError.error.type === ApiErrorType.ValidationError) {
-    return Result.validationError(message, details);
+    return Result.validationError(message, details, errorCode);
   }
 
-  return Result.error(message, details);
+  return Result.error(message, details, errorCode);
 }
