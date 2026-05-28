@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { normalizeBasePath } from "./lib/hosting/base-path";
 import { getRewriteRuleFor } from "./lib/hosting/next-config-helper";
 import { Rewrite } from "next/dist/lib/load-custom-routes";
 import { withEndatix } from "@/features/config";
@@ -6,6 +7,7 @@ import { withEndatix } from "@/features/config";
 const nextConfig: NextConfig = {
   /* config options here */
   output: "standalone", // Used to decrease the size of the application, check https://nextjs.org/docs/pages/api-reference/next-config-js/output
+  basePath: normalizeBasePath(),
   typedRoutes: true,
   reactStrictMode: true,
   reactCompiler: true,
@@ -52,6 +54,11 @@ const nextConfig: NextConfig = {
     return rules;
   },
   redirects: async () => [
+    {
+      source: "/",
+      destination: "/signin",
+      permanent: false,
+    },
     {
       source: "/login",
       destination: "/signin",

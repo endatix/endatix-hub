@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { getPublicAssetPath } from "@/lib/hosting";
 
 export const metadata: Metadata = {
   title: "Create account | Endatix Hub",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
       "Create a new account in the Endatix Hub form management portal.",
     images: [
       {
-        url: "/assets/endatix-og-image.jpg",
+        url: getPublicAssetPath("/assets/endatix-og-image.jpg"),
       },
     ],
   },
@@ -93,10 +94,10 @@ const LoggedInSuccessMessage = ({
 }: LoggedInMessageProps) => {
   if (isLoggedIn)
     return (
-      <Card className="bg-background gap-2">
+      <Card className="gap-2 bg-background">
         <CardHeader className="pb-3">
           <CardTitle>Welcome!</CardTitle>
-          <CardDescription className="max-w-lg text-balance leading-relaxed">
+          <CardDescription className="max-w-lg leading-relaxed text-balance">
             You are now logged in as {username}
           </CardDescription>
         </CardHeader>

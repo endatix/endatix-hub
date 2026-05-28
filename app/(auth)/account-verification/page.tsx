@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
 import { sendVerificationAction } from "@/features/auth/use-cases/send-verification/send-verification.action";
+import { getPublicAssetPath } from "@/lib/hosting";
 
 export default function AccountVerificationPage() {
   const searchParams = useSearchParams();
@@ -55,9 +56,9 @@ export default function AccountVerificationPage() {
   if (!email) {
     return (
       <>
-        <div className="flex justify-center mb-2">
+        <div className="mb-2 flex justify-center">
           <Image
-            src="/assets/icons/endatix.svg"
+            src={getPublicAssetPath("/assets/icons/endatix.svg")}
             alt="Endatix logo"
             width={180}
             height={60}
@@ -83,9 +84,9 @@ export default function AccountVerificationPage() {
 
   return (
     <>
-      <div className="flex justify-center mb-2">
+      <div className="mb-2 flex justify-center">
         <Image
-          src="/assets/icons/endatix.svg"
+          src={getPublicAssetPath("/assets/icons/endatix.svg")}
           alt="Endatix logo"
           width={180}
           height={60}

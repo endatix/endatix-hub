@@ -83,6 +83,10 @@ function ThemeHotkey() {
         return;
       }
 
+      if (!event.key){
+        return;
+      }
+
       if (event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }

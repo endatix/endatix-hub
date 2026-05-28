@@ -9,6 +9,7 @@ import { ErrorMessage } from "@/components/forms/error-message";
 import { createAccountAction } from "../create-account.action";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
+import { getPublicAssetPath } from "@/lib/hosting";
 
 interface CreateAccountActionState {
   success: boolean;
@@ -22,29 +23,34 @@ interface CreateAccountActionState {
 
 const CreateAccountForm = () => {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState<CreateAccountActionState, FormData>(
+  const [state, formAction, _] = useActionState<
+    CreateAccountActionState,
+    FormData
+  >(
     async (_, formData) => {
       const result = await createAccountAction(null, formData);
       if (result.success) {
         const email = formData.get("email");
         if (email) {
-          router.push(`/account-verification?email=${encodeURIComponent(email.toString())}`);
+          router.push(
+            `/account-verification?email=${encodeURIComponent(email.toString())}`,
+          );
         }
       }
       return result;
     },
-    { success: false }
+    { success: false },
   );
 
   return (
     <form action={formAction}>
       <div className="grid gap-2 text-center">
-        <div className="flex justify-center mb-2">
-          <Image 
-            src="/assets/icons/endatix.svg" 
-            alt="Endatix logo" 
-            width={180} 
-            height={60} 
+        <div className="mb-2 flex justify-center">
+          <Image
+            src={getPublicAssetPath("/assets/icons/endatix.svg")}
+            alt="Endatix logo"
+            width={180}
+            height={60}
             priority
           />
         </div>
@@ -70,11 +76,11 @@ const CreateAccountForm = () => {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
-          <Input 
-            id="password" 
-            type="password" 
-            name="password" 
-            required 
+          <Input
+            id="password"
+            type="password"
+            name="password"
+            required
             tabIndex={2}
             defaultValue={state?.formData?.get("password")?.toString()}
           />
@@ -82,9 +88,7 @@ const CreateAccountForm = () => {
             <ErrorMessage message={state.errors.password.toString()} />
           )}
         </div>
-        {state?.errorMessage && (
-          <ErrorMessage message={state.errorMessage} />
-        )}
+        {state?.errorMessage && <ErrorMessage message={state.errorMessage} />}
         {/* <Button type="submit" className="w-full" disabled={isPending}>
           {isPending ? <Spinner className="mr-2" /> : null}
           Create account with email

@@ -8,6 +8,9 @@ import type { ThemeProviderProps } from "next-themes";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "../ui/sidebar";
 import { Session } from "next-auth";
+import { withBasePath } from "@/lib/hosting/base-path";
+
+const authBasePath = withBasePath("/api/auth");
 
 // Options for enabling specific features
 interface AppProviderOptions {
@@ -23,7 +26,11 @@ type ThemeOptions = Partial<Omit<ThemeProviderProps, "children">>;
 
 // Predefined options
 export const AppOptions = {
-  PublicPages: { enableTheme: false, enableAnalytics: true, enableSidebar: false } as AppProviderOptions,
+  PublicPages: {
+    enableTheme: false,
+    enableAnalytics: true,
+    enableSidebar: false,
+  } as AppProviderOptions,
 };
 
 // Main props interface
@@ -68,12 +75,20 @@ export function AppProvider({
 
   // Add NextAuth session provider if enabled
   if (enableSession) {
-    content = <SessionProvider session={session}>{content}</SessionProvider>;
+    content = (
+      <SessionProvider session={session} basePath={authBasePath}>
+        {content}
+      </SessionProvider>
+    );
   }
 
   // Add sidebar provider if enabled
   if (enableSidebar) {
-    content = <SidebarProvider defaultOpen={sidebarDefaultOpen}>{content}</SidebarProvider>;
+    content = (
+      <SidebarProvider defaultOpen={sidebarDefaultOpen}>
+        {content}
+      </SidebarProvider>
+    );
   }
 
   // Add analytics provider if enabled

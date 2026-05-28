@@ -14,6 +14,7 @@ import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
 import { CalendarX2 } from "lucide-react";
 import { ERROR_CODE } from "@/lib/endatix-api";
+import { getPublicAssetPath } from "@/lib/hosting";
 import FormSuccessMessage from "@/components/forms/form-success-message";
 
 interface ResetPasswordFormProps {
@@ -67,7 +68,7 @@ export default function ResetPasswordForm({
       <div className="grid gap-2 text-center">
         <div className="mb-2 flex justify-center">
           <Image
-            src="/assets/icons/endatix.svg"
+            src={getPublicAssetPath("/assets/icons/endatix.svg")}
             alt="Endatix logo"
             width={180}
             height={60}
@@ -136,7 +137,7 @@ export const InvalidResetLinkMessage = () => {
     <div className="grid gap-2 text-center">
       <div className="mb-2 flex justify-center">
         <Image
-          src="/assets/icons/endatix.svg"
+          src={getPublicAssetPath("/assets/icons/endatix.svg")}
           alt="Endatix logo"
           width={180}
           height={60}

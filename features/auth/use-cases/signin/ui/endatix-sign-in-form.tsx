@@ -12,6 +12,7 @@ import {
   signInWithEndatixAction,
 } from "../sign-in-with-endatix.action";
 import { Spinner } from "@/components/loaders/spinner";
+import { getPublicAssetPath } from "@/lib/hosting";
 import Link from "next/link";
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
@@ -40,7 +41,7 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
       <div className="grid gap-2 text-center">
         <div className="mb-2 flex justify-center">
           <Image
-            src="/assets/icons/endatix.svg"
+            src={getPublicAssetPath("/assets/icons/endatix.svg")}
             alt="Endatix logo"
             width={180}
             height={60}

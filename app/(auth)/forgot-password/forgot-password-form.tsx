@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/loaders/spinner";
 import Link from "next/link";
 import { ErrorMessage } from "@/components/forms/error-message";
+import { getPublicAssetPath } from "@/lib/hosting";
 import { CircleCheckBig } from "lucide-react";
 
 export default function ForgotPasswordForm() {
@@ -27,7 +28,7 @@ export default function ForgotPasswordForm() {
       <div className="grid gap-2 text-center">
         <div className="mb-2 flex justify-center">
           <Image
-            src="/assets/icons/endatix.svg"
+            src={getPublicAssetPath("/assets/icons/endatix.svg")}
             alt="Endatix logo"
             width={180}
             height={60}
