@@ -39,7 +39,7 @@ export async function convertChoicesToDataListAction(input: {
       await deleteDataListAction(created.value.id);
     } catch (error) {
       TelemetryLogger.error(
-        `Failed to compensate data list creation for "${created.value.id}"`,
+        `Failed to roll back data list creation for "${created.value.id}"`,
         error,
         { dataListId: created.value.id },
         LOGGER_NAME,

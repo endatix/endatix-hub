@@ -5,6 +5,7 @@ import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
+import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
 
 export type CreateDataListResult = Result<DataListDetails>;
 const DATA_LIST_NAME_MAX_LENGTH = 100;
@@ -35,19 +36,10 @@ export async function createDataListAction(
   });
 
   if (!result.success) {
-    const fields = result.error.fields ?? {};
-    const fieldMessages = Object.entries(fields)
-      .flatMap(([field, messages]) =>
-        (messages ?? []).map((message) => `${field}: ${message}`),
-      )
-      .join("; ");
-    const details = result.error.details?.details?.trim() ?? "";
-    const message =
-      fieldMessages ||
-      details ||
-      result.error.message ||
-      "Failed to create data list";
-    return Result.error(message);
+    return mapApiErrorToResult(result, {
+      fallbackMessage: "Failed to create data list",
+      preferredFields: ["name"],
+    });
   }
 
   return Result.success(result.data);
