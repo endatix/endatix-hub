@@ -134,9 +134,7 @@ function loadChoicesByQuestionName(
 
   try {
     for (const name of questionNames) {
-      const question = surveyModel.getQuestionByName(name) as
-        | Question
-        | undefined;
+      const question = surveyModel.getQuestionByName(name);
       if (!question) {
         choicesByName.set(name, null);
         continue;
@@ -245,6 +243,77 @@ function getCopiedFormName(formName: string | undefined): string {
   return `${baseName} - Data Lists`;
 }
 
+function toErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function getUniqueQuestionNamesFromPlans(plans: ConversionPlan[]): string[] {
+  return [...new Set(plans.map((plan) => plan.candidate.name))];
+}
+
+async function convertAllPlans(
+  plans: ConversionPlan[],
+  choicesByName: Map<string, unknown[] | null>,
+  reserved: Set<string>,
+  onPlanComplete: () => void,
+): Promise<ConversionOutcome[]> {
+  return mapPool(plans, CONCURRENCY, async (plan) => {
+    try {
+      return await convertOnePlan(plan, choicesByName, reserved);
+    } catch (error) {
+      return {
+        ok: false as const,
+        name: plan.candidate.name,
+        error: toErrorMessage(error, "Unexpected error during conversion"),
+      };
+    } finally {
+      onPlanComplete();
+    }
+  });
+}
+
+type CreateCopiedFormInput = {
+  surveyPayload: Record<string, unknown>;
+  successes: Array<Extract<ConversionOutcome, { ok: true }>>;
+  formName: string | undefined;
+  isEnabled: boolean;
+  folderId: string | undefined;
+};
+
+async function createCopiedForm(
+  input: CreateCopiedFormInput,
+): Promise<{ ok: true; formId: string } | { ok: false; error: string }> {
+  const cloned = cloneSurveyWithBindings(input.surveyPayload, input.successes);
+  const newFormName = getCopiedFormName(input.formName);
+
+  try {
+    const createResult = await createFormAction({
+      name: newFormName,
+      description: undefined,
+      isEnabled: input.isEnabled,
+      formDefinitionJsonData: JSON.stringify(cloned),
+      folderId: input.folderId,
+    });
+
+    if (!Result.isSuccess(createResult)) {
+      return {
+        ok: false,
+        error:
+          createResult.message ||
+          "Data lists were created but the new form could not be created.",
+      };
+    }
+
+    return { ok: true, formId: createResult.value };
+  } catch (error) {
+    const message = toErrorMessage(error, "Failed to create the new form.");
+    return {
+      ok: false,
+      error: `${message} Data lists were created; you may attach the definition manually.`,
+    };
+  }
+}
+
 function parseSurveyPayloadSafely(
   surveyText: string,
   creatorJson: unknown,
@@ -252,7 +321,7 @@ function parseSurveyPayloadSafely(
   | { ok: true; payload: Record<string, unknown> }
   | { ok: false; error: string } {
   const fromText = (() => {
-    if (!surveyText || !surveyText.trim()) {
+    if (!surveyText?.trim()) {
       return null;
     }
     // Some imported forms can carry a UTF BOM or replacement chars prefix.
@@ -384,12 +453,50 @@ export function ConvertLargeChoiceLists({
     setCreatedFormId(null);
   }, []);
 
-  const runBulk = useCallback(async () => {
+  const clearRunResults = useCallback(() => {
     setErrorBanner(null);
     setDoneMessage(null);
     setLastSummary(null);
     setLastFailures([]);
     setCreatedFormId(null);
+  }, []);
+
+  const markDone = useCallback(() => {
+    setPhase("done");
+    setPhaseLabel("Done");
+  }, []);
+
+  const finishWithError = useCallback(
+    (error: string) => {
+      markDone();
+      setErrorBanner(error);
+    },
+    [markDone],
+  );
+
+  const finishPartialFormFailure = useCallback(
+    (error: string, convertedCount: number) => {
+      markDone();
+      setErrorBanner(error);
+      setDoneMessage(
+        `Converted ${convertedCount} question(s). You may need to attach the new definition manually.`,
+      );
+    },
+    [markDone],
+  );
+
+  const recordConversionOutcomes = useCallback((outcomes: ConversionOutcome[]) => {
+    const { successes, failures, failed } =
+      partitionConversionOutcomes(outcomes);
+    setLastSummary({ succeeded: successes.length, failed });
+    setLastFailures(
+      failures.map((failure) => ({ name: failure.name, error: failure.error })),
+    );
+    return { successes, failed, total: outcomes.length };
+  }, []);
+
+  const runBulk = useCallback(async () => {
+    clearRunResults();
 
     if (candidates.length === 0) {
       setErrorBanner("Nothing to convert at this threshold.");
@@ -397,9 +504,7 @@ export function ConvertLargeChoiceLists({
     }
 
     if (!parsedPayload.ok) {
-      setPhase("done");
-      setPhaseLabel("Done");
-      setErrorBanner(parsedPayload.error);
+      finishWithError(parsedPayload.error);
       return;
     }
 
@@ -409,18 +514,14 @@ export function ConvertLargeChoiceLists({
 
     let choicesByName: Map<string, unknown[] | null>;
     try {
-      const uniqueNames = [
-        ...new Set(plans.map((plan) => plan.candidate.name)),
-      ];
-      choicesByName = loadChoicesByQuestionName(surveyPayload, uniqueNames);
-    } catch (e) {
-      const message =
-        e instanceof Error
-          ? e.message
-          : "Failed to read choices from the survey.";
-      setPhase("done");
-      setPhaseLabel("Done");
-      setErrorBanner(message);
+      choicesByName = loadChoicesByQuestionName(
+        surveyPayload,
+        getUniqueQuestionNamesFromPlans(plans),
+      );
+    } catch (error) {
+      finishWithError(
+        toErrorMessage(error, "Failed to read choices from the survey."),
+      );
       return;
     }
 
@@ -428,34 +529,18 @@ export function ConvertLargeChoiceLists({
     setPhaseLabel("Creating data lists");
     setCompleted(0);
 
-    const outcomes = await mapPool(plans, CONCURRENCY, async (plan) => {
-      try {
-        return await convertOnePlan(plan, choicesByName, reserved);
-      } catch (e) {
-        const message =
-          e instanceof Error ? e.message : "Unexpected error during conversion";
-        return {
-          ok: false as const,
-          name: plan.candidate.name,
-          error: message,
-        };
-      } finally {
-        setCompleted((prev) => prev + 1);
-      }
-    });
-
-    const { successes, failures, failed } =
-      partitionConversionOutcomes(outcomes);
-    setLastSummary({ succeeded: successes.length, failed });
-    setLastFailures(
-      failures.map((failure) => ({ name: failure.name, error: failure.error })),
+    const outcomes = await convertAllPlans(
+      plans,
+      choicesByName,
+      reserved,
+      () => setCompleted((prev) => prev + 1),
     );
+    const { successes, failed, total } = recordConversionOutcomes(outcomes);
 
     if (successes.length === 0) {
-      setPhase("done");
-      setPhaseLabel("Done");
+      markDone();
       setDoneMessage(
-        `No data lists were created. ${outcomes.length} candidate(s) failed or were skipped.`,
+        `No data lists were created. ${total} candidate(s) failed or were skipped.`,
       );
       return;
     }
@@ -463,58 +548,36 @@ export function ConvertLargeChoiceLists({
     setPhase("form");
     setPhaseLabel("Creating copied form");
 
-    const cloned = cloneSurveyWithBindings(surveyPayload, successes);
-    const newFormName = getCopiedFormName(model.formName);
+    const formResult = await createCopiedForm({
+      surveyPayload,
+      successes,
+      formName: model.formName,
+      isEnabled: model.formIsEnabled ?? true,
+      folderId: model.folderId ?? undefined,
+    });
 
-    let createResult: Awaited<ReturnType<typeof createFormAction>>;
-    try {
-      createResult = await createFormAction({
-        name: newFormName,
-        description: undefined,
-        isEnabled: model.formIsEnabled ?? true,
-        formDefinitionJsonData: JSON.stringify(cloned),
-        folderId: model.folderId ?? undefined,
-      });
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "Failed to create the new form.";
-      setPhase("done");
-      setPhaseLabel("Done");
-      setErrorBanner(
-        `${message} Data lists were created; you may attach the definition manually.`,
-      );
-      setDoneMessage(
-        `Converted ${successes.length} question(s). You may need to attach the new definition manually.`,
-      );
+    if (!formResult.ok) {
+      finishPartialFormFailure(formResult.error, successes.length);
       return;
     }
 
-    if (!Result.isSuccess(createResult)) {
-      setPhase("done");
-      setPhaseLabel("Done");
-      setErrorBanner(
-        createResult.message ||
-          "Data lists were created but the new form could not be created.",
-      );
-      setDoneMessage(
-        `Converted ${successes.length} question(s). You may need to attach the new definition manually.`,
-      );
-      return;
-    }
-
-    setPhase("done");
-    setPhaseLabel("Done");
+    markDone();
     setDoneMessage(
-      `Created "${newFormName}" with ${successes.length} conversion(s). ${failed} failed or skipped.`,
+      `Created "${getCopiedFormName(model.formName)}" with ${successes.length} conversion(s). ${failed} failed or skipped.`,
     );
-    setCreatedFormId(createResult.value);
+    setCreatedFormId(formResult.formId);
   }, [
     candidates,
+    clearRunResults,
+    finishPartialFormFailure,
+    finishWithError,
+    markDone,
     model.availableDataListNames,
-    model.formIsEnabled,
     model.folderId,
+    model.formIsEnabled,
     model.formName,
     parsedPayload,
+    recordConversionOutcomes,
   ]);
 
   const progressPct =

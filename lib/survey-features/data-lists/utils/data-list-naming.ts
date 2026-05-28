@@ -1,6 +1,8 @@
 import { DATA_LIST_NAME_MAX_LENGTH } from "../constants";
 import { resolveLocalizedText, toPlainText } from "./survey-localized-text";
 
+const NUMBERED_NAME_REGEX = /^([a-z]+)\s*\(\d+\)$/;
+
 /**
  * Survey Creator default titles (e.g. "Dropdown", "Tagbox", "Dropdown (3)") are not
  * meaningful list names when the question has a distinct `name` like "games".
@@ -22,7 +24,7 @@ export function isGenericChoiceQuestionTitle(
     return true;
   }
 
-  const numbered = RegExp(/^([a-z]+)\s*\(\d+\)$/).exec(normalizedTitle);
+  const numbered = NUMBERED_NAME_REGEX.exec(normalizedTitle);
   return numbered?.[1] === normalizedType;
 }
 

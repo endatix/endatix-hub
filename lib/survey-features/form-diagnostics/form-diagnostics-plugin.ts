@@ -22,7 +22,7 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
     this.updateStats();
   }
 
-  public get model(): FormDiagnosticsPlugin {
+  public get model(): this {
     return this;
   }
 

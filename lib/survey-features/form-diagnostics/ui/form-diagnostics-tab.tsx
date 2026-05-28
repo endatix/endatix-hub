@@ -54,7 +54,17 @@ function formatSize(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return (
+    Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  );
+}
+
+function getFormAccessLabel(isPublic: boolean | undefined): string {
+  if (isPublic === undefined) {
+    return "-";
+  }
+
+  return isPublic ? "Public" : "Private";
 }
 
 export const FormDiagnosticsView = ({
@@ -150,8 +160,7 @@ export const FormDiagnosticsView = ({
   const converterAttentionMessage = shouldHighlightConverter
     ? `Large choices detected (max dropdown: ${formatNumber(stats.maxDropdownChoicesCount)}, choices JSON total: ${formatSize(stats.totalChoicesJsonSize)}, max single: ${formatSize(stats.maxChoicesJsonSize)}). Use bulk conversion below to move inline choices into data lists.`
     : undefined;
-  const formAccessLabel =
-    isPublic === true ? "Public" : isPublic === false ? "Private" : "-";
+  const formAccessLabel = getFormAccessLabel(isPublic);
   const metricCardClass = (isWarning: boolean) =>
     `flex flex-col gap-1.5 rounded-lg border bg-card p-4 ${
       isWarning ? warningCardClassName : ""
@@ -309,9 +318,7 @@ export const FormDiagnosticsView = ({
                   )}{" "}
                   Form access
                 </span>
-                <span className="text-xl font-semibold">
-                  {formAccessLabel}
-                </span>
+                <span className="text-xl font-semibold">{formAccessLabel}</span>
               </div>
             </div>
           </div>
@@ -329,7 +336,10 @@ export const FormDiagnosticsView = ({
                 <Badge variant="secondary">{formatNumber(issues.length)}</Badge>
               </h4>
               {issues.map((issue) => (
-                <Alert key={issue.title} className={getSeverityColor(issue.severity)}>
+                <Alert
+                  key={issue.title}
+                  className={getSeverityColor(issue.severity)}
+                >
                   {getSeverityIcon(issue.severity)}
                   <AlertTitle className="text-sm font-semibold">
                     {issue.title}

@@ -182,7 +182,7 @@ function getPanelChildElements(panel: SurveyJsonRecord): unknown[] | null {
   return null;
 }
 
-function getNonEmptyLocalizedValues(source: unknown): unknown | undefined {
+function getNonEmptyLocalizedValues(source: unknown): unknown {
   if (
     source != null &&
     typeof source === "object" &&
