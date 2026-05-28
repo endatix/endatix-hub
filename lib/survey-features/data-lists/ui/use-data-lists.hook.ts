@@ -120,7 +120,7 @@ export function useDataListsLoader() {
   }, []);
 
   useEffect(() => {
-    void loadDataLists();
+    loadDataLists();
   }, [loadDataLists]);
 
   return { dataLists, isLoading, error, refetch: loadDataLists };

@@ -129,6 +129,58 @@ const SELECT_BASE_TYPES = new Set([
   "ranking",
 ]);
 
+type SurveyJsonRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): SurveyJsonRecord | null {
+  return value && typeof value === "object"
+    ? (value as SurveyJsonRecord)
+    : null;
+}
+
+function getChoiceCount(source: SurveyJsonRecord): number {
+  return Array.isArray(source.choices) ? source.choices.length : 0;
+}
+
+function addDropdownChoicesStats(
+  stats: FormDiagnosticsStats,
+  source: SurveyJsonRecord,
+): void {
+  stats.dropdownCount++;
+  const choicesCount = getChoiceCount(source);
+  stats.totalDropdownChoicesCount += choicesCount;
+  stats.maxDropdownChoicesCount = Math.max(
+    stats.maxDropdownChoicesCount,
+    choicesCount,
+  );
+}
+
+function addChoicesJsonSizeStats(
+  stats: FormDiagnosticsStats,
+  choices: unknown,
+): void {
+  if (choices == null) {
+    return;
+  }
+
+  const size = JSON.stringify(choices).length;
+  stats.totalChoicesJsonSize += size;
+  stats.maxChoicesJsonSize = Math.max(stats.maxChoicesJsonSize, size);
+}
+
+function isDropdownMatrixColumn(column: SurveyJsonRecord): boolean {
+  return column.cellType === "dropdown" || column.type === "dropdown";
+}
+
+function getPanelChildElements(panel: SurveyJsonRecord): unknown[] | null {
+  if (Array.isArray(panel.elements)) {
+    return panel.elements;
+  }
+  if (Array.isArray(panel.templateElements)) {
+    return panel.templateElements;
+  }
+  return null;
+}
+
 function getNonEmptyLocalizedValues(source: unknown): unknown | undefined {
   if (
     source != null &&
@@ -185,93 +237,87 @@ export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
 
     // This JSON fallback mirrors common SurveyJS element structures. In the
     // creator tab, live SurveyModel stats overlay these counts.
+    const handlePanelElement = (element: SurveyJsonRecord, type: string) => {
+      const children = getPanelChildElements(element);
+      if (children) {
+        traverseElements(children);
+      }
+      if (type === "paneldynamic") {
+        stats.totalQuestions++;
+      }
+    };
+
+    const handleMatrixElement = (element: SurveyJsonRecord) => {
+      stats.totalQuestions++;
+
+      if (!Array.isArray(element.columns)) {
+        return;
+      }
+
+      element.columns.forEach((column) => {
+        const colObj = asRecord(column);
+        if (!colObj || !isDropdownMatrixColumn(colObj)) {
+          return;
+        }
+
+        addDropdownChoicesStats(stats, colObj);
+        addChoicesJsonSizeStats(stats, colObj.choices);
+      });
+    };
+
+    const handleQuestionElement = (element: SurveyJsonRecord, type: string) => {
+      stats.totalQuestions++;
+
+      if (type === "dropdown") {
+        addDropdownChoicesStats(stats, element);
+      }
+
+      if (SELECT_BASE_TYPES.has(type)) {
+        addChoicesJsonSizeStats(stats, element.choices);
+      }
+
+      if (type === "file") {
+        stats.fileUploadCount++;
+        if (element.storeDataAsText !== false) {
+          stats.fileUploadWithoutBlobCount++;
+        }
+      }
+
+      if (type === "scandit") {
+        stats.scanditCount++;
+      }
+    };
+
     const traverseElements = (elements: unknown[]) => {
       if (!Array.isArray(elements)) return;
 
       elements.forEach((element) => {
-        if (!element || typeof element !== "object") {
+        const obj = asRecord(element);
+        const type = typeof obj?.type === "string" ? obj.type : "";
+        if (!obj || !type) {
           return;
         }
-        const obj = element as Record<string, unknown>;
-        const type = obj.type;
+
         if (type === "panel" || type === "paneldynamic") {
-          if (Array.isArray(obj.elements)) {
-            traverseElements(obj.elements);
-          } else if (Array.isArray(obj.templateElements)) {
-            traverseElements(obj.templateElements);
-          }
-          if (type === "paneldynamic") {
-            stats.totalQuestions++;
-          }
-        } else if (type === "matrixdynamic" || type === "matrixdropdown") {
-          stats.totalQuestions++;
-          if (Array.isArray(obj.columns)) {
-            obj.columns.forEach((col) => {
-              if (!col || typeof col !== "object") {
-                return;
-              }
-              const colObj = col as Record<string, unknown>;
-              const cellType = colObj.cellType;
-              const colType = colObj.type;
-              if (cellType === "dropdown" || colType === "dropdown") {
-                stats.dropdownCount++;
-                const choices = Array.isArray(colObj.choices)
-                  ? colObj.choices
-                  : [];
-                const choicesCount = choices.length;
-                stats.totalDropdownChoicesCount += choicesCount;
-                stats.maxDropdownChoicesCount = Math.max(
-                  stats.maxDropdownChoicesCount,
-                  choicesCount,
-                );
-                if (colObj.choices != null) {
-                  const size = JSON.stringify(colObj.choices).length;
-                  stats.totalChoicesJsonSize += size;
-                  stats.maxChoicesJsonSize = Math.max(
-                    stats.maxChoicesJsonSize,
-                    size,
-                  );
-                }
-              }
-            });
-          }
-        } else if (typeof type === "string" && type.length > 0) {
-          stats.totalQuestions++;
-
-          if (type === "dropdown") {
-            stats.dropdownCount++;
-            const choices = Array.isArray(obj.choices) ? obj.choices : [];
-            const choicesCount = choices.length;
-            stats.totalDropdownChoicesCount += choicesCount;
-            stats.maxDropdownChoicesCount = Math.max(
-              stats.maxDropdownChoicesCount,
-              choicesCount,
-            );
-          }
-
-          if (SELECT_BASE_TYPES.has(type) && obj.choices != null) {
-            const size = JSON.stringify(obj.choices).length;
-            stats.totalChoicesJsonSize += size;
-            stats.maxChoicesJsonSize = Math.max(stats.maxChoicesJsonSize, size);
-          }
-
-          if (type === "file") {
-            stats.fileUploadCount++;
-            if (obj.storeDataAsText !== false) {
-              stats.fileUploadWithoutBlobCount++;
-            }
-          }
-
-          if (type === "scandit") {
-            stats.scanditCount++;
-          }
+          handlePanelElement(obj, type);
+          return;
         }
+
+        if (type === "matrixdynamic" || type === "matrixdropdown") {
+          handleMatrixElement(obj);
+          return;
+        }
+
+        handleQuestionElement(obj, type);
       });
     };
 
     if (survey.pages && Array.isArray(survey.pages)) {
-      survey.pages.forEach((page: any) => {
-        traverseElements(page.elements);
+      survey.pages.forEach((page: unknown) => {
+        const pageObj = asRecord(page);
+        if (Array.isArray(pageObj?.elements)) {
+          traverseElements(pageObj.elements);
+        }
       });
     }
   } catch (error) {

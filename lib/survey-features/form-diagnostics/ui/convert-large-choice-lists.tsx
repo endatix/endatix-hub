@@ -43,16 +43,182 @@ type ConversionOutcome =
   | { ok: true; name: string; dataListId: string }
   | { ok: false; name: string; error: string };
 
+type ConversionPlan = {
+  candidate: ConvertibleChoiceQuestionRef;
+  listName: string;
+};
+
+const DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE =
+  "data_list_name_already_exists";
+const MAX_DUPLICATE_NAME_RETRIES = 3;
+
 function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
-function isDuplicateDataListNameError(message: string | undefined): boolean {
-  if (!message) {
-    return false;
+function isDuplicateDataListNameError(result: { errorCode?: string }): boolean {
+  return result.errorCode === DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE;
+}
+
+function buildReservedDataListNames(names: string[]): Set<string> {
+  return new Set(names.map((name) => name.toLowerCase()));
+}
+
+function buildConversionPlans(
+  candidates: ConvertibleChoiceQuestionRef[],
+  reserved: Set<string>,
+): ConversionPlan[] {
+  return candidates.map((candidate) => ({
+    candidate,
+    listName: getQuestionDataListName(
+      { title: candidate.title, name: candidate.name, type: candidate.type },
+      reserved,
+    ),
+  }));
+}
+
+function loadChoicesByQuestionName(
+  surveyPayload: Record<string, unknown>,
+  questionNames: string[],
+): Map<string, unknown[] | null> {
+  const surveyForModel = JSON.parse(JSON.stringify(surveyPayload)) as Record<
+    string,
+    unknown
+  >;
+  const choicesByName = new Map<string, unknown[] | null>();
+  const surveyModel = new Model(surveyForModel as object);
+
+  try {
+    for (const name of questionNames) {
+      const question = surveyModel.getQuestionByName(name) as
+        | Question
+        | undefined;
+      if (!question) {
+        choicesByName.set(name, null);
+        continue;
+      }
+      choicesByName.set(name, getPlainChoiceValuesForNormalization(question));
+    }
+  } finally {
+    surveyModel.dispose?.();
   }
-  const m = message.toLowerCase();
-  return m.includes("data list") && m.includes("already exists");
+
+  return choicesByName;
+}
+
+async function convertChoicesWithDuplicateRetry(
+  plan: ConversionPlan,
+  plain: unknown[],
+  reserved: Set<string>,
+): Promise<ConversionOutcome> {
+  const normalized = normalizeChoicesToDataListItems(plain);
+  if (!normalized.ok) {
+    return {
+      ok: false,
+      name: plan.candidate.name,
+      error: normalized.error,
+    };
+  }
+
+  let targetListName = plan.listName;
+  let result = await convertChoicesToDataListAction({
+    name: targetListName,
+    items: normalized.items,
+  });
+
+  let retryCount = 0;
+  while (
+    !Result.isSuccess(result) &&
+    isDuplicateDataListNameError(result) &&
+    retryCount < MAX_DUPLICATE_NAME_RETRIES
+  ) {
+    targetListName = getQuestionDataListName(
+      { title: undefined, name: targetListName },
+      reserved,
+    );
+    result = await convertChoicesToDataListAction({
+      name: targetListName,
+      items: normalized.items,
+    });
+    retryCount++;
+  }
+
+  if (!Result.isSuccess(result)) {
+    return {
+      ok: false,
+      name: plan.candidate.name,
+      error: result.message,
+    };
+  }
+
+  return {
+    ok: true,
+    name: plan.candidate.name,
+    dataListId: result.value.dataList.id,
+  };
+}
+
+async function convertOnePlan(
+  plan: ConversionPlan,
+  choicesByName: Map<string, unknown[] | null>,
+  reserved: Set<string>,
+): Promise<ConversionOutcome> {
+  const plain = choicesByName.get(plan.candidate.name);
+  if (plain == null) {
+    return {
+      ok: false,
+      name: plan.candidate.name,
+      error: "Question not found",
+    };
+  }
+
+  return convertChoicesWithDuplicateRetry(plan, plain, reserved);
+}
+
+function partitionConversionOutcomes(outcomes: ConversionOutcome[]): {
+  successes: Array<Extract<ConversionOutcome, { ok: true }>>;
+  failures: Array<Extract<ConversionOutcome, { ok: false }>>;
+  failed: number;
+} {
+  const successes = outcomes.filter(
+    (outcome): outcome is Extract<ConversionOutcome, { ok: true }> =>
+      outcome.ok,
+  );
+  const failures = outcomes.filter(
+    (outcome): outcome is Extract<ConversionOutcome, { ok: false }> =>
+      !outcome.ok,
+  );
+
+  return {
+    successes,
+    failures,
+    failed: outcomes.length - successes.length,
+  };
+}
+
+function cloneSurveyWithBindings(
+  surveyPayload: Record<string, unknown>,
+  successes: Array<Extract<ConversionOutcome, { ok: true }>>,
+): Record<string, unknown> {
+  const cloned = JSON.parse(JSON.stringify(surveyPayload)) as Record<
+    string,
+    unknown
+  >;
+
+  for (const success of successes) {
+    applyDataListBindingByQuestionName(
+      cloned,
+      success.name,
+      success.dataListId,
+    );
+  }
+
+  return cloned;
+}
+
+function getCopiedFormName(formName: string | undefined): string {
+  const baseName = formName?.trim().length ? formName : "Form";
+  return `${baseName} - Data Lists`;
 }
 
 function parseSurveyPayloadSafely(
@@ -215,44 +381,17 @@ export function ConvertLargeChoiceLists({
       setErrorBanner(parsedPayload.error);
       return;
     }
+
     const surveyPayload = parsedPayload.payload;
-
-    const reserved = new Set(
-      model.availableDataListNames.map((n) => n.toLowerCase()),
-    );
-
-    const plans: {
-      candidate: ConvertibleChoiceQuestionRef;
-      listName: string;
-    }[] = [];
-    for (const c of candidates) {
-      const listName = getQuestionDataListName(
-        { title: c.title, name: c.name, type: c.type },
-        reserved,
-      );
-      plans.push({ candidate: c, listName });
-    }
+    const reserved = buildReservedDataListNames(model.availableDataListNames);
+    const plans = buildConversionPlans(candidates, reserved);
 
     let choicesByName: Map<string, unknown[] | null>;
     try {
-      const uniqueNames = [...new Set(plans.map((p) => p.candidate.name))];
-      const surveyForModel = JSON.parse(
-        JSON.stringify(surveyPayload),
-      ) as Record<string, unknown>;
-      choicesByName = new Map<string, unknown[] | null>();
-      const surveyModel = new Model(surveyForModel as object);
-      try {
-        for (const name of uniqueNames) {
-          const q = surveyModel.getQuestionByName(name) as Question | undefined;
-          if (!q) {
-            choicesByName.set(name, null);
-          } else {
-            choicesByName.set(name, getPlainChoiceValuesForNormalization(q));
-          }
-        }
-      } finally {
-        surveyModel.dispose?.();
-      }
+      const uniqueNames = [
+        ...new Set(plans.map((plan) => plan.candidate.name)),
+      ];
+      choicesByName = loadChoicesByQuestionName(surveyPayload, uniqueNames);
     } catch (e) {
       const message =
         e instanceof Error
@@ -268,89 +407,28 @@ export function ConvertLargeChoiceLists({
     setPhaseLabel("Creating data lists");
     setCompleted(0);
 
-    const convertOne = async (
-      plan: (typeof plans)[number],
-    ): Promise<ConversionOutcome> => {
+    const outcomes = await mapPool(plans, CONCURRENCY, async (plan) => {
       try {
-        const plain = choicesByName.get(plan.candidate.name);
-        if (plain === null || plain === undefined) {
-          return {
-            ok: false,
-            name: plan.candidate.name,
-            error: "Question not found",
-          };
-        }
-        const normalized = normalizeChoicesToDataListItems(plain);
-        if (!normalized.ok) {
-          return {
-            ok: false,
-            name: plan.candidate.name,
-            error: normalized.error,
-          };
-        }
-        let targetListName = plan.listName;
-        let result = await convertChoicesToDataListAction({
-          name: targetListName,
-          items: normalized.items,
-        });
-
-        // Name collisions can still happen if server-side names changed since
-        // diagnostics loaded. Retry with generated unique names.
-        let retryCount = 0;
-        while (
-          !Result.isSuccess(result) &&
-          isDuplicateDataListNameError(result.message) &&
-          retryCount < 3
-        ) {
-          targetListName = getQuestionDataListName(
-            { title: undefined, name: targetListName },
-            reserved,
-          );
-          result = await convertChoicesToDataListAction({
-            name: targetListName,
-            items: normalized.items,
-          });
-          retryCount++;
-        }
-
-        if (!Result.isSuccess(result)) {
-          return {
-            ok: false,
-            name: plan.candidate.name,
-            error: result.message,
-          };
-        }
-        return {
-          ok: true,
-          name: plan.candidate.name,
-          dataListId: result.value.dataList.id,
-        };
+        return await convertOnePlan(plan, choicesByName, reserved);
       } catch (e) {
         const message =
           e instanceof Error ? e.message : "Unexpected error during conversion";
         return {
-          ok: false,
+          ok: false as const,
           name: plan.candidate.name,
           error: message,
         };
       } finally {
         setCompleted((prev) => prev + 1);
       }
-    };
+    });
 
-    const outcomes = await mapPool(plans, CONCURRENCY, (plan) =>
-      convertOne(plan),
-    );
-
-    const successes = outcomes.filter(
-      (o): o is Extract<ConversionOutcome, { ok: true }> => o.ok,
-    );
-    const failures = outcomes.filter(
-      (o): o is Extract<ConversionOutcome, { ok: false }> => !o.ok,
-    );
-    const failed = outcomes.length - successes.length;
+    const { successes, failures, failed } =
+      partitionConversionOutcomes(outcomes);
     setLastSummary({ succeeded: successes.length, failed });
-    setLastFailures(failures.map((f) => ({ name: f.name, error: f.error })));
+    setLastFailures(
+      failures.map((failure) => ({ name: failure.name, error: failure.error })),
+    );
 
     if (successes.length === 0) {
       setPhase("done");
@@ -364,16 +442,8 @@ export function ConvertLargeChoiceLists({
     setPhase("form");
     setPhaseLabel("Creating copied form");
 
-    const cloned = JSON.parse(JSON.stringify(surveyPayload)) as Record<
-      string,
-      unknown
-    >;
-    for (const s of successes) {
-      applyDataListBindingByQuestionName(cloned, s.name, s.dataListId);
-    }
-
-    const baseName = model.formName?.trim().length ? model.formName : "Form";
-    const newFormName = `${baseName} - Data Lists`;
+    const cloned = cloneSurveyWithBindings(surveyPayload, successes);
+    const newFormName = getCopiedFormName(model.formName);
 
     let createResult: Awaited<ReturnType<typeof createFormAction>>;
     try {
@@ -607,7 +677,7 @@ export function ConvertLargeChoiceLists({
               <AlertDialogAction
                 type="button"
                 onClick={() => {
-                  void runBulk();
+                  runBulk();
                 }}
               >
                 Start conversion
