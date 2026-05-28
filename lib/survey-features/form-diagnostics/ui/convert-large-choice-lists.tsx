@@ -48,6 +48,10 @@ type ConversionPlan = {
   listName: string;
 };
 
+type ConvertChoicesResult = Awaited<
+  ReturnType<typeof convertChoicesToDataListAction>
+>;
+
 const DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE =
   "data_list_name_already_exists";
 const MAX_DUPLICATE_NAME_RETRIES = 3;
@@ -58,6 +62,49 @@ function formatNumber(n: number): string {
 
 function isDuplicateDataListNameError(result: { errorCode?: string }): boolean {
   return result.errorCode === DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE;
+}
+
+function conversionFailed(
+  plan: ConversionPlan,
+  error: string,
+): ConversionOutcome {
+  return {
+    ok: false,
+    name: plan.candidate.name,
+    error,
+  };
+}
+
+function conversionSucceeded(
+  plan: ConversionPlan,
+  dataListId: string,
+): ConversionOutcome {
+  return {
+    ok: true,
+    name: plan.candidate.name,
+    dataListId,
+  };
+}
+
+function shouldRetryDuplicateName(
+  result: ConvertChoicesResult,
+  retryCount: number,
+): boolean {
+  return (
+    !Result.isSuccess(result) &&
+    isDuplicateDataListNameError(result) &&
+    retryCount < MAX_DUPLICATE_NAME_RETRIES
+  );
+}
+
+function getDuplicateRetryListName(
+  currentName: string,
+  reserved: Set<string>,
+): string {
+  return getQuestionDataListName(
+    { title: undefined, name: currentName },
+    reserved,
+  );
 }
 
 function buildReservedDataListNames(names: string[]): Set<string> {
@@ -81,10 +128,7 @@ function loadChoicesByQuestionName(
   surveyPayload: Record<string, unknown>,
   questionNames: string[],
 ): Map<string, unknown[] | null> {
-  const surveyForModel = JSON.parse(JSON.stringify(surveyPayload)) as Record<
-    string,
-    unknown
-  >;
+  const surveyForModel = structuredClone(surveyPayload);
   const choicesByName = new Map<string, unknown[] | null>();
   const surveyModel = new Model(surveyForModel as object);
 
@@ -113,11 +157,7 @@ async function convertChoicesWithDuplicateRetry(
 ): Promise<ConversionOutcome> {
   const normalized = normalizeChoicesToDataListItems(plain);
   if (!normalized.ok) {
-    return {
-      ok: false,
-      name: plan.candidate.name,
-      error: normalized.error,
-    };
+    return conversionFailed(plan, normalized.error);
   }
 
   let targetListName = plan.listName;
@@ -126,36 +166,23 @@ async function convertChoicesWithDuplicateRetry(
     items: normalized.items,
   });
 
-  let retryCount = 0;
-  while (
-    !Result.isSuccess(result) &&
-    isDuplicateDataListNameError(result) &&
-    retryCount < MAX_DUPLICATE_NAME_RETRIES
+  for (
+    let retryCount = 0;
+    shouldRetryDuplicateName(result, retryCount);
+    retryCount++
   ) {
-    targetListName = getQuestionDataListName(
-      { title: undefined, name: targetListName },
-      reserved,
-    );
+    targetListName = getDuplicateRetryListName(targetListName, reserved);
     result = await convertChoicesToDataListAction({
       name: targetListName,
       items: normalized.items,
     });
-    retryCount++;
   }
 
   if (!Result.isSuccess(result)) {
-    return {
-      ok: false,
-      name: plan.candidate.name,
-      error: result.message,
-    };
+    return conversionFailed(plan, result.message);
   }
 
-  return {
-    ok: true,
-    name: plan.candidate.name,
-    dataListId: result.value.dataList.id,
-  };
+  return conversionSucceeded(plan, result.value.dataList.id);
 }
 
 async function convertOnePlan(
@@ -200,10 +227,7 @@ function cloneSurveyWithBindings(
   surveyPayload: Record<string, unknown>,
   successes: Array<Extract<ConversionOutcome, { ok: true }>>,
 ): Record<string, unknown> {
-  const cloned = JSON.parse(JSON.stringify(surveyPayload)) as Record<
-    string,
-    unknown
-  >;
+  const cloned = structuredClone(surveyPayload);
 
   for (const success of successes) {
     applyDataListBindingByQuestionName(
@@ -261,10 +285,7 @@ function parseSurveyPayloadSafely(
   ) {
     return {
       ok: true,
-      payload: JSON.parse(JSON.stringify(creatorJson)) as Record<
-        string,
-        unknown
-      >,
+      payload: structuredClone(creatorJson as Record<string, unknown>),
     };
   }
 
