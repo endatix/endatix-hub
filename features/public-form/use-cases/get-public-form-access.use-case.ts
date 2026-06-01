@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { EndatixApi } from "@/lib/endatix-api";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import type {
   GetPublicFormAccessRequest,
   PublicFormAccessResponse,
