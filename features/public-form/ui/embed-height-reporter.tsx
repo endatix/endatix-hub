@@ -1,7 +1,7 @@
 "use client";
 
 import { getEmbedMessagingContext } from "@/features/embed-form/ui/embed-messaging-context";
-import { isEmbedHeightReportingFrozen } from "@/features/embed-form/ui/embed-height-reporting";
+import { embedHeightReporting } from "@/features/embed-form/ui/embed-height-reporting";
 import { useEffect, useRef } from "react";
 
 export function EmbedHeightReporter() {
@@ -10,7 +10,7 @@ export function EmbedHeightReporter() {
   useEffect(() => {
     function reportHeight() {
       const messagingContext = getEmbedMessagingContext();
-      if (isEmbedHeightReportingFrozen(messagingContext.embedId)) {
+      if (embedHeightReporting.isFrozen()) {
         return;
       }
 

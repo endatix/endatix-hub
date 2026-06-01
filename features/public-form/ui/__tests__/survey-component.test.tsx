@@ -14,9 +14,7 @@ const {
   mockClearQueue,
   mockUseSurveyModel,
   mockSendEmbedMessage,
-  mockFreezeEmbedHeightReporting,
-  mockResumeEmbedHeightReporting,
-  mockIsEmbedHeightReportingFrozen,
+  mockEmbedHeightReporting,
 } = vi.hoisted(() => ({
   mockSubmitPublicForm: vi.fn(),
   mockEnqueueSubmission: vi.fn(),
@@ -25,9 +23,11 @@ const {
   }),
   mockUseSurveyModel: vi.fn(),
   mockSendEmbedMessage: vi.fn(),
-  mockFreezeEmbedHeightReporting: vi.fn(),
-  mockResumeEmbedHeightReporting: vi.fn(),
-  mockIsEmbedHeightReportingFrozen: vi.fn(() => false),
+  mockEmbedHeightReporting: {
+    freeze: vi.fn(),
+    resume: vi.fn(),
+    isFrozen: vi.fn(() => false),
+  },
 }));
 
 // --- MOCK DEPENDENCIES ---
@@ -50,9 +50,7 @@ vi.mock("../use-survey-model.hook", () => ({
 }));
 
 vi.mock("@/features/embed-form", () => ({
-  freezeEmbedHeightReporting: mockFreezeEmbedHeightReporting,
-  isEmbedHeightReportingFrozen: mockIsEmbedHeightReportingFrozen,
-  resumeEmbedHeightReporting: mockResumeEmbedHeightReporting,
+  embedHeightReporting: mockEmbedHeightReporting,
   useSurveyEmbedBehavior: vi.fn(() => ({
     sendEmbedMessage: mockSendEmbedMessage,
     registerEmbedHandlers: vi.fn(() => () => {}),

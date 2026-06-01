@@ -1,7 +1,4 @@
-import {
-  freezeEmbedHeightReporting,
-  resumeEmbedHeightReporting,
-} from "@/features/embed-form/ui/embed-height-reporting";
+import { embedHeightReporting } from "@/features/embed-form/ui/embed-height-reporting";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EmbedHeightReporter } from "../embed-height-reporter";
@@ -26,7 +23,7 @@ describe("EmbedHeightReporter", () => {
   let postMessage: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    resumeEmbedHeightReporting("embed-1");
+    embedHeightReporting.resume();
     postMessage = vi.fn();
     Object.defineProperty(window, "parent", {
       configurable: true,
@@ -37,7 +34,7 @@ describe("EmbedHeightReporter", () => {
 
   afterEach(() => {
     cleanup();
-    resumeEmbedHeightReporting("embed-1");
+    embedHeightReporting.resume();
     Object.defineProperty(window, "parent", {
       configurable: true,
       value: originalParent,
@@ -59,7 +56,7 @@ describe("EmbedHeightReporter", () => {
       "https://host.example",
     );
 
-    freezeEmbedHeightReporting("embed-1");
+    embedHeightReporting.freeze();
     setBodyHeight(120);
     act(() => {
       window.dispatchEvent(new Event("resize"));
@@ -67,7 +64,7 @@ describe("EmbedHeightReporter", () => {
 
     expect(postMessage).toHaveBeenCalledTimes(1);
 
-    resumeEmbedHeightReporting("embed-1");
+    embedHeightReporting.resume();
     setBodyHeight(720);
     act(() => {
       window.dispatchEvent(new Event("resize"));
@@ -84,25 +81,5 @@ describe("EmbedHeightReporter", () => {
       },
       "https://host.example",
     );
-  });
-
-  it("scopes frozen state to the current embed id", async () => {
-    freezeEmbedHeightReporting("another-embed");
-
-    render(<EmbedHeightReporter />);
-
-    await waitFor(() => {
-      expect(postMessage).toHaveBeenCalledTimes(1);
-    });
-    expect(postMessage).toHaveBeenLastCalledWith(
-      {
-        type: "endatix:resize",
-        embedId: "embed-1",
-        height: 640,
-      },
-      "https://host.example",
-    );
-
-    resumeEmbedHeightReporting("another-embed");
   });
 });
