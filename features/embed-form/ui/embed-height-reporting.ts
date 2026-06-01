@@ -1,21 +1,17 @@
-import { EMBED_ID_QUERY_PARAM } from "./embed-messaging-context";
+export class EmbedHeightReportingController {
+  private frozen = false;
 
-const frozenEmbedIds = new Set<string>();
+  freeze(): void {
+    this.frozen = true;
+  }
 
-export type EmbedId = string | undefined;
+  resume(): void {
+    this.frozen = false;
+  }
 
-export function freezeEmbedHeightReporting(embedId: EmbedId): void {
-  frozenEmbedIds.add(getEmbedKey(embedId));
+  isFrozen(): boolean {
+    return this.frozen;
+  }
 }
 
-export function resumeEmbedHeightReporting(embedId: EmbedId): void {
-  frozenEmbedIds.delete(getEmbedKey(embedId));
-}
-
-export function isEmbedHeightReportingFrozen(embedId: EmbedId): boolean {
-  return frozenEmbedIds.has(getEmbedKey(embedId));
-}
-
-function getEmbedKey(embedId: EmbedId): string {
-  return embedId ?? EMBED_ID_QUERY_PARAM;
-}
+export const embedHeightReporting = new EmbedHeightReportingController();
