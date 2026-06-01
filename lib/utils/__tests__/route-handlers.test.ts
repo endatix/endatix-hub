@@ -7,6 +7,7 @@ import {
   setResponseCachingHeaders,
   toApiResponse,
 } from "../route-handlers";
+import { NextResponse } from "next/server";
 import { describe, expect, it } from "vitest";
 
 describe("route-handlers", () => {
@@ -225,7 +226,7 @@ describe("route-handlers", () => {
   describe("setResponseCachingHeaders", () => {
     it("sets browser-only cache headers by default", () => {
       // Arrange
-      const response = new Response();
+      const response = NextResponse.json({});
 
       // Act
       setResponseCachingHeaders(response, {});
@@ -240,7 +241,7 @@ describe("route-handlers", () => {
 
     it("sets no-store cache headers and etag when requested", () => {
       // Arrange
-      const response = new Response();
+      const response = NextResponse.json({});
 
       // Act
       setResponseCachingHeaders(response, {

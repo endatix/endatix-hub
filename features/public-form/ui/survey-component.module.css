@@ -1,9 +1,14 @@
 /* Full-height layout when not embed: survey body (last child) takes remaining height. */
 .layoutFullHeight {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.embedShell {
+  position: relative;
 }
 
 .layoutFullHeight > *:last-child {
