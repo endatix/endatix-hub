@@ -21,7 +21,7 @@ export async function PublicSurveyContent({
   formId,
   urlToken,
   variant,
-}: PublicSurveyContentProps) {
+}: Readonly<PublicSurveyContentProps>) {
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
   const pageResult = await loadPublicSurveyPageUseCase({
