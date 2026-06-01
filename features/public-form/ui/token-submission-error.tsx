@@ -33,9 +33,7 @@ const TOKEN_SUBMISSION_ERROR_COPY: Record<string, TokenSubmissionErrorCopy> = {
   [ERROR_CODE.RESOURCE_NOT_FOUND]: NOT_FOUND_COPY,
 };
 
-export function TokenSubmissionError({
-  errorCode,
-}: Readonly<{ errorCode: string }>) {
+export function TokenSubmissionError({ errorCode }: { errorCode: string }) {
   const copy = TOKEN_SUBMISSION_ERROR_COPY[errorCode] ?? NOT_FOUND_COPY;
 
   return (

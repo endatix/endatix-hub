@@ -5,7 +5,7 @@ export type PublicSurveySkeletonProps = {
   variant: PublicSurveyVariant;
 };
 
-export function PublicSurveySkeleton({ variant }: Readonly<PublicSurveySkeletonProps>) {
+export function PublicSurveySkeleton({ variant }: PublicSurveySkeletonProps) {
   const questions = Array.from({ length: 8 }, (_, index) => index + 1);
   const containerClassName =
     variant === "embed" ? "w-full p-4" : "w-full overflow-auto p-4";
