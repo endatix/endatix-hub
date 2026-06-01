@@ -10,10 +10,8 @@ export const getActiveDefinitionUseCase = async ({
   formId,
 }: GetDefinitionQuery): Promise<Result<ActiveDefinition>> => {
   try {
-    const response: ActiveDefinition = await getActiveFormDefinition(
-      formId,
-      true,
-    );
+    const response = await getActiveFormDefinition(formId, true);
+
     return Result.success(response);
   } catch (error) {
     const errorMessage = `Failed to load form: ${
