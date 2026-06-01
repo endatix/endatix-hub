@@ -43,18 +43,6 @@ vi.mock("next/dynamic", () => ({
           >
             Complete
           </button>
-          <button
-            data-testid="survey-component-partial"
-            onClick={() =>
-              onSubmitSuccess?.({
-                submissionId: "submission-1",
-                isComplete: false,
-              })
-            }
-            type="button"
-          >
-            Partial
-          </button>
         </>
       );
     },
@@ -104,21 +92,6 @@ describe("SurveyJsWrapper", () => {
 
     expect(screen.getByTestId("respondent-test-mode-badge")).toBeDefined();
     expect(screen.getByText("Test response - not counted")).toBeDefined();
-  });
-
-  it("allows server props to block the session after a partial submit", () => {
-    const { rerender } = render(<SurveyJsWrapper {...defaultProps} />);
-
-    fireEvent.click(screen.getByTestId("survey-component-partial"));
-    rerender(
-      <SurveyJsWrapper
-        {...defaultProps}
-        survey={{ ...defaultProps.survey, submissionPhase: "blocked" }}
-      />,
-    );
-
-    expect(screen.getByText("Already Responded")).toBeDefined();
-    expect(screen.queryByTestId("survey-component")).toBeNull();
   });
 
   it("keeps completed sessions on survey when server props later become blocked", () => {

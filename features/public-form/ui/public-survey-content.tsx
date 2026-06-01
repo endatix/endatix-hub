@@ -21,7 +21,7 @@ export async function PublicSurveyContent({
   formId,
   urlToken,
   variant,
-}: Readonly<PublicSurveyContentProps>) {
+}: PublicSurveyContentProps) {
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
   const pageResult = await loadPublicSurveyPageUseCase({
@@ -34,10 +34,7 @@ export async function PublicSurveyContent({
     return notFound();
   }
 
-  if (
-    pageResult.kind === "tokenSubmissionError" ||
-    pageResult.kind === "submissionLoadError"
-  ) {
+  if (pageResult.kind === "tokenSubmissionError") {
     return <TokenSubmissionError errorCode={pageResult.errorCode} />;
   }
 

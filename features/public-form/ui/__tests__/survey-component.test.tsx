@@ -32,9 +32,12 @@ const {
 
 // --- MOCK DEPENDENCIES ---
 
-vi.mock("@/features/public-form/application/submit-public-form", () => ({
-  submitPublicForm: mockSubmitPublicForm,
-}));
+vi.mock(
+  "@/features/public-form/application/submit-public-form",
+  () => ({
+    submitPublicForm: mockSubmitPublicForm,
+  }),
+);
 
 vi.mock("../../application/submission-queue", () => {
   return {

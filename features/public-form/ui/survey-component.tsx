@@ -132,10 +132,6 @@ export default function SurveyComponent({
         return;
       }
 
-      if (isEmbed && embedHeightReporting.isFrozen()) {
-        embedHeightReporting.resume();
-      }
-
       enqueueSubmission(
         buildSubmissionData(sender, false, surveyLocales.length > 1),
       );
@@ -226,7 +222,6 @@ export default function SurveyComponent({
       onSubmitSuccess,
       surveyLocales.length,
       runtimeToken,
-      isEmbed,
     ],
   );
 
