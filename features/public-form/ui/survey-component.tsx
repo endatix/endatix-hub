@@ -2,7 +2,12 @@
 
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
-import { useSurveyEmbedBehavior } from "@/features/embed-form";
+import {
+  freezeEmbedHeightReporting,
+  isEmbedHeightReportingFrozen,
+  resumeEmbedHeightReporting,
+  useSurveyEmbedBehavior,
+} from "@/features/embed-form";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
 import type { SubmissionOperation } from "@/features/public-form/application/submit-form-operation";
 import { submitPublicForm } from "@/features/public-form/application/submit-public-form";
@@ -130,11 +135,15 @@ export default function SurveyComponent({
         return;
       }
 
+      if (isEmbed && isEmbedHeightReportingFrozen()) {
+        resumeEmbedHeightReporting();
+      }
+
       enqueueSubmission(
         buildSubmissionData(sender, false, surveyLocales.length > 1),
       );
     },
-    [enqueueSubmission, surveyLocales.length],
+    [enqueueSubmission, isEmbed, surveyLocales.length],
   );
 
   const submitForm = useCallback(
@@ -147,6 +156,10 @@ export default function SurveyComponent({
       submissionUpdateGuard.current = true;
 
       clearQueue();
+      if (isEmbed) {
+        freezeEmbedHeightReporting();
+      }
+
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
       const submissionData = buildSubmissionData(
@@ -181,6 +194,10 @@ export default function SurveyComponent({
           });
         } else {
           submissionUpdateGuard.current = false;
+          if (isEmbed) {
+            freezeEmbedHeightReporting();
+          }
+
           event.showSaveError(
             result.error.message ??
               "Failed to submit form. Please try again and contact us if the problem persists.",
@@ -212,6 +229,7 @@ export default function SurveyComponent({
       onSubmitSuccess,
       surveyLocales.length,
       runtimeToken,
+      isEmbed,
     ],
   );
 

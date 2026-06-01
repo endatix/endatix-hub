@@ -5,6 +5,7 @@ import { useCallback, useRef } from "react";
 import { isSafeRedirectUrl } from "@/lib/utils/url-utils";
 import { EmbedFormInfo, EmbedMessagePayload, EmbedMessageType } from "../types";
 import { getEmbedMessagingContext } from "./embed-messaging-context";
+import { freezeEmbedHeightReporting } from "./embed-height-reporting";
 
 export interface UseSurveyEmbedBehaviorOptions {
   isEmbed: boolean;
@@ -56,6 +57,10 @@ export function useSurveyEmbedBehavior({
    */
   const sendEmbedMessage = useCallback(
     <T extends EmbedMessageType>(type: T, data?: EmbedMessageData<T>) => {
+      if (isEmbed && (type === "form-complete" || type === "form-error")) {
+        freezeEmbedHeightReporting();
+      }
+
       const messagingContext = getEmbedMessagingContext();
 
       if (
