@@ -1,56 +1,74 @@
 "use client";
 
-import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
-import { Submission } from "@/lib/endatix-api";
-import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
-import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
-import dynamic from "next/dynamic";
-import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
+import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
+import type { SubmissionGatePhase } from "@/features/public-form/domain/submission-gate";
+import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
+import {
+  FormRuntimeProvider,
+  useFormRuntime,
+} from "@/lib/form-runtime/form-runtime.context";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useState } from "react";
+import type { SubmissionOperation } from "../application/submit-form-operation";
+import AlreadyResponded from "./already-responded";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
 });
 
-registerAudioQuestion();
-addRandomizeGroupFeature();
+type RuntimePhase = SubmissionGatePhase | "completed";
 
 export type SurveyJsWrapperProps = {
-  definition: string;
-  formId: string;
-  submission?: Submission;
-  theme?: string;
-  customQuestions?: string[];
-  requiresReCaptcha?: boolean;
-  urlToken?: string;
   extensionIdsToLoad?: string[];
-} & (
-  | {
-      isEmbed: true;
-      definitionId: string;
-      limitOnePerUser?: boolean;
-      metadata?: string;
-    }
-  | {
-      isEmbed?: false;
-    }
-);
+  survey: PublicSurveyRuntimeProps;
+};
+
+type SurveyJsWrapperInnerProps = SurveyJsWrapperProps & {
+  onSubmitSuccess: (result: SubmissionOperation) => void;
+};
 
 const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
-  const {
-    formId,
-    definition,
-    submission,
-    theme,
-    customQuestions,
-    requiresReCaptcha,
-    urlToken,
-    extensionIdsToLoad,
-  } = props;
+  const { survey } = props;
+  const { markCompleted, phase } = useSurveySessionPhase(survey.submissionPhase);
+
+  if (phase === "blocked") {
+    return (
+      <AlreadyResponded
+        formId={survey.formId}
+        isEmbed={survey.variant === "embed"}
+        metadata={survey.activeDefinition.metadata}
+      />
+    );
+  }
+
+  return (
+    <FormRuntimeProvider
+      initialState={{
+        formId: survey.formId,
+        submissionId: survey.submission?.id,
+        token: survey.urlToken,
+        tokenType: survey.urlToken ? "AccessToken" : undefined,
+      }}
+    >
+      <AssetStorageClientProvider config={survey.storageConfig}>
+        <SurveyJsWrapperInner
+          {...props}
+          onSubmitSuccess={markCompleted}
+        />
+      </AssetStorageClientProvider>
+    </FormRuntimeProvider>
+  );
+};
+
+const SurveyJsWrapperInner = (props: SurveyJsWrapperInnerProps) => {
+  const { extensionIdsToLoad, onSubmitSuccess, survey } = props;
+  const { activeDefinition } = survey;
 
   const formRuntime = useFormRuntime();
   const { isReady, onModelCreated } = useSurveyExtensions({
-    formJson: definition,
+    formJson: activeDefinition.jsonData,
     extensionIdsToLoad,
     runtimeDeps: {
       getRuntimeState: () => formRuntime.stateRef.current,
@@ -58,33 +76,50 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
   });
 
   if (!isReady) {
-    return null;
+    return <div>Loading...</div>;
   }
 
-  const embedForm: EmbedFormInfo | undefined = props.isEmbed
+  const embedForm: EmbedFormInfo | undefined = survey.variant === "embed"
     ? {
-        formId,
-        definitionId: props.definitionId,
-        limitOnePerUser: props.limitOnePerUser ?? false,
-        requiresReCaptcha: requiresReCaptcha ?? false,
-        metadata: props.metadata,
+        formId: survey.formId,
+        definitionId: activeDefinition.id,
+        limitOnePerUser: activeDefinition.limitOnePerUser ?? false,
+        requiresReCaptcha: activeDefinition.requiresReCaptcha ?? false,
+        metadata: activeDefinition.metadata,
       }
     : undefined;
 
   return (
     <SurveyComponent
-      formId={formId}
-      definition={definition}
-      submission={submission}
-      theme={theme}
-      customQuestions={customQuestions}
-      requiresReCaptcha={requiresReCaptcha}
-      isEmbed={props.isEmbed ?? false}
+      formId={survey.formId}
+      definition={activeDefinition.jsonData}
+      submission={survey.submission}
+      theme={activeDefinition.themeModel}
+      customQuestions={activeDefinition.customQuestions}
+      requiresReCaptcha={activeDefinition.requiresReCaptcha}
+      isEmbed={survey.variant === "embed"}
+      isRespondentTestMode={survey.isRespondentTestMode}
       embedForm={embedForm}
-      urlToken={urlToken}
       onModelCreated={onModelCreated}
+      onSubmitSuccess={onSubmitSuccess}
     />
   );
 };
+
+function useSurveySessionPhase(initialPhase: SubmissionGatePhase) {
+  const [phase, setPhase] = useState<RuntimePhase>(initialPhase);
+
+  useEffect(() => {
+    setPhase((currentPhase) =>
+      currentPhase === "completed" ? currentPhase : initialPhase,
+    );
+  }, [initialPhase]);
+
+  const markCompleted = useCallback((_result: SubmissionOperation) => {
+    setPhase("completed");
+  }, []);
+
+  return { markCompleted, phase };
+}
 
 export default SurveyJsWrapper;

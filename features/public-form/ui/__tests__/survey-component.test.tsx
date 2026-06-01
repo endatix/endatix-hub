@@ -9,13 +9,13 @@ import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 // --- HOIST MOCK FUNCTIONS ---
 // All mock functions must be hoisted so they're available in vi.mock factories
 const {
-  mockSubmitFormAction,
+  mockSubmitPublicForm,
   mockEnqueueSubmission,
   mockClearQueue,
   mockUseSurveyModel,
   mockSendEmbedMessage,
 } = vi.hoisted(() => ({
-  mockSubmitFormAction: vi.fn(),
+  mockSubmitPublicForm: vi.fn(),
   mockEnqueueSubmission: vi.fn(),
   mockClearQueue: vi.fn().mockImplementation(() => {
     // This will be called synchronously, so we can add logging if needed
@@ -27,9 +27,9 @@ const {
 // --- MOCK DEPENDENCIES ---
 
 vi.mock(
-  "@/features/public-form/application/actions/submit-form.action",
+  "@/features/public-form/application/submit-public-form",
   () => ({
-    submitFormAction: mockSubmitFormAction,
+    submitPublicForm: mockSubmitPublicForm,
   }),
 );
 
@@ -214,7 +214,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     realSurveyModel.showCompletePage = false;
 
     // Setup default mock return values
-    mockSubmitFormAction.mockResolvedValue({
+    mockSubmitPublicForm.mockResolvedValue({
       success: true,
       data: { submissionId: "sub-456" },
     });
@@ -252,7 +252,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     });
 
     // Assert
-    expect(mockSubmitFormAction).toHaveBeenCalledTimes(1);
+    expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
     expect(mockClearQueue).toHaveBeenCalledTimes(1);
     expect(completeEventMocks.showSaveInProgress).toHaveBeenCalled();
 
@@ -277,7 +277,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
   it("sends a structured embed completion payload after successful submission", async () => {
     // Arrange
-    mockSubmitFormAction.mockResolvedValue({
+    mockSubmitPublicForm.mockResolvedValue({
       success: true,
       data: {
         submissionId: "sub-456",
@@ -305,7 +305,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
   it("should reset the guard flag on submission failure", async () => {
     // Arrange
-    mockSubmitFormAction.mockResolvedValue(
+    mockSubmitPublicForm.mockResolvedValue(
       ApiResult.networkError("Network error"),
     );
     renderSurveyComponent();
@@ -317,7 +317,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     });
 
     // Assert
-    await expect(mockSubmitFormAction).toHaveBeenCalledTimes(1);
+    await expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
     await expect(completeEventMocks.showSaveError).toHaveBeenCalledTimes(1);
 
     // Act: firing a partial update
@@ -334,7 +334,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
   it("sends a structured embed error payload after failed submission", async () => {
     // Arrange
-    mockSubmitFormAction.mockResolvedValue(
+    mockSubmitPublicForm.mockResolvedValue(
       ApiResult.networkError("Network error"),
     );
     renderSurveyComponent();
@@ -363,7 +363,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     await act(async () => {
       fireCompleteEvent();
     });
-    await expect(mockSubmitFormAction).toHaveBeenCalledTimes(1);
+    await expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
 
     // Act: firing a second onComplete immediately (while first is pending)
     let secondCompleteEventMocks!: ReturnType<typeof fireCompleteEvent>;
@@ -372,10 +372,10 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     });
 
     // Assert: that the submission action was NOT called again
-    await expect(mockSubmitFormAction).toHaveBeenCalledTimes(1);
+    await expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
     await expect(
       secondCompleteEventMocks.showSaveInProgress,
     ).not.toHaveBeenCalled();
-    await expect(mockSubmitFormAction).toHaveBeenCalledTimes(1);
+    await expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,7 +4,8 @@ import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { useSurveyEmbedBehavior } from "@/features/embed-form";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
-import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+import type { SubmissionOperation } from "@/features/public-form/application/submit-form-operation";
+import { submitPublicForm } from "@/features/public-form/application/submit-public-form";
 import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { SubmissionData } from "@/features/submissions/types";
@@ -27,6 +28,7 @@ import "survey-core/survey.i18n";
 import { Survey } from "survey-react-ui";
 import { useSubmissionQueue } from "../application/submission-queue";
 import { LanguageSelector } from "./language-selector";
+import { TestSubmissionBadge } from "./test-submission-badge";
 import styles from "./survey-component.module.css";
 import { useSurveyModel } from "./use-survey-model.hook";
 import { useSurveyTheme } from "./use-survey-theme.hook";
@@ -39,9 +41,10 @@ interface SurveyComponentProps {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   isEmbed?: boolean;
+  isRespondentTestMode?: boolean;
   embedForm?: EmbedFormInfo;
-  urlToken?: string;
   onModelCreated?: (model: Model) => void;
+  onSubmitSuccess?: (result: SubmissionOperation) => void;
 }
 
 type PartialUpdateEvent =
@@ -58,14 +61,16 @@ export default function SurveyComponent({
   customQuestions,
   requiresReCaptcha,
   isEmbed = false,
+  isRespondentTestMode,
   embedForm,
-  urlToken,
   onModelCreated,
+  onSubmitSuccess,
 }: SurveyComponentProps) {
   const formRuntime = useFormRuntime();
   const { stateRef, updateState } = formRuntime;
+  const runtimeToken = stateRef.current.token;
 
-  const { surveyModel } = useSurveyModel({
+  const { error: surveyModelError, surveyModel } = useSurveyModel({
     formId,
     definition,
     submission,
@@ -75,7 +80,7 @@ export default function SurveyComponent({
   });
   const { enqueueSubmission, clearQueue } = useSubmissionQueue(
     formId,
-    urlToken,
+    runtimeToken,
   );
   const [isSubmitting, startSubmitting] = useTransition();
   useSurveyTheme(theme, surveyModel);
@@ -119,28 +124,15 @@ export default function SurveyComponent({
     return surveyModel?.getUsedLocales() ?? [];
   }, [surveyModel]);
 
-  const updatePartial = useCallback(
-    (sender: SurveyModel, event: PartialUpdateEvent) => {
+  const trackPartialChange = useCallback(
+    (sender: SurveyModel, _event: PartialUpdateEvent) => {
       if (submissionUpdateGuard.current) {
-        console.debug(
-          "Submission update guard is on, skipping update. Event: ",
-          event,
-        );
         return;
       }
 
-      const formData = JSON.stringify(sender.data, null, 3);
-      const submissionData: SubmissionData = {
-        isComplete: false,
-        jsonData: formData,
-        currentPage: sender.currentPageNo,
-      };
-
-      if (surveyLocales.length > 1) {
-        submissionData.metadata = JSON.stringify({ language: sender.locale });
-      }
-
-      enqueueSubmission(submissionData);
+      enqueueSubmission(
+        buildSubmissionData(sender, false, surveyLocales.length > 1),
+      );
     },
     [enqueueSubmission, surveyLocales.length],
   );
@@ -157,17 +149,11 @@ export default function SurveyComponent({
       clearQueue();
       sender.showCompletePage = true;
       event.showSaveInProgress("Saving your answers...");
-      const formData = JSON.stringify(sender.data, null, 3);
-
-      const submissionData: SubmissionData = {
-        isComplete: true,
-        jsonData: formData,
-        currentPage: sender.currentPageNo ?? 0,
-      };
-
-      if (surveyLocales.length > 1) {
-        submissionData.metadata = JSON.stringify({ language: sender.locale });
-      }
+      const submissionData = buildSubmissionData(
+        sender,
+        true,
+        surveyLocales.length > 1,
+      );
 
       startSubmitting(async () => {
         if (recaptchaConfig.isReCaptchaEnabled() && requiresReCaptcha) {
@@ -177,9 +163,14 @@ export default function SurveyComponent({
           submissionData.reCaptchaToken = reCaptchaToken;
         }
 
-        const result = await submitFormAction(formId, submissionData, urlToken);
+        const result = await submitPublicForm(
+          formId,
+          submissionData,
+          runtimeToken,
+        );
         if (ApiResult.isSuccess(result)) {
           updateState({ submissionId: result.data.submissionId });
+          onSubmitSuccess?.(result.data);
           event.showSaveSuccess("The results were saved successfully!");
           sendEmbedMessage("form-complete", {
             submissionId: result.data.submissionId,
@@ -218,8 +209,9 @@ export default function SurveyComponent({
       trackException,
       requiresReCaptcha,
       sendEmbedMessage,
+      onSubmitSuccess,
       surveyLocales.length,
-      urlToken,
+      runtimeToken,
     ],
   );
 
@@ -231,34 +223,42 @@ export default function SurveyComponent({
     const unregisterStorage = registerStorageHandlers(surveyModel);
     const unregisterEmbed = registerEmbedHandlers(surveyModel);
     surveyModel.onComplete.add(submitForm);
-    surveyModel.onValueChanged.add(updatePartial);
-    surveyModel.onCurrentPageChanged.add(updatePartial);
-    surveyModel.onDynamicPanelValueChanged.add(updatePartial);
-    surveyModel.onMatrixCellValueChanged.add(updatePartial);
+    surveyModel.onValueChanged.add(trackPartialChange);
+    surveyModel.onCurrentPageChanged.add(trackPartialChange);
+    surveyModel.onDynamicPanelValueChanged.add(trackPartialChange);
+    surveyModel.onMatrixCellValueChanged.add(trackPartialChange);
 
     return () => {
       unregisterStorage();
       unregisterEmbed();
       surveyModel.onComplete.remove(submitForm);
-      surveyModel.onValueChanged.remove(updatePartial);
-      surveyModel.onCurrentPageChanged.remove(updatePartial);
-      surveyModel.onDynamicPanelValueChanged.remove(updatePartial);
-      surveyModel.onMatrixCellValueChanged.remove(updatePartial);
+      surveyModel.onValueChanged.remove(trackPartialChange);
+      surveyModel.onCurrentPageChanged.remove(trackPartialChange);
+      surveyModel.onDynamicPanelValueChanged.remove(trackPartialChange);
+      surveyModel.onMatrixCellValueChanged.remove(trackPartialChange);
     };
   }, [
     surveyModel,
     submitForm,
-    updatePartial,
+    trackPartialChange,
     registerStorageHandlers,
     registerEmbedHandlers,
   ]);
+
+  if (surveyModelError) {
+    return <div role="alert">{surveyModelError}</div>;
+  }
 
   if (!isModelReady) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className={isEmbed ? undefined : styles.layoutFullHeight}>
+    <div
+      className={isEmbed ? styles.embedShell : styles.layoutFullHeight}
+      style={surveyModel.themeVariables}
+    >
+      {isRespondentTestMode && <TestSubmissionBadge />}
       <LanguageSelector
         availableLocales={surveyLocales}
         surveyModel={surveyModel}
@@ -266,4 +266,22 @@ export default function SurveyComponent({
       <Survey model={surveyModel} />
     </div>
   );
+}
+
+function buildSubmissionData(
+  sender: SurveyModel,
+  isComplete: boolean,
+  includeLanguage: boolean,
+): SubmissionData {
+  const submissionData: SubmissionData = {
+    isComplete,
+    jsonData: JSON.stringify(sender.data, null, 3),
+    currentPage: sender.currentPageNo ?? 0,
+  };
+
+  if (includeLanguage) {
+    submissionData.metadata = JSON.stringify({ language: sender.locale });
+  }
+
+  return submissionData;
 }
