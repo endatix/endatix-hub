@@ -43,8 +43,6 @@ const HTTP_ERROR_PRESENTATION: Record<number, { title: string; type: string }> =
     },
   };
 
-const DEFAULT_HTTP_ERROR_PRESENTATION = HTTP_ERROR_PRESENTATION[500];
-
 const DEFAULT_INVALID_JSON_DETAIL = "Invalid JSON body";
 
 export type ParsedJsonBody<T> =
@@ -149,12 +147,23 @@ function mapApiErrorToErrorResponse(apiError: ApiError): ErrorResponse {
   };
 }
 
+function getHttpErrorPresentation(status: number): {
+  title: string;
+  type: string;
+} {
+  return (
+    HTTP_ERROR_PRESENTATION[status] ?? {
+      type: `https://httpstatuses.com/${status}`,
+      title: `${status} Error`,
+    }
+  );
+}
+
 function createProblemDetailsResponse(
   error: ErrorResponse,
   status: number,
 ): NextResponse {
-  const presentation =
-    HTTP_ERROR_PRESENTATION[status] ?? DEFAULT_HTTP_ERROR_PRESENTATION;
+  const presentation = getHttpErrorPresentation(status);
 
   const problemDetails: ProblemDetails = {
     type: presentation.type,

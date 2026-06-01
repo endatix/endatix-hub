@@ -11,7 +11,7 @@ export function TestSubmissionBadge() {
       data-testid="respondent-test-mode-badge"
     >
       <span className={`sd-slider__tooltip ${styles.badge}`}>
-        <span className="sd-slider__tooltip-panel">
+        <span className={`sd-slider__tooltip-panel ${styles.tooltipPanel}`}>
           <span className="sd-slider__tooltip-value">
             You are submitting test response
           </span>

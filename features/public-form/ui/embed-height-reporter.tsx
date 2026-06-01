@@ -9,12 +9,8 @@ export function EmbedHeightReporter() {
 
   useEffect(() => {
     function reportHeight() {
-      if (isEmbedHeightReportingFrozen()) {
-        return;
-      }
-
       const messagingContext = getEmbedMessagingContext();
-      if (embedHeightReporting.isFrozen()) {
+      if (isEmbedHeightReportingFrozen(messagingContext.embedId)) {
         return;
       }
 

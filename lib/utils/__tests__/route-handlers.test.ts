@@ -89,7 +89,8 @@ describe("route-handlers", () => {
       // Assert
       expect(response.status).toBe(502);
       expect(body.status).toBe(502);
-      expect(body.title).toBe("Internal Server Error");
+      expect(body.title).toBe("502 Error");
+      expect(body.type).toBe("https://httpstatuses.com/502");
     });
   });
 

@@ -34,7 +34,10 @@ export async function PublicSurveyContent({
     return notFound();
   }
 
-  if (pageResult.kind === "tokenSubmissionError") {
+  if (
+    pageResult.kind === "tokenSubmissionError" ||
+    pageResult.kind === "submissionLoadError"
+  ) {
     return <TokenSubmissionError errorCode={pageResult.errorCode} />;
   }
 

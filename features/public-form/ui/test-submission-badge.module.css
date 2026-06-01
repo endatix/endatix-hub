@@ -14,24 +14,6 @@
   opacity: 1;
 }
 
-.badge :global(.sd-slider__tooltip-panel)::after {
-  display: none;
-}
-
-.hoverTooltip {
-  top: calc(100% + var(--sjs-base-unit, var(--base-unit, 8px)));
-  right: 0;
-  bottom: auto;
-  opacity: 0;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.anchor:hover .hoverTooltip,
-.anchor:focus-visible .hoverTooltip {
-  opacity: 1;
-}
-
-.hoverTooltip :global(.sd-slider__tooltip-panel)::after {
+.badge .tooltipPanel::after {
   display: none;
 }

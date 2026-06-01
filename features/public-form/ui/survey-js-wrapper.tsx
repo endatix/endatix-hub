@@ -115,8 +115,10 @@ function useSurveySessionPhase(initialPhase: SubmissionGatePhase) {
     );
   }, [initialPhase]);
 
-  const markCompleted = useCallback((_result: SubmissionOperation) => {
-    setPhase("completed");
+  const markCompleted = useCallback((result: SubmissionOperation) => {
+    if (result.isComplete === true) {
+      setPhase("completed");
+    }
   }, []);
 
   return { markCompleted, phase };

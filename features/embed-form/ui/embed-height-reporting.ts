@@ -1,13 +1,21 @@
-let frozen = false;
+import { EMBED_ID_QUERY_PARAM } from "./embed-messaging-context";
 
-export function freezeEmbedHeightReporting(): void {
-  frozen = true;
+const frozenEmbedIds = new Set<string>();
+
+export type EmbedId = string | undefined;
+
+export function freezeEmbedHeightReporting(embedId: EmbedId): void {
+  frozenEmbedIds.add(getEmbedKey(embedId));
 }
 
-export function resumeEmbedHeightReporting(): void {
-  frozen = false;
+export function resumeEmbedHeightReporting(embedId: EmbedId): void {
+  frozenEmbedIds.delete(getEmbedKey(embedId));
 }
 
-export function isEmbedHeightReportingFrozen(): boolean {
-  return frozen;
+export function isEmbedHeightReportingFrozen(embedId: EmbedId): boolean {
+  return frozenEmbedIds.has(getEmbedKey(embedId));
+}
+
+function getEmbedKey(embedId: EmbedId): string {
+  return embedId ?? EMBED_ID_QUERY_PARAM;
 }

@@ -5,7 +5,12 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
-import { ApiResult, type Submission } from "@/lib/endatix-api";
+import {
+  ApiErrorType,
+  ApiResult,
+  isNotFoundError,
+  type Submission,
+} from "@/lib/endatix-api";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { Result } from "@/lib/result";
 import type { ActiveDefinition } from "@/types";
@@ -44,6 +49,10 @@ export type LoadPublicSurveyPageResult =
   | {
       kind: "tokenSubmissionError";
       errorCode: string;
+    }
+  | {
+      kind: "submissionLoadError";
+      errorCode: string;
     };
 
 /**
@@ -69,7 +78,10 @@ export async function loadPublicSurveyPageUseCase({
     return { kind: "notFound" };
   }
 
-  if (submissionResult.kind === "tokenSubmissionError") {
+  if (
+    submissionResult.kind === "tokenSubmissionError" ||
+    submissionResult.kind === "submissionLoadError"
+  ) {
     return submissionResult;
   }
 
@@ -85,7 +97,8 @@ export async function loadPublicSurveyPageUseCase({
     kind: "success",
     activeDefinition: activeDefinitionResult.value,
     submissionPhase: resolveSubmissionGate({
-      hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
+      canStartNewSubmission:
+        publicFormAccessResult.value.canStartNewSubmission,
       hasResumableDraft,
       hasUrlToken: Boolean(urlToken),
     }),
@@ -101,6 +114,10 @@ type LoadedSubmissionResult =
     }
   | {
       kind: "tokenSubmissionError";
+      errorCode: string;
+    }
+  | {
+      kind: "submissionLoadError";
       errorCode: string;
     };
 
@@ -134,8 +151,29 @@ async function loadSubmission({
     tokenStore,
   });
 
+  if (ApiResult.isSuccess(partialResult)) {
+    return {
+      kind: "success",
+      value: partialResult.data,
+    };
+  }
+
+  if (isNotFoundError(partialResult)) {
+    return {
+      kind: "success",
+      value: undefined,
+    };
+  }
+
+  if (partialResult.error.type === ApiErrorType.ValidationError) {
+    return {
+      kind: "success",
+      value: undefined,
+    };
+  }
+
   return {
-    kind: "success",
-    value: ApiResult.isSuccess(partialResult) ? partialResult.data : undefined,
+    kind: "submissionLoadError",
+    errorCode: partialResult.error.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
   };
 }

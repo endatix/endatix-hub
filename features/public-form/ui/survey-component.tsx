@@ -8,6 +8,7 @@ import {
   resumeEmbedHeightReporting,
   useSurveyEmbedBehavior,
 } from "@/features/embed-form";
+import { getEmbedMessagingContext } from "@/features/embed-form/ui/embed-messaging-context";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
 import type { SubmissionOperation } from "@/features/public-form/application/submit-form-operation";
 import { submitPublicForm } from "@/features/public-form/application/submit-public-form";
@@ -118,6 +119,8 @@ export default function SurveyComponent({
     formId,
     embedForm,
   });
+  const embedId = isEmbed ? getEmbedMessagingContext().embedId : undefined;
+
   useEffect(() => {
     if (submission?.id) {
       updateState({ submissionId: submission.id });
@@ -134,15 +137,15 @@ export default function SurveyComponent({
         return;
       }
 
-      if (isEmbed && isEmbedHeightReportingFrozen()) {
-        resumeEmbedHeightReporting();
+      if (isEmbed && isEmbedHeightReportingFrozen(embedId)) {
+        resumeEmbedHeightReporting(embedId);
       }
 
       enqueueSubmission(
         buildSubmissionData(sender, false, surveyLocales.length > 1),
       );
     },
-    [enqueueSubmission, isEmbed, surveyLocales.length],
+    [embedId, enqueueSubmission, isEmbed, surveyLocales.length],
   );
 
   const submitForm = useCallback(
@@ -156,7 +159,7 @@ export default function SurveyComponent({
 
       clearQueue();
       if (isEmbed) {
-        freezeEmbedHeightReporting();
+        freezeEmbedHeightReporting(embedId);
       }
 
       sender.showCompletePage = true;
@@ -194,7 +197,7 @@ export default function SurveyComponent({
         } else {
           submissionUpdateGuard.current = false;
           if (isEmbed) {
-            freezeEmbedHeightReporting();
+            freezeEmbedHeightReporting(embedId);
           }
 
           event.showSaveError(
@@ -229,6 +232,7 @@ export default function SurveyComponent({
       surveyLocales.length,
       runtimeToken,
       isEmbed,
+      embedId,
     ],
   );
 

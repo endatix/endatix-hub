@@ -230,6 +230,22 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
   });
 
+  it("propagates partial submission lookup failures instead of treating them as no draft", async () => {
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.networkError("Upstream unavailable"),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId: "form-1",
+      tokenStore: tokenStore as never,
+    });
+
+    expect(result).toEqual({
+      kind: "submissionLoadError",
+      errorCode: ERROR_CODE.NETWORK_ERROR,
+    });
+  });
+
   it("returns notFound when access or definition cannot be loaded", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.error("Access denied"),
