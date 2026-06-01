@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
 import { SubmissionQueue } from "../submission-queue/submission-queue";
-import { submitFormAction } from "../actions/submit-form.action";
-import { Result } from "@/lib/result";
+import { submitPublicForm } from "../submit-public-form";
 import { captureException } from "@/features/analytics/posthog/client";
 import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
 
-// Mock the submitFormAction and captureException
-vi.mock("../actions/submit-form.action", () => ({
-  submitFormAction: vi.fn(),
+// Mock the submitPublicForm and captureException
+vi.mock("../submit-public-form", () => ({
+  submitPublicForm: vi.fn(),
 }));
 
 vi.mock("@/features/analytics/posthog/client", () => ({
@@ -16,7 +15,7 @@ vi.mock("@/features/analytics/posthog/client", () => ({
 
 describe("SubmissionQueue", () => {
   let queue: SubmissionQueue;
-  const mockSubmitForm = submitFormAction as Mock;
+  const mockSubmitForm = submitPublicForm as Mock;
   const mockCaptureException = captureException as Mock;
 
   beforeEach(() => {
@@ -32,8 +31,12 @@ describe("SubmissionQueue", () => {
 
   it("should process items in queue sequentially", async () => {
     // Arrange
-    mockSubmitForm.mockResolvedValueOnce(Result.success({ isSuccess: true }));
-    mockSubmitForm.mockResolvedValueOnce(Result.success({ isSuccess: true }));
+    mockSubmitForm.mockResolvedValueOnce(
+      ApiResult.success({ isSuccess: true }),
+    );
+    mockSubmitForm.mockResolvedValueOnce(
+      ApiResult.success({ isSuccess: true }),
+    );
 
     const items = [
       {
@@ -82,7 +85,9 @@ describe("SubmissionQueue", () => {
     });
 
     mockSubmitForm.mockImplementationOnce(() => firstSubmission);
-    mockSubmitForm.mockResolvedValueOnce(Result.success({ isSuccess: true }));
+    mockSubmitForm.mockResolvedValueOnce(
+      ApiResult.success({ isSuccess: true }),
+    );
 
     // Act
     queue.enqueue({
@@ -110,7 +115,7 @@ describe("SubmissionQueue", () => {
     expect(mockSubmitForm).toHaveBeenCalledTimes(1);
 
     // Complete first submission
-    resolveFirst!(Result.success({ isSuccess: true }));
+    resolveFirst!(ApiResult.success({ isSuccess: true }));
     await vi.runAllTimersAsync();
 
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
@@ -121,7 +126,9 @@ describe("SubmissionQueue", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const error = new Error("Network error");
     mockSubmitForm.mockRejectedValueOnce(error);
-    mockSubmitForm.mockResolvedValueOnce(Result.success({ isSuccess: true }));
+    mockSubmitForm.mockResolvedValueOnce(
+      ApiResult.success({ isSuccess: true }),
+    );
 
     // Act
     queue.enqueue({
@@ -158,7 +165,7 @@ describe("SubmissionQueue", () => {
 
   it("should clear queue and stop processing", async () => {
     // Arrange
-    mockSubmitForm.mockResolvedValue(Result.success({ isSuccess: true }));
+    mockSubmitForm.mockResolvedValue(ApiResult.success({ isSuccess: true }));
 
     // Act
     queue.enqueue({
@@ -227,7 +234,7 @@ describe("SubmissionQueue", () => {
   it("should process items added while processing previous items", async () => {
     // Arrange
     mockSubmitForm.mockImplementation(() =>
-      Promise.resolve(Result.success({ isSuccess: true })),
+      Promise.resolve(ApiResult.success({ isSuccess: true })),
     );
 
     // Act

@@ -1,7 +1,7 @@
 import { captureException } from "@/features/analytics/posthog/client";
 import { SubmissionData } from "@/features/submissions/types";
-import { submitFormAction } from "../actions/submit-form.action";
 import { ApiResult } from "@/lib/endatix-api";
+import { submitPublicForm } from "../submit-public-form";
 
 interface QueueItem {
   formId: string;
@@ -25,7 +25,7 @@ export class SubmissionQueue {
         return;
       }
 
-      const submitResult = await submitFormAction(
+      const submitResult = await submitPublicForm(
         itemToProcess.formId,
         itemToProcess.data,
         itemToProcess.urlToken,

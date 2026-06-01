@@ -3,7 +3,7 @@ import { KEYCLOAK_ID } from "@/features/auth/infrastructure/providers/keycloak-a
 import { authRegistry } from "@/features/auth/infrastructure/auth-provider-registry";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { exchangeKeycloakToken } from "@/features/auth/session-bridge/keycloak-token-exchange";
-import { apiResponses, toNextResponse } from "@/lib/utils/route-handlers";
+import { apiResponses, toApiResponse } from "@/lib/utils/route-handlers";
 import { ApiResult } from "@/lib/endatix-api";
 import { createSessionFromToken } from "@/features/auth/session-bridge/keycloak-session-bridge";
 import { SessionBridgeRequestSchema } from "./types";
@@ -55,7 +55,7 @@ export async function sessionBridgeHandler(
       accessToken,
     );
     if (ApiResult.isError(exchangeKeycloakTokenResult)) {
-      return toNextResponse(exchangeKeycloakTokenResult);
+      return toApiResponse(exchangeKeycloakTokenResult);
     }
 
     const sessionResponse = await createSessionFromToken(
