@@ -26,18 +26,22 @@ export interface FormAccessTokenResponse {
   expiresAtUtc: string;
 }
 
-/** Query for GET /access/public/forms/{formId}. */
+/** Query for GET /public/forms/{formId}/access. */
 export interface GetPublicFormAccessRequest {
   token?: string;
   tokenType?: "AccessToken" | "SubmissionToken";
 }
 
-/** Response from GET /access/public/forms/{formId}. */
+/** Response from GET /public/forms/{formId}/access. */
 export interface PublicFormAccessResponse {
   formId: string;
   submissionId: string | null;
   formPermissions: string[];
   submissionPermissions: string[];
+  limitOnePerUser: boolean;
+  hasUserSubmitted: boolean;
+  canStartNewSubmission: boolean;
+  isRespondentTestMode: boolean;
   cachedAt: string;
   expiresAt: string;
   eTag: string;

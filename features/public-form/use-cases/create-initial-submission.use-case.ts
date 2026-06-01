@@ -1,8 +1,10 @@
-import { ApiResult, Submission, SubmissionData } from "@/lib/endatix-api";
+import { ApiResult, SubmissionData } from "@/lib/endatix-api";
+import { cookies } from "next/headers";
 import {
   SubmissionOperation,
-  submitFormAction,
-} from "../application/actions/submit-form.action";
+  submitFormOperation,
+} from "../application/submit-form-operation";
+import { FormTokenCookieStore } from "../infrastructure/cookie-store";
 
 export const createInitialSubmissionUseCase = async (
   formId: string,
@@ -25,9 +27,12 @@ export const createInitialSubmissionUseCase = async (
       ...(formLang ? { language: formLang } : {}),
     }),
   };
-  const initialSubmissionResult = await submitFormAction(
+  const cookieStore = await cookies();
+  const tokenStore = new FormTokenCookieStore(cookieStore);
+  const initialSubmissionResult = await submitFormOperation(
     formId,
     submissionData,
+    tokenStore,
   );
 
   return initialSubmissionResult;

@@ -1,0 +1,19 @@
+.anchor {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1000;
+  outline: none;
+}
+
+.badge {
+  position: static;
+  display: block;
+  bottom: auto;
+  opacity: 1;
+}
+
+.badge .tooltipPanel::after {
+  display: none;
+}

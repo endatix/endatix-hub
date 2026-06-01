@@ -1,16 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createInitialSubmissionUseCase } from "@/features/public-form/use-cases/create-initial-submission.use-case";
-import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+import { submitFormOperation } from "@/features/public-form/application/submit-form-operation";
 import { ApiResult } from "@/lib/endatix-api";
-import { SubmissionOperation } from "@/features/public-form/application/actions/submit-form.action";
+import { SubmissionOperation } from "@/features/public-form/application/submit-form-operation";
 
-// Mock the submitFormAction
-vi.mock(
-  "@/features/public-form/application/actions/submit-form.action",
-  () => ({
-    submitFormAction: vi.fn(),
+const { mockCookieStore, mockTokenStore } = vi.hoisted(() => ({
+  mockCookieStore: {},
+  mockTokenStore: {
+    getToken: vi.fn(),
+    setToken: vi.fn(),
+    deleteToken: vi.fn(),
+  },
+}));
+
+// Mock the submitFormOperation
+vi.mock("@/features/public-form/application/submit-form-operation", () => ({
+  submitFormOperation: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue(mockCookieStore),
+}));
+
+vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
+  FormTokenCookieStore: vi.fn().mockImplementation(function () {
+    return mockTokenStore;
   }),
-);
+}));
 
 describe("createInitialSubmissionUseCase", () => {
   const mockFormId = "form-123";
@@ -27,7 +43,7 @@ describe("createInitialSubmissionUseCase", () => {
       submissionId: "sub-123",
     };
 
-    vi.mocked(submitFormAction).mockResolvedValue(
+    vi.mocked(submitFormOperation).mockResolvedValue(
       ApiResult.success(mockSubmissionOperation),
     );
 
@@ -44,14 +60,18 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.data).toEqual(mockSubmissionOperation);
     }
 
-    expect(submitFormAction).toHaveBeenCalledWith(mockFormId, {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: mockReasonCreated,
-        language: mockFormLang,
-      }),
-    });
+    expect(submitFormOperation).toHaveBeenCalledWith(
+      mockFormId,
+      {
+        isComplete: false,
+        jsonData: JSON.stringify({}),
+        metadata: JSON.stringify({
+          reasonCreated: mockReasonCreated,
+          language: mockFormLang,
+        }),
+      },
+      mockTokenStore,
+    );
   });
 
   it("should successfully create initial submission without language", async () => {
@@ -60,7 +80,7 @@ describe("createInitialSubmissionUseCase", () => {
       submissionId: "sub-123",
     };
 
-    vi.mocked(submitFormAction).mockResolvedValue(
+    vi.mocked(submitFormOperation).mockResolvedValue(
       ApiResult.success(mockSubmissionOperation),
     );
 
@@ -77,13 +97,17 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.data).toEqual(mockSubmissionOperation);
     }
 
-    expect(submitFormAction).toHaveBeenCalledWith(mockFormId, {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: mockReasonCreated,
-      }),
-    });
+    expect(submitFormOperation).toHaveBeenCalledWith(
+      mockFormId,
+      {
+        isComplete: false,
+        jsonData: JSON.stringify({}),
+        metadata: JSON.stringify({
+          reasonCreated: mockReasonCreated,
+        }),
+      },
+      mockTokenStore,
+    );
   });
 
   it("should successfully create initial submission with empty string language", async () => {
@@ -92,7 +116,7 @@ describe("createInitialSubmissionUseCase", () => {
       submissionId: "sub-123",
     };
 
-    vi.mocked(submitFormAction).mockResolvedValue(
+    vi.mocked(submitFormOperation).mockResolvedValue(
       ApiResult.success(mockSubmissionOperation),
     );
 
@@ -109,13 +133,17 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.data).toEqual(mockSubmissionOperation);
     }
 
-    expect(submitFormAction).toHaveBeenCalledWith(mockFormId, {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: mockReasonCreated,
-      }),
-    });
+    expect(submitFormOperation).toHaveBeenCalledWith(
+      mockFormId,
+      {
+        isComplete: false,
+        jsonData: JSON.stringify({}),
+        metadata: JSON.stringify({
+          reasonCreated: mockReasonCreated,
+        }),
+      },
+      mockTokenStore,
+    );
   });
 
   it("should return validation error when formId is empty", async () => {
@@ -132,7 +160,7 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.error.message).toBe("Form ID is required");
     }
 
-    expect(submitFormAction).not.toHaveBeenCalled();
+    expect(submitFormOperation).not.toHaveBeenCalled();
   });
 
   it("should return validation error when formId is undefined", async () => {
@@ -149,7 +177,7 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.error.message).toBe("Form ID is required");
     }
 
-    expect(submitFormAction).not.toHaveBeenCalled();
+    expect(submitFormOperation).not.toHaveBeenCalled();
   });
 
   it("should return validation error when reasonCreated is empty", async () => {
@@ -166,7 +194,7 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.error.message).toBe("Reason created is required");
     }
 
-    expect(submitFormAction).not.toHaveBeenCalled();
+    expect(submitFormOperation).not.toHaveBeenCalled();
   });
 
   it("should return validation error when reasonCreated is undefined", async () => {
@@ -183,7 +211,7 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.error.message).toBe("Reason created is required");
     }
 
-    expect(submitFormAction).not.toHaveBeenCalled();
+    expect(submitFormOperation).not.toHaveBeenCalled();
   });
 
   it("should return validation error when reasonCreated is null", async () => {
@@ -200,13 +228,13 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.error.message).toBe("Reason created is required");
     }
 
-    expect(submitFormAction).not.toHaveBeenCalled();
+    expect(submitFormOperation).not.toHaveBeenCalled();
   });
 
-  it("should propagate error from submitFormAction", async () => {
+  it("should propagate error from submitFormOperation", async () => {
     // Arrange
     const mockError = "Submission failed";
-    vi.mocked(submitFormAction).mockResolvedValue(
+    vi.mocked(submitFormOperation).mockResolvedValue(
       ApiResult.serverError(mockError),
     );
 
@@ -223,20 +251,24 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.error.message).toBe(mockError);
     }
 
-    expect(submitFormAction).toHaveBeenCalledWith(mockFormId, {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: mockReasonCreated,
-        language: mockFormLang,
-      }),
-    });
+    expect(submitFormOperation).toHaveBeenCalledWith(
+      mockFormId,
+      {
+        isComplete: false,
+        jsonData: JSON.stringify({}),
+        metadata: JSON.stringify({
+          reasonCreated: mockReasonCreated,
+          language: mockFormLang,
+        }),
+      },
+      mockTokenStore,
+    );
   });
 
-  it("should handle submitFormAction throwing an exception", async () => {
+  it("should handle submitFormOperation throwing an exception", async () => {
     // Arrange
     const mockError = new Error("Network error");
-    vi.mocked(submitFormAction).mockRejectedValue(mockError);
+    vi.mocked(submitFormOperation).mockRejectedValue(mockError);
 
     // Act & Assert
     await expect(
@@ -247,14 +279,18 @@ describe("createInitialSubmissionUseCase", () => {
       ),
     ).rejects.toThrow("Network error");
 
-    expect(submitFormAction).toHaveBeenCalledWith(mockFormId, {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: mockReasonCreated,
-        language: mockFormLang,
-      }),
-    });
+    expect(submitFormOperation).toHaveBeenCalledWith(
+      mockFormId,
+      {
+        isComplete: false,
+        jsonData: JSON.stringify({}),
+        metadata: JSON.stringify({
+          reasonCreated: mockReasonCreated,
+          language: mockFormLang,
+        }),
+      },
+      mockTokenStore,
+    );
   });
 
   it("should handle special characters in reasonCreated", async () => {
@@ -265,7 +301,7 @@ describe("createInitialSubmissionUseCase", () => {
       submissionId: "sub-123",
     };
 
-    vi.mocked(submitFormAction).mockResolvedValue(
+    vi.mocked(submitFormOperation).mockResolvedValue(
       ApiResult.success(mockSubmissionOperation),
     );
 
@@ -282,14 +318,18 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.data).toEqual(mockSubmissionOperation);
     }
 
-    expect(submitFormAction).toHaveBeenCalledWith(mockFormId, {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: specialReason,
-        language: mockFormLang,
-      }),
-    });
+    expect(submitFormOperation).toHaveBeenCalledWith(
+      mockFormId,
+      {
+        isComplete: false,
+        jsonData: JSON.stringify({}),
+        metadata: JSON.stringify({
+          reasonCreated: specialReason,
+          language: mockFormLang,
+        }),
+      },
+      mockTokenStore,
+    );
   });
 
   it("should handle unicode characters in formId and reasonCreated", async () => {
@@ -300,7 +340,7 @@ describe("createInitialSubmissionUseCase", () => {
       submissionId: "sub-123",
     };
 
-    vi.mocked(submitFormAction).mockResolvedValue(
+    vi.mocked(submitFormOperation).mockResolvedValue(
       ApiResult.success(mockSubmissionOperation),
     );
 
@@ -317,13 +357,17 @@ describe("createInitialSubmissionUseCase", () => {
       expect(result.data).toEqual(mockSubmissionOperation);
     }
 
-    expect(submitFormAction).toHaveBeenCalledWith(unicodeFormId, {
-      isComplete: false,
-      jsonData: JSON.stringify({}),
-      metadata: JSON.stringify({
-        reasonCreated: unicodeReason,
-        language: mockFormLang,
-      }),
-    });
+    expect(submitFormOperation).toHaveBeenCalledWith(
+      unicodeFormId,
+      {
+        isComplete: false,
+        jsonData: JSON.stringify({}),
+        metadata: JSON.stringify({
+          reasonCreated: unicodeReason,
+          language: mockFormLang,
+        }),
+      },
+      mockTokenStore,
+    );
   });
 });

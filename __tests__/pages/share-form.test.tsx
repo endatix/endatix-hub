@@ -1,25 +1,8 @@
 import ShareFormPage from "@/app/(public)/share/[formId]/page";
-import { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
-import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
-import {
-  getPartialSubmissionUseCase,
-  PartialSubmissionResult,
-} from "@/features/public-form/use-cases/get-partial-submission.use-case";
-import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
-import { ApiResult, Submission } from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
-import { ActiveDefinition } from "@/types";
 import { render, screen } from "@testing-library/react";
-import { notFound } from "next/navigation";
-import { ScriptProps } from "next/script";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-// Mock Next.js modules
 vi.mock("next/server", () => ({}));
-vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockResolvedValue({}),
-}));
-
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(),
   forbidden: vi.fn(),
@@ -29,392 +12,73 @@ vi.mock("next/navigation", () => ({
   useRouter: vi.fn(),
 }));
 
-vi.mock("next/script", () => ({
-  default: ({ children, ...props }: ScriptProps) => (
-    <script {...props}>{children}</script>
-  ),
-}));
-
-// Mock auth functions
-vi.mock("@/features/auth", () => ({
-  requireAdminAccess: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock("next-auth/react", () => ({
-  useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
-}));
-
-vi.mock("@/lib/endatix-api/public/forms/form-access-token.client", () => ({
-  buildFormAccessTokenBody: vi.fn(() => ({})),
-  createFormAccessToken: vi.fn().mockResolvedValue({
-    success: true,
-    data: {
-      token: "test-jwt",
-      expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),
-    },
-  }),
-}));
-
-// Mock use cases
-vi.mock(
-  "@/features/public-form/use-cases/get-active-definition.use-case",
-  () => ({
-    getActiveDefinitionUseCase: vi.fn(),
-  }),
-);
-
-vi.mock(
-  "@/features/public-form/use-cases/get-partial-submission.use-case",
-  () => ({
-    getPartialSubmissionUseCase: vi.fn(),
-  }),
-);
-
-vi.mock(
-  "@/features/public-submissions/edit/get-submission-by-access-token.use-case",
-  () => ({
-    getSubmissionByAccessTokenUseCase: vi.fn(),
-  }),
-);
-
-// Mock cookie store
-vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
-  FormTokenCookieStore: vi.fn().mockImplementation(function () {
-    return {};
-  }),
-}));
-
-// Mock recaptcha config
-vi.mock("@/features/recaptcha/recaptcha-config", () => ({
-  recaptchaConfig: {
-    isReCaptchaEnabled: vi.fn().mockReturnValue(false),
-    JS_URL: "https://www.google.com/recaptcha/api.js",
-  },
-}));
-
-// Mock recaptcha components
-vi.mock("@/features/recaptcha/ui/recaptcha-style-fix", () => ({
-  ReCaptchaStyleFix: () => <div data-testid="recaptcha-style-fix" />,
-}));
-
-// Mock storage config
-vi.mock("@/features/asset-storage/server", () => ({
-  AssetStorageProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="asset-storage-provider">{children}</div>
-  ),
-  createStorageConfigClient: vi.fn(() => ({
-    config: {
-      containerNames: {
-        USER_FILES: "user-files",
-        CONTENT: "content",
-      },
-    },
-  })),
-}));
-
-// Mock storage client components
-vi.mock("@/features/asset-storage/client", () => ({
-  AssetStorageClientProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="asset-storage-client-provider">{children}</div>
-  ),
-}));
-
-// Mock SurveyJsWrapper
-vi.mock("@/features/public-form/ui/survey-js-wrapper", () => ({
-  default: ({
+vi.mock("@/features/public-form/ui/public-survey-content", () => ({
+  PublicSurveyContent: ({
     formId,
-    definition,
-    submission,
-    theme,
-    customQuestions,
-    requiresReCaptcha,
-  }: SurveyJsWrapperProps) => (
-    <div data-testid="survey-js-wrapper">
-      <div data-testid="form-id">{formId}</div>
-      <div data-testid="definition">{JSON.stringify(definition)}</div>
-      <div data-testid="submission">{JSON.stringify(submission)}</div>
-      <div data-testid="theme">{JSON.stringify(theme)}</div>
-      <div data-testid="custom-questions">
-        {JSON.stringify(customQuestions)}
-      </div>
-      <div data-testid="requires-recaptcha">
-        {requiresReCaptcha?.toString()}
-      </div>
-    </div>
+    urlToken,
+    variant,
+  }: {
+    formId: string;
+    urlToken?: string;
+    variant: string;
+  }) => (
+    <div
+      data-form-id={formId}
+      data-testid="public-survey-content"
+      data-token={urlToken}
+      data-variant={variant}
+    />
+  ),
+}));
+
+vi.mock("@/features/public-form/ui/public-survey-skeleton", () => ({
+  PublicSurveySkeleton: ({ variant }: { variant: string }) => (
+    <div data-testid="public-survey-skeleton" data-variant={variant} />
   ),
 }));
 
 describe("ShareForm Page", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("calls notFound() when definition is not found", async () => {
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.error("Form not found"),
-    );
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.notFoundError(
-        "Submission not found",
-      ) as PartialSubmissionResult,
-    );
-
-    const props = {
-      params: Promise.resolve({ formId: "invalid-id" }),
-      searchParams: Promise.resolve({}),
-    };
-
-    // The component should call notFound() and not return JSX
-    await expect(ShareFormPage(props)).rejects.toThrow();
-
-    // Verify notFound was called
-    expect(notFound).toHaveBeenCalled();
-  });
-
-  it("renders form when definition is found", async () => {
-    const mockDefinition = {
-      jsonData: { title: "Test Form" },
-      themeModel: {},
-      customQuestions: [],
-      requiresReCaptcha: false,
-    };
-
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success(mockDefinition as unknown as ActiveDefinition),
-    );
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
-    );
-
-    const props = {
+  it("renders the shared respondent content inside the share shell", async () => {
+    const component = await ShareFormPage({
       params: Promise.resolve({ formId: "valid-id" }),
       searchParams: Promise.resolve({}),
-    };
+    });
 
-    const component = await ShareFormPage(props);
     render(component);
 
-    expect(notFound).not.toHaveBeenCalled();
-    expect(component).toMatchSnapshot();
+    const content = screen.getByTestId("public-survey-content");
+    expect(content.getAttribute("data-form-id")).toBe("valid-id");
+    expect(content.getAttribute("data-variant")).toBe("share");
   });
 
-  it("renders form with submission data when available", async () => {
-    const mockDefinition = {
-      jsonData: { title: "Test Form" },
-      themeModel: { primaryColor: "#007bff" },
-      customQuestions: [{ id: "q1", type: "text" }],
-      requiresReCaptcha: false,
-    };
-
-    const mockSubmission = {
-      data: { q1: "test answer" },
-      timestamp: "2024-01-01T00:00:00Z",
-    };
-
-    const validAccessToken = "123.1705824000.rw.abc123def456";
-
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success(mockDefinition as unknown as ActiveDefinition),
-    );
-    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
-      Result.success(mockSubmission as unknown as Submission),
-    );
-
-    const props = {
+  it("passes the URL token to respondent content", async () => {
+    const accessToken = "submission.1705824000.rw.signature";
+    const component = await ShareFormPage({
       params: Promise.resolve({ formId: "valid-id" }),
-      searchParams: Promise.resolve({ token: validAccessToken }),
-    };
+      searchParams: Promise.resolve({ token: accessToken }),
+    });
 
-    const component = await ShareFormPage(props);
     render(component);
 
-    expect(notFound).not.toHaveBeenCalled();
-    expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
-    expect(screen.getByTestId("form-id").textContent || "").toContain(
-      "valid-id",
-    );
-    expect(screen.getByTestId("submission").textContent || "").toContain(
-      JSON.stringify(mockSubmission),
-    );
-    expect(screen.getByTestId("theme").textContent || "").toContain(
-      JSON.stringify(mockDefinition.themeModel),
-    );
-    expect(screen.getByTestId("custom-questions").textContent || "").toContain(
-      JSON.stringify(mockDefinition.customQuestions),
-    );
-  });
-
-  it("renders already responded state when user has submitted", async () => {
-    // Arrange
-    const mockDefinition = {
-      jsonData: { title: "Test Form" },
-      hasUserSubmitted: true,
-      metadata: JSON.stringify({
-        alreadyResponded: { message: "You already completed this survey." },
-      }),
-    };
-
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success(mockDefinition as unknown as ActiveDefinition),
-    );
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
-    );
-
-    const props = {
-      params: Promise.resolve({ formId: "valid-id" }),
-      searchParams: Promise.resolve({}),
-    };
-
-    // Act
-    const component = await ShareFormPage(props);
-    render(component);
-
-    // Assert
-    expect(screen.getByText("Already Responded")).toBeDefined();
     expect(
-      screen.getByText("You already completed this survey."),
-    ).toBeDefined();
-    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+      screen.getByTestId("public-survey-content").getAttribute("data-token"),
+    ).toBe(accessToken);
   });
 
-  it("falls back to default already responded message for null metadata JSON", async () => {
-    // Arrange
-    const mockDefinition = {
-      jsonData: { title: "Test Form" },
-      hasUserSubmitted: true,
-      metadata: "null",
-    };
-
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success(mockDefinition as unknown as ActiveDefinition),
-    );
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
-    );
-
-    const props = {
+  it("keeps the existing read/write token pre-checks", async () => {
+    const component = await ShareFormPage({
       params: Promise.resolve({ formId: "valid-id" }),
-      searchParams: Promise.resolve({}),
-    };
+      searchParams: Promise.resolve({
+        token: "submission.1705824000.r.signature",
+      }),
+    });
 
-    // Act
-    const component = await ShareFormPage(props);
     render(component);
 
-    // Assert
+    expect(screen.getByText("Access Denied")).toBeDefined();
     expect(
-      screen.getByText("You have already submitted a response for this form."),
+      screen.getByText("The access token does not include edit permissions."),
     ).toBeDefined();
-  });
-
-  it("falls back to default message for empty configured value", async () => {
-    // Arrange
-    const mockDefinition = {
-      jsonData: { title: "Test Form" },
-      hasUserSubmitted: true,
-      metadata: JSON.stringify({
-        alreadyResponded: { message: "" },
-      }),
-    };
-
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success(mockDefinition as unknown as ActiveDefinition),
-    );
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.notFoundError("No submission") as PartialSubmissionResult,
-    );
-
-    const props = {
-      params: Promise.resolve({ formId: "valid-id" }),
-      searchParams: Promise.resolve({}),
-    };
-
-    // Act
-    const component = await ShareFormPage(props);
-    render(component);
-
-    // Assert
-    expect(
-      screen.getByText("You have already submitted a response for this form."),
-    ).toBeDefined();
-  });
-
-  it("does not gate token edit flow when user already submitted", async () => {
-    // Arrange
-    const mockDefinition = {
-      jsonData: { title: "Test Form" },
-      hasUserSubmitted: true,
-      metadata: JSON.stringify({
-        alreadyResponded: { message: "You already completed this survey." },
-      }),
-      themeModel: {},
-      customQuestions: [],
-      requiresReCaptcha: false,
-    };
-    const mockSubmission = {
-      data: { q1: "existing answer" },
-      timestamp: "2024-01-01T00:00:00Z",
-    };
-    const validAccessToken = "123.1705824000.rw.abc123def456";
-
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success(mockDefinition as unknown as ActiveDefinition),
-    );
-    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
-      Result.success(mockSubmission as unknown as Submission),
-    );
-
-    const props = {
-      params: Promise.resolve({ formId: "valid-id" }),
-      searchParams: Promise.resolve({ token: validAccessToken }),
-    };
-
-    // Act
-    const component = await ShareFormPage(props);
-    render(component);
-
-    // Assert
-    expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
-    expect(screen.queryByText("Already Responded")).toBeNull();
-  });
-
-  it("does not gate cookie draft flow when user already submitted but current draft exists", async () => {
-    // Arrange
-    const mockDefinition = {
-      jsonData: { title: "Test Form" },
-      hasUserSubmitted: true,
-      metadata: JSON.stringify({
-        alreadyResponded: { message: "You already completed this survey." },
-      }),
-      themeModel: {},
-      customQuestions: [],
-      requiresReCaptcha: false,
-    };
-    const mockSubmission = {
-      id: "submission-1",
-      data: { q1: "draft answer" },
-      timestamp: "2024-01-01T00:00:00Z",
-    };
-
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success(mockDefinition as unknown as ActiveDefinition),
-    );
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.success(mockSubmission as unknown as Submission),
-    );
-
-    const props = {
-      params: Promise.resolve({ formId: "valid-id" }),
-      searchParams: Promise.resolve({}),
-    };
-
-    // Act
-    const component = await ShareFormPage(props);
-    render(component);
-
-    // Assert
-    expect(screen.getByTestId("survey-js-wrapper")).toBeDefined();
-    expect(screen.queryByText("Already Responded")).toBeNull();
+    expect(screen.queryByTestId("public-survey-content")).toBeNull();
   });
 });

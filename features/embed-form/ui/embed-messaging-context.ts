@@ -2,7 +2,7 @@
 
 import type { EmbedMessagingContext } from "../types";
 
-const EMBED_ID_QUERY_PARAM = "embedId";
+export const EMBED_ID_QUERY_PARAM = "embedId";
 const PARENT_ORIGIN_QUERY_PARAM = "parentOrigin";
 
 function parseHttpOrigin(value: string | null): string | undefined {

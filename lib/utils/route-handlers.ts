@@ -15,21 +15,129 @@ interface ErrorResponse {
   fields?: Record<string, string[]>;
 }
 
+const HTTP_ERROR_PRESENTATION: Record<number, { title: string; type: string }> =
+  {
+    400: {
+      title: "Bad Request",
+      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
+    },
+    401: {
+      title: "Unauthorized",
+      type: "https://datatracker.ietf.org/doc/html/rfc7235#section-3.1",
+    },
+    403: {
+      title: "Forbidden",
+      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.3",
+    },
+    404: {
+      title: "Not Found",
+      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
+    },
+    429: {
+      title: "Too Many Requests",
+      type: "https://datatracker.ietf.org/doc/html/rfc6585#section-4",
+    },
+    500: {
+      title: "Internal Server Error",
+      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
+    },
+  };
+
+const DEFAULT_INVALID_JSON_DETAIL = "Invalid JSON body";
+
+export type ParsedJsonBody<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: NextResponse };
+
 /**
- * Converts an ApiError to an ErrorResponse to easily create a problem details response.
- * @param title - The title of the error.
- * @param apiError - The ApiError to convert.
- * @returns The ErrorResponse.
+ * Parses the JSON body of a request.
+ * @param request - The request object.
+ * @param options - The options object.
+ * @returns The parsed JSON body.
  */
-function errorResponse({
-  title,
-  apiError,
-}: {
-  title: string;
-  apiError: ApiError;
-}): ErrorResponse {
+export async function parseJsonBody<T>(
+  request: Request,
+  options?: { invalidDetail?: string },
+): Promise<ParsedJsonBody<T>> {
+  try {
+    return { ok: true, value: (await request.json()) as T };
+  } catch {
+    return {
+      ok: false,
+      error: apiResponses.badRequest({
+        detail: options?.invalidDetail ?? DEFAULT_INVALID_JSON_DETAIL,
+      }),
+    };
+  }
+}
+
+/**
+ * Parses JSON when present; returns defaultValue for an empty body.
+ */
+export async function parseOptionalJsonBody<T>(
+  request: Request,
+  defaultValue: T,
+  options?: { invalidDetail?: string },
+): Promise<ParsedJsonBody<T>> {
+  try {
+    const text = await request.text();
+    if (text.length === 0) {
+      return { ok: true, value: defaultValue };
+    }
+
+    return { ok: true, value: JSON.parse(text) as T };
+  } catch {
+    return {
+      ok: false,
+      error: apiResponses.badRequest({
+        detail: options?.invalidDetail ?? DEFAULT_INVALID_JSON_DETAIL,
+      }),
+    };
+  }
+}
+
+export function toApiResponse<T>(result: ApiResult<T>): NextResponse {
+  if (ApiResult.isSuccess(result)) {
+    return NextResponse.json(result.data);
+  }
+
+  return createProblemDetailsResponse(
+    mapApiErrorToErrorResponse(result),
+    getHttpStatusFromApiResult(result),
+  );
+}
+
+function getHttpStatusFromApiResult<T>(result: ApiResult<T>): number {
+  if (ApiResult.isSuccess(result)) {
+    return 200;
+  }
+
+  return (
+    result.error.details?.statusCode ??
+    getHttpStatusFromApiErrorType(result.error.type)
+  );
+}
+
+function getHttpStatusFromApiErrorType(errorType: ApiErrorType): number {
+  switch (errorType) {
+    case ApiErrorType.AuthError:
+      return 401;
+    case ApiErrorType.ForbiddenError:
+      return 403;
+    case ApiErrorType.NotFoundError:
+      return 404;
+    case ApiErrorType.ValidationError:
+    case ApiErrorType.JsonParseError:
+      return 400;
+    case ApiErrorType.RateLimitError:
+      return 429;
+    default:
+      return 500;
+  }
+}
+
+function mapApiErrorToErrorResponse(apiError: ApiError): ErrorResponse {
   return {
-    title: title,
     detail: getErrorMessageWithFallback(
       apiError.error.errorCode,
       apiError.error.message,
@@ -39,182 +147,62 @@ function errorResponse({
   };
 }
 
-// Converts an ApiResult to a Next.js compatible NextResponse
-export function toNextResponse<T>(result: ApiResult<T>): NextResponse {
-  if (ApiResult.isSuccess(result)) {
-    return NextResponse.json(result.data);
-  }
-
-  switch (result.error.type) {
-    case ApiErrorType.AuthError:
-      return unauthorizedResponse(
-        errorResponse({ title: "Unauthorized", apiError: result }),
-      );
-    case ApiErrorType.ForbiddenError:
-      return forbiddenResponse(
-        errorResponse({ title: "Forbidden", apiError: result }),
-      );
-    case ApiErrorType.ValidationError:
-      return badRequestResponse(
-        errorResponse({ title: "Bad Request", apiError: result }),
-      );
-    case ApiErrorType.NetworkError:
-      return serverError(
-        errorResponse({ title: "Network Error", apiError: result }),
-      );
-    default:
-      return serverError(
-        errorResponse({ title: "Server Error", apiError: result }),
-      );
-  }
+function getHttpErrorPresentation(status: number): {
+  title: string;
+  type: string;
+} {
+  return (
+    HTTP_ERROR_PRESENTATION[status] ?? {
+      type: `https://httpstatuses.com/${status}`,
+      title: `${status} Error`,
+    }
+  );
 }
 
-function unauthorizedResponse(errorResponse: ErrorResponse): NextResponse {
+function createProblemDetailsResponse(
+  error: ErrorResponse,
+  status: number,
+): NextResponse {
+  const presentation = getHttpErrorPresentation(status);
+
   const problemDetails: ProblemDetails = {
-    type: "https://datatracker.ietf.org/doc/html/rfc7235#section-3.1",
-    title: errorResponse.title || "Unauthorized",
-    detail: errorResponse.detail || "Unauthorized",
-    status: 401,
+    type: presentation.type,
+    title: error.title || presentation.title,
+    detail: error.detail || presentation.title,
+    status,
   };
 
-  if (errorResponse.errorCode) {
-    problemDetails.errorCode = errorResponse.errorCode;
+  if (error.errorCode) {
+    problemDetails.errorCode = error.errorCode;
   }
 
-  if (errorResponse.traceId) {
-    problemDetails.traceId = errorResponse.traceId;
+  if (error.traceId) {
+    problemDetails.traceId = error.traceId;
   }
 
-  if (errorResponse.fields) {
-    problemDetails.fields = errorResponse.fields;
+  if (error.fields) {
+    problemDetails.fields = error.fields;
   }
 
-  return NextResponse.json(problemDetails, { status: problemDetails.status });
+  return NextResponse.json(problemDetails, { status });
 }
 
-function forbiddenResponse(errorResponse: ErrorResponse): NextResponse {
-  const problemDetails: ProblemDetails = {
-    type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.3",
-    title: errorResponse.title || "Forbidden",
-    detail: errorResponse.detail || "Forbidden",
-    status: 403,
-  };
-
-  if (errorResponse.errorCode) {
-    problemDetails.errorCode = errorResponse.errorCode;
-  }
-
-  if (errorResponse.traceId) {
-    problemDetails.traceId = errorResponse.traceId;
-  }
-
-  if (errorResponse.fields) {
-    problemDetails.fields = errorResponse.fields;
-  }
-
-  return NextResponse.json(problemDetails, { status: problemDetails.status });
-}
-
-function serverError(errorResponse: ErrorResponse): NextResponse {
-  const problemDetails: ProblemDetails = {
-    type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
-    title: errorResponse.title || "Internal Server Error",
-    detail: errorResponse.detail || "Internal Server Error",
-    status: 500,
-  };
-
-  if (errorResponse.errorCode) {
-    problemDetails.errorCode = errorResponse.errorCode;
-  }
-
-  if (errorResponse.traceId) {
-    problemDetails.traceId = errorResponse.traceId;
-  }
-
-  if (errorResponse.fields) {
-    problemDetails.fields = errorResponse.fields;
-  }
-
-  return NextResponse.json(problemDetails, { status: 500 });
-}
-
-function badRequestResponse(errorResponse: ErrorResponse): NextResponse {
-  const problemDetails: ProblemDetails = {
-    type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
-    title: errorResponse.title || "Bad Request",
-    detail: errorResponse.detail || "Bad Request",
-    status: 400,
-  };
-
-  if (errorResponse.errorCode) {
-    problemDetails.errorCode = errorResponse.errorCode;
-  }
-
-  if (errorResponse.traceId) {
-    problemDetails.traceId = errorResponse.traceId;
-  }
-
-  if (errorResponse.fields) {
-    problemDetails.fields = errorResponse.fields;
-  }
-
-  return NextResponse.json(problemDetails, { status: problemDetails.status });
-}
-
-function notFoundResponse(errorResponse: ErrorResponse): NextResponse {
-  const problemDetails: ProblemDetails = {
-    type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
-    title: errorResponse.title || "Not Found",
-    detail: errorResponse.detail || "Not Found",
-    status: 404,
-  };
-
-  if (errorResponse.traceId) {
-    problemDetails.traceId = errorResponse.traceId;
-  }
-
-  if (errorResponse.fields) {
-    problemDetails.fields = errorResponse.fields;
-  }
-
-  return NextResponse.json(problemDetails, { status: problemDetails.status });
-}
-
-/**
- * A utility object that contains the functions to create API responses.
- */
 export const apiResponses = {
-  unauthorized: unauthorizedResponse,
-  forbidden: forbiddenResponse,
-  badRequest: badRequestResponse,
-  notFound: notFoundResponse,
-  serverError: serverError,
+  unauthorized: (error: ErrorResponse) =>
+    createProblemDetailsResponse(error, 401),
+  forbidden: (error: ErrorResponse) => createProblemDetailsResponse(error, 403),
+  badRequest: (error: ErrorResponse) =>
+    createProblemDetailsResponse(error, 400),
+  notFound: (error: ErrorResponse) => createProblemDetailsResponse(error, 404),
+  serverError: (error: ErrorResponse) =>
+    createProblemDetailsResponse(error, 500),
 };
 
-/**
- * Options for caching the response - CDN, proxy, etc.
- */
 export interface CachingOptions {
-  /**
-   * The mode to prevent proxy caching in.
-   * @param browserOnly - Prevents proxy caching in the browser only.
-   * @param noStore - Prevents proxy caching in the browser and server.
-   */
   storeMode?: "browserOnly" | "noStore";
-
-  /**
-   * The ETag for the response.
-   * @param etag - The ETag for the response.
-   */
   etag?: string;
 }
 
-/**
- * Sets the caching headers for the response - CDN, proxy, etc.
- * This is useful for authentication/authorization data that should not be cached.
- * @param response - The NextResponse to set the caching headers for.
- * @param options - The options for the caching headers.
- */
 export function setResponseCachingHeaders(
   response: NextResponse,
   options: CachingOptions,

@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Model, SurveyModel } from "survey-core";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
-import {
-  useDynamicVariables,
-  applyVariablesToModel,
-} from "../application/use-dynamic-variables.hook";
+import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
+import { applyVariablesToModel } from "../application/use-dynamic-variables.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { customQuestions as customQuestionsList } from "@/customizations/questions/question-registry";
 import { useSearchParamsVariables } from "../application/use-search-params-variables.hook";
@@ -24,14 +23,6 @@ interface UseSurveyModelProps {
   formRuntime?: FormRuntimeContextValue;
 }
 
-/**
- * React hook that provides a survey model and related functionality.
- * @param formId - The form identifier.
- * @param definition - The survey definition.
- * @param submission - The submission data.
- * @param customQuestions - The custom questions.
- * @returns The survey model and related functionality.
- */
 export function useSurveyModel({
   formId,
   definition,
@@ -43,11 +34,14 @@ export function useSurveyModel({
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
-  const { variables } = useDynamicVariables(surveyModel);
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
-  const { initGlobals: initQuestionLoopsGlobals, bindToSurvey: bindQuestionLoops } = useQuestionLoops();
+  const {
+    initGlobals: initQuestionLoopsGlobals,
+    bindToSurvey: bindQuestionLoops,
+  } = useQuestionLoops();
   const isInitializedRef = useRef(false);
+  const identityRef = useRef<string | null>(null);
   const submissionRef = useInitOnly(submission);
 
   useEffect(() => {
@@ -80,6 +74,12 @@ export function useSurveyModel({
   }, [customQuestions]);
 
   useEffect(() => {
+    const identity = `${formId}:${definition}`;
+    if (identityRef.current !== identity) {
+      identityRef.current = identity;
+      isInitializedRef.current = false;
+    }
+
     const shouldSkipInitialization =
       !definition || isLoadingQuestions || isInitializedRef.current;
 
@@ -87,6 +87,7 @@ export function useSurveyModel({
       return;
     }
 
+    initPublicSurveyRuntime();
     initAnyAnsweredGlobals();
     initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
@@ -115,9 +116,9 @@ export function useSurveyModel({
 
     return () => {
       unbindQuestionLoops?.();
-      isInitializedRef.current = false;
     };
   }, [
+    formId,
     definition,
     isLoadingQuestions,
     processSearchParams,
@@ -131,9 +132,19 @@ export function useSurveyModel({
   ]);
 
   return {
-    surveyModel,
-    variables,
-    isLoading: !surveyModel || isLoadingQuestions,
     error,
+    surveyModel,
   };
+}
+
+let isPublicSurveyRuntimeInitialized = false;
+
+function initPublicSurveyRuntime(): void {
+  if (isPublicSurveyRuntimeInitialized) {
+    return;
+  }
+
+  registerAudioQuestion();
+  addRandomizeGroupFeature();
+  isPublicSurveyRuntimeInitialized = true;
 }

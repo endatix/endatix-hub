@@ -1,4 +1,21 @@
 import { z } from "zod";
+import type { SubmissionGatePhase } from "@/features/public-form/domain/submission-gate";
+import type { Submission } from "@/lib/endatix-api";
+import type { ClientStorageConfig } from "@endatix/storage-core";
+import type { ActiveDefinition } from "@/types";
+
+export type PublicSurveyVariant = "share" | "embed";
+
+export type PublicSurveyRuntimeProps = {
+  activeDefinition: ActiveDefinition;
+  formId: string;
+  submissionPhase: SubmissionGatePhase;
+  isRespondentTestMode: boolean;
+  storageConfig: ClientStorageConfig | null;
+  submission?: Submission;
+  urlToken?: string;
+  variant: PublicSurveyVariant;
+};
 
 export type DynamicVariable = string | number | boolean | object | undefined;
 

@@ -1,57 +1,12 @@
 "use server";
 
-import { getPostHog } from "@/features/analytics/posthog/server/node-client";
-import { getSession } from "@/features/auth";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { SubmissionData } from "@/features/submissions/types";
-import { ApiResult, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
-import type { Submission } from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
-import { isAccessToken } from "@/lib/utils";
 import { cookies } from "next/headers";
-
-export type SubmissionOperation = {
-  submissionId: string;
-  isComplete?: boolean;
-  status?: string;
-  completedAt?: string;
-};
-
-export type SubmissionOperationResult = ApiResult<SubmissionOperation>;
-
-function logExceptionPostHog<T>(
-  result: ApiResult<T>,
-  properties: Record<string, unknown>,
-): void {
-  if (ApiResult.isError(result)) {
-    const postHog = getPostHog();
-    if (postHog) {
-      postHog.captureException(result.error, "", properties);
-    }
-  }
-}
-
-/**
- * Maps a Submission entity to a SubmissionOperation object.
- *
- * @param submission - The Submission entity to map
- * @returns A SubmissionOperation object
- */
-function toSubmissionOperation(submission: Submission): SubmissionOperation {
-  const completedAt = submission.completedAt
-    ? new Date(submission.completedAt)
-    : undefined;
-
-  return {
-    submissionId: submission.id,
-    isComplete: submission.isComplete,
-    status: submission.status,
-    completedAt:
-      completedAt && !Number.isNaN(completedAt.getTime())
-        ? completedAt.toISOString()
-        : undefined,
-  };
-}
+import {
+  submitFormOperation,
+  type SubmissionOperationResult,
+} from "../submit-form-operation";
 
 /**
  * Handles form submission by either updating an existing submission or creating a new one.
@@ -67,148 +22,12 @@ export async function submitFormAction(
   submissionData: SubmissionData,
   urlToken?: string,
 ): Promise<SubmissionOperationResult> {
-  // Get cookie store and check for existing submission token
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
-  const performCookieOperations = !urlToken;
-
-  if (urlToken) {
-    return await updateExistingSubmissionViaToken(
-      formId,
-      urlToken,
-      submissionData,
-      tokenStore,
-      performCookieOperations,
-    );
-  }
-
-  const tokenResult = tokenStore.getToken(formId);
-  const submissionOperationResult = Result.isSuccess(tokenResult)
-    ? await updateExistingSubmissionViaToken(
-        formId,
-        tokenResult.value,
-        submissionData,
-        tokenStore,
-        performCookieOperations,
-      )
-    : await createNewSubmission(formId, submissionData, tokenStore);
-
-  return submissionOperationResult;
-}
-
-async function updateExistingSubmissionViaToken(
-  formId: string,
-  token: string,
-  submissionData: SubmissionData,
-  tokenStore: FormTokenCookieStore,
-  performCookieOperations: boolean,
-): Promise<ApiResult<SubmissionOperation>> {
-  const session = await getSession();
-  const endatix = new EndatixApi(session);
-
-  const updateByTokenResult = isAccessToken(token)
-    ? await endatix.submissions.public.updateByAccessToken(
-        formId,
-        token,
-        submissionData,
-      )
-    : await endatix.submissions.public.updateByToken(
-        formId,
-        token,
-        submissionData,
-      );
-
-  if (ApiResult.isSuccess(updateByTokenResult)) {
-    if (performCookieOperations && updateByTokenResult.data.isComplete) {
-      tokenStore.deleteToken(formId);
-    }
-
-    return ApiResult.success(toSubmissionOperation(updateByTokenResult.data));
-  } else {
-    if (
-      performCookieOperations &&
-      updateByTokenResult.error.errorCode ===
-        ERROR_CODE.SUBMISSION_TOKEN_INVALID
-    ) {
-      tokenStore.deleteToken(formId);
-
-      const recoveryResult = await recoverFromExpiredToken(
-        formId,
-        submissionData,
-        tokenStore,
-      );
-
-      if (!ApiResult.isSuccess(recoveryResult)) {
-        logExceptionPostHog(recoveryResult, { formId });
-      }
-
-      return recoveryResult;
-    }
-
-    logExceptionPostHog(updateByTokenResult, { formId, token });
-
-    return updateByTokenResult;
-  }
-}
-
-async function recoverFromExpiredToken(
-  formId: string,
-  submissionData: SubmissionData,
-  tokenStore: FormTokenCookieStore,
-): Promise<ApiResult<SubmissionOperation>> {
-  const session = await getSession();
-  const endatix = new EndatixApi(session);
-  const createResult = await endatix.submissions.public.create(
+  return await submitFormOperation(
     formId,
     submissionData,
+    tokenStore,
+    urlToken,
   );
-
-  if (ApiResult.isError(createResult)) {
-    logExceptionPostHog(createResult, { formId });
-    return createResult;
-  }
-
-  if (!createResult.data.isComplete) {
-    tokenStore.setToken({
-      formId,
-      token: createResult.data.token,
-    });
-  }
-
-  return ApiResult.success(toSubmissionOperation(createResult.data));
-}
-
-async function createNewSubmission(
-  formId: string,
-  submissionData: SubmissionData,
-  tokenStore: FormTokenCookieStore,
-): Promise<ApiResult<SubmissionOperation>> {
-  const session = await getSession();
-  const endatix = new EndatixApi(session);
-  const createSubmissionResult = await endatix.submissions.public.create(
-    formId,
-    submissionData,
-  );
-
-  if (ApiResult.isSuccess(createSubmissionResult)) {
-    if (createSubmissionResult.data.isComplete) {
-      tokenStore.deleteToken(formId);
-    } else {
-      tokenStore.setToken({ formId, token: createSubmissionResult.data.token });
-    }
-    return ApiResult.success(
-      toSubmissionOperation(createSubmissionResult.data),
-    );
-  } else {
-    if (
-      createSubmissionResult.error.errorCode ===
-      ERROR_CODE.SUBMISSION_TOKEN_INVALID
-    ) {
-      tokenStore.deleteToken(formId);
-    }
-
-    logExceptionPostHog(createSubmissionResult, { formId });
-
-    return createSubmissionResult;
-  }
 }

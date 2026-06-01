@@ -27,7 +27,6 @@ export type FormDefinition = {
   customQuestions?: string[];
   requiresReCaptcha?: boolean;
   limitOnePerUser?: boolean;
-  hasUserSubmitted?: boolean;
   metadata?: string;
 };
 

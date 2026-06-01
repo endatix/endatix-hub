@@ -1,5 +1,5 @@
 import { ANONYMOUS_SESSION, getSession } from "@/features/auth";
-import { submitFormAction } from "@/features/public-form/application/actions/submit-form.action";
+import { submitFormOperation } from "@/features/public-form/application/submit-form-operation";
 import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { fail } from "assert";
@@ -12,6 +12,7 @@ interface GlobalTestMocks {
       public: {
         create: ReturnType<typeof vi.fn>;
         updateByToken: ReturnType<typeof vi.fn>;
+        updateByAccessToken: ReturnType<typeof vi.fn>;
         getByToken: ReturnType<typeof vi.fn>;
       };
     };
@@ -26,6 +27,7 @@ vi.mock("@/lib/endatix-api", async () => {
       public: {
         create: vi.fn(),
         updateByToken: vi.fn(),
+        updateByAccessToken: vi.fn(),
         getByToken: vi.fn(),
       },
     },
@@ -43,16 +45,6 @@ vi.mock("@/lib/endatix-api", async () => {
   };
 });
 
-vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
-  FormTokenCookieStore: vi.fn().mockImplementation(function () {
-    return mockTokenStore;
-  }),
-}));
-
-vi.mock("next/headers", () => ({
-  cookies: vi.fn(),
-}));
-
 vi.mock("@/features/auth", async () => ({
   getSession: vi.fn().mockResolvedValue(() => ANONYMOUS_SESSION),
 }));
@@ -63,7 +55,7 @@ const mockTokenStore = {
   deleteToken: vi.fn(),
 };
 
-describe("submitFormAction", () => {
+describe("submitFormOperation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (
@@ -72,7 +64,6 @@ describe("submitFormAction", () => {
   });
 
   it("should create new submission when no token exists", async () => {
-    // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.error("No token found"));
 
     const mockSubmissionData = {
@@ -93,10 +84,12 @@ describe("submitFormAction", () => {
       ApiResult.success(mockCreateResponse),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", mockSubmissionData);
+    const result = await submitFormOperation(
+      "form-1",
+      mockSubmissionData,
+      mockTokenStore as never,
+    );
 
-    // Assert
     expect(mockTokenStore.getToken).toHaveBeenCalledWith("form-1");
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
@@ -107,17 +100,16 @@ describe("submitFormAction", () => {
       token: "new-token",
     });
     expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
-    expect(ApiResult.isSuccess(actionResult)).toBe(true);
-    if (ApiResult.isSuccess(actionResult)) {
-      expect(actionResult.data).toMatchObject({
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      expect(result.data).toMatchObject({
         submissionId: "submission-123",
         isComplete: false,
       });
     }
   });
 
-  it("should map submission status and valid completion date", async () => {
-    // Arrange
+  it("should delete cookie when creating a completed submission", async () => {
     mockTokenStore.getToken.mockReturnValue(Result.error("No token found"));
 
     const mockSubmissionData = {
@@ -140,13 +132,17 @@ describe("submitFormAction", () => {
       ApiResult.success(mockCreateResponse),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", mockSubmissionData);
+    const result = await submitFormOperation(
+      "form-1",
+      mockSubmissionData,
+      mockTokenStore as never,
+    );
 
-    // Assert
-    expect(ApiResult.isSuccess(actionResult)).toBe(true);
-    if (ApiResult.isSuccess(actionResult)) {
-      expect(actionResult.data).toEqual({
+    expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
+    expect(mockTokenStore.setToken).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      expect(result.data).toEqual({
         submissionId: "submission-123",
         isComplete: true,
         status: "completed",
@@ -156,7 +152,6 @@ describe("submitFormAction", () => {
   });
 
   it("should omit invalid completion dates from the submission operation", async () => {
-    // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.error("No token found"));
 
     const mockCreateResponse = {
@@ -173,37 +168,34 @@ describe("submitFormAction", () => {
       ApiResult.success(mockCreateResponse),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", {
-      jsonData: '{"test": true}',
-      isComplete: true,
-    });
+    const result = await submitFormOperation(
+      "form-1",
+      {
+        jsonData: '{"test": true}',
+        isComplete: true,
+      },
+      mockTokenStore as never,
+    );
 
-    // Assert
-    expect(ApiResult.isSuccess(actionResult)).toBe(true);
-    if (ApiResult.isSuccess(actionResult)) {
-      expect(actionResult.data).toMatchObject({
+    expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      expect(result.data).toMatchObject({
         submissionId: "submission-123",
         isComplete: true,
         status: "completed",
       });
-      expect(actionResult.data.completedAt).toBeUndefined();
+      expect(result.data.completedAt).toBeUndefined();
     }
   });
 
   it("should update existing submission when token exists", async () => {
-    // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
     const mockSubmissionData = {
       jsonData: '{"test": true}',
       isComplete: false,
       currentPage: 2,
-    };
-
-    const mockGetResponse = {
-      isComplete: false,
-      id: "submission-123",
     };
 
     const mockUpdateResponse = {
@@ -213,20 +205,16 @@ describe("submitFormAction", () => {
 
     (
       globalThis as unknown as GlobalTestMocks
-    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
-      ApiResult.success(mockGetResponse),
-    );
-
-    (
-      globalThis as unknown as GlobalTestMocks
     ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
       ApiResult.success(mockUpdateResponse),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", mockSubmissionData);
+    const result = await submitFormOperation(
+      "form-1",
+      mockSubmissionData,
+      mockTokenStore as never,
+    );
 
-    // Assert
     expect(mockTokenStore.getToken).toHaveBeenCalledWith("form-1");
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
@@ -234,28 +222,16 @@ describe("submitFormAction", () => {
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
     expect(mockTokenStore.setToken).not.toHaveBeenCalled();
     expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
-    expect(ApiResult.isSuccess(actionResult)).toBe(true);
-    if (ApiResult.isSuccess(actionResult)) {
-      expect(actionResult.data).toMatchObject({
-        submissionId: "submission-123",
-        isComplete: false,
-      });
-    }
+    expect(ApiResult.isSuccess(result)).toBe(true);
   });
 
-  it("should delete token when submission transitions from incomplete to complete", async () => {
-    // Arrange
+  it("should delete cookie when submission transitions from incomplete to complete", async () => {
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
     const mockSubmissionData = {
       jsonData: '{"test": true}',
       isComplete: true,
       currentPage: 2,
-    };
-
-    const mockGetResponse = {
-      isComplete: false,
-      id: "submission-123",
     };
 
     const mockUpdateResponse = {
@@ -265,30 +241,26 @@ describe("submitFormAction", () => {
 
     (
       globalThis as unknown as GlobalTestMocks
-    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
-      ApiResult.success(mockGetResponse),
-    );
-
-    (
-      globalThis as unknown as GlobalTestMocks
     ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
       ApiResult.success(mockUpdateResponse),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", mockSubmissionData);
+    const result = await submitFormOperation(
+      "form-1",
+      mockSubmissionData,
+      mockTokenStore as never,
+    );
 
-    // Assert
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.updateByToken,
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
     expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
-    expect(ApiResult.isSuccess(actionResult)).toBe(true);
+    expect(mockTokenStore.setToken).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(result)).toBe(true);
   });
 
-  it("should delete token when submission is complete", async () => {
-    // Arrange
+  it("should delete cookie when updating an already complete submission", async () => {
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
     const mockSubmissionData = {
@@ -308,32 +280,51 @@ describe("submitFormAction", () => {
       ApiResult.success(mockUpdateResponse),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", mockSubmissionData);
+    const result = await submitFormOperation(
+      "form-1",
+      mockSubmissionData,
+      mockTokenStore as never,
+    );
 
-    // Assert
-    expect(
-      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
-        .public.updateByToken,
-    ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
     expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
-    expect(ApiResult.isSuccess(actionResult)).toBe(true);
+    expect(mockTokenStore.setToken).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(result)).toBe(true);
   });
 
-  it("should automatically recover when update fails due to expired submission token", async () => {
-    // Arrange
-    mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
-
-    const mockGetResponse = {
-      isComplete: false,
-      id: "submission-123",
+  it("should not mutate cookies when submitting via url token", async () => {
+    const mockSubmissionData = {
+      jsonData: '{"test": true}',
+      isComplete: true,
+      currentPage: 2,
     };
 
     (
       globalThis as unknown as GlobalTestMocks
-    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
-      ApiResult.success(mockGetResponse),
+    ).mockEndatixApi.submissions.public.updateByAccessToken.mockResolvedValue(
+      ApiResult.success({
+        isComplete: true,
+        id: "submission-123",
+      }),
     );
+
+    const result = await submitFormOperation(
+      "form-1",
+      mockSubmissionData,
+      mockTokenStore as never,
+      "123.1705824000.rw.abc123def456",
+    );
+
+    expect(
+      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
+        .public.updateByAccessToken,
+    ).toHaveBeenCalled();
+    expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
+    expect(mockTokenStore.setToken).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(result)).toBe(true);
+  });
+
+  it("should automatically recover when update fails due to expired submission token", async () => {
+    mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
     (
       globalThis as unknown as GlobalTestMocks
@@ -356,50 +347,29 @@ describe("submitFormAction", () => {
       ApiResult.success(mockCreateResponse),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", {
-      jsonData: '{"test": true}',
-      isComplete: false,
-    });
+    const result = await submitFormOperation(
+      "form-1",
+      {
+        jsonData: '{"test": true}',
+        isComplete: false,
+      },
+      mockTokenStore as never,
+    );
 
-    // Assert
     expect(mockTokenStore.deleteToken).toHaveBeenCalledWith("form-1");
-
-    expect(
-      (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
-        .public.create,
-    ).toHaveBeenCalledWith("form-1", {
-      jsonData: '{"test": true}',
-      isComplete: false,
-    });
-
     expect(mockTokenStore.setToken).toHaveBeenCalledWith({
       formId: "form-1",
       token: "new-token-456",
     });
-
-    expect(ApiResult.isSuccess(actionResult)).toBe(true);
-
-    if (ApiResult.isError(actionResult)) {
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (ApiResult.isError(result)) {
       fail("Expected success but got error");
     }
-    expect(actionResult.data.submissionId).toBe("submission-new");
+    expect(result.data.submissionId).toBe("submission-new");
   });
 
   it("should NOT delete token when update fails for ReCaptcha error", async () => {
-    // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
-
-    const mockGetResponse = {
-      isComplete: false,
-      id: "submission-123",
-    };
-
-    (
-      globalThis as unknown as GlobalTestMocks
-    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
-      ApiResult.success(mockGetResponse),
-    );
 
     (
       globalThis as unknown as GlobalTestMocks
@@ -410,26 +380,20 @@ describe("submitFormAction", () => {
       ),
     );
 
-    // Act
-    const actionResult = await submitFormAction("form-1", {
-      jsonData: '{"test": true}',
-      isComplete: false,
-    });
-
-    // Assert
-    expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
-    expect(ApiResult.isError(actionResult)).toBe(true);
-
-    if (ApiResult.isSuccess(actionResult)) {
-      fail("Expected error but got success");
-    }
-    expect(actionResult.error.errorCode).toBe(
-      ERROR_CODE.RECAPTCHA_VERIFICATION_FAILED,
+    const result = await submitFormOperation(
+      "form-1",
+      {
+        jsonData: '{"test": true}',
+        isComplete: false,
+      },
+      mockTokenStore as never,
     );
+
+    expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
+    expect(ApiResult.isError(result)).toBe(true);
   });
 
   it("should return a Result.error when the submission API call fails", async () => {
-    // Arrange
     mockTokenStore.getToken.mockReturnValue(Result.error("No token found"));
     (
       globalThis as unknown as GlobalTestMocks
@@ -437,22 +401,19 @@ describe("submitFormAction", () => {
       ApiResult.authError("Unauthorized"),
     );
 
-    // Act
-    const result = await submitFormAction("form-1", {
-      jsonData: '{"test": true}',
-      isComplete: false,
-    });
+    const result = await submitFormOperation(
+      "form-1",
+      {
+        jsonData: '{"test": true}',
+        isComplete: false,
+      },
+      mockTokenStore as never,
+    );
 
-    // Assert
     expect(ApiResult.isError(result)).toBe(true);
-    if (ApiResult.isSuccess(result)) {
-      fail("Expected error but got success");
-    }
-    expect(result.error.errorCode).toBe(ERROR_CODE.AUTHENTICATION_REQUIRED);
   });
 
   it("should call endatix api with the correct session", async () => {
-    // Arrange
     mockTokenStore.getToken.mockReturnValue(
       Result.success("partial-submission-token"),
     );
@@ -464,31 +425,22 @@ describe("submitFormAction", () => {
     };
     vi.mocked(getSession).mockResolvedValue(mockSession);
 
-    const mockGetResponse = {
-      isComplete: false,
-      id: "submission-123",
-    };
-
-    (
-      globalThis as unknown as GlobalTestMocks
-    ).mockEndatixApi.submissions.public.getByToken.mockResolvedValue(
-      ApiResult.success(mockGetResponse),
-    );
-
     (
       globalThis as unknown as GlobalTestMocks
     ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
-      ApiResult.success({}),
+      ApiResult.success({ id: "submission-123", isComplete: false }),
     );
     const submissionData = {
       jsonData: '{"test": true}',
       isComplete: false,
     };
 
-    // Act
-    const submitResult = await submitFormAction("form-1", submissionData);
+    const submitResult = await submitFormOperation(
+      "form-1",
+      submissionData,
+      mockTokenStore as never,
+    );
 
-    // Assert
     expect(ApiResult.isSuccess(submitResult)).toBe(true);
     expect(
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions

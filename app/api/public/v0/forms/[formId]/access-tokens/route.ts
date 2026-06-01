@@ -3,8 +3,9 @@ import { EndatixApi } from "@/lib/endatix-api/endatix-api";
 import type { CreateFormAccessTokenRequest } from "@/lib/endatix-api/forms/types";
 import {
   apiResponses,
+  parseOptionalJsonBody,
   setResponseCachingHeaders,
-  toNextResponse,
+  toApiResponse,
 } from "@/lib/utils/route-handlers";
 
 /**
@@ -20,23 +21,23 @@ export async function POST(
     return apiResponses.badRequest({ detail: "Form ID is required" });
   }
 
-  let body: CreateFormAccessTokenRequest = {};
-  try {
-    const text = await request.text();
-    if (text.length > 0) {
-      body = JSON.parse(text) as CreateFormAccessTokenRequest;
-    }
-  } catch {
-    return apiResponses.badRequest({ detail: "Invalid JSON body" });
+  const parsedBody = await parseOptionalJsonBody<CreateFormAccessTokenRequest>(
+    request,
+    {},
+  );
+  if (!parsedBody.ok) {
+    return parsedBody.error;
   }
+
+  const body = parsedBody.value;
 
   const session = await auth();
   const endatixApi = new EndatixApi(session?.accessToken);
 
   const result = await endatixApi.forms.createFormAccessToken(formId, body);
 
-  const response = toNextResponse(result);
+  const response = toApiResponse(result);
   setResponseCachingHeaders(response, { storeMode: "noStore" });
-  
+
   return response;
 }

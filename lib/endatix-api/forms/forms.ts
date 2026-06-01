@@ -103,7 +103,7 @@ export class Forms {
       params.set("tokenType", request.tokenType);
     }
     const query = params.toString();
-    const path = `/access/public/forms/${validateFormIdResult.value}${
+    const path = `/public/forms/${validateFormIdResult.value}/access${
       query ? `?${query}` : ""
     }`;
 
