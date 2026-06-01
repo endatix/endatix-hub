@@ -5,11 +5,8 @@ import { SubmissionData } from "@/features/submissions/types";
 import { cookies } from "next/headers";
 import {
   submitFormOperation,
-  type SubmissionOperation,
   type SubmissionOperationResult,
 } from "../submit-form-operation";
-
-export type { SubmissionOperation, SubmissionOperationResult };
 
 /**
  * Handles form submission by either updating an existing submission or creating a new one.

@@ -5,20 +5,18 @@ import styles from "./test-submission-badge.module.css";
  */
 export function TestSubmissionBadge() {
   return (
-    <div
+    <output
       aria-label="Test response mode"
       className={styles.anchor}
       data-testid="respondent-test-mode-badge"
-      role="status"
-      tabIndex={0}
     >
-      <div className={`sd-slider__tooltip ${styles.badge}`}>
-        <div className="sd-slider__tooltip-panel">
-          <div className="sd-slider__tooltip-value">
+      <span className={`sd-slider__tooltip ${styles.badge}`}>
+        <span className="sd-slider__tooltip-panel">
+          <span className="sd-slider__tooltip-value">
             You are submitting test response
-          </div>
-        </div>
-      </div>
-    </div>
+          </span>
+        </span>
+      </span>
+    </output>
   );
 }
