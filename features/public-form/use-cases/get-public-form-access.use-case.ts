@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { EndatixApi } from "@/lib/endatix-api";
 import type {
   GetPublicFormAccessRequest,
   PublicFormAccessResponse,
 } from "@/lib/endatix-api/forms/types";
+import { ApiResult } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 
 export interface GetPublicFormAccessQuery {
