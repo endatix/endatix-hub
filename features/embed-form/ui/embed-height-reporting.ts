@@ -1,17 +1,13 @@
-export class EmbedHeightReportingController {
-  private frozen = false;
+let frozen = false;
 
-  freeze(): void {
-    this.frozen = true;
-  }
-
-  resume(): void {
-    this.frozen = false;
-  }
-
-  isFrozen(): boolean {
-    return this.frozen;
-  }
+export function freezeEmbedHeightReporting(): void {
+  frozen = true;
 }
 
-export const embedHeightReporting = new EmbedHeightReportingController();
+export function resumeEmbedHeightReporting(): void {
+  frozen = false;
+}
+
+export function isEmbedHeightReportingFrozen(): boolean {
+  return frozen;
+}

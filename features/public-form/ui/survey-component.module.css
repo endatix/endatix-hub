@@ -11,6 +11,17 @@
   position: relative;
 }
 
+.layoutFullHeight :global(.sd-completedpage),
+.embedShell :global(.sd-completedpage) {
+  box-sizing: border-box;
+  min-height: max(16rem, calc(100vh - 10rem));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2rem, 8vh, 6rem) 1.5rem;
+  text-align: center;
+}
+
 .layoutFullHeight > *:last-child {
   flex: 1;
   min-height: 0;

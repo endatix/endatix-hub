@@ -1,4 +1,7 @@
-import { embedHeightReporting } from "@/features/embed-form/ui/embed-height-reporting";
+import {
+  freezeEmbedHeightReporting,
+  resumeEmbedHeightReporting,
+} from "@/features/embed-form/ui/embed-height-reporting";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EmbedHeightReporter } from "../embed-height-reporter";
@@ -23,7 +26,7 @@ describe("EmbedHeightReporter", () => {
   let postMessage: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    embedHeightReporting.resume();
+    resumeEmbedHeightReporting();
     postMessage = vi.fn();
     Object.defineProperty(window, "parent", {
       configurable: true,
@@ -34,7 +37,7 @@ describe("EmbedHeightReporter", () => {
 
   afterEach(() => {
     cleanup();
-    embedHeightReporting.resume();
+    resumeEmbedHeightReporting();
     Object.defineProperty(window, "parent", {
       configurable: true,
       value: originalParent,
@@ -56,7 +59,7 @@ describe("EmbedHeightReporter", () => {
       "https://host.example",
     );
 
-    embedHeightReporting.freeze();
+    freezeEmbedHeightReporting();
     setBodyHeight(120);
     act(() => {
       window.dispatchEvent(new Event("resize"));
@@ -64,7 +67,7 @@ describe("EmbedHeightReporter", () => {
 
     expect(postMessage).toHaveBeenCalledTimes(1);
 
-    embedHeightReporting.resume();
+    resumeEmbedHeightReporting();
     setBodyHeight(720);
     act(() => {
       window.dispatchEvent(new Event("resize"));

@@ -3,7 +3,9 @@
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import {
-  embedHeightReporting,
+  freezeEmbedHeightReporting,
+  isEmbedHeightReportingFrozen,
+  resumeEmbedHeightReporting,
   useSurveyEmbedBehavior,
 } from "@/features/embed-form";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
@@ -132,6 +134,10 @@ export default function SurveyComponent({
         return;
       }
 
+      if (isEmbed && isEmbedHeightReportingFrozen()) {
+        resumeEmbedHeightReporting();
+      }
+
       enqueueSubmission(
         buildSubmissionData(sender, false, surveyLocales.length > 1),
       );
@@ -150,7 +156,7 @@ export default function SurveyComponent({
 
       clearQueue();
       if (isEmbed) {
-        embedHeightReporting.freeze();
+        freezeEmbedHeightReporting();
       }
 
       sender.showCompletePage = true;
@@ -188,7 +194,7 @@ export default function SurveyComponent({
         } else {
           submissionUpdateGuard.current = false;
           if (isEmbed) {
-            embedHeightReporting.freeze();
+            freezeEmbedHeightReporting();
           }
 
           event.showSaveError(
@@ -222,6 +228,7 @@ export default function SurveyComponent({
       onSubmitSuccess,
       surveyLocales.length,
       runtimeToken,
+      isEmbed,
     ],
   );
 
