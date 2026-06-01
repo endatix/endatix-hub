@@ -57,11 +57,11 @@ export function useSurveyEmbedBehavior({
    */
   const sendEmbedMessage = useCallback(
     <T extends EmbedMessageType>(type: T, data?: EmbedMessageData<T>) => {
-      if (isEmbed && (type === "form-complete" || type === "form-error")) {
-        freezeEmbedHeightReporting();
-      }
-
       const messagingContext = getEmbedMessagingContext();
+
+      if (isEmbed && (type === "form-complete" || type === "form-error")) {
+        freezeEmbedHeightReporting(messagingContext.embedId);
+      }
 
       if (
         isEmbed &&

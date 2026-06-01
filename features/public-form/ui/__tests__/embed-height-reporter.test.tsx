@@ -26,7 +26,7 @@ describe("EmbedHeightReporter", () => {
   let postMessage: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    resumeEmbedHeightReporting();
+    resumeEmbedHeightReporting("embed-1");
     postMessage = vi.fn();
     Object.defineProperty(window, "parent", {
       configurable: true,
@@ -37,7 +37,7 @@ describe("EmbedHeightReporter", () => {
 
   afterEach(() => {
     cleanup();
-    resumeEmbedHeightReporting();
+    resumeEmbedHeightReporting("embed-1");
     Object.defineProperty(window, "parent", {
       configurable: true,
       value: originalParent,
@@ -59,7 +59,7 @@ describe("EmbedHeightReporter", () => {
       "https://host.example",
     );
 
-    freezeEmbedHeightReporting();
+    freezeEmbedHeightReporting("embed-1");
     setBodyHeight(120);
     act(() => {
       window.dispatchEvent(new Event("resize"));
@@ -67,7 +67,7 @@ describe("EmbedHeightReporter", () => {
 
     expect(postMessage).toHaveBeenCalledTimes(1);
 
-    resumeEmbedHeightReporting();
+    resumeEmbedHeightReporting("embed-1");
     setBodyHeight(720);
     act(() => {
       window.dispatchEvent(new Event("resize"));
@@ -84,5 +84,25 @@ describe("EmbedHeightReporter", () => {
       },
       "https://host.example",
     );
+  });
+
+  it("scopes frozen state to the current embed id", async () => {
+    freezeEmbedHeightReporting("another-embed");
+
+    render(<EmbedHeightReporter />);
+
+    await waitFor(() => {
+      expect(postMessage).toHaveBeenCalledTimes(1);
+    });
+    expect(postMessage).toHaveBeenLastCalledWith(
+      {
+        type: "endatix:resize",
+        embedId: "embed-1",
+        height: 640,
+      },
+      "https://host.example",
+    );
+
+    resumeEmbedHeightReporting("another-embed");
   });
 });

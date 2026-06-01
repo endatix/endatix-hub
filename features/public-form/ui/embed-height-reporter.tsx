@@ -9,11 +9,11 @@ export function EmbedHeightReporter() {
 
   useEffect(() => {
     function reportHeight() {
-      if (isEmbedHeightReportingFrozen()) {
+      const messagingContext = getEmbedMessagingContext();
+      if (isEmbedHeightReportingFrozen(messagingContext.embedId)) {
         return;
       }
 
-      const messagingContext = getEmbedMessagingContext();
       if (
         !messagingContext.parentOrigin ||
         globalThis.window.parent === globalThis.window

@@ -1,17 +1,15 @@
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import { submitFormOperation } from "@/features/public-form/application/submit-form-operation";
-import type { SubmissionData } from "@/features/submissions/types";
 import {
   apiResponses,
   parseJsonBody,
   toApiResponse,
 } from "@/lib/utils/route-handlers";
 import { cookies } from "next/headers";
-
-interface SubmitPublicFormRequest {
-  submissionData?: SubmissionData;
-  urlToken?: string;
-}
+import {
+  SubmitPublicFormRequestSchema,
+  type SubmitPublicFormRequest,
+} from "./submit-public-form.types";
 
 type SubmitPublicFormRouteContext = {
   params: Promise<{ formId: string }>;
@@ -36,18 +34,24 @@ async function submitPublicFormPostHandler(
     return parsedBody.error;
   }
 
-  const body = parsedBody.value;
-  if (!body.submissionData) {
-    return apiResponses.badRequest({ detail: "Submission data is required" });
+  const validatedBody = SubmitPublicFormRequestSchema.safeParse(parsedBody.value);
+  if (!validatedBody.success) {
+    return apiResponses.badRequest({
+      detail:
+        validatedBody.error.issues[0]?.message ??
+        "Invalid submit public form request body",
+    });
   }
+
+  const { submissionData, urlToken } = validatedBody.data;
 
   const cookieStore = await cookies();
   const tokenStore = new FormTokenCookieStore(cookieStore);
   const result = await submitFormOperation(
     formId,
-    body.submissionData,
+    submissionData,
     tokenStore,
-    body.urlToken,
+    urlToken,
   );
 
   return toApiResponse(result);
