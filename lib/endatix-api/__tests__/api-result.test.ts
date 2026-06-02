@@ -382,6 +382,78 @@ describe("ApiResult", () => {
         expect(result.error.details?.details).toBe("Unexpected error");
       });
     });
+
+    describe("httpStatusError", () => {
+      it("should create a forbidden error from a 403 status code", () => {
+        // Arrange
+        const details = { endpoint: "/api/forms/123", method: "DELETE" };
+
+        // Act
+        const result = ApiResult.httpStatusError(
+          403,
+          undefined,
+          undefined,
+          details,
+        );
+
+        // Assert
+        expect(result.success).toBe(false);
+        if (result.success) {
+          fail("Result is not an error");
+        }
+
+        expect(result.error.type).toBe(ApiErrorType.ForbiddenError);
+        expect(result.error.message).toBe(
+          "You don't have permission to access this resource.",
+        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.ACCESS_FORBIDDEN);
+        expect(result.error.details?.statusCode).toBe(403);
+        expect(result.error.details?.endpoint).toBe("/api/forms/123");
+      });
+
+      it("should create a server error from a 500 status code", () => {
+        // Arrange
+        // (no setup needed for default case)
+
+        // Act
+        const result = ApiResult.httpStatusError(500);
+
+        // Assert
+        expect(result.success).toBe(false);
+        if (result.success) {
+          fail("Result is not an error");
+        }
+
+        expect(result.error.type).toBe(ApiErrorType.ServerError);
+        expect(result.error.message).toBe(
+          "Server error occurred. Please try again later.",
+        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.SERVER_ERROR);
+        expect(result.error.details?.statusCode).toBe(500);
+      });
+
+      it("should preserve a server-provided custom error code", () => {
+        // Arrange
+        const customErrorCode = "form_delete_blocked";
+
+        // Act
+        const result = ApiResult.httpStatusError(
+          404,
+          "Form could not be deleted.",
+          customErrorCode,
+        );
+
+        // Assert
+        expect(result.success).toBe(false);
+        if (result.success) {
+          fail("Result is not an error");
+        }
+
+        expect(result.error.type).toBe(ApiErrorType.NotFoundError);
+        expect(result.error.errorCode).toBe(customErrorCode);
+        expect(result.error.message).toBe("Form could not be deleted.");
+      });
+    });
   });
 
   describe("helper functions", () => {

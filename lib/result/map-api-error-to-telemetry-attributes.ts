@@ -7,12 +7,18 @@ import type { ApiError } from "@/lib/endatix-api/shared/api-result";
 export function mapApiErrorToTelemetryAttributes(
   apiError: ApiError,
 ): LogAttributes {
+  const details = apiError.error.details;
+
   return {
     apiErrorType: apiError.error.type,
-    apiErrorMessage: apiError.error.message,
     apiErrorCode: apiError.error.errorCode,
-    apiErrorDetails: apiError.error.details
-      ? JSON.stringify(apiError.error.details)
-      : undefined,
+    apiErrorStatusCode: details?.statusCode,
+    apiErrorEndpoint: sanitizeEndpoint(details?.endpoint),
+    apiErrorMethod: details?.method,
+    apiErrorRetryAfter: details?.retryAfter,
   };
+}
+
+function sanitizeEndpoint(endpoint: string | undefined): string | undefined {
+  return endpoint?.split(/[?#]/, 1)[0];
 }

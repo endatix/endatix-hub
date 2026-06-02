@@ -1,9 +1,5 @@
 import { ApiErrorDetails, ApiResult } from "./api-result";
-import {
-  ERROR_CODE,
-  getErrorMessageWithFallback,
-  type ErrorCode,
-} from "./error-codes";
+import { getErrorMessageWithFallback } from "./error-codes";
 import { parseErrorResponse } from "./problem-details";
 
 /**
@@ -17,21 +13,12 @@ export async function mapResponseToApiError<T>(
 ): Promise<ApiResult<T>> {
   const problemDetails = await parseErrorResponse(response).catch(() => null);
 
-  const serverErrorCode = problemDetails?.errorCode as ErrorCode | undefined;
+  const serverErrorCode = problemDetails?.errorCode;
 
-  // Match the original Node contract: only consult the friendly canned message
-  // when the SERVER provided an errorCode. Otherwise prefer raw detail/title and
-  // fall through to DEFAULT_ERROR_MESSAGE so we don't replace diagnostic detail
-  // with a generic, status-inferred string.
-  const message = getErrorMessageWithFallback(
-    serverErrorCode,
-    problemDetails?.detail ?? problemDetails?.title,
-  );
-
-  // The errorCode stored on the ApiResult still reflects the server code when
-  // available, otherwise the factory's status-derived default takes over.
-  const errorCode =
-    serverErrorCode ?? inferErrorCodeFromStatus(response.status);
+  const problemMessage = problemDetails?.detail ?? problemDetails?.title;
+  const message = problemDetails
+    ? getErrorMessageWithFallback(serverErrorCode, problemMessage)
+    : undefined;
 
   const enrichedDetails: ApiErrorDetails = {
     ...details,
@@ -39,55 +26,20 @@ export async function mapResponseToApiError<T>(
     details: problemDetails?.detail ?? details.details,
   };
 
-  switch (response.status) {
-    case 400:
-      return ApiResult.validationError(
-        message,
-        errorCode,
-        enrichedDetails,
-        problemDetails?.fields,
-      );
-    case 401:
-      return ApiResult.authError(message, errorCode, enrichedDetails);
-    case 403:
-      return ApiResult.forbiddenError(message, errorCode, enrichedDetails);
-    case 404:
-      return ApiResult.notFoundError(message, enrichedDetails);
-    case 429: {
-      const retryAfter = response.headers.get("Retry-After");
-      return ApiResult.rateLimitError(message, {
-        ...enrichedDetails,
-        retryAfter: retryAfter ? Number.parseInt(retryAfter, 10) : undefined,
-      });
-    }
-    case 500:
-    case 502:
-    case 503:
-    case 504:
-      return ApiResult.serverError(message, enrichedDetails);
-    default:
-      return ApiResult.unknownError(message, enrichedDetails);
-  }
-}
+  const retryAfter = response.headers.get("Retry-After");
+  const detailsWithRetryAfter =
+    retryAfter && response.status === 429
+      ? {
+          ...enrichedDetails,
+          retryAfter: Number.parseInt(retryAfter, 10),
+        }
+      : enrichedDetails;
 
-function inferErrorCodeFromStatus(status: number): ErrorCode | undefined {
-  switch (status) {
-    case 400:
-      return ERROR_CODE.VALIDATION_ERROR;
-    case 401:
-      return ERROR_CODE.AUTHENTICATION_REQUIRED;
-    case 403:
-      return ERROR_CODE.ACCESS_FORBIDDEN;
-    case 404:
-      return ERROR_CODE.RESOURCE_NOT_FOUND;
-    case 429:
-      return ERROR_CODE.RATE_LIMIT_EXCEEDED;
-    case 500:
-    case 502:
-    case 503:
-    case 504:
-      return ERROR_CODE.SERVER_ERROR;
-    default:
-      return undefined;
-  }
+  return ApiResult.httpStatusError(
+    response.status,
+    message,
+    serverErrorCode,
+    detailsWithRetryAfter,
+    problemDetails?.fields,
+  );
 }

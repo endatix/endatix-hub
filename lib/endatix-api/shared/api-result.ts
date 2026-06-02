@@ -4,7 +4,6 @@ import {
   getErrorMessage,
   getErrorMessageWithFallback,
   isKnownErrorCode,
-  type ErrorCode,
 } from "./error-codes";
 
 // API-specific error types
@@ -76,7 +75,7 @@ export const ApiResult = {
 
   authError: <T>(
     message?: string,
-    errorCode?: ErrorCode,
+    errorCode?: string,
     details?: ApiErrorDetails,
   ): ApiResult<T> => ({
     success: false,
@@ -92,7 +91,7 @@ export const ApiResult = {
 
   forbiddenError: <T>(
     message?: string,
-    errorCode?: ErrorCode,
+    errorCode?: string,
     details?: ApiErrorDetails,
   ): ApiResult<T> => ({
     success: false,
@@ -107,7 +106,7 @@ export const ApiResult = {
 
   validationError: <T>(
     message?: string,
-    errorCode?: ErrorCode,
+    errorCode?: string,
     details?: ApiErrorDetails,
     fields?: Record<string, string[]>,
   ): ApiResult<T> => ({
@@ -125,12 +124,13 @@ export const ApiResult = {
   serverError: <T>(
     message?: string,
     details?: ApiErrorDetails,
+    errorCode?: string,
   ): ApiResult<T> => ({
     success: false,
     error: {
       type: ApiErrorType.ServerError,
       message: message || getErrorMessageWithFallback(ERROR_CODE.SERVER_ERROR),
-      errorCode: ERROR_CODE.SERVER_ERROR,
+      errorCode: errorCode || ERROR_CODE.SERVER_ERROR,
       details,
     },
   }),
@@ -138,13 +138,14 @@ export const ApiResult = {
   notFoundError: <T>(
     message?: string,
     details?: ApiErrorDetails,
+    errorCode?: string,
   ): ApiResult<T> => ({
     success: false,
     error: {
       type: ApiErrorType.NotFoundError,
       message:
         message || getErrorMessageWithFallback(ERROR_CODE.RESOURCE_NOT_FOUND),
-      errorCode: ERROR_CODE.RESOURCE_NOT_FOUND,
+      errorCode: errorCode || ERROR_CODE.RESOURCE_NOT_FOUND,
       details,
     },
   }),
@@ -152,13 +153,14 @@ export const ApiResult = {
   rateLimitError: <T>(
     message?: string,
     details?: ApiErrorDetails,
+    errorCode?: string,
   ): ApiResult<T> => ({
     success: false,
     error: {
       type: ApiErrorType.RateLimitError,
       message:
         message || getErrorMessageWithFallback(ERROR_CODE.RATE_LIMIT_EXCEEDED),
-      errorCode: ERROR_CODE.RATE_LIMIT_EXCEEDED,
+      errorCode: errorCode || ERROR_CODE.RATE_LIMIT_EXCEEDED,
       details,
     },
   }),
@@ -180,15 +182,66 @@ export const ApiResult = {
   unknownError: <T>(
     message?: string,
     details?: ApiErrorDetails,
+    errorCode?: string,
   ): ApiResult<T> => ({
     success: false,
     error: {
       type: ApiErrorType.UnknownError,
       message: message || getErrorMessageWithFallback(ERROR_CODE.UNKNOWN_ERROR),
-      errorCode: ERROR_CODE.UNKNOWN_ERROR,
+      errorCode: errorCode || ERROR_CODE.UNKNOWN_ERROR,
       details,
     },
   }),
+
+  httpStatusError: <T>(
+    statusCode: number,
+    message?: string,
+    errorCode?: string,
+    details?: ApiErrorDetails,
+    fields?: Record<string, string[]>,
+  ): ApiResult<T> => {
+    const enrichedDetails: ApiErrorDetails = {
+      ...details,
+      statusCode: details?.statusCode ?? statusCode,
+    };
+
+    switch (statusCode) {
+      case 400:
+        return ApiResult.validationError(
+          message,
+          errorCode ?? ERROR_CODE.VALIDATION_ERROR,
+          enrichedDetails,
+          fields,
+        );
+      case 401:
+        return ApiResult.authError(
+          message,
+          errorCode ?? ERROR_CODE.AUTHENTICATION_REQUIRED,
+          enrichedDetails,
+        );
+      case 403:
+        return ApiResult.forbiddenError(
+          message,
+          errorCode ?? ERROR_CODE.ACCESS_FORBIDDEN,
+          enrichedDetails,
+        );
+      case 404:
+        return ApiResult.notFoundError(message, enrichedDetails, errorCode);
+      case 429:
+        return ApiResult.rateLimitError(message, enrichedDetails, errorCode);
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return ApiResult.serverError(message, enrichedDetails, errorCode);
+      default:
+        return ApiResult.unknownError(
+          message ?? `HTTP ${statusCode}`,
+          enrichedDetails,
+          errorCode,
+        );
+    }
+  },
 
   isSuccess: <T>(result: ApiResult<T>): result is ApiSuccess<T> =>
     result.success,
@@ -252,7 +305,7 @@ export const isRateLimitError = <T>(result: ApiResult<T>): boolean =>
 // Helper functions for specific error codes
 export const hasErrorCode = <T>(
   result: ApiResult<T>,
-  errorCode: ErrorCode,
+  errorCode: string,
 ): boolean => {
   return !result.success && result.error.errorCode === errorCode;
 };
