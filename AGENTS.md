@@ -10,7 +10,7 @@
 
 - Server action files must use `"use server"` and return `Result<T>` for operation outcomes.
 - Keep actions thin: authenticate, authorize, call the API or use case, revalidate paths when needed, and return a typed result.
-- For Endatix API calls returning `ApiResult<T>`, use `mapApiResultToResult(...)` from `lib/result/map-api-result-to-result` instead of hand-writing `Result.error(...)` from API errors.
+- For Endatix API calls returning `ApiResult<T>`, use `mapToResult(...)` from `lib/result/map-api-result-to-result` instead of hand-writing `Result.error(...)` from API errors.
 - When API success payload differs from the UI result payload, use `mapSuccess` or keep the success return local and delegate only the failure branch to the mapper.
 
 ## Error Handling

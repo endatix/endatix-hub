@@ -23,9 +23,8 @@ export async function deleteFormAction(
       fallbackMessage: "Failed to delete form",
       logMessage: "Failed to delete form",
       loggerName: "forms",
-      mapData: () => formId,
     });
   }
 
-  return Result.success(formId);
+
 }
