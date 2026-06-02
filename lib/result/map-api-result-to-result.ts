@@ -9,12 +9,18 @@ import { Result, type ResultType } from "@/lib/result";
 import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
 import { mapApiErrorToTelemetryAttributes } from "@/lib/result/map-api-error-to-telemetry-attributes";
 
-/**
- * Options for mapping an API result to a result.
- * @param TApiResult The type of the API result.
- * @param TResult The type of the result.
- */
-export type MapApiResultToResultOptions<TApiResult, TResult = TApiResult> = {
+type IsSameType<TLeft, TRight> = [TLeft] extends [TRight]
+  ? [TRight] extends [TLeft]
+    ? true
+    : false
+  : false;
+
+type MapDataOption<TApiResult, TResult> =
+  IsSameType<TApiResult, TResult> extends true
+    ? { mapData?: (data: TApiResult) => TResult }
+    : { mapData: (data: TApiResult) => TResult };
+
+type MapApiResultToResultBaseOptions = {
   /**
    * The fallback message to use if the API result is not successful.
    */
@@ -31,13 +37,25 @@ export type MapApiResultToResultOptions<TApiResult, TResult = TApiResult> = {
    * The logger name to use if the API result is not successful.
    */
   loggerName?: string;
-  /**
-   * The function to map the API result data to a result (for success cases).
-   * @param data The data to map.
-   * @returns The mapped result.
-   */
-  mapData?: (data: TApiResult) => TResult;
 };
+
+/**
+ * Options for mapping an API result to a result.
+ * @param TApiResult The type of the API result.
+ * @param TResult The type of the result.
+ */
+export type MapApiResultToResultOptions<TApiResult, TResult = TApiResult> =
+  MapApiResultToResultBaseOptions & MapDataOption<TApiResult, TResult>;
+
+type MapApiResultToResultImplementationOptions<TApiResult, TResult> =
+  MapApiResultToResultBaseOptions & {
+    /**
+     * The function to map the API result data to a result (for success cases).
+     * @param data The data to map.
+     * @returns The mapped result.
+     */
+    mapData?: (data: TApiResult) => TResult;
+  };
 
 const ExpectedApiErrorTypes = new Set<ApiErrorType>([
   ApiErrorType.ValidationError,
@@ -53,16 +71,26 @@ const ExpectedApiErrorTypes = new Set<ApiErrorType>([
  * @param options The options for the mapping.
  * @returns The result.
  */
+export function mapToResult<TApiResult>(
+  apiResult: ApiResultType<TApiResult>,
+  options?: MapApiResultToResultOptions<TApiResult>,
+): ResultType<TApiResult>;
+
+export function mapToResult<TApiResult, TResult>(
+  apiResult: ApiResultType<TApiResult>,
+  options: MapApiResultToResultOptions<TApiResult, TResult>,
+): ResultType<TResult>;
+
 export function mapToResult<TApiResult, TResult = TApiResult>(
   apiResult: ApiResultType<TApiResult>,
-  options: MapApiResultToResultOptions<TApiResult, TResult> = {},
-): ResultType<TResult> {
+  options: MapApiResultToResultImplementationOptions<TApiResult, TResult> = {},
+): ResultType<TApiResult> | ResultType<TResult> {
   if (ApiResult.isSuccess(apiResult)) {
-    const value = options.mapData
-      ? options.mapData(apiResult.data)
-      : (apiResult.data as unknown as TResult);
+    if (options.mapData) {
+      return Result.success(options.mapData(apiResult.data));
+    }
 
-    return Result.success(value);
+    return Result.success(apiResult.data);
   }
 
   logApiError(apiResult, options);
@@ -80,7 +108,7 @@ export function mapToResult<TApiResult, TResult = TApiResult>(
  */
 function logApiError<TApiResult, TResult>(
   apiError: ApiError,
-  options: MapApiResultToResultOptions<TApiResult, TResult>,
+  options: MapApiResultToResultImplementationOptions<TApiResult, TResult>,
 ): void {
   if (!options.logMessage || !shouldLogApiError(apiError)) {
     return;

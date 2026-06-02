@@ -54,7 +54,7 @@ const consoleMethodMap: Record<
 };
 
 const sensitiveAttributePattern =
-  /(authorization|cookie|token|secret|password|apikey|api_key|connectionstring|connection_string)/i;
+  /(authorization|cookie|token|secret|password|api[-_ ]?key|connection[-_ ]?string)/i;
 
 /**
  * Log record attributes
@@ -126,6 +126,7 @@ export class TelemetryLogger {
       ...attributes,
     };
 
+    let emitFailed = false;
     try {
       logger.emit({
         severityNumber: severityMap[severity],
@@ -134,6 +135,7 @@ export class TelemetryLogger {
         attributes: enhancedAttributes,
       });
     } catch {
+      emitFailed = true;
       // Logging must never interrupt application flow. Console fallback below
       // still makes local diagnostics visible when enabled.
     }
@@ -143,6 +145,7 @@ export class TelemetryLogger {
       severity,
       enhancedAttributes,
       loggerName ?? this.DEFAULT_LOGGER_NAME,
+      emitFailed,
     );
   }
 
@@ -151,8 +154,9 @@ export class TelemetryLogger {
     severity: LogSeverity,
     attributes: LogAttributes,
     loggerName: string,
+    force = false,
   ): void {
-    if (!this.shouldUseConsoleFallback()) {
+    if (!force && !this.shouldUseConsoleFallback()) {
       return;
     }
 

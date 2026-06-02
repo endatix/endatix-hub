@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ApiErrorType, ApiResult, ERROR_CODE } from "../api-result";
 import { mapResponseToApiError } from "../http-error-mapper";
 
@@ -107,5 +107,88 @@ describe("mapResponseToApiError", () => {
     expect(result.error.type).toBe(ApiErrorType.NotFoundError);
     expect(result.error.message).toBe("The form no longer exists.");
     expect(result.error.errorCode).toBe("form_deleted");
+  });
+
+  it("maps numeric Retry-After headers to retryAfter seconds", async () => {
+    // Arrange
+    const response = new Response(null, {
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: { "Retry-After": "30" },
+    });
+
+    // Act
+    const result = await mapResponseToApiError(response, {
+      statusCode: response.status,
+      endpoint: "/api/forms",
+      method: "GET",
+    });
+
+    // Assert
+    expect(ApiResult.isError(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      return;
+    }
+
+    expect(result.error.type).toBe(ApiErrorType.RateLimitError);
+    expect(result.error.details?.retryAfter).toBe(30);
+  });
+
+  it("maps HTTP-date Retry-After headers to non-negative retryAfter seconds", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-02T11:00:00.000Z"));
+    const response = new Response(null, {
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: {
+        "Retry-After": "Tue, 02 Jun 2026 11:00:45 GMT",
+      },
+    });
+
+    try {
+      // Act
+      const result = await mapResponseToApiError(response, {
+        statusCode: response.status,
+        endpoint: "/api/forms",
+        method: "GET",
+      });
+
+      // Assert
+      expect(ApiResult.isError(result)).toBe(true);
+      if (ApiResult.isSuccess(result)) {
+        return;
+      }
+
+      expect(result.error.type).toBe(ApiErrorType.RateLimitError);
+      expect(result.error.details?.retryAfter).toBe(45);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("omits retryAfter for invalid Retry-After headers", async () => {
+    // Arrange
+    const response = new Response(null, {
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: { "Retry-After": "not-a-date" },
+    });
+
+    // Act
+    const result = await mapResponseToApiError(response, {
+      statusCode: response.status,
+      endpoint: "/api/forms",
+      method: "GET",
+    });
+
+    // Assert
+    expect(ApiResult.isError(result)).toBe(true);
+    if (ApiResult.isSuccess(result)) {
+      return;
+    }
+
+    expect(result.error.type).toBe(ApiErrorType.RateLimitError);
+    expect(result.error.details?.retryAfter).toBeUndefined();
   });
 });

@@ -120,18 +120,23 @@ describe("mapApiResultToResult", () => {
 
   it("does not log expected auth or authorization errors", () => {
     // Arrange
-    const apiResult: ApiResultType<void> =
+    const authResult: ApiResultType<void> =
+      ApiResult.authError("Authentication required");
+    const forbiddenResult: ApiResultType<void> =
       ApiResult.forbiddenError("Access denied");
-
-    // Act
-    const result = mapToResult(apiResult, {
+    const options = {
       fallbackMessage: "Failed to delete folder",
       logMessage: "Failed to delete folder",
       loggerName: "folders",
-    });
+    };
+
+    // Act
+    const authMappedResult = mapToResult(authResult, options);
+    const forbiddenMappedResult = mapToResult(forbiddenResult, options);
 
     // Assert
-    expect(result.kind).toBe(Kind.Error);
+    expect(authMappedResult.kind).toBe(Kind.Error);
+    expect(forbiddenMappedResult.kind).toBe(Kind.Error);
     expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
   });
 

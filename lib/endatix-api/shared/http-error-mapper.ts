@@ -27,11 +27,12 @@ export async function mapResponseToApiError<T>(
   };
 
   const retryAfter = response.headers.get("Retry-After");
+  const retryAfterSeconds = parseRetryAfter(retryAfter);
   const detailsWithRetryAfter =
-    retryAfter && response.status === 429
+    response.status === 429 && retryAfterSeconds !== undefined
       ? {
           ...enrichedDetails,
-          retryAfter: Number.parseInt(retryAfter, 10),
+          retryAfter: retryAfterSeconds,
         }
       : enrichedDetails;
 
@@ -42,4 +43,22 @@ export async function mapResponseToApiError<T>(
     detailsWithRetryAfter,
     problemDetails?.fields,
   );
+}
+
+function parseRetryAfter(retryAfter: string | null): number | undefined {
+  if (!retryAfter) {
+    return undefined;
+  }
+
+  const delaySeconds = Number.parseInt(retryAfter, 10);
+  if (Number.isFinite(delaySeconds)) {
+    return Math.max(0, delaySeconds);
+  }
+
+  const retryDate = Date.parse(retryAfter);
+  if (!Number.isFinite(retryDate)) {
+    return undefined;
+  }
+
+  return Math.max(0, Math.floor((retryDate - Date.now()) / 1000));
 }

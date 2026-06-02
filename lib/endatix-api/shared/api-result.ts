@@ -205,6 +205,10 @@ export const ApiResult = {
       statusCode: details?.statusCode ?? statusCode,
     };
 
+    if (statusCode >= 500 && statusCode < 600) {
+      return ApiResult.serverError(message, enrichedDetails, errorCode);
+    }
+
     switch (statusCode) {
       case 400:
         return ApiResult.validationError(
@@ -229,11 +233,6 @@ export const ApiResult = {
         return ApiResult.notFoundError(message, enrichedDetails, errorCode);
       case 429:
         return ApiResult.rateLimitError(message, enrichedDetails, errorCode);
-      case 500:
-      case 502:
-      case 503:
-      case 504:
-        return ApiResult.serverError(message, enrichedDetails, errorCode);
       default:
         return ApiResult.unknownError(
           message ?? `HTTP ${statusCode}`,
