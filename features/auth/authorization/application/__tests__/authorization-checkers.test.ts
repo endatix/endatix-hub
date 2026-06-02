@@ -13,6 +13,16 @@ import {
 } from "../../domain/authorization-result";
 import { createTestAuthorizationData } from "./helpers";
 
+const telemetryLoggerMock = vi.hoisted(() => ({
+  error: vi.fn(),
+}));
+
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: {
+    error: telemetryLoggerMock.error,
+  },
+}));
+
 const unauthenticatedResult = AuthorizationResult.unauthenticated();
 const serverErrorResult = AuthorizationResult.error();
 
@@ -78,9 +88,6 @@ describe("authorization-checkers", () => {
 
     it("returns server error when getAuthData throws", async () => {
       const getAuthData = vi.fn().mockRejectedValue(new Error("network"));
-      const consoleSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
 
       const checkPermission = checkPermissionFactory(getAuthData);
       const result = await checkPermission("forms.read");
@@ -89,8 +96,12 @@ describe("authorization-checkers", () => {
       expect(AuthorizationResult.getErrorType(result)).toBe(
         AuthorizationErrorType.ServerError,
       );
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+        "Unexpected error during permission check",
+        expect.any(Error),
+        { permission: "forms.read" },
+        "authorization",
+      );
     });
   });
 
@@ -164,9 +175,6 @@ describe("authorization-checkers", () => {
 
     it("returns server error when getAuthData throws", async () => {
       const getAuthData = vi.fn().mockRejectedValue(new Error("network"));
-      const consoleSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
 
       const checkAllPermissions = checkAllPermissionsFactory(getAuthData);
       const result = await checkAllPermissions(["forms.read"]);
@@ -175,8 +183,12 @@ describe("authorization-checkers", () => {
       expect(AuthorizationResult.getErrorType(result)).toBe(
         AuthorizationErrorType.ServerError,
       );
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+        "Unexpected error during all-permissions check",
+        expect.any(Error),
+        { permissionsCount: 1 },
+        "authorization",
+      );
     });
   });
 

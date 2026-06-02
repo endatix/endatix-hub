@@ -3,6 +3,9 @@ import {
   AuthorizationResult,
   GetAuthDataResult,
 } from "../domain/authorization-result";
+import { TelemetryLogger } from "@/features/telemetry";
+
+const LOGGER_NAME = "authorization";
 
 /**
  * Checks if user has given permission.
@@ -29,7 +32,12 @@ export function checkPermissionFactory(
         ? AuthorizationResult.success()
         : AuthorizationResult.forbidden();
     } catch (error) {
-      console.error("Unexpected error during checking permission:", error);
+      TelemetryLogger.error(
+        "Unexpected error during permission check",
+        error,
+        { permission },
+        LOGGER_NAME,
+      );
       return AuthorizationResult.error();
     }
   };
@@ -63,7 +71,12 @@ export function checkAnyPermissionFactory(
         ? AuthorizationResult.success()
         : AuthorizationResult.forbidden();
     } catch (error) {
-      console.error("Unexpected error during checking permissions:", error);
+      TelemetryLogger.error(
+        "Unexpected error during any-permission check",
+        error,
+        { permissionsCount: permissions.length },
+        LOGGER_NAME,
+      );
       return AuthorizationResult.error();
     }
   };
@@ -97,7 +110,12 @@ export function checkAllPermissionsFactory(
         ? AuthorizationResult.success()
         : AuthorizationResult.forbidden();
     } catch (error) {
-      console.error("Unexpected error during checking permissions:", error);
+      TelemetryLogger.error(
+        "Unexpected error during all-permissions check",
+        error,
+        { permissionsCount: permissions.length },
+        LOGGER_NAME,
+      );
       return AuthorizationResult.error();
     }
   };
