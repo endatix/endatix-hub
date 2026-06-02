@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 
 export async function deleteFolderAction(
   folderId: string,
-): Promise<Result<void> | never> {
+): Promise<Result<void>> {
   const session = await auth();
   const { requireHubAccess, requirePermission } = await authorization(session);
   await requireHubAccess();
