@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Copy } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import KeycloakSignOutButton from "./keycloak-sign-out-button";
 import Link from "next/link";
 import { SIGNOUT_PATH } from "@/features/auth/infrastructure/auth-constants";
 

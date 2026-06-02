@@ -62,7 +62,12 @@ AUTH_KEYCLOAK_ENABLED=true
 AUTH_KEYCLOAK_CLIENT_ID=your-client-id
 AUTH_KEYCLOAK_CLIENT_SECRET=your-client-secret
 AUTH_KEYCLOAK_ISSUER=https://your-keycloak.com/realms/your-realm
+AUTH_URL=https://your-hub-domain.com
 ```
+
+For federated sign-out, Keycloak must allow the Hub sign-in page as a post-logout redirect URI. Add `${AUTH_URL}/signin` to the Keycloak client's **Valid post logout redirect URIs** list, with the matching development URL for local environments when needed.
+
+Federated logout is modeled as an optional provider capability via `ISupportsFederatedLogout`. Keycloak implements this capability today; other providers can adopt it later without changing the core `IAuthProvider` contract.
 
 ### Google OAuth
 
@@ -183,6 +188,7 @@ services:
       - AUTH_KEYCLOAK_CLIENT_ID=${AUTH_KEYCLOAK_CLIENT_ID}
       - AUTH_KEYCLOAK_CLIENT_SECRET=${AUTH_KEYCLOAK_CLIENT_SECRET}
       - AUTH_KEYCLOAK_ISSUER=${AUTH_KEYCLOAK_ISSUER}
+      - AUTH_URL=${AUTH_URL:-https://your-hub-domain.com}
 
       # Google OAuth
       - AUTH_GOOGLE_CLIENT_ID=${AUTH_GOOGLE_CLIENT_ID}
@@ -210,6 +216,17 @@ interface IAuthProvider {
   handleJWT(params: JWTParams): Promise<JWT>; // Token processing
   handleSession(params: SessionParams): Promise<Session>; // Session handling
   validateConfig?(): boolean; // Optional: check if enabled
+}
+```
+
+### ISupportsFederatedLogout
+
+Optional capability for providers that can resolve an external IdP logout URL.
+The interface and parameter type live in `features/auth/infrastructure/federated-logout.types`.
+
+```typescript
+interface ISupportsFederatedLogout {
+  resolveFederatedLogoutUrl(params: FederatedLogoutParams): string | null;
 }
 ```
 
