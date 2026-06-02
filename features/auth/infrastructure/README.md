@@ -188,6 +188,7 @@ services:
       - AUTH_KEYCLOAK_CLIENT_ID=${AUTH_KEYCLOAK_CLIENT_ID}
       - AUTH_KEYCLOAK_CLIENT_SECRET=${AUTH_KEYCLOAK_CLIENT_SECRET}
       - AUTH_KEYCLOAK_ISSUER=${AUTH_KEYCLOAK_ISSUER}
+      - AUTH_URL=${AUTH_URL:-https://your-hub-domain.com}
 
       # Google OAuth
       - AUTH_GOOGLE_CLIENT_ID=${AUTH_GOOGLE_CLIENT_ID}
@@ -215,6 +216,17 @@ interface IAuthProvider {
   handleJWT(params: JWTParams): Promise<JWT>; // Token processing
   handleSession(params: SessionParams): Promise<Session>; // Session handling
   validateConfig?(): boolean; // Optional: check if enabled
+}
+```
+
+### ISupportsFederatedLogout
+
+Optional capability for providers that can resolve an external IdP logout URL.
+The interface and parameter type live in `features/auth/infrastructure/federated-logout.types`.
+
+```typescript
+interface ISupportsFederatedLogout {
+  resolveFederatedLogoutUrl(params: FederatedLogoutParams): string | null;
 }
 ```
 

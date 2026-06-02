@@ -65,4 +65,37 @@ describe("resolveFederatedLogoutUrl", () => {
     expect(resolveFederatedLogoutUrl(null)).toBeNull();
     expect(mocks.getProvider).not.toHaveBeenCalled();
   });
+
+  it("returns null when AUTH_URL is not a valid URL", () => {
+    process.env.AUTH_URL = "not-a-valid-url";
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const logoutUrl = resolveFederatedLogoutUrl(token);
+
+    expect(logoutUrl).toBeNull();
+    expect(mocks.getProvider).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Federated logout requested but AUTH_URL is not a valid URL",
+    );
+
+    warnSpy.mockRestore();
+  });
+
+  it("returns null when the provider fails to resolve federated logout", () => {
+    const error = new Error("Provider logout failed");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.mocked(mockProvider.resolveFederatedLogoutUrl).mockImplementation(() => {
+      throw error;
+    });
+
+    const logoutUrl = resolveFederatedLogoutUrl(token);
+
+    expect(logoutUrl).toBeNull();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Failed to resolve federated logout URL",
+      error,
+    );
+
+    warnSpy.mockRestore();
+  });
 });

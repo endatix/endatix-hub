@@ -1,6 +1,6 @@
 import { JWT } from "next-auth/jwt";
 import { Account, User } from "next-auth";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KEYCLOAK_ID, KeycloakAuthProvider } from "../keycloak-auth-provider";
 
 describe("KeycloakAuthProvider", () => {
@@ -14,6 +14,7 @@ describe("KeycloakAuthProvider", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     delete process.env.AUTH_KEYCLOAK_ISSUER;
     delete process.env.AUTH_KEYCLOAK_CLIENT_ID;
   });
@@ -86,6 +87,24 @@ describe("KeycloakAuthProvider", () => {
 
       // Assert
       expect(logoutUrl).toBeNull();
+    });
+
+    it("returns null when the issuer is not a valid URL", () => {
+      // Arrange
+      process.env.AUTH_KEYCLOAK_ISSUER = "not-a-valid-url";
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      // Act
+      const logoutUrl = provider.resolveFederatedLogoutUrl({
+        token: { id_token: "id-token" } as JWT,
+        postLogoutRedirectUri,
+      });
+
+      // Assert
+      expect(logoutUrl).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Keycloak logout requested but AUTH_KEYCLOAK_ISSUER is not a valid URL",
+      );
     });
   });
 });

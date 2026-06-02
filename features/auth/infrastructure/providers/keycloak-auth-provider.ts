@@ -11,6 +11,7 @@ import {
   ISupportsFederatedLogout,
 } from "../federated-logout.types";
 import { buildOidcEndSessionLogoutUrl } from "../oidc-logout.utils";
+import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
 import Keycloak from "next-auth/providers/keycloak";
 import { Provider } from "next-auth/providers";
 
@@ -134,8 +135,14 @@ export class KeycloakAuthProvider
       return null;
     }
 
-    const normalizedIssuer = issuer.endsWith("/") ? issuer : `${issuer}/`;
+    if (!isValidAbsoluteUrl(issuer)) {
+      console.warn(
+        "Keycloak logout requested but AUTH_KEYCLOAK_ISSUER is not a valid URL",
+      );
+      return null;
+    }
 
+    const normalizedIssuer = issuer.endsWith("/") ? issuer : `${issuer}/`;
     const endSessionEndpoint = new URL(
       "protocol/openid-connect/logout",
       normalizedIssuer,

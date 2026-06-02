@@ -39,9 +39,14 @@ describe("logoutAction", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.NEXT_PUBLIC_BASE_PATH;
     vi.mocked(getAuthJwtFromRequest).mockResolvedValue(token);
     vi.mocked(resolveFederatedLogoutUrl).mockReturnValue(null);
     vi.mocked(signOut).mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_BASE_PATH;
   });
 
   it("reads the JWT, resolves federated logout, clears the session, and redirects", async () => {
@@ -66,5 +71,37 @@ describe("logoutAction", () => {
     expect(resolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
     expect(signOut).toHaveBeenCalledWith({ redirect: false });
     expect(redirect).toHaveBeenCalledWith(SIGNIN_PATH);
+  });
+
+  it("applies the base path to the local sign-in fallback redirect", async () => {
+    process.env.NEXT_PUBLIC_BASE_PATH = "/hub";
+
+    await expect(logoutAction()).rejects.toThrow("Redirect to /hub/signin");
+
+    expect(getAuthJwtFromRequest).toHaveBeenCalledOnce();
+    expect(resolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
+    expect(signOut).toHaveBeenCalledWith({ redirect: false });
+    expect(redirect).toHaveBeenCalledWith("/hub/signin");
+  });
+
+  it("clears the local session and falls back when federated logout resolution fails", async () => {
+    const error = new Error("Federated logout unavailable");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.mocked(resolveFederatedLogoutUrl).mockImplementation(() => {
+      throw error;
+    });
+
+    await expect(logoutAction()).rejects.toThrow(`Redirect to ${SIGNIN_PATH}`);
+
+    expect(getAuthJwtFromRequest).toHaveBeenCalledOnce();
+    expect(resolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
+    expect(signOut).toHaveBeenCalledWith({ redirect: false });
+    expect(redirect).toHaveBeenCalledWith(SIGNIN_PATH);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Failed to resolve federated logout URL",
+      error,
+    );
+
+    warnSpy.mockRestore();
   });
 });
