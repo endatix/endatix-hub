@@ -83,7 +83,7 @@ function ThemeHotkey() {
         return;
       }
 
-      if (!event.key){
+      if (!event.key) {
         return;
       }
 
@@ -99,11 +99,12 @@ function ThemeHotkey() {
         return;
       }
 
-      setTheme(
+      const nextTheme =
         resolvedTheme === THEME_OPTIONS.DARK
           ? THEME_OPTIONS.LIGHT
-          : THEME_OPTIONS.DARK,
-      );
+          : THEME_OPTIONS.DARK;
+
+      setTheme(nextTheme);
     }
 
     if (!globalThis.window) {
