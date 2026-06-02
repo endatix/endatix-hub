@@ -61,8 +61,16 @@ describe("resolveFederatedLogoutUrl", () => {
     expect(resolveFederatedLogoutUrl(token)).toBeNull();
   });
 
+  it("returns null when AUTH_URL is not configured", () => {
+    delete process.env.AUTH_URL;
+
+    expect(resolveFederatedLogoutUrl(token)).toBeNull();
+    expect(mocks.getProvider).toHaveBeenCalledWith("keycloak");
+    expect(mockProvider.resolveFederatedLogoutUrl).not.toHaveBeenCalled();
+  });
+
   it("returns null when there is no JWT", () => {
     expect(resolveFederatedLogoutUrl(null)).toBeNull();
     expect(mocks.getProvider).not.toHaveBeenCalled();
-  });
+
 });
