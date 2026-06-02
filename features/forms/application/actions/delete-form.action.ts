@@ -26,5 +26,5 @@ export async function deleteFormAction(
     });
   }
 
-
+  return Result.success(formId);
 }
