@@ -62,7 +62,12 @@ AUTH_KEYCLOAK_ENABLED=true
 AUTH_KEYCLOAK_CLIENT_ID=your-client-id
 AUTH_KEYCLOAK_CLIENT_SECRET=your-client-secret
 AUTH_KEYCLOAK_ISSUER=https://your-keycloak.com/realms/your-realm
+AUTH_URL=https://your-hub-domain.com
 ```
+
+For federated sign-out, Keycloak must allow the Hub sign-in page as a post-logout redirect URI. Add `${AUTH_URL}/signin` to the Keycloak client's **Valid post logout redirect URIs** list, with the matching development URL for local environments when needed.
+
+Federated logout is modeled as an optional provider capability via `ISupportsFederatedLogout`. Keycloak implements this capability today; other providers can adopt it later without changing the core `IAuthProvider` contract.
 
 ### Google OAuth
 

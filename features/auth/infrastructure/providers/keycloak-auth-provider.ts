@@ -6,12 +6,19 @@ import {
   IAuthPresentation,
   SessionParams,
 } from "../types";
+import {
+  FederatedLogoutParams,
+  ISupportsFederatedLogout,
+} from "../federated-logout.types";
+import { buildOidcEndSessionLogoutUrl } from "../oidc-logout.utils";
 import Keycloak from "next-auth/providers/keycloak";
 import { Provider } from "next-auth/providers";
 
 export const KEYCLOAK_ID = "keycloak";
 
-export class KeycloakAuthProvider implements IAuthProvider {
+export class KeycloakAuthProvider
+  implements IAuthProvider, ISupportsFederatedLogout
+{
   readonly id = KEYCLOAK_ID;
   readonly name = "Keycloak";
   readonly type = "oidc" as const;
@@ -68,6 +75,7 @@ export class KeycloakAuthProvider implements IAuthProvider {
       token.access_token = account.access_token;
       token.refresh_token = account.refresh_token;
       token.expires_at = account.expires_at;
+      token.id_token = account.id_token;
 
       return token;
     }
@@ -102,5 +110,42 @@ export class KeycloakAuthProvider implements IAuthProvider {
     }
 
     return session;
+  }
+
+  resolveFederatedLogoutUrl({
+    token,
+    postLogoutRedirectUri,
+  }: FederatedLogoutParams): string | null {
+    const idToken = token.id_token;
+    const hasIdToken = typeof idToken === "string" && idToken.length > 0;
+
+    if (!hasIdToken) {
+      console.warn("Keycloak logout requested but the session has no id_token");
+      return null;
+    }
+
+    const issuer = process.env.AUTH_KEYCLOAK_ISSUER;
+    const clientId = process.env.AUTH_KEYCLOAK_CLIENT_ID;
+
+    if (!issuer || !clientId) {
+      console.warn(
+        "Keycloak logout requested but AUTH_KEYCLOAK_ISSUER or AUTH_KEYCLOAK_CLIENT_ID is missing",
+      );
+      return null;
+    }
+
+    const normalizedIssuer = issuer.endsWith("/") ? issuer : `${issuer}/`;
+
+    const endSessionEndpoint = new URL(
+      "protocol/openid-connect/logout",
+      normalizedIssuer,
+    ).toString();
+
+    return buildOidcEndSessionLogoutUrl({
+      endSessionEndpoint,
+      clientId,
+      idToken,
+      postLogoutRedirectUri,
+    });
   }
 }
