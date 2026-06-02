@@ -2,6 +2,7 @@
 
 import { LogOut, Settings2, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { ThemeSwitcher } from "@/components/controls/theme/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -65,6 +66,8 @@ const NavUser = ({ currentUser, trigger }: NavUserProps) => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <ThemeSwitcher source="account_menu" />
+        <DropdownMenuSeparator />
         {isLoggedIn ? (
           <>
             <DropdownMenuGroup>
@@ -76,12 +79,14 @@ const NavUser = ({ currentUser, trigger }: NavUserProps) => {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={SIGNOUT_PATH}>
-                <LogOut />
-                Sign out
-              </Link>
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href={SIGNOUT_PATH}>
+                  <LogOut />
+                  Sign out
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
           </>
         ) : (
           <DropdownMenuGroup>
