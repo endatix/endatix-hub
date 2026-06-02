@@ -9,10 +9,22 @@ import { ApiErrorType, EndatixApi, ERROR_CODE } from "@/lib/endatix-api";
 import { SessionError } from "@/auth";
 import { AuthorizationErrorType } from "../../domain/authorization-result";
 
+const telemetryLoggerMock = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+}));
+
 // Mock next/cache
 vi.mock("next/cache", () => ({
   unstable_cache: vi.fn((fn) => fn),
   revalidateTag: vi.fn(),
+}));
+
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: {
+    error: telemetryLoggerMock.error,
+    warn: telemetryLoggerMock.warn,
+  },
 }));
 
 // Partially mock EndatixApi - keep real implementations of isAuthError, ApiErrorType, etc.
@@ -187,6 +199,12 @@ describe("getAuthDataForCurrentUser", () => {
         "Server authentication failed. Cannot retrieve authorization data",
       );
     }
+    expect(telemetryLoggerMock.warn).toHaveBeenCalledWith(
+      "Authorization data rejected invalid token",
+      { provider: undefined },
+      "authorization",
+    );
+    expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
   });
 
   it("should return error when API returns error", async () => {
@@ -214,6 +232,14 @@ describe("getAuthDataForCurrentUser", () => {
     if (!result.success) {
       expect(result.error.type).toBe("SERVER_ERROR");
     }
+    expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+      "Failed to retrieve authorization data",
+      undefined,
+      expect.objectContaining({
+        apiErrorType: "SERVER_ERROR",
+      }),
+      "authorization",
+    );
   });
 
   it("should return error when API call throws", async () => {
@@ -229,9 +255,6 @@ describe("getAuthDataForCurrentUser", () => {
     vi.mocked(EndatixApi).mockImplementation(function () {
       return mockApiInstance as unknown as EndatixApi;
     });
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
 
     const getAuthData = getAuthDataForCurrentUser(mockSession);
     const result = await getAuthData();
@@ -240,9 +263,12 @@ describe("getAuthDataForCurrentUser", () => {
     if (!result.success) {
       expect(result.error.type).toBe("SERVER_ERROR");
     }
-    expect(consoleErrorSpy).toHaveBeenCalled();
-
-    consoleErrorSpy.mockRestore();
+    expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+      "Authorization data fetch failed",
+      expect.any(Error),
+      {},
+      "authorization",
+    );
   });
 
   it("should use correct userId and accessToken for API call", async () => {

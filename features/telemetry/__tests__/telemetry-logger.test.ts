@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   TelemetryLogger,
   LogSeverity,
@@ -18,6 +18,14 @@ vi.mock("@opentelemetry/api-logs", async (importOriginal) => {
 describe("TelemetryLogger", () => {
   beforeEach(() => {
     mockEmit.mockClear();
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", "");
+    vi.stubEnv("TELEMETRY_CONSOLE_FALLBACK", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 
   it("info() emits log with INFO severity and body", () => {
@@ -163,6 +171,126 @@ describe("TelemetryLogger", () => {
         }),
       }),
     );
+  });
+
+  it("uses console fallback in development when no telemetry exporter is configured", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "");
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", "");
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    TelemetryLogger.error(
+      "Request failed",
+      undefined,
+      { formId: "form-1" },
+      "forms",
+    );
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith("[forms] Request failed", {
+      severity: LogSeverity.Error,
+      attributes: expect.objectContaining({
+        "log.type": "LogRecord",
+        formId: "form-1",
+      }),
+    });
+  });
+
+  it("redacts sensitive console fallback attributes", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "");
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", "");
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    TelemetryLogger.error(
+      "Request failed",
+      undefined,
+      {
+        authorization: "Bearer secret-token",
+        connectionString: "InstrumentationKey=secret",
+        formId: "form-1",
+      },
+      "forms",
+    );
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith("[forms] Request failed", {
+      severity: LogSeverity.Error,
+      attributes: expect.objectContaining({
+        authorization: "[REDACTED]",
+        connectionString: "[REDACTED]",
+        formId: "form-1",
+      }),
+    });
+  });
+
+  it("does not use console fallback when a telemetry exporter is configured", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
+    const consoleInfoSpy = vi
+      .spyOn(console, "info")
+      .mockImplementation(() => {});
+
+    TelemetryLogger.info("Form deleted", { formId: "form-1" }, "forms");
+
+    expect(consoleInfoSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not use console fallback in production by default", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "");
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", "");
+    vi.stubEnv("TELEMETRY_CONSOLE_FALLBACK", "");
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    TelemetryLogger.error("Request failed", undefined, {}, "forms");
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not use console fallback in tests by default", () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "");
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", "");
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    TelemetryLogger.error("Request failed", undefined, {}, "forms");
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses console fallback in production only when explicitly enabled", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "");
+    vi.stubEnv("APPLICATIONINSIGHTS_CONNECTION_STRING", "");
+    vi.stubEnv("TELEMETRY_CONSOLE_FALLBACK", "true");
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    TelemetryLogger.warn("Using fallback path", { path: "forms" }, "forms");
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith("[forms] Using fallback path", {
+      severity: LogSeverity.Warning,
+      attributes: expect.objectContaining({
+        path: "forms",
+      }),
+    });
+  });
+
+  it("does not throw when OTEL emit fails", () => {
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
+    mockEmit.mockImplementationOnce(() => {
+      throw new Error("emit failed");
+    });
+
+    expect(() => TelemetryLogger.info("hello")).not.toThrow();
   });
 });
 

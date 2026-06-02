@@ -5,13 +5,26 @@ import {
   GetAuthDataResult,
 } from "../domain/authorization-result";
 import { revalidateTag, unstable_cache } from "next/cache";
-import { ApiResult, EndatixApi, isAuthError } from "@/lib/endatix-api";
+import { TelemetryLogger } from "@/features/telemetry";
+import {
+  ApiErrorType,
+  ApiResult,
+  EndatixApi,
+  isAuthError,
+  type ApiError,
+} from "@/lib/endatix-api";
+import { mapApiErrorToTelemetryAttributes } from "@/lib/result/map-api-error-to-telemetry-attributes";
 
 const USER_PERMISSIONS_CACHE_TAG = "usr_prms";
 const ALL_USER_PERMISSIONS_CACHE_TAG = "usr_prms_all";
 const USER_PERMISSIONS_CACHE_TTL = 720; // 12 minutes
 const DEFAULT_PERMISSION_ERROR_MESSAGE =
   "An unexpected error occurred while checking permissions";
+const LOGGER_NAME = "authorization";
+const ExpectedAuthorizationApiErrorTypes = new Set<ApiErrorType>([
+  ApiErrorType.AuthError,
+  ApiErrorType.ForbiddenError,
+]);
 
 const getUserPermissionsCacheKey = (userId: string) =>
   `${USER_PERMISSIONS_CACHE_TAG}:${userId}`;
@@ -32,6 +45,15 @@ async function fetchAuthorizationData(
       ApiResult.getErrorMessage(authorizationData) ??
       DEFAULT_PERMISSION_ERROR_MESSAGE;
 
+    if (shouldLogAuthorizationApiError(authorizationData)) {
+      TelemetryLogger.error(
+        "Failed to retrieve authorization data",
+        undefined,
+        mapApiErrorToTelemetryAttributes(authorizationData),
+        LOGGER_NAME,
+      );
+    }
+
     if (isAuthError(authorizationData)) {
       return AuthorizationResult.error({
         message:
@@ -44,7 +66,12 @@ async function fetchAuthorizationData(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : DEFAULT_PERMISSION_ERROR_MESSAGE;
-    console.error("Error getting user permissions from session:", error);
+    TelemetryLogger.error(
+      "Authorization data fetch failed",
+      error,
+      {},
+      LOGGER_NAME,
+    );
     return AuthorizationResult.error({ message: errorMessage });
   }
 }
@@ -78,17 +105,30 @@ export function getAuthDataForCurrentUser(session: Session | null) {
         authorizationDataResult.error.type ===
           AuthorizationErrorType.InvalidTokenError
       ) {
-        console.error(
-          `🔐 Authorization Data fetching failed with Invalid token error for user ${user.id} with access token from ${session.provider} provider. Error: ${authorizationDataResult.error.message}`,
+        TelemetryLogger.warn(
+          "Authorization data rejected invalid token",
+          {
+            provider: session.provider,
+          },
+          LOGGER_NAME,
         );
       }
 
       return authorizationDataResult;
     } catch (error) {
-      console.error("Error getting session for permissions:", error);
+      TelemetryLogger.error(
+        "Authorization data resolution failed",
+        error,
+        {},
+        LOGGER_NAME,
+      );
       return AuthorizationResult.error();
     }
   };
+}
+
+function shouldLogAuthorizationApiError(apiError: ApiError): boolean {
+  return !ExpectedAuthorizationApiErrorTypes.has(apiError.error.type);
 }
 
 /**

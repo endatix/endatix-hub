@@ -136,8 +136,8 @@ describe("Auth", () => {
         expect(ApiResult.isError(result)).toBe(true);
         if (ApiResult.isError(result)) {
           expect(result.error.type).toBe(ApiErrorType.ValidationError);
-          // When parseErrorResponse returns null (unrecognized format), falls back to default message
-          expect(result.error.message).toBe("An unexpected error occurred.");
+          // When parseErrorResponse returns null, fall back to the HTTP status semantics.
+          expect(result.error.message).toBe("The provided data is invalid.");
           expect(result.error.errorCode).toBe(ERROR_CODE.VALIDATION_ERROR);
           expect(result.error.fields).toBeUndefined();
         }
@@ -211,8 +211,10 @@ describe("Auth", () => {
         expect(ApiResult.isError(result)).toBe(true);
         if (ApiResult.isError(result)) {
           expect(result.error.type).toBe(ApiErrorType.ServerError);
-          // When parseErrorResponse returns null (unrecognized format), uses default message
-          expect(result.error.message).toBe("An unexpected error occurred.");
+          // When parseErrorResponse returns null, fall back to the HTTP status semantics.
+          expect(result.error.message).toBe(
+            "Server error occurred. Please try again later.",
+          );
           expect(result.error.details?.statusCode).toBe(500);
         }
       });
