@@ -79,7 +79,9 @@ declare namespace NodeJS {
 
     // Telemetry
     OTEL_LOG_LEVEL?: string;
+    OTEL_EXPORTER_OTLP_ENDPOINT?: string;
     APPLICATIONINSIGHTS_CONNECTION_STRING?: string;
+    TELEMETRY_CONSOLE_FALLBACK?: string;
 
     // PostHog
     NEXT_PUBLIC_POSTHOG_KEY?: string;

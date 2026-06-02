@@ -1,4 +1,5 @@
 import { logs, SeverityNumber } from "@opentelemetry/api-logs";
+import { TelemetryConfig } from "./telemetry-config";
 
 /**
  * Severity levels for logging
@@ -40,6 +41,20 @@ const severityMap: Record<LogSeverity, SeverityNumber> = {
   [LogSeverity.Error]: SeverityNumber.ERROR,
   [LogSeverity.Critical]: SeverityNumber.FATAL,
 };
+
+const consoleMethodMap: Record<
+  LogSeverity,
+  "debug" | "info" | "warn" | "error"
+> = {
+  [LogSeverity.Debug]: "debug",
+  [LogSeverity.Info]: "info",
+  [LogSeverity.Warning]: "warn",
+  [LogSeverity.Error]: "error",
+  [LogSeverity.Critical]: "error",
+};
+
+const sensitiveAttributePattern =
+  /(authorization|cookie|token|secret|password|apikey|api_key|connectionstring|connection_string)/i;
 
 /**
  * Log record attributes
@@ -111,13 +126,55 @@ export class TelemetryLogger {
       ...attributes,
     };
 
-    // Emit the log record
-    logger.emit({
-      severityNumber: severityMap[severity],
-      severityText: severity,
-      body: message,
-      attributes: enhancedAttributes,
+    try {
+      logger.emit({
+        severityNumber: severityMap[severity],
+        severityText: severity,
+        body: message,
+        attributes: enhancedAttributes,
+      });
+    } catch {
+      // Logging must never interrupt application flow. Console fallback below
+      // still makes local diagnostics visible when enabled.
+    }
+
+    this.logToConsoleFallback(
+      message,
+      severity,
+      enhancedAttributes,
+      loggerName ?? this.DEFAULT_LOGGER_NAME,
+    );
+  }
+
+  private static logToConsoleFallback(
+    message: string,
+    severity: LogSeverity,
+    attributes: LogAttributes,
+    loggerName: string,
+  ): void {
+    if (!this.shouldUseConsoleFallback()) {
+      return;
+    }
+
+    const consoleMethod = consoleMethodMap[severity];
+    console[consoleMethod](`[${loggerName}] ${message}`, {
+      severity,
+      attributes: sanitizeConsoleAttributes(attributes),
     });
+  }
+
+  private static shouldUseConsoleFallback(): boolean {
+    const hasTelemetryExporter =
+      TelemetryConfig.isAzureConfigured() || TelemetryConfig.isOtelConfigured();
+
+    if (hasTelemetryExporter) {
+      return false;
+    }
+
+    return (
+      process.env.NODE_ENV === "development" ||
+      process.env.TELEMETRY_CONSOLE_FALLBACK === "true"
+    );
   }
 
   /**
@@ -230,4 +287,13 @@ export class TelemetryLogger {
       this.log(message, LogSeverity.Critical, enhancedAttributes, loggerName);
     }
   }
+}
+
+function sanitizeConsoleAttributes(attributes: LogAttributes): LogAttributes {
+  return Object.fromEntries(
+    Object.entries(attributes).map(([key, value]) => [
+      key,
+      sensitiveAttributePattern.test(key) ? "[REDACTED]" : value,
+    ]),
+  );
 }
