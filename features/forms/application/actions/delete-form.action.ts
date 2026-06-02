@@ -10,7 +10,7 @@ export type DeleteFormResult = Result<string>;
 
 export async function deleteFormAction(
   formId: string,
-): Promise<DeleteFormResult | never> {
+): Promise<DeleteFormResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
