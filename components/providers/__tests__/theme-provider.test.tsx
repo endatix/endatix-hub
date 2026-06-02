@@ -10,19 +10,12 @@ import { ThemeProvider } from "../theme-provider";
 
 const mockSetTheme = vi.fn();
 const mockResolvedTheme = vi.fn(() => "light");
-const mockTrackEvent = vi.fn();
 
 vi.mock("next-themes", () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   useTheme: () => ({
     resolvedTheme: mockResolvedTheme(),
     setTheme: mockSetTheme,
-  }),
-}));
-
-vi.mock("@/features/analytics/posthog/client", () => ({
-  useTrackEvent: () => ({
-    trackEvent: mockTrackEvent,
   }),
 }));
 
@@ -85,7 +78,6 @@ describe("ThemeHotkey", () => {
     });
 
     expect(mockSetTheme).not.toHaveBeenCalled();
-    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it("should not toggle theme when ctrl key is pressed", async () => {
@@ -146,12 +138,6 @@ describe("ThemeHotkey", () => {
     });
 
     expect(mockSetTheme).toHaveBeenCalledWith("dark");
-    expect(mockTrackEvent).toHaveBeenCalledWith("theme_changed", {
-      theme: "dark",
-      previous_theme: "light",
-      resolved_theme: "light",
-      source: "hotkey",
-    });
   });
 
   it("should toggle from dark to light", async () => {
@@ -168,12 +154,6 @@ describe("ThemeHotkey", () => {
     });
 
     expect(mockSetTheme).toHaveBeenCalledWith("light");
-    expect(mockTrackEvent).toHaveBeenCalledWith("theme_changed", {
-      theme: "light",
-      previous_theme: "dark",
-      resolved_theme: "dark",
-      source: "hotkey",
-    });
   });
 
   it("should not toggle when typing in input", async () => {
