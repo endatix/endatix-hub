@@ -123,3 +123,10 @@ export type { DefinitionField } from "./definitions/types";
 
 // users/types
 export type { UserListItem } from "./users/types";
+
+// email/types
+export type {
+  EmailProviderInfo,
+  EmailTemplateSummary,
+  SendTestEmailRequest,
+} from "./email/types";
