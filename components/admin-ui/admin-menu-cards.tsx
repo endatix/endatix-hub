@@ -88,6 +88,23 @@ export function AdminMenuCards({ showStorage }: Readonly<AdminMenuCardsProps>) {
           <div className="text-muted-foreground"></div>
         </CardFooter>
       </Card>
+      <Card
+        className="@container/card cursor-pointer"
+        onClick={() => router.push("/admin/email")}
+      >
+        <CardHeader>
+          <CardDescription>Manage Email Settings</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            Email
+          </CardTitle>
+        </CardHeader>
+        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <div className="line-clamp-1 flex gap-2 font-medium">
+            View email provider and send test emails.
+          </div>
+          <div className="text-muted-foreground"></div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

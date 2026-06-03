@@ -17,6 +17,7 @@ import Users from "./users/users";
 import Stats from "./stats/stats";
 import { Folders } from "./folders/folders";
 import { FormTemplates } from "./form-templates/form-templates";
+import Email from "./email/email";
 
 /**
  * Gets the validated and cached API URL
@@ -67,6 +68,7 @@ export class EndatixApi {
   private _stats?: Stats;
   private _folders?: Folders;
   private _formTemplates?: FormTemplates;
+  private _email?: Email;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -213,6 +215,11 @@ export class EndatixApi {
   get formTemplates(): FormTemplates {
     this._formTemplates ??= new FormTemplates(this);
     return this._formTemplates;
+  }
+
+  get email(): Email {
+    this._email ??= new Email(this);
+    return this._email;
   }
 
   /**
