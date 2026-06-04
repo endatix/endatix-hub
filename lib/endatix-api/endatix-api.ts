@@ -14,6 +14,7 @@ import Auth from "./auth/auth";
 import { Conversations } from "./conversations/conversations";
 import Tenant from "./tenant/tenant";
 import Users from "./users/users";
+import Roles from "./roles/roles";
 import Stats from "./stats/stats";
 import { Folders } from "./folders/folders";
 import { FormTemplates } from "./form-templates/form-templates";
@@ -65,6 +66,7 @@ export class EndatixApi {
   private _conversations?: Conversations;
   private _tenant?: Tenant;
   private _users?: Users;
+  private _roles?: Roles;
   private _stats?: Stats;
   private _folders?: Folders;
   private _formTemplates?: FormTemplates;
@@ -197,6 +199,11 @@ export class EndatixApi {
       this._users = new Users(this);
     }
     return this._users;
+  }
+
+  get roles(): Roles {
+    this._roles ??= new Roles(this);
+    return this._roles;
   }
 
   /**

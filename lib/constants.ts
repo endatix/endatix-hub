@@ -9,7 +9,10 @@ import {
   LineChart,
   Plug,
   Repeat,
+  ShieldCheck,
   Settings2,
+  UserCog,
+  Users,
 } from "lucide-react";
 
 export const HOME_ROUTE_PATH = "/";
@@ -93,23 +96,43 @@ const sitemapArray: INavItem[] = [
   {
     key: "settings",
     title: "Settings",
-    url: "/settings/security",
+    url: "/settings/organization/users",
     icon: Settings2,
     children: [
       {
-        key: "security",
-        title: "Security",
-        url: "/settings/security",
+        key: "organizationSection",
+        title: "Organization",
+        url: "",
+        isSectionHeader: true,
+      },
+      {
+        key: "organizationGeneral",
+        title: "General",
+        url: "/settings/organization/forms",
       },
       {
         key: "users",
         title: "Users",
         url: "/settings/organization/users",
+        icon: Users,
       },
       {
-        key: "formsOrganization",
-        title: "Organization settings",
-        url: "/settings/organization/forms",
+        key: "roles",
+        title: "Roles",
+        url: "/settings/organization/roles",
+        icon: UserCog,
+      },
+      {
+        key: "myAccountSection",
+        title: "My Account",
+        url: "",
+        isSectionHeader: true,
+      },
+      {
+        key: "security",
+        title: "Security",
+        url: "/settings/security",
+        icon: ShieldCheck,
       },
     ],
   },
