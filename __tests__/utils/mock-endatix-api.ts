@@ -10,7 +10,14 @@ function defaultEndatixApiInstance() {
       list: vi.fn().mockResolvedValue({ success: true, data: [] }),
     },
     auth: {
+      getInviteDetails: vi.fn().mockResolvedValue({
+        success: true,
+        data: { email: "invitee@example.com" },
+      }),
       getAuthorizationData: vi.fn(),
+    },
+    roles: {
+      list: vi.fn().mockResolvedValue({ success: true, data: [] }),
     },
     myAccount: {
       changePassword: vi.fn(),

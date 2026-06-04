@@ -2,9 +2,14 @@ import { cache } from "react";
 import { EndatixApi } from "../endatix-api";
 import {
   ApiResult,
+  ActivateInviteRequest,
+  ActivateInviteResponse,
   AuthorizationData,
+  InviteDetailsRequest,
+  InviteDetailsResponse,
   RefreshTokenRequest,
   RefreshTokenResponse,
+  SendVerificationEmailRequest,
   SignInRequest,
   SignInResponse,
 } from "../types";
@@ -19,6 +24,34 @@ export default class Auth {
    */
   async signIn(request: SignInRequest): Promise<ApiResult<SignInResponse>> {
     return this.endatix.post<SignInResponse>("/auth/login", request, {
+      requireAuth: false,
+    });
+  }
+
+  async activateInvite(
+    request: ActivateInviteRequest,
+  ): Promise<ApiResult<ActivateInviteResponse>> {
+    return this.endatix.post<ActivateInviteResponse>(
+      "/auth/activate-invite",
+      request,
+      { requireAuth: false },
+    );
+  }
+
+  async getInviteDetails(
+    request: InviteDetailsRequest,
+  ): Promise<ApiResult<InviteDetailsResponse>> {
+    return this.endatix.post<InviteDetailsResponse>(
+      "/auth/activate-invite/details",
+      request,
+      { requireAuth: false },
+    );
+  }
+
+  async sendVerificationEmail(
+    request: SendVerificationEmailRequest,
+  ): Promise<ApiResult<string>> {
+    return this.endatix.post<string>("/auth/send-verification-email", request, {
       requireAuth: false,
     });
   }
