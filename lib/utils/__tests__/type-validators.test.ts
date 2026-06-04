@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createEndatixIdSchema,
   validateEndatixId,
   validateHexToken,
   hasProperty,
@@ -217,6 +218,38 @@ describe("validateEndatixId", () => {
         expect(result.message).toContain("customParam");
       }
     });
+  });
+});
+
+describe("createEndatixIdSchema", () => {
+  it("should accept and trim valid Endatix IDs", () => {
+    // Arrange
+    const schema = createEndatixIdSchema("userId");
+
+    // Act
+    const result = schema.safeParse(" 1507347517849731072 ");
+
+    // Assert
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toBe("1507347517849731072");
+    }
+  });
+
+  it("should return validator messages as Zod issues", () => {
+    // Arrange
+    const schema = createEndatixIdSchema("userId");
+
+    // Act
+    const result = schema.safeParse("9223372036854775808");
+
+    // Assert
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain(
+        "userId must be less than",
+      );
+    }
   });
 });
 

@@ -1,8 +1,8 @@
+import type { IPagedRequest } from "../shared/types";
+
 export type RoleTypeFilter = "all" | "system" | "custom";
 
-export interface ListRolesRequest {
-  page?: number;
-  pageSize?: number;
+export interface ListRolesRequest extends IPagedRequest {
   roleType?: RoleTypeFilter;
   search?: string;
 }

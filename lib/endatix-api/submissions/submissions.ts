@@ -6,6 +6,10 @@ import {
 } from "@/lib/utils/type-validators";
 import type { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
+import {
+  appendPagingQueryParams,
+  buildEndpointWithQuery,
+} from "../shared/query-params";
 import { appendSubmissionListFilters } from "./submission-list-query-params";
 import {
   ExportSubmissionsRequest,
@@ -185,16 +189,16 @@ export class Submissions {
     }
 
     const params = new URLSearchParams();
-    params.set("page", String(request.page ?? SUBMISSION_LIST_DEFAULT_PAGE));
-    params.set(
-      "pageSize",
-      String(request.pageSize ?? SUBMISSION_LIST_DEFAULT_PAGE_SIZE),
-    );
+    appendPagingQueryParams(params, request, {
+      page: SUBMISSION_LIST_DEFAULT_PAGE,
+      pageSize: SUBMISSION_LIST_DEFAULT_PAGE_SIZE,
+    });
     appendSubmissionListFilters(params, request);
 
-    const queryString = params.toString();
-    const queryPart = queryString ? `?${queryString}` : "";
-    const endpoint = `/forms/${validateFormIdResult.value}/submissions${queryPart}`;
+    const endpoint = buildEndpointWithQuery(
+      `/forms/${validateFormIdResult.value}/submissions`,
+      params,
+    );
 
     return this.endatix.get<ListSubmissionsResponse>(endpoint);
   }

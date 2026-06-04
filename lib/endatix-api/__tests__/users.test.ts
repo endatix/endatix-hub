@@ -10,6 +10,43 @@ describe("Users API", () => {
     mockFetch.mockReset();
   });
 
+  it("builds the list users endpoint with paging and filters", async () => {
+    // Arrange
+    const api = new EndatixApi("access-token");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          items: [],
+          page: 2,
+          pageSize: 25,
+          totalPages: 0,
+          totalRecords: 0,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    // Act
+    await api.users.list({
+      page: 2,
+      pageSize: 25,
+      search: "Jane Admin",
+      role: "Admin",
+      status: "active",
+    });
+
+    // Assert
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://ci.api.endatix.com/api/users?page=2&pageSize=25&search=Jane+Admin&role=Admin&status=active",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
   it("sends an empty JSON body when resending an invite", async () => {
     // Arrange
     const api = new EndatixApi("access-token");

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { Result } from "../result";
 
 // C# long.MaxValue - use string to avoid precision loss
@@ -46,6 +47,22 @@ export function validateEndatixId(
   } catch {
     return Result.validationError(`${paramName} is not a valid numeric value`);
   }
+}
+
+export function createEndatixIdSchema(paramName: string) {
+  return z
+    .string()
+    .trim()
+    .superRefine((id, ctx) => {
+      const result = validateEndatixId(id, paramName);
+
+      if (Result.isError(result)) {
+        ctx.addIssue({
+          code: "custom",
+          message: result.message,
+        });
+      }
+    });
 }
 
 /**
