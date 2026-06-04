@@ -4,13 +4,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import {
   stateFromApiError,
   stateFromUnexpectedError,
 } from "../server-action-state";
+import { getUnassignableRoleError } from "../role-assignment-rules";
 
 const createTenantUserSchema = z.object({
   email: z.email({ error: "Enter a valid email address" }).trim(),
@@ -39,22 +39,13 @@ export async function createTenantUserAction(
     return ServerActionState.fromZodError(validatedData.error, rawData);
   }
 
-  if (validatedData.data.roles.some(isPlatformScopedRole)) {
+  const unassignableRoleError = getUnassignableRoleError(
+    validatedData.data.roles,
+  );
+  if (unassignableRoleError) {
     return {
       isSuccess: false,
-      formErrors: [
-        "Platform administrator roles are managed at the platform level.",
-      ],
-      data: rawData,
-    };
-  }
-
-  if (validatedData.data.roles.some(isTenantAdminRole)) {
-    return {
-      isSuccess: false,
-      formErrors: [
-        "Admin access can be assigned after the invited user verifies their account.",
-      ],
+      formErrors: [unassignableRoleError],
       data: rawData,
     };
   }
@@ -76,14 +67,6 @@ export async function createTenantUserAction(
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, "createTenantUserAction");
   }
-}
-
-function isPlatformScopedRole(roleName: string) {
-  return roleName.toLowerCase() === SystemRoles.PlatformAdmin.toLowerCase();
-}
-
-function isTenantAdminRole(roleName: string) {
-  return roleName.toLowerCase() === SystemRoles.Admin.toLowerCase();
 }
 
 function getCreateTenantUserData(payload: CreateTenantUserPayload): {

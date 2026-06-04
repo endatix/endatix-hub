@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
+import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { setUserRoleAction } from "../manage-user-roles/manage-user-roles.action";
 
@@ -86,5 +87,23 @@ describe("manage user roles action", () => {
 
     expect(result.isSuccess).toBe(false);
     expect(result.formErrors).toEqual(["Could not update roles"]);
+  });
+
+  it("rejects tenant Admin role assignment before calling the API", async () => {
+    const userId = "1507347517849731072";
+
+    const result = await setUserRoleAction(
+      { isSuccess: undefined },
+      {
+        userId,
+        roles: [SystemRoles.Admin],
+      },
+    );
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.formErrors).toEqual([
+      "Admin access can be assigned after the invited user verifies their account.",
+    ]);
+    expect(replaceRoles).not.toHaveBeenCalled();
   });
 });

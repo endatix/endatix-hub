@@ -4,8 +4,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { ServerActionState } from "@/lib/utils/zod-error-utils";
+import { ApiResult, EndatixApi, type ApiError } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
+import {
+  type DeepFieldErrors,
+  ServerActionState,
+} from "@/lib/utils/zod-error-utils";
 
 const roleSchema = z.object({
   name: z.string().trim().min(1).max(256),
@@ -23,12 +28,16 @@ const updateRoleSchema = z.object({
   permissions: z.array(z.string().trim().min(1)).default([]),
 });
 
-export type RoleActionState = ServerActionState<{
+const ROLE_ACTION_LOGGER_NAME = "organization.role-management";
+
+type RoleActionData = {
   name?: string;
   roleName?: string;
   description?: string;
   permissions?: string[];
-}>;
+};
+
+export type RoleActionState = ServerActionState<RoleActionData>;
 
 export async function createRoleAction(
   _prevState: RoleActionState,
@@ -57,11 +66,11 @@ export async function createRoleAction(
     return { isSuccess: true, message: "Role created." };
   }
 
-  return {
-    isSuccess: false,
-    formErrors: [result.error.message],
-    data: rawData,
-  };
+  return stateFromRoleApiError(result, rawData, "Failed to create role", [
+    "name",
+    "description",
+    "permissions",
+  ]);
 }
 
 export async function deleteRoleAction(
@@ -86,11 +95,9 @@ export async function deleteRoleAction(
     return { isSuccess: true, message: "Role deleted." };
   }
 
-  return {
-    isSuccess: false,
-    formErrors: [result.error.message],
-    data: rawData,
-  };
+  return stateFromRoleApiError(result, rawData, "Failed to delete role", [
+    "roleName",
+  ]);
 }
 
 export async function updateRoleAction(
@@ -123,10 +130,33 @@ export async function updateRoleAction(
     return { isSuccess: true, message: "Role updated." };
   }
 
+  return stateFromRoleApiError(result, rawData, "Failed to update role", [
+    "roleName",
+    "description",
+    "permissions",
+  ]);
+}
+
+function stateFromRoleApiError(
+  result: ApiError,
+  data: RoleActionData,
+  logMessage: string,
+  preferredFields: string[],
+): RoleActionState {
+  const mappedResult = toResult(result, {
+    fallbackMessage: logMessage,
+    preferredFields,
+    logMessage,
+    loggerName: ROLE_ACTION_LOGGER_NAME,
+  });
+
   return {
     isSuccess: false,
-    formErrors: [result.error.message],
-    data: rawData,
+    formErrors: Result.isError(mappedResult)
+      ? [mappedResult.message]
+      : undefined,
+    errors: result.error.fields as DeepFieldErrors<RoleActionData> | undefined,
+    data,
   };
 }
 

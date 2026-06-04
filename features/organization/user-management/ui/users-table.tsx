@@ -200,6 +200,7 @@ export function UsersTable({
     startTransition(async () => {
       const state = await deleteUserAction(emptyDeleteState, {
         userId: user.id,
+        confirmationEmail: deleteConfirmEmail,
       });
       if (state.isSuccess) {
         toast.success("User access removed");

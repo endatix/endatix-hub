@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
@@ -12,6 +11,7 @@ import {
   stateFromApiError,
   stateFromUnexpectedError,
 } from "../server-action-state";
+import { getUnassignableRoleError } from "../role-assignment-rules";
 
 const userRoleSchema = z.object({
   userId: createEndatixIdSchema("userId"),
@@ -65,12 +65,11 @@ async function handleSetMutation(
   rawData: Record<string, unknown>,
 ): Promise<UserRoleActionState> {
   const selectedRoles = data.roles;
-  if (selectedRoles.some(isPlatformScopedRole)) {
+  const unassignableRoleError = getUnassignableRoleError(selectedRoles);
+  if (unassignableRoleError) {
     return {
       isSuccess: false,
-      formErrors: [
-        "Platform administrator roles are managed at the platform level.",
-      ],
+      formErrors: [unassignableRoleError],
       data: rawData,
     };
   }
@@ -84,10 +83,6 @@ async function handleSetMutation(
 
   revalidatePath("/settings/organization/users");
   return { isSuccess: true };
-}
-
-function isPlatformScopedRole(roleName: string) {
-  return roleName.toLowerCase() === SystemRoles.PlatformAdmin.toLowerCase();
 }
 
 function getUserRoleData(payload: UserRolePayload) {

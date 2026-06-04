@@ -8,6 +8,10 @@ import {
   updateRoleAction,
 } from "../role-management.actions";
 
+const telemetryLoggerMock = vi.hoisted(() => ({
+  error: vi.fn(),
+}));
+
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
@@ -35,6 +39,12 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => {
   };
 });
 
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: {
+    error: telemetryLoggerMock.error,
+  },
+}));
+
 describe("role management actions", () => {
   const createRole = vi.fn();
   const deleteRole = vi.fn();
@@ -43,6 +53,7 @@ describe("role management actions", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    telemetryLoggerMock.error.mockClear();
     vi.mocked(auth).mockResolvedValue({ accessToken: "token" } as never);
     vi.mocked(authorization).mockResolvedValue({
       requirePermission,
@@ -107,5 +118,48 @@ describe("role management actions", () => {
       permissions: ["forms.view"],
     });
     expect(result.isSuccess).toBe(true);
+  });
+
+  it("preserves API validation field errors when create fails", async () => {
+    const formData = new FormData();
+    formData.set("name", "Reviewer");
+    formData.append("permissions", "forms.view");
+    createRole.mockResolvedValue(
+      ApiResult.validationError(
+        "Validation failed.",
+        "role_name_already_exists",
+        undefined,
+        {
+          name: ["Role name already exists."],
+        },
+      ),
+    );
+
+    const result = await createRoleAction({ isSuccess: undefined }, formData);
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.formErrors).toEqual(["Role name already exists."]);
+    expect(result.errors?.name).toEqual(["Role name already exists."]);
+    expect(result.data?.name).toBe("Reviewer");
+    expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
+  });
+
+  it("logs unexpected API failures through the shared mapper", async () => {
+    const formData = new FormData();
+    formData.set("roleName", "Reviewer");
+    deleteRole.mockResolvedValue(ApiResult.serverError("Could not delete role"));
+
+    const result = await deleteRoleAction({ isSuccess: undefined }, formData);
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.formErrors).toEqual(["Could not delete role"]);
+    expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+      "Failed to delete role",
+      undefined,
+      expect.objectContaining({
+        apiErrorType: "ServerError",
+      }),
+      "organization.role-management",
+    );
   });
 });

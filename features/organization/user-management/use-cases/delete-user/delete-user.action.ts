@@ -14,16 +14,23 @@ import {
 
 const deleteUserSchema = z.object({
   userId: createEndatixIdSchema("userId"),
+  confirmationEmail: z
+    .email({ error: "Type the user's email address to confirm" })
+    .trim(),
 });
 
-export type DeleteUserActionState = ServerActionState<{
+type DeleteUserActionData = {
   userId?: string;
-}>;
+  confirmationEmail?: string;
+};
+
+export type DeleteUserActionState = ServerActionState<DeleteUserActionData>;
 
 type DeleteUserPayload =
   | FormData
   | {
       userId?: number | string;
+      confirmationEmail?: string;
     };
 
 export async function deleteUserAction(
@@ -43,6 +50,23 @@ export async function deleteUserAction(
     await requirePermission(Permissions.Tenant.ManageUsers);
 
     const api = new EndatixApi(session?.accessToken);
+    if (session?.user?.id === validatedData.data.userId) {
+      return deletionSafeguardError(
+        rawData,
+        "You cannot remove your own organization access.",
+      );
+    }
+
+    const confirmationGuard = await validateDeleteConfirmation(
+      api,
+      validatedData.data.userId,
+      validatedData.data.confirmationEmail,
+      rawData,
+    );
+    if (!confirmationGuard.isSuccess) {
+      return confirmationGuard;
+    }
+
     const result = await api.users.removeAccess(validatedData.data.userId);
 
     if (ApiResult.isSuccess(result)) {
@@ -56,9 +80,12 @@ export async function deleteUserAction(
   }
 }
 
-function getDeleteUserData(payload: DeleteUserPayload): { userId?: string } {
+function getDeleteUserData(payload: DeleteUserPayload): DeleteUserActionData {
   if (payload instanceof FormData) {
-    return { userId: String(payload.get("userId") ?? "") };
+    return {
+      userId: getStringFormValue(payload, "userId"),
+      confirmationEmail: getStringFormValue(payload, "confirmationEmail"),
+    };
   }
 
   return {
@@ -66,5 +93,55 @@ function getDeleteUserData(payload: DeleteUserPayload): { userId?: string } {
       payload.userId === undefined || payload.userId === null
         ? undefined
         : String(payload.userId),
+    confirmationEmail: payload.confirmationEmail,
   };
+}
+
+async function validateDeleteConfirmation(
+  api: EndatixApi,
+  userId: string,
+  confirmationEmail: string,
+  rawData: DeleteUserActionData,
+): Promise<DeleteUserActionState> {
+  const usersResult = await api.users.list({
+    search: confirmationEmail,
+    page: 1,
+    pageSize: 25,
+  });
+
+  if (ApiResult.isError(usersResult)) {
+    return stateFromApiError(usersResult, rawData);
+  }
+
+  const targetUser = usersResult.data.items.find(
+    (user) => String(user.id) === userId,
+  );
+  if (
+    targetUser?.email.localeCompare(confirmationEmail, undefined, {
+      sensitivity: "accent",
+    }) === 0
+  ) {
+    return { isSuccess: true };
+  }
+
+  return deletionSafeguardError(
+    rawData,
+    "Type the user's email address to confirm.",
+  );
+}
+
+function deletionSafeguardError(
+  data: DeleteUserActionData,
+  message: string,
+): DeleteUserActionState {
+  return {
+    isSuccess: false,
+    formErrors: [message],
+    data,
+  };
+}
+
+function getStringFormValue(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
 }

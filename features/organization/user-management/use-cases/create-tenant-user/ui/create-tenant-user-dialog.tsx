@@ -57,6 +57,7 @@ export function CreateTenantUserDialog({
       });
       setOpen(false);
       setSelectedRoles([]);
+      setState(initialState);
       return;
     }
 
@@ -81,6 +82,18 @@ export function CreateTenantUserDialog({
     );
   };
 
+  const resetInviteDraft = () => {
+    setSelectedRoles([]);
+    setState(initialState);
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      resetInviteDraft();
+    }
+  };
+
   const handleSubmit: NonNullable<ComponentProps<"form">["onSubmit"]> = (
     event,
   ) => {
@@ -101,7 +114,7 @@ export function CreateTenantUserDialog({
     <ResponsivePanel
       desktopType="complex"
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       trigger={
         <Button>
           <Plus data-icon="inline-start" />
@@ -207,7 +220,10 @@ export function CreateTenantUserDialog({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              resetInviteDraft();
+              setOpen(false);
+            }}
           >
             Cancel
           </Button>
