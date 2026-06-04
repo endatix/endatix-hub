@@ -86,20 +86,29 @@ export default async function SettingsOrganizationUsersPage(
   props?: SettingsOrganizationUsersPageProps,
 ) {
   const session = await auth();
-  const { requireHubAccess, checkPermission } = await authorization(session);
+  const { requireHubAccess, evaluatePermissions } = await authorization(session);
   await requireHubAccess();
 
-  const [manageUsersPermission, inviteUsersPermission, viewRolesPermission] =
-    await Promise.all([
-      checkPermission(Permissions.Tenant.ManageUsers),
-      checkPermission(Permissions.Tenant.InviteUsers),
-      checkPermission(Permissions.Tenant.ViewRoles),
-    ]);
-  const canManageUsers = manageUsersPermission.success;
-  const canInviteUsers = inviteUsersPermission.success;
-  const canViewRoles = viewRolesPermission.success;
+  const permissionsResult = await evaluatePermissions([
+    Permissions.Tenant.ViewUsers,
+    Permissions.Tenant.InviteUsers,
+    Permissions.Tenant.ManageRoles,
+    Permissions.Tenant.ManageUsers,
+    Permissions.Tenant.ViewRoles,
+  ]);
 
-  if (!canManageUsers) {
+  if (!permissionsResult.success) {
+    return <UnauthorizedComponent variant="card" />;
+  }
+
+  const permissions = permissionsResult.data;
+  const canViewUsers = permissions[Permissions.Tenant.ViewUsers];
+  const canInviteUsers = permissions[Permissions.Tenant.InviteUsers];
+  const canManageRoles = permissions[Permissions.Tenant.ManageRoles];
+  const canManageUsers = permissions[Permissions.Tenant.ManageUsers];
+  const canViewRoles = permissions[Permissions.Tenant.ViewRoles];
+
+  if (!canViewUsers) {
     return <UnauthorizedComponent variant="card" />;
   }
 
@@ -130,7 +139,7 @@ export default async function SettingsOrganizationUsersPage(
           canResendVerification={canInviteUsers}
           canInviteUsers={canInviteUsers}
           canManageUsers={canManageUsers}
-          canManageRoles={canViewRoles && canManageUsers}
+          canManageRoles={canManageRoles}
           availableRolesPromise={rolesPromise}
         />
       </Suspense>

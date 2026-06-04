@@ -4,6 +4,7 @@ import {
   checkPermissionFactory,
   checkAnyPermissionFactory,
   checkAllPermissionsFactory,
+  evaluatePermissionsFactory,
   checkIsAdminFactory,
   checkIsInRoleFactory,
 } from "./authorization-checkers";
@@ -36,6 +37,7 @@ export async function createAuthorizationService(
   const checkPermission = checkPermissionFactory(getAuthorizationData);
   const checkAnyPermission = checkAnyPermissionFactory(getAuthorizationData);
   const checkAllPermissions = checkAllPermissionsFactory(getAuthorizationData);
+  const evaluatePermissions = evaluatePermissionsFactory(getAuthorizationData);
   const checkIsAdmin = checkIsAdminFactory(getAuthorizationData);
   const checkIsInRole = checkIsInRoleFactory(getAuthorizationData);
 
@@ -54,6 +56,7 @@ export async function createAuthorizationService(
     checkPermission,
     checkAnyPermission,
     checkAllPermissions,
+    evaluatePermissions,
 
     // Permission requiring methods
     requirePermission,

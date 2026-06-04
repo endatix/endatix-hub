@@ -4,6 +4,7 @@ import {
   checkPermissionFactory,
   checkAnyPermissionFactory,
   checkAllPermissionsFactory,
+  evaluatePermissionsFactory,
   checkIsAdminFactory,
   checkIsInRoleFactory,
 } from "../authorization-checkers";
@@ -187,6 +188,82 @@ describe("authorization-checkers", () => {
         "Unexpected error during all-permissions check",
         expect.any(Error),
         { permissionsCount: 1 },
+        "authorization",
+      );
+    });
+  });
+
+  describe("evaluatePermissionsFactory", () => {
+    it("evaluates every requested permission with one auth-data lookup", async () => {
+      const getAuthData = vi.fn().mockResolvedValue(
+        AuthorizationResult.success({
+          ...baseAuthData,
+          permissions: ["forms.read", "forms.create"],
+        }),
+      );
+
+      const evaluatePermissions = evaluatePermissionsFactory(getAuthData);
+      const result = await evaluatePermissions([
+        "forms.read",
+        "forms.create",
+        "forms.delete",
+      ]);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({
+          "forms.read": true,
+          "forms.create": true,
+          "forms.delete": false,
+        });
+      }
+      expect(getAuthData).toHaveBeenCalledTimes(1);
+    });
+
+    it("allows admins to satisfy every requested permission", async () => {
+      const getAuthData = vi.fn().mockResolvedValue(
+        AuthorizationResult.success({
+          ...baseAuthData,
+          isAdmin: true,
+          permissions: [],
+        }),
+      );
+
+      const evaluatePermissions = evaluatePermissionsFactory(getAuthData);
+      const result = await evaluatePermissions(["forms.read", "forms.delete"]);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({
+          "forms.read": true,
+          "forms.delete": true,
+        });
+      }
+    });
+
+    it("returns upstream error when auth data fails", async () => {
+      const getAuthData = vi.fn().mockResolvedValue(unauthenticatedResult);
+
+      const evaluatePermissions = evaluatePermissionsFactory(getAuthData);
+      const result = await evaluatePermissions(["forms.read"]);
+
+      expect(result).toBe(unauthenticatedResult);
+    });
+
+    it("returns server error when getAuthData throws", async () => {
+      const getAuthData = vi.fn().mockRejectedValue(new Error("network"));
+
+      const evaluatePermissions = evaluatePermissionsFactory(getAuthData);
+      const result = await evaluatePermissions(["forms.read", "forms.delete"]);
+
+      expect(result.success).toBe(false);
+      expect(AuthorizationResult.getErrorType(result)).toBe(
+        AuthorizationErrorType.ServerError,
+      );
+      expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+        "Unexpected error during permissions evaluation",
+        expect.any(Error),
+        { permissionsCount: 2 },
         "authorization",
       );
     });

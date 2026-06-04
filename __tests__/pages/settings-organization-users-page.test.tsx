@@ -14,6 +14,7 @@ vi.mock("@/features/auth/authorization", () => ({
     Tenant: {
       InviteUsers: "tenant.users.invite",
       ManageUsers: "tenant.users.manage",
+      ManageRoles: "tenant.roles.manage",
       ViewRoles: "tenant.roles.view",
       ViewUsers: "tenant.users.view",
     },
@@ -28,14 +29,19 @@ vi.mock("@/lib/endatix-api", async () => {
 
 vi.mock("@/features/organization/user-management/ui/users-table", () => ({
   UsersTable: ({
-    usersPromise,
     currentUserId,
+    canManageRoles,
+    canManageUsers,
   }: {
     usersPromise: Promise<unknown[]>;
     currentUserId?: string;
+    canManageRoles?: boolean;
+    canManageUsers?: boolean;
   }) => (
     <div data-testid="users-table">
       <span data-testid="current-user-id">{currentUserId ?? "none"}</span>
+      <span data-testid="can-manage-roles">{String(canManageRoles)}</span>
+      <span data-testid="can-manage-users">{String(canManageUsers)}</span>
     </div>
   ),
 }));
@@ -43,7 +49,7 @@ vi.mock("@/features/organization/user-management/ui/users-table", () => ({
 describe("Settings organization users page", () => {
   const mockRequireHubAccess = vi.fn().mockResolvedValue(undefined);
   const mockRequirePermission = vi.fn().mockResolvedValue(undefined);
-  const mockCheckPermission = vi.fn().mockResolvedValue({ success: true });
+  const mockEvaluatePermissions = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -54,8 +60,18 @@ describe("Settings organization users page", () => {
     vi.mocked(authFeature.authorization).mockResolvedValue({
       requireHubAccess: mockRequireHubAccess,
       requirePermission: mockRequirePermission,
-      checkPermission: mockCheckPermission,
+      evaluatePermissions: mockEvaluatePermissions,
     } as unknown as Awaited<ReturnType<typeof authFeature.authorization>>);
+    mockEvaluatePermissions.mockResolvedValue({
+      success: true,
+      data: {
+        [Permissions.Tenant.ViewUsers]: true,
+        [Permissions.Tenant.InviteUsers]: true,
+        [Permissions.Tenant.ManageRoles]: true,
+        [Permissions.Tenant.ManageUsers]: true,
+        [Permissions.Tenant.ViewRoles]: true,
+      },
+    });
   });
 
   it("calls auth and authorization", async () => {
@@ -102,5 +118,27 @@ describe("Settings organization users page", () => {
     });
 
     expect(screen.getByTestId("users-table")).toBeDefined();
+  });
+
+  it("renders for users with ViewUsers even when ManageUsers is missing", async () => {
+    mockEvaluatePermissions.mockResolvedValue({
+      success: true,
+      data: {
+        [Permissions.Tenant.ViewUsers]: true,
+        [Permissions.Tenant.InviteUsers]: false,
+        [Permissions.Tenant.ManageRoles]: true,
+        [Permissions.Tenant.ManageUsers]: false,
+        [Permissions.Tenant.ViewRoles]: false,
+      },
+    });
+
+    const component = await SettingsOrganizationUsersPage();
+    await act(async () => {
+      render(component);
+    });
+
+    expect(screen.getByTestId("users-table")).toBeDefined();
+    expect(screen.getByTestId("can-manage-roles").textContent).toBe("true");
+    expect(screen.getByTestId("can-manage-users").textContent).toBe("false");
   });
 });

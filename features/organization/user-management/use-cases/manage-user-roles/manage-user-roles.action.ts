@@ -71,7 +71,7 @@ async function mutateUserRole(
   try {
     const session = await auth();
     const { requirePermission } = await authorization(session);
-    await requirePermission(Permissions.Tenant.ManageUsers);
+    await requirePermission(Permissions.Tenant.ManageRoles);
 
     const api = new EndatixApi(session?.accessToken);
 

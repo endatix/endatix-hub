@@ -1,6 +1,7 @@
 import {
   AuthCheckResult,
   AuthorizationResult,
+  EvaluatePermissionsResult,
   GetAuthDataResult,
 } from "../domain/authorization-result";
 import { TelemetryLogger } from "@/features/telemetry";
@@ -112,6 +113,45 @@ export function checkAllPermissionsFactory(
     } catch (error) {
       TelemetryLogger.error(
         "Unexpected error during all-permissions check",
+        error,
+        { permissionsCount: permissions.length },
+        LOGGER_NAME,
+      );
+      return AuthorizationResult.error();
+    }
+  };
+}
+
+/**
+ * Evaluates each requested permission using one authorization-data lookup.
+ * @param permissions - permission names
+ * @returns Authorization result with a permission-to-boolean map
+ */
+export function evaluatePermissionsFactory(
+  getUserAuthData: () => Promise<GetAuthDataResult>,
+) {
+  return async (
+    permissions: readonly string[],
+  ): Promise<EvaluatePermissionsResult> => {
+    try {
+      const result = await getUserAuthData();
+
+      if (!result.success) {
+        return result;
+      }
+
+      const userPermissions = new Set(result.data.permissions);
+      const evaluations: Record<string, boolean> = {};
+
+      for (const permission of permissions) {
+        evaluations[permission] =
+          result.data.isAdmin || userPermissions.has(permission);
+      }
+
+      return AuthorizationResult.success(evaluations);
+    } catch (error) {
+      TelemetryLogger.error(
+        "Unexpected error during permissions evaluation",
         error,
         { permissionsCount: permissions.length },
         LOGGER_NAME,
