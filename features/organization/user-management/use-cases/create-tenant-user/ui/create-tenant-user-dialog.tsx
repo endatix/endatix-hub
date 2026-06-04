@@ -29,6 +29,10 @@ import {
   createTenantUserAction,
   type CreateTenantUserActionState,
 } from "../create-tenant-user.action";
+import {
+  getStringFormValue,
+  getStringFormValues,
+} from "@/lib/utils/form-data-utils";
 
 interface CreateTenantUserDialogProps {
   roles: RoleListItem[];
@@ -101,8 +105,8 @@ export function CreateTenantUserDialog({
 
     const formData = new FormData(event.currentTarget);
     const payload = {
-      email: String(formData.get("email") ?? ""),
-      roles: formData.getAll("roles").map(String),
+      email: getStringFormValue(formData, "email"),
+      roles: getStringFormValues(formData, "roles"),
     };
 
     startTransition(async () => {
@@ -176,10 +180,7 @@ export function CreateTenantUserDialog({
                 }
 
                 return (
-                  <label
-                    key={role.id}
-                    className={roleClassName}
-                  >
+                  <label key={role.id} className={roleClassName}>
                     <Checkbox
                       checked={isSelected}
                       disabled={isAdminRole}

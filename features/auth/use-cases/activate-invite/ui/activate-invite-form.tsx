@@ -24,6 +24,7 @@ import {
   activateInviteAction,
   type ActivateInviteActionState,
 } from "../activate-invite.action";
+import { getStringFormValue } from "@/lib/utils/form-data-utils";
 
 interface ActivateInviteFormProps {
   token: string;
@@ -80,8 +81,8 @@ export default function ActivateInviteForm({
     const formData = new FormData(event.currentTarget);
     const validationResult = ActivateInviteRequestSchema.safeParse({
       token,
-      password: String(formData.get("password") ?? ""),
-      confirmPassword: String(formData.get("confirmPassword") ?? ""),
+      password: getStringFormValue(formData, "password"),
+      confirmPassword: getStringFormValue(formData, "confirmPassword"),
     });
 
     if (validationResult.success) {

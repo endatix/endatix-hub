@@ -156,14 +156,14 @@ export function RolesTable({
       return;
     }
 
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.window.setTimeout(() => {
       updateUrl({
         search: trimmedSearch || null,
         page: "1",
       });
     }, 350);
 
-    return () => window.clearTimeout(timeout);
+    return () => globalThis.window.clearTimeout(timeout);
   }, [search, updateUrl, urlSearch]);
 
   useEffect(() => {

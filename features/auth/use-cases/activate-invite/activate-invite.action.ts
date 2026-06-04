@@ -6,6 +6,7 @@ import {
   ActivateInviteRequestSchema,
   ApiResult,
 } from "@/lib/endatix-api/types";
+import { getStringFormValue } from "@/lib/utils/form-data-utils";
 import {
   type DeepFieldErrors,
   ServerActionState,
@@ -28,9 +29,9 @@ export async function activateInviteAction(
   formData: FormData,
 ): Promise<ActivateInviteActionState> {
   const rawData = {
-    token: String(formData.get("token") ?? ""),
-    password: String(formData.get("password") ?? ""),
-    confirmPassword: String(formData.get("confirmPassword") ?? ""),
+    token: getStringFormValue(formData, "token"),
+    password: getStringFormValue(formData, "password"),
+    confirmPassword: getStringFormValue(formData, "confirmPassword"),
   };
   const safeData = { token: rawData.token };
 

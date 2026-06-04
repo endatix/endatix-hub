@@ -173,14 +173,14 @@ export function UsersTable({
       return;
     }
 
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.window.setTimeout(() => {
       updateUrl({
         search: trimmedSearch || null,
         page: "1",
       });
     }, 350);
 
-    return () => window.clearTimeout(timeout);
+    return () => globalThis.window.clearTimeout(timeout);
   }, [search, updateUrl, urlSearch]);
 
   const openEditRole = (user: UserListItem) => {
@@ -756,10 +756,10 @@ function UserActionsMenu({
   let editRoleTooltip: string;
   if (isPlatformAdminUser) {
     editRoleTooltip = "Managed at platform level";
-  } else if (!isActive) {
-    editRoleTooltip = "User must be active to edit roles";
-  } else {
+  } else if (isActive) {
     editRoleTooltip = "You don't have permission to manage roles";
+  } else {
+    editRoleTooltip = "User must be active to edit roles";
   }
 
   const resendInvitationTooltip = canResendVerification
@@ -787,9 +787,9 @@ function UserActionsMenu({
     }
   }
 
-  const removeUserTooltip = !isActive
-    ? "User has not accepted the invitation yet"
-    : "You don't have permission to remove users";
+  const removeUserTooltip = isActive
+    ? "You don't have permission to remove users"
+    : "User has not accepted the invitation yet";
 
   const cancelInviteTooltip = isActive
     ? "User has already accepted the invitation"
