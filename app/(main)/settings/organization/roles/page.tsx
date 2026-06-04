@@ -15,6 +15,7 @@ import { UnauthorizedComponent } from "@/components/error-handling/unauthorized"
 import { Result } from "@/lib/result";
 import { parseNumber } from "@/lib/utils/type-parsers";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+import { DataLoadError } from "@/lib/errors/data-load-error";
 
 async function getRolesPromise(
   request: ListRolesRequest,
@@ -29,7 +30,7 @@ async function getRolesPromise(
   });
 
   if (Result.isError(result)) {
-    throw new Error(result.message);
+    throw new DataLoadError(result.message);
   }
 
   return result.value;

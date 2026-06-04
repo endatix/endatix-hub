@@ -7,15 +7,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface DisabledMenuItemProps {
+  label: string;
+  tooltip: string;
+  destructive?: boolean;
+}
+
 export function DisabledMenuItem({
   label,
   tooltip,
   destructive,
-}: {
-  label: string;
-  tooltip: string;
-  destructive?: boolean;
-}) {
+}: Readonly<DisabledMenuItemProps>) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
