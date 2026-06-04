@@ -15,51 +15,30 @@ import {
 
 const userRoleSchema = z.object({
   userId: createEndatixIdSchema("userId"),
-  roleName: z.string().trim().min(1).optional(),
   roles: z.array(z.string().trim().min(1)).default([]),
-  currentRoles: z.array(z.string().trim().min(1)).default([]),
 });
 
 export type UserRoleActionState = ServerActionState<{
   userId?: string;
-  roleName?: string;
   roles?: string[];
-  currentRoles?: string[];
 }>;
 
 type UserRolePayload =
   | FormData
   | {
       userId?: number | string;
-      roleName?: string;
       roles?: string[];
-      currentRoles?: string[];
     };
-
-export async function assignUserRoleAction(
-  _prevState: UserRoleActionState,
-  payload: UserRolePayload,
-): Promise<UserRoleActionState> {
-  return mutateUserRole(payload, "assign");
-}
-
-export async function removeUserRoleAction(
-  _prevState: UserRoleActionState,
-  payload: UserRolePayload,
-): Promise<UserRoleActionState> {
-  return mutateUserRole(payload, "remove");
-}
 
 export async function setUserRoleAction(
   _prevState: UserRoleActionState,
   payload: UserRolePayload,
 ): Promise<UserRoleActionState> {
-  return mutateUserRole(payload, "set");
+  return replaceUserRoles(payload);
 }
 
-async function mutateUserRole(
+async function replaceUserRoles(
   payload: UserRolePayload,
-  mutation: "assign" | "remove" | "set",
 ): Promise<UserRoleActionState> {
   const rawData = getUserRoleData(payload);
   const validatedData = userRoleSchema.safeParse(rawData);
@@ -74,52 +53,10 @@ async function mutateUserRole(
     await requirePermission(Permissions.Tenant.ManageRoles);
 
     const api = new EndatixApi(session?.accessToken);
-
-    if (mutation === "set") {
-      return handleSetMutation(api, validatedData.data, rawData);
-    }
-
-    return handleSingleRoleMutation(api, validatedData.data, mutation, rawData);
+    return handleSetMutation(api, validatedData.data, rawData);
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, "setUserRoleAction");
   }
-}
-
-async function handleSingleRoleMutation(
-  api: EndatixApi,
-  data: z.infer<typeof userRoleSchema>,
-  mutation: "assign" | "remove",
-  rawData: Record<string, unknown>,
-): Promise<UserRoleActionState> {
-  if (!data.roleName) {
-    return {
-      isSuccess: false,
-      formErrors: ["Role name is required."],
-      data: rawData,
-    };
-  }
-
-  if (isPlatformScopedRole(data.roleName)) {
-    return {
-      isSuccess: false,
-      formErrors: [
-        "Platform administrator roles are managed at the platform level.",
-      ],
-      data: rawData,
-    };
-  }
-
-  const result =
-    mutation === "remove"
-      ? await api.users.removeRole(data.userId, data.roleName)
-      : await api.users.assignRole(data.userId, { roleName: data.roleName });
-
-  if (ApiResult.isSuccess(result)) {
-    revalidatePath("/settings/organization/users");
-    return { isSuccess: true };
-  }
-
-  return stateFromApiError(result, rawData);
 }
 
 async function handleSetMutation(
@@ -138,31 +75,11 @@ async function handleSetMutation(
     };
   }
 
-  const currentEditableRoles = data.currentRoles.filter(
-    (role) => !isPlatformScopedRole(role),
-  );
-
-  for (const currentRole of currentEditableRoles) {
-    if (!selectedRoles.includes(currentRole)) {
-      const removeResult = await api.users.removeRole(data.userId, currentRole);
-      if (ApiResult.isError(removeResult)) {
-        return stateFromApiError(removeResult, rawData);
-      }
-    }
-  }
-
-  for (const selectedRole of selectedRoles) {
-    if (currentEditableRoles.includes(selectedRole)) {
-      continue;
-    }
-
-    const assignResult = await api.users.assignRole(data.userId, {
-      roleName: selectedRole,
-    });
-
-    if (ApiResult.isError(assignResult)) {
-      return stateFromApiError(assignResult, rawData);
-    }
+  const result = await api.users.replaceRoles(data.userId, {
+    roleNames: selectedRoles,
+  });
+  if (ApiResult.isError(result)) {
+    return stateFromApiError(result, rawData);
   }
 
   revalidatePath("/settings/organization/users");
@@ -177,9 +94,7 @@ function getUserRoleData(payload: UserRolePayload) {
   if (payload instanceof FormData) {
     return {
       userId: String(payload.get("userId") ?? ""),
-      roleName: String(payload.get("roleName") ?? "") || undefined,
       roles: payload.getAll("roles").map(String),
-      currentRoles: payload.getAll("currentRoles").map(String),
     };
   }
 
@@ -188,8 +103,6 @@ function getUserRoleData(payload: UserRolePayload) {
       payload.userId === undefined || payload.userId === null
         ? undefined
         : String(payload.userId),
-    roleName: payload.roleName?.trim() || undefined,
     roles: payload.roles ?? [],
-    currentRoles: payload.currentRoles ?? [],
   };
 }

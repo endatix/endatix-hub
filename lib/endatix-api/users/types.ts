@@ -27,6 +27,6 @@ export type UserOperationResponse = {
   message: string;
 };
 
-export type AssignRoleRequestBody = {
-  roleName: string;
+export type ReplaceRolesRequestBody = {
+  roleNames: string[];
 };

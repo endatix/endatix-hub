@@ -5,9 +5,9 @@ import { ApiResult } from "../shared/api-result";
 import { buildQueryEndpoint } from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
 import type {
-  AssignRoleRequestBody,
   CreateUserRequestBody,
   ListUsersRequest,
+  ReplaceRolesRequestBody,
   UserOperationResponse,
   UserListItem,
 } from "./types";
@@ -67,30 +67,17 @@ export default class Users {
     );
   }
 
-  async assignRole(
+  async replaceRoles(
     userId: string,
-    request: AssignRoleRequestBody,
+    request: ReplaceRolesRequestBody,
   ): Promise<ApiResult<UserOperationResponse>> {
     const validateResult = validateEndatixId(userId, "userId");
     if (Result.isError(validateResult)) {
       return ApiResult.validationError(validateResult.message);
     }
-    return this.endatix.post<UserOperationResponse>(
+    return this.endatix.put<UserOperationResponse>(
       `/users/${userId}/roles`,
       request,
-    );
-  }
-
-  async removeRole(
-    userId: string,
-    roleName: string,
-  ): Promise<ApiResult<UserOperationResponse>> {
-    const validateResult = validateEndatixId(userId, "userId");
-    if (Result.isError(validateResult)) {
-      return ApiResult.validationError(validateResult.message);
-    }
-    return this.endatix.delete<UserOperationResponse>(
-      `/users/${userId}/roles/${encodeURIComponent(roleName)}`,
     );
   }
 }

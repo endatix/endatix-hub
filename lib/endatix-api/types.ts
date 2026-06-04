@@ -132,9 +132,9 @@ export type { DefinitionField } from "./definitions/types";
 
 // users/types
 export type {
-  AssignRoleRequestBody,
   CreateUserRequestBody,
   ListUsersRequest,
+  ReplaceRolesRequestBody,
   UserOperationResponse as MutateUserResponse,
   UserListItem,
   UserStatusFilter,

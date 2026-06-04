@@ -18,6 +18,10 @@ function defaultEndatixApiInstance() {
       list: vi
         .fn()
         .mockResolvedValue({ success: true, data: emptyPagedResponse }),
+      replaceRoles: vi.fn().mockResolvedValue({
+        success: true,
+        data: { success: true, message: "User roles updated." },
+      }),
     },
     auth: {
       getInviteDetails: vi.fn().mockResolvedValue({

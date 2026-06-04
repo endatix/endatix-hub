@@ -75,4 +75,35 @@ describe("Users API", () => {
       }),
     );
   });
+
+  it("replaces user roles with a PUT request", async () => {
+    // Arrange
+    const api = new EndatixApi("access-token");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ success: true, message: "User roles updated." }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    // Act
+    await api.users.replaceRoles("1507759960832868352", {
+      roleNames: ["Admin", "Creator"],
+    });
+
+    // Assert
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://ci.api.endatix.com/api/users/1507759960832868352/roles",
+      expect.objectContaining({
+        method: "PUT",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ roleNames: ["Admin", "Creator"] }),
+      }),
+    );
+  });
 });

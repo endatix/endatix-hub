@@ -268,7 +268,6 @@ export function UsersTable({
       const state = await setUserRoleAction(emptyUserRoleState, {
         userId: editingUser.id,
         roles: selectedRoles,
-        currentRoles: editingUser.roles,
       });
       if (state.isSuccess) {
         toast.success("User role updated");
