@@ -90,7 +90,9 @@ export default async function SettingsOrganizationRolesPage(
 
   const rolesRequest = parseRolesSearchParams(await props?.searchParams);
   const rolesPromise = getRolesPromise(rolesRequest, session?.accessToken);
-  const permissionsPromise = getPermissionsPromise(session?.accessToken);
+  const permissionsPromise = canManageRoles
+    ? getPermissionsPromise(session?.accessToken)
+    : Promise.resolve([]);
 
   return (
     <div className="space-y-8">
