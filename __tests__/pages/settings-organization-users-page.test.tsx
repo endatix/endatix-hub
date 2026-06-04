@@ -10,7 +10,14 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 
 vi.mock("@/features/auth/authorization", () => ({
   authorization: vi.fn(),
-  Permissions: { Tenant: { ViewUsers: "tenant.users.view" } },
+  Permissions: {
+    Tenant: {
+      InviteUsers: "tenant.users.invite",
+      ManageUsers: "tenant.users.manage",
+      ViewRoles: "tenant.roles.view",
+      ViewUsers: "tenant.users.view",
+    },
+  },
 }));
 
 vi.mock("@/lib/endatix-api", async () => {
@@ -19,7 +26,7 @@ vi.mock("@/lib/endatix-api", async () => {
   return createEndatixApiMock();
 });
 
-vi.mock("@/features/organization/view-users/ui/users-table", () => ({
+vi.mock("@/features/organization/user-management/ui/users-table", () => ({
   UsersTable: ({
     usersPromise,
     currentUserId,
@@ -78,8 +85,14 @@ describe("Settings organization users page", () => {
       render(component);
     });
 
-    expect(screen.getByRole("heading", { name: "Users" })).toBeDefined();
-    expect(screen.getByText("People in your organization.")).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: "Users Directory" }),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        "Invite users, manage roles, and control access for your organization.",
+      ),
+    ).toBeDefined();
   });
 
   it("renders users table", async () => {

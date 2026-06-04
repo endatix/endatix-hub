@@ -1,27 +1,64 @@
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import type { UserListItem } from "@/lib/endatix-api";
-import { UsersTable } from "@/features/organization/view-users/ui/users-table";
+import type {
+  ListUsersRequest,
+  PagedResponse,
+  RoleListItem,
+  UserListItem,
+  UserStatusFilter,
+} from "@/lib/endatix-api";
+import { UsersTable } from "@/features/organization/user-management/ui/users-table";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Session } from "next-auth";
+import type { Session } from "next-auth";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
+import { Result } from "@/lib/result";
+import { parseNumber } from "@/lib/utils/type-parsers";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 
 async function getUsersPromise(
+  request: ListUsersRequest,
   session: Session | null = null,
-): Promise<UserListItem[]> {
+): Promise<PagedResponse<UserListItem>> {
   const { requirePermission } = await authorization(session);
   await requirePermission(Permissions.Tenant.ViewUsers);
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.users.list();
+  const apiResult = await api.users.list(request);
+  const result = toResult(apiResult, {
+    fallbackMessage: "Failed to load users.",
+    logMessage: "Failed to load organization users.",
+    loggerName: "organization.users",
+  });
 
-  if (!result.success) {
-    throw new Error(result.error.message ?? "Failed to load users");
+  if (Result.isError(result)) {
+    throw new Error(result.message);
   }
 
-  return result.data;
+  return result.value;
+}
+
+async function getRolesPromise(
+  session: Session | null = null,
+): Promise<RoleListItem[]> {
+  const { requirePermission } = await authorization(session);
+  await requirePermission(Permissions.Tenant.ViewRoles);
+
+  const api = new EndatixApi(session?.accessToken);
+  const apiResult = await api.roles.list({ pageSize: 100 });
+  const result = toResult(apiResult, {
+    fallbackMessage: "Failed to load roles.",
+    logMessage: "Failed to load organization user role filters.",
+    loggerName: "organization.users",
+    mapData: (data) => data.items.slice(),
+  });
+
+  if (Result.isError(result)) {
+    return [];
+  }
+
+  return result.value;
 }
 
 function UsersTableSkeleton() {
@@ -35,31 +72,92 @@ function UsersTableSkeleton() {
   );
 }
 
-export default async function SettingsOrganizationUsersPage() {
+interface SettingsOrganizationUsersPageProps {
+  searchParams?: Promise<{
+    page?: string;
+    pageSize?: string;
+    search?: string;
+    role?: string;
+    status?: string;
+  }>;
+}
+
+export default async function SettingsOrganizationUsersPage(
+  props?: SettingsOrganizationUsersPageProps,
+) {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
-  const canManageUsers = (await checkPermission(Permissions.Tenant.ManageUsers))
-    .success;
+  const [manageUsersPermission, inviteUsersPermission, viewRolesPermission] =
+    await Promise.all([
+      checkPermission(Permissions.Tenant.ManageUsers),
+      checkPermission(Permissions.Tenant.InviteUsers),
+      checkPermission(Permissions.Tenant.ViewRoles),
+    ]);
+  const canManageUsers = manageUsersPermission.success;
+  const canInviteUsers = inviteUsersPermission.success;
+  const canViewRoles = viewRolesPermission.success;
+
   if (!canManageUsers) {
     return <UnauthorizedComponent variant="card" />;
   }
 
-  const usersPromise = getUsersPromise(session);
+  const userListRequest = parseUsersSearchParams(await props?.searchParams);
+  const usersPromise = getUsersPromise(userListRequest, session);
+  const rolesPromise = canViewRoles
+    ? getRolesPromise(session)
+    : Promise.resolve([]);
   const currentUserId = session?.user?.id;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-lg font-semibold">Users</h2>
-        <p className="text-sm text-muted-foreground">
-          People in your organization.
-        </p>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Users Directory
+          </h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            Invite users, manage roles, and control access for your
+            organization.
+          </p>
+        </div>
       </div>
       <Suspense fallback={<UsersTableSkeleton />}>
-        <UsersTable usersPromise={usersPromise} currentUserId={currentUserId} />
+        <UsersTable
+          usersPromise={usersPromise}
+          currentUserId={currentUserId}
+          canResendVerification={canInviteUsers}
+          canInviteUsers={canInviteUsers}
+          canManageUsers={canManageUsers}
+          canManageRoles={canViewRoles && canManageUsers}
+          availableRolesPromise={rolesPromise}
+        />
       </Suspense>
     </div>
   );
+}
+
+function parseUsersSearchParams(searchParams?: {
+  page?: string;
+  pageSize?: string;
+  search?: string;
+  role?: string;
+  status?: string;
+}): ListUsersRequest {
+  return {
+    page: parseNumber(searchParams?.page, 1),
+    pageSize: parseNumber(searchParams?.pageSize, 10),
+    search: searchParams?.search?.trim() || undefined,
+    role: searchParams?.role?.trim() || undefined,
+    status: parseStatus(searchParams?.status),
+  };
+}
+
+function parseStatus(value: string | undefined): UserStatusFilter | undefined {
+  if (value === "active" || value === "pending") {
+    return value;
+  }
+
+  return undefined;
 }
