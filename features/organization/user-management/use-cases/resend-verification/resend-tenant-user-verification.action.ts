@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { getStringFormValue } from "@/lib/utils/form-data-utils";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import {
@@ -71,8 +72,8 @@ function getResendVerificationData(payload: ResendVerificationPayload): {
 } {
   if (payload instanceof FormData) {
     return {
-      userId: String(payload.get("userId") ?? ""),
-      email: String(payload.get("email") ?? ""),
+      userId: getStringFormValue(payload, "userId"),
+      email: getStringFormValue(payload, "email"),
     };
   }
 

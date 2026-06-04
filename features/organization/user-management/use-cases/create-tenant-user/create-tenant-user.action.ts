@@ -5,6 +5,10 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import {
+  getStringFormValue,
+  getStringFormValues,
+} from "@/lib/utils/form-data-utils";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import {
   stateFromApiError,
@@ -75,8 +79,8 @@ function getCreateTenantUserData(payload: CreateTenantUserPayload): {
 } {
   if (payload instanceof FormData) {
     return {
-      email: String(payload.get("email") ?? ""),
-      roles: payload.getAll("roles").map(String),
+      email: getStringFormValue(payload, "email"),
+      roles: getStringFormValues(payload, "roles"),
     };
   }
 

@@ -8,6 +8,10 @@ import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import {
+  getStringFormValue,
+  getStringFormValues,
+} from "@/lib/utils/form-data-utils";
+import {
   stateFromApiError,
   stateFromUnexpectedError,
 } from "../server-action-state";
@@ -88,8 +92,8 @@ async function handleSetMutation(
 function getUserRoleData(payload: UserRolePayload) {
   if (payload instanceof FormData) {
     return {
-      userId: String(payload.get("userId") ?? ""),
-      roles: payload.getAll("roles").map(String),
+      userId: getStringFormValue(payload, "userId"),
+      roles: getStringFormValues(payload, "roles"),
     };
   }
 

@@ -11,6 +11,10 @@ import {
   type DeepFieldErrors,
   ServerActionState,
 } from "@/lib/utils/zod-error-utils";
+import {
+  getStringFormValue,
+  getStringFormValues,
+} from "@/lib/utils/form-data-utils";
 
 const roleSchema = z.object({
   name: z.string().trim().min(1).max(256),
@@ -160,13 +164,3 @@ function stateFromRoleApiError(
   };
 }
 
-function getStringFormValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
-
-function getStringFormValues(formData: FormData, key: string): string[] {
-  return formData
-    .getAll(key)
-    .filter((value): value is string => typeof value === "string");
-}

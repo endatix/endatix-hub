@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { getStringFormValue } from "@/lib/utils/form-data-utils";
 import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import {
@@ -141,7 +142,3 @@ function deletionSafeguardError(
   };
 }
 
-function getStringFormValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
