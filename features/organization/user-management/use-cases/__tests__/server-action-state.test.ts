@@ -5,9 +5,20 @@ import {
   stateFromUnexpectedError,
 } from "../server-action-state";
 
+const telemetryLoggerMock = vi.hoisted(() => ({
+  error: vi.fn(),
+}));
+
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: {
+    error: telemetryLoggerMock.error,
+  },
+}));
+
 describe("server action state helpers", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    telemetryLoggerMock.error.mockClear();
   });
 
   it("maps API field errors into server action state errors", () => {
@@ -54,9 +65,35 @@ describe("server action state helpers", () => {
       "Something went wrong. Please try again.",
     ]);
     expect(state.data).toBe(data);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Unexpected error in deleteUserAction:",
-      expect.any(Error),
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+      "Unexpected user-management server action error",
+      undefined,
+      {
+        actionName: "deleteUserAction",
+        isAuthFailure: false,
+      },
+      "organization.user-management",
     );
+  });
+
+  it.each([
+    { status: 401 },
+    { statusCode: 403 },
+    Object.assign(new Error("auth failed"), { name: "AuthorizationError" }),
+  ])("does not log known auth failures", (error) => {
+    // Arrange
+    const data = { userId: "1507347517849731072" };
+
+    // Act
+    const state = stateFromUnexpectedError(error, data, "deleteUserAction");
+
+    // Assert
+    expect(state.isSuccess).toBe(false);
+    expect(state.formErrors).toEqual([
+      "Something went wrong. Please try again.",
+    ]);
+    expect(state.data).toBe(data);
+    expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,10 @@ import type {
   DeepFieldErrors,
   ServerActionState,
 } from "@/lib/utils/zod-error-utils";
+import { TelemetryLogger } from "@/features/telemetry";
+
+const LOGGER_NAME = "organization.user-management";
+const AUTH_FAILURE_STATUSES = new Set([401, 403]);
 
 /**
  * Maps an API error to a server action state.
@@ -35,11 +39,55 @@ export function stateFromUnexpectedError<TState extends ActionStateData>(
   data: TState,
   actionName: string,
 ): ServerActionState<TState> {
-  console.error(`Unexpected error in ${actionName}:`, error);
+  const isAuthFailure = isKnownAuthFailure(error);
+  if (!isAuthFailure) {
+    TelemetryLogger.error(
+      "Unexpected user-management server action error",
+      undefined,
+      {
+        actionName,
+        isAuthFailure,
+      },
+      LOGGER_NAME,
+    );
+  }
 
   return {
     isSuccess: false,
     formErrors: ["Something went wrong. Please try again."],
     data,
   };
+}
+
+function isKnownAuthFailure(error: unknown): boolean {
+  const status = getErrorStatus(error);
+  if (status !== null && AUTH_FAILURE_STATUSES.has(status)) {
+    return true;
+  }
+
+  const errorName = error instanceof Error ? error.name : undefined;
+  return (
+    errorName?.includes("Auth") === true ||
+    errorName?.includes("Authentication") === true ||
+    errorName?.includes("Authorization") === true
+  );
+}
+
+function getErrorStatus(error: unknown): number | null {
+  if (!isErrorLikeRecord(error)) {
+    return null;
+  }
+
+  return toStatusCode(error.status) ?? toStatusCode(error.statusCode);
+}
+
+function isErrorLikeRecord(error: unknown): error is {
+  status?: unknown;
+  statusCode?: unknown;
+} {
+  return typeof error === "object" && error !== null;
+}
+
+function toStatusCode(value: unknown): number | null {
+  return typeof value === "number" ? value : null;
 }
