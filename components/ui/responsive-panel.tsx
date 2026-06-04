@@ -72,9 +72,9 @@ export function ResponsivePanel({
   const isDesktop = useMediaQuery(desktopMediaQuery);
   const mode = getResponsivePanelMode(isDesktop, desktopType);
   const content = (
-    <ResponsivePanelModeContext.Provider value={mode}>
+    <ResponsivePanelModeContext value={mode}>
       {children}
-    </ResponsivePanelModeContext.Provider>
+    </ResponsivePanelModeContext>
   );
 
   if (mode === "dialog") {
