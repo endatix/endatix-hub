@@ -32,9 +32,10 @@ export function SidebarNavItem({
   const hasChildren = (item.children?.length ?? 0) > 0;
   const isActive =
     pathname === item.url ||
-    item.children?.some(
+    (item.children?.some(
       (child) => !child.isSectionHeader && pathname === child.url,
-    ) === true;
+    ) ??
+      false);
 
   if (hasChildren && isCollapsed && item.url) {
     return (
