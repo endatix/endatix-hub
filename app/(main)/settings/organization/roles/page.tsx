@@ -75,15 +75,21 @@ export default async function SettingsOrganizationRolesPage(
   props?: SettingsOrganizationRolesPageProps,
 ) {
   const session = await auth();
-  const { requireHubAccess, checkPermission } = await authorization(session);
+  const { requireHubAccess, evaluatePermissions } = await authorization(session);
   await requireHubAccess();
 
-  const [viewRolesPermission, manageRolesPermission] = await Promise.all([
-    checkPermission(Permissions.Tenant.ViewRoles),
-    checkPermission(Permissions.Tenant.ManageRoles),
+  const permissionsResult = await evaluatePermissions([
+    Permissions.Tenant.ViewRoles,
+    Permissions.Tenant.ManageRoles,
   ]);
-  const canViewRoles = viewRolesPermission.success;
-  const canManageRoles = manageRolesPermission.success;
+
+  if (!permissionsResult.success) {
+    return <UnauthorizedComponent variant="card" />;
+  }
+
+  const permissions = permissionsResult.data;
+  const canViewRoles = permissions[Permissions.Tenant.ViewRoles];
+  const canManageRoles = permissions[Permissions.Tenant.ManageRoles];
 
   if (!canViewRoles) {
     return <UnauthorizedComponent variant="card" />;

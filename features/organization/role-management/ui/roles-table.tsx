@@ -68,6 +68,11 @@ import {
   updateRoleAction,
   type RoleActionState,
 } from "../use-cases/role-management.actions";
+import {
+  getRolePermissionSummary,
+  isAssignablePermissionName,
+  type RolePermissionSummary,
+} from "../role-permission-summary";
 import Link from "next/link";
 
 interface RolesTableProps {
@@ -78,7 +83,6 @@ interface RolesTableProps {
 
 const initialState: RoleActionState = { isSuccess: undefined };
 const allRoleTypesValue = "__all_role_types__";
-const pseudoPermissionNames = new Set(["access.authenticated"]);
 
 const permissionCategoryLabels: Record<string, string> = {
   access: "Access Controls",
@@ -258,8 +262,7 @@ export function RolesTable({
   const roleRows = useMemo(
     () =>
       roles.map((role) => ({
-        permissionCount: role.permissions.filter(isAssignablePermissionName)
-          .length,
+        permissionSummary: getRolePermissionSummary(role),
         role,
         userCount: role.usersCount,
       })),
@@ -318,7 +321,7 @@ export function RolesTable({
                 No roles match the current filters.
               </div>
             ) : (
-              roleRows.map(({ permissionCount, role, userCount }) => (
+              roleRows.map(({ permissionSummary, role, userCount }) => (
                 <div key={role.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -350,10 +353,7 @@ export function RolesTable({
                         {userCount} users
                       </Link>
                     </Badge>
-                    <Badge variant="outline">
-                      {permissionCount}{" "}
-                      {permissionCount === 1 ? "permission" : "permissions"}
-                    </Badge>
+                    <RolePermissionsSummary summary={permissionSummary} />
                   </div>
                 </div>
               ))
@@ -374,7 +374,7 @@ export function RolesTable({
                   <TableHead className="hidden w-36 text-right whitespace-nowrap xl:table-cell">
                     Users Assigned
                   </TableHead>
-                  <TableHead className="w-32 text-right whitespace-nowrap">
+                  <TableHead className="w-44 text-right whitespace-nowrap">
                     Permissions
                   </TableHead>
                   <TableHead className="w-20 text-right whitespace-nowrap">
@@ -390,7 +390,7 @@ export function RolesTable({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  roleRows.map(({ permissionCount, role, userCount }) => (
+                  roleRows.map(({ permissionSummary, role, userCount }) => (
                     <TableRow key={role.id}>
                       <TableCell className="align-top break-words whitespace-normal">
                         <div className="font-medium break-words">
@@ -416,11 +416,11 @@ export function RolesTable({
                           count={userCount}
                         />
                       </TableCell>
-                      <TableCell className="text-right align-top">
-                        <span className="text-sm text-muted-foreground">
-                          {permissionCount}{" "}
-                          <span className="hidden xl:inline">permissions</span>
-                        </span>
+                      <TableCell className="text-right align-top break-words whitespace-normal">
+                        <RolePermissionsSummary
+                          summary={permissionSummary}
+                          variant="text"
+                        />
                       </TableCell>
                       <TableCell className="text-right align-top">
                         <RoleActionsMenu
@@ -772,9 +772,6 @@ function RoleActionsMenu({
               tooltip={getDisabledReason()}
             />
           )}
-          {isSystemRole && (
-            <DropdownMenuItem disabled>System role</DropdownMenuItem>
-          )}
           {!isSystemRole && <DropdownMenuSeparator />}
           {canEdit ? (
             <DropdownMenuItem
@@ -821,16 +818,66 @@ function UsersAssignedBadge({
   );
 }
 
+function RolePermissionsSummary({
+  summary,
+  variant = "badge",
+}: Readonly<{
+  summary: RolePermissionSummary;
+  variant?: "badge" | "text";
+}>) {
+  if (variant === "text") {
+    if (summary.kind === "effective-access") {
+      return (
+        <span className="inline-flex max-w-full flex-col items-end text-right text-sm leading-snug break-words text-muted-foreground">
+          <RolePermissionsSummaryLabel summary={summary} />
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-block max-w-full text-right text-sm leading-snug break-words whitespace-normal text-muted-foreground">
+        {summary.label}
+      </span>
+    );
+  }
+
+  return (
+    <Badge
+      variant="outline"
+      className={
+        summary.kind === "effective-access"
+          ? "max-w-full shrink flex-col whitespace-normal text-center leading-snug break-words"
+          : "max-w-full shrink whitespace-normal text-center leading-snug break-words"
+      }
+    >
+      <RolePermissionsSummaryLabel summary={summary} />
+    </Badge>
+  );
+}
+
+function RolePermissionsSummaryLabel({
+  summary,
+}: Readonly<{
+  summary: RolePermissionSummary;
+}>) {
+  if (summary.kind !== "effective-access") {
+    return summary.label;
+  }
+
+  return (
+    <>
+      <span>{summary.label.replace(" permissions", "")}</span>
+      <span>permissions</span>
+    </>
+  );
+}
+
 function addPermission(current: string[], permissionName: string) {
   return [...new Set([...current, permissionName])];
 }
 
 function removePermission(current: string[], permissionName: string) {
   return current.filter((permission) => permission !== permissionName);
-}
-
-function isAssignablePermissionName(permissionName: string) {
-  return !pseudoPermissionNames.has(permissionName.toLowerCase());
 }
 
 function getPermissionCategoryCode(permission: PermissionListItem) {

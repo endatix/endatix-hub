@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useCallback, useEffect, useState, useTransition } from "react";
-import { Info, MoreVertical, Search } from "lucide-react";
+import { Info, MoreVertical, Plus, Search } from "lucide-react";
 import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -53,6 +53,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
+import { DisabledButton } from "@/components/ui/disabled-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { PagedTableFooter } from "@/components/ui/paged-table-footer";
@@ -82,6 +83,11 @@ import {
   cancelTenantUserInviteAction,
   type CancelInviteActionState,
 } from "../use-cases/cancel-invite/cancel-tenant-user-invite.action";
+import {
+  getUserActionPolicy,
+  type UserActionAvailability,
+  type UserActionPolicy,
+} from "./user-action-policy";
 
 interface UsersTableProps {
   usersPromise: Promise<PagedResponse<UserListItem>>;
@@ -292,17 +298,19 @@ export function UsersTable({
     const primaryRole = user.roles[0] ?? "No role";
     const isActive = user.isVerified;
     const isPlatformAdminUser = user.roles.some(isPlatformScopedRole);
-    const canEditRoles = isActive && canManageRoles && !isPlatformAdminUser;
-    const canRemoveUser = canManageUsers && !isYou && !isPlatformAdminUser;
-    const canCancelInvite = !isActive && canResendVerification && !isYou;
+    const actionPolicy = getUserActionPolicy({
+      isActive,
+      isYou,
+      isPlatformAdminUser,
+      canManageRoles,
+      canManageUsers,
+      canManageInvitations: canResendVerification,
+    });
 
     return {
-      canCancelInvite,
-      canEditRoles,
-      canRemoveUser,
+      actionPolicy,
       displayName,
       isActive,
-      isPlatformAdminUser,
       isYou,
       primaryRole,
       user,
@@ -375,8 +383,15 @@ export function UsersTable({
                     <SelectItem value="pending">Pending invite</SelectItem>
                   </SelectContent>
                 </Select>
-                {canInviteUsers && (
+                {canInviteUsers ? (
                   <CreateTenantUserDialog roles={assignableRoles} />
+                ) : (
+                  <TooltipProvider>
+                    <DisabledButton tooltip="You don't have permission to invite users">
+                      <Plus data-icon="inline-start" />
+                      Invite User
+                    </DisabledButton>
+                  </TooltipProvider>
                 )}
               </div>
             </div>
@@ -412,13 +427,8 @@ export function UsersTable({
                           </div>
                         </div>
                         <UserActionsMenu
-                          canCancelInvite={row.canCancelInvite}
-                          canEditRoles={row.canEditRoles}
-                          canRemoveUser={row.canRemoveUser}
-                          canResendVerification={canResendVerification}
-                          isActive={row.isActive}
+                          actionPolicy={row.actionPolicy}
                           isPending={isPending}
-                          isPlatformAdminUser={row.isPlatformAdminUser}
                           onCancelInvite={handleCancelInvite}
                           onEditRole={openEditRole}
                           onRemoveUser={setPendingUserRemove}
@@ -508,13 +518,8 @@ export function UsersTable({
                           </TableCell>
                           <TableCell className="text-right">
                             <UserActionsMenu
-                              canCancelInvite={row.canCancelInvite}
-                              canEditRoles={row.canEditRoles}
-                              canRemoveUser={row.canRemoveUser}
-                              canResendVerification={canResendVerification}
-                              isActive={row.isActive}
+                              actionPolicy={row.actionPolicy}
                               isPending={isPending}
-                              isPlatformAdminUser={row.isPlatformAdminUser}
                               onCancelInvite={handleCancelInvite}
                               onEditRole={openEditRole}
                               onRemoveUser={setPendingUserRemove}
@@ -727,73 +732,28 @@ function EditUserRolesPanelContent({
 }
 
 function UserActionsMenu({
-  canCancelInvite,
-  canEditRoles,
-  canRemoveUser,
-  canResendVerification,
-  isActive,
+  actionPolicy,
   isPending,
-  isPlatformAdminUser,
   onCancelInvite,
   onEditRole,
   onRemoveUser,
   onResendVerification,
   user,
 }: Readonly<{
-  canCancelInvite: boolean;
-  canEditRoles: boolean;
-  canRemoveUser: boolean;
-  canResendVerification: boolean;
-  isActive: boolean;
+  actionPolicy: UserActionPolicy;
   isPending: boolean;
-  isPlatformAdminUser: boolean;
   onCancelInvite: (user: UserListItem) => void;
   onEditRole: (user: UserListItem) => void;
   onRemoveUser: (user: UserListItem) => void;
   onResendVerification: (user: UserListItem) => void;
   user: UserListItem;
 }>) {
-  let editRoleTooltip: string;
-  if (isPlatformAdminUser) {
-    editRoleTooltip = "Managed at platform level";
-  } else if (isActive) {
-    editRoleTooltip = "You don't have permission to manage roles";
-  } else {
-    editRoleTooltip = "User must be active to edit roles";
-  }
-
-  const resendInvitationTooltip = canResendVerification
-    ? "User is already active"
-    : "You don't have permission to resend invitations";
-
-  let resendInvitationItem: React.ReactNode = null;
-  if (!isActive) {
-    if (canResendVerification) {
-      resendInvitationItem = (
-        <DropdownMenuItem
-          disabled={isPending}
-          onClick={() => onResendVerification(user)}
-        >
-          Resend Invitation
-        </DropdownMenuItem>
-      );
-    } else {
-      resendInvitationItem = (
-        <DisabledMenuItem
-          label="Resend Invitation"
-          tooltip={resendInvitationTooltip}
-        />
-      );
-    }
-  }
-
-  const removeUserTooltip = isActive
-    ? "You don't have permission to remove users"
-    : "User has not accepted the invitation yet";
-
-  const cancelInviteTooltip = isActive
-    ? "User has already accepted the invitation"
-    : "You don't have permission to cancel invitations";
+  const hasPrimaryActions =
+    actionPolicy.editRole.status !== "hidden" ||
+    actionPolicy.resendInvitation.status !== "hidden";
+  const hasDestructiveActions =
+    actionPolicy.removeFromOrganization.status !== "hidden" ||
+    actionPolicy.cancelInvitation.status !== "hidden";
 
   return (
     <TooltipProvider>
@@ -806,51 +766,75 @@ function UserActionsMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          {canEditRoles ? (
-            <DropdownMenuItem onClick={() => onEditRole(user)}>
-              Edit Role
-            </DropdownMenuItem>
-          ) : (
-            <DisabledMenuItem label="Edit Role" tooltip={editRoleTooltip} />
+          <UserActionMenuItem
+            action={actionPolicy.editRole}
+            label="Edit Role"
+            onSelect={() => onEditRole(user)}
+          />
+          <UserActionMenuItem
+            action={actionPolicy.resendInvitation}
+            disabled={isPending}
+            label="Resend Invitation"
+            onSelect={() => onResendVerification(user)}
+          />
+          {hasPrimaryActions && hasDestructiveActions && (
+            <DropdownMenuSeparator />
           )}
-          {isPlatformAdminUser && (
-            <DropdownMenuItem disabled>
-              Managed at platform level
-            </DropdownMenuItem>
-          )}
-          {resendInvitationItem}
-          <DropdownMenuSeparator />
-          {isActive && canRemoveUser ? (
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => onRemoveUser(user)}
-            >
-              Remove from Organization
-            </DropdownMenuItem>
-          ) : (
-            <DisabledMenuItem
-              label="Remove from Organization"
-              tooltip={removeUserTooltip}
-              destructive
-            />
-          )}
-          {canCancelInvite ? (
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              disabled={isPending}
-              onClick={() => onCancelInvite(user)}
-            >
-              Cancel Invitation
-            </DropdownMenuItem>
-          ) : (
-            <DisabledMenuItem
-              label="Cancel Invitation"
-              tooltip={cancelInviteTooltip}
-              destructive
-            />
-          )}
+          <UserActionMenuItem
+            action={actionPolicy.removeFromOrganization}
+            destructive
+            label="Remove from Organization"
+            onSelect={() => onRemoveUser(user)}
+          />
+          <UserActionMenuItem
+            action={actionPolicy.cancelInvitation}
+            destructive
+            disabled={isPending}
+            label="Cancel Invitation"
+            onSelect={() => onCancelInvite(user)}
+          />
         </DropdownMenuContent>
       </DropdownMenu>
     </TooltipProvider>
+  );
+}
+
+function UserActionMenuItem({
+  action,
+  destructive,
+  disabled,
+  label,
+  onSelect,
+}: Readonly<{
+  action: UserActionAvailability;
+  destructive?: boolean;
+  disabled?: boolean;
+  label: string;
+  onSelect: () => void;
+}>) {
+  if (action.status === "hidden") {
+    return null;
+  }
+
+  if (action.status === "disabled") {
+    return (
+      <DisabledMenuItem
+        destructive={destructive}
+        label={label}
+        tooltip={action.tooltip}
+      />
+    );
+  }
+
+  return (
+    <DropdownMenuItem
+      className={
+        destructive ? "text-destructive focus:text-destructive" : undefined
+      }
+      disabled={disabled}
+      onClick={onSelect}
+    >
+      {label}
+    </DropdownMenuItem>
   );
 }
