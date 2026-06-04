@@ -13,7 +13,7 @@ export function appendQueryParam(
     return;
   }
 
-  searchParams.set(key, String(value));
+  searchParams.append(key, String(value));
 }
 
 /**
