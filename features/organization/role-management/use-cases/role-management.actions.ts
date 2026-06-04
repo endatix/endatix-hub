@@ -39,9 +39,9 @@ export async function createRoleAction(
   await requirePermission(Permissions.Tenant.ManageRoles);
 
   const rawData = {
-    name: String(formData.get("name") ?? ""),
-    description: String(formData.get("description") ?? ""),
-    permissions: formData.getAll("permissions").map(String),
+    name: getStringFormValue(formData, "name"),
+    description: getStringFormValue(formData, "description"),
+    permissions: getStringFormValues(formData, "permissions"),
   };
 
   const validatedData = roleSchema.safeParse(rawData);
@@ -72,7 +72,7 @@ export async function deleteRoleAction(
   const { requirePermission } = await authorization(session);
   await requirePermission(Permissions.Tenant.ManageRoles);
 
-  const rawData = { roleName: String(formData.get("roleName") ?? "") };
+  const rawData = { roleName: getStringFormValue(formData, "roleName") };
   const validatedData = deleteRoleSchema.safeParse(rawData);
   if (!validatedData.success) {
     return ServerActionState.fromZodError(validatedData.error, rawData);
@@ -102,9 +102,9 @@ export async function updateRoleAction(
   await requirePermission(Permissions.Tenant.ManageRoles);
 
   const rawData = {
-    roleName: String(formData.get("roleName") ?? ""),
-    description: String(formData.get("description") ?? ""),
-    permissions: formData.getAll("permissions").map(String),
+    roleName: getStringFormValue(formData, "roleName"),
+    description: getStringFormValue(formData, "description"),
+    permissions: getStringFormValues(formData, "permissions"),
   };
 
   const validatedData = updateRoleSchema.safeParse(rawData);
@@ -128,4 +128,15 @@ export async function updateRoleAction(
     formErrors: [result.error.message],
     data: rawData,
   };
+}
+
+function getStringFormValue(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
+
+function getStringFormValues(formData: FormData, key: string): string[] {
+  return formData
+    .getAll(key)
+    .filter((value): value is string => typeof value === "string");
 }
