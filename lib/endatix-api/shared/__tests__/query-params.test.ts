@@ -33,6 +33,16 @@ describe("query params", () => {
     );
   });
 
+  it("preserves duplicate query params", () => {
+    const searchParams = new URLSearchParams();
+
+    appendQueryParam(searchParams, "role", "Admin");
+    appendQueryParam(searchParams, "role", "Creator");
+
+    expect(searchParams.toString()).toBe("role=Admin&role=Creator");
+    expect(searchParams.getAll("role")).toEqual(["Admin", "Creator"]);
+  });
+
   it("uses paging defaults only when request values are missing", () => {
     const searchParams = new URLSearchParams();
 
