@@ -91,7 +91,7 @@ function ThemeHotkey() {
         return;
       }
 
-      if (event.key.toLowerCase() !== THEME_HOTKEY) {
+      if (event.key?.toLowerCase() !== THEME_HOTKEY) {
         return;
       }
 

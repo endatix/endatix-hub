@@ -14,6 +14,7 @@ import { INavItem } from "@/types/navigation-models";
 import { ChevronRight } from "lucide-react";
 import { Route } from "next";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface SidebarNavItemProps extends React.ComponentProps<
   typeof SidebarMenuButton
@@ -27,7 +28,13 @@ export function SidebarNavItem({
   isCollapsed = false,
   ...props
 }: Readonly<SidebarNavItemProps>) {
+  const pathname = usePathname();
   const hasChildren = (item.children?.length ?? 0) > 0;
+  const isActive =
+    pathname === item.url ||
+    item.children?.some(
+      (child) => !child.isSectionHeader && pathname === child.url,
+    ) === true;
 
   if (hasChildren && isCollapsed && item.url) {
     return (
@@ -47,10 +54,16 @@ export function SidebarNavItem({
 
   if (hasChildren) {
     return (
-      <Collapsible asChild className="group/collapsible">
+      <Collapsible asChild defaultOpen={isActive} className="group/collapsible">
         <SidebarMenuItem>
           <div className="flex items-center gap-1">
-            <SidebarMenuButton asChild tooltip={item.title} className="flex-1" {...props}>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive}
+              tooltip={item.title}
+              className="flex-1"
+              {...props}
+            >
               <Link
                 href={item.url as Route}
                 target={item.external ? "_blank" : undefined}
@@ -71,18 +84,34 @@ export function SidebarNavItem({
           </div>
           <CollapsibleContent>
             <SidebarMenuSub>
-              {item.children?.map((subItem) => (
-                <SidebarMenuSubItem key={subItem.title}>
-                  <SidebarMenuSubButton asChild>
-                    <Link
-                      href={subItem.url as Route}
-                      target={subItem.external ? "_blank" : undefined}
+              {item.children?.map((subItem) => {
+                if (subItem.isSectionHeader) {
+                  return (
+                    <SidebarMenuSubItem key={subItem.title}>
+                      <div className="px-2 py-2 text-[0.68rem] font-semibold tracking-wider text-muted-foreground uppercase">
+                        {subItem.title}
+                      </div>
+                    </SidebarMenuSubItem>
+                  );
+                }
+
+                return (
+                  <SidebarMenuSubItem key={subItem.title}>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname === subItem.url}
                     >
-                      <span>{subItem.title}</span>
-                    </Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              ))}
+                      <Link
+                        href={subItem.url as Route}
+                        target={subItem.external ? "_blank" : undefined}
+                      >
+                        {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                        <span>{subItem.title}</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                );
+              })}
             </SidebarMenuSub>
           </CollapsibleContent>
         </SidebarMenuItem>

@@ -5,6 +5,7 @@ interface ISitemapItem {
   title: string;
   url: string;
   external?: boolean;
+  isSectionHeader?: boolean;
 }
 interface INavItem extends ISitemapItem {
   icon?: LucideIcon;
