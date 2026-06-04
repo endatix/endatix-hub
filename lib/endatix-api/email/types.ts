@@ -12,5 +12,6 @@ export type EmailTemplateSummary = {
 
 export type SendTestEmailRequest = {
   toEmail: string;
+  fromEmail: string;
   templateId?: string;
 };

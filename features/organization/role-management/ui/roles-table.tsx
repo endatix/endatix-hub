@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
+import { DisabledButton } from "@/components/ui/disabled-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { PagedTableFooter } from "@/components/ui/paged-table-footer";
@@ -303,11 +304,18 @@ export function RolesTable({
                   <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
-              {canManageRoles && (
+              {canManageRoles ? (
                 <Button onClick={() => setCreateOpen(true)}>
                   <Plus data-icon="inline-start" />
                   Create Role
                 </Button>
+              ) : (
+                <TooltipProvider>
+                  <DisabledButton tooltip="You don't have permission to manage roles">
+                    <Plus data-icon="inline-start" />
+                    Create Role
+                  </DisabledButton>
+                </TooltipProvider>
               )}
             </div>
           </div>
@@ -846,8 +854,8 @@ function RolePermissionsSummary({
       variant="outline"
       className={
         summary.kind === "effective-access"
-          ? "max-w-full shrink flex-col whitespace-normal text-center leading-snug break-words"
-          : "max-w-full shrink whitespace-normal text-center leading-snug break-words"
+          ? "max-w-full shrink flex-col text-center leading-snug break-words whitespace-normal"
+          : "max-w-full shrink text-center leading-snug break-words whitespace-normal"
       }
     >
       <RolePermissionsSummaryLabel summary={summary} />
@@ -920,9 +928,9 @@ function groupPermissionsByCategory(permissions: PermissionListItem[]) {
   return [...groups.values()]
     .map((group) => ({
       ...group,
-        permissions: group.permissions.toSorted((left, right) =>
-          left.name.localeCompare(right.name),
-        ),
+      permissions: group.permissions.toSorted((left, right) =>
+        left.name.localeCompare(right.name),
+      ),
     }))
     .sort((left, right) =>
       left.categoryLabel.localeCompare(right.categoryLabel),
