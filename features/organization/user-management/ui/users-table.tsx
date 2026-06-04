@@ -52,12 +52,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { PagedTableFooter } from "@/components/ui/paged-table-footer";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
@@ -757,6 +753,24 @@ function UserActionsMenu({
   onResendVerification: (user: UserListItem) => void;
   user: UserListItem;
 }>) {
+  const editRoleTooltip = isPlatformAdminUser
+    ? "Managed at platform level"
+    : !isActive
+      ? "User must be active to edit roles"
+      : "You don't have permission to manage roles";
+
+  const resendInvitationTooltip = canResendVerification
+    ? "User is already active"
+    : "You don't have permission to resend invitations";
+
+  const removeUserTooltip = !isActive
+    ? "User has not accepted the invitation yet"
+    : "You don't have permission to remove users";
+
+  const cancelInviteTooltip = isActive
+    ? "User has already accepted the invitation"
+    : "You don't have permission to cancel invitations";
+
   return (
     <TooltipProvider>
       <DropdownMenu>
@@ -773,20 +787,7 @@ function UserActionsMenu({
               Edit Role
             </DropdownMenuItem>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block" tabIndex={0}>
-                  <DropdownMenuItem disabled>Edit Role</DropdownMenuItem>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isPlatformAdminUser
-                  ? "Managed at platform level"
-                  : !isActive
-                    ? "User must be active to edit roles"
-                    : "You don't have permission to manage roles"}
-              </TooltipContent>
-            </Tooltip>
+            <DisabledMenuItem label="Edit Role" tooltip={editRoleTooltip} />
           )}
           {isPlatformAdminUser && (
             <DropdownMenuItem disabled>
@@ -801,20 +802,10 @@ function UserActionsMenu({
               Resend Invitation
             </DropdownMenuItem>
           ) : !isActive ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block" tabIndex={0}>
-                  <DropdownMenuItem disabled>
-                    Resend Invitation
-                  </DropdownMenuItem>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                {canResendVerification
-                  ? "User is already active"
-                  : "You don't have permission to resend invitations"}
-              </TooltipContent>
-            </Tooltip>
+            <DisabledMenuItem
+              label="Resend Invitation"
+              tooltip={resendInvitationTooltip}
+            />
           ) : null}
           <DropdownMenuSeparator />
           {isActive && canRemoveUser ? (
@@ -825,23 +816,11 @@ function UserActionsMenu({
               Remove from Organization
             </DropdownMenuItem>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block" tabIndex={0}>
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    disabled
-                  >
-                    Remove from Organization
-                  </DropdownMenuItem>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                {!isActive
-                  ? "User has not accepted the invitation yet"
-                  : "You don't have permission to remove users"}
-              </TooltipContent>
-            </Tooltip>
+            <DisabledMenuItem
+              label="Remove from Organization"
+              tooltip={removeUserTooltip}
+              destructive
+            />
           )}
           {canCancelInvite ? (
             <DropdownMenuItem
@@ -852,23 +831,11 @@ function UserActionsMenu({
               Cancel Invitation
             </DropdownMenuItem>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block" tabIndex={0}>
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    disabled
-                  >
-                    Cancel Invitation
-                  </DropdownMenuItem>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isActive
-                  ? "User has already accepted the invitation"
-                  : "You don't have permission to cancel invitations"}
-              </TooltipContent>
-            </Tooltip>
+            <DisabledMenuItem
+              label="Cancel Invitation"
+              tooltip={cancelInviteTooltip}
+              destructive
+            />
           )}
         </DropdownMenuContent>
       </DropdownMenu>

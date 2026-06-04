@@ -74,92 +74,99 @@ async function mutateUserRole(
     await requirePermission(Permissions.Tenant.ManageUsers);
 
     const api = new EndatixApi(session?.accessToken);
+
     if (mutation === "set") {
-      const selectedRoles = validatedData.data.roles;
-      if (selectedRoles.some(isPlatformScopedRole)) {
-        return {
-          isSuccess: false,
-          formErrors: [
-            "Platform administrator roles are managed at the platform level.",
-          ],
-          data: rawData,
-        };
-      }
-
-      const currentEditableRoles = validatedData.data.currentRoles.filter(
-        (role) => !isPlatformScopedRole(role),
-      );
-      for (const currentRole of currentEditableRoles) {
-        if (!selectedRoles.includes(currentRole)) {
-          const removeResult = await api.users.removeRole(
-            validatedData.data.userId,
-            currentRole,
-          );
-
-          if (ApiResult.isError(removeResult)) {
-            return stateFromApiError(removeResult, rawData);
-          }
-        }
-      }
-
-      for (const selectedRole of selectedRoles) {
-        if (currentEditableRoles.includes(selectedRole)) {
-          continue;
-        }
-
-        const assignResult = await api.users.assignRole(
-          validatedData.data.userId,
-          {
-            roleName: selectedRole,
-          },
-        );
-
-        if (ApiResult.isError(assignResult)) {
-          return stateFromApiError(assignResult, rawData);
-        }
-      }
-
-      revalidatePath("/settings/organization/users");
-      return { isSuccess: true };
+      return handleSetMutation(api, validatedData.data, rawData);
     }
 
-    if (!validatedData.data.roleName) {
-      return {
-        isSuccess: false,
-        formErrors: ["Role name is required."],
-        data: rawData,
-      };
-    }
-
-    if (isPlatformScopedRole(validatedData.data.roleName)) {
-      return {
-        isSuccess: false,
-        formErrors: [
-          "Platform administrator roles are managed at the platform level.",
-        ],
-        data: rawData,
-      };
-    }
-
-    const result =
-      mutation === "remove"
-        ? await api.users.removeRole(
-            validatedData.data.userId,
-            validatedData.data.roleName,
-          )
-        : await api.users.assignRole(validatedData.data.userId, {
-            roleName: validatedData.data.roleName,
-          });
-
-    if (ApiResult.isSuccess(result)) {
-      revalidatePath("/settings/organization/users");
-      return { isSuccess: true };
-    }
-
-    return stateFromApiError(result, rawData);
+    return handleSingleRoleMutation(api, validatedData.data, mutation, rawData);
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, "setUserRoleAction");
   }
+}
+
+async function handleSingleRoleMutation(
+  api: EndatixApi,
+  data: z.infer<typeof userRoleSchema>,
+  mutation: "assign" | "remove",
+  rawData: Record<string, unknown>,
+): Promise<UserRoleActionState> {
+  if (!data.roleName) {
+    return {
+      isSuccess: false,
+      formErrors: ["Role name is required."],
+      data: rawData,
+    };
+  }
+
+  if (isPlatformScopedRole(data.roleName)) {
+    return {
+      isSuccess: false,
+      formErrors: [
+        "Platform administrator roles are managed at the platform level.",
+      ],
+      data: rawData,
+    };
+  }
+
+  const result =
+    mutation === "remove"
+      ? await api.users.removeRole(data.userId, data.roleName)
+      : await api.users.assignRole(data.userId, { roleName: data.roleName });
+
+  if (ApiResult.isSuccess(result)) {
+    revalidatePath("/settings/organization/users");
+    return { isSuccess: true };
+  }
+
+  return stateFromApiError(result, rawData);
+}
+
+async function handleSetMutation(
+  api: EndatixApi,
+  data: z.infer<typeof userRoleSchema>,
+  rawData: Record<string, unknown>,
+): Promise<UserRoleActionState> {
+  const selectedRoles = data.roles;
+  if (selectedRoles.some(isPlatformScopedRole)) {
+    return {
+      isSuccess: false,
+      formErrors: [
+        "Platform administrator roles are managed at the platform level.",
+      ],
+      data: rawData,
+    };
+  }
+
+  const currentEditableRoles = data.currentRoles.filter(
+    (role) => !isPlatformScopedRole(role),
+  );
+
+  for (const currentRole of currentEditableRoles) {
+    if (!selectedRoles.includes(currentRole)) {
+      const removeResult = await api.users.removeRole(data.userId, currentRole);
+      if (ApiResult.isError(removeResult)) {
+        return stateFromApiError(removeResult, rawData);
+      }
+    }
+  }
+
+  for (const selectedRole of selectedRoles) {
+    if (currentEditableRoles.includes(selectedRole)) {
+      continue;
+    }
+
+    const assignResult = await api.users.assignRole(data.userId, {
+      roleName: selectedRole,
+    });
+
+    if (ApiResult.isError(assignResult)) {
+      return stateFromApiError(assignResult, rawData);
+    }
+  }
+
+  revalidatePath("/settings/organization/users");
+  return { isSuccess: true };
 }
 
 function isPlatformScopedRole(roleName: string) {

@@ -51,12 +51,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { PagedTableFooter } from "@/components/ui/paged-table-footer";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
@@ -764,14 +760,10 @@ function RoleActionsMenu({
               Edit Permissions
             </DropdownMenuItem>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block" tabIndex={0}>
-                  <DropdownMenuItem disabled>Edit Permissions</DropdownMenuItem>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{getDisabledReason()}</TooltipContent>
-            </Tooltip>
+            <DisabledMenuItem
+              label="Edit Permissions"
+              tooltip={getDisabledReason()}
+            />
           )}
           {isSystemRole && (
             <DropdownMenuItem disabled>System role</DropdownMenuItem>
@@ -786,19 +778,11 @@ function RoleActionsMenu({
               Delete Role
             </DropdownMenuItem>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block" tabIndex={0}>
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    disabled
-                  >
-                    Delete Role
-                  </DropdownMenuItem>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{getDisabledReason()}</TooltipContent>
-            </Tooltip>
+            <DisabledMenuItem
+              label="Delete Role"
+              tooltip={getDisabledReason()}
+              destructive
+            />
           )}
         </DropdownMenuContent>
       </DropdownMenu>
