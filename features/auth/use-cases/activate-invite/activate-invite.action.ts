@@ -1,5 +1,6 @@
 "use server";
 
+import { TelemetryLogger } from "@/features/telemetry";
 import { EndatixApi, type ApiError } from "@/lib/endatix-api";
 import {
   ActivateInviteRequestSchema,
@@ -53,13 +54,25 @@ export async function activateInviteAction(
 
     return stateFromApiError(result, safeData);
   } catch (error) {
-    console.error("Unexpected error in activateInviteAction:", error);
+    TelemetryLogger.error(
+      "Unexpected error in activateInviteAction",
+      undefined,
+      {
+        errorName: getErrorName(error),
+        hasToken: Boolean(validatedData.data.token),
+      },
+      "auth.activate-invite",
+    );
     return {
       isSuccess: false,
       formErrors: ["Something went wrong. Please try again."],
       data: safeData,
     };
   }
+}
+
+function getErrorName(error: unknown): string {
+  return error instanceof Error ? error.name : "UnknownError";
 }
 
 function stateFromApiError(
