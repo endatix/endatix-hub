@@ -5,9 +5,9 @@ import type { PagedResponse } from "../shared/types";
 import type {
   AssignRoleRequestBody,
   CreateUserRequestBody,
-  CreateUserResponse,
   ListUsersRequest,
   UserOperationResponse,
+  UserListItem,
   UserListItem,
 } from "./types";
 
@@ -27,8 +27,8 @@ export default class Users {
 
   async create(
     request: CreateUserRequestBody,
-  ): Promise<ApiResult<CreateUserResponse>> {
-    return this.endatix.post<CreateUserResponse>("/users", request);
+  ): Promise<ApiResult<UserListItem>> {
+    return this.endatix.post<UserListItem>("/users", request);
   }
 
   async removeAccess(

@@ -19,7 +19,7 @@ export function DisabledMenuItem({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="block" tabIndex={0}>
+        <span className="block">
           <DropdownMenuItem
             disabled
             className={

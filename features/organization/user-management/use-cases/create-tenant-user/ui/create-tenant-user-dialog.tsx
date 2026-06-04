@@ -150,16 +150,22 @@ export function CreateTenantUserDialog({
                 const isSelected = selectedRoles.includes(role.name);
                 const isAdminRole = isTenantAdminRole(role.name);
 
+                let roleClassName: string;
+                if (isAdminRole) {
+                  roleClassName =
+                    "flex cursor-not-allowed gap-4 rounded-lg border bg-muted/40 p-4 opacity-70";
+                } else if (isSelected) {
+                  roleClassName =
+                    "flex cursor-pointer gap-4 rounded-lg border border-primary bg-primary/5 p-4";
+                } else {
+                  roleClassName =
+                    "flex cursor-pointer gap-4 rounded-lg border bg-background p-4 hover:bg-muted/40";
+                }
+
                 return (
                   <label
                     key={role.id}
-                    className={
-                      isAdminRole
-                        ? "flex cursor-not-allowed gap-4 rounded-lg border bg-muted/40 p-4 opacity-70"
-                        : isSelected
-                          ? "flex cursor-pointer gap-4 rounded-lg border border-primary bg-primary/5 p-4"
-                          : "flex cursor-pointer gap-4 rounded-lg border bg-background p-4 hover:bg-muted/40"
-                    }
+                    className={roleClassName}
                   >
                     <Checkbox
                       checked={isSelected}

@@ -22,8 +22,6 @@ export type CreateUserRequestBody = {
   roles?: string[];
 };
 
-export type CreateUserResponse = UserListItem;
-
 export type UserOperationResponse = {
   success: boolean;
   message: string;

@@ -753,15 +753,39 @@ function UserActionsMenu({
   onResendVerification: (user: UserListItem) => void;
   user: UserListItem;
 }>) {
-  const editRoleTooltip = isPlatformAdminUser
-    ? "Managed at platform level"
-    : !isActive
-      ? "User must be active to edit roles"
-      : "You don't have permission to manage roles";
+  let editRoleTooltip: string;
+  if (isPlatformAdminUser) {
+    editRoleTooltip = "Managed at platform level";
+  } else if (!isActive) {
+    editRoleTooltip = "User must be active to edit roles";
+  } else {
+    editRoleTooltip = "You don't have permission to manage roles";
+  }
 
   const resendInvitationTooltip = canResendVerification
     ? "User is already active"
     : "You don't have permission to resend invitations";
+
+  let resendInvitationItem: React.ReactNode = null;
+  if (!isActive) {
+    if (canResendVerification) {
+      resendInvitationItem = (
+        <DropdownMenuItem
+          disabled={isPending}
+          onClick={() => onResendVerification(user)}
+        >
+          Resend Invitation
+        </DropdownMenuItem>
+      );
+    } else {
+      resendInvitationItem = (
+        <DisabledMenuItem
+          label="Resend Invitation"
+          tooltip={resendInvitationTooltip}
+        />
+      );
+    }
+  }
 
   const removeUserTooltip = !isActive
     ? "User has not accepted the invitation yet"
@@ -794,19 +818,7 @@ function UserActionsMenu({
               Managed at platform level
             </DropdownMenuItem>
           )}
-          {!isActive && canResendVerification ? (
-            <DropdownMenuItem
-              disabled={isPending}
-              onClick={() => onResendVerification(user)}
-            >
-              Resend Invitation
-            </DropdownMenuItem>
-          ) : !isActive ? (
-            <DisabledMenuItem
-              label="Resend Invitation"
-              tooltip={resendInvitationTooltip}
-            />
-          ) : null}
+          {resendInvitationItem}
           <DropdownMenuSeparator />
           {isActive && canRemoveUser ? (
             <DropdownMenuItem

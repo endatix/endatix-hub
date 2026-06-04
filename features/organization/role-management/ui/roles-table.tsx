@@ -190,15 +190,22 @@ export function RolesTable({
     setEditPermissions(role.permissions.filter(isAssignablePermissionName));
   };
 
-  const toggleEditPermission = (permissionName: string, checked: boolean) => {
+  const onEditPermissionChange = (permissionName: string, checked: boolean) => {
     setEditPermissions((current) =>
-      togglePermission(current, permissionName, checked),
+      checked
+        ? addPermission(current, permissionName)
+        : removePermission(current, permissionName),
     );
   };
 
-  const toggleCreatePermission = (permissionName: string, checked: boolean) => {
+  const onCreatePermissionChange = (
+    permissionName: string,
+    checked: boolean,
+  ) => {
     setCreatePermissions((current) =>
-      togglePermission(current, permissionName, checked),
+      checked
+        ? addPermission(current, permissionName)
+        : removePermission(current, permissionName),
     );
   };
 
@@ -489,7 +496,7 @@ export function RolesTable({
             <PermissionsChecklist
               permissions={permissions}
               selectedPermissions={createPermissions}
-              onPermissionChange={toggleCreatePermission}
+              onPermissionChange={onCreatePermissionChange}
             />
           </ResponsivePanelBody>
           <ResponsivePanelFooter>
@@ -542,7 +549,7 @@ export function RolesTable({
               <PermissionsChecklist
                 permissions={permissions}
                 selectedPermissions={editPermissions}
-                onPermissionChange={toggleEditPermission}
+                onPermissionChange={onEditPermissionChange}
               />
             </ResponsivePanelBody>
             <ResponsivePanelFooter>
@@ -814,14 +821,12 @@ function UsersAssignedBadge({
   );
 }
 
-function togglePermission(
-  current: string[],
-  permissionName: string,
-  checked: boolean,
-) {
-  return checked
-    ? [...new Set([...current, permissionName])]
-    : current.filter((permission) => permission !== permissionName);
+function addPermission(current: string[], permissionName: string) {
+  return [...new Set([...current, permissionName])];
+}
+
+function removePermission(current: string[], permissionName: string) {
+  return current.filter((permission) => permission !== permissionName);
 }
 
 function isAssignablePermissionName(permissionName: string) {
@@ -868,9 +873,9 @@ function groupPermissionsByCategory(permissions: PermissionListItem[]) {
   return [...groups.values()]
     .map((group) => ({
       ...group,
-      permissions: group.permissions.sort((left, right) =>
-        left.name.localeCompare(right.name),
-      ),
+        permissions: group.permissions.toSorted((left, right) =>
+          left.name.localeCompare(right.name),
+        ),
     }))
     .sort((left, right) =>
       left.categoryLabel.localeCompare(right.categoryLabel),
