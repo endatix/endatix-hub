@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PagedResponse } from "../types";
-import {
-  normalizePagedResponse,
-} from "../paged-response";
+import { normalizePagedResponse } from "../paged-response";
 
 describe("normalizePagedItemsResponse", () => {
   it("normalizes string page and pageSize to numbers", () => {
@@ -72,6 +70,48 @@ describe("normalizePagedItemsResponse", () => {
     const result = normalizePagedResponse(response);
 
     expect(result.totalPages).toBe(4);
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it("infers total records and pages from visible items when API totals are zero", () => {
+    const result = normalizePagedResponse({
+      page: 1,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 0,
+      items: ["Admin", "Creator", "Reviewer", "Scripter"],
+    });
+
+    expect(result.totalRecords).toBe(4);
+    expect(result.totalPages).toBe(1);
+    expect(result.hasNextPage).toBe(false);
+  });
+
+  it("infers minimum total records for later pages", () => {
+    const result = normalizePagedResponse({
+      page: 2,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 0,
+      items: ["Reviewer", "Scripter"],
+    });
+
+    expect(result.totalRecords).toBe(12);
+    expect(result.totalPages).toBe(2);
+    expect(result.hasNextPage).toBe(false);
+  });
+
+  it("keeps reported totals when they exceed visible records", () => {
+    const result = normalizePagedResponse({
+      page: 1,
+      pageSize: 10,
+      totalRecords: 42,
+      totalPages: 5,
+      items: ["Admin", "Creator"],
+    });
+
+    expect(result.totalRecords).toBe(42);
+    expect(result.totalPages).toBe(5);
     expect(result.hasNextPage).toBe(true);
   });
 

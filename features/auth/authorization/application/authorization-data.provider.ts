@@ -29,6 +29,20 @@ const ExpectedAuthorizationApiErrorTypes = new Set<ApiErrorType>([
 const getUserPermissionsCacheKey = (userId: string) =>
   `${USER_PERMISSIONS_CACHE_TAG}:${userId}`;
 
+/**
+ * Thrown inside unstable_cache when authorization fetch fails so Next.js does not
+ * persist transient API/network errors in the data cache.
+ */
+class AuthorizationCacheBypassError extends Error {
+  readonly result: GetAuthDataResult;
+
+  constructor(result: GetAuthDataResult) {
+    super("Authorization data must not be cached");
+    this.name = "AuthorizationCacheBypassError";
+    this.result = result;
+  }
+}
+
 async function fetchAuthorizationData(
   userId: string,
   accessToken: string,
@@ -137,20 +151,36 @@ function shouldLogAuthorizationApiError(apiError: ApiError): boolean {
  * @param accessToken - The access token
  * @returns The authorization data
  */
-const getCachedAuthorizationData = (
+const getCachedAuthorizationData = async (
   userId: string,
   accessToken: string,
 ): Promise<GetAuthDataResult> => {
   const cacheKey = getUserPermissionsCacheKey(userId);
 
-  return unstable_cache(
-    () => fetchAuthorizationData(userId, accessToken),
-    [userId, accessToken],
-    {
-      tags: [cacheKey, ALL_USER_PERMISSIONS_CACHE_TAG],
-      revalidate: USER_PERMISSIONS_CACHE_TTL,
-    },
-  )();
+  try {
+    return await unstable_cache(
+      async () => {
+        const result = await fetchAuthorizationData(userId, accessToken);
+
+        if (!result.success) {
+          throw new AuthorizationCacheBypassError(result);
+        }
+
+        return result;
+      },
+      [userId, accessToken],
+      {
+        tags: [cacheKey, ALL_USER_PERMISSIONS_CACHE_TAG],
+        revalidate: USER_PERMISSIONS_CACHE_TTL,
+      },
+    )();
+  } catch (error) {
+    if (error instanceof AuthorizationCacheBypassError) {
+      return error.result;
+    }
+
+    throw error;
+  }
 };
 
 /**

@@ -16,8 +16,7 @@ export const USERS_COLUMNS_DEFINITION = (
       const user = row.original;
       const displayName = getDisplayName(user.userName, user.email);
       const initials = getInitials(user.userName, user.email);
-      const isYou =
-        currentUserId != null && String(user.id) === String(currentUserId);
+      const isYou = currentUserId != null && user.id === currentUserId;
       return (
         <div className="flex min-w-0 items-center gap-3">
           <Avatar className="h-9 w-9 shrink-0 rounded-full">

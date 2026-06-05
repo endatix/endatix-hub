@@ -47,10 +47,24 @@ features/
 ### Reference Example: `features/folders`
 
 Use `features/folders` as the canonical implementation of this pattern:
+
 - slices like `create-folder`, `update-folder`, `delete-folder`, `move-form-to-folder`, `view-forms-header`
 - shared root artifacts in `types.ts`, `utils.ts`, and root `ui/` for cross-slice components
 - server-safe curated exports via `features/folders/server.ts`
 - slice-local tests in `features/folders/create-folder/__tests__/`
+
+### Organization Management Slices
+
+Organization identity surfaces follow the same vertical-slice rule:
+
+- `features/organization/user-management/use-cases/create-tenant-user` owns tenant invites. Invite actions must not collect a password from the inviter.
+- `features/organization/user-management/use-cases/delete-user` owns tenant access removal. It keeps typed confirmation in UI and must not delete the global user identity.
+- `features/organization/user-management/use-cases/resend-verification` owns pending-user activation email resend.
+- `features/organization/user-management/use-cases/cancel-invite` owns pending invite cancellation and token invalidation.
+- `features/organization/user-management/use-cases/manage-user-roles` owns assigning and removing user roles.
+- `features/organization/role-management` owns role CRUD and permission catalog UI.
+
+New organization server actions should return `ServerActionState` and convert Zod failures through `ServerActionState.fromZodError`.
 
 ### Entry Point Pattern (Idiomatic Next.js)
 
@@ -118,10 +132,12 @@ export async function createFormAction(
 ### Data Fetching and State Management
 
 #### Data Fetching (Server to Client)
+
 For optimal performance and UX, prefer **streaming promises** from Server Components to Client Components. Use the React `use()` hook to unwrap these promises. This prevents blocking the initial render while data is being fetched.
 
 **Recommended Pattern:**
-1.  **Server Page/Component**: Initiate the fetch and pass the *promise* (not the awaited result).
+
+1.  **Server Page/Component**: Initiate the fetch and pass the _promise_ (not the awaited result).
 2.  **Context Provider (Client)**: Accept the promise as a prop and use `use(promise)` to resolve it.
 
 ```tsx
@@ -158,6 +174,7 @@ export default async function Page() {
 ```
 
 #### State Management & Interactions
+
 Combine `use()` with `useReducer` and `useOptimistic` for features with complex interactions (like forms or AI assistants).
 
 ```tsx
@@ -172,24 +189,24 @@ export function FeatureProvider({ children, initialDataPromise }) {
     const result = await myServerAction(payload); // Next.js Server Action
     dispatch({ type: 'UPDATE', payload: result });
   };
-  
+
   const value = useMemo(() => ({ state: optimisticState, handleAction }), [optimisticState]);
   return <MyContext value={value}>{children}</MyContext>;
 }
 ```
 
 #### Best Practices
+
 - **Thin Providers**: Keep context providers focused on data sharing and state management.
 - **Custom Hooks**: Expose context via hooks (e.g., `useAssetStorage`) to provide a clean API.
 - **Server-Side Providers**: Use Server Component wrappers (like `AssetStorageProvider`) to orchestrate configuration and data fetching on the server.
-- **Zero-Latency Orchestration**: By using Server Components for providers, we can pass *unresolved* promises to the client. This allows the page to start streaming immediately while SAS tokens or other data are generated on the server, avoiding extra HTTP round-trips from the client.
+- **Zero-Latency Orchestration**: By using Server Components for providers, we can pass _unresolved_ promises to the client. This allows the page to start streaming immediately while SAS tokens or other data are generated on the server, avoiding extra HTTP round-trips from the client.
 - **Reference Implementations**:
   - `asset-storage.context.tsx`: Clean configuration streaming and client-side state.
   - `asset-storage.provider.tsx`: Server Component orchestration.
   - `form-assistant.context.tsx`: Complex state with optimistic updates and reducer.
 
 More on this in the [Next.js Data Fetching Documentation](https://nextjs.org/docs/app/getting-started/fetching-data#streaming-data-with-the-use-hook).
-
 
 ## Naming Conventions
 

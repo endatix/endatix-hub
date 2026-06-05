@@ -21,7 +21,7 @@ function renderCell(
   if (!col?.cell) return null;
   const row = {
     original: user,
-    id: String(user.id),
+    id: user.id,
     index: 0,
     getValue: () => null,
     getContext: () => ({}),
@@ -48,7 +48,7 @@ describe("Users table columns", () => {
 
   it("name cell shows display name and initials", () => {
     const user: UserListItem = {
-      id: 1,
+      id: "1",
       userName: "Jane Doe",
       email: "jane@example.com",
       isVerified: true,
@@ -60,7 +60,7 @@ describe("Users table columns", () => {
 
   it("name cell shows (you) when currentUserId matches", () => {
     const user: UserListItem = {
-      id: 42,
+      id: "42",
       userName: "Current User",
       email: "current@example.com",
       isVerified: true,
@@ -73,7 +73,7 @@ describe("Users table columns", () => {
 
   it("name cell derives display name from email when userName empty", () => {
     const user: UserListItem = {
-      id: 2,
+      id: "2",
       userName: "",
       email: "tech@endatix.com",
       isVerified: false,
@@ -85,7 +85,7 @@ describe("Users table columns", () => {
 
   it("email cell shows email", () => {
     const user: UserListItem = {
-      id: 1,
+      id: "1",
       userName: "Alice",
       email: "alice@example.com",
       isVerified: true,
@@ -97,7 +97,7 @@ describe("Users table columns", () => {
 
   it("level cell shows role badges", () => {
     const user: UserListItem = {
-      id: 1,
+      id: "1",
       userName: "Alice",
       email: "alice@example.com",
       isVerified: true,
@@ -110,7 +110,7 @@ describe("Users table columns", () => {
 
   it("level cell shows — when no roles", () => {
     const user: UserListItem = {
-      id: 1,
+      id: "1",
       userName: "Bob",
       email: "bob@example.com",
       isVerified: false,

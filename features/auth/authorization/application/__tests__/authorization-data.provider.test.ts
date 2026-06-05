@@ -14,9 +14,25 @@ const telemetryLoggerMock = vi.hoisted(() => ({
   warn: vi.fn(),
 }));
 
-// Mock next/cache
+const unstableCacheStore = vi.hoisted(() => new Map<string, unknown>());
+
+// Mock next/cache with a store that mimics persisting successful return values only.
 vi.mock("next/cache", () => ({
-  unstable_cache: vi.fn((fn) => fn),
+  unstable_cache: vi.fn(
+    (fn: () => Promise<unknown>, keyParts?: readonly unknown[]) => {
+      const cacheKey = JSON.stringify(keyParts ?? []);
+
+      return async () => {
+        if (unstableCacheStore.has(cacheKey)) {
+          return unstableCacheStore.get(cacheKey);
+        }
+
+        const result = await fn();
+        unstableCacheStore.set(cacheKey, result);
+        return result;
+      };
+    },
+  ),
   revalidateTag: vi.fn(),
 }));
 
@@ -70,6 +86,7 @@ describe("getAuthDataForCurrentUser", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    unstableCacheStore.clear();
   });
 
   it("should return unauthenticated when session is null", async () => {
@@ -269,6 +286,61 @@ describe("getAuthDataForCurrentUser", () => {
       {},
       "authorization",
     );
+  });
+
+  it("should not cache network errors and should retry on subsequent calls", async () => {
+    const { EndatixApi } = await import("@/lib/endatix-api");
+    const getAuthorizationData = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce({
+        success: true,
+        data: mockAuthorizationData,
+      });
+    const mockApiInstance = {
+      auth: {
+        getAuthorizationData,
+      },
+    };
+
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockApiInstance as unknown as EndatixApi;
+    });
+
+    const getAuthData = getAuthDataForCurrentUser(mockSession);
+    const firstResult = await getAuthData();
+    const secondResult = await getAuthData();
+
+    expect(firstResult.success).toBe(false);
+    expect(secondResult.success).toBe(true);
+    expect(getAuthorizationData).toHaveBeenCalledTimes(2);
+    expect(unstableCacheStore.size).toBe(1);
+  });
+
+  it("should cache successful authorization data", async () => {
+    const { EndatixApi } = await import("@/lib/endatix-api");
+    const getAuthorizationData = vi.fn().mockResolvedValue({
+      success: true,
+      data: mockAuthorizationData,
+    });
+    const mockApiInstance = {
+      auth: {
+        getAuthorizationData,
+      },
+    };
+
+    vi.mocked(EndatixApi).mockImplementation(function () {
+      return mockApiInstance as unknown as EndatixApi;
+    });
+
+    const getAuthData = getAuthDataForCurrentUser(mockSession);
+    const firstResult = await getAuthData();
+    const secondResult = await getAuthData();
+
+    expect(firstResult.success).toBe(true);
+    expect(secondResult.success).toBe(true);
+    expect(getAuthorizationData).toHaveBeenCalledTimes(1);
+    expect(unstableCacheStore.size).toBe(1);
   });
 
   it("should use correct userId and accessToken for API call", async () => {

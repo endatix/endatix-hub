@@ -48,18 +48,19 @@ export function normalizePagedResponse<T>(
     };
   }
 
-  const page = Math.max(
-    Number.isFinite(response.page) ? response.page : MIN_PAGE,
-    MIN_PAGE,
-  );
-  const pageSize = Math.max(
-    Number.isFinite(response.pageSize) ? response.pageSize : MIN_PAGE_SIZE,
-    MIN_PAGE_SIZE,
-  );
-  const totalRecords = Math.max(
+  const items = response.items;
+  const hasValidPage = Number.isFinite(response.page) && response.page >= MIN_PAGE;
+  const hasValidPageSize =
+    Number.isFinite(response.pageSize) && response.pageSize >= MIN_PAGE_SIZE;
+  const page = hasValidPage ? response.page : MIN_PAGE;
+  const pageSize = hasValidPageSize ? response.pageSize : MIN_PAGE_SIZE;
+  const reportedTotalRecords = Math.max(
     Number.isFinite(response.totalRecords) ? response.totalRecords : 0,
     0,
   );
+  const minimumVisibleRecords =
+    hasValidPage && hasValidPageSize ? (page - 1) * pageSize + items.length : 0;
+  const totalRecords = Math.max(reportedTotalRecords, minimumVisibleRecords);
   const expectedTotalPages = calculateTotalPages(totalRecords, pageSize);
   const totalPages =
     Number.isFinite(response.totalPages) && response.totalPages > 0
@@ -73,7 +74,7 @@ export function normalizePagedResponse<T>(
     pageSize,
     totalRecords,
     totalPages,
-    items: response.items,
+    items,
     hasNextPage,
   };
 }

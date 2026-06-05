@@ -85,9 +85,29 @@ We eschew traditional "structural lines" in favor of **Tonal Layering**.
 - **Data Status:** Use `tertiary_container` for neutral data tags. Use `error_container` for alerts.
 - **Shape:** Use `rounded-full` to distinguish tags from interactive buttons.
 
-### Additional Component: The Data Sheet
+### Overlay Interaction Rulebook
 
-A custom side-panel for deep-dives. Use a `backdrop-blur` overlay and a `surface_container_lowest` panel that slides in from the right. This maintains the "Editorial" feel while allowing for "Data-Centric" density.
+Use one consistent information architecture for overlays. Prefer the shared `ResponsivePanel` wrapper for create/edit flows so desktop and mobile behavior stay aligned.
+
+- **Dialog:** Blocking, focused interactions only. Use for destructive confirmations, important warnings, and tiny forms with 1-2 fields. If it scrolls on desktop, it does not belong in a Dialog.
+- **AlertDialog:** Destructive or critical confirmations such as deleting, removing access, or revoking invitations. Keep this centered on desktop and mobile unless a flow explicitly needs mobile Drawer ergonomics.
+- **Sheet:** Desktop-only right slide-over for complex create/edit forms, record details, and dense configuration. Use when preserving page context is useful.
+- **Drawer:** Mobile-only bottom overlay for touch ergonomics. Under Tailwind `md` (`<768px`), Dialog and Sheet flows should generally become Drawers.
+
+| Operation Type                    | Desktop       | Mobile (`<768px`)                              |
+| :-------------------------------- | :------------ | :--------------------------------------------- |
+| Simple create/edit, 1-2 fields    | `Dialog`      | `Drawer`                                       |
+| Complex create/edit, 3+ fields    | Right `Sheet` | `Drawer`                                       |
+| Destructive/critical confirmation | `AlertDialog` | `AlertDialog`                                  |
+| Deep linked detail view           | Right `Sheet` | Full page route, or `Drawer` for short details |
+
+Implementation rules:
+
+1. Use `ResponsivePanel` with `desktopType="simple"` for tiny forms and `desktopType="complex"` for multi-field forms.
+2. Do not change a Sheet to `side="bottom"` on mobile; swap to Drawer to get Vaul's native touch behavior.
+3. Keep one scrollable body inside the overlay and keep the footer outside that scroll area.
+4. Every Dialog, Sheet, and Drawer must include an accessible title and description.
+5. Do not use Drawers on desktop; bottom drawers are poor mouse ergonomics on wide screens.
 
 ---
 
@@ -135,15 +155,15 @@ Our spacing is built on a tight 0.2rem increment for precision data-density, exp
 
 ### Token Mapping (Core)
 
-| App token (`globals.css`)                              | Survey Creator var (`lib/themes/endatix-creator-theme.ts`)   | Survey Model var (`lib/themes/endatix-survey-theme-*.ts`) |
-| :----------------------------------------------------- | :------------------------------------------------------------ | :--------------------------------------------- |
-| `--background` / `--surface-container-lowest`        | `--sjs-layer-1-background-500`, other layer tokens (see `--content-canvas` row) | `--sjs-general-backcolor*`                     |
-| `--content-canvas`                                     | `--sjs-special-background`, `--sjs-layer-1-background-400`, `--sjs-layer-2-background-*`, `--sjs-layer-3-background-*`, `--sjs-code-gray-700`, `--sjs-code-gray-500` | - |
-| `--foreground` / `--muted-foreground`                  | `--sjs-layer-*-foreground-*`, `--sjs-special-shadow`          | `--sjs-general-forecolor*`                     |
-| `--primary` / `--primary-dim` / `--primary-foreground` | `--sjs-primary-*`, `--sjs-secondary-*`, `--sjs-code-blue-500` | `--sjs-primary-*`                              |
-| `--border`                                             | `--sjs-border-*`                                              | `--sjs-border-*`                               |
-| `--destructive` / `--destructive-foreground`           | `--sjs-semantic-red-*`, `--sjs-code-red-500`                  | `--sjs-special-red*`                           |
-| `--chart-3`                                            | `--sjs-semantic-blue-*`                                       | `--sjs-special-blue*`                          |
+| App token (`globals.css`)                              | Survey Creator var (`lib/themes/endatix-creator-theme.ts`)                                                                                                           | Survey Model var (`lib/themes/endatix-survey-theme-*.ts`) |
+| :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------- |
+| `--background` / `--surface-container-lowest`          | `--sjs-layer-1-background-500`, other layer tokens (see `--content-canvas` row)                                                                                      | `--sjs-general-backcolor*`                                |
+| `--content-canvas`                                     | `--sjs-special-background`, `--sjs-layer-1-background-400`, `--sjs-layer-2-background-*`, `--sjs-layer-3-background-*`, `--sjs-code-gray-700`, `--sjs-code-gray-500` | -                                                         |
+| `--foreground` / `--muted-foreground`                  | `--sjs-layer-*-foreground-*`, `--sjs-special-shadow`                                                                                                                 | `--sjs-general-forecolor*`                                |
+| `--primary` / `--primary-dim` / `--primary-foreground` | `--sjs-primary-*`, `--sjs-secondary-*`, `--sjs-code-blue-500`                                                                                                        | `--sjs-primary-*`                                         |
+| `--border`                                             | `--sjs-border-*`                                                                                                                                                     | `--sjs-border-*`                                          |
+| `--destructive` / `--destructive-foreground`           | `--sjs-semantic-red-*`, `--sjs-code-red-500`                                                                                                                         | `--sjs-special-red*`                                      |
+| `--chart-3`                                            | `--sjs-semantic-blue-*`                                                                                                                                              | `--sjs-special-blue*`                                     |
 
 ### Update Checklist (When Palette Changes)
 

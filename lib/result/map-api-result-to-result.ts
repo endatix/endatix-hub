@@ -101,6 +101,8 @@ export function mapToResult<TApiResult, TResult = TApiResult>(
   });
 }
 
+export const toResult = mapToResult;
+
 /**
  * Logs an API error.
  * @param apiError The API error to log.

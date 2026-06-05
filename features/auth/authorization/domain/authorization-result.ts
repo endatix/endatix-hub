@@ -124,6 +124,10 @@ type GetAuthDataResult = AuthorizationResult<AuthorizationData>;
  */
 type AuthCheckResult = AuthorizationResult<void>;
 
+type PermissionEvaluations = Record<string, boolean>;
+
+type EvaluatePermissionsResult = AuthorizationResult<PermissionEvaluations>;
+
 // Helper type guards for specific error types
 const isAuthenticationRequired = <T>(result: AuthorizationResult<T>): boolean =>
   !result.success &&
@@ -145,6 +149,8 @@ export type {
   AuthorizationError,
   GetAuthDataResult,
   AuthCheckResult,
+  PermissionEvaluations,
+  EvaluatePermissionsResult,
 };
 
 export {

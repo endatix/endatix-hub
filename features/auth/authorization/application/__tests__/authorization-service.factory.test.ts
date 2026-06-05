@@ -13,6 +13,7 @@ vi.mock("../authorization-checkers", () => ({
   checkPermissionFactory: vi.fn(),
   checkAnyPermissionFactory: vi.fn(),
   checkAllPermissionsFactory: vi.fn(),
+  evaluatePermissionsFactory: vi.fn(),
   checkIsAdminFactory: vi.fn(),
   checkIsInRoleFactory: vi.fn(),
 }));
@@ -57,6 +58,7 @@ describe("createAuthorizationService", () => {
     const checkPermission = vi.fn();
     const checkAnyPermission = vi.fn();
     const checkAllPermissions = vi.fn();
+    const evaluatePermissions = vi.fn();
     const checkIsAdmin = vi.fn();
     const checkIsInRole = vi.fn();
 
@@ -68,6 +70,9 @@ describe("createAuthorizationService", () => {
     );
     vi.mocked(checkerFactories.checkAllPermissionsFactory).mockReturnValue(
       checkAllPermissions,
+    );
+    vi.mocked(checkerFactories.evaluatePermissionsFactory).mockReturnValue(
+      evaluatePermissions,
     );
     vi.mocked(checkerFactories.checkIsAdminFactory).mockReturnValue(
       checkIsAdmin,
@@ -109,6 +114,7 @@ describe("createAuthorizationService", () => {
       checkPermission,
       checkAnyPermission,
       checkAllPermissions,
+      evaluatePermissions,
       checkIsAdmin,
       checkIsInRole,
       requirePermission,
@@ -149,6 +155,7 @@ describe("createAuthorizationService", () => {
     expect(service.checkPermission).toBe(factories.checkPermission);
     expect(service.checkAnyPermission).toBe(factories.checkAnyPermission);
     expect(service.checkAllPermissions).toBe(factories.checkAllPermissions);
+    expect(service.evaluatePermissions).toBe(factories.evaluatePermissions);
     expect(service.requirePermission).toBe(factories.requirePermission);
     expect(service.requireAnyPermission).toBe(factories.requireAnyPermission);
     expect(service.requireAllPermissions).toBe(factories.requireAllPermissions);

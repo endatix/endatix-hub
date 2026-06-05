@@ -1,5 +1,13 @@
 import { vi } from "vitest";
 
+const emptyPagedResponse = {
+  items: [],
+  page: 1,
+  pageSize: 10,
+  totalPages: 0,
+  totalRecords: 0,
+};
+
 /**
  * Default stub instance for EndatixApi mock. Covers namespaces used by page/API tests.
  * Merge with overrides so tests only need to provide what they care about.
@@ -7,10 +15,26 @@ import { vi } from "vitest";
 function defaultEndatixApiInstance() {
   return {
     users: {
-      list: vi.fn().mockResolvedValue({ success: true, data: [] }),
+      list: vi
+        .fn()
+        .mockResolvedValue({ success: true, data: emptyPagedResponse }),
+      replaceRoles: vi.fn().mockResolvedValue({
+        success: true,
+        data: { success: true, message: "User roles updated." },
+      }),
     },
     auth: {
+      getInviteDetails: vi.fn().mockResolvedValue({
+        success: true,
+        data: { email: "invitee@example.com" },
+      }),
       getAuthorizationData: vi.fn(),
+    },
+    roles: {
+      list: vi
+        .fn()
+        .mockResolvedValue({ success: true, data: emptyPagedResponse }),
+      listPermissions: vi.fn().mockResolvedValue({ success: true, data: [] }),
     },
     myAccount: {
       changePassword: vi.fn(),

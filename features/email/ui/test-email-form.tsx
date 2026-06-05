@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,13 @@ type TestEmailFormProps = {
   templates: EmailTemplateSummary[];
 };
 
+const noTemplateValue = "__none__";
+
 export function TestEmailForm({ templates }: Readonly<TestEmailFormProps>) {
   const formRef = useRef<HTMLFormElement>(null);
+  const defaultFromEmail = templates[0]?.fromAddress ?? "";
+  const [selectedTemplateId, setSelectedTemplateId] = useState(noTemplateValue);
+  const [fromEmail, setFromEmail] = useState(defaultFromEmail);
   const [state, formAction, isPending] = useActionState(
     sendTestEmailAction,
     null,
@@ -36,10 +41,21 @@ export function TestEmailForm({ templates }: Readonly<TestEmailFormProps>) {
     if (ApiResult.isSuccess(state)) {
       toast.success("Test email sent successfully.");
       formRef.current?.reset();
+      setSelectedTemplateId(noTemplateValue);
+      setFromEmail(defaultFromEmail);
     } else {
       toast.error(state.error?.message || "Failed to send test email.");
     }
-  }, [state]);
+  }, [defaultFromEmail, state]);
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+
+    const template = templates.find((item) => item.name === templateId);
+    if (template) {
+      setFromEmail(template.fromAddress);
+    }
+  };
 
   return (
     <Card>
@@ -66,15 +82,38 @@ export function TestEmailForm({ templates }: Readonly<TestEmailFormProps>) {
           </div>
 
           <div className="flex flex-col gap-2">
+            <label htmlFor="fromEmail" className="text-sm font-medium">
+              Sender Email
+            </label>
+            <Input
+              id="fromEmail"
+              name="fromEmail"
+              type="email"
+              placeholder="noreply@example.com"
+              required
+              disabled={isPending}
+              value={fromEmail}
+              onChange={(event) => setFromEmail(event.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
             <label htmlFor="templateId" className="text-sm font-medium">
               Template (optional)
             </label>
-            <Select name="templateId" disabled={isPending}>
+            <Select
+              name="templateId"
+              disabled={isPending}
+              value={selectedTemplateId}
+              onValueChange={handleTemplateChange}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Plain text test email" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">None (plain text)</SelectItem>
+                <SelectItem value={noTemplateValue}>
+                  None (plain text)
+                </SelectItem>
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.name}>
                     <span className="flex items-center gap-2">

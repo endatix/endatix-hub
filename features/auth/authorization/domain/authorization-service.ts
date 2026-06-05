@@ -1,4 +1,8 @@
-import { AuthCheckResult, GetAuthDataResult } from "./authorization-result";
+import {
+  AuthCheckResult,
+  EvaluatePermissionsResult,
+  GetAuthDataResult,
+} from "./authorization-result";
 
 export interface IAuthorizationService {
   /**
@@ -23,6 +27,14 @@ export interface IAuthorizationService {
    * @param permissions - permission names
    */
   checkAllPermissions(permissions: string[]): Promise<AuthCheckResult>;
+
+  /**
+   * Evaluates several permissions using one authorization-data lookup.
+   * @param permissions - permission names
+   */
+  evaluatePermissions(
+    permissions: readonly string[],
+  ): Promise<EvaluatePermissionsResult>;
 
   /**
    * Throws if user lacks a specific permission.

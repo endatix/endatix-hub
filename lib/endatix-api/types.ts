@@ -34,10 +34,19 @@ export {
 export type { ErrorCode } from "./shared/error-codes";
 
 // auth/types
-export { SignInRequestSchema } from "./auth/types";
+export {
+  ActivateInviteRequestSchema,
+  InviteDetailsRequestSchema,
+  SignInRequestSchema,
+} from "./auth/types";
 export type {
   SignInRequest,
   SignInResponse,
+  ActivateInviteRequest,
+  ActivateInviteResponse,
+  InviteDetailsRequest,
+  InviteDetailsResponse,
+  SendVerificationEmailRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,
   AuthorizationData,
@@ -122,7 +131,14 @@ export type { FormsListRequest } from "./forms/types";
 export type { DefinitionField } from "./definitions/types";
 
 // users/types
-export type { UserListItem } from "./users/types";
+export type {
+  CreateUserRequestBody,
+  ListUsersRequest,
+  ReplaceRolesRequestBody,
+  UserOperationResponse as MutateUserResponse,
+  UserListItem,
+  UserStatusFilter,
+} from "./users/types";
 
 // email/types
 export type {
@@ -130,3 +146,14 @@ export type {
   EmailTemplateSummary,
   SendTestEmailRequest,
 } from "./email/types";
+
+// roles/types
+export type {
+  CreateRoleRequestBody,
+  ListRolesRequest,
+  PermissionListItem,
+  RoleListItem,
+  RoleOperationResponse as RoleMutationResponse,
+  RoleTypeFilter,
+  UpdateRoleRequestBody,
+} from "./roles/types";
