@@ -89,8 +89,9 @@ describe("manage user roles action", () => {
     expect(result.formErrors).toEqual(["Could not update roles"]);
   });
 
-  it("rejects tenant Admin role assignment before calling the API", async () => {
+  it("allows tenant Admin role assignment for existing users", async () => {
     const userId = "1507347517849731072";
+    replaceRoles.mockResolvedValue(ApiResult.success({ message: "ok" }));
 
     const result = await setUserRoleAction(
       { isSuccess: undefined },
@@ -100,9 +101,26 @@ describe("manage user roles action", () => {
       },
     );
 
+    expect(result.isSuccess).toBe(true);
+    expect(replaceRoles).toHaveBeenCalledWith(userId, {
+      roleNames: [SystemRoles.Admin],
+    });
+  });
+
+  it("rejects PlatformAdmin role assignment before calling the API", async () => {
+    const userId = "1507347517849731072";
+
+    const result = await setUserRoleAction(
+      { isSuccess: undefined },
+      {
+        userId,
+        roles: [SystemRoles.PlatformAdmin],
+      },
+    );
+
     expect(result.isSuccess).toBe(false);
     expect(result.formErrors).toEqual([
-      "Admin access can be assigned after the invited user verifies their account.",
+      "Platform administrator roles are managed at the platform level.",
     ]);
     expect(replaceRoles).not.toHaveBeenCalled();
   });

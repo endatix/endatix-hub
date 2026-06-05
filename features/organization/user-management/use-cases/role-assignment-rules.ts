@@ -6,12 +6,15 @@ export const PLATFORM_ADMIN_ROLE_ERROR =
 export const TENANT_ADMIN_ROLE_ERROR =
   "Admin access can be assigned after the invited user verifies their account.";
 
-export function getUnassignableRoleError(roleNames: readonly string[]) {
+export function getUnassignableRoleError(
+  roleNames: readonly string[],
+  options: { allowTenantAdmin?: boolean } = {},
+) {
   if (roleNames.some(isPlatformAdminRole)) {
     return PLATFORM_ADMIN_ROLE_ERROR;
   }
 
-  if (roleNames.some(isTenantAdminRole)) {
+  if (!options.allowTenantAdmin && roleNames.some(isTenantAdminRole)) {
     return TENANT_ADMIN_ROLE_ERROR;
   }
 

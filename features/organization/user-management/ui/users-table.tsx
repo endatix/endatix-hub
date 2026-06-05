@@ -54,7 +54,12 @@ import {
 } from "@/components/ui/table";
 import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
 import { DisabledButton } from "@/components/ui/disabled-button";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { PagedTableFooter } from "@/components/ui/paged-table-footer";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
@@ -294,7 +299,6 @@ export function UsersTable({
   const userRows = users.map((user) => {
     const displayName = getDisplayName(user.userName, user.email);
     const isYou = currentUserId != null && user.id === currentUserId;
-    const primaryRole = user.roles[0] ?? "No role";
     const isActive = user.isVerified;
     const isPlatformAdminUser = user.roles.some(isPlatformScopedRole);
     const actionPolicy = getUserActionPolicy({
@@ -311,7 +315,6 @@ export function UsersTable({
       displayName,
       isActive,
       isYou,
-      primaryRole,
       user,
     };
   });
@@ -436,12 +439,7 @@ export function UsersTable({
                         />
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Badge
-                          variant="secondary"
-                          className="max-w-full text-left break-words whitespace-normal"
-                        >
-                          {row.primaryRole}
-                        </Badge>
+                        <UserRolesBadges maxVisible={4} roles={row.user.roles} />
                         <UserStatusBadge isActive={row.isActive} />
                       </div>
                     </div>
@@ -458,7 +456,7 @@ export function UsersTable({
                       User
                     </TableHead>
                     <TableHead className="w-[25%] min-w-36 whitespace-nowrap">
-                      Role
+                      Roles
                     </TableHead>
                     <TableHead className="w-36 whitespace-nowrap">
                       Status
@@ -505,12 +503,7 @@ export function UsersTable({
                             </div>
                           </TableCell>
                           <TableCell className="break-words whitespace-normal">
-                            <Badge
-                              variant="secondary"
-                              className="max-w-full text-left break-words whitespace-normal"
-                            >
-                              {row.primaryRole}
-                            </Badge>
+                            <UserRolesBadges maxVisible={3} roles={row.user.roles} />
                           </TableCell>
                           <TableCell>
                             <UserStatusBadge isActive={row.isActive} />
@@ -637,6 +630,67 @@ function UserStatusBadge({ isActive }: Readonly<{ isActive: boolean }>) {
     >
       {isActive ? "Active" : "Pending invite"}
     </Badge>
+  );
+}
+
+function UserRolesBadges({
+  maxVisible,
+  roles,
+}: Readonly<{
+  maxVisible: number;
+  roles: readonly string[];
+}>) {
+  if (roles.length === 0) {
+    return (
+      <Badge
+        variant="outline"
+        className="max-w-full text-left break-words whitespace-normal text-muted-foreground"
+      >
+        No roles
+      </Badge>
+    );
+  }
+
+  const visibleRoles = roles.slice(0, maxVisible);
+  const hiddenRoles = roles.slice(maxVisible);
+
+  return (
+    <div className="flex max-w-full flex-wrap gap-1.5">
+      {visibleRoles.map((role) => (
+        <Badge
+          key={role}
+          variant="secondary"
+          className="max-w-full text-left break-words whitespace-normal"
+        >
+          {role}
+        </Badge>
+      ))}
+      {hiddenRoles.length > 0 && <MoreRolesBadge roles={hiddenRoles} />}
+    </div>
+  );
+}
+
+function MoreRolesBadge({ roles }: Readonly<{ roles: readonly string[] }>) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge
+            variant="outline"
+            className="max-w-full cursor-default text-left break-words whitespace-normal"
+          >
+            +{roles.length} more
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <div className="flex flex-wrap gap-1.5">
+            {roles.map((role) => (
+              <span key={role}>{role}</span>
+            ))}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

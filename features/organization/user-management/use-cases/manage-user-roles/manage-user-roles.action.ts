@@ -69,7 +69,9 @@ async function handleSetMutation(
   rawData: Record<string, unknown>,
 ): Promise<UserRoleActionState> {
   const selectedRoles = data.roles;
-  const unassignableRoleError = getUnassignableRoleError(selectedRoles);
+  const unassignableRoleError = getUnassignableRoleError(selectedRoles, {
+    allowTenantAdmin: true,
+  });
   if (unassignableRoleError) {
     return {
       isSuccess: false,
