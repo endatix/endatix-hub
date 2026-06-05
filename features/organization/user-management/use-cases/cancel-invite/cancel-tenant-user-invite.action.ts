@@ -24,7 +24,7 @@ export type CancelInviteActionState = ServerActionState<{
 type CancelInvitePayload =
   | FormData
   | {
-      userId?: number | string;
+      userId?: string;
     };
 
 export async function cancelTenantUserInviteAction(
@@ -68,9 +68,6 @@ function getCancelInviteData(payload: CancelInvitePayload): {
   }
 
   return {
-    userId:
-      payload.userId === undefined || payload.userId === null
-        ? undefined
-        : String(payload.userId),
+    userId: payload.userId,
   };
 }

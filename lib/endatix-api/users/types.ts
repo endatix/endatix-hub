@@ -1,7 +1,7 @@
 import type { IPagedRequest } from '../shared/types';
 
 export type UserListItem = {
-  id: number;
+  id: string;
   userName: string;
   email: string;
   isVerified: boolean;

@@ -26,7 +26,7 @@ export type ResendVerificationActionState = ServerActionState<{
 type ResendVerificationPayload =
   | FormData
   | {
-      userId?: number | string;
+      userId?: string;
       email?: string;
     };
 
@@ -78,10 +78,7 @@ function getResendVerificationData(payload: ResendVerificationPayload): {
   }
 
   return {
-    userId:
-      payload.userId === undefined || payload.userId === null
-        ? undefined
-        : String(payload.userId),
+    userId: payload.userId,
     email: payload.email ?? "",
   };
 }

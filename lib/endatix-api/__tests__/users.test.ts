@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EndatixApi } from "../endatix-api";
+import { ApiResult } from "../shared/api-result";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -45,6 +46,44 @@ describe("Users API", () => {
         method: "GET",
       }),
     );
+  });
+
+  it("keeps listed user ids as strings", async () => {
+    // Arrange
+    const api = new EndatixApi("access-token");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "1507759960832868352",
+              userName: "Jane Admin",
+              email: "jane@example.com",
+              isVerified: true,
+              roles: ["Admin"],
+            },
+          ],
+          page: 1,
+          pageSize: 25,
+          totalPages: 1,
+          totalRecords: 1,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    // Act
+    const result = await api.users.list();
+
+    // Assert
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    if (!ApiResult.isSuccess(result)) {
+      return;
+    }
+    expect(result.data.items[0]?.id).toBe("1507759960832868352");
   });
 
   it("sends an empty JSON body when resending an invite", async () => {

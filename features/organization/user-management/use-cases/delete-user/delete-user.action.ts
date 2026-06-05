@@ -30,7 +30,7 @@ export type DeleteUserActionState = ServerActionState<DeleteUserActionData>;
 type DeleteUserPayload =
   | FormData
   | {
-      userId?: number | string;
+      userId?: string;
       confirmationEmail?: string;
     };
 
@@ -90,10 +90,7 @@ function getDeleteUserData(payload: DeleteUserPayload): DeleteUserActionData {
   }
 
   return {
-    userId:
-      payload.userId === undefined || payload.userId === null
-        ? undefined
-        : String(payload.userId),
+    userId: payload.userId,
     confirmationEmail: payload.confirmationEmail,
   };
 }
@@ -115,7 +112,7 @@ async function validateDeleteConfirmation(
   }
 
   const targetUser = usersResult.data.items.find(
-    (user) => String(user.id) === userId,
+    (user) => user.id === userId,
   );
   if (
     targetUser?.email.localeCompare(confirmationEmail, undefined, {

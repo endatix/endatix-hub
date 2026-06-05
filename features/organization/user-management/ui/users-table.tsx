@@ -293,8 +293,7 @@ export function UsersTable({
 
   const userRows = users.map((user) => {
     const displayName = getDisplayName(user.userName, user.email);
-    const isYou =
-      currentUserId != null && String(user.id) === String(currentUserId);
+    const isYou = currentUserId != null && user.id === currentUserId;
     const primaryRole = user.roles[0] ?? "No role";
     const isActive = user.isVerified;
     const isPlatformAdminUser = user.roles.some(isPlatformScopedRole);

@@ -30,7 +30,7 @@ export type UserRoleActionState = ServerActionState<{
 type UserRolePayload =
   | FormData
   | {
-      userId?: number | string;
+      userId?: string;
       roles?: string[];
     };
 
@@ -98,10 +98,7 @@ function getUserRoleData(payload: UserRolePayload) {
   }
 
   return {
-    userId:
-      payload.userId === undefined || payload.userId === null
-        ? undefined
-        : String(payload.userId),
+    userId: payload.userId,
     roles: payload.roles ?? [],
   };
 }
