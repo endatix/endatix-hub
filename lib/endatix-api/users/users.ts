@@ -32,6 +32,14 @@ export default class Users {
     return this.endatix.post<UserListItem>("/users", request);
   }
 
+  async getById(userId: string): Promise<ApiResult<UserListItem>> {
+    const validateResult = validateEndatixId(userId, "userId");
+    if (Result.isError(validateResult)) {
+      return ApiResult.validationError(validateResult.message);
+    }
+    return this.endatix.get<UserListItem>(`/users/${userId}`);
+  }
+
   async removeAccess(
     userId: string,
   ): Promise<ApiResult<UserOperationResponse>> {

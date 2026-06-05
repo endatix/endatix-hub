@@ -101,21 +101,13 @@ async function validateDeleteConfirmation(
   confirmationEmail: string,
   rawData: DeleteUserActionData,
 ): Promise<DeleteUserActionState> {
-  const usersResult = await api.users.list({
-    search: confirmationEmail,
-    page: 1,
-    pageSize: 25,
-  });
-
-  if (ApiResult.isError(usersResult)) {
-    return stateFromApiError(usersResult, rawData);
+  const userResult = await api.users.getById(userId);
+  if (ApiResult.isError(userResult)) {
+    return stateFromApiError(userResult, rawData);
   }
 
-  const targetUser = usersResult.data.items.find(
-    (user) => user.id === userId,
-  );
   if (
-    targetUser?.email.localeCompare(confirmationEmail, undefined, {
+    userResult.data.email.localeCompare(confirmationEmail, undefined, {
       sensitivity: "accent",
     }) === 0
   ) {

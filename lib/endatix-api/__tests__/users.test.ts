@@ -86,6 +86,38 @@ describe("Users API", () => {
     expect(result.data.items[0]?.id).toBe("1507759960832868352");
   });
 
+  it("gets a user by id", async () => {
+    // Arrange
+    const api = new EndatixApi("access-token");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: "1507759960832868352",
+          userName: "Jane Admin",
+          email: "jane@example.com",
+          isVerified: true,
+          roles: ["Admin"],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    // Act
+    const result = await api.users.getById("1507759960832868352");
+
+    // Assert
+    expect(ApiResult.isSuccess(result)).toBe(true);
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://ci.api.endatix.com/api/users/1507759960832868352",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
   it("sends an empty JSON body when resending an invite", async () => {
     // Arrange
     const api = new EndatixApi("access-token");

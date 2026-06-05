@@ -34,7 +34,7 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => {
 
 describe("deleteUserAction", () => {
   const requirePermission = vi.fn();
-  const listUsers = vi.fn();
+  const getById = vi.fn();
   const removeAccess = vi.fn();
   const targetUserId = "123";
   const actorUserId = "456";
@@ -52,27 +52,19 @@ describe("deleteUserAction", () => {
     vi.mocked(EndatixApi).mockImplementation(function () {
       return {
         users: {
-          list: listUsers,
+          getById,
           removeAccess,
         },
       } as never;
     });
     requirePermission.mockResolvedValue(undefined);
-    listUsers.mockResolvedValue(
+    getById.mockResolvedValue(
       ApiResult.success({
-        items: [
-          {
-            id: Number(targetUserId),
-            userName: targetEmail,
-            email: targetEmail,
-            isVerified: true,
-            roles: [],
-          },
-        ],
-        page: 1,
-        pageSize: 25,
-        totalPages: 1,
-        totalRecords: 1,
+        id: targetUserId,
+        userName: targetEmail,
+        email: targetEmail,
+        isVerified: true,
+        roles: [],
       }),
     );
     removeAccess.mockResolvedValue(
@@ -113,13 +105,13 @@ describe("deleteUserAction", () => {
   });
 
   it("rejects mismatched confirmation before calling removeAccess", async () => {
-    listUsers.mockResolvedValueOnce(
+    getById.mockResolvedValueOnce(
       ApiResult.success({
-        items: [],
-        page: 1,
-        pageSize: 25,
-        totalPages: 0,
-        totalRecords: 0,
+        id: targetUserId,
+        userName: targetEmail,
+        email: targetEmail,
+        isVerified: true,
+        roles: [],
       }),
     );
 
@@ -150,11 +142,7 @@ describe("deleteUserAction", () => {
     expect(requirePermission).toHaveBeenCalledWith(
       Permissions.Tenant.ManageUsers,
     );
-    expect(listUsers).toHaveBeenCalledWith({
-      search: targetEmail,
-      page: 1,
-      pageSize: 25,
-    });
+    expect(getById).toHaveBeenCalledWith(targetUserId);
     expect(removeAccess).toHaveBeenCalledWith(targetUserId);
     expect(revalidatePath).toHaveBeenCalledWith("/settings/organization/users");
     expect(result.isSuccess).toBe(true);
