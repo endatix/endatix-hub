@@ -70,7 +70,10 @@ import type {
   UserListItem,
 } from "@/lib/endatix-api";
 import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { getDisplayName, getInitials } from "@/features/users/user-utils";
+import {
+  getUserListDisplayName,
+  getUserListInitials,
+} from "@/features/users/user-utils";
 import { CreateTenantUserDialog } from "../use-cases/create-tenant-user/ui/create-tenant-user-dialog";
 import {
   deleteUserAction,
@@ -321,15 +324,15 @@ export function UsersTable({
 
       toast.error(
         state.formErrors?.[0] ??
-          (user.isLockedOut ? "Failed to unlock user" : "Failed to lock out user"),
+          (user.isLockedOut
+            ? "Failed to unlock user"
+            : "Failed to lock out user"),
       );
     });
   };
 
   const userRows = users.map((user) => {
-    const displayName =
-      user.displayName?.trim() ||
-      getDisplayName(user.userName, user.email ?? undefined);
+    const displayName = getUserListDisplayName(user);
     const isYou = currentUserId != null && user.id === currentUserId;
     const isActive = user.isVerified && !user.isLockedOut;
     const isPlatformAdminUser = user.roles.some(isPlatformScopedRole);
@@ -347,6 +350,7 @@ export function UsersTable({
     return {
       actionPolicy,
       displayName,
+      initials: getUserListInitials(user),
       isActive,
       isYou,
       user,
@@ -445,7 +449,7 @@ export function UsersTable({
                   <div key={row.user.id} className="flex items-start gap-3 p-4">
                     <Avatar className="size-9 shrink-0 rounded-full">
                       <AvatarFallback className="rounded-full bg-muted text-sm font-medium">
-                        {getInitials(row.user.userName, row.user.email ?? undefined)}
+                        {row.initials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
@@ -460,7 +464,8 @@ export function UsersTable({
                             )}
                           </div>
                           <div className="text-xs break-words text-muted-foreground">
-                            {row.user.email ?? "No email from identity provider"}
+                            {row.user.email ??
+                              "No email from identity provider"}
                           </div>
                         </div>
                         <UserActionsMenu
@@ -475,9 +480,14 @@ export function UsersTable({
                         />
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <UserRolesBadges maxVisible={4} roles={row.user.roles} />
+                        <UserRolesBadges
+                          maxVisible={4}
+                          roles={row.user.roles}
+                        />
                         {row.user.isExternal && (
-                          <ExternalUserBadge authProvider={row.user.authProvider} />
+                          <ExternalUserBadge
+                            authProvider={row.user.authProvider}
+                          />
                         )}
                         <UserStatusBadge
                           isActive={row.isActive}
@@ -523,10 +533,7 @@ export function UsersTable({
                             <div className="flex min-w-0 items-start gap-3">
                               <Avatar className="size-9 shrink-0 rounded-full">
                                 <AvatarFallback className="rounded-full bg-muted text-sm font-medium">
-                                  {getInitials(
-                                    row.user.userName,
-                                    row.user.email ?? undefined,
-                                  )}
+                                  {row.initials}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="min-w-0">
@@ -539,18 +546,24 @@ export function UsersTable({
                                   )}
                                 </div>
                                 <div className="text-xs break-words text-muted-foreground">
-                                  {row.user.email ?? "No email from identity provider"}
+                                  {row.user.email ??
+                                    "No email from identity provider"}
                                 </div>
                                 {row.user.isExternal && (
                                   <div className="mt-1">
-                                    <ExternalUserBadge authProvider={row.user.authProvider} />
+                                    <ExternalUserBadge
+                                      authProvider={row.user.authProvider}
+                                    />
                                   </div>
                                 )}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell className="break-words whitespace-normal">
-                            <UserRolesBadges maxVisible={3} roles={row.user.roles} />
+                            <UserRolesBadges
+                              maxVisible={3}
+                              roles={row.user.roles}
+                            />
                           </TableCell>
                           <TableCell>
                             <UserStatusBadge
@@ -806,8 +819,7 @@ function EditUserRolesPanelContent({
       <ResponsivePanelBody className="gap-6">
         <div className="rounded-lg border bg-muted/30 p-4">
           <div className="font-medium">
-            {editingUser.displayName?.trim() ||
-              getDisplayName(editingUser.userName, editingUser.email ?? undefined)}
+            {getUserListDisplayName(editingUser)}
           </div>
           <div className="text-sm break-words text-muted-foreground">
             {editingUser.email ?? "No email from identity provider"}
