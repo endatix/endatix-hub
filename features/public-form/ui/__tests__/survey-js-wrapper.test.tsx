@@ -121,7 +121,7 @@ describe("SurveyJsWrapper", () => {
     expect(screen.queryByTestId("survey-component")).toBeNull();
   });
 
-  it("keeps completed sessions on survey when server props later become blocked", () => {
+  it("keeps completed sessions on thank-you when server props later become blocked", () => {
     const { rerender } = render(<SurveyJsWrapper {...defaultProps} />);
 
     fireEvent.click(screen.getByTestId("survey-component"));
@@ -132,7 +132,9 @@ describe("SurveyJsWrapper", () => {
       />,
     );
 
-    expect(screen.getByTestId("survey-component")).toBeDefined();
+    expect(screen.getByText("Thank you")).toBeDefined();
+    expect(screen.getByText("This form has already been completed.")).toBeDefined();
+    expect(screen.queryByTestId("survey-component")).toBeNull();
     expect(screen.queryByText("Already Responded")).toBeNull();
   });
 });

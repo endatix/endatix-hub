@@ -1,16 +1,25 @@
-import {
-  buildSubmissionDataColumns,
-  humanizeFieldName,
-} from "@/features/submissions/ui/table/columns-definition";
 import { describe, expect, it, vi } from "vitest";
 
-/** Avoid loading `change-status.action` (Next / auth) via `CellStatusDropdown` in `columns-definition`. */
+vi.mock("@/features/submissions/ui/table/row-actions", () => ({
+  RowActions: () => null,
+}));
+
+vi.mock("@/features/submissions/ui/table/cell-status-dropdown", () => ({
+  CellStatusDropdown: () => null,
+}));
+
+/** Avoid loading `change-status.action` (Next / auth) via table status UI. */
 vi.mock(
   "@/features/submissions/use-cases/change-status/change-status.action",
   () => ({
     changeStatusAction: vi.fn(),
   }),
 );
+
+import {
+  buildSubmissionDataColumns,
+  humanizeFieldName,
+} from "@/features/submissions/ui/table/columns-definition";
 
 describe("submission table column definitions", () => {
   it.each([
