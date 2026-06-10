@@ -2,6 +2,13 @@ import { CurrentUserInfo, Session } from "next-auth";
 
 const UNKNOWN_INITIALS = "?";
 
+type UserDisplayInfo = {
+  userName?: string;
+  email?: string | null;
+  isExternal?: boolean;
+  displayName?: string | null;
+};
+
 /**
  * Extract 1-2 characters from any string.
  * Priority: First & Last initials > First two characters.
@@ -69,6 +76,25 @@ function getInitials(userName?: string, email?: string): string {
   return UNKNOWN_INITIALS;
 }
 
+function getUserListDisplayName(user: UserDisplayInfo): string {
+  const displayName = user.displayName?.trim();
+  if (displayName) return displayName;
+
+  return user.isExternal
+    ? getDisplayName(undefined, user.email ?? undefined)
+    : getDisplayName(user.userName, user.email ?? undefined);
+}
+
+function getUserListInitials(user: UserDisplayInfo): string {
+  const displayName = getUserListDisplayName(user);
+  if (displayName) return getInitials(displayName, user.email ?? undefined);
+
+  return getInitials(
+    user.isExternal ? undefined : user.userName,
+    user.email ?? undefined,
+  );
+}
+
 /**
  * Get the current user info from the session.
  */
@@ -94,4 +120,10 @@ function getCurrentUserInfo(session: Session | null): CurrentUserInfo {
     initials: getInitials(user.name, user.email),
   };
 }
-export { getDisplayName, getInitials, getCurrentUserInfo };
+export {
+  getDisplayName,
+  getInitials,
+  getCurrentUserInfo,
+  getUserListDisplayName,
+  getUserListInitials,
+};

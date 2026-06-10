@@ -1,7 +1,9 @@
 "use client";
 
-import { Submission } from "@/lib/endatix-api";
+import type { Submission } from "@/lib/endatix-api";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
+import { useCallback } from "react";
+import type { Model } from "survey-core";
 import { ViewSubmissionCore } from "./view-submission-core";
 
 export interface PublicViewSubmissionProps {
@@ -17,12 +19,18 @@ export function PublicViewSubmission({
   const formRuntime = useFormRuntime();
 
   const customQuestions = submission.formDefinition?.customQuestions;
+  const configureSurveyModel = useCallback((model: Model) => {
+    model.widthMode = "responsive";
+  }, []);
 
   return (
-    <ViewSubmissionCore
-      submission={submission}
-      customQuestions={customQuestions}
-      getRuntimeState={() => formRuntime.stateRef.current}
-    />
+    <main className="min-h-screen w-full bg-content-canvas px-4 py-6 sm:px-6 lg:px-8">
+      <ViewSubmissionCore
+        submission={submission}
+        customQuestions={customQuestions}
+        configureSurveyModel={configureSurveyModel}
+        getRuntimeState={() => formRuntime.stateRef.current}
+      />
+    </main>
   );
 }
