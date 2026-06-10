@@ -15,12 +15,15 @@ export type UserActionPolicy = {
   resendInvitation: UserActionAvailability;
   removeFromOrganization: UserActionAvailability;
   cancelInvitation: UserActionAvailability;
+  lockout: UserActionAvailability;
 };
 
 export type UserActionPolicyInput = {
   isActive: boolean;
   isYou: boolean;
   isPlatformAdminUser: boolean;
+  isExternal: boolean;
+  isLockedOut: boolean;
   canManageRoles: boolean;
   canManageUsers: boolean;
   canManageInvitations: boolean;
@@ -30,6 +33,8 @@ export function getUserActionPolicy({
   isActive,
   isYou,
   isPlatformAdminUser,
+  isExternal,
+  isLockedOut,
   canManageRoles,
   canManageUsers,
   canManageInvitations,
@@ -38,16 +43,19 @@ export function getUserActionPolicy({
     editRole: getEditRoleAction({
       isActive,
       isPlatformAdminUser,
+      isExternal,
       canManageRoles,
     }),
     resendInvitation: getResendInvitationAction({
       isActive,
+      isExternal,
       canManageInvitations,
     }),
     removeFromOrganization: getRemoveFromOrganizationAction({
       isActive,
       isYou,
       isPlatformAdminUser,
+      isExternal,
       canManageUsers,
     }),
     cancelInvitation: getCancelInvitationAction({
@@ -55,19 +63,30 @@ export function getUserActionPolicy({
       isYou,
       canManageInvitations,
     }),
+    lockout: getLockoutAction({
+      isYou,
+      isPlatformAdminUser,
+      isLockedOut,
+      canManageUsers,
+    }),
   };
 }
 
 function getEditRoleAction({
   isActive,
   isPlatformAdminUser,
+  isExternal,
   canManageRoles,
 }: Pick<
   UserActionPolicyInput,
-  "isActive" | "isPlatformAdminUser" | "canManageRoles"
+  "isActive" | "isPlatformAdminUser" | "isExternal" | "canManageRoles"
 >): UserActionAvailability {
   if (!isActive) {
     return hidden();
+  }
+
+  if (isExternal) {
+    return disabled("SSO users receive roles from their identity provider");
   }
 
   if (isPlatformAdminUser) {
@@ -81,12 +100,13 @@ function getEditRoleAction({
 
 function getResendInvitationAction({
   isActive,
+  isExternal,
   canManageInvitations,
 }: Pick<
   UserActionPolicyInput,
-  "isActive" | "canManageInvitations"
+  "isActive" | "isExternal" | "canManageInvitations"
 >): UserActionAvailability {
-  if (isActive) {
+  if (isActive || isExternal) {
     return hidden();
   }
 
@@ -99,13 +119,18 @@ function getRemoveFromOrganizationAction({
   isActive,
   isYou,
   isPlatformAdminUser,
+  isExternal,
   canManageUsers,
 }: Pick<
   UserActionPolicyInput,
-  "isActive" | "isYou" | "isPlatformAdminUser" | "canManageUsers"
+  "isActive" | "isYou" | "isPlatformAdminUser" | "isExternal" | "canManageUsers"
 >): UserActionAvailability {
   if (!isActive) {
     return hidden();
+  }
+
+  if (isExternal) {
+    return disabled("SSO users are managed by their identity provider");
   }
 
   if (isPlatformAdminUser) {
@@ -140,6 +165,32 @@ function getCancelInvitationAction({
   return canManageInvitations
     ? enabled()
     : disabled("You don't have permission to cancel invitations");
+}
+
+function getLockoutAction({
+  isYou,
+  isPlatformAdminUser,
+  isLockedOut,
+  canManageUsers,
+}: Pick<
+  UserActionPolicyInput,
+  "isYou" | "isPlatformAdminUser" | "isLockedOut" | "canManageUsers"
+>): UserActionAvailability {
+  if (isPlatformAdminUser) {
+    return disabled("Managed at platform level");
+  }
+
+  if (isYou) {
+    return disabled("You cannot lock out your own account");
+  }
+
+  return canManageUsers
+    ? enabled()
+    : disabled(
+        isLockedOut
+          ? "You don't have permission to unlock users"
+          : "You don't have permission to lock out users",
+      );
 }
 
 function enabled(): UserActionAvailability {

@@ -14,8 +14,10 @@ export const USERS_COLUMNS_DEFINITION = (
     header: "NAME",
     cell: ({ row }) => {
       const user = row.original;
-      const displayName = getDisplayName(user.userName, user.email);
-      const initials = getInitials(user.userName, user.email);
+      const displayName =
+        user.displayName?.trim() ||
+        getDisplayName(user.userName, user.email ?? undefined);
+      const initials = getInitials(user.userName, user.email ?? undefined);
       const isYou = currentUserId != null && user.id === currentUserId;
       return (
         <div className="flex min-w-0 items-center gap-3">
@@ -36,8 +38,11 @@ export const USERS_COLUMNS_DEFINITION = (
     id: "email",
     header: "EMAIL",
     cell: ({ row }) => (
-      <span className="block min-w-0 truncate" title={row.original.email}>
-        {row.original.email}
+      <span
+        className="block min-w-0 truncate"
+        title={row.original.email ?? undefined}
+      >
+        {row.original.email ?? "—"}
       </span>
     ),
   },

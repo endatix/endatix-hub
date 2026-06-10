@@ -53,6 +53,9 @@ describe("Users table columns", () => {
       email: "jane@example.com",
       isVerified: true,
       roles: [],
+      authProvider: "Endatix",
+      isExternal: false,
+      isLockedOut: false,
     };
     renderCell("name", user);
     expect(screen.getByText("Jane Doe")).toBeDefined();
@@ -65,6 +68,9 @@ describe("Users table columns", () => {
       email: "current@example.com",
       isVerified: true,
       roles: [],
+      authProvider: "Endatix",
+      isExternal: false,
+      isLockedOut: false,
     };
     renderCell("name", user, "42");
     expect(screen.getByText("Current User")).toBeDefined();
@@ -78,6 +84,9 @@ describe("Users table columns", () => {
       email: "tech@endatix.com",
       isVerified: false,
       roles: [],
+      authProvider: "Endatix",
+      isExternal: false,
+      isLockedOut: false,
     };
     renderCell("name", user);
     expect(screen.getByText("Tech")).toBeDefined();
@@ -90,6 +99,9 @@ describe("Users table columns", () => {
       email: "alice@example.com",
       isVerified: true,
       roles: [],
+      authProvider: "Endatix",
+      isExternal: false,
+      isLockedOut: false,
     };
     renderCell("email", user);
     expect(screen.getByText("alice@example.com")).toBeDefined();
@@ -102,6 +114,9 @@ describe("Users table columns", () => {
       email: "alice@example.com",
       isVerified: true,
       roles: ["Admin", "Editor"],
+      authProvider: "Endatix",
+      isExternal: false,
+      isLockedOut: false,
     };
     renderCell("level", user);
     expect(screen.getByText("Admin")).toBeDefined();
@@ -115,6 +130,9 @@ describe("Users table columns", () => {
       email: "bob@example.com",
       isVerified: false,
       roles: [],
+      authProvider: "Endatix",
+      isExternal: false,
+      isLockedOut: false,
     };
     renderCell("level", user);
     expect(screen.getByText("—")).toBeDefined();

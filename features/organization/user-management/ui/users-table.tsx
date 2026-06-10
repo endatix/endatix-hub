@@ -89,6 +89,11 @@ import {
   type CancelInviteActionState,
 } from "../use-cases/cancel-invite/cancel-tenant-user-invite.action";
 import {
+  lockoutUserAction,
+  unlockUserAction,
+  type UserLockoutActionState,
+} from "../use-cases/manage-user-lockout/manage-user-lockout.action";
+import {
   getUserActionPolicy,
   type UserActionAvailability,
   type UserActionPolicy,
@@ -112,6 +117,7 @@ const emptyCancelInviteState: CancelInviteActionState = {
   isSuccess: undefined,
 };
 const emptyUserRoleState: UserRoleActionState = { isSuccess: undefined };
+const emptyUserLockoutState: UserLockoutActionState = { isSuccess: undefined };
 const allRolesValue = "__all_roles__";
 const allStatusesValue = "__all_statuses__";
 const emptyRolesPromise = Promise.resolve<RoleListItem[]>([]);
@@ -136,7 +142,7 @@ export function UsersTable({
   const roleFilter = searchParams.get("role") ?? allRolesValue;
   const urlStatus = searchParams.get("status");
   const statusFilter =
-    urlStatus === "active" || urlStatus === "pending"
+    urlStatus === "active" || urlStatus === "pending" || urlStatus === "locked"
       ? urlStatus
       : allStatusesValue;
   const [search, setSearch] = useState(urlSearch);
@@ -232,7 +238,7 @@ export function UsersTable({
     startTransition(async () => {
       const state = await resendTenantUserVerificationAction(emptyResendState, {
         userId: user.id,
-        email: user.email,
+        email: user.email ?? "",
       });
 
       if (state.isSuccess) {
@@ -296,15 +302,43 @@ export function UsersTable({
     });
   };
 
+  const handleToggleLockout = (user: UserListItem) => {
+    startTransition(async () => {
+      const action = user.isLockedOut ? unlockUserAction : lockoutUserAction;
+      const state = await action(emptyUserLockoutState, {
+        userId: user.id,
+      });
+
+      if (state.isSuccess) {
+        toast.success(user.isLockedOut ? "User unlocked" : "User locked out");
+        trackEvent("organization_user_lockout_changed", {
+          locked: !user.isLockedOut,
+          success: true,
+        });
+        router.refresh();
+        return;
+      }
+
+      toast.error(
+        state.formErrors?.[0] ??
+          (user.isLockedOut ? "Failed to unlock user" : "Failed to lock out user"),
+      );
+    });
+  };
+
   const userRows = users.map((user) => {
-    const displayName = getDisplayName(user.userName, user.email);
+    const displayName =
+      user.displayName?.trim() ||
+      getDisplayName(user.userName, user.email ?? undefined);
     const isYou = currentUserId != null && user.id === currentUserId;
-    const isActive = user.isVerified;
+    const isActive = user.isVerified && !user.isLockedOut;
     const isPlatformAdminUser = user.roles.some(isPlatformScopedRole);
     const actionPolicy = getUserActionPolicy({
       isActive,
       isYou,
       isPlatformAdminUser,
+      isExternal: user.isExternal,
+      isLockedOut: user.isLockedOut,
       canManageRoles,
       canManageUsers,
       canManageInvitations: canResendVerification,
@@ -383,6 +417,7 @@ export function UsersTable({
                     </SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="pending">Pending invite</SelectItem>
+                    <SelectItem value="locked">Locked out</SelectItem>
                   </SelectContent>
                 </Select>
                 {canInviteUsers ? (
@@ -410,7 +445,7 @@ export function UsersTable({
                   <div key={row.user.id} className="flex items-start gap-3 p-4">
                     <Avatar className="size-9 shrink-0 rounded-full">
                       <AvatarFallback className="rounded-full bg-muted text-sm font-medium">
-                        {getInitials(row.user.userName, row.user.email)}
+                        {getInitials(row.user.userName, row.user.email ?? undefined)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
@@ -425,7 +460,7 @@ export function UsersTable({
                             )}
                           </div>
                           <div className="text-xs break-words text-muted-foreground">
-                            {row.user.email}
+                            {row.user.email ?? "No email from identity provider"}
                           </div>
                         </div>
                         <UserActionsMenu
@@ -433,6 +468,7 @@ export function UsersTable({
                           isPending={isPending}
                           onCancelInvite={handleCancelInvite}
                           onEditRole={openEditRole}
+                          onLockout={handleToggleLockout}
                           onRemoveUser={setPendingUserRemove}
                           onResendVerification={handleResendVerification}
                           user={row.user}
@@ -440,7 +476,13 @@ export function UsersTable({
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <UserRolesBadges maxVisible={4} roles={row.user.roles} />
-                        <UserStatusBadge isActive={row.isActive} />
+                        {row.user.isExternal && (
+                          <ExternalUserBadge authProvider={row.user.authProvider} />
+                        )}
+                        <UserStatusBadge
+                          isActive={row.isActive}
+                          isLockedOut={row.user.isLockedOut}
+                        />
                       </div>
                     </div>
                   </div>
@@ -483,7 +525,7 @@ export function UsersTable({
                                 <AvatarFallback className="rounded-full bg-muted text-sm font-medium">
                                   {getInitials(
                                     row.user.userName,
-                                    row.user.email,
+                                    row.user.email ?? undefined,
                                   )}
                                 </AvatarFallback>
                               </Avatar>
@@ -497,8 +539,13 @@ export function UsersTable({
                                   )}
                                 </div>
                                 <div className="text-xs break-words text-muted-foreground">
-                                  {row.user.email}
+                                  {row.user.email ?? "No email from identity provider"}
                                 </div>
+                                {row.user.isExternal && (
+                                  <div className="mt-1">
+                                    <ExternalUserBadge authProvider={row.user.authProvider} />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </TableCell>
@@ -506,7 +553,10 @@ export function UsersTable({
                             <UserRolesBadges maxVisible={3} roles={row.user.roles} />
                           </TableCell>
                           <TableCell>
-                            <UserStatusBadge isActive={row.isActive} />
+                            <UserStatusBadge
+                              isActive={row.isActive}
+                              isLockedOut={row.user.isLockedOut}
+                            />
                           </TableCell>
                           <TableCell className="text-right">
                             <UserActionsMenu
@@ -514,6 +564,7 @@ export function UsersTable({
                               isPending={isPending}
                               onCancelInvite={handleCancelInvite}
                               onEditRole={openEditRole}
+                              onLockout={handleToggleLockout}
                               onRemoveUser={setPendingUserRemove}
                               onResendVerification={handleResendVerification}
                               user={row.user}
@@ -580,7 +631,7 @@ export function UsersTable({
               This removes the user from the current organization but keeps
               their global Endatix identity. Type{" "}
               <span className="font-medium text-foreground">
-                {pendingUserRemove?.email}
+                {pendingUserRemove?.email ?? "the user's email"}
               </span>{" "}
               to confirm.
             </AlertDialogDescription>
@@ -588,13 +639,14 @@ export function UsersTable({
           <Input
             value={deleteConfirmEmail}
             onChange={(event) => setDeleteConfirmEmail(event.target.value)}
-            placeholder={pendingUserRemove?.email}
+            placeholder={pendingUserRemove?.email ?? ""}
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               disabled={
                 !pendingUserRemove ||
+                pendingUserRemove.email === null ||
                 deleteConfirmEmail !== pendingUserRemove.email ||
                 isPending
               }
@@ -618,7 +670,24 @@ function isPlatformScopedRole(roleName: string) {
   return roleName.toLowerCase() === SystemRoles.PlatformAdmin.toLowerCase();
 }
 
-function UserStatusBadge({ isActive }: Readonly<{ isActive: boolean }>) {
+function UserStatusBadge({
+  isActive,
+  isLockedOut,
+}: Readonly<{
+  isActive: boolean;
+  isLockedOut: boolean;
+}>) {
+  if (isLockedOut) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-red-200 bg-red-50 text-red-700"
+      >
+        Locked out
+      </Badge>
+    );
+  }
+
   return (
     <Badge
       variant="outline"
@@ -629,6 +698,21 @@ function UserStatusBadge({ isActive }: Readonly<{ isActive: boolean }>) {
       }
     >
       {isActive ? "Active" : "Pending invite"}
+    </Badge>
+  );
+}
+
+function ExternalUserBadge({
+  authProvider,
+}: Readonly<{
+  authProvider: string;
+}>) {
+  return (
+    <Badge
+      variant="outline"
+      className="border-blue-200 bg-blue-50 text-blue-700"
+    >
+      External: {authProvider}
     </Badge>
   );
 }
@@ -722,10 +806,11 @@ function EditUserRolesPanelContent({
       <ResponsivePanelBody className="gap-6">
         <div className="rounded-lg border bg-muted/30 p-4">
           <div className="font-medium">
-            {getDisplayName(editingUser.userName, editingUser.email)}
+            {editingUser.displayName?.trim() ||
+              getDisplayName(editingUser.userName, editingUser.email ?? undefined)}
           </div>
           <div className="text-sm break-words text-muted-foreground">
-            {editingUser.email}
+            {editingUser.email ?? "No email from identity provider"}
           </div>
         </div>
         <div className="flex flex-col gap-3">
@@ -789,6 +874,7 @@ function UserActionsMenu({
   isPending,
   onCancelInvite,
   onEditRole,
+  onLockout,
   onRemoveUser,
   onResendVerification,
   user,
@@ -797,6 +883,7 @@ function UserActionsMenu({
   isPending: boolean;
   onCancelInvite: (user: UserListItem) => void;
   onEditRole: (user: UserListItem) => void;
+  onLockout: (user: UserListItem) => void;
   onRemoveUser: (user: UserListItem) => void;
   onResendVerification: (user: UserListItem) => void;
   user: UserListItem;
@@ -806,7 +893,8 @@ function UserActionsMenu({
     actionPolicy.resendInvitation.status !== "hidden";
   const hasDestructiveActions =
     actionPolicy.removeFromOrganization.status !== "hidden" ||
-    actionPolicy.cancelInvitation.status !== "hidden";
+    actionPolicy.cancelInvitation.status !== "hidden" ||
+    actionPolicy.lockout.status !== "hidden";
 
   return (
     <TooltipProvider>
@@ -833,6 +921,13 @@ function UserActionsMenu({
           {hasPrimaryActions && hasDestructiveActions && (
             <DropdownMenuSeparator />
           )}
+          <UserActionMenuItem
+            action={actionPolicy.lockout}
+            destructive={!user.isLockedOut}
+            disabled={isPending}
+            label={user.isLockedOut ? "Unlock User" : "Lock Out User"}
+            onSelect={() => onLockout(user)}
+          />
           <UserActionMenuItem
             action={actionPolicy.removeFromOrganization}
             destructive
