@@ -1,11 +1,11 @@
 import { preparePdfModel } from "@/features/pdf-export/server";
 import { SubmissionDetailsPdf } from "@/features/pdf-export/submission/submission-details-pdf";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
+import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { apiResponses } from "@/lib/utils/route-handlers";
 import { parseBoolean } from "@/lib/utils/type-parsers";
-import { CustomQuestion, getActiveFormDefinition } from "@/services/api";
 import { pdf } from "@react-pdf/renderer";
 import { NextRequest } from "next/server";
 
@@ -52,7 +52,10 @@ export async function GET(req: NextRequest, { params }: Params) {
       });
     }
 
-    if (errorMessage.includes("permission") || errorMessage.includes("forbidden")) {
+    if (
+      errorMessage.includes("permission") ||
+      errorMessage.includes("forbidden")
+    ) {
       return apiResponses.forbidden({
         detail: "Access denied.",
       });
@@ -64,22 +67,17 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   const submission = submissionResult.value;
+  const definitionResult = resolveSubmissionFormDefinition(submission);
 
-  let customQuestionsJsonData: string[] = [];
-  try {
-    const activeDefinition = await getActiveFormDefinition(
-      submission.formId,
-      true,
-    );
-
-    submission.formDefinition = activeDefinition;
-    customQuestionsJsonData = (activeDefinition.customQuestions || []).map((q: string | CustomQuestion) => typeof q === "string" ? q : q.jsonData);
-  } catch (error) {
-    console.error("Failed to fetch form definition", error);
+  if (Result.isError(definitionResult)) {
+    console.error(definitionResult.message);
     return apiResponses.notFound({
       detail: "Form definition not found.",
     });
   }
+
+  submission.formDefinition = definitionResult.value;
+  const customQuestionsJsonData = definitionResult.value.customQuestions ?? [];
 
   const surveyModel = await preparePdfModel({
     submission,
@@ -88,10 +86,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   });
 
   const pdfBlob = await pdf(
-    <SubmissionDetailsPdf
-      submission={submission}
-      surveyModel={surveyModel}
-    />,
+    <SubmissionDetailsPdf submission={submission} surveyModel={surveyModel} />,
   ).toBlob();
 
   return new Response(pdfBlob, {
