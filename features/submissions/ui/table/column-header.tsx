@@ -29,10 +29,23 @@ interface DateFilterConfig {
   readonly onChange: (value: DateFilterValue) => void;
 }
 
+interface TextFilterConfig {
+  readonly value: string;
+  readonly placeholder: string;
+  readonly onChange: (value: string) => void;
+}
+
 interface DateFilterControlsProps {
   readonly idPrefix: string;
   readonly value: DateFilterValue;
   readonly onApply: (value: DateFilterValue) => void;
+}
+
+interface TextFilterControlsProps {
+  readonly idPrefix: string;
+  readonly value: string;
+  readonly placeholder: string;
+  readonly onApply: (value: string) => void;
 }
 
 interface ColumnHeaderProps<
@@ -44,6 +57,7 @@ interface ColumnHeaderProps<
   readonly visible?: boolean;
   readonly isSorted?: false | SortDirection;
   readonly dateFilter?: DateFilterConfig;
+  readonly textFilter?: TextFilterConfig;
 }
 
 export function ColumnHeader<TData, TValue>({
@@ -53,15 +67,19 @@ export function ColumnHeader<TData, TValue>({
   className,
   isSorted,
   dateFilter,
+  textFilter,
 }: ColumnHeaderProps<TData, TValue>) {
   const { toggleColumnVisibility } = useColumnVisibility();
+  const canSort = column.getCanSort();
   const hasDateFilter = Boolean(dateFilter?.value.from || dateFilter?.value.to);
+  const hasTextFilter = Boolean(textFilter?.value.trim());
+  const hasActiveFilter = hasDateFilter || hasTextFilter;
 
   if (!visible) {
     return <span className="sr-only">{title}</span>;
   }
 
-  if (!column.getCanSort()) {
+  if (!canSort && !dateFilter && !textFilter) {
     return <div className={cn("cursor-default", className)}>{title}</div>;
   }
 
@@ -88,19 +106,25 @@ export function ColumnHeader<TData, TValue>({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <button
-        type="button"
-        className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-        onClick={handleSortCycle}
-      >
-        <span className="truncate">{title}</span>
-        <span
-          aria-hidden="true"
-          className="flex h-3.5 w-3.5 shrink-0 items-center justify-center"
+      {canSort ? (
+        <button
+          type="button"
+          className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          onClick={handleSortCycle}
         >
-          {SortIcon ? <SortIcon className="h-3.5 w-3.5" /> : null}
-        </span>
-      </button>
+          <span className="truncate">{title}</span>
+          <span
+            aria-hidden="true"
+            className="flex h-3.5 w-3.5 shrink-0 items-center justify-center"
+          >
+            {SortIcon ? <SortIcon className="h-3.5 w-3.5" /> : null}
+          </span>
+        </button>
+      ) : (
+        <div className="flex h-8 min-w-0 flex-1 items-center px-2 text-sm font-medium">
+          <span className="truncate">{title}</span>
+        </div>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -111,7 +135,7 @@ export function ColumnHeader<TData, TValue>({
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
-            {hasDateFilter ? (
+            {hasActiveFilter ? (
               <Filter className="h-3.5 w-3.5 text-primary" />
             ) : (
               <ListFilter className="h-3.5 w-3.5" />
@@ -119,31 +143,48 @@ export function ColumnHeader<TData, TValue>({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
-            <ArrowUp className="h-3.5 w-3.5 text-muted-foreground/70" />
-            Asc
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
-            <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-            Desc
-          </DropdownMenuItem>
-          {isSorted && (
+          {canSort && (
             <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => column.clearSorting()}>
-                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-                Clear sorting
+              <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
+                <ArrowUp className="h-3.5 w-3.5 text-muted-foreground/70" />
+                Asc
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
+                <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+                Desc
+              </DropdownMenuItem>
+              {isSorted && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => column.clearSorting()}>
+                    <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+                    Clear sorting
+                  </DropdownMenuItem>
+                </>
+              )}
             </>
           )}
           {dateFilter && (
             <>
-              <DropdownMenuSeparator />
+              {canSort && <DropdownMenuSeparator />}
               <div className="w-56 space-y-3 p-2">
                 <DateFilterControls
                   idPrefix={column.id}
                   value={dateFilter.value}
                   onApply={dateFilter.onChange}
+                />
+              </div>
+            </>
+          )}
+          {textFilter && (
+            <>
+              {(canSort || dateFilter) && <DropdownMenuSeparator />}
+              <div className="w-56 space-y-3 p-2">
+                <TextFilterControls
+                  idPrefix={column.id}
+                  value={textFilter.value}
+                  placeholder={textFilter.placeholder}
+                  onApply={textFilter.onChange}
                 />
               </div>
             </>
@@ -162,6 +203,59 @@ export function ColumnHeader<TData, TValue>({
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
+  );
+}
+
+export function TextFilterControls({
+  idPrefix,
+  value,
+  placeholder,
+  onApply,
+}: TextFilterControlsProps) {
+  const [draftValue, setDraftValue] = useState(value);
+  const hasActiveFilter = Boolean(value.trim());
+
+  useEffect(() => {
+    setDraftValue(value);
+  }, [value]);
+
+  return (
+    <>
+      <div className="space-y-1.5">
+        <Label htmlFor={`${idPrefix}-filter`} className="text-xs">
+          Filter
+        </Label>
+        <Input
+          id={`${idPrefix}-filter`}
+          value={draftValue}
+          placeholder={placeholder}
+          onChange={(event) => setDraftValue(event.target.value)}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          className="flex-1"
+          onClick={() => onApply(draftValue.trim())}
+        >
+          <Check className="h-3.5 w-3.5" />
+          Apply
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex-1"
+          disabled={!hasActiveFilter && !draftValue.trim()}
+          onClick={() => {
+            setDraftValue("");
+            onApply("");
+          }}
+        >
+          <X className="h-3.5 w-3.5" />
+          Clear
+        </Button>
+      </div>
+    </>
   );
 }
 

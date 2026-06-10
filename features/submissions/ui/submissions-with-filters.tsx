@@ -56,6 +56,8 @@ interface SubmissionsWithFiltersProps {
   initialCreatedAtTo?: string;
   initialCompletedAtFrom?: string;
   initialCompletedAtTo?: string;
+  initialSubmitterDisplayId?: string;
+  initialSubmitterEmail?: string;
   initialPage: number;
   initialPageSize: number;
   totalRecords: number;
@@ -71,6 +73,8 @@ function SubmissionsContent({
   isCompleteFilter,
   statusFilter,
   testSubmissionFilter,
+  submitterDisplayIdFilter,
+  submitterEmailFilter,
   dateFilters,
   onIsCompleteChange,
   onStatusChange,
@@ -93,6 +97,8 @@ function SubmissionsContent({
   isCompleteFilter: Set<string>;
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
+  submitterDisplayIdFilter: string;
+  submitterEmailFilter: string;
   dateFilters: SubmissionDateFilters;
   onIsCompleteChange: (values: Set<string>) => void;
   onStatusChange: (values: Set<string>) => void;
@@ -120,6 +126,8 @@ function SubmissionsContent({
     isCompleteFilter.size > 0 ||
     statusFilter.size > 0 ||
     testSubmissionFilter.size > 0 ||
+    submitterDisplayIdFilter.length > 0 ||
+    submitterEmailFilter.length > 0 ||
     hasDateFilters(dateFilters);
   const isTrueEmptyState = !hasAnySubmissions;
   const disableTableControls = isTrueEmptyState;
@@ -186,7 +194,11 @@ function SubmissionsContent({
           onTestSubmissionChange={onTestSubmissionChange}
           onResetFilters={onResetFilters}
           disabled={disableTableControls}
-          hasAdditionalFilters={hasDateFilters(dateFilters)}
+          hasAdditionalFilters={
+            hasDateFilters(dateFilters) ||
+            submitterDisplayIdFilter.length > 0 ||
+            submitterEmailFilter.length > 0
+          }
         />
         <div className="flex items-center gap-2">
           <div
@@ -264,6 +276,8 @@ export function SubmissionsWithFilters({
   initialCreatedAtTo,
   initialCompletedAtFrom,
   initialCompletedAtTo,
+  initialSubmitterDisplayId = "",
+  initialSubmitterEmail = "",
   initialPage,
   initialPageSize,
   totalRecords,
@@ -280,6 +294,12 @@ export function SubmissionsWithFilters({
   );
   const [testSubmissionFilter, setTestSubmissionFilter] = useState<Set<string>>(
     new Set(initialIsTestSubmission),
+  );
+  const [submitterDisplayIdFilter, setSubmitterDisplayIdFilter] = useState(
+    initialSubmitterDisplayId,
+  );
+  const [submitterEmailFilter, setSubmitterEmailFilter] = useState(
+    initialSubmitterEmail,
   );
   const [dateFilters, setDateFilters] = useState<SubmissionDateFilters>({
     createdAt: {
@@ -308,6 +328,8 @@ export function SubmissionsWithFilters({
     setIsCompleteFilter(new Set(initialIsComplete));
     setStatusFilter(new Set(initialStatus));
     setTestSubmissionFilter(new Set(initialIsTestSubmission));
+    setSubmitterDisplayIdFilter(initialSubmitterDisplayId);
+    setSubmitterEmailFilter(initialSubmitterEmail);
     setDateFilters({
       createdAt: {
         from: initialCreatedAtFrom,
@@ -326,12 +348,16 @@ export function SubmissionsWithFilters({
     initialCreatedAtTo,
     initialCompletedAtFrom,
     initialCompletedAtTo,
+    initialSubmitterDisplayId,
+    initialSubmitterEmail,
   ]);
 
   const updateURL = (
     isComplete: Set<string>,
     status: Set<string>,
     isTestSubmission: Set<string>,
+    submitterDisplayId: string,
+    submitterEmail: string,
     dates: SubmissionDateFilters,
     page: number,
     pageSize: number,
@@ -342,6 +368,8 @@ export function SubmissionsWithFilters({
       isComplete,
       status,
       isTestSubmission,
+      submitterDisplayId,
+      submitterEmail,
       createdAtFrom: dates.createdAt.from,
       createdAtTo: dates.createdAt.to,
       completedAtFrom: dates.completedAt.from,
@@ -363,6 +391,8 @@ export function SubmissionsWithFilters({
       values,
       statusFilter,
       testSubmissionFilter,
+      submitterDisplayIdFilter,
+      submitterEmailFilter,
       dateFilters,
       1,
       pagination.pageSize,
@@ -376,6 +406,8 @@ export function SubmissionsWithFilters({
       isCompleteFilter,
       values,
       testSubmissionFilter,
+      submitterDisplayIdFilter,
+      submitterEmailFilter,
       dateFilters,
       1,
       pagination.pageSize,
@@ -389,6 +421,8 @@ export function SubmissionsWithFilters({
       isCompleteFilter,
       statusFilter,
       values,
+      submitterDisplayIdFilter,
+      submitterEmailFilter,
       dateFilters,
       1,
       pagination.pageSize,
@@ -409,7 +443,39 @@ export function SubmissionsWithFilters({
       isCompleteFilter,
       statusFilter,
       testSubmissionFilter,
+      submitterDisplayIdFilter,
+      submitterEmailFilter,
       nextDateFilters,
+      1,
+      pagination.pageSize,
+    );
+  };
+
+  const handleSubmitterDisplayIdChange = (value: string) => {
+    setSubmitterDisplayIdFilter(value);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL(
+      isCompleteFilter,
+      statusFilter,
+      testSubmissionFilter,
+      value,
+      submitterEmailFilter,
+      dateFilters,
+      1,
+      pagination.pageSize,
+    );
+  };
+
+  const handleSubmitterEmailChange = (value: string) => {
+    setSubmitterEmailFilter(value);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    updateURL(
+      isCompleteFilter,
+      statusFilter,
+      testSubmissionFilter,
+      submitterDisplayIdFilter,
+      value,
+      dateFilters,
       1,
       pagination.pageSize,
     );
@@ -420,12 +486,16 @@ export function SubmissionsWithFilters({
     setIsCompleteFilter(emptySet);
     setStatusFilter(emptySet);
     setTestSubmissionFilter(emptySet);
+    setSubmitterDisplayIdFilter("");
+    setSubmitterEmailFilter("");
     setDateFilters(EMPTY_SUBMISSION_DATE_FILTERS);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
     updateURL(
       emptySet,
       emptySet,
       emptySet,
+      "",
+      "",
       EMPTY_SUBMISSION_DATE_FILTERS,
       1,
       pagination.pageSize,
@@ -445,6 +515,8 @@ export function SubmissionsWithFilters({
       isCompleteFilter,
       statusFilter,
       testSubmissionFilter,
+      submitterDisplayIdFilter,
+      submitterEmailFilter,
       dateFilters,
       next.pageIndex + 1,
       next.pageSize,
@@ -455,6 +527,8 @@ export function SubmissionsWithFilters({
     isCompleteFilter,
     statusFilter,
     testSubmissionFilter,
+    submitterDisplayId: submitterDisplayIdFilter,
+    submitterEmail: submitterEmailFilter,
     dateFilters,
     pagination,
     dataLength: data.length,
@@ -464,6 +538,10 @@ export function SubmissionsWithFilters({
     ...buildSubmissionSystemColumns({
       dateFilters,
       onDateFilterChange: handleDateFilterChange,
+      submitterDisplayIdFilter,
+      onSubmitterDisplayIdFilterChange: handleSubmitterDisplayIdChange,
+      submitterEmailFilter,
+      onSubmitterEmailFilterChange: handleSubmitterEmailChange,
     }),
     ...buildSubmissionDataColumns(definitionFields),
   ];
@@ -478,6 +556,8 @@ export function SubmissionsWithFilters({
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
           testSubmissionFilter={testSubmissionFilter}
+          submitterDisplayIdFilter={submitterDisplayIdFilter}
+          submitterEmailFilter={submitterEmailFilter}
           dateFilters={dateFilters}
           onIsCompleteChange={handleIsCompleteChange}
           onStatusChange={handleStatusChange}

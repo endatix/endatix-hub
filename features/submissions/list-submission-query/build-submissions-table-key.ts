@@ -18,11 +18,15 @@ export function buildSubmissionsTableKey(options: {
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
   dateFilters: SubmissionDateFilters;
+  submitterDisplayId: string;
+  submitterEmail: string;
   pagination: PaginationState;
   dataLength: number;
 }): string {
   const {
     dateFilters,
+    submitterDisplayId,
+    submitterEmail,
     pagination,
     dataLength,
     isCompleteFilter,
@@ -38,6 +42,8 @@ export function buildSubmissionsTableKey(options: {
     dateFilters.createdAt.to ?? "",
     dateFilters.completedAt.from ?? "",
     dateFilters.completedAt.to ?? "",
+    submitterDisplayId,
+    submitterEmail,
     String(pagination.pageIndex),
     String(pagination.pageSize),
     String(dataLength),

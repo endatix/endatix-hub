@@ -45,6 +45,12 @@ export function serializeSubmissionListSearchParams(
   if (state.completedAtTo) {
     params.set(searchParamKeys.completedAtTo, state.completedAtTo);
   }
+  if (state.submitterDisplayId) {
+    params.set(searchParamKeys.submitterDisplayId, state.submitterDisplayId);
+  }
+  if (state.submitterEmail) {
+    params.set(searchParamKeys.submitterEmail, state.submitterEmail);
+  }
 
   return params;
 }

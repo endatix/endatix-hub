@@ -23,11 +23,23 @@ export type ParsedSubmission = Submission & {
 interface SubmissionSystemColumnsOptions {
   dateFilters?: SubmissionDateFilters;
   onDateFilterChange?: DateFilterChangeHandler;
+  submitterDisplayIdFilter?: string;
+  onSubmitterDisplayIdFilterChange?: (value: string) => void;
+  submitterEmailFilter?: string;
+  onSubmitterEmailFilterChange?: (value: string) => void;
 }
+
+const submitterPrimaryFilterLabel =
+  process.env.NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL?.trim() ||
+  "Panelist ID";
 
 export function buildSubmissionSystemColumns({
   dateFilters,
   onDateFilterChange,
+  submitterDisplayIdFilter = "",
+  onSubmitterDisplayIdFilterChange,
+  submitterEmailFilter = "",
+  onSubmitterEmailFilterChange,
 }: SubmissionSystemColumnsOptions = {}): ColumnDef<ParsedSubmission>[] {
   return [
     {
@@ -115,6 +127,36 @@ export function buildSubmissionSystemColumns({
       ),
     },
     {
+      id: "submitterDisplayId",
+      accessorKey: "submitterDisplayId",
+      meta: {
+        displayName: "Display ID",
+      },
+      header: ({ column }) => (
+        <ColumnHeader
+          column={column}
+          isSorted={column.getIsSorted()}
+          textFilter={
+            onSubmitterDisplayIdFilterChange
+              ? {
+                  value: submitterDisplayIdFilter,
+                  placeholder: submitterPrimaryFilterLabel,
+                  onChange: onSubmitterDisplayIdFilterChange,
+                }
+              : undefined
+          }
+          title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
+        />
+      ),
+      cell: ({ row }) => (
+        <span>{row.original.submitterDisplayId?.trim() || "N/A"}</span>
+      ),
+    },
+    ...buildSubmitterProfileColumns({
+      submitterEmailFilter,
+      onSubmitterEmailFilterChange,
+    }),
+    {
       id: "completionTime",
       accessorFn: (row) =>
         row.completedAt
@@ -160,6 +202,46 @@ export function buildSubmissionSystemColumns({
       ),
     },
   ];
+}
+
+function buildSubmitterProfileColumns({
+  submitterEmailFilter = "",
+  onSubmitterEmailFilterChange,
+}: Pick<
+  SubmissionSystemColumnsOptions,
+  "submitterEmailFilter" | "onSubmitterEmailFilterChange"
+> = {}): ColumnDef<ParsedSubmission>[] {
+  return getSubmitterGridProfileFields().map((field) => ({
+    id: `submitterProfile_${field}`,
+    enableSorting: false,
+    meta: {
+      displayName: humanizeFieldName(field),
+    },
+    header: ({ column }) => (
+      <ColumnHeader
+        column={column}
+        textFilter={
+          field.toLowerCase() === "email" && onSubmitterEmailFilterChange
+            ? {
+                value: submitterEmailFilter,
+                placeholder: "Email",
+                onChange: onSubmitterEmailFilterChange,
+              }
+            : undefined
+        }
+        title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
+      />
+    ),
+    accessorFn: (row) => row.submitterProfile?.[field] ?? null,
+    cell: ({ getValue }) => <span>{(getValue() as string) ?? "-"}</span>,
+  }));
+}
+
+function getSubmitterGridProfileFields(): string[] {
+  return (process.env.NEXT_PUBLIC_SUBMITTER_GRID_PROFILE_FIELDS ?? "")
+    .split(",")
+    .map((field) => field.trim())
+    .filter(Boolean);
 }
 
 export const COLUMNS_DEFINITION = buildSubmissionSystemColumns();

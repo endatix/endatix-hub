@@ -59,6 +59,51 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
     expect(parsed.page).toBe(1);
     expect(parsed.pageSize).toBe(50);
   });
+
+  it("parses submitterDisplayId as the submitter display id filter", () => {
+    const parsed = parseSubmissionListSearchParams({
+      submitterDisplayId: "submitter-123",
+    });
+
+    expect(parsed.submitterDisplayId).toBe("submitter-123");
+    expect(submissionListUrlStateToListRequest(parsed)).toMatchObject({
+      submitterDisplayId: "submitter-123",
+    });
+  });
+
+  it("serializes submitter display id filters with the submitterDisplayId URL key", () => {
+    const parsed = parseSubmissionListSearchParams({
+      submitterDisplayId: "submitter-123",
+    });
+
+    expect(serializeSubmissionListSearchParams(parsed).toString()).toBe(
+      "submitterDisplayId=submitter-123",
+    );
+  });
+
+  it("maps submitterEmail URL state to the submitter profile email API filter", () => {
+    const parsed = parseSubmissionListSearchParams({
+      submitterEmail: "external@endatix.com",
+    });
+
+    expect(parsed.submitterEmail).toBe("external@endatix.com");
+    expect(submissionListUrlStateToListRequest(parsed)).toMatchObject({
+      submitterProfileFilter: {
+        field: "email",
+        value: "external@endatix.com",
+      },
+    });
+  });
+
+  it("serializes submitter email filters with the submitterEmail URL key", () => {
+    const parsed = parseSubmissionListSearchParams({
+      submitterEmail: "external@endatix.com",
+    });
+
+    expect(serializeSubmissionListSearchParams(parsed).toString()).toBe(
+      "submitterEmail=external%40endatix.com",
+    );
+  });
 });
 
 describe("buildSubmissionListPath", () => {
@@ -119,6 +164,48 @@ describe("isCanonicalSubmissionListUrl", () => {
       }),
     ).toBe(false);
   });
+
+  it("accepts submitterDisplayId as canonical submitter display id input", () => {
+    const parsed = parseSubmissionListSearchParams({
+      submitterDisplayId: "submitter-123",
+    });
+
+    expect(
+      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
+        ...emptyDateBundle,
+        rawSubmitterDisplayId: "submitter-123",
+        submitterDisplayId: "submitter-123",
+      }),
+    ).toBe(true);
+  });
+
+  it("is false when raw submitterDisplayId does not match parsed submitter display id", () => {
+    const parsed = parseSubmissionListSearchParams({
+      submitterDisplayId: "submitter-123",
+    });
+
+    expect(
+      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
+        ...emptyDateBundle,
+        rawSubmitterDisplayId: "different-submitter",
+        submitterDisplayId: "submitter-123",
+      }),
+    ).toBe(false);
+  });
+
+  it("is true when raw submitterEmail matches parsed submitter email", () => {
+    const parsed = parseSubmissionListSearchParams({
+      submitterEmail: "external@endatix.com",
+    });
+
+    expect(
+      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
+        ...emptyDateBundle,
+        rawSubmitterEmail: "external@endatix.com",
+        submitterEmail: "external@endatix.com",
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("submissionListUrlStateFromClientFilters", () => {
@@ -131,6 +218,7 @@ describe("submissionListUrlStateFromClientFilters", () => {
       isTestSubmission: new Set(["false"]),
       createdAtFrom: "2024-06-01",
       createdAtTo: "not-a-date",
+      submitterEmail: " external@endatix.com ",
     });
 
     expect(state.isComplete).toEqual(["true"]);
@@ -138,5 +226,6 @@ describe("submissionListUrlStateFromClientFilters", () => {
     expect(state.isTestSubmission).toEqual(["false"]);
     expect(state.createdAtFrom).toBe("2024-06-01");
     expect(state.createdAtTo).toBeUndefined();
+    expect(state.submitterEmail).toBe("external@endatix.com");
   });
 });

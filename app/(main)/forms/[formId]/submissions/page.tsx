@@ -29,6 +29,8 @@ type Params = {
     createdAtTo?: string;
     completedAtFrom?: string;
     completedAtTo?: string;
+    submitterDisplayId?: string;
+    submitterEmail?: string;
   }>;
 };
 
@@ -101,6 +103,8 @@ async function SubmissionsTableData({
     createdAtTo?: string;
     completedAtFrom?: string;
     completedAtTo?: string;
+    submitterDisplayId?: string;
+    submitterEmail?: string;
   };
 }) {
   const listState = parseSubmissionListSearchParams(searchParams);
@@ -112,7 +116,9 @@ async function SubmissionsTableData({
       listState.createdAtFrom ||
       listState.createdAtTo ||
       listState.completedAtFrom ||
-      listState.completedAtTo,
+      listState.completedAtTo ||
+      listState.submitterDisplayId ||
+      listState.submitterEmail,
     );
   const page = listState.page;
 
@@ -126,10 +132,14 @@ async function SubmissionsTableData({
         rawCreatedAtTo: searchParams.createdAtTo,
         rawCompletedAtFrom: searchParams.completedAtFrom,
         rawCompletedAtTo: searchParams.completedAtTo,
+        rawSubmitterDisplayId: searchParams.submitterDisplayId,
+        rawSubmitterEmail: searchParams.submitterEmail,
         createdAtFrom: listState.createdAtFrom,
         createdAtTo: listState.createdAtTo,
         completedAtFrom: listState.completedAtFrom,
         completedAtTo: listState.completedAtTo,
+        submitterDisplayId: listState.submitterDisplayId,
+        submitterEmail: listState.submitterEmail,
       },
     )
   ) {
@@ -205,6 +215,8 @@ async function SubmissionsTableData({
       initialCreatedAtTo={listState.createdAtTo}
       initialCompletedAtFrom={listState.completedAtFrom}
       initialCompletedAtTo={listState.completedAtTo}
+      initialSubmitterDisplayId={listState.submitterDisplayId}
+      initialSubmitterEmail={listState.submitterEmail}
     />
   );
 }
