@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +21,7 @@ import {
   Download,
   FilePenLine,
   Files,
+  LinkIcon,
   MoreVertical,
   Trash2,
 } from "lucide-react";
@@ -27,6 +29,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { saveToFileHandler } from "survey-creator-core";
 import { StatusDropdownMenuItem } from "../../use-cases/change-status";
+import { SubmissionShareLinksDialog } from "../../share-links/submission-share-links-dialog";
 import { DownloadFilesDropdownItem } from "../download-files-dropdown-item";
 import {
   useSubmissionDetails,
@@ -45,6 +48,7 @@ export function SubmissionDetailsHeader({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copying, setCopying] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
+  const [isShareLinksOpen, setIsShareLinksOpen] = useState(false);
   const { trackEvent } = useTrackEvent();
   const { viewOptions } = useSubmissionDetailsViewOptions();
   const { submission } = useSubmissionDetails();
@@ -114,63 +118,72 @@ export function SubmissionDetailsHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-2 border-b border-slate-200/50 bg-white/80 px-3 py-3 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl sm:px-4 sm:py-4 lg:px-8 dark:border-slate-800/50 dark:bg-slate-950/80">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator
-          orientation="vertical"
-          className="mr-2 data-[orientation=vertical]:h-4"
-        />
-        <Link
-          href={`/forms/${formId}/submissions`}
-          className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">Back to submissions</span>
-        </Link>
-      </div>
-      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        <Button
-          variant="outline"
-          onClick={handleExportPdfClick}
-          disabled={pdfLoading}
-          className="flex items-center gap-2"
-        >
-          {pdfLoading ? (
-            <Spinner className="size-4" />
-          ) : (
-            <Download className="size-4" />
-          )}
-          <span className="hidden sm:inline">Export PDF</span>
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleCopyJson}
-          disabled={copying || jsonCopied}
-          title="Copy JSON"
-          className="flex items-center gap-2"
-        >
-          {jsonCopied ? (
-            <Check className="size-4" />
-          ) : (
-            <Copy className="size-4" />
-          )}
-          <span className="hidden sm:inline">Copy JSON</span>
-        </Button>
-        <Button variant="outline" asChild className="hidden sm:flex">
-          <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
-            <FilePenLine className="size-4" />
-            <span className="hidden sm:inline">Edit</span>
+    <>
+      <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-2 border-b border-slate-200/50 bg-white/80 px-3 py-3 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl sm:px-4 sm:py-4 lg:px-8 dark:border-slate-800/50 dark:bg-slate-950/80">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-[orientation=vertical]:h-4"
+          />
+          <Link
+            href={`/forms/${formId}/submissions`}
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Back to submissions</span>
           </Link>
-        </Button>
-        <SubmissionActionsDropdown
-          formId={formId}
-          submissionId={submissionId}
-          status={submission.status}
-          className="text-muted-foreground"
-        />
-      </div>
-    </header>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            onClick={handleExportPdfClick}
+            disabled={pdfLoading}
+            className="flex items-center gap-2"
+          >
+            {pdfLoading ? (
+              <Spinner className="size-4" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            <span className="hidden sm:inline">Export PDF</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleCopyJson}
+            disabled={copying || jsonCopied}
+            title="Copy JSON"
+            className="flex items-center gap-2"
+          >
+            {jsonCopied ? (
+              <Check className="size-4" />
+            ) : (
+              <Copy className="size-4" />
+            )}
+            <span className="hidden sm:inline">Copy JSON</span>
+          </Button>
+          <Button variant="outline" asChild className="hidden sm:flex">
+            <Link href={`/forms/${formId}/submissions/${submissionId}/edit`}>
+              <FilePenLine className="size-4" />
+              <span className="hidden sm:inline">Edit</span>
+            </Link>
+          </Button>
+          <SubmissionActionsDropdown
+            formId={formId}
+            submissionId={submissionId}
+            status={submission.status}
+            onShareLinksOpen={() => setIsShareLinksOpen(true)}
+            className="text-muted-foreground"
+          />
+        </div>
+      </header>
+      <SubmissionShareLinksDialog
+        formId={formId}
+        submissionId={submissionId}
+        open={isShareLinksOpen}
+        onOpenChange={setIsShareLinksOpen}
+      />
+    </>
   );
 }
 
@@ -180,12 +193,14 @@ interface SubmissionActionsDropdownProps extends React.ComponentProps<
   submissionId: string;
   formId: string;
   status: string;
+  onShareLinksOpen: () => void;
 }
 
 function SubmissionActionsDropdown({
   submissionId,
   formId,
   status,
+  onShareLinksOpen,
   ...props
 }: Readonly<SubmissionActionsDropdownProps>) {
   return (
@@ -217,10 +232,20 @@ function SubmissionActionsDropdown({
           </Link>
         </DropdownMenuItem>
 
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onSelect={onShareLinksOpen}
+        >
+          <LinkIcon className="mr-2 size-4" />
+          <span>Share Links</span>
+        </DropdownMenuItem>
+
         <DownloadFilesDropdownItem
           formId={formId}
           submissionId={submissionId}
         />
+
+        <DropdownMenuSeparator />
 
         <StatusDropdownMenuItem
           className="cursor-pointer md:hidden"
