@@ -2,9 +2,10 @@
 
 import { toast } from "@/components/ui/toast";
 import { editSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/edit-submission-by-access-token.use-case";
-import { Submission } from "@/lib/endatix-api";
+import type { Submission } from "@/lib/endatix-api";
 import { useFormRuntime } from "@/lib/form-runtime/form-runtime.context";
 import { useCallback, useEffect } from "react";
+import type { Model } from "survey-core";
 import { EditSubmissionCore } from "./edit-submission-core";
 import { usePublicEditTokenExpiry } from "./use-public-edit-token-expiry";
 
@@ -65,17 +66,23 @@ export function PublicEditSubmission({
   const onDiscard = useCallback(() => {
     // Public discard resets model in core; nothing else required.
   }, []);
+  const configureSurveyModel = useCallback((model: Model) => {
+    model.widthMode = "responsive";
+  }, []);
 
   return (
-    <EditSubmissionCore
-      submission={submission}
-      customQuestions={customQuestions}
-      getRuntimeState={() => formRuntime.stateRef.current}
-      patchRuntime={formRuntime.updateState}
-      isPublicMode={true}
-      minutesRemaining={minutesRemaining}
-      onSave={onSave}
-      onDiscard={onDiscard}
-    />
+    <main className="min-h-screen w-full bg-content-canvas px-4 py-6 sm:px-6 lg:px-8">
+      <EditSubmissionCore
+        submission={submission}
+        customQuestions={customQuestions}
+        getRuntimeState={() => formRuntime.stateRef.current}
+        patchRuntime={formRuntime.updateState}
+        isPublicMode={true}
+        minutesRemaining={minutesRemaining}
+        configureSurveyModel={configureSurveyModel}
+        onSave={onSave}
+        onDiscard={onDiscard}
+      />
+    </main>
   );
 }

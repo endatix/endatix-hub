@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Submission } from "@/lib/endatix-api";
 import { LocalizationWrapper } from "@/lib/survey-features/infrastructure/localization-wrapper";
 import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
-import { PropertyDisplay } from "../details/property-display";
 import { tryParseJson } from "@/lib/utils/type-parsers";
 import { Result } from "@/lib/result";
 
@@ -19,6 +18,10 @@ interface EditSubmissionHeaderProps {
 
 const DEFAULT_TITLE = "Untitled Form";
 type SurveySchema = Record<string, unknown> | undefined;
+type SubmissionMetadataItem = {
+  label: string;
+  value: string;
+};
 
 function EditSubmissionHeader({
   submission,
@@ -41,11 +44,44 @@ function EditSubmissionHeader({
   }
 
   const locTitle = new LocalizationWrapper(title);
+  const metadataItems: SubmissionMetadataItem[] = [
+    {
+      label: "ID",
+      value: submission.id,
+    },
+    {
+      label: "Created at",
+      value: getFormattedDate(submission.createdAt),
+    },
+    {
+      label: "Is Complete",
+      value: submission.isComplete ? "Yes" : "No",
+    },
+  ];
+
+  if (submission.isComplete) {
+    metadataItems.push(
+      {
+        label: "Completed at",
+        value: getFormattedDate(submission.completedAt),
+      },
+      {
+        label: "Completion time",
+        value: getElapsedTimeString(
+          submission.createdAt,
+          submission.completedAt,
+          "long",
+        ),
+      },
+    );
+  }
 
   return (
     <>
       <div className="sticky top-0 z-50 w-full bg-background/10 py-4 backdrop-blur transition-colors duration-200 hover:bg-background/95 supports-[backdrop-filter]:bg-background/30">
-        <div className="mx-auto flex w-full flex-col gap-4 md:w-1/2">
+        <div
+          className={`mx-auto flex w-full flex-col gap-4 ${isPublicMode ? "" : "md:w-1/2"}`}
+        >
           <div className="text-center">
             <h1 className="text-2xl font-bold">{locTitle.text}</h1>
             {isPublicMode && (
@@ -89,33 +125,23 @@ function EditSubmissionHeader({
       </div>
 
       {isPublicMode && (
-        <div className="w-full bg-background py-4">
-          <div className="mx-auto w-full md:w-1/2">
-            <div className="text-sm">
-              <PropertyDisplay label="ID">{submission.id}</PropertyDisplay>
-              <PropertyDisplay label="Created at">
-                {getFormattedDate(submission.createdAt)}
-              </PropertyDisplay>
-              <PropertyDisplay label="Is Complete?">
-                {submission.isComplete ? "Yes" : "No"}
-              </PropertyDisplay>
-              {submission.isComplete && (
-                <>
-                  <PropertyDisplay label="Completed at">
-                    {getFormattedDate(submission.completedAt)}
-                  </PropertyDisplay>
-                  <PropertyDisplay label="Completion time">
-                    {getElapsedTimeString(
-                      submission.createdAt,
-                      submission.completedAt,
-                      "long",
-                    )}
-                  </PropertyDisplay>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        <section className="overflow-hidden rounded-lg border border-border/25 bg-surface-container-lowest shadow-sm">
+          <dl className="grid gap-px bg-border/20 sm:grid-cols-2 lg:grid-cols-5">
+            {metadataItems.map((item) => (
+              <div
+                key={item.label}
+                className="min-w-0 bg-surface-container-lowest p-4"
+              >
+                <dt className="text-[10px] leading-none font-bold tracking-widest text-muted-foreground uppercase">
+                  {item.label}
+                </dt>
+                <dd className="mt-2 break-words text-sm font-medium text-foreground">
+                  {item.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       )}
     </>
   );

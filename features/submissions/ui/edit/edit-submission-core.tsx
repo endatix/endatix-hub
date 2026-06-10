@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import {
   DynamicPanelItemValueChangedEvent,
   MatrixCellValueChangedEvent,
+  type Model,
   Question,
   SurveyModel,
   ValueChangedEvent,
@@ -27,6 +28,7 @@ export interface EditSubmissionCoreProps {
   patchRuntime: (partial: Partial<ExtensionRuntimeState>) => void;
   isPublicMode: boolean;
   minutesRemaining: number | null;
+  configureSurveyModel?: (model: Model) => void;
   onSave: (jsonData: Record<string, unknown>) => Promise<void>;
   onDiscard: () => void;
 }
@@ -38,6 +40,7 @@ export function EditSubmissionCore({
   patchRuntime,
   isPublicMode,
   minutesRemaining,
+  configureSurveyModel,
   onSave,
   onDiscard,
 }: Readonly<EditSubmissionCoreProps>) {
@@ -133,13 +136,20 @@ export function EditSubmissionCore({
       getRuntimeState,
     },
   });
+  const handleModelCreated = useCallback(
+    (model: Model) => {
+      configureSurveyModel?.(model);
+      onModelCreated(model);
+    },
+    [configureSurveyModel, onModelCreated],
+  );
 
   if (!isReady) {
     return null;
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       <EditSubmissionHeader
         submission={submission}
         onSaveClick={() => setSaveDialogOpen(true)}
@@ -152,7 +162,7 @@ export function EditSubmissionCore({
       <SubmissionSurvey
         submission={submission}
         onChange={onSubmissionChange}
-        onModelCreated={onModelCreated}
+        onModelCreated={handleModelCreated}
         customQuestions={customQuestions}
         readOnly={false}
       />
