@@ -3,68 +3,66 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
+import type { SubmissionAccessTokenPermission } from "@/lib/endatix-api/submissions/types";
 import { Result, type ResultType } from "@/lib/result";
 
 const DEFAULT_EXPIRY_MINUTES = 60 * 24 * 7;
 
-export interface SubmissionAccessLinksTokens {
-  viewToken: string;
-  editToken: string;
-  exportToken: string;
+export type SubmissionAccessLinkType =
+  | "view"
+  | "edit"
+  | "share"
+  | "export-pdf";
+
+export interface SubmissionAccessLinkToken {
+  type: SubmissionAccessLinkType;
+  token: string;
   expiresAt: string;
 }
 
-export type CreateSubmissionAccessLinksResult =
-  ResultType<SubmissionAccessLinksTokens>;
+export type CreateSubmissionAccessLinkResult =
+  ResultType<SubmissionAccessLinkToken>;
 
-export async function createSubmissionAccessLinksAction(
+const LINK_TYPE_PERMISSIONS = {
+  view: ["view"],
+  edit: ["view", "edit"],
+  share: ["view", "edit"],
+  "export-pdf": ["export"],
+} as const satisfies Record<
+  SubmissionAccessLinkType,
+  readonly SubmissionAccessTokenPermission[]
+>;
+
+export async function createSubmissionAccessLinkAction(
   formId: string,
   submissionId: string,
+  type: SubmissionAccessLinkType,
   expiryMinutes = DEFAULT_EXPIRY_MINUTES,
-): Promise<CreateSubmissionAccessLinksResult> {
+): Promise<CreateSubmissionAccessLinkResult> {
+  const permissions = LINK_TYPE_PERMISSIONS[type];
+  if (!permissions) {
+    return Result.error("Invalid share link type");
+  }
+
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-
-  const viewResult = await api.submissions.createAccessToken({
+  const tokenResult = await api.submissions.createAccessToken({
     formId,
     submissionId,
     expiryMinutes,
-    permissions: ["view"],
+    permissions: [...permissions],
   });
 
-  if (!viewResult.success) {
-    return Result.error("Failed to create view share link");
-  }
-
-  const editResult = await api.submissions.createAccessToken({
-    formId,
-    submissionId,
-    expiryMinutes,
-    permissions: ["view", "edit"],
-  });
-
-  if (!editResult.success) {
-    return Result.error("Failed to create edit share link");
-  }
-
-  const exportResult = await api.submissions.createAccessToken({
-    formId,
-    submissionId,
-    expiryMinutes,
-    permissions: ["export"],
-  });
-
-  if (!exportResult.success) {
-    return Result.error("Failed to create export share link");
+  if (!tokenResult.success) {
+    return Result.error("Failed to create share link");
   }
 
   return Result.success({
-    viewToken: viewResult.data.token,
-    editToken: editResult.data.token,
-    exportToken: exportResult.data.token,
-    expiresAt: viewResult.data.expiresAt,
+    type,
+    token: tokenResult.data.token,
+    expiresAt: tokenResult.data.expiresAt,
   });
 }

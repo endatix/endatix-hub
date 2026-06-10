@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import {
   Tooltip,
   TooltipContent,
@@ -7,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getElapsedTimeString, parseDate } from "@/lib/utils";
-import { Info } from "lucide-react";
+import { Info, TriangleAlert } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import {
   getLanguageDisplayName,
@@ -101,64 +102,62 @@ export function MetadataCard() {
 
   return (
     <section className="mt-8 overflow-hidden rounded-md border border-border/25 bg-surface-container-lowest shadow-sm">
-      <div className={`flex flex-col gap-px ${metadataGridHairline}`}>
-        <div
-          className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
-        >
-          <MetaCell label="Status">
-            <CellStatusDropdown
-              code={submission.status}
-              submissionId={submission.id}
-              formId={submission.formId}
-            />
-          </MetaCell>
-          <MetaCell label="Is Complete">
-            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700">
-              {submission.isComplete ? "Yes" : "No"}
-            </span>
-          </MetaCell>
-          <MetaCell label="Created at">
-            <ValueText>{formatDate(submission.createdAt)}</ValueText>
-          </MetaCell>
-          <MetaCell label="Completed at">
-            <ValueText>{formatDate(submission.completedAt)}</ValueText>
-          </MetaCell>
-        </div>
-
-        <div
-          className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
-        >
-          <MetaCell label="Completion time">
-            <ValueText>{completionTime}</ValueText>
-          </MetaCell>
-          <MetaCell label="Last modified">
-            <ValueText>{formatDate(submission.modifiedAt)}</ValueText>
-          </MetaCell>
-          <MetaCell label="Submission language">
-            <span className="inline-flex min-w-0 items-center gap-2">
-              <ValueText>{languageLabel}</ValueText>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="shrink-0 cursor-help rounded-full text-slate-400 transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                      aria-label="Submission language info"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs text-sm">{languageTooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </span>
-          </MetaCell>
-          <MetaCell label="">
-            <span className="text-[13px] font-semibold select-none"> </span>
-          </MetaCell>
-        </div>
+      {submission.isTestSubmission && (
+        <Alert className="rounded-none border-0 border-b border-warning bg-warning py-2.5 text-warning-foreground">
+          <TriangleAlert />
+          <AlertTitle className="text-warning-foreground">
+            This is a test submission
+          </AlertTitle>
+        </Alert>
+      )}
+      <div
+        className={`grid grid-cols-2 gap-px lg:grid-cols-4 ${metadataGridHairline}`}
+      >
+        <MetaCell label="Status">
+          <CellStatusDropdown
+            code={submission.status}
+            submissionId={submission.id}
+            formId={submission.formId}
+          />
+        </MetaCell>
+        <MetaCell label="Is Complete">
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700">
+            {submission.isComplete ? "Yes" : "No"}
+          </span>
+        </MetaCell>
+        <MetaCell label="Created at">
+          <ValueText>{formatDate(submission.createdAt)}</ValueText>
+        </MetaCell>
+        <MetaCell label="Completed at">
+          <ValueText>{formatDate(submission.completedAt)}</ValueText>
+        </MetaCell>
+        <MetaCell label="Completion time">
+          <ValueText>{completionTime}</ValueText>
+        </MetaCell>
+        <MetaCell label="Last modified">
+          <ValueText>{formatDate(submission.modifiedAt)}</ValueText>
+        </MetaCell>
+        <MetaCell label="Submission language">
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <ValueText>{languageLabel}</ValueText>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="shrink-0 cursor-help rounded-full text-slate-400 transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    aria-label="Submission language info"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs text-sm">{languageTooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
+        </MetaCell>
       </div>
     </section>
   );
