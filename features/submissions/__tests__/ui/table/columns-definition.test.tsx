@@ -18,6 +18,7 @@ vi.mock(
 
 import {
   buildSubmissionDataColumns,
+  buildSubmissionSystemColumns,
   humanizeFieldName,
 } from "@/features/submissions/ui/table/columns-definition";
 
@@ -28,6 +29,13 @@ describe("submission table column definitions", () => {
     ["company-name", "Company Name"],
   ])("humanizes %s as %s", (fieldName, expected) => {
     expect(humanizeFieldName(fieldName)).toBe(expected);
+  });
+
+  it("labels the submitter display id column with NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL", () => {
+    const columns = buildSubmissionSystemColumns();
+    const displayIdColumn = columns.find((col) => col.id === "submitterDisplayId");
+
+    expect(displayIdColumn?.meta?.displayName).toBe("Panelist ID");
   });
 
   it("uses humanized field names for dynamic form column labels and hides them by default", () => {

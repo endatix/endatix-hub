@@ -130,7 +130,7 @@ export function buildSubmissionSystemColumns({
       id: "submitterDisplayId",
       accessorKey: "submitterDisplayId",
       meta: {
-        displayName: "Display ID",
+        displayName: submitterPrimaryFilterLabel,
       },
       header: ({ column }) => (
         <ColumnHeader
