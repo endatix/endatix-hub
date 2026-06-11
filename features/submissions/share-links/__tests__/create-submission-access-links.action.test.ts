@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
+import { ApiErrorType } from "@/lib/endatix-api/shared/api-result";
 import { Kind } from "@/lib/result";
 import { createSubmissionAccessLinkAction } from "../create-submission-access-links.action";
 
@@ -51,7 +52,14 @@ describe("createSubmissionAccessLinkAction", () => {
   });
 
   it("returns error when API call fails", async () => {
-    createAccessToken.mockResolvedValue({ success: false });
+    createAccessToken.mockResolvedValue({
+      success: false,
+      error: {
+        type: ApiErrorType.ValidationError,
+        message: "Token permissions are invalid.",
+        errorCode: "submission-token-permissions-invalid",
+      },
+    });
 
     const result = await createSubmissionAccessLinkAction(
       "form-1",
@@ -61,7 +69,8 @@ describe("createSubmissionAccessLinkAction", () => {
 
     expect(result.kind).toBe(Kind.Error);
     if (result.kind !== Kind.Error) return;
-    expect(result.message).toBe("Failed to create share link");
+    expect(result.message).toBe("Token permissions are invalid.");
+    expect(result.errorCode).toBe("submission-token-permissions-invalid");
   });
 
   it("returns success with token data on valid request", async () => {

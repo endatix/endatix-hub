@@ -5,6 +5,7 @@ import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { SubmissionAccessTokenPermission } from "@/lib/endatix-api/submissions/types";
 import { Result, type ResultType } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 
 const DEFAULT_EXPIRY_MINUTES = 60 * 24 * 7;
 
@@ -56,13 +57,14 @@ export async function createSubmissionAccessLinkAction(
     permissions: [...permissions],
   });
 
-  if (!tokenResult.success) {
-    return Result.error("Failed to create share link");
+  const mappedTokenResult = toResult(tokenResult);
+  if (Result.isError(mappedTokenResult)) {
+    return mappedTokenResult;
   }
 
   return Result.success({
     type,
-    token: tokenResult.data.token,
-    expiresAt: tokenResult.data.expiresAt,
+    token: mappedTokenResult.value.token,
+    expiresAt: mappedTokenResult.value.expiresAt,
   });
 }

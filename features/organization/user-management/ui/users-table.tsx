@@ -313,7 +313,10 @@ export function UsersTable({
       });
 
       if (state.isSuccess) {
-        toast.success(user.isLockedOut ? "User unlocked" : "User locked out");
+        toast.success(
+          state.message ??
+            (user.isLockedOut ? "User unlocked" : "User locked out"),
+        );
         trackEvent("organization_user_lockout_changed", {
           locked: !user.isLockedOut,
           success: true,

@@ -18,6 +18,7 @@ const userLockoutSchema = z.object({
 
 export type UserLockoutActionState = ServerActionState<{
   userId?: string;
+  message?: string;
 }>;
 
 type UserLockoutPayload =
@@ -67,7 +68,7 @@ async function setUserLockout(
     }
 
     revalidatePath("/settings/organization/users");
-    return { isSuccess: true };
+    return { isSuccess: true, message: result.data.message };
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, actionName);
   }
