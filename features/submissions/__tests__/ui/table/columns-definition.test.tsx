@@ -35,7 +35,7 @@ describe("submission table column definitions", () => {
     const columns = buildSubmissionSystemColumns();
     const displayIdColumn = columns.find((col) => col.id === "submitterDisplayId");
 
-    expect(displayIdColumn?.meta?.displayName).toBe("Panelist ID");
+    expect(displayIdColumn?.meta?.displayName).toBe("Submitter ID");
   });
 
   it("uses humanized field names for dynamic form column labels and hides them by default", () => {

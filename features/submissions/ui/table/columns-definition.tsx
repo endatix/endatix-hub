@@ -31,7 +31,7 @@ interface SubmissionSystemColumnsOptions {
 
 const submitterPrimaryFilterLabel =
   process.env.NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL?.trim() ||
-  "Panelist ID";
+  "Submitter ID";
 
 export function buildSubmissionSystemColumns({
   dateFilters,
