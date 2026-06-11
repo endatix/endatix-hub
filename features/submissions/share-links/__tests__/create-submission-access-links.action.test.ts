@@ -138,7 +138,7 @@ describe("createSubmissionAccessLinkAction", () => {
   it.each([
     ["view", ["view"]],
     ["edit", ["view", "edit"]],
-    ["share", ["view", "edit"]],
+    ["share", ["submit"]],
     ["export-pdf", ["export"]],
   ] as const)(
     "maps %s type to permissions %s",

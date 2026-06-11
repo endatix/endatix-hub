@@ -27,7 +27,7 @@ export type CreateSubmissionAccessLinkResult =
 const LINK_TYPE_PERMISSIONS = {
   view: ["view"],
   edit: ["view", "edit"],
-  share: ["view", "edit"],
+  share: ["submit"],
   "export-pdf": ["export"],
 } as const satisfies Record<
   SubmissionAccessLinkType,

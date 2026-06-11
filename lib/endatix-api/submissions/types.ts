@@ -119,7 +119,7 @@ export interface ListSubmissionsRequest {
   };
 }
 
-export type SubmissionAccessTokenPermission = "view" | "edit" | "export";
+export type SubmissionAccessTokenPermission = "view" | "edit" | "export" | "submit";
 
 export interface CreateSubmissionAccessTokenRequest {
   formId: string;

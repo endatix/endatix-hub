@@ -120,6 +120,7 @@ export const TokenPermission = {
   Read: "r",
   Write: "w",
   Export: "x",
+  Submit: "s",
 } as const;
 
 export type TokenPermissionValue =
@@ -142,6 +143,17 @@ export function hasTokenPermission(
   }
   const permissionsCode = parts[2];
   return permissionsCode.includes(permission);
+}
+
+/**
+ * Share/embed continuation tokens use submit (`s`), or legacy read+write (`rw`).
+ */
+export function hasShareContinuationTokenPermission(token: string): boolean {
+  return (
+    hasTokenPermission(token, TokenPermission.Submit) ||
+    (hasTokenPermission(token, TokenPermission.Read) &&
+      hasTokenPermission(token, TokenPermission.Write))
+  );
 }
 
 /**
