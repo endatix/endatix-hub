@@ -39,6 +39,7 @@ import {
   Dispatch,
   SetStateAction,
   useEffect,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -65,6 +66,9 @@ interface SubmissionsWithFiltersProps {
 }
 
 const EMPTY_INITIAL_FILTER_VALUES: string[] = [];
+const SUBMITTER_FILTER_DEBOUNCE_MS = 300;
+
+type NavigationMode = "push" | "replace";
 
 function SubmissionsContent({
   data,
@@ -352,6 +356,17 @@ export function SubmissionsWithFilters({
     initialSubmitterEmail,
   ]);
 
+  const submitterFilterDebounceRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
+  const clearPendingSubmitterFilterUpdate = () => {
+    if (submitterFilterDebounceRef.current) {
+      clearTimeout(submitterFilterDebounceRef.current);
+      submitterFilterDebounceRef.current = null;
+    }
+  };
+
   const updateURL = (
     isComplete: Set<string>,
     status: Set<string>,
@@ -361,7 +376,10 @@ export function SubmissionsWithFilters({
     dates: SubmissionDateFilters,
     page: number,
     pageSize: number,
+    navigation: NavigationMode = "push",
   ) => {
+    clearPendingSubmitterFilterUpdate();
+
     const listState = submissionListUrlStateFromClientFilters({
       page,
       pageSize,
@@ -380,9 +398,39 @@ export function SubmissionsWithFilters({
     const url = queryString ? `${pathname}?${queryString}` : pathname;
 
     startTransition(() => {
+      if (navigation === "replace") {
+        router.replace(url as Route, { scroll: false });
+        return;
+      }
+
       router.push(url as Route, { scroll: false });
     });
   };
+
+  const scheduleSubmitterFilterUpdate = (
+    nextSubmitterDisplayId: string,
+    nextSubmitterEmail: string,
+  ) => {
+    clearPendingSubmitterFilterUpdate();
+
+    submitterFilterDebounceRef.current = setTimeout(() => {
+      updateURL(
+        isCompleteFilter,
+        statusFilter,
+        testSubmissionFilter,
+        nextSubmitterDisplayId,
+        nextSubmitterEmail,
+        dateFilters,
+        1,
+        pagination.pageSize,
+        "replace",
+      );
+    }, SUBMITTER_FILTER_DEBOUNCE_MS);
+  };
+
+  useEffect(() => {
+    return clearPendingSubmitterFilterUpdate;
+  }, []);
 
   const handleIsCompleteChange = (values: Set<string>) => {
     setIsCompleteFilter(values);
@@ -454,31 +502,13 @@ export function SubmissionsWithFilters({
   const handleSubmitterDisplayIdChange = (value: string) => {
     setSubmitterDisplayIdFilter(value);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(
-      isCompleteFilter,
-      statusFilter,
-      testSubmissionFilter,
-      value,
-      submitterEmailFilter,
-      dateFilters,
-      1,
-      pagination.pageSize,
-    );
+    scheduleSubmitterFilterUpdate(value, submitterEmailFilter);
   };
 
   const handleSubmitterEmailChange = (value: string) => {
     setSubmitterEmailFilter(value);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(
-      isCompleteFilter,
-      statusFilter,
-      testSubmissionFilter,
-      submitterDisplayIdFilter,
-      value,
-      dateFilters,
-      1,
-      pagination.pageSize,
-    );
+    scheduleSubmitterFilterUpdate(submitterDisplayIdFilter, value);
   };
 
   const handleResetFilters = () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { Submission } from "@/lib/endatix-api/submissions/types";
@@ -6,12 +6,22 @@ import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-wi
 
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
+  systemColumnOptions: {
+    current: undefined as
+      | {
+          onSubmitterDisplayIdFilterChange?: (value: string) => void;
+          onSubmitterEmailFilterChange?: (value: string) => void;
+        }
+      | undefined,
+  },
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/forms/form-1/submissions",
   useRouter: () => ({
     push: navigationMocks.push,
+    replace: navigationMocks.replace,
   }),
 }));
 
@@ -40,7 +50,11 @@ vi.mock("@/features/submissions/ui/export", () => ({
 
 vi.mock("@/features/submissions/ui/table", () => ({
   buildSubmissionDataColumns: () => [],
-  buildSubmissionSystemColumns: () => [],
+  buildSubmissionSystemColumns: (options: unknown) => {
+    navigationMocks.systemColumnOptions.current =
+      options as typeof navigationMocks.systemColumnOptions.current;
+    return [];
+  },
   COLUMNS_DEFINITION: [
     {
       id: "createdAt",
@@ -97,6 +111,8 @@ const submission: Submission = {
 describe("SubmissionsWithFilters", () => {
   beforeEach(() => {
     navigationMocks.push.mockClear();
+    navigationMocks.replace.mockClear();
+    navigationMocks.systemColumnOptions.current = undefined;
     localStorage.clear();
   });
 
@@ -182,5 +198,48 @@ describe("SubmissionsWithFilters", () => {
     expect(
       screen.queryByText("No submissions match current filters"),
     ).toBeNull();
+  });
+
+  it("debounces submitter text filters and replaces the URL", () => {
+    vi.useFakeTimers();
+
+    try {
+      render(
+        <SubmissionsWithFilters
+          data={[submission]}
+          formId="form-1"
+          hasAnySubmissions
+          initialPage={2}
+          initialPageSize={10}
+          totalRecords={1}
+          totalPages={1}
+        />,
+      );
+
+      act(() => {
+        navigationMocks.systemColumnOptions.current?.onSubmitterDisplayIdFilterChange?.(
+          "panelist-a",
+        );
+        navigationMocks.systemColumnOptions.current?.onSubmitterDisplayIdFilterChange?.(
+          "panelist-ab",
+        );
+      });
+
+      expect(navigationMocks.push).not.toHaveBeenCalled();
+      expect(navigationMocks.replace).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(navigationMocks.push).not.toHaveBeenCalled();
+      expect(navigationMocks.replace).toHaveBeenCalledOnce();
+      expect(navigationMocks.replace).toHaveBeenCalledWith(
+        "/forms/form-1/submissions?submitterDisplayId=panelist-ab",
+        { scroll: false },
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

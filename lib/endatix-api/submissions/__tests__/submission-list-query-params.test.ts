@@ -86,4 +86,32 @@ describe("appendSubmissionListFilters", () => {
       `${F.completedAt}<${utcCalendarNextDayStartIso("2024-06-15")}`,
     );
   });
+
+  it("appends allowed submitter profile filters with normalized field names", () => {
+    const params = new URLSearchParams();
+
+    appendSubmissionListFilters(params, {
+      submitterProfileFilter: {
+        field: " Email ",
+        value: " panelist@example.com ",
+      },
+    });
+
+    expect(params.getAll(SUBMISSION_LIST_FILTER_QUERY_PARAM)).toEqual([
+      `${F.submitterProfile}.email:panelist@example.com`,
+    ]);
+  });
+
+  it("skips submitter profile filters with unsupported field names", () => {
+    const params = new URLSearchParams();
+
+    appendSubmissionListFilters(params, {
+      submitterProfileFilter: {
+        field: "email:admin|status",
+        value: "panelist@example.com",
+      },
+    });
+
+    expect(params.has(SUBMISSION_LIST_FILTER_QUERY_PARAM)).toBe(false);
+  });
 });

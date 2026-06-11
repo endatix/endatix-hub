@@ -1,6 +1,8 @@
 import { Submission } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 import { LocalizationWrapper } from "@/lib/survey-features/infrastructure/localization-wrapper";
 import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
+import { tryParseJson } from "@/lib/utils/type-parsers";
 
 interface ViewSubmissionHeaderProps {
   submission: Submission;
@@ -10,13 +12,21 @@ type SubmissionMetadataItem = {
   label: string;
   value: string;
 };
+type SurveySchema = Record<string, unknown> | undefined;
+
+const DEFAULT_TITLE = "Untitled Form";
 
 function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
-  const formDefinition = JSON.parse(
-    submission.formDefinition?.jsonData ?? "{}",
+  const formDefinitionResult = tryParseJson<SurveySchema>(
+    submission.formDefinition?.jsonData,
   );
+  const formDefinition = Result.isSuccess(formDefinitionResult)
+    ? formDefinitionResult.value
+    : undefined;
 
-  const locTitle = new LocalizationWrapper(formDefinition.title);
+  const locTitle = new LocalizationWrapper(
+    formDefinition?.title ?? DEFAULT_TITLE,
+  );
   const metadataItems: SubmissionMetadataItem[] = [
     {
       label: "ID",
