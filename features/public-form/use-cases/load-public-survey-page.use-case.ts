@@ -101,6 +101,7 @@ export async function loadPublicSurveyPageUseCase({
     submissionPhase: resolveSubmissionGate({
       canStartNewSubmission:
         publicFormAccessResult.value.canStartNewSubmission,
+      hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
       hasResumableDraft,
       hasUrlToken: false,
     }),
@@ -144,6 +145,7 @@ async function loadAccessTokenSurveyPage({
     submissionPhase: resolveSubmissionGate({
       canStartNewSubmission:
         publicFormAccessResult.value.canStartNewSubmission,
+      hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
       hasResumableDraft,
       hasUrlToken: true,
     }),

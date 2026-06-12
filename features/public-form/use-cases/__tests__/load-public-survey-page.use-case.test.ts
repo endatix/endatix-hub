@@ -149,6 +149,27 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
   });
 
+  it("keeps survey active when user can view but cannot create a submission", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.success({
+        ...publicAccess,
+        hasUserSubmitted: false,
+        canStartNewSubmission: false,
+      }),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toMatchObject({
+      kind: "success",
+      submissionPhase: "active",
+      activeDefinition,
+    });
+  });
+
   it("keeps a cookie draft active when respondent already submitted", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.success({
@@ -202,6 +223,38 @@ describe("loadPublicSurveyPageUseCase", () => {
       formId,
       token,
     });
+    expect(getActiveDefinitionUseCase).not.toHaveBeenCalled();
+    expect(getPartialSubmissionUseCase).not.toHaveBeenCalled();
+  });
+
+  it("keeps completed access-token submissions active for the completed-token view", async () => {
+    const completedSubmission: Submission = {
+      ...accessTokenSubmission,
+      isComplete: true,
+      status: "completed",
+    };
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.success({
+        ...publicAccess,
+        hasUserSubmitted: true,
+        canStartNewSubmission: false,
+      }),
+    );
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.success(completedSubmission),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: token,
+    });
+
+    expect(result.kind).toBe("success");
+    if (result.kind === "success") {
+      expect(result.submissionPhase).toBe("active");
+      expect(result.submission).toBe(completedSubmission);
+    }
     expect(getActiveDefinitionUseCase).not.toHaveBeenCalled();
     expect(getPartialSubmissionUseCase).not.toHaveBeenCalled();
   });
