@@ -91,6 +91,41 @@ describe("createUserUpload", () => {
     );
   });
 
+  it("includes public storage gate token data when runtime is available", async () => {
+    mockFetchUploadUrls.mockResolvedValue(Result.error("Forbidden"));
+    const callback = vi.fn();
+    const handler = createUserUpload({
+      ...userConfig,
+      getReadRuntime: () => ({
+        policyName: "public",
+        formId: "form-1",
+        submissionId: "sub-1",
+        token: "sub-1.1781332119.s.signature",
+        tokenType: "AccessToken",
+      }),
+    });
+    const file = new File(["x"], "a.pdf", { type: "application/pdf" });
+
+    await handler(
+      {} as Parameters<typeof handler>[0],
+      {
+        files: [file],
+        callback,
+        question: { name: "q1" },
+      } as unknown as UploadFilesEvent,
+    );
+
+    expect(mockFetchUploadUrls).toHaveBeenCalledWith(
+      "/api/public/v0/storage/upload-urls",
+      expect.objectContaining({
+        formId: "form-1",
+        submissionId: "sub-1",
+        token: "sub-1.1781332119.s.signature",
+        tokenType: "AccessToken",
+      }),
+    );
+  });
+
   it("calls onSubmissionIdChange when SAS returns new submissionId", async () => {
     const sasData: UploadUrlsData = {
       uploads: {

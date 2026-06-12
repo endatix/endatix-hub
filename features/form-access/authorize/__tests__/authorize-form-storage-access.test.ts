@@ -167,4 +167,50 @@ describe("authorizeFormStorageAccess", () => {
     expect(mockGet).not.toHaveBeenCalled();
     expect(mockGetPublicFormAccess).not.toHaveBeenCalled();
   });
+
+  it("allows file upload and delete for incomplete submit access tokens", async () => {
+    mockGetByAccessToken.mockResolvedValue(
+      ApiResult.success({ id: "200", isComplete: false }),
+    );
+
+    const result = await authorizeFormStorageAccess({
+      formId: "100",
+      submissionId: "200",
+      token: "200.1781332119.s.signature",
+      tokenType: "AccessToken",
+    });
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value.canViewFiles).toBe(true);
+      expect(result.value.canUploadFiles).toBe(true);
+      expect(result.value.canDeleteFiles).toBe(true);
+      expect(result.value.submissionId).toBe("200");
+    }
+    expect(mockGetByAccessToken).toHaveBeenCalledWith(
+      "100",
+      "200.1781332119.s.signature",
+    );
+  });
+
+  it("denies file upload and delete for completed submit access tokens", async () => {
+    mockGetByAccessToken.mockResolvedValue(
+      ApiResult.success({ id: "200", isComplete: true }),
+    );
+
+    const result = await authorizeFormStorageAccess({
+      formId: "100",
+      submissionId: "200",
+      token: "200.1781332119.s.signature",
+      tokenType: "AccessToken",
+    });
+
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value.canViewFiles).toBe(true);
+      expect(result.value.canUploadFiles).toBe(false);
+      expect(result.value.canDeleteFiles).toBe(false);
+      expect(result.value.submissionId).toBe("200");
+    }
+  });
 });

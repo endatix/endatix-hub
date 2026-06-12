@@ -43,6 +43,7 @@ export function useStorageUpload({
     return createUserUpload({
       formId,
       getSubmissionId,
+      getReadRuntime,
       surveyModel,
       onSubmissionIdChange,
       isResizeEnabled: Boolean(storageConfig?.imageConfig?.isResizeEnabled),
@@ -52,6 +53,7 @@ export function useStorageUpload({
     getSubmissionId,
     surveyModel,
     onSubmissionIdChange,
+    getReadRuntime,
     storageConfig?.imageConfig?.isResizeEnabled,
   ]);
 
