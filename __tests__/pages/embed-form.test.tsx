@@ -65,7 +65,7 @@ describe("EmbedForm Page", () => {
     ).toBe(accessToken);
   });
 
-  it("keeps the existing read/write token pre-checks", async () => {
+  it("requires submit permission for URL continuation tokens", async () => {
     const component = await EmbedFormPage({
       params: Promise.resolve({ formId: "valid-id" }),
       searchParams: Promise.resolve({
@@ -77,7 +77,7 @@ describe("EmbedForm Page", () => {
 
     expect(screen.getByText("Access Denied")).toBeDefined();
     expect(
-      screen.getByText("The access token does not include edit permissions."),
+      screen.getByText("The access token does not include submit permissions."),
     ).toBeDefined();
     expect(screen.queryByTestId("public-survey-content")).toBeNull();
   });
