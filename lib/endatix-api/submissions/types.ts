@@ -40,6 +40,9 @@ export interface Submission extends ApiEntity {
   token: string;
   completedAt?: Date;
   status: SubmissionStatus;
+  submitterId?: EntityId;
+  submitterDisplayId?: string;
+  submitterProfile?: Record<string, string>;
 
   // Optional navigation properties
   formDefinition?: FormDefinition;
@@ -109,6 +112,26 @@ export interface ListSubmissionsRequest {
   createdAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
+  submitterDisplayId?: string;
+  submitterProfileFilter?: {
+    field: string;
+    value: string;
+  };
+}
+
+export type SubmissionAccessTokenPermission = "view" | "edit" | "export" | "submit";
+
+export interface CreateSubmissionAccessTokenRequest {
+  formId: string;
+  submissionId: string;
+  expiryMinutes: number;
+  permissions: SubmissionAccessTokenPermission[];
+}
+
+export interface CreateSubmissionAccessTokenResponse {
+  token: string;
+  expiresAt: string;
+  permissions: SubmissionAccessTokenPermission[];
 }
 
 export interface ListSubmissionsResponse {

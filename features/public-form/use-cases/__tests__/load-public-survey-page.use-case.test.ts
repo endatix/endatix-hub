@@ -32,33 +32,18 @@ vi.mock(
 
 vi.mock(
   "@/features/public-submissions/edit/get-submission-by-access-token.use-case",
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import("@/features/public-submissions/edit/get-submission-by-access-token.use-case")
-      >();
-
-    return {
-      ...actual,
-      getSubmissionByAccessTokenUseCase: vi.fn(),
-    };
-  },
+  () => ({
+    getSubmissionByAccessTokenUseCase: vi.fn(),
+  }),
 );
 
-const tokenStore = {};
+const formId = "form-1";
+const token = "access-token";
+const createdAt = new Date("2026-06-10T12:00:00.000Z");
+const tokenStore = {} as never;
 
-const activeDefinition = {
-  id: "definition-1",
-  jsonData: "{}",
-  formId: "form-1",
-  isActive: true,
-  isDraft: false,
-  createdAt: new Date(),
-  modifiedAt: new Date(),
-} satisfies ActiveDefinition;
-
-const publicFormAccess = {
-  formId: "form-1",
+const publicAccess = {
+  formId,
   submissionId: null,
   formPermissions: [],
   submissionPermissions: [],
@@ -66,16 +51,51 @@ const publicFormAccess = {
   hasUserSubmitted: false,
   canStartNewSubmission: true,
   isRespondentTestMode: false,
-  cachedAt: "2026-01-01T00:00:00.000Z",
-  expiresAt: "2026-01-01T00:05:00.000Z",
-  eTag: "etag-1",
+  cachedAt: createdAt.toISOString(),
+  expiresAt: createdAt.toISOString(),
+  eTag: "etag",
+};
+
+const activeDefinition: ActiveDefinition = {
+  id: "active-definition-1",
+  formId,
+  isActive: true,
+  isDraft: false,
+  jsonData: '{"title":"Active"}',
+  createdAt,
+  modifiedAt: createdAt,
+  customQuestions: [],
+  requiresReCaptcha: false,
+  limitOnePerUser: false,
+};
+
+const accessTokenSubmission: Submission = {
+  id: "submission-1",
+  createdAt,
+  formId,
+  formDefinitionId: "snapshot-definition-1",
+  isComplete: false,
+  jsonData: "{}",
+  currentPage: 0,
+  metadata: "{}",
+  token: "submission-token",
+  status: "draft",
+  formDefinition: {
+    id: "snapshot-definition-1",
+    formId,
+    isActive: true,
+    isDraft: false,
+    jsonData: '{"title":"Snapshot"}',
+    createdAt,
+    modifiedAt: createdAt,
+  },
 };
 
 describe("loadPublicSurveyPageUseCase", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
-      Result.success(publicFormAccess),
+      Result.success(publicAccess),
     );
     vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
       Result.success(activeDefinition),
@@ -90,21 +110,16 @@ describe("loadPublicSurveyPageUseCase", () => {
     vi.mocked(getActiveDefinitionUseCase).mockReturnValue(definition.promise);
 
     const resultPromise = loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
-    });
-
-    expect(getPublicFormAccessUseCase).toHaveBeenCalledWith({
-      formId: "form-1",
-      token: undefined,
-    });
-    expect(getPartialSubmissionUseCase).toHaveBeenCalledWith({
-      formId: "form-1",
+      formId,
       tokenStore,
     });
-    expect(getActiveDefinitionUseCase).toHaveBeenCalledWith({
-      formId: "form-1",
+
+    expect(getPublicFormAccessUseCase).toHaveBeenCalledWith({ formId });
+    expect(getPartialSubmissionUseCase).toHaveBeenCalledWith({
+      formId,
+      tokenStore,
     });
+    expect(getActiveDefinitionUseCase).toHaveBeenCalledWith({ formId });
 
     definition.resolve(Result.success(activeDefinition));
     const result = await resultPromise;
@@ -115,7 +130,7 @@ describe("loadPublicSurveyPageUseCase", () => {
   it("returns success with blocked phase when respondent already submitted", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.success({
-        ...publicFormAccess,
+        ...publicAccess,
         limitOnePerUser: true,
         hasUserSubmitted: true,
         canStartNewSubmission: false,
@@ -123,8 +138,8 @@ describe("loadPublicSurveyPageUseCase", () => {
     );
 
     const result = await loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
+      formId,
+      tokenStore,
     });
 
     expect(result).toMatchObject({
@@ -134,10 +149,31 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
   });
 
+  it("keeps survey active when user can view but cannot create a submission", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.success({
+        ...publicAccess,
+        hasUserSubmitted: false,
+        canStartNewSubmission: false,
+      }),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toMatchObject({
+      kind: "success",
+      submissionPhase: "active",
+      activeDefinition,
+    });
+  });
+
   it("keeps a cookie draft active when respondent already submitted", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.success({
-        ...publicFormAccess,
+        ...publicAccess,
         limitOnePerUser: true,
         hasUserSubmitted: true,
         canStartNewSubmission: false,
@@ -151,8 +187,8 @@ describe("loadPublicSurveyPageUseCase", () => {
     );
 
     const result = await loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
+      formId,
+      tokenStore,
     });
 
     expect(result).toMatchObject({
@@ -163,27 +199,64 @@ describe("loadPublicSurveyPageUseCase", () => {
   });
 
   it("loads token submissions through the access token use case", async () => {
-    const submission = { id: "submission-1", isComplete: true } as Submission;
     vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
-      Result.success(submission),
+      Result.success(accessTokenSubmission),
+    );
+    vi.mocked(getActiveDefinitionUseCase).mockRejectedValue(
+      new Error("private form definition should not be fetched"),
     );
 
     const result = await loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
-      urlToken: "token.rw",
+      formId,
+      tokenStore,
+      urlToken: token,
     });
 
+    expect(result.kind).toBe("success");
+    if (result.kind === "success") {
+      expect(result.activeDefinition.jsonData).toBe('{"title":"Snapshot"}');
+      expect(result.submission).toBe(accessTokenSubmission);
+      expect(result.submissionPhase).toBe("active");
+    }
+
     expect(getSubmissionByAccessTokenUseCase).toHaveBeenCalledWith({
-      formId: "form-1",
-      token: "token.rw",
+      formId,
+      token,
     });
+    expect(getActiveDefinitionUseCase).not.toHaveBeenCalled();
     expect(getPartialSubmissionUseCase).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      kind: "success",
-      submissionPhase: "active",
-      submission,
+  });
+
+  it("keeps completed access-token submissions active for the completed-token view", async () => {
+    const completedSubmission: Submission = {
+      ...accessTokenSubmission,
+      isComplete: true,
+      status: "completed",
+    };
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.success({
+        ...publicAccess,
+        hasUserSubmitted: true,
+        canStartNewSubmission: false,
+      }),
+    );
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.success(completedSubmission),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: token,
     });
+
+    expect(result.kind).toBe("success");
+    if (result.kind === "success") {
+      expect(result.submissionPhase).toBe("active");
+      expect(result.submission).toBe(completedSubmission);
+    }
+    expect(getActiveDefinitionUseCase).not.toHaveBeenCalled();
+    expect(getPartialSubmissionUseCase).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -201,9 +274,9 @@ describe("loadPublicSurveyPageUseCase", () => {
       );
 
       const result = await loadPublicSurveyPageUseCase({
-        formId: "form-1",
-        tokenStore: tokenStore as never,
-        urlToken: "token.rw",
+        formId,
+        tokenStore,
+        urlToken: token,
       });
 
       expect(result).toEqual({
@@ -219,9 +292,9 @@ describe("loadPublicSurveyPageUseCase", () => {
     );
 
     const result = await loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
-      urlToken: "token.rw",
+      formId,
+      tokenStore,
+      urlToken: token,
     });
 
     expect(result).toEqual({
@@ -230,14 +303,37 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
   });
 
+  it("keeps the active definition lookup for non-token public form loads", async () => {
+    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+      ApiResult.notFoundError("No partial submission"),
+    );
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(activeDefinition),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result.kind).toBe("success");
+    if (result.kind === "success") {
+      expect(result.activeDefinition).toBe(activeDefinition);
+      expect(result.submission).toBeUndefined();
+    }
+
+    expect(getActiveDefinitionUseCase).toHaveBeenCalledWith({ formId });
+    expect(getSubmissionByAccessTokenUseCase).not.toHaveBeenCalled();
+  });
+
   it("propagates partial submission lookup failures instead of treating them as no draft", async () => {
     vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
       ApiResult.networkError("Upstream unavailable"),
     );
 
     const result = await loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
+      formId,
+      tokenStore,
     });
 
     expect(result).toEqual({
@@ -252,20 +348,20 @@ describe("loadPublicSurveyPageUseCase", () => {
     );
 
     const accessResult = await loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
+      formId,
+      tokenStore,
     });
 
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
-      Result.success(publicFormAccess),
+      Result.success(publicAccess),
     );
     vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
       Result.error("Definition missing"),
     );
 
     const definitionResult = await loadPublicSurveyPageUseCase({
-      formId: "form-1",
-      tokenStore: tokenStore as never,
+      formId,
+      tokenStore,
     });
 
     expect(accessResult).toEqual({ kind: "notFound" });

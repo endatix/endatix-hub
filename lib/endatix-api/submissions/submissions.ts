@@ -12,6 +12,8 @@ import {
 } from "../shared/query-params";
 import { appendSubmissionListFilters } from "./submission-list-query-params";
 import {
+  CreateSubmissionAccessTokenRequest,
+  CreateSubmissionAccessTokenResponse,
   ExportSubmissionsRequest,
   ListSubmissionsRequest,
   ListSubmissionsResponse,
@@ -201,5 +203,30 @@ export class Submissions {
     );
 
     return this.endatix.get<ListSubmissionsResponse>(endpoint);
+  }
+
+  async createAccessToken(
+    request: CreateSubmissionAccessTokenRequest,
+  ): Promise<ApiResult<CreateSubmissionAccessTokenResponse>> {
+    const validateFormIdResult = validateEndatixId(request.formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    const validateSubmissionIdResult = validateEndatixId(
+      request.submissionId,
+      "submissionId",
+    );
+    if (Result.isError(validateSubmissionIdResult)) {
+      return ApiResult.validationError(validateSubmissionIdResult.message);
+    }
+
+    return this.endatix.post<CreateSubmissionAccessTokenResponse>(
+      `/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/access-token`,
+      {
+        expiryMinutes: request.expiryMinutes,
+        permissions: request.permissions,
+      },
+    );
   }
 }

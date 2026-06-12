@@ -1,56 +1,91 @@
 import { Submission } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 import { LocalizationWrapper } from "@/lib/survey-features/infrastructure/localization-wrapper";
 import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
-import { PropertyDisplay } from "../details/property-display";
+import { tryParseJson } from "@/lib/utils/type-parsers";
 
 interface ViewSubmissionHeaderProps {
   submission: Submission;
 }
 
-function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
-  const formDefinition = JSON.parse(
-    submission.formDefinition?.jsonData ?? "{}",
-  );
+type SubmissionMetadataItem = {
+  label: string;
+  value: string;
+};
+type SurveySchema = Record<string, unknown> | undefined;
 
-  const locTitle = new LocalizationWrapper(formDefinition.title);
+const DEFAULT_TITLE = "Untitled Form";
+
+function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
+  const formDefinitionResult = tryParseJson<SurveySchema>(
+    submission.formDefinition?.jsonData,
+  );
+  const formDefinition = Result.isSuccess(formDefinitionResult)
+    ? formDefinitionResult.value
+    : undefined;
+
+  const locTitle = new LocalizationWrapper(
+    formDefinition?.title ?? DEFAULT_TITLE,
+  );
+  const metadataItems: SubmissionMetadataItem[] = [
+    {
+      label: "ID",
+      value: submission.id,
+    },
+    {
+      label: "Created at",
+      value: getFormattedDate(submission.createdAt),
+    },
+    {
+      label: "Is Complete",
+      value: submission.isComplete ? "Yes" : "No",
+    },
+  ];
+
+  if (submission.isComplete) {
+    metadataItems.push(
+      {
+        label: "Completed at",
+        value: getFormattedDate(submission.completedAt),
+      },
+      {
+        label: "Completion time",
+        value: getElapsedTimeString(
+          submission.createdAt,
+          submission.completedAt,
+          "long",
+        ),
+      },
+    );
+  }
 
   return (
-    <>
-      <div className="sticky top-0 py-4 z-50 w-full bg-background/10 backdrop-blur supports-[backdrop-filter]:bg-background/30 hover:bg-background/95 transition-colors duration-200">
-        <div className="w-full md:w-1/2 mx-auto text-center">
-          <h1 className="text-2xl font-bold">{locTitle.text}</h1>
-          <p className="text-lg font-semibold text-muted-foreground mt-2">
-            Viewing submission
-          </p>
-        </div>
+    <section className="overflow-hidden rounded-lg border border-border/25 bg-surface-container-lowest shadow-sm">
+      <div className="border-b border-border/40 px-4 py-5 text-center sm:px-6">
+        <p className="text-sm font-medium text-muted-foreground">
+          Viewing submission
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
+          {locTitle.text}
+        </h1>
       </div>
 
-      <div className="py-4 w-full bg-background">
-        <div className="w-full md:w-1/2 mx-auto">
-          <div className="text-sm">
-            <PropertyDisplay label="ID">
-              {submission.id}
-            </PropertyDisplay>
-            <PropertyDisplay label="Created at">
-              {getFormattedDate(submission.createdAt)}
-            </PropertyDisplay>
-            <PropertyDisplay label="Is Complete?">
-              {submission.isComplete ? "Yes" : "No"}
-            </PropertyDisplay>
-            {submission.isComplete && (
-              <>
-                <PropertyDisplay label="Completed at">
-                  {getFormattedDate(submission.completedAt)}
-                </PropertyDisplay>
-                <PropertyDisplay label="Completion time">
-                  {getElapsedTimeString(submission.createdAt, submission.completedAt, "long")}
-                </PropertyDisplay>
-              </>
-            )}
+      <dl className="grid gap-px bg-border/20 sm:grid-cols-2 lg:grid-cols-5">
+        {metadataItems.map((item) => (
+          <div
+            key={item.label}
+            className="min-w-0 bg-surface-container-lowest p-4"
+          >
+            <dt className="text-[10px] leading-none font-bold tracking-widest text-muted-foreground uppercase">
+              {item.label}
+            </dt>
+            <dd className="mt-2 break-words text-sm font-medium text-foreground">
+              {item.value}
+            </dd>
           </div>
-        </div>
-      </div>
-    </>
+        ))}
+      </dl>
+    </section>
   );
 }
 

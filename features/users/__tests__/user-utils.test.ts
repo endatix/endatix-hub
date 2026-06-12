@@ -4,6 +4,8 @@ import {
   getDisplayName,
   getInitials,
   getCurrentUserInfo,
+  getUserListDisplayName,
+  getUserListInitials,
 } from "../../users/user-utils";
 
 describe("getInitials", () => {
@@ -69,6 +71,54 @@ describe("getDisplayName", () => {
   it("prefers userName over email", () => {
     expect(getDisplayName("Jane Doe", "tech@x.com")).toBe("Jane Doe");
     expect(getDisplayName("admin@hub.com", "user@other.com")).toBe("Admin");
+  });
+});
+
+describe("getUserListDisplayName", () => {
+  it("uses displayName when it is available", () => {
+    expect(
+      getUserListDisplayName({
+        userName: "Keycloak0f6d8b28e76140338e842ddebcec49ceBE20E1A4277E",
+        email: "external@endatix.com",
+        isExternal: true,
+        displayName: "preferred-user",
+      }),
+    ).toBe("preferred-user");
+  });
+
+  it("skips synthetic userName for external users and falls back to email", () => {
+    expect(
+      getUserListDisplayName({
+        userName: "Keycloak0f6d8b28e76140338e842ddebcec49ceBE20E1A4277E",
+        email: "external@endatix.com",
+        isExternal: true,
+        displayName: null,
+      }),
+    ).toBe("External");
+  });
+
+  it("keeps native userName fallback for internal users", () => {
+    expect(
+      getUserListDisplayName({
+        userName: "Jane Doe",
+        email: "jane@endatix.com",
+        isExternal: false,
+        displayName: null,
+      }),
+    ).toBe("Jane Doe");
+  });
+});
+
+describe("getUserListInitials", () => {
+  it("uses resolved external display name instead of synthetic userName", () => {
+    expect(
+      getUserListInitials({
+        userName: "Keycloak0f6d8b28e76140338e842ddebcec49ceBE20E1A4277E",
+        email: "external@endatix.com",
+        isExternal: true,
+        displayName: null,
+      }),
+    ).toBe("EX");
   });
 });
 

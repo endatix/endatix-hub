@@ -1,16 +1,26 @@
-import {
-  buildSubmissionDataColumns,
-  humanizeFieldName,
-} from "@/features/submissions/ui/table/columns-definition";
 import { describe, expect, it, vi } from "vitest";
 
-/** Avoid loading `change-status.action` (Next / auth) via `CellStatusDropdown` in `columns-definition`. */
+vi.mock("@/features/submissions/ui/table/row-actions", () => ({
+  RowActions: () => null,
+}));
+
+vi.mock("@/features/submissions/ui/table/cell-status-dropdown", () => ({
+  CellStatusDropdown: () => null,
+}));
+
+/** Avoid loading `change-status.action` (Next / auth) via table status UI. */
 vi.mock(
   "@/features/submissions/use-cases/change-status/change-status.action",
   () => ({
     changeStatusAction: vi.fn(),
   }),
 );
+
+import {
+  buildSubmissionDataColumns,
+  buildSubmissionSystemColumns,
+  humanizeFieldName,
+} from "@/features/submissions/ui/table/columns-definition";
 
 describe("submission table column definitions", () => {
   it.each([
@@ -19,6 +29,13 @@ describe("submission table column definitions", () => {
     ["company-name", "Company Name"],
   ])("humanizes %s as %s", (fieldName, expected) => {
     expect(humanizeFieldName(fieldName)).toBe(expected);
+  });
+
+  it("labels the submitter display id column with NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL", () => {
+    const columns = buildSubmissionSystemColumns();
+    const displayIdColumn = columns.find((col) => col.id === "submitterDisplayId");
+
+    expect(displayIdColumn?.meta?.displayName).toBe("Submitter ID");
   });
 
   it("uses humanized field names for dynamic form column labels and hides them by default", () => {

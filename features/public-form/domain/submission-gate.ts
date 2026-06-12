@@ -8,11 +8,13 @@ export type SubmissionGatePhase = "active" | "blocked";
 /**
  * The input for resolving the submission gate.
  * @param canStartNewSubmission - Whether the backend allows starting a new submission.
+ * @param hasUserSubmitted - Whether the user already has a completed submission.
  * @param hasResumableDraft - Whether the user has a resumable draft.
  * @param hasUrlToken - Whether the user has a URL token.
  */
 export interface ResolveSubmissionGateInput {
   canStartNewSubmission: boolean;
+  hasUserSubmitted: boolean;
   hasResumableDraft: boolean;
   hasUrlToken: boolean;
 }
@@ -24,6 +26,7 @@ export interface ResolveSubmissionGateInput {
  */
 export function resolveSubmissionGate({
   canStartNewSubmission,
+  hasUserSubmitted,
   hasResumableDraft,
   hasUrlToken,
 }: ResolveSubmissionGateInput): SubmissionGatePhase {
@@ -31,7 +34,7 @@ export function resolveSubmissionGate({
     return "active";
   }
 
-  if (!canStartNewSubmission && !hasResumableDraft) {
+  if (hasUserSubmitted && !canStartNewSubmission && !hasResumableDraft) {
     return "blocked";
   }
 

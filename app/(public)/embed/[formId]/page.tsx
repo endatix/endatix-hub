@@ -2,7 +2,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found/not-fou
 import "@/features/public-form/ui/already-responded-standalone.css";
 import { PublicSurveyContent } from "@/features/public-form/ui/public-survey-content";
 import { PublicSurveySkeleton } from "@/features/public-form/ui/public-survey-skeleton";
-import { hasTokenPermission, TokenPermission } from "@/lib/utils";
+import { hasShareContinuationTokenPermission } from "@/lib/utils";
 import { Suspense } from "react";
 
 type EmbedSurveyPage = {
@@ -15,23 +15,12 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
   const { token: urlToken } = await searchParams;
 
   if (urlToken) {
-    if (!hasTokenPermission(urlToken, TokenPermission.Read)) {
+    if (!hasShareContinuationTokenPermission(urlToken)) {
       return (
         <NotFoundComponent
           notFoundTitle="Access Denied"
-          notFoundSubtitle="You don't have permission to view this submission"
-          notFoundMessage="The access token does not include view permissions."
-          titleSize="medium"
-        />
-      );
-    }
-
-    if (!hasTokenPermission(urlToken, TokenPermission.Write)) {
-      return (
-        <NotFoundComponent
-          notFoundTitle="Access Denied"
-          notFoundSubtitle="You don't have permission to edit this submission"
-          notFoundMessage="The access token does not include edit permissions."
+          notFoundSubtitle="You don't have permission to continue this submission"
+          notFoundMessage="The access token does not include submit permissions."
           titleSize="medium"
         />
       );

@@ -5,6 +5,7 @@ import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
+import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import {
   ApiErrorType,
   ApiResult,
@@ -67,10 +68,14 @@ export async function loadPublicSurveyPageUseCase({
   tokenStore,
   urlToken,
 }: LoadPublicSurveyPageQuery): Promise<LoadPublicSurveyPageResult> {
+  if (urlToken) {
+    return loadAccessTokenSurveyPage({ formId, urlToken });
+  }
+
   const [publicFormAccessResult, submissionResult, activeDefinitionResult] =
     await Promise.all([
-      getPublicFormAccessUseCase({ formId, token: urlToken }),
-      loadSubmission({ formId, tokenStore, urlToken }),
+      getPublicFormAccessUseCase({ formId }),
+      loadPartialSubmission({ formId, tokenStore }),
       getActiveDefinitionUseCase({ formId }),
     ]);
 
@@ -78,10 +83,7 @@ export async function loadPublicSurveyPageUseCase({
     return { kind: "notFound" };
   }
 
-  if (
-    submissionResult.kind === "tokenSubmissionError" ||
-    submissionResult.kind === "submissionLoadError"
-  ) {
+  if (submissionResult.kind === "submissionLoadError") {
     return submissionResult;
   }
 
@@ -99,53 +101,120 @@ export async function loadPublicSurveyPageUseCase({
     submissionPhase: resolveSubmissionGate({
       canStartNewSubmission:
         publicFormAccessResult.value.canStartNewSubmission,
+      hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
       hasResumableDraft,
-      hasUrlToken: Boolean(urlToken),
+      hasUrlToken: false,
     }),
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
     submission: submissionResult.value,
   };
 }
 
-type LoadedSubmissionResult =
+async function loadAccessTokenSurveyPage({
+  formId,
+  urlToken,
+}: LoadAccessTokenSurveyPageQuery): Promise<LoadPublicSurveyPageResult> {
+  const [publicFormAccessResult, submissionResult] = await Promise.all([
+    getPublicFormAccessUseCase({ formId, token: urlToken }),
+    loadAccessTokenSubmission({ formId, urlToken }),
+  ]);
+
+  if (Result.isError(publicFormAccessResult)) {
+    return { kind: "notFound" };
+  }
+
+  if (submissionResult.kind === "tokenSubmissionError") {
+    return submissionResult;
+  }
+
+  const activeDefinitionResult = resolveSubmissionFormDefinition(
+    submissionResult.value,
+  );
+
+  if (Result.isError(activeDefinitionResult)) {
+    return { kind: "notFound" };
+  }
+
+  const hasResumableDraft = Boolean(
+    submissionResult.value.id && !submissionResult.value.isComplete,
+  );
+
+  return {
+    kind: "success",
+    activeDefinition: activeDefinitionResult.value,
+    submissionPhase: resolveSubmissionGate({
+      canStartNewSubmission:
+        publicFormAccessResult.value.canStartNewSubmission,
+      hasUserSubmitted: publicFormAccessResult.value.hasUserSubmitted,
+      hasResumableDraft,
+      hasUrlToken: true,
+    }),
+    isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
+    submission: submissionResult.value,
+  };
+}
+
+type LoadAccessTokenSurveyPageQuery = {
+  formId: string;
+  urlToken: string;
+};
+
+type LoadAccessTokenSubmissionQuery = {
+  formId: string;
+  urlToken: string;
+};
+
+type LoadedAccessTokenSubmissionResult =
   | {
       kind: "success";
-      value?: Submission;
+      value: Submission;
     }
   | {
       kind: "tokenSubmissionError";
       errorCode: string;
+    };
+
+async function loadAccessTokenSubmission({
+  formId,
+  urlToken,
+}: LoadAccessTokenSubmissionQuery): Promise<LoadedAccessTokenSubmissionResult> {
+  const accessTokenResult = await getSubmissionByAccessTokenUseCase({
+    formId,
+    token: urlToken,
+  });
+
+  if (Result.isError(accessTokenResult)) {
+    return {
+      kind: "tokenSubmissionError",
+      errorCode: accessTokenResult.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
+    };
+  }
+
+  return {
+    kind: "success",
+    value: accessTokenResult.value,
+  };
+}
+
+type LoadPartialSubmissionQuery = {
+  formId: string;
+  tokenStore: FormTokenCookieStore;
+};
+
+type LoadedPartialSubmissionResult =
+  | {
+      kind: "success";
+      value?: Submission;
     }
   | {
       kind: "submissionLoadError";
       errorCode: string;
     };
 
-async function loadSubmission({
+async function loadPartialSubmission({
   formId,
   tokenStore,
-  urlToken,
-}: LoadPublicSurveyPageQuery): Promise<LoadedSubmissionResult> {
-  if (urlToken) {
-    const accessTokenResult = await getSubmissionByAccessTokenUseCase({
-      formId,
-      token: urlToken,
-    });
-
-    if (Result.isError(accessTokenResult)) {
-      return {
-        kind: "tokenSubmissionError",
-        errorCode:
-          accessTokenResult.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
-      };
-    }
-
-    return {
-      kind: "success",
-      value: accessTokenResult.value,
-    };
-  }
-
+}: LoadPartialSubmissionQuery): Promise<LoadedPartialSubmissionResult> {
   const partialResult = await getPartialSubmissionUseCase({
     formId,
     tokenStore,

@@ -165,7 +165,7 @@ function parseUsersSearchParams(searchParams?: {
 }
 
 function parseStatus(value: string | undefined): UserStatusFilter | undefined {
-  if (value === "active" || value === "pending") {
+  if (value === "active" || value === "pending" || value === "locked") {
     return value;
   }
 

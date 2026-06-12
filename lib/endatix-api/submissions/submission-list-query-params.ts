@@ -19,7 +19,13 @@ export const SUBMISSION_LIST_FILTER_FIELD_NAMES = Object.freeze({
   isTestSubmission: "isTestSubmission",
   createdAt: "createdAt",
   completedAt: "completedAt",
+  submitterDisplayId: "submitterDisplayId",
+  submitterProfile: "submitterProfile",
 } as const);
+
+// Phase 1 only exposes submitter email in Hub. Phase 2 grid metadata will replace
+// this static list with API-provided filterable submitter profile fields.
+const ALLOWED_SUBMITTER_PROFILE_FIELDS = new Set(["email"]);
 
 export type SubmissionFilterFieldName =
   keyof typeof SUBMISSION_LIST_FILTER_FIELD_NAMES;
@@ -80,6 +86,26 @@ export function appendSubmissionListFilters(
     params.append(
       SUBMISSION_LIST_FILTER_QUERY_PARAM,
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.isTestSubmission}:${request.isTestSubmission.join("|")}`,
+    );
+  }
+  if (request.submitterDisplayId?.trim()) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.submitterDisplayId}:${request.submitterDisplayId.trim()}`,
+    );
+  }
+  const submitterProfileField = request.submitterProfileFilter?.field
+    .trim()
+    .toLowerCase();
+  const submitterProfileValue = request.submitterProfileFilter?.value.trim();
+  if (
+    submitterProfileField &&
+    submitterProfileValue &&
+    ALLOWED_SUBMITTER_PROFILE_FIELDS.has(submitterProfileField)
+  ) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.submitterProfile}.${submitterProfileField}:${submitterProfileValue}`,
     );
   }
   if (request.createdAtFrom && isValidCalendarDateYmd(request.createdAtFrom)) {

@@ -30,6 +30,8 @@ export function submissionListUrlStateFromClientFilters(input: {
   createdAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
+  submitterDisplayId?: string;
+  submitterEmail?: string;
 }): SubmissionListUrlState {
   return {
     page: input.page,
@@ -50,5 +52,7 @@ export function submissionListUrlStateFromClientFilters(input: {
     createdAtTo: parseSubmissionListCalendarDate(input.createdAtTo),
     completedAtFrom: parseSubmissionListCalendarDate(input.completedAtFrom),
     completedAtTo: parseSubmissionListCalendarDate(input.completedAtTo),
+    submitterDisplayId: input.submitterDisplayId?.trim() || undefined,
+    submitterEmail: input.submitterEmail?.trim() || undefined,
   };
 }

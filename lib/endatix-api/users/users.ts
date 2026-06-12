@@ -88,6 +88,28 @@ export default class Users {
       request,
     );
   }
+
+  async lockout(userId: string): Promise<ApiResult<UserOperationResponse>> {
+    const validateResult = validateEndatixId(userId, "userId");
+    if (Result.isError(validateResult)) {
+      return ApiResult.validationError(validateResult.message);
+    }
+    return this.endatix.post<UserOperationResponse>(
+      `/users/${userId}/lockout`,
+      {},
+    );
+  }
+
+  async unlock(userId: string): Promise<ApiResult<UserOperationResponse>> {
+    const validateResult = validateEndatixId(userId, "userId");
+    if (Result.isError(validateResult)) {
+      return ApiResult.validationError(validateResult.message);
+    }
+    return this.endatix.post<UserOperationResponse>(
+      `/users/${userId}/unlock`,
+      {},
+    );
+  }
 }
 
 function buildListUsersEndpoint(request: ListUsersRequest): string {

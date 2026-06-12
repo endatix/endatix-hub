@@ -106,8 +106,10 @@ async function validateDeleteConfirmation(
     return stateFromApiError(userResult, rawData);
   }
 
+  const email = userResult.data.email;
   if (
-    userResult.data.email.localeCompare(confirmationEmail, undefined, {
+    email !== null &&
+    email.localeCompare(confirmationEmail, undefined, {
       sensitivity: "accent",
     }) === 0
   ) {

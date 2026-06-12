@@ -1,4 +1,3 @@
-import type { SubmissionOperation } from "@/features/public-form/application/submit-form-operation";
 import type { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -21,39 +20,16 @@ vi.mock("next/dynamic", () => ({
   default: () =>
     function MockSurveyComponent({
       isRespondentTestMode,
-      onSubmitSuccess,
     }: {
       isRespondentTestMode?: boolean;
-      onSubmitSuccess?: (result: SubmissionOperation) => void;
     }) {
       return (
         <>
           {isRespondentTestMode ? (
             <div data-testid="respondent-test-mode-badge">Test response - not counted</div>
           ) : null}
-          <button
-            data-testid="survey-component"
-            onClick={() =>
-              onSubmitSuccess?.({
-                submissionId: "submission-1",
-                isComplete: true,
-              })
-            }
-            type="button"
-          >
+          <button data-testid="survey-component" type="button">
             Complete
-          </button>
-          <button
-            data-testid="survey-component-partial"
-            onClick={() =>
-              onSubmitSuccess?.({
-                submissionId: "submission-1",
-                isComplete: false,
-              })
-            }
-            type="button"
-          >
-            Partial
           </button>
         </>
       );
@@ -94,6 +70,36 @@ describe("SurveyJsWrapper", () => {
     expect(screen.queryByTestId("respondent-test-mode-badge")).toBeNull();
   });
 
+  it("renders submission already completed when access token submission is complete on page load", () => {
+    render(
+      <SurveyJsWrapper
+        {...defaultProps}
+        survey={{
+          ...defaultProps.survey,
+          submissionPhase: "active",
+          urlToken: "access-token",
+          submission: {
+            id: "submission-1",
+            formId: "form-1",
+            formDefinitionId: "definition-1",
+            isComplete: true,
+            jsonData: "{}",
+            currentPage: 0,
+            metadata: "{}",
+            token: "submission-token",
+            createdAt: new Date().toISOString(),
+            modifiedAt: new Date().toISOString(),
+            status: "completed",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Thank you")).toBeDefined();
+    expect(screen.getByText("This form has already been completed.")).toBeDefined();
+    expect(screen.queryByTestId("survey-component")).toBeNull();
+  });
+
   it("renders test mode badge for test respondents", () => {
     render(
       <SurveyJsWrapper
@@ -106,11 +112,18 @@ describe("SurveyJsWrapper", () => {
     expect(screen.getByText("Test response - not counted")).toBeDefined();
   });
 
-  it("allows server props to block the session after a partial submit", () => {
-    const { rerender } = render(<SurveyJsWrapper {...defaultProps} />);
+  it("keeps the survey visible after client-side submit so SurveyJS can show its thank-you page", () => {
+    render(<SurveyJsWrapper {...defaultProps} />);
 
-    fireEvent.click(screen.getByTestId("survey-component-partial"));
-    rerender(
+    fireEvent.click(screen.getByTestId("survey-component"));
+
+    expect(screen.getByTestId("survey-component")).toBeDefined();
+    expect(screen.queryByText("This form has already been completed.")).toBeNull();
+    expect(screen.queryByText("Already Responded")).toBeNull();
+  });
+
+  it("shows already responded when server props become blocked after navigation", () => {
+    render(
       <SurveyJsWrapper
         {...defaultProps}
         survey={{ ...defaultProps.survey, submissionPhase: "blocked" }}
@@ -119,20 +132,5 @@ describe("SurveyJsWrapper", () => {
 
     expect(screen.getByText("Already Responded")).toBeDefined();
     expect(screen.queryByTestId("survey-component")).toBeNull();
-  });
-
-  it("keeps completed sessions on survey when server props later become blocked", () => {
-    const { rerender } = render(<SurveyJsWrapper {...defaultProps} />);
-
-    fireEvent.click(screen.getByTestId("survey-component"));
-    rerender(
-      <SurveyJsWrapper
-        {...defaultProps}
-        survey={{ ...defaultProps.survey, submissionPhase: "blocked" }}
-      />,
-    );
-
-    expect(screen.getByTestId("survey-component")).toBeDefined();
-    expect(screen.queryByText("Already Responded")).toBeNull();
   });
 });

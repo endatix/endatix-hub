@@ -3,6 +3,8 @@ import type { UploadFileEvent } from "survey-creator-core";
 import { Result, type ResultType } from "@/lib/result";
 import type { ContentItemType } from "../../types";
 import type { UploadUrlDescriptor } from "../../infrastructure/core";
+import type { StorageReadRuntime } from "../../infrastructure/storage-read-runtime";
+import { buildPublicStorageGateBody } from "../../infrastructure/storage-read-request";
 import {
   fetchUploadUrls,
   prepareUploadBytes,
@@ -34,6 +36,7 @@ export interface UserUploadConfig {
   surveyModel: SurveyModel | null;
   onSubmissionIdChange?: (newSubmissionId: string) => void;
   isResizeEnabled: boolean;
+  getReadRuntime?: () => StorageReadRuntime | null;
 }
 
 /**
@@ -48,6 +51,7 @@ export function createUserUpload(config: UserUploadConfig) {
     surveyModel,
     onSubmissionIdChange,
     isResizeEnabled,
+    getReadRuntime,
   } = config;
 
   return async function handleUserUpload(
@@ -67,15 +71,25 @@ export function createUserUpload(config: UserUploadConfig) {
     );
 
     const { fileTypes, fileStates } = buildPerFileMaps(prepared);
+    const gateBody = buildPublicStorageGateBody(
+      { formId, submissionId: currentSubmissionId },
+      getReadRuntime?.(),
+    );
 
     const sasResult = await fetchUploadUrls(USER_UPLOAD_URLS, {
       fileNames: options.files.map((f) => f.name),
-      submissionId: currentSubmissionId,
-      formId,
+      ...(gateBody.submissionId ? { submissionId: gateBody.submissionId } : {}),
+      formId: gateBody.formId,
       formLocale: surveyModel?.locale ?? "",
       fileTypes,
       fileStates,
       questionName: options.question?.name ?? "",
+      ...(gateBody.token
+        ? {
+            token: gateBody.token,
+            ...(gateBody.tokenType ? { tokenType: gateBody.tokenType } : {}),
+          }
+        : {}),
     });
 
     if (Result.isError(sasResult)) {

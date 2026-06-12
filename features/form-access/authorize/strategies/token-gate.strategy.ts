@@ -69,14 +69,19 @@ export async function tokenGateStrategy(
       return mismatch;
     }
 
+    const isIncompleteSubmission = submissionResult.data.isComplete === false;
     const canEdit = hasTokenPermission(token, TokenPermission.Write);
+    const canSubmitIncomplete =
+      hasTokenPermission(token, TokenPermission.Submit) && isIncompleteSubmission;
+    const canMutateFiles = canEdit || canSubmitIncomplete;
+
     return Result.success({
       formId: gate.formId,
       submissionId,
       isPublicForm: false,
       canViewFiles: true,
-      canUploadFiles: canEdit,
-      canDeleteFiles: canEdit,
+      canUploadFiles: canMutateFiles,
+      canDeleteFiles: canMutateFiles,
     });
   }
 

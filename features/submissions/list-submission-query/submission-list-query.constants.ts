@@ -20,4 +20,6 @@ export const SUBMISSION_LIST_URL_SEARCH_PARAM_KEYS = Object.freeze({
   createdAtTo: "createdAtTo",
   completedAtFrom: "completedAtFrom",
   completedAtTo: "completedAtTo",
+  submitterDisplayId: "submitterDisplayId",
+  submitterEmail: "submitterEmail",
 } as const);

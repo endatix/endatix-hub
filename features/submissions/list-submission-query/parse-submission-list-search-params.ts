@@ -137,6 +137,12 @@ export function parseSubmissionListSearchParams(
     completedAtTo: parseSubmissionListCalendarDate(
       firstString(searchParams[searchParamKeys.completedAtTo]),
     ),
+    submitterDisplayId:
+      firstString(searchParams[searchParamKeys.submitterDisplayId])?.trim() ||
+      undefined,
+    submitterEmail:
+      firstString(searchParams[searchParamKeys.submitterEmail])?.trim() ||
+      undefined,
   };
 }
 
@@ -158,9 +164,15 @@ export function submissionListUrlStateToListRequest(
     createdAtTo: state.createdAtTo,
     completedAtFrom: state.completedAtFrom,
     completedAtTo: state.completedAtTo,
+    submitterDisplayId: state.submitterDisplayId,
+    submitterProfileFilter: state.submitterEmail
+      ? {
+          field: "email",
+          value: state.submitterEmail,
+        }
+      : undefined,
   };
 }
-
 
 /**
  * The canonical date fields.
@@ -182,6 +194,10 @@ export type SubmissionListCanonicalDateFields = {
   createdAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
+  rawSubmitterDisplayId?: string;
+  submitterDisplayId?: string;
+  rawSubmitterEmail?: string;
+  submitterEmail?: string;
 };
 
 /**
@@ -213,6 +229,10 @@ export function isCanonicalSubmissionListUrl(
     rawDates.rawCreatedAtFrom === rawDates.createdAtFrom &&
     rawDates.rawCreatedAtTo === rawDates.createdAtTo &&
     rawDates.rawCompletedAtFrom === rawDates.completedAtFrom &&
-    rawDates.rawCompletedAtTo === rawDates.completedAtTo
+    rawDates.rawCompletedAtTo === rawDates.completedAtTo &&
+    (rawDates.rawSubmitterDisplayId?.trim() || undefined) ===
+      rawDates.submitterDisplayId &&
+    (rawDates.rawSubmitterEmail?.trim() || undefined) ===
+      rawDates.submitterEmail
   );
 }

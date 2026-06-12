@@ -2,7 +2,6 @@
 
 import { AssetStorageClientProvider } from "@/features/asset-storage/client";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
-import type { SubmissionGatePhase } from "@/features/public-form/domain/submission-gate";
 import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
 import {
   FormRuntimeProvider,
@@ -10,30 +9,22 @@ import {
 } from "@/lib/form-runtime/form-runtime.context";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
-import type { SubmissionOperation } from "../application/submit-form-operation";
 import AlreadyResponded from "./already-responded";
+import SubmissionAlreadyCompleted from "./submission-already-completed";
 
 const SurveyComponent = dynamic(() => import("./survey-component"), {
   ssr: false,
 });
-
-type RuntimePhase = SubmissionGatePhase | "completed";
 
 export type SurveyJsWrapperProps = {
   extensionIdsToLoad?: string[];
   survey: PublicSurveyRuntimeProps;
 };
 
-type SurveyJsWrapperInnerProps = SurveyJsWrapperProps & {
-  onSubmitSuccess: (result: SubmissionOperation) => void;
-};
-
 const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
   const { survey } = props;
-  const { markCompleted, phase } = useSurveySessionPhase(survey.submissionPhase);
 
-  if (phase === "blocked") {
+  if (survey.submissionPhase === "blocked") {
     return (
       <AlreadyResponded
         formId={survey.formId}
@@ -41,6 +32,10 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
         metadata={survey.activeDefinition.metadata}
       />
     );
+  }
+
+  if (shouldShowSubmissionCompleted(survey)) {
+    return <SubmissionAlreadyCompleted isEmbed={survey.variant === "embed"} />;
   }
 
   return (
@@ -53,17 +48,14 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
       }}
     >
       <AssetStorageClientProvider config={survey.storageConfig}>
-        <SurveyJsWrapperInner
-          {...props}
-          onSubmitSuccess={markCompleted}
-        />
+        <SurveyJsWrapperInner {...props} />
       </AssetStorageClientProvider>
     </FormRuntimeProvider>
   );
 };
 
-const SurveyJsWrapperInner = (props: SurveyJsWrapperInnerProps) => {
-  const { extensionIdsToLoad, onSubmitSuccess, survey } = props;
+const SurveyJsWrapperInner = (props: SurveyJsWrapperProps) => {
+  const { extensionIdsToLoad, survey } = props;
   const { activeDefinition } = survey;
 
   const formRuntime = useFormRuntime();
@@ -79,15 +71,16 @@ const SurveyJsWrapperInner = (props: SurveyJsWrapperInnerProps) => {
     return <div>Loading...</div>;
   }
 
-  const embedForm: EmbedFormInfo | undefined = survey.variant === "embed"
-    ? {
-        formId: survey.formId,
-        definitionId: activeDefinition.id,
-        limitOnePerUser: activeDefinition.limitOnePerUser ?? false,
-        requiresReCaptcha: activeDefinition.requiresReCaptcha ?? false,
-        metadata: activeDefinition.metadata,
-      }
-    : undefined;
+  const embedForm: EmbedFormInfo | undefined =
+    survey.variant === "embed"
+      ? {
+          formId: survey.formId,
+          definitionId: activeDefinition.id,
+          limitOnePerUser: activeDefinition.limitOnePerUser ?? false,
+          requiresReCaptcha: activeDefinition.requiresReCaptcha ?? false,
+          metadata: activeDefinition.metadata,
+        }
+      : undefined;
 
   return (
     <SurveyComponent
@@ -101,27 +94,21 @@ const SurveyJsWrapperInner = (props: SurveyJsWrapperInnerProps) => {
       isRespondentTestMode={survey.isRespondentTestMode}
       embedForm={embedForm}
       onModelCreated={onModelCreated}
-      onSubmitSuccess={onSubmitSuccess}
     />
   );
 };
 
-function useSurveySessionPhase(initialPhase: SubmissionGatePhase) {
-  const [phase, setPhase] = useState<RuntimePhase>(initialPhase);
+function shouldShowSubmissionCompleted(
+  survey: PublicSurveyRuntimeProps,
+): boolean {
+  const isShareOrEmbed =
+    survey.variant === "share" || survey.variant === "embed";
 
-  useEffect(() => {
-    setPhase((currentPhase) =>
-      currentPhase === "completed" ? currentPhase : initialPhase,
-    );
-  }, [initialPhase]);
+  if (!isShareOrEmbed) {
+    return false;
+  }
 
-  const markCompleted = useCallback((result: SubmissionOperation) => {
-    if (result.isComplete === true) {
-      setPhase("completed");
-    }
-  }, []);
-
-  return { markCompleted, phase };
+  return Boolean(survey.urlToken && survey.submission?.isComplete);
 }
 
 export default SurveyJsWrapper;

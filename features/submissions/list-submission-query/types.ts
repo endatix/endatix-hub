@@ -14,6 +14,8 @@ import type {
  * @param createdAtTo - The created at to.
  * @param completedAtFrom - The completed at from.
  * @param completedAtTo - The completed at to.
+ * @param submitterDisplayId - The submitter display id filter.
+ * @param submitterEmail - The submitter profile email filter.
  */
 export type SubmissionListUrlState = {
   page: number;
@@ -25,6 +27,8 @@ export type SubmissionListUrlState = {
   createdAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
+  submitterDisplayId?: string;
+  submitterEmail?: string;
 };
 
 /** Raw Next.js `searchParams` entry values (single string or repeated keys). */

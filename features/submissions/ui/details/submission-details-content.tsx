@@ -9,6 +9,7 @@ import DynamicVariablesList from "./dynamic-variables-list";
 import { QuestionFinder } from "./question-finder";
 import { SubmissionAnswers } from "./submission-answers";
 import { useSubmissionDetails } from "./submission-details-context";
+import { SubmitterDetailsPanel } from "./submitter-details-panel";
 import {
   SubmissionToC,
   setSubmissionDetailsTabHandler,
@@ -19,10 +20,11 @@ interface SubmissionDetailsContentProps {
   customQuestions: CustomQuestion[];
 }
 
-type TabId = "answers" | "variables" | "calculated";
+type TabId = "answers" | "submitter" | "variables" | "calculated";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "answers", label: "Submission Answers" },
+  { id: "submitter", label: "Submitter" },
   { id: "variables", label: "Dynamic Variables" },
   { id: "calculated", label: "Calculated Values" },
 ];
@@ -76,6 +78,8 @@ export function SubmissionDetailsContent({
         <SubmissionAnswers customQuestions={customQuestions} />
       </>
     );
+  } else if (activeTab === "submitter") {
+    tabPanel = <SubmitterDetailsPanel />;
   } else if (activeTab === "variables") {
     tabPanel = <DynamicVariablesList surveyModel={surveyModel} />;
   } else if (activeTab === "calculated") {

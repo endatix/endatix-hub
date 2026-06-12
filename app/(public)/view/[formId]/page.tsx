@@ -2,12 +2,12 @@ import { NotFoundComponent } from "@/components/error-handling/not-found/not-fou
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
+import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import { PublicViewSubmission } from "@/features/submissions/ui/view/view-submission";
 import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { Result } from "@/lib/result";
 import { hasTokenPermission, TokenPermission } from "@/lib/utils";
 import { validateEndatixId } from "@/lib/utils/type-validators";
-import { getActiveFormDefinition } from "@/services/api";
 import { Suspense } from "react";
 
 type Params = {
@@ -104,15 +104,10 @@ export default async function PublicViewSubmissionPage({
   }
 
   const submission = submissionResult.value;
+  const definitionResult = resolveSubmissionFormDefinition(submission);
 
-  try {
-    const activeDefinition = await getActiveFormDefinition(
-      submission.formId,
-      true,
-    );
-    submission.formDefinition = activeDefinition;
-  } catch (error) {
-    console.error("Failed to fetch form definition", error);
+  if (Result.isError(definitionResult)) {
+    console.error(definitionResult.message);
     return (
       <NotFoundComponent
         notFoundTitle="Form Not Found"
@@ -122,6 +117,8 @@ export default async function PublicViewSubmissionPage({
       />
     );
   }
+
+  submission.formDefinition = definitionResult.value;
 
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
@@ -145,8 +142,8 @@ function SubmissionDataSkeleton() {
   const questions = Array.from({ length: 10 }, (_, index) => index + 1);
 
   return (
-    <div className="w-full overflow-auto p-4">
-      <div className="mx-auto flex max-w-4xl flex-col items-center space-y-4">
+    <div className="min-h-screen w-full overflow-auto bg-content-canvas p-4 sm:p-6 lg:p-8">
+      <div className="flex w-full flex-col items-center space-y-4">
         <Skeleton className="h-12 w-full" />
         {questions.map((question) => (
           <Skeleton className="h-16 w-full" key={question} />
