@@ -6,6 +6,7 @@ import { listFoldersAction } from "@/features/folders/server";
 import { Result } from "@/lib/result";
 import { ChevronsUpDown } from "lucide-react";
 import { SitemapService } from "@/services/sitemap-service";
+import { filterNavByKeys } from "@/features/navigation/filter-nav-by-auth";
 import UserAvatar from "@/components/user/user-avatar";
 import NavUser from "./nav-user";
 import { TenantSwitcher } from "@/components/layout-ui/sidebar/tenant-switcher";
@@ -35,14 +36,18 @@ type SidebarFolder = {
 
 type SidebarNavProps = {
   initialFolders?: SidebarFolder[];
+  initialNavItemKeys?: string[];
 };
 
-const SidebarNav = ({ initialFolders }: Readonly<SidebarNavProps>) => {
+const SidebarNav = ({
+  initialFolders,
+  initialNavItemKeys,
+}: Readonly<SidebarNavProps>) => {
   const { data: session, status } = useSession();
   const { state } = useSidebar();
   const isSidebarCollapsed = state === "collapsed";
   const [mainNavItems, setMainNavItems] = useState<INavItem[]>(() => {
-    const base = SitemapService.getTopLevelSitemap();
+    const base = getAuthorizedNavItems(initialNavItemKeys);
     return initialFolders && initialFolders.length > 0
       ? mergeTopLevelNavWithFolderForms(base, initialFolders)
       : base;
@@ -66,7 +71,7 @@ const SidebarNav = ({ initialFolders }: Readonly<SidebarNavProps>) => {
       if (cancelled) {
         return;
       }
-      const base = SitemapService.getTopLevelSitemap();
+      const base = getAuthorizedNavItems(initialNavItemKeys);
       if (!Result.isSuccess(result)) {
         setMainNavItems(base);
         return;
@@ -77,7 +82,7 @@ const SidebarNav = ({ initialFolders }: Readonly<SidebarNavProps>) => {
     return () => {
       cancelled = true;
     };
-  }, [status, session, initialFolders]);
+  }, [status, session, initialFolders, initialNavItemKeys]);
 
   return (
     <Sidebar collapsible="icon">
@@ -146,5 +151,9 @@ const SidebarNav = ({ initialFolders }: Readonly<SidebarNavProps>) => {
     </Sidebar>
   );
 };
+
+function getAuthorizedNavItems(initialNavItemKeys?: string[]): INavItem[] {
+  return filterNavByKeys(SitemapService.getTopLevelSitemap(), initialNavItemKeys);
+}
 
 export default SidebarNav;
