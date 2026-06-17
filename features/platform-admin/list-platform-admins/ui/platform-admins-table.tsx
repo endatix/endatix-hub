@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { grantPlatformAdminAction } from "../../grant-platform-admin/grant-platform-admin.action";
 import { revokePlatformAdminAction } from "../../revoke-platform-admin/revoke-platform-admin.action";
-import { formatOptionalDate } from "../../utils";
+import { getFormattedDate } from "@/lib/utils";
 
 interface PlatformAdminsTableProps {
   admins: PagedResponse<PlatformAdminUserListItem>;
@@ -144,7 +144,9 @@ function UserTable({
                       />
                     </div>
                   </TableCell>
-                  <TableCell>{formatOptionalDate(user.lastLoginAt)}</TableCell>
+                  <TableCell>
+                    {getFormattedDate(user.lastLoginAt, "Never")}
+                  </TableCell>
                   <TableCell className="text-right">
                     {isActionDisabled ? (
                       <Button

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { EndatixApi, ApiResult } from "@/lib/endatix-api";
 import type { AuthSettings } from "@/lib/endatix-api/auth-admin/types";
 import { getAuthSettingsDriftHints } from "@/features/auth/use-cases/view-settings-summary/auth-settings-drift";
@@ -5,7 +7,7 @@ import type { AuthSettingsDriftHint } from "@/features/auth/use-cases/view-setti
 import { getHubAuthAdminSummary } from "@/features/auth/use-cases/view-settings-summary/hub-auth-admin-summary";
 import type { HubAuthAdminSummary } from "@/features/auth/use-cases/view-settings-summary/hub-auth-admin-summary";
 import { KEYCLOAK_ID } from "@/features/auth/infrastructure/providers/keycloak-auth-provider";
-import { requirePlatformAdmin } from "../server";
+import type { PlatformAdminSession } from "../types";
 
 export type AuthAdminSummary = {
   api: AuthSettings | null;
@@ -13,10 +15,11 @@ export type AuthAdminSummary = {
   driftHints: AuthSettingsDriftHint[];
 };
 
-export async function getAuthSettings(): Promise<AuthAdminSummary> {
-  const session = await requirePlatformAdmin();
+export async function getAuthSettings(
+  session: PlatformAdminSession,
+): Promise<AuthAdminSummary> {
   const hub = getHubAuthAdminSummary();
-  const api = new EndatixApi(session?.accessToken);
+  const api = new EndatixApi(session.accessToken);
   const apiResult = await api.authAdmin.getSettings();
 
   const apiSettings: AuthSettings | null = ApiResult.isSuccess(apiResult)

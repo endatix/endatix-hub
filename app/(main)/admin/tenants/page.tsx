@@ -1,11 +1,29 @@
-import { requireAdmin } from "@/components/admin-ui/admin-protection";
+import {
+  listPlatformTenants,
+  requirePlatformAdmin,
+} from "@/features/platform-admin/server";
+import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
+import { TenantsTable } from "@/features/platform-admin/list-tenants/ui/tenants-table";
+import { parsePlatformAdminListParams } from "@/features/platform-admin/utils";
+import type { PlatformAdminSearchParams } from "@/features/platform-admin/types";
 
-export default async function TenantsPage() {
-  await requireAdmin();
+interface TenantsPageProps {
+  searchParams?: Promise<PlatformAdminSearchParams>;
+}
+
+export default async function TenantsPage({ searchParams }: TenantsPageProps) {
+  const session = await requirePlatformAdmin();
+  const tenants = await listPlatformTenants(
+    session,
+    parsePlatformAdminListParams(await searchParams),
+  );
 
   return (
-    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <h1 className="text-2xl font-bold">Tenants</h1>
-    </div>
+    <PlatformAdminShell
+      title="Tenants"
+      description="Review tenant records and platform-level usage counts without switching tenant context."
+    >
+      <TenantsTable tenants={tenants} />
+    </PlatformAdminShell>
   );
 }

@@ -1,7 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
-import { authorization } from "@/features/auth";
+import { requirePlatformAdmin } from "@/features/platform-admin/server";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { getStringFormValue } from "@/lib/utils/form-data-utils";
 
@@ -9,9 +8,7 @@ export async function sendTestEmailAction(
   _prevState: ApiResult<string> | null,
   formData: FormData,
 ): Promise<ApiResult<string>> {
-  const session = await auth();
-  const { requirePlatformAdmin } = await authorization(session);
-  await requirePlatformAdmin();
+  const session = await requirePlatformAdmin();
 
   const toEmail = getStringFormValue(formData, "toEmail");
   const fromEmail = getStringFormValue(formData, "fromEmail");

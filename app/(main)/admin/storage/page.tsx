@@ -1,45 +1,25 @@
-import { Suspense } from "react";
-import { requireAdmin } from "@/components/admin-ui/admin-protection";
-import { storageStatsFlag } from "@/lib/feature-flags/flags";
-import { notFound } from "next/navigation";
-import { StorageDashboard } from "@/features/organization/view-storage-stats";
-import { Loader2 } from "lucide-react";
-import { auth } from "@/auth";
-import { EndatixApi } from "@/lib/endatix-api";
+import {
+  getStorageSettings,
+  requirePlatformAdmin,
+} from "@/features/platform-admin/server";
+import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
+import { StorageSettingsPanel } from "@/features/platform-admin/view-storage-settings/ui/storage-settings-panel";
 
 export const metadata = {
-  title: "Storage Stats | Admin",
-  description: "View database storage usage statistics.",
+  title: "Storage Settings | Admin",
+  description: "View platform storage configuration status.",
 };
 
-export default async function StorageStatsPage() {
-  await requireAdmin();
-
-  const isEnabled = await storageStatsFlag();
-  if (!isEnabled) {
-    notFound();
-  }
-
-  const session = await auth();
-  const api = new EndatixApi(session?.accessToken);
-  const storageStatsPromise = api.stats.getStorageStats();
+export default async function StorageSettingsPage() {
+  const session = await requirePlatformAdmin();
+  const summary = await getStorageSettings(session);
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Storage Statistics
-        </h2>
-      </div>
-      <Suspense
-        fallback={
-          <div className="flex h-[400px] items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        }
-      >
-        <StorageDashboard storageStatsPromise={storageStatsPromise} />
-      </Suspense>
-    </div>
+    <PlatformAdminShell
+      title="Storage Settings"
+      description="Review allowlisted storage provider status without exposing connection strings or secrets."
+    >
+      <StorageSettingsPanel summary={summary} />
+    </PlatformAdminShell>
   );
 }

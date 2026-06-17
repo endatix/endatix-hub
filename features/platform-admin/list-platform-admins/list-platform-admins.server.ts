@@ -1,18 +1,17 @@
+import "server-only";
+
 import { EndatixApi } from "@/lib/endatix-api";
 import type { ListPlatformAdminsRequest } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { DataLoadError } from "@/lib/errors/data-load-error";
-import { requirePlatformAdmin } from "../server";
-
-type PlatformAdminSession = Awaited<ReturnType<typeof requirePlatformAdmin>>;
+import type { PlatformAdminSession } from "../types";
 
 export async function listPlatformAdmins(
+  session: PlatformAdminSession,
   request: ListPlatformAdminsRequest,
-  session?: PlatformAdminSession,
 ) {
-  const platformAdminSession = session ?? (await requirePlatformAdmin());
-  const api = new EndatixApi(platformAdminSession?.accessToken);
+  const api = new EndatixApi(session.accessToken);
   const apiResult = await api.platformAdmins.list(request);
   const result = toResult(apiResult, {
     fallbackMessage: "Failed to load platform administrators.",
@@ -28,11 +27,10 @@ export async function listPlatformAdmins(
 }
 
 export async function listPlatformAdminCandidates(
+  session: PlatformAdminSession,
   request: ListPlatformAdminsRequest,
-  session?: PlatformAdminSession,
 ) {
-  const platformAdminSession = session ?? (await requirePlatformAdmin());
-  const api = new EndatixApi(platformAdminSession?.accessToken);
+  const api = new EndatixApi(session.accessToken);
   const apiResult = await api.platformAdmins.listCandidates(request);
   const result = toResult(apiResult, {
     fallbackMessage: "Failed to load platform administrator candidates.",

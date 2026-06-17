@@ -24,8 +24,8 @@ export default async function PlatformAdminsPage({
   const authorizationData = await getAuthorizationData();
   const request = parsePlatformAdminListParams(await searchParams);
   const [admins, candidates] = await Promise.all([
-    listPlatformAdmins(request, session),
-    listPlatformAdminCandidates({ ...request, pageSize: 10 }, session),
+    listPlatformAdmins(session, request),
+    listPlatformAdminCandidates(session, { ...request, pageSize: 10 }),
   ]);
 
   return (

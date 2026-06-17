@@ -44,7 +44,8 @@ export function filterNavByKeys(
   keys: readonly string[] | undefined,
 ): INavItem[] {
   if (!keys) {
-    return [...items];
+    // Fail closed: never expose role/permission-gated items without server-provided keys.
+    return filterNavByAuth(items, null);
   }
 
   const keySet = new Set(keys);
@@ -114,11 +115,14 @@ function canAccessItem(
     return false;
   }
 
+  const roles = new Set(authData.roles);
+  const permissions = new Set(authData.permissions);
+
   const hasRequiredRole = item.requiredRole
-    ? authData.roles.includes(item.requiredRole)
+    ? roles.has(item.requiredRole)
     : true;
   const hasRequiredPermission = item.requiredPermission
-    ? authData.isAdmin || authData.permissions.includes(item.requiredPermission)
+    ? authData.isAdmin || permissions.has(item.requiredPermission)
     : true;
 
   return hasRequiredRole && hasRequiredPermission;

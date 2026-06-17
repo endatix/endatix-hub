@@ -1,11 +1,9 @@
-"use server";
-
+import type { Session } from "next-auth";
 import { requirePlatformAdmin } from "@/features/platform-admin/server";
 
 /**
- * Server-side admin protection function.
- * Must be used in Server Components only.
+ * Server-side admin protection. Use from Server Components and server modules only.
  */
-export async function requireAdmin() {
-  return await requirePlatformAdmin();
+export async function requireAdmin(session?: Session | null) {
+  return requirePlatformAdmin(session);
 }

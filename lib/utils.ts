@@ -94,16 +94,25 @@ export function getElapsedTimeString(
 }
 
 /**
- * Formats a date into a string in the format of HH:MM:SS
+ * Formats a date into a localized date/time string.
  * @param date - The date to format
- * @returns Formatted string of the date in the format of HH:MM:SS
+ * @param fallbackMessage - Message when the date is missing or invalid
+ * @returns Formatted date string, or the fallback message
  */
-export function getFormattedDate(date?: Date | null): string {
+export function getFormattedDate(
+  date?: Date | string | null,
+  fallbackMessage = "-",
+): string {
   if (!date) {
-    return "-";
+    return fallbackMessage;
   }
 
-  return new Date(date).toLocaleString("en-US", {
+  const dateValue = date instanceof Date ? date : new Date(date);
+  if (isNaN(dateValue.getTime())) {
+    return fallbackMessage;
+  }
+
+  return dateValue.toLocaleString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     month: "2-digit",
