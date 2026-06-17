@@ -13,7 +13,7 @@ export const Permissions = {
     ManageIntegrations: "platform.integrations.manage",
     ImpersonateUsers: "platform.users.impersonate",
     ViewMetrics: "platform.metrics.view",
-    ViewLogs: "platform.logs.views",
+    ViewLogs: "platform.logs.view",
     ViewUsage: "platform.usage.view",
   },
   Tenant: {

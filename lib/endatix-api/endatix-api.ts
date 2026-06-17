@@ -19,6 +19,9 @@ import Stats from "./stats/stats";
 import { Folders } from "./folders/folders";
 import { FormTemplates } from "./form-templates/form-templates";
 import Email from "./email/email";
+import AuthAdmin from "./auth-admin/auth-admin";
+import PlatformTenants from "./platform-tenants/platform-tenants";
+import PlatformAdmins from "./platform-admins/platform-admins";
 
 /**
  * Gets the validated and cached API URL
@@ -71,6 +74,9 @@ export class EndatixApi {
   private _folders?: Folders;
   private _formTemplates?: FormTemplates;
   private _email?: Email;
+  private _authAdmin?: AuthAdmin;
+  private _platformTenants?: PlatformTenants;
+  private _platformAdmins?: PlatformAdmins;
 
   constructor(
     sessionOrToken?: SessionData | string,
@@ -227,6 +233,21 @@ export class EndatixApi {
   get email(): Email {
     this._email ??= new Email(this);
     return this._email;
+  }
+
+  get authAdmin(): AuthAdmin {
+    this._authAdmin ??= new AuthAdmin(this);
+    return this._authAdmin;
+  }
+
+  get platformTenants(): PlatformTenants {
+    this._platformTenants ??= new PlatformTenants(this);
+    return this._platformTenants;
+  }
+
+  get platformAdmins(): PlatformAdmins {
+    this._platformAdmins ??= new PlatformAdmins(this);
+    return this._platformAdmins;
   }
 
   /**
