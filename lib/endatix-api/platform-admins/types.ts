@@ -1,7 +1,11 @@
 import type { IPagedRequest } from "../shared/types";
 
+export type PlatformAdminListScope = "all" | "approved" | "candidates";
+
 export interface ListPlatformAdminsRequest extends IPagedRequest {
   search?: string;
+  scope?: PlatformAdminListScope;
+  tenantId?: string;
 }
 
 export interface PlatformAdminUserListItem {

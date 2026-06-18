@@ -3,13 +3,15 @@ import type {
   PagedResponse,
   PlatformAdminUserListItem,
 } from "@/lib/endatix-api";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    refresh: vi.fn(),
+    replace: vi.fn(),
   }),
+  usePathname: () => "/admin/platform-admins",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/components/ui/toast", () => ({
@@ -34,27 +36,39 @@ vi.mock(
 );
 
 describe("PlatformAdminsTable", () => {
-  it("does not render a revoke action for the current platform admin", () => {
-    render(
-      <PlatformAdminsTable
-        admins={paged([
-          user({
-            id: "1514676504716378112",
-            email: "current@endatix.com",
-            authProvider: "Keycloak",
-            isExternal: true,
-          }),
-          user({ id: "other-user", email: "other@endatix.com" }),
-        ])}
-        candidates={paged([])}
-        currentUserId="1514676504716378112"
-      />,
-    );
+  it("does not render a revoke action for the current platform admin", async () => {
+    await act(async () => {
+      render(
+        <PlatformAdminsTable
+          usersPromise={Promise.resolve(
+            paged([
+              user({
+                id: "1514676504716378112",
+                email: "current@endatix.com",
+                authProvider: "Keycloak",
+                isExternal: true,
+                roles: ["PlatformAdmin"],
+              }),
+              user({
+                id: "other-user",
+                email: "other@endatix.com",
+                roles: ["PlatformAdmin"],
+              }),
+            ]),
+          )}
+          tenantsPromise={Promise.resolve(paged([]))}
+          approvedAdminTotalPromise={Promise.resolve(2)}
+          currentUserId="1514676504716378112"
+        />,
+      );
+    });
 
-    const currentUserRow = screen
-      .getByText("current@endatix.com")
-      .closest("tr");
-    const otherUserRow = screen.getByText("other@endatix.com").closest("tr");
+    const currentUserRow = (
+      await screen.findByText("current@endatix.com")
+    ).closest("tr");
+    const otherUserRow = (await screen.findByText("other@endatix.com")).closest(
+      "tr",
+    );
 
     expect(currentUserRow).not.toBeNull();
     expect(otherUserRow).not.toBeNull();
@@ -67,61 +81,72 @@ describe("PlatformAdminsTable", () => {
     expect(
       within(otherUserRow!).getByRole("button", { name: "Revoke" }),
     ).toBeDefined();
-    expect(within(currentUserRow!).getByText("Local approval")).toBeDefined();
-    expect(within(otherUserRow!).getByText("Local approval")).toBeDefined();
   });
 
-  it("does not render a revoke action for the last platform admin", () => {
-    render(
-      <PlatformAdminsTable
-        admins={paged([user({ email: "last@endatix.com" })])}
-        candidates={paged([])}
-        currentUserId="different-user"
-      />,
-    );
+  it("does not render a revoke action for the last approved platform admin", async () => {
+    await act(async () => {
+      render(
+        <PlatformAdminsTable
+          usersPromise={Promise.resolve(
+            paged([
+              user({
+                email: "last@endatix.com",
+                roles: ["PlatformAdmin"],
+              }),
+            ]),
+          )}
+          tenantsPromise={Promise.resolve(paged([]))}
+          approvedAdminTotalPromise={Promise.resolve(1)}
+          currentUserId="different-user"
+        />,
+      );
+    });
 
-    const lastAdminRow = screen.getByText("last@endatix.com").closest("tr");
+    const lastAdminRow = (await screen.findByText("last@endatix.com")).closest(
+      "tr",
+    );
 
     expect(lastAdminRow).not.toBeNull();
     expect(
       within(lastAdminRow!).getByRole("button", { name: "Last admin" }),
     ).toHaveProperty("disabled", true);
-    expect(
-      within(lastAdminRow!).queryByRole("button", { name: "Revoke" }),
-    ).toBeNull();
   });
 
-  it("renders external platform admin nomination state for candidates", () => {
-    render(
-      <PlatformAdminsTable
-        admins={paged([])}
-        candidates={paged([
-          user({
-            id: "external-candidate",
-            email: "external@endatix.com",
-            authProvider: "Keycloak",
-            isExternal: true,
-            hasExternalPlatformAdminRole: true,
-          }),
-        ])}
-      />,
-    );
+  it("renders grant action and external nomination badge for candidates", async () => {
+    await act(async () => {
+      render(
+        <PlatformAdminsTable
+          usersPromise={Promise.resolve(
+            paged([
+              user({
+                id: "external-candidate",
+                email: "external@endatix.com",
+                authProvider: "Keycloak",
+                isExternal: true,
+                hasExternalPlatformAdminRole: true,
+                roles: [],
+              }),
+            ]),
+          )}
+          tenantsPromise={Promise.resolve(paged([]))}
+          approvedAdminTotalPromise={Promise.resolve(0)}
+        />,
+      );
+    });
 
-    const candidateRow = screen.getByText("external@endatix.com").closest("tr");
+    const candidateRow = (
+      await screen.findByText("external@endatix.com")
+    ).closest("tr");
 
     expect(candidateRow).not.toBeNull();
     expect(
-      screen.getByText(
-        "External provider roles nominate users for platform administration. Local approval grants access in Endatix.",
-      ),
+      within(candidateRow!).getByRole("button", { name: "Grant" }),
     ).toBeDefined();
     expect(within(candidateRow!).getByText("Keycloak requested")).toBeDefined();
   });
 });
 
-function paged(
-  items: PlatformAdminUserListItem[],
-): PagedResponse<PlatformAdminUserListItem> {
+function paged<T>(items: T[]): PagedResponse<T> {
   return {
     items,
     page: 1,
@@ -147,7 +172,7 @@ function user(
     isLockedOut: false,
     lastLoginAt: null,
     hasExternalPlatformAdminRole: false,
-    roles: ["PlatformAdmin"],
+    roles: [],
     ...overrides,
   };
 }

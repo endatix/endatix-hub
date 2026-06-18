@@ -24,18 +24,8 @@ export default class PlatformAdmins {
         ["page", request.page],
         ["pageSize", request.pageSize],
         ["search", request.search],
-      ]),
-    );
-  }
-
-  async listCandidates(
-    request: ListPlatformAdminsRequest = {},
-  ): Promise<ApiResultType<PagedResponse<PlatformAdminUserListItem>>> {
-    return this.endatix.get<PagedResponse<PlatformAdminUserListItem>>(
-      buildQueryEndpoint("/admin/platform-admins/candidates", [
-        ["page", request.page],
-        ["pageSize", request.pageSize],
-        ["search", request.search],
+        ["scope", request.scope],
+        ["tenantId", request.tenantId],
       ]),
     );
   }

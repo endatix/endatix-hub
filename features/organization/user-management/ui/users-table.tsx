@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/table";
 import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
 import { DisabledButton } from "@/components/ui/disabled-button";
+import { ExternalUserBadge } from "./external-user-badge";
 import {
   Tooltip,
   TooltipContent,
@@ -363,7 +364,7 @@ export function UsersTable({
   return (
     <>
       <div className="space-y-4">
-        <Alert className="border-blue-200 bg-blue-50/60 text-blue-950">
+        <Alert variant="info">
           <Info className="h-4 w-4" />
           <AlertTitle>Secure invitation flow</AlertTitle>
           <AlertDescription>
@@ -714,21 +715,6 @@ function UserStatusBadge({
       }
     >
       {isActive ? "Active" : "Pending invite"}
-    </Badge>
-  );
-}
-
-function ExternalUserBadge({
-  authProvider,
-}: Readonly<{
-  authProvider: string;
-}>) {
-  return (
-    <Badge
-      variant="outline"
-      className="border-blue-200 bg-blue-50 text-blue-700"
-    >
-      External: {authProvider}
     </Badge>
   );
 }

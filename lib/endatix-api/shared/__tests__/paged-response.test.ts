@@ -254,9 +254,7 @@ describe("normalizePagedItemsResponse", () => {
   });
 
   it("handles null/undefined response", () => {
-    const result = normalizePagedResponse(
-      null as unknown as PagedResponse<string>,
-    );
+    const result = normalizePagedResponse(null);
     expect(result.page).toBe(1);
     expect(result.pageSize).toBe(20);
     expect(result.items).toEqual([]);
