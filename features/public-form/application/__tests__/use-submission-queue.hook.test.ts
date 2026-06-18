@@ -8,6 +8,8 @@ vi.mock("../submission-queue/submission-queue", () => ({
   submissionQueue: {
     enqueue: vi.fn(),
     clear: vi.fn(),
+    processing: false,
+    waitWhileProcessing: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -25,6 +27,7 @@ describe("useSubmissionQueue", () => {
     // Assert
     expect(typeof result.current.enqueueSubmission).toBe("function");
     expect(typeof result.current.clearQueue).toBe("function");
+    expect(typeof result.current.waitForInFlightPartial).toBe("function");
   });
 
   it("should enqueue submission with correct formId", () => {

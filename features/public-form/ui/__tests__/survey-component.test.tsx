@@ -12,7 +12,7 @@ const {
   mockSubmitPublicForm,
   mockEnqueueSubmission,
   mockClearQueue,
-  mockWaitForQueueIdle,
+  mockWaitForInFlightPartial,
   mockUseSurveyModel,
   mockSendEmbedMessage,
   mockEmbedHeightReporting,
@@ -22,7 +22,7 @@ const {
   mockClearQueue: vi.fn().mockImplementation(() => {
     // This will be called synchronously, so we can add logging if needed
   }),
-  mockWaitForQueueIdle: vi.fn().mockResolvedValue(undefined),
+  mockWaitForInFlightPartial: vi.fn().mockResolvedValue(undefined),
   mockUseSurveyModel: vi.fn(),
   mockSendEmbedMessage: vi.fn(),
   mockEmbedHeightReporting: {
@@ -43,7 +43,7 @@ vi.mock("../../application/submission-queue", () => {
     useSubmissionQueue: vi.fn(() => ({
       enqueueSubmission: mockEnqueueSubmission,
       clearQueue: mockClearQueue,
-      waitForQueueIdle: mockWaitForQueueIdle,
+      waitForInFlightPartial: mockWaitForInFlightPartial,
     })),
   };
 });
@@ -261,7 +261,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     // Assert
     expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
     expect(mockClearQueue).toHaveBeenCalledTimes(1);
-    expect(mockWaitForQueueIdle).toHaveBeenCalledTimes(1);
+    expect(mockWaitForInFlightPartial).toHaveBeenCalledTimes(1);
     expect(completeEventMocks.showSaveInProgress).toHaveBeenCalled();
 
     // Act: Any subsequent partial update should be blocked

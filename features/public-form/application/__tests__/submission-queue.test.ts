@@ -264,16 +264,16 @@ describe("SubmissionQueue", () => {
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
   });
 
-  it("should resolve waitForIdle when queue is already idle", async () => {
+  it("should resolve waitWhileProcessing immediately when nothing is in flight", async () => {
     // Arrange
     // Act
-    await queue.waitForIdle();
+    await queue.waitWhileProcessing();
 
     // Assert
-    await expect(queue.waitForIdle()).resolves.toBeUndefined();
+    await expect(queue.waitWhileProcessing()).resolves.toBeUndefined();
   });
 
-  it("should resolve waitForIdle after in-flight partial completes", async () => {
+  it("should resolve waitWhileProcessing after in-flight partial completes", async () => {
     // Arrange
     let resolveFirst: (value: unknown) => void;
     const firstSubmission = new Promise((resolve) => {
@@ -292,20 +292,20 @@ describe("SubmissionQueue", () => {
 
     vi.runAllTimers();
 
-    const idlePromise = queue.waitForIdle();
-    let idleResolved = false;
-    void idlePromise.then(() => {
-      idleResolved = true;
+    const processingPromise = queue.waitWhileProcessing();
+    let processingResolved = false;
+    void processingPromise.then(() => {
+      processingResolved = true;
     });
 
     // Assert
-    expect(idleResolved).toBe(false);
+    expect(processingResolved).toBe(false);
 
     // Act
     resolveFirst!(ApiResult.success({ submissionId: "sub-1" }));
     await vi.runAllTimersAsync();
 
     // Assert
-    await expect(idlePromise).resolves.toBeUndefined();
+    await expect(processingPromise).resolves.toBeUndefined();
   });
 });

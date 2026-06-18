@@ -81,10 +81,8 @@ export default function SurveyComponent({
     onModelCreated,
     formRuntime,
   });
-  const { enqueueSubmission, clearQueue, waitForQueueIdle } = useSubmissionQueue(
-    formId,
-    runtimeToken,
-  );
+  const { enqueueSubmission, clearQueue, waitForInFlightPartial } =
+    useSubmissionQueue(formId, runtimeToken);
   const [isSubmitting, startSubmitting] = useTransition();
   useSurveyTheme(theme, surveyModel);
   useRichText(surveyModel);
@@ -173,7 +171,7 @@ export default function SurveyComponent({
           submissionData.reCaptchaToken = reCaptchaToken;
         }
 
-        await waitForQueueIdle();
+        await waitForInFlightPartial();
 
         const result = await submitPublicForm(
           formId,
@@ -221,7 +219,7 @@ export default function SurveyComponent({
       isSubmitting,
       updateState,
       clearQueue,
-      waitForQueueIdle,
+      waitForInFlightPartial,
       startSubmitting,
       trackException,
       requiresReCaptcha,
