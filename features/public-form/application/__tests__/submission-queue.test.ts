@@ -2,11 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
 import { SubmissionQueue } from "../submission-queue/submission-queue";
 import { submitPublicForm } from "../submit-public-form";
 import { captureException } from "@/features/analytics/posthog/client";
+import { TelemetryLogger } from "@/features/telemetry";
 import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
 
 // Mock the submitPublicForm and captureException
 vi.mock("../submit-public-form", () => ({
   submitPublicForm: vi.fn(),
+}));
+
+vi.mock("@/features/telemetry", () => ({
+  TelemetryLogger: {
+    error: vi.fn(),
+  },
 }));
 
 vi.mock("@/features/analytics/posthog/client", () => ({
@@ -17,6 +24,7 @@ describe("SubmissionQueue", () => {
   let queue: SubmissionQueue;
   const mockSubmitForm = submitPublicForm as Mock;
   const mockCaptureException = captureException as Mock;
+  const mockTelemetryError = TelemetryLogger.error as Mock;
 
   beforeEach(() => {
     queue = new SubmissionQueue();
@@ -123,7 +131,6 @@ describe("SubmissionQueue", () => {
 
   it("should handle submission errors and continue processing", async () => {
     // Arrange
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const error = new Error("Network error");
     mockSubmitForm.mockRejectedValueOnce(error);
     mockSubmitForm.mockResolvedValueOnce(
@@ -152,14 +159,15 @@ describe("SubmissionQueue", () => {
     await vi.runAllTimersAsync();
 
     // Assert
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Error processing partial submission:",
-      expect.any(Error),
+    expect(mockTelemetryError).toHaveBeenCalledWith(
+      "Error processing partial submission",
+      undefined,
+      {
+        error_type: "submission_queue_processing_error",
+        queue_length: expect.any(Number),
+      },
+      "submission-queue",
     );
-    expect(mockCaptureException).toHaveBeenCalledWith(error, {
-      error_type: "submission_queue_processing_error",
-      queue_length: expect.any(Number),
-    });
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
   });
 
@@ -196,11 +204,9 @@ describe("SubmissionQueue", () => {
 
   it("should handle submission token invalid error properly", async () => {
     // Arrange
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const errorMessage = "Your submission session has expired.";
     mockSubmitForm.mockResolvedValue(
       ApiResult.validationError(
-        errorMessage,
+        "Your submission session has expired.",
         ERROR_CODE.SUBMISSION_TOKEN_INVALID,
       ),
     );
@@ -218,17 +224,17 @@ describe("SubmissionQueue", () => {
     await vi.runAllTimersAsync();
 
     // Assert
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Failed to submit form",
-      errorMessage,
-    );
-    expect(mockCaptureException).toHaveBeenCalledWith(
-      "Form submission failed",
+    expect(mockTelemetryError).toHaveBeenCalledWith(
+      "Partial submission failed",
+      undefined,
       {
         form_id: "1",
-        error_message: errorMessage,
+        error_type: "ValidationError",
+        error_code: ERROR_CODE.SUBMISSION_TOKEN_INVALID,
       },
+      "submission-queue",
     );
+    expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
   it("should process items added while processing previous items", async () => {
@@ -297,6 +303,8 @@ describe("SubmissionQueue", () => {
     void processingPromise.then(() => {
       processingResolved = true;
     });
+
+    await Promise.resolve();
 
     // Assert
     expect(processingResolved).toBe(false);
