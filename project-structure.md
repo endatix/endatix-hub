@@ -147,6 +147,13 @@ Action rules:
 - Revalidate paths only after success
 - Surface success and failure in the UI with toast or inline feedback; pair actions with a client handler using `useTransition` when not using `useActionState`
 
+#### List pages and tables
+
+- Drive search, filters, and pagination from URL `searchParams` (parse in a server page or shared util, e.g. `parsePlatformAdminListParams`).
+- Use one paged API endpoint with scope/tenant filters rather than two parallel lists sharing the same `page` param.
+- Client tables update the URL (debounced search, `Select` filters, `PagedTableFooter`) and receive unresolved promises from the server page wrapped in `Suspense`.
+- Reference: `settings/organization/users/page.tsx`, `admin/platform-admins/page.tsx`, and `users-table.tsx`.
+
 ### Server Helper Layer (`*.server.ts`)
 
 - Server-only read-model loaders and helper orchestration

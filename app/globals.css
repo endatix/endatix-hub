@@ -25,6 +25,10 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-border: var(--info-border);
+  --color-info-background: var(--info-background);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -111,6 +115,14 @@
   --success-foreground: hsl(0 0% 100%);
   --warning: hsl(32 90% 46%);
   --warning-foreground: hsl(0 0% 100%);
+  --info: var(--primary);
+  --info-foreground: var(--foreground);
+  --info-border: color-mix(in oklab, var(--primary) 28%, var(--border));
+  --info-background: color-mix(
+    in oklab,
+    var(--primary) 10%,
+    var(--content-canvas)
+  );
 
   --sidebar: hsl(0 0% 98%);
   --sidebar-foreground: hsl(240 5.3% 26.1%);
@@ -172,6 +184,10 @@
   --success-foreground: hsl(0 0% 100%);
   --warning: hsl(32 95% 50%);
   --warning-foreground: hsl(0 0% 100%);
+  --info: var(--primary);
+  --info-foreground: var(--foreground);
+  --info-border: color-mix(in oklab, var(--primary) 42%, var(--border));
+  --info-background: color-mix(in oklab, var(--primary) 16%, var(--card));
 
   /* Match main chrome (--background); inset content uses --content-canvas separately */
   --sidebar: var(--background);
@@ -225,25 +241,34 @@
     width: 100%;
     overflow: auto;
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 38%, var(--muted)) var(--muted);
+    scrollbar-color: color-mix(
+        in oklab,
+        var(--muted-foreground) 38%,
+        var(--muted)
+      )
+      var(--muted);
   }
 
-  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar {
+  [data-slot="submission-data-table"]
+    [data-slot="table-container"]::-webkit-scrollbar {
     height: 10px;
   }
 
-  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-track {
+  [data-slot="submission-data-table"]
+    [data-slot="table-container"]::-webkit-scrollbar-track {
     background: var(--muted);
     border-radius: 9999px;
   }
 
-  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb {
+  [data-slot="submission-data-table"]
+    [data-slot="table-container"]::-webkit-scrollbar-thumb {
     background: color-mix(in oklab, var(--muted-foreground) 38%, var(--muted));
     border-radius: 9999px;
     border: 2px solid var(--muted);
   }
 
-  [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
+  [data-slot="submission-data-table"]
+    [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
     background: color-mix(in oklab, var(--muted-foreground) 52%, var(--muted));
   }
 
@@ -252,12 +277,16 @@
     scrollbar-color: var(--primary) var(--muted);
   }
 
-  .dark [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb {
+  .dark
+    [data-slot="submission-data-table"]
+    [data-slot="table-container"]::-webkit-scrollbar-thumb {
     background: var(--primary);
     border: 2px solid var(--muted);
   }
 
-  .dark [data-slot="submission-data-table"] [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
+  .dark
+    [data-slot="submission-data-table"]
+    [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
     background: var(--ring);
   }
 }

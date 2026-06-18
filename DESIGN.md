@@ -18,7 +18,19 @@ The palette is rooted in a sophisticated range of slates and atmospheric blues, 
 
 - **Primary (`#0053db`):** Reserved exclusively for high-intent actions and active states. Use `primary_container` (`#dbe1ff`) for subtle highlights.
 - **Surface & Background (`#f8f9ff`):** Our canvas is a cool, bright blue-gray. It provides a crisp foundation for content.
+- **Informational surfaces:** Use semantic `--info-*` tokens (mapped in `app/globals.css` to Tailwind `info`, `info-background`, `info-border`, `info-foreground`). Prefer `<Alert variant="info">` for guidance banners—not raw `blue-50` / `blue-950` utility classes, which break in dark mode.
 - **The "No-Line" Rule:** We explicitly prohibit 1px solid borders for sectioning. Boundaries must be defined through background color shifts. For example, a sidebar should use `surface_container_low` against a `surface` main content area.
+
+### Semantic status tokens (`app/globals.css`)
+
+| Token | Usage |
+| :---- | :---- |
+| `--success` / `--success-foreground` | Positive completion states |
+| `--warning` / `--warning-foreground` | Cautionary states |
+| `--info` / `--info-foreground` / `--info-background` / `--info-border` | Informational callouts, external-user badges, non-blocking guidance |
+| `--destructive` / `--destructive-foreground` | Errors and destructive confirmations |
+
+Light and dark values are defined under `:root` and `.dark`. Components must consume these tokens (or Shadcn variants built on them), not fixed Tailwind palette steps such as `blue-200` or `text-blue-950`.
 
 ### Surface Hierarchy & Nesting
 
@@ -125,6 +137,7 @@ Implementation rules:
 - **Don't** use `#000000` for shadows. Always tint with the surface color.
 - **Don't** use 1px solid borders to separate list items. Use spacing or tonal shifts.
 - **Don't** use standard "Alert Red" for errors. Use the sophisticated `error` (`#9f403d`) and `error_container` (`#fe8983`) tokens.
+- **Don't** use fixed Tailwind color scales (`bg-blue-50`, `text-blue-950`, etc.) on surfaces that must work in light and dark mode. Use semantic tokens (`info-background`, `muted-foreground`, `on-surface-variant`) or component variants (`Alert variant="info"`).
 - **Don't** overcrowd the card. If data is dense, use a "Nested Surface" to group related points.
 
 ---
@@ -163,6 +176,7 @@ Our spacing is built on a tight 0.2rem increment for precision data-density, exp
 | `--primary` / `--primary-dim` / `--primary-foreground` | `--sjs-primary-*`, `--sjs-secondary-*`, `--sjs-code-blue-500`                                                                                                        | `--sjs-primary-*`                                         |
 | `--border`                                             | `--sjs-border-*`                                                                                                                                                     | `--sjs-border-*`                                          |
 | `--destructive` / `--destructive-foreground`           | `--sjs-semantic-red-*`, `--sjs-code-red-500`                                                                                                                         | `--sjs-special-red*`                                      |
+| `--info` / `--info-background` / `--info-border`       | (app-only today; use `--sjs-semantic-blue-*` if a survey callout needs parity)                                                                                        | `--sjs-special-blue*` (informational only)                |
 | `--chart-3`                                            | `--sjs-semantic-blue-*`                                                                                                                                              | `--sjs-special-blue*`                                     |
 
 ### Update Checklist (When Palette Changes)
