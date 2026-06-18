@@ -2,18 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
 import { SubmissionQueue } from "../submission-queue/submission-queue";
 import { submitPublicForm } from "../submit-public-form";
 import { captureException } from "@/features/analytics/posthog/client";
-import { TelemetryLogger } from "@/features/telemetry";
 import { ApiResult, ERROR_CODE } from "@/lib/endatix-api";
 
 // Mock the submitPublicForm and captureException
 vi.mock("../submit-public-form", () => ({
   submitPublicForm: vi.fn(),
-}));
-
-vi.mock("@/features/telemetry", () => ({
-  TelemetryLogger: {
-    error: vi.fn(),
-  },
 }));
 
 vi.mock("@/features/analytics/posthog/client", () => ({
@@ -24,7 +17,6 @@ describe("SubmissionQueue", () => {
   let queue: SubmissionQueue;
   const mockSubmitForm = submitPublicForm as Mock;
   const mockCaptureException = captureException as Mock;
-  const mockTelemetryError = TelemetryLogger.error as Mock;
 
   beforeEach(() => {
     queue = new SubmissionQueue();
@@ -159,14 +151,12 @@ describe("SubmissionQueue", () => {
     await vi.runAllTimersAsync();
 
     // Assert
-    expect(mockTelemetryError).toHaveBeenCalledWith(
+    expect(mockCaptureException).toHaveBeenCalledWith(
       "Error processing partial submission",
-      undefined,
       {
         error_type: "submission_queue_processing_error",
         queue_length: expect.any(Number),
       },
-      "submission-queue",
     );
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
   });
@@ -224,17 +214,14 @@ describe("SubmissionQueue", () => {
     await vi.runAllTimersAsync();
 
     // Assert
-    expect(mockTelemetryError).toHaveBeenCalledWith(
+    expect(mockCaptureException).toHaveBeenCalledWith(
       "Partial submission failed",
-      undefined,
       {
         form_id: "1",
         error_type: "ValidationError",
         error_code: ERROR_CODE.SUBMISSION_TOKEN_INVALID,
       },
-      "submission-queue",
     );
-    expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
   it("should process items added while processing previous items", async () => {

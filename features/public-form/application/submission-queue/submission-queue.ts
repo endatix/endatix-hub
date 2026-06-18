@@ -1,10 +1,7 @@
 import { captureException } from "@/features/analytics/posthog/client";
-import { TelemetryLogger } from "@/features/telemetry";
 import { SubmissionData } from "@/features/submissions/types";
 import { ApiResult } from "@/lib/endatix-api";
 import { submitPublicForm } from "../submit-public-form";
-
-const LOGGER_NAME = "submission-queue";
 
 interface QueueItem {
   formId: string;
@@ -45,27 +42,17 @@ export class SubmissionQueue {
       );
 
       if (ApiResult.isError(submitResult)) {
-        TelemetryLogger.error(
-          "Partial submission failed",
-          undefined,
-          {
-            form_id: itemToProcess.formId,
-            error_type: submitResult.error.type,
-            error_code: submitResult.error.errorCode,
-          },
-          LOGGER_NAME,
-        );
+        captureException("Partial submission failed", {
+          form_id: itemToProcess.formId,
+          error_type: submitResult.error.type,
+          error_code: submitResult.error.errorCode ?? "unknown",
+        });
       }
     } catch {
-      TelemetryLogger.error(
-        "Error processing partial submission",
-        undefined,
-        {
-          error_type: "submission_queue_processing_error",
-          queue_length: this.queue.length,
-        },
-        LOGGER_NAME,
-      );
+      captureException("Error processing partial submission", {
+        error_type: "submission_queue_processing_error",
+        queue_length: this.queue.length,
+      });
     } finally {
       this.isProcessing = false;
       if (this.queue.length > 0) {
@@ -78,15 +65,11 @@ export class SubmissionQueue {
 
   public enqueue(item: QueueItem): void {
     if (!item.formId || !item.data) {
-      const errorMessage = "Submission queue invalid item error";
-      const errorData = {
+      captureException("Submission queue invalid item error", {
         error_type: "invalid_queue_item",
         has_form_id: !!item.formId,
         has_data: !!item.data,
-      };
-
-      console.error(errorMessage, errorData);
-      captureException(errorMessage, errorData);
+      });
       return;
     }
 
