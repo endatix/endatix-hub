@@ -6,6 +6,19 @@ import type {
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}));
+
+vi.mock("@/components/ui/toast", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 vi.mock(
   "@/features/platform-admin/grant-platform-admin/grant-platform-admin.action",
   () => ({

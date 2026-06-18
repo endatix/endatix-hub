@@ -109,20 +109,43 @@ export const createFormUseCase = async (
 ### Action Layer (.action.ts)
 
 ```typescript
-// Next.js server action - thin wrapper
 "use server";
 
-export async function createFormAction(
-  request: CreateFormRequest,
-): Promise<Result<string>> {
-  await ensureAuthenticated(); // Next.js concerns
-  const result = await createFormUseCase(request);
-  if (result.isSuccess()) {
-    revalidatePath("/(main)/forms"); // Next.js concerns
+import { revalidatePath } from "next/cache";
+import { EndatixApi } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
+
+export type DeleteItemResult = Result<string>;
+
+export async function deleteItemAction(
+  itemId: string,
+): Promise<DeleteItemResult> {
+  const session = await requireAccess(); // auth + authorization at the boundary
+  const api = new EndatixApi(session.accessToken);
+  const apiResult = await api.items.delete(itemId);
+  const result = toResult(apiResult, {
+    fallbackMessage: "Failed to delete item.",
+    logMessage: "Failed to delete item.",
+    loggerName: "feature.items",
+    mapData: (data) => data.message,
+  });
+
+  if (Result.isSuccess(result)) {
+    revalidatePath("/(main)/items");
   }
+
   return result;
 }
 ```
+
+Action rules:
+
+- Return `Result<T>` (or `ServerActionState` for multi-field forms) — never swallow failures silently
+- Authenticate and authorize inside the action, or accept a session already validated by the caller
+- Map `ApiResult` failures with `toResult(...)` so expected 403/404/validation errors stay user-facing and unexpected failures are logged through `TelemetryLogger`
+- Revalidate paths only after success
+- Surface success and failure in the UI with toast or inline feedback; pair actions with a client handler using `useTransition` when not using `useActionState`
 
 ### Server Helper Layer (`*.server.ts`)
 

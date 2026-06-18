@@ -2,6 +2,7 @@ import type {
   PagedResponse,
   PlatformAdminUserListItem,
 } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { grantPlatformAdminAction } from "../../grant-platform-admin/grant-platform-admin.action";
 import { revokePlatformAdminAction } from "../../revoke-platform-admin/revoke-platform-admin.action";
+import { PlatformAdminUserActionButton } from "./platform-admin-user-action-button";
 import { getFormattedDate } from "@/lib/utils";
 
 interface PlatformAdminsTableProps {
@@ -35,6 +37,8 @@ export function PlatformAdminsTable({
         users={admins}
         emptyMessage="No platform administrators found."
         actionLabel="Revoke"
+        pendingLabel="Revoking..."
+        fallbackErrorMessage="Failed to revoke platform administrator access."
         action={revokePlatformAdminAction}
         currentUserId={currentUserId}
         selfActionLabel="Current user"
@@ -46,6 +50,8 @@ export function PlatformAdminsTable({
         users={candidates}
         emptyMessage="No eligible users found."
         actionLabel="Grant"
+        pendingLabel="Granting..."
+        fallbackErrorMessage="Failed to grant platform administrator access."
         action={grantPlatformAdminAction}
         description="External provider roles nominate users for platform administration. Local approval grants access in Endatix."
       />
@@ -58,7 +64,9 @@ interface UserTableProps {
   users: PagedResponse<PlatformAdminUserListItem>;
   emptyMessage: string;
   actionLabel: string;
-  action: (formData: FormData) => Promise<void>;
+  pendingLabel: string;
+  fallbackErrorMessage: string;
+  action: (userId: string) => Promise<Result<string>>;
   currentUserId?: string;
   selfActionLabel?: string;
   preventLastActionLabel?: string;
@@ -71,6 +79,8 @@ function UserTable({
   users,
   emptyMessage,
   actionLabel,
+  pendingLabel,
+  fallbackErrorMessage,
   action,
   currentUserId,
   selfActionLabel,
@@ -161,12 +171,13 @@ function UserTable({
                           : (preventLastActionLabel ?? actionLabel)}
                       </Button>
                     ) : (
-                      <form action={action}>
-                        <input type="hidden" name="userId" value={user.id} />
-                        <Button type="submit" variant="outline" size="sm">
-                          {actionLabel}
-                        </Button>
-                      </form>
+                      <PlatformAdminUserActionButton
+                        userId={user.id}
+                        actionLabel={actionLabel}
+                        pendingLabel={pendingLabel}
+                        fallbackErrorMessage={fallbackErrorMessage}
+                        action={action}
+                      />
                     )}
                   </TableCell>
                 </TableRow>
