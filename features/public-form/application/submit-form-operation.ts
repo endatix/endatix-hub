@@ -110,6 +110,8 @@ export async function submitFormOperation(
 ): Promise<SubmissionOperationResult> {
   const syncCookies = !urlToken;
 
+  const tokenResult = tokenStore.getToken(formId);
+
   if (urlToken) {
     return updateExistingSubmissionViaToken(
       formId,
@@ -120,7 +122,6 @@ export async function submitFormOperation(
     );
   }
 
-  const tokenResult = tokenStore.getToken(formId);
   if (Result.isSuccess(tokenResult)) {
     return updateExistingSubmissionViaToken(
       formId,

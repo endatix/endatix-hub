@@ -123,7 +123,6 @@ describe("SubmissionQueue", () => {
 
   it("should handle submission errors and continue processing", async () => {
     // Arrange
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const error = new Error("Network error");
     mockSubmitForm.mockRejectedValueOnce(error);
     mockSubmitForm.mockResolvedValueOnce(
@@ -152,14 +151,13 @@ describe("SubmissionQueue", () => {
     await vi.runAllTimersAsync();
 
     // Assert
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Error processing partial submission:",
-      expect.any(Error),
+    expect(mockCaptureException).toHaveBeenCalledWith(
+      "Error processing partial submission",
+      {
+        error_type: "submission_queue_processing_error",
+        queue_length: expect.any(Number),
+      },
     );
-    expect(mockCaptureException).toHaveBeenCalledWith(error, {
-      error_type: "submission_queue_processing_error",
-      queue_length: expect.any(Number),
-    });
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
   });
 
@@ -196,11 +194,9 @@ describe("SubmissionQueue", () => {
 
   it("should handle submission token invalid error properly", async () => {
     // Arrange
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const errorMessage = "Your submission session has expired.";
     mockSubmitForm.mockResolvedValue(
       ApiResult.validationError(
-        errorMessage,
+        "Your submission session has expired.",
         ERROR_CODE.SUBMISSION_TOKEN_INVALID,
       ),
     );
@@ -218,15 +214,12 @@ describe("SubmissionQueue", () => {
     await vi.runAllTimersAsync();
 
     // Assert
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Failed to submit form",
-      errorMessage,
-    );
     expect(mockCaptureException).toHaveBeenCalledWith(
-      "Form submission failed",
+      "Partial submission failed",
       {
         form_id: "1",
-        error_message: errorMessage,
+        error_type: "ValidationError",
+        error_code: ERROR_CODE.SUBMISSION_TOKEN_INVALID,
       },
     );
   });
@@ -262,5 +255,52 @@ describe("SubmissionQueue", () => {
 
     // Assert
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
+  });
+
+  it("should resolve waitWhileProcessing immediately when nothing is in flight", async () => {
+    // Arrange
+    // Act
+    await queue.waitWhileProcessing();
+
+    // Assert
+    await expect(queue.waitWhileProcessing()).resolves.toBeUndefined();
+  });
+
+  it("should resolve waitWhileProcessing after in-flight partial completes", async () => {
+    // Arrange
+    let resolveFirst: (value: unknown) => void;
+    const firstSubmission = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+    mockSubmitForm.mockImplementationOnce(() => firstSubmission);
+
+    queue.enqueue({
+      formId: "1",
+      data: {
+        jsonData: '{"test": 1}',
+        isComplete: false,
+        currentPage: 0,
+      },
+    });
+
+    vi.runAllTimers();
+
+    const processingPromise = queue.waitWhileProcessing();
+    let processingResolved = false;
+    void processingPromise.then(() => {
+      processingResolved = true;
+    });
+
+    await Promise.resolve();
+
+    // Assert
+    expect(processingResolved).toBe(false);
+
+    // Act
+    resolveFirst!(ApiResult.success({ submissionId: "sub-1" }));
+    await vi.runAllTimersAsync();
+
+    // Assert
+    await expect(processingPromise).resolves.toBeUndefined();
   });
 });

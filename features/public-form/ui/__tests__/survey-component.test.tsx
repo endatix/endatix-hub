@@ -12,6 +12,7 @@ const {
   mockSubmitPublicForm,
   mockEnqueueSubmission,
   mockClearQueue,
+  mockWaitForInFlightPartial,
   mockUseSurveyModel,
   mockSendEmbedMessage,
   mockEmbedHeightReporting,
@@ -21,6 +22,7 @@ const {
   mockClearQueue: vi.fn().mockImplementation(() => {
     // This will be called synchronously, so we can add logging if needed
   }),
+  mockWaitForInFlightPartial: vi.fn().mockResolvedValue(undefined),
   mockUseSurveyModel: vi.fn(),
   mockSendEmbedMessage: vi.fn(),
   mockEmbedHeightReporting: {
@@ -41,6 +43,7 @@ vi.mock("../../application/submission-queue", () => {
     useSubmissionQueue: vi.fn(() => ({
       enqueueSubmission: mockEnqueueSubmission,
       clearQueue: mockClearQueue,
+      waitForInFlightPartial: mockWaitForInFlightPartial,
     })),
   };
 });
@@ -245,6 +248,37 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     realSurveyModel.setValue("question1", "new value");
   };
 
+  it("waits for in-flight partial before calling submitPublicForm", async () => {
+    // Arrange
+    let resolveWaitForPartial: () => void;
+    const waitForPartialPromise = new Promise<void>((resolve) => {
+      resolveWaitForPartial = resolve;
+    });
+    mockWaitForInFlightPartial.mockReturnValue(waitForPartialPromise);
+    renderSurveyComponent();
+
+    // Act
+    await act(async () => {
+      fireCompleteEvent();
+    });
+
+    // Assert
+    expect(mockWaitForInFlightPartial).toHaveBeenCalledTimes(1);
+    expect(mockSubmitPublicForm).not.toHaveBeenCalled();
+
+    // Act
+    await act(async () => {
+      resolveWaitForPartial!();
+      await waitForPartialPromise;
+    });
+
+    // Assert
+    expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
+    expect(
+      mockWaitForInFlightPartial.mock.invocationCallOrder[0],
+    ).toBeLessThan(mockSubmitPublicForm.mock.invocationCallOrder[0]);
+  });
+
   it("should prevent partial updates while a form submission is in progress", async () => {
     // Arrange
     renderSurveyComponent();
@@ -258,6 +292,7 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     // Assert
     expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
     expect(mockClearQueue).toHaveBeenCalledTimes(1);
+    expect(mockWaitForInFlightPartial).toHaveBeenCalledTimes(1);
     expect(completeEventMocks.showSaveInProgress).toHaveBeenCalled();
 
     // Act: Any subsequent partial update should be blocked
