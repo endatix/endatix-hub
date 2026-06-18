@@ -81,7 +81,7 @@ export default function SurveyComponent({
     onModelCreated,
     formRuntime,
   });
-  const { enqueueSubmission, clearQueue } = useSubmissionQueue(
+  const { enqueueSubmission, clearQueue, waitForQueueIdle } = useSubmissionQueue(
     formId,
     runtimeToken,
   );
@@ -173,6 +173,8 @@ export default function SurveyComponent({
           submissionData.reCaptchaToken = reCaptchaToken;
         }
 
+        await waitForQueueIdle();
+
         const result = await submitPublicForm(
           formId,
           submissionData,
@@ -219,6 +221,7 @@ export default function SurveyComponent({
       isSubmitting,
       updateState,
       clearQueue,
+      waitForQueueIdle,
       startSubmitting,
       trackException,
       requiresReCaptcha,

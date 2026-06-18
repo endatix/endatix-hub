@@ -14,8 +14,13 @@ export function useSubmissionQueue(formId: string, urlToken?: string) {
     submissionQueue.clear();
   }, []);
 
+  const waitForQueueIdle = useCallback(() => {
+    return submissionQueue.waitForIdle();
+  }, []);
+
   return {
     enqueueSubmission,
     clearQueue,
+    waitForQueueIdle,
   };
 }

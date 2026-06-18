@@ -12,6 +12,16 @@ interface QueueItem {
 export class SubmissionQueue {
   private queue: QueueItem[] = [];
   private isProcessing = false;
+  private idleResolvers: Array<() => void> = [];
+
+  private notifyIfIdle(): void {
+    if (!this.isProcessing && this.queue.length === 0) {
+      const resolvers = this.idleResolvers.splice(0);
+      for (const resolve of resolvers) {
+        resolve();
+      }
+    }
+  }
 
   private async processQueue() {
     if (this.isProcessing || this.queue.length === 0) {
@@ -54,6 +64,8 @@ export class SubmissionQueue {
       this.isProcessing = false;
       if (this.queue.length > 0) {
         this.processQueue();
+      } else {
+        this.notifyIfIdle();
       }
     }
   }
@@ -78,6 +90,17 @@ export class SubmissionQueue {
 
   public clear(): void {
     this.queue = [];
+    this.notifyIfIdle();
+  }
+
+  public waitForIdle(): Promise<void> {
+    if (!this.isProcessing && this.queue.length === 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      this.idleResolvers.push(resolve);
+    });
   }
 
   public get processing(): boolean {

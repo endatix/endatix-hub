@@ -263,4 +263,49 @@ describe("SubmissionQueue", () => {
     // Assert
     expect(mockSubmitForm).toHaveBeenCalledTimes(2);
   });
+
+  it("should resolve waitForIdle when queue is already idle", async () => {
+    // Arrange
+    // Act
+    await queue.waitForIdle();
+
+    // Assert
+    await expect(queue.waitForIdle()).resolves.toBeUndefined();
+  });
+
+  it("should resolve waitForIdle after in-flight partial completes", async () => {
+    // Arrange
+    let resolveFirst: (value: unknown) => void;
+    const firstSubmission = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+    mockSubmitForm.mockImplementationOnce(() => firstSubmission);
+
+    queue.enqueue({
+      formId: "1",
+      data: {
+        jsonData: '{"test": 1}',
+        isComplete: false,
+        currentPage: 0,
+      },
+    });
+
+    vi.runAllTimers();
+
+    const idlePromise = queue.waitForIdle();
+    let idleResolved = false;
+    void idlePromise.then(() => {
+      idleResolved = true;
+    });
+
+    // Assert
+    expect(idleResolved).toBe(false);
+
+    // Act
+    resolveFirst!(ApiResult.success({ submissionId: "sub-1" }));
+    await vi.runAllTimersAsync();
+
+    // Assert
+    await expect(idlePromise).resolves.toBeUndefined();
+  });
 });
