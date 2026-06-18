@@ -9,28 +9,113 @@ import { formatBytes } from "@/lib/utils/formatters";
 import { parseNumber } from "@/lib/utils/type-parsers";
 import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import type { YAxisTickContentProps } from "recharts";
+import { FormOverviewLink } from "./form-overview-link";
 
 type FormsStorageBarChartProps = {
   formStats: FormStorageStats[];
 };
+
+type TopFormChartDatum = {
+  name: string;
+  fullName: string;
+  formId: string;
+  value: number;
+  fill: string;
+};
+
+type FormStorageBarChartYAxisTickProps = YAxisTickContentProps & {
+  formsByDisplayName: Map<string, TopFormChartDatum>;
+};
+
+function toTickCoordinate(value: string | number | undefined): number {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
+function FormStorageBarChartYAxisTick({
+  x,
+  y,
+  payload,
+  formsByDisplayName,
+}: Readonly<FormStorageBarChartYAxisTickProps>) {
+  const tickX = toTickCoordinate(x);
+  const tickY = toTickCoordinate(y);
+  const displayName =
+    typeof payload?.value === "string" ? payload.value : undefined;
+  const form = displayName ? formsByDisplayName.get(displayName) : undefined;
+
+  if (!form) {
+    return (
+      <text
+        x={tickX}
+        y={tickY}
+        dy={4}
+        textAnchor="end"
+        fontSize={12}
+        className="fill-muted-foreground"
+      >
+        {displayName}
+      </text>
+    );
+  }
+
+  return (
+    <foreignObject
+      x={Math.max(tickX - 196, 0)}
+      y={tickY - 12}
+      width={196}
+      height={24}
+    >
+      <div className="flex h-6 items-center justify-end">
+        <FormOverviewLink
+          formId={form.formId}
+          label={displayName ?? form.fullName}
+          className="text-xs"
+        />
+      </div>
+    </foreignObject>
+  );
+}
+
 /**
  * Bar Chart Component for Form Storage Distribution
  */
 export function FormsStorageBarChart({
   formStats,
 }: Readonly<FormsStorageBarChartProps>) {
-  const topForms = formStats.slice(0, 10).map((f) => {
-    const formName =
-      f.formName.length > 20 ? f.formName.substring(0, 20) + "..." : f.formName;
-    const formId = f.formId.toString();
-    return {
-      name: formName,
-      fullName: f.formName,
-      formId: formId,
-      value: parseNumber(f.estimatedStorageBytes),
-      fill: `var(--color-${formId})`,
-    };
-  });
+  const topForms = useMemo<TopFormChartDatum[]>(
+    () =>
+      formStats.slice(0, 10).map((form) => {
+        const formName =
+          form.formName.length > 20
+            ? `${form.formName.substring(0, 20)}...`
+            : form.formName;
+        const formId = form.formId.toString();
+
+        return {
+          name: formName,
+          fullName: form.formName,
+          formId,
+          value: parseNumber(form.estimatedStorageBytes),
+          fill: `var(--color-${formId})`,
+        };
+      }),
+    [formStats],
+  );
+
+  const formsByDisplayName = useMemo(
+    () => new Map(topForms.map((form) => [form.name, form])),
+    [topForms],
+  );
 
   const barChartConfig = useMemo(() => {
     let count = 0;
@@ -48,9 +133,7 @@ export function FormsStorageBarChart({
   }, [topForms]);
 
   return (
-    <ChartContainer config={barChartConfig}
-      className="h-[350px] w-full"
-    >
+    <ChartContainer config={barChartConfig} className="h-[350px] w-full">
       <BarChart
         accessibilityLayer
         data={topForms}
@@ -68,6 +151,12 @@ export function FormsStorageBarChart({
           tickLine={false}
           axisLine={false}
           width={200}
+          tick={(props) => (
+            <FormStorageBarChartYAxisTick
+              {...props}
+              formsByDisplayName={formsByDisplayName}
+            />
+          )}
         />
         <XAxis
           dataKey="value"
@@ -81,13 +170,16 @@ export function FormsStorageBarChart({
         <ChartTooltip
           content={
             <ChartTooltipContent
-              formatter={(value: any) => [
-                formatBytes(value as number),
+              formatter={(value) => [
+                formatBytes(Number(value ?? 0)),
                 " Storage",
               ]}
-              labelFormatter={(_: any, payload: any) =>
-                payload.at(0)?.payload?.fullName || "Form"
-              }
+              labelFormatter={(_label, payload) => {
+                const form = payload.at(0)?.payload as
+                  | TopFormChartDatum
+                  | undefined;
+                return form?.fullName ?? "Form";
+              }}
             />
           }
         />
@@ -97,7 +189,7 @@ export function FormsStorageBarChart({
           radius={4}
           label={{
             position: "right",
-            formatter: (value: any) => formatBytes(value, 0),
+            formatter: (label) => formatBytes(Number(label ?? 0), 0),
           }}
         />
       </BarChart>

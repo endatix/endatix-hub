@@ -23,6 +23,7 @@ import { Database, FileText, History, Layers, AlertCircle } from "lucide-react";
 import { SubmissionDataPieChart } from "./submission-data-pie-chart";
 import { StorageStatsPromise } from "../types";
 import { FormsStorageBarChart } from "./form-storage-bar-chart";
+import { FormOverviewLink } from "./form-overview-link";
 
 type StorageDashboardProps = {
   storageStatsPromise: StorageStatsPromise;
@@ -126,7 +127,8 @@ export function StorageDashboard({
               <CardHeader>
                 <CardTitle>Top 10 Forms by Storage</CardTitle>
                 <CardDescription>
-                  Estimated storage consumption per form.
+                  Estimated storage consumption per form. Hover a form name to
+                  open it in a new tab.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
@@ -153,7 +155,8 @@ export function StorageDashboard({
             <CardHeader>
               <CardTitle>Form Breakdown</CardTitle>
               <CardDescription>
-                Detailed storage metrics for all active forms.
+                Detailed storage metrics for all active forms. Open a form in a
+                new tab without leaving this report.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -173,8 +176,11 @@ export function StorageDashboard({
                 <TableBody>
                   {formStats.map((form) => (
                     <TableRow key={form.formId}>
-                      <TableCell className="font-medium">
-                        {form.formName}
+                      <TableCell>
+                        <FormOverviewLink
+                          formId={form.formId}
+                          label={form.formName}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         {formatNumber(parseNumber(form.submissionCount))}

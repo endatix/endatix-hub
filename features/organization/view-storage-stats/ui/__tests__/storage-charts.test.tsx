@@ -16,11 +16,9 @@ vi.mock("recharts", () => ({
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
-  ResponsiveContainer: ({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) => <div data-testid="responsive-container">{children}</div>,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
 }));
 
 vi.mock("@/components/ui/chart", () => ({
@@ -44,7 +42,7 @@ vi.mock("@/components/ui/chart", () => ({
 describe("SubmissionDataPieChart", () => {
   it("renders pie chart with submission and version data", () => {
     render(
-      <SubmissionDataPieChart submissionCount={1000} versionCount={500} />
+      <SubmissionDataPieChart submissionCount={1000} versionCount={500} />,
     );
     expect(screen.getByTestId("chart-container")).toBeDefined();
     expect(screen.getByTestId("pie-chart")).toBeDefined();
@@ -60,7 +58,7 @@ describe("SubmissionDataPieChart", () => {
       <SubmissionDataPieChart
         submissionCount={1000000}
         versionCount={5000000}
-      />
+      />,
     );
     expect(screen.getByTestId("chart-container")).toBeDefined();
   });
@@ -68,8 +66,20 @@ describe("SubmissionDataPieChart", () => {
 
 describe("FormsStorageBarChart", () => {
   const mockFormStats = [
-    { formId: 1, formName: "Form 1", submissionCount: 100, versionCount: 200, estimatedStorageBytes: 1024 },
-    { formId: 2, formName: "Form 2", submissionCount: 50, versionCount: 100, estimatedStorageBytes: 512 },
+    {
+      formId: 1,
+      formName: "Form 1",
+      submissionCount: 100,
+      versionCount: 200,
+      estimatedStorageBytes: 1024,
+    },
+    {
+      formId: 2,
+      formName: "Form 2",
+      submissionCount: 50,
+      versionCount: 100,
+      estimatedStorageBytes: 512,
+    },
   ];
 
   it("renders bar chart with form stats", () => {
@@ -168,6 +178,9 @@ describe("StorageDashboard", () => {
     await waitFor(() => {
       expect(screen.getByText("Forms Distribution")).toBeDefined();
     });
+    const formLink = screen.getByRole("link", { name: /Test Form/i });
+    expect(formLink.getAttribute("href")).toBe("/forms/1");
+    expect(formLink.getAttribute("target")).toBe("_blank");
   });
 
   it("renders tables tab", async () => {

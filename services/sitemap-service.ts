@@ -24,6 +24,7 @@ export class SitemapService {
       sitemap.dataLists,
       sitemap.documentation,
       sitemap.settings,
+      sitemap.platformAdmin,
     ];
 
     return sitemapList;

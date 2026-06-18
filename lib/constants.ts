@@ -1,19 +1,26 @@
-import { INavItem } from "@/types/navigation-models";
+import type { INavItem } from "@/types/navigation-models";
 import {
+  Building2,
   BookOpen,
   ClipboardList,
   DatabaseZap,
   FolderCog,
+  HardDrive,
+  KeyRound,
   LayoutTemplate,
   LifeBuoy,
   LineChart,
+  Mail,
   Plug,
   Repeat,
+  Shield,
   ShieldCheck,
   Settings2,
   UserCog,
   Users,
+  Wrench,
 } from "lucide-react";
+import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 
 export const HOME_ROUTE_PATH = "/";
 
@@ -96,7 +103,7 @@ const sitemapArray: INavItem[] = [
   {
     key: "settings",
     title: "Settings",
-    url: "/settings/organization/users",
+    url: "/settings",
     icon: Settings2,
     children: [
       {
@@ -109,6 +116,13 @@ const sitemapArray: INavItem[] = [
         key: "organizationGeneral",
         title: "General",
         url: "/settings/organization/forms",
+        icon: Wrench,
+      },
+      {
+        key: "organizationOverview",
+        title: "Overview",
+        url: "/settings/organization/overview",
+        icon: LineChart,
       },
       {
         key: "users",
@@ -133,6 +147,64 @@ const sitemapArray: INavItem[] = [
         title: "Security",
         url: "/settings/security",
         icon: ShieldCheck,
+      },
+    ],
+  },
+  {
+    key: "platformAdmin",
+    title: "Platform Admin",
+    url: "/admin",
+    icon: Shield,
+    requiredRole: SystemRoles.PlatformAdmin,
+    children: [
+      {
+        key: "platformOverview",
+        title: "Overview",
+        url: "/admin",
+        icon: Shield,
+        requiredRole: SystemRoles.PlatformAdmin,
+      },
+      {
+        key: "platformTenants",
+        title: "Tenants",
+        url: "/admin/tenants",
+        icon: Building2,
+        requiredRole: SystemRoles.PlatformAdmin,
+      },
+      {
+        key: "platformAdmins",
+        title: "Platform Admins",
+        url: "/admin/platform-admins",
+        icon: UserCog,
+        requiredRole: SystemRoles.PlatformAdmin,
+      },
+      {
+        key: "platformSettingsSection",
+        title: "Configuration",
+        url: "",
+        isSectionHeader: true,
+        requiredRole: SystemRoles.PlatformAdmin,
+      },
+      {
+        key: "platformStorage",
+        title: "Storage",
+        url: "/admin/storage",
+        icon: HardDrive,
+        requiredRole: SystemRoles.PlatformAdmin,
+      },
+      {
+        key: "platformEmail",
+        title: "Email",
+        url: "/admin/email",
+        icon: Mail,
+        requiredRole: SystemRoles.PlatformAdmin,
+      },
+      {
+        key: "platformAuth",
+        title: "Auth",
+        url: "/admin/auth",
+        icon: KeyRound,
+        requiredRole: SystemRoles.PlatformAdmin,
       },
     ],
   },
