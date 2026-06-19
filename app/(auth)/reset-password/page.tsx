@@ -6,6 +6,7 @@ import ResetPasswordForm, {
 export const metadata: Metadata = {
   title: "Reset Password",
   description: "Reset your password",
+  robots: { index: false, follow: false },
 };
 
 interface ResetPasswordPageProps {

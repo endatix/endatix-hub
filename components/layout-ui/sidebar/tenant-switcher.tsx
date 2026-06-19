@@ -18,21 +18,31 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import EndatixLogoSvg from "@/public/assets/icons/endatix-logo-beta.svg";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { getPublicAssetPath } from "@/lib/hosting";
 
-const ENDATIX_CORP_SITE_URL = "https://endatix.com";
 
 function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
   return (
-    <Image
-      src={EndatixLogoSvg}
-      alt=""
-      className={className}
-      width={16}
-      height={16}
-      aria-hidden
-    />
+    <>
+      <Image
+        src={getPublicAssetPath("/assets/icons/endatix-hub-square-blue.svg")}
+        alt=""
+        className={cn(className, "dark:hidden")}
+        width={32}
+        height={32}
+        aria-hidden
+      />
+      <Image
+        src={getPublicAssetPath("/assets/icons/endatix-hub-square-white.svg")}
+        alt=""
+        className={cn(className, "hidden dark:block")}
+        width={32}
+        height={32}
+        aria-hidden
+      />
+    </>
   );
 }
 
@@ -79,7 +89,7 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:rounded-md">
+              <div className="flex aspect-square size-8 flex-shrink-0 items-center justify-center group-data-[collapsible=icon]:size-full">
                 <activeTenant.logo className="size-8 shrink-0" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -108,7 +118,7 @@ export function TenantSwitcher({ tenants }: Readonly<TenantSwitcherProps>) {
                 onClick={() => setActiveTenant(tenant)}
                 className="gap-2 p-2"
               >
-                <div className="flex size-6 items-center justify-center rounded-sm border">
+                <div className="flex size-6 items-center justify-center">
                   <tenant.logo className="size-6 shrink-0" />
                 </div>
                 {tenant.name}
@@ -135,16 +145,30 @@ const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" asChild>
-          <a href={ENDATIX_CORP_SITE_URL} target="_blank">
-            <div className="fflex aspect-square size-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:rounded-md">
+        <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:rounded-[3px] group-data-[collapsible=icon]:overflow-hidden">
+          <a href={tenant.href ?? "/"}>
+            {/* Collapsed: square icon */}
+            <div className="hidden aspect-square size-full items-center justify-center group-data-[collapsible=icon]:flex">
               <tenant.logo className="size-8 shrink-0" />
             </div>
-            <div className="flex flex-col gap-0.5 leading-none">
-              <span className="font-medium">{tenant.name}</span>
-              {tenant.description && (
-                <span className="truncate text-xs">{tenant.description}</span>
-              )}
+            {/* Expanded: horizontal wordmark */}
+            <div className="flex items-center group-data-[collapsible=icon]:hidden">
+              <Image
+                src={getPublicAssetPath("/assets/icons/endatix-hub-logo-v2-blue-v2.svg")}
+                alt="Endatix Hub"
+                width={1232}
+                height={198}
+                className="h-6 w-auto dark:hidden"
+                priority
+              />
+              <Image
+                src={getPublicAssetPath("/assets/icons/endatix-hub-logo-v2-white.svg")}
+                alt="Endatix Hub"
+                width={1232}
+                height={198}
+                className="hidden h-6 w-auto dark:block"
+                priority
+              />
             </div>
           </a>
         </SidebarMenuButton>

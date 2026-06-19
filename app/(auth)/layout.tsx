@@ -18,23 +18,10 @@ interface AuthLayoutProps {
 }
 
 export const metadata: Metadata = {
-  title: "Endatix Hub - Login",
+  title: "Endatix Hub",
   description: "Login to your Endatix Hub account",
-  generator: "Endatix",
-  keywords: [
-    "endatix",
-    "endatix hub",
-    "endatix hub app",
-    "forms-management",
-    "ai-form-builder",
-    "login",
-  ],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
-  robots: {
-    index: false,
-    follow: false,
-  },
 };
 
 const formFeatures = [
@@ -53,7 +40,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
       <head>
         <link
           rel="icon"
-          href={getPublicAssetPath("/assets/icons/icon.svg")}
+          href={getPublicAssetPath("/assets/icons/endatix-hub-square-blue.svg")}
           type="image/svg+xml"
         />
       </head>

@@ -10,6 +10,7 @@ import { toResult } from "@/lib/result/map-api-result-to-result";
 export const metadata: Metadata = {
   title: "Accept Invitation | Endatix Hub",
   description: "Accept your Endatix Hub invitation and set your password.",
+  robots: { index: false, follow: false },
 };
 
 interface ActivateInvitePageProps {
