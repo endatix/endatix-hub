@@ -10,6 +10,7 @@ import AuthErrorDetails from "@/features/auth/ui/auth-error";
 import { AuthErrorType, ErrorDetails } from "@/features/auth";
 import { auth } from "@/auth";
 import { getPublicAssetPath } from "@/lib/hosting";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Authentication failed | Endatix Hub",
@@ -29,10 +30,7 @@ export const metadata: Metadata = {
       },
     ],
   },
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: ROBOTS.hiddenPage,
 };
 
 const defaultErrorDetails: ErrorDetails = {

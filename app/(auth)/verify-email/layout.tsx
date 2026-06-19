@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  robots: { index: false, follow: false },
+  robots: ROBOTS.hiddenPage,
 };
 
 export default function VerifyEmailLayout({

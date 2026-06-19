@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import MobileJwtTestForm from "./mobile-jwt-test-form";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  robots: { index: false, follow: false },
+  robots: ROBOTS.hiddenPage,
 };
 
 export default async function SessionBridgePage() {
