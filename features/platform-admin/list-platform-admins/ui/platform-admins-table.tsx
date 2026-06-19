@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import { Info, User, UserCog } from "lucide-react";
+import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,10 @@ export function PlatformAdminsTable({
     "tenantId",
     allTenantsValue,
   );
+  const { trackEvent } = useTrackEvent();
+  const handleRevokeSuccess = () => {
+    trackEvent("platform_admin_access_revoked", { success: true });
+  };
 
   return (
     <div className="space-y-4">
@@ -189,6 +194,7 @@ export function PlatformAdminsTable({
                       isActionDisabled={isActionDisabled}
                       isCurrentUser={isCurrentUser}
                       isLastApprovedAdmin={isLastApprovedAdmin}
+                      onRevokeSuccess={handleRevokeSuccess}
                     />
                   );
                 })}
@@ -214,12 +220,14 @@ function PlatformAdminUserRow({
   isActionDisabled,
   isCurrentUser,
   isLastApprovedAdmin,
+  onRevokeSuccess,
 }: Readonly<{
   user: PlatformAdminUserListItem;
   isLocallyApproved: boolean;
   isActionDisabled: boolean;
   isCurrentUser: boolean;
   isLastApprovedAdmin: boolean;
+  onRevokeSuccess: () => void;
 }>) {
   const row = (
     <TableRow
@@ -291,6 +299,7 @@ function PlatformAdminUserRow({
             pendingLabel="Revoking..."
             fallbackErrorMessage="Failed to revoke platform administrator access."
             action={revokePlatformAdminAction}
+            onSuccess={onRevokeSuccess}
           />
         ) : (
           <PlatformAdminGrantButton user={user} />

@@ -9,9 +9,16 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     replace: vi.fn(),
+    refresh: vi.fn(),
   }),
   usePathname: () => "/admin/platform-admins",
   useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("@/features/analytics/posthog/client", () => ({
+  useTrackEvent: () => ({
+    trackEvent: vi.fn(),
+  }),
 }));
 
 vi.mock("@/components/ui/toast", () => ({
