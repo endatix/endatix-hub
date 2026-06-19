@@ -1,9 +1,8 @@
 "use client";
 
-import { use, useCallback, useEffect, useState, useTransition } from "react";
-import { Info, MoreVertical, Plus, Search } from "lucide-react";
-import type { Route } from "next";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { use, useState, useTransition } from "react";
+import { Info, MoreVertical, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +61,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
-import { PagedTableFooter } from "@/components/ui/paged-table-footer";
+import {
+  createPagedTableFooterProps,
+  PagedTableFooter,
+  TableEmptyRow,
+  TableSearchInput,
+} from "@/components/table";
+import { useDebouncedUrlSearch } from "@/lib/utils/hooks/use-debounced-url-search.hook";
+import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { createUrlFilterUpdater } from "@/lib/utils/list-table-url-utils";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 import type {
@@ -140,8 +147,7 @@ export function UsersTable({
   const users = pagedUsers.items;
   const router = useRouter();
   const { trackEvent } = useTrackEvent();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
   const urlSearch = searchParams.get("search") ?? "";
   const roleFilter = searchParams.get("role") ?? allRolesValue;
   const urlStatus = searchParams.get("status");
@@ -149,7 +155,20 @@ export function UsersTable({
     urlStatus === "active" || urlStatus === "pending" || urlStatus === "locked"
       ? urlStatus
       : allStatusesValue;
-  const [search, setSearch] = useState(urlSearch);
+  const { search, setSearch } = useDebouncedUrlSearch({
+    urlSearch,
+    updateUrl,
+  });
+  const onRoleFilterChange = createUrlFilterUpdater(
+    updateUrl,
+    "role",
+    allRolesValue,
+  );
+  const onStatusFilterChange = createUrlFilterUpdater(
+    updateUrl,
+    "status",
+    allStatusesValue,
+  );
   const [pendingUserRemove, setPendingUserRemove] =
     useState<UserListItem | null>(null);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
@@ -159,50 +178,6 @@ export function UsersTable({
   const assignableRoles = availableRoles.filter(
     (role) => !isPlatformScopedRole(role.name),
   );
-
-  const updateUrl = useCallback(
-    (updates: Record<string, string | null>) => {
-      const nextSearchParams = new URLSearchParams(searchParams.toString());
-
-      Object.entries(updates).forEach(([key, value]) => {
-        if (!value) {
-          nextSearchParams.delete(key);
-          return;
-        }
-
-        nextSearchParams.set(key, value);
-      });
-
-      const queryString = nextSearchParams.toString();
-      const href = (
-        queryString ? `${pathname}?${queryString}` : pathname
-      ) as Route;
-      router.replace(href, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParams],
-  );
-
-  useEffect(() => {
-    setSearch(urlSearch);
-  }, [urlSearch]);
-
-  useEffect(() => {
-    const trimmedSearch = search.trim();
-    if (trimmedSearch === urlSearch) {
-      return;
-    }
-
-    const timeout = globalThis.window.setTimeout(() => {
-      updateUrl({
-        search: trimmedSearch || null,
-        page: "1",
-      });
-    }, 350);
-
-    return () => globalThis.window.clearTimeout(timeout);
-  }, [search, updateUrl, urlSearch]);
 
   const openEditRole = (user: UserListItem) => {
     setEditingUser(user);
@@ -376,25 +351,13 @@ export function UsersTable({
         <Card className="gap-0 py-0">
           <CardHeader className="border-b bg-card py-4 max-lg:sticky max-lg:top-[56px] max-lg:z-20 max-lg:shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="relative min-w-0 flex-1 lg:max-w-sm">
-                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by name or email"
-                  className="pl-9 text-sm"
-                />
-              </div>
+              <TableSearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search by name or email"
+              />
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                <Select
-                  value={roleFilter}
-                  onValueChange={(value) =>
-                    updateUrl({
-                      role: value === allRolesValue ? null : value,
-                      page: "1",
-                    })
-                  }
-                >
+                <Select value={roleFilter} onValueChange={onRoleFilterChange}>
                   <SelectTrigger className="w-full lg:w-[180px]">
                     <SelectValue placeholder="Role" />
                   </SelectTrigger>
@@ -409,12 +372,7 @@ export function UsersTable({
                 </Select>
                 <Select
                   value={statusFilter}
-                  onValueChange={(value) =>
-                    updateUrl({
-                      status: value === allStatusesValue ? null : value,
-                      page: "1",
-                    })
-                  }
+                  onValueChange={onStatusFilterChange}
                 >
                   <SelectTrigger className="w-full lg:w-[180px]">
                     <SelectValue placeholder="Status" />
@@ -524,11 +482,11 @@ export function UsersTable({
                 </TableHeader>
                 <TableBody>
                   {userRows.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-28 text-center">
-                        No users match the current filters.
-                      </TableCell>
-                    </TableRow>
+                    <TableEmptyRow
+                      colSpan={4}
+                      message="No users match the current filters."
+                      className="h-28"
+                    />
                   ) : (
                     userRows.map((row) => {
                       return (
@@ -597,19 +555,7 @@ export function UsersTable({
           </CardContent>
 
           <PagedTableFooter
-            entityLabel="users"
-            page={pagedUsers.page}
-            pageSize={pagedUsers.pageSize}
-            totalPages={pagedUsers.totalPages}
-            totalRecords={pagedUsers.totalRecords}
-            hasNextPage={pagedUsers.hasNextPage}
-            onPageChange={(page) => updateUrl({ page: String(page) })}
-            onPageSizeChange={(pageSize) =>
-              updateUrl({
-                pageSize: String(pageSize),
-                page: "1",
-              })
-            }
+            {...createPagedTableFooterProps(pagedUsers, "users", updateUrl)}
           />
         </Card>
       </div>
