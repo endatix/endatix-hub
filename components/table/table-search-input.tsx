@@ -8,6 +8,7 @@ interface TableSearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  ariaLabel: string;
   className?: string;
   inputClassName?: string;
 }
@@ -16,6 +17,7 @@ export function TableSearchInput({
   value,
   onChange,
   placeholder,
+  ariaLabel,
   className,
   inputClassName,
 }: Readonly<TableSearchInputProps>) {
@@ -26,6 +28,7 @@ export function TableSearchInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        aria-label={ariaLabel}
         className={cn("pl-9 text-sm", inputClassName)}
       />
     </div>

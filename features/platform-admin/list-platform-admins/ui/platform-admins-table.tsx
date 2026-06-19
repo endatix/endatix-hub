@@ -128,10 +128,14 @@ export function PlatformAdminsTable({
               value={search}
               onChange={setSearch}
               placeholder="Search by name or email"
+              ariaLabel="Search platform administrators by name or email"
             />
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               <Select value={scopeFilter} onValueChange={onScopeFilterChange}>
-                <SelectTrigger className="w-full lg:w-[180px]">
+                <SelectTrigger
+                  className="w-full lg:w-[180px]"
+                  aria-label="Filter platform administrators by approval status"
+                >
                   <SelectValue placeholder="Approval" />
                 </SelectTrigger>
                 <SelectContent>
@@ -141,7 +145,10 @@ export function PlatformAdminsTable({
                 </SelectContent>
               </Select>
               <Select value={tenantFilter} onValueChange={onTenantFilterChange}>
-                <SelectTrigger className="w-full lg:w-[200px]">
+                <SelectTrigger
+                  className="w-full lg:w-[200px]"
+                  aria-label="Filter platform administrators by tenant"
+                >
                   <SelectValue placeholder="Tenant" />
                 </SelectTrigger>
                 <SelectContent>

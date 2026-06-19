@@ -355,6 +355,7 @@ export function UsersTable({
                 value={search}
                 onChange={setSearch}
                 placeholder="Search by name or email"
+                ariaLabel="Search organization users by name or email"
               />
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <Select value={roleFilter} onValueChange={onRoleFilterChange}>

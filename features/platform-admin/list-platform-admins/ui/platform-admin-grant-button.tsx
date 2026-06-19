@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { Result } from "@/lib/result";
 import type { PlatformAdminUserListItem } from "@/lib/endatix-api";
 import { grantPlatformAdminAction } from "../../grant-platform-admin/grant-platform-admin.action";
@@ -27,6 +28,7 @@ export function PlatformAdminGrantButton({
   user,
 }: Readonly<PlatformAdminGrantButtonProps>) {
   const router = useRouter();
+  const { trackEvent } = useTrackEvent();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const displayName = user.displayName || user.userName;
@@ -38,6 +40,10 @@ export function PlatformAdminGrantButton({
 
       if (Result.isSuccess(result)) {
         toast.success(result.value || "Platform administrator access granted.");
+        trackEvent("platform_admin_access_granted", {
+          success: true,
+          user_id: user.id,
+        });
         setIsOpen(false);
         router.refresh();
         return;

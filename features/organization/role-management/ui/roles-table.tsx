@@ -253,6 +253,7 @@ export function RolesTable({
                 value={search}
                 onChange={setSearch}
                 placeholder="Search roles"
+                ariaLabel="Search organization roles by name"
                 className="sm:max-w-xs"
               />
               <Select
