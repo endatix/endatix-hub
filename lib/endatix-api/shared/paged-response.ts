@@ -4,15 +4,18 @@ const DEFAULT_PAGE_SIZE = 20;
 const MIN_PAGE = 1;
 const MIN_PAGE_SIZE = 1;
 
-/**
- * Calculates total pages from total records and page size.
- * Mirrors C#: (totalRecords + pageSize - 1) / pageSize
- */
 function calculateTotalPages(totalRecords: number, pageSize: number): number {
   if (totalRecords <= 0 || pageSize <= 0) {
     return 0;
   }
+
   return Math.ceil(totalRecords / pageSize);
+}
+
+function readNonNegativeMetric(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : 0;
 }
 
 /**
@@ -35,7 +38,7 @@ export interface NormalizedPagedResponse<T> {
  * @returns The normalized paged response.
  */
 export function normalizePagedResponse<T>(
-  response: PagedResponse<T>,
+  response: PagedResponse<T> | null | undefined,
 ): NormalizedPagedResponse<T> {
   if (!response || !Array.isArray(response.items)) {
     return {
@@ -49,24 +52,26 @@ export function normalizePagedResponse<T>(
   }
 
   const items = response.items;
-  const hasValidPage = Number.isFinite(response.page) && response.page >= MIN_PAGE;
+  const hasValidPage =
+    typeof response.page === "number" &&
+    Number.isFinite(response.page) &&
+    response.page >= MIN_PAGE;
   const hasValidPageSize =
-    Number.isFinite(response.pageSize) && response.pageSize >= MIN_PAGE_SIZE;
+    typeof response.pageSize === "number" &&
+    Number.isFinite(response.pageSize) &&
+    response.pageSize >= MIN_PAGE_SIZE;
   const page = hasValidPage ? response.page : MIN_PAGE;
   const pageSize = hasValidPageSize ? response.pageSize : MIN_PAGE_SIZE;
-  const reportedTotalRecords = Math.max(
-    Number.isFinite(response.totalRecords) ? response.totalRecords : 0,
-    0,
-  );
+  const reportedTotalRecords = readNonNegativeMetric(response.totalRecords);
   const minimumVisibleRecords =
     hasValidPage && hasValidPageSize ? (page - 1) * pageSize + items.length : 0;
   const totalRecords = Math.max(reportedTotalRecords, minimumVisibleRecords);
   const expectedTotalPages = calculateTotalPages(totalRecords, pageSize);
+  const parsedTotalPages = readNonNegativeMetric(response.totalPages);
   const totalPages =
-    Number.isFinite(response.totalPages) && response.totalPages > 0
-      ? response.totalPages
+    parsedTotalPages > 0
+      ? Math.max(parsedTotalPages, expectedTotalPages)
       : expectedTotalPages;
-
   const hasNextPage = totalPages > 0 && page < totalPages;
 
   return {

@@ -1,11 +1,34 @@
-import type {
-  PagedResponse,
-  PlatformAdminUserListItem,
-} from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
+"use client";
+
+import { use } from "react";
+import { Info, User, UserCog } from "lucide-react";
+import { useTrackEvent } from "@/features/analytics/posthog/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  createPagedTableFooterProps,
+  PagedTableFooter,
+  TableEmptyRow,
+  TableSearchInput,
+} from "@/components/table";
+import { useDebouncedUrlSearch } from "@/lib/utils/hooks/use-debounced-url-search.hook";
+import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { createUrlFilterUpdater } from "@/lib/utils/list-table-url-utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,224 +37,350 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { grantPlatformAdminAction } from "../../grant-platform-admin/grant-platform-admin.action";
+import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
+import { ExternalUserBadge } from "@/features/organization/user-management/ui/external-user-badge";
 import { revokePlatformAdminAction } from "../../revoke-platform-admin/revoke-platform-admin.action";
+import { PlatformAdminGrantButton } from "./platform-admin-grant-button";
 import { PlatformAdminUserActionButton } from "./platform-admin-user-action-button";
+import type {
+  PagedResponse,
+  PlatformAdminUserListItem,
+  PlatformTenantListItem,
+} from "@/lib/endatix-api";
+import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { getFormattedDate } from "@/lib/utils";
 
 interface PlatformAdminsTableProps {
-  admins: PagedResponse<PlatformAdminUserListItem>;
-  candidates: PagedResponse<PlatformAdminUserListItem>;
+  usersPromise: Promise<PagedResponse<PlatformAdminUserListItem>>;
+  tenantsPromise: Promise<PagedResponse<PlatformTenantListItem>>;
+  approvedAdminTotalPromise: Promise<number>;
   currentUserId?: string;
+  currentTenantId?: string;
 }
 
+const allScopesValue = "__all_scopes__";
+const allTenantsValue = "__all_tenants__";
+const emptyTenantsPromise = Promise.resolve<
+  PagedResponse<PlatformTenantListItem>
+>({
+  items: [],
+  page: 1,
+  pageSize: 0,
+  totalPages: 0,
+  totalRecords: 0,
+});
+
 export function PlatformAdminsTable({
-  admins,
-  candidates,
+  usersPromise,
+  tenantsPromise,
+  approvedAdminTotalPromise,
   currentUserId,
+  currentTenantId,
 }: Readonly<PlatformAdminsTableProps>) {
+  const pagedUsers = normalizePagedResponse(use(usersPromise));
+  const tenants = normalizePagedResponse(
+    use(tenantsPromise ?? emptyTenantsPromise),
+  ).items;
+  const approvedAdminTotal = use(approvedAdminTotalPromise);
+  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
+  const urlSearch = searchParams.get("search") ?? "";
+  const urlScope = searchParams.get("scope");
+  const scopeFilter =
+    urlScope === "approved" || urlScope === "candidates"
+      ? urlScope
+      : allScopesValue;
+  const tenantFilter = searchParams.get("tenantId") ?? allTenantsValue;
+  const { search, setSearch } = useDebouncedUrlSearch({
+    urlSearch,
+    updateUrl,
+  });
+  const onScopeFilterChange = createUrlFilterUpdater(
+    updateUrl,
+    "scope",
+    allScopesValue,
+  );
+  const onTenantFilterChange = createUrlFilterUpdater(
+    updateUrl,
+    "tenantId",
+    allTenantsValue,
+  );
+  const { trackEvent } = useTrackEvent();
+  const handleRevokeSuccess = () => {
+    trackEvent("platform_admin_access_revoked", { success: true });
+  };
+
   return (
-    <div className="space-y-6">
-      <UserTable
-        title="Current Platform Admins"
-        users={admins}
-        emptyMessage="No platform administrators found."
-        actionLabel="Revoke"
-        pendingLabel="Revoking..."
-        fallbackErrorMessage="Failed to revoke platform administrator access."
-        action={revokePlatformAdminAction}
-        currentUserId={currentUserId}
-        selfActionLabel="Current user"
-        approvalBadge="Local approval"
-        preventLastActionLabel="Last admin"
-      />
-      <UserTable
-        title="Candidates"
-        users={candidates}
-        emptyMessage="No eligible users found."
-        actionLabel="Grant"
-        pendingLabel="Granting..."
-        fallbackErrorMessage="Failed to grant platform administrator access."
-        action={grantPlatformAdminAction}
-        description="External provider roles nominate users for platform administration. Local approval grants access in Endatix."
-      />
+    <div className="space-y-4">
+      <Alert variant="info">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Local PlatformAdmin approval</AlertTitle>
+        <AlertDescription>
+          External identity provider roles nominate users for platform
+          administration. Local approval in Endatix grants or revokes platform
+          access.
+        </AlertDescription>
+      </Alert>
+
+      <Card className="gap-0 py-0">
+        <CardHeader className="border-b bg-card py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <TableSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by name or email"
+              ariaLabel="Search platform administrators by name or email"
+            />
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <Select value={scopeFilter} onValueChange={onScopeFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[180px]"
+                  aria-label="Filter platform administrators by approval status"
+                >
+                  <SelectValue placeholder="Approval" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={allScopesValue}>All users</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="candidates">Candidates</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={tenantFilter} onValueChange={onTenantFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[200px]"
+                  aria-label="Filter platform administrators by tenant"
+                >
+                  <SelectValue placeholder="Tenant" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={allTenantsValue}>All tenants</SelectItem>
+                  {tenants.map((tenant) => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      {tenant.name}
+                      {tenant.id === currentTenantId ? (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          (current)
+                        </span>
+                      ) : null}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <TooltipProvider>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Tenant</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Approval</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagedUsers.items.map((user) => {
+                  const isLocallyApproved = hasLocalPlatformAdminRole(user);
+                  const isCurrentUser =
+                    currentUserId !== undefined && user.id === currentUserId;
+                  const isLastApprovedAdmin =
+                    isLocallyApproved && approvedAdminTotal === 1;
+                  const isActionDisabled =
+                    isLocallyApproved && (isCurrentUser || isLastApprovedAdmin);
+
+                  return (
+                    <PlatformAdminUserRow
+                      key={user.id}
+                      user={user}
+                      isLocallyApproved={isLocallyApproved}
+                      isActionDisabled={isActionDisabled}
+                      isCurrentUser={isCurrentUser}
+                      isLastApprovedAdmin={isLastApprovedAdmin}
+                      onRevokeSuccess={handleRevokeSuccess}
+                    />
+                  );
+                })}
+                {pagedUsers.items.length === 0 && (
+                  <TableEmptyRow colSpan={6} message="No users found." />
+                )}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
+        </CardContent>
+
+        <PagedTableFooter
+          {...createPagedTableFooterProps(pagedUsers, "users", updateUrl)}
+        />
+      </Card>
     </div>
   );
 }
 
-interface UserTableProps {
-  title: string;
-  users: PagedResponse<PlatformAdminUserListItem>;
-  emptyMessage: string;
-  actionLabel: string;
-  pendingLabel: string;
-  fallbackErrorMessage: string;
-  action: (userId: string) => Promise<Result<string>>;
-  currentUserId?: string;
-  selfActionLabel?: string;
-  preventLastActionLabel?: string;
-  approvalBadge?: string;
-  description?: string;
-}
+function PlatformAdminUserRow({
+  user,
+  isLocallyApproved,
+  isActionDisabled,
+  isCurrentUser,
+  isLastApprovedAdmin,
+  onRevokeSuccess,
+}: Readonly<{
+  user: PlatformAdminUserListItem;
+  isLocallyApproved: boolean;
+  isActionDisabled: boolean;
+  isCurrentUser: boolean;
+  isLastApprovedAdmin: boolean;
+  onRevokeSuccess: () => void;
+}>) {
+  let actionControl;
 
-function UserTable({
-  title,
-  users,
-  emptyMessage,
-  actionLabel,
-  pendingLabel,
-  fallbackErrorMessage,
-  action,
-  currentUserId,
-  selfActionLabel,
-  preventLastActionLabel,
-  approvalBadge,
-  description,
-}: Readonly<UserTableProps>) {
-  const isLastRemainingUser = users.totalRecords === 1;
+  if (isActionDisabled) {
+    actionControl = (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled
+        title={getDisabledActionTitle(isCurrentUser, isLastApprovedAdmin)}
+      >
+        {isCurrentUser ? "Current user" : "Last admin"}
+      </Button>
+    );
+  } else if (isLocallyApproved) {
+    actionControl = (
+      <PlatformAdminUserActionButton
+        userId={user.id}
+        actionLabel="Revoke"
+        pendingLabel="Revoking..."
+        fallbackErrorMessage="Failed to revoke platform administrator access."
+        action={revokePlatformAdminAction}
+        onSuccess={onRevokeSuccess}
+      />
+    );
+  } else {
+    actionControl = <PlatformAdminGrantButton user={user} />;
+  }
+
+  const row = (
+    <TableRow
+      className={
+        isLocallyApproved ? undefined : "bg-muted/20 hover:bg-muted/30"
+      }
+    >
+      <TableCell>
+        <div className="flex items-start gap-2.5">
+          {isLocallyApproved ? (
+            <UserCog
+              className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+              aria-hidden
+            />
+          ) : (
+            <User
+              className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+          )}
+          <div className="min-w-0">
+            <div className="font-medium">
+              {user.displayName || user.userName}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {user.email || user.userName}
+            </div>
+            {user.isExternal ? (
+              <div className="mt-1">
+                <ExternalUserBadge authProvider={user.authProvider} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="font-medium">{user.tenantName || "Unknown tenant"}</div>
+        <div className="text-xs text-muted-foreground">#{user.tenantId}</div>
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant={user.isVerified ? "secondary" : "destructive"}>
+            {user.isVerified ? "Verified" : "Pending"}
+          </Badge>
+          {user.isLockedOut ? (
+            <Badge variant="destructive">Locked</Badge>
+          ) : null}
+        </div>
+      </TableCell>
+      <TableCell>
+        <ApprovalBadges user={user} />
+      </TableCell>
+      <TableCell>{getFormattedDate(user.lastLoginAt, "Never")}</TableCell>
+      <TableCell className="text-right">{actionControl}</TableCell>
+    </TableRow>
+  );
+
+  if (isLocallyApproved) {
+    return row;
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        )}
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Tenant</TableHead>
-              <TableHead>Tenant ID</TableHead>
-              <TableHead>Provider</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Login</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.items.map((user) => {
-              const isCurrentUser =
-                currentUserId !== undefined && user.id === currentUserId;
-              const isActionDisabled =
-                isCurrentUser ||
-                (isLastRemainingUser && preventLastActionLabel !== undefined);
-
-              return (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="font-medium">
-                      {user.displayName || user.userName}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {user.email || user.userName}
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.tenantName || "Unknown tenant"}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.tenantId}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.isExternal ? "secondary" : "outline"}>
-                      {user.authProvider}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge
-                        variant={user.isVerified ? "secondary" : "destructive"}
-                      >
-                        {user.isVerified ? "Verified" : "Pending"}
-                      </Badge>
-                      {user.isLockedOut && (
-                        <Badge variant="destructive">Locked</Badge>
-                      )}
-                      <ApprovalSourceBadge
-                        user={user}
-                        approvalBadge={approvalBadge}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {getFormattedDate(user.lastLoginAt, "Never")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isActionDisabled ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled
-                        title={getDisabledActionTitle(isCurrentUser)}
-                      >
-                        {isCurrentUser
-                          ? (selfActionLabel ?? actionLabel)
-                          : (preventLastActionLabel ?? actionLabel)}
-                      </Button>
-                    ) : (
-                      <PlatformAdminUserActionButton
-                        userId={user.id}
-                        actionLabel={actionLabel}
-                        pendingLabel={pendingLabel}
-                        fallbackErrorMessage={fallbackErrorMessage}
-                        action={action}
-                      />
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {users.items.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <Tooltip>
+      <TooltipTrigger asChild>{row}</TooltipTrigger>
+      <TooltipContent side="top" className="max-w-sm">
+        Grant platform admin access to allow this user to manage all tenants,
+        organizations, and platform settings.
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
-function getDisabledActionTitle(isCurrentUser: boolean): string {
-  return isCurrentUser
-    ? "You cannot revoke your own platform admin access."
-    : "At least one active platform administrator is required.";
+function hasLocalPlatformAdminRole(user: PlatformAdminUserListItem): boolean {
+  return user.roles.includes(SystemRoles.PlatformAdmin);
 }
 
-function ApprovalSourceBadge({
+function ApprovalBadges({
   user,
-  approvalBadge,
-}: Readonly<{
-  user: PlatformAdminUserListItem;
-  approvalBadge?: string;
-}>) {
-  const label = getApprovalSourceLabel(user, approvalBadge);
-  if (!label) {
-    return null;
-  }
+}: Readonly<{ user: PlatformAdminUserListItem }>) {
+  const badges = [];
 
-  return <Badge variant="outline">{label}</Badge>;
-}
-
-function getApprovalSourceLabel(
-  user: PlatformAdminUserListItem,
-  approvalBadge?: string,
-): string | null {
-  if (approvalBadge) {
-    return approvalBadge;
+  if (hasLocalPlatformAdminRole(user)) {
+    badges.push(
+      <Badge key="local" variant="default">
+        Local approval
+      </Badge>,
+    );
   }
 
   if (user.isExternal && user.hasExternalPlatformAdminRole) {
-    return `${user.authProvider} requested`;
+    badges.push(
+      <Badge key="external" variant="outline">
+        {user.authProvider} requested
+      </Badge>,
+    );
   }
 
-  return null;
+  if (badges.length === 0) {
+    return (
+      <span className="text-sm text-muted-foreground">Grant required</span>
+    );
+  }
+
+  return <div className="flex flex-wrap gap-2">{badges}</div>;
+}
+
+function getDisabledActionTitle(
+  isCurrentUser: boolean,
+  isLastApprovedAdmin: boolean,
+): string {
+  if (isCurrentUser) {
+    return "You cannot revoke your own platform admin access.";
+  }
+
+  if (isLastApprovedAdmin) {
+    return "At least one active platform administrator is required.";
+  }
+
+  return "";
 }

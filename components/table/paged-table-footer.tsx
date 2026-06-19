@@ -9,10 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
+import type { UrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 
 const defaultPageSizeOptions = [10, 25, 50, 100] as const;
 
-interface PagedTableFooterProps {
+export interface PagedTableFooterProps {
   entityLabel: string;
   page: number;
   pageSize: number;
@@ -89,4 +91,25 @@ export function PagedTableFooter({
       </div>
     </CardFooter>
   );
+}
+
+export function createPagedTableFooterProps<T>(
+  paged: NormalizedPagedResponse<T>,
+  entityLabel: string,
+  updateUrl: UrlSearchParamsUpdater,
+): PagedTableFooterProps {
+  return {
+    entityLabel,
+    page: paged.page,
+    pageSize: paged.pageSize,
+    totalPages: paged.totalPages,
+    totalRecords: paged.totalRecords,
+    hasNextPage: paged.hasNextPage,
+    onPageChange: (page) => updateUrl({ page: String(page) }),
+    onPageSizeChange: (pageSize) =>
+      updateUrl({
+        pageSize: String(pageSize),
+        page: "1",
+      }),
+  };
 }

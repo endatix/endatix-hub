@@ -1,6 +1,7 @@
+import { Suspense } from "react";
 import {
-  listPlatformAdminCandidates,
-  listPlatformAdmins,
+  listPlatformAdminUsers,
+  listPlatformTenants,
   requirePlatformAdmin,
 } from "@/features/platform-admin/server";
 import {
@@ -9,8 +10,12 @@ import {
 } from "@/features/auth/authorization";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
 import { PlatformAdminsTable } from "@/features/platform-admin/list-platform-admins/ui/platform-admins-table";
-import type { PlatformAdminSearchParams } from "@/features/platform-admin/types";
+import type {
+  PlatformAdminSearchParams,
+  PlatformAdminSession,
+} from "@/features/platform-admin/types";
 import { parsePlatformAdminListParams } from "@/features/platform-admin/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PlatformAdminsPageProps {
   searchParams?: Promise<PlatformAdminSearchParams>;
@@ -18,30 +23,64 @@ interface PlatformAdminsPageProps {
 
 export default async function PlatformAdminsPage({
   searchParams,
-}: PlatformAdminsPageProps) {
+}: Readonly<PlatformAdminsPageProps>) {
   const session = await requirePlatformAdmin();
   const { getAuthorizationData } = await authorization(session);
   const authorizationData = await getAuthorizationData();
   const request = parsePlatformAdminListParams(await searchParams);
-  const [admins, candidates] = await Promise.all([
-    listPlatformAdmins(session, request),
-    listPlatformAdminCandidates(session, { ...request, pageSize: 10 }),
-  ]);
+  const usersPromise = listPlatformAdminUsers(session, request);
+  const tenantsPromise = listPlatformTenants(session, {
+    page: 1,
+    pageSize: 100,
+  });
+  const approvedAdminTotalPromise = getApprovedAdminTotal(session);
 
   return (
     <PlatformAdminShell
       title="Platform Admins"
       description="Grant or revoke local PlatformAdmin approval. External IdP roles alone do not grant platform access."
     >
-      <PlatformAdminsTable
-        admins={admins}
-        candidates={candidates}
-        currentUserId={
-          AuthorizationResult.isSuccess(authorizationData)
-            ? authorizationData.data.userId
-            : session?.user?.id
-        }
-      />
+      <Suspense fallback={<PlatformAdminsTableSkeleton />}>
+        <PlatformAdminsTable
+          usersPromise={usersPromise}
+          tenantsPromise={tenantsPromise}
+          approvedAdminTotalPromise={approvedAdminTotalPromise}
+          currentUserId={
+            AuthorizationResult.isSuccess(authorizationData)
+              ? authorizationData.data.userId
+              : session.user?.id
+          }
+          currentTenantId={
+            AuthorizationResult.isSuccess(authorizationData)
+              ? authorizationData.data.tenantId
+              : undefined
+          }
+        />
+      </Suspense>
     </PlatformAdminShell>
+  );
+}
+
+async function getApprovedAdminTotal(
+  session: PlatformAdminSession,
+): Promise<number> {
+  const approved = await listPlatformAdminUsers(session, {
+    scope: "approved",
+    page: 1,
+    pageSize: 1,
+  });
+
+  return approved.totalRecords;
+}
+
+function PlatformAdminsTableSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-10 w-full" />
+      {[1, 2, 3, 4, 5].map((index) => (
+        <Skeleton key={index} className="h-14 w-full" />
+      ))}
+    </div>
   );
 }

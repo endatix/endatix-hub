@@ -6,6 +6,8 @@ export interface PlatformAdminSearchParams {
   page?: string;
   pageSize?: string;
   search?: string;
+  scope?: string;
+  tenantId?: string;
 }
 
 export interface PlatformConfigStatus {

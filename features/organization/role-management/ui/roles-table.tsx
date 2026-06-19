@@ -3,7 +3,6 @@
 import {
   use,
   useActionState,
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -12,7 +11,7 @@ import {
 } from "react";
 import { MoreHorizontal, Plus, Search, X } from "lucide-react";
 import type { Route } from "next";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -55,7 +54,15 @@ import { DisabledMenuItem } from "@/components/ui/disabled-menu-item";
 import { DisabledButton } from "@/components/ui/disabled-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
-import { PagedTableFooter } from "@/components/ui/paged-table-footer";
+import {
+  createPagedTableFooterProps,
+  PagedTableFooter,
+  TableEmptyRow,
+  TableSearchInput,
+} from "@/components/table";
+import { useDebouncedUrlSearch } from "@/lib/utils/hooks/use-debounced-url-search.hook";
+import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { createUrlFilterUpdater } from "@/lib/utils/list-table-url-utils";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import type {
   PagedResponse,
@@ -105,10 +112,13 @@ export function RolesTable({
 }: Readonly<RolesTableProps>) {
   const pagedRoles = normalizePagedResponse(use(rolesPromise));
   const permissions = use(permissionsPromise);
-  const roles = pagedRoles.items;
+  const roleRows = pagedRoles.items.map((role) => ({
+    permissionSummary: getRolePermissionSummary(role),
+    role,
+    userCount: role.usersCount,
+  }));
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
   const { trackEvent } = useTrackEvent();
   const handledCreateStateRef = useRef<RoleActionState | null>(null);
   const urlSearch = searchParams.get("search") ?? "";
@@ -117,8 +127,15 @@ export function RolesTable({
     urlRoleType === "system" || urlRoleType === "custom"
       ? urlRoleType
       : allRoleTypesValue;
-
-  const [search, setSearch] = useState(urlSearch);
+  const { search, setSearch } = useDebouncedUrlSearch({
+    urlSearch,
+    updateUrl,
+  });
+  const onRoleTypeFilterChange = createUrlFilterUpdater(
+    updateUrl,
+    "roleType",
+    allRoleTypesValue,
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [createPermissions, setCreatePermissions] = useState<string[]>([]);
   const [editingRole, setEditingRole] = useState<RoleListItem | null>(null);
@@ -129,47 +146,6 @@ export function RolesTable({
     initialState,
   );
   const [isPending, startTransition] = useTransition();
-
-  const updateUrl = useCallback(
-    (updates: Record<string, string | null>) => {
-      const nextSearchParams = new URLSearchParams(searchParams.toString());
-
-      Object.entries(updates).forEach(([key, value]) => {
-        if (!value) {
-          nextSearchParams.delete(key);
-          return;
-        }
-        nextSearchParams.set(key, value);
-      });
-
-      const queryString = nextSearchParams.toString();
-      const href = (
-        queryString ? `${pathname}?${queryString}` : pathname
-      ) as Route;
-      router.replace(href, { scroll: false });
-    },
-    [pathname, router, searchParams],
-  );
-
-  useEffect(() => {
-    setSearch(urlSearch);
-  }, [urlSearch]);
-
-  useEffect(() => {
-    const trimmedSearch = search.trim();
-    if (trimmedSearch === urlSearch) {
-      return;
-    }
-
-    const timeout = globalThis.window.setTimeout(() => {
-      updateUrl({
-        search: trimmedSearch || null,
-        page: "1",
-      });
-    }, 350);
-
-    return () => globalThis.window.clearTimeout(timeout);
-  }, [search, updateUrl, urlSearch]);
 
   useEffect(() => {
     if (state.isSuccess && handledCreateStateRef.current !== state) {
@@ -260,16 +236,6 @@ export function RolesTable({
     });
   };
 
-  const roleRows = useMemo(
-    () =>
-      roles.map((role) => ({
-        permissionSummary: getRolePermissionSummary(role),
-        role,
-        userCount: role.usersCount,
-      })),
-    [roles],
-  );
-
   return (
     <>
       <Card>
@@ -277,23 +243,16 @@ export function RolesTable({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg">All Roles</CardTitle>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative min-w-0 flex-1 sm:max-w-xs">
-                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search roles"
-                  className="pl-9 text-sm"
-                />
-              </div>
+              <TableSearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search roles"
+                ariaLabel="Search organization roles by name"
+                className="sm:max-w-xs"
+              />
               <Select
                 value={roleTypeFilter}
-                onValueChange={(value) =>
-                  updateUrl({
-                    roleType: value === allRoleTypesValue ? null : value,
-                    page: "1",
-                  })
-                }
+                onValueChange={onRoleTypeFilterChange}
               >
                 <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Role type" />
@@ -392,11 +351,10 @@ export function RolesTable({
               </TableHeader>
               <TableBody>
                 {roleRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      No roles match the current filters.
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyRow
+                    colSpan={5}
+                    message="No roles match the current filters."
+                  />
                 ) : (
                   roleRows.map(({ permissionSummary, role, userCount }) => (
                     <TableRow key={role.id}>
@@ -448,19 +406,7 @@ export function RolesTable({
         </CardContent>
 
         <PagedTableFooter
-          entityLabel="roles"
-          page={pagedRoles.page}
-          pageSize={pagedRoles.pageSize}
-          totalPages={pagedRoles.totalPages}
-          totalRecords={pagedRoles.totalRecords}
-          hasNextPage={pagedRoles.hasNextPage}
-          onPageChange={(page) => updateUrl({ page: String(page) })}
-          onPageSizeChange={(pageSize) =>
-            updateUrl({
-              pageSize: String(pageSize),
-              page: "1",
-            })
-          }
+          {...createPagedTableFooterProps(pagedRoles, "roles", updateUrl)}
         />
       </Card>
 

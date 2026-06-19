@@ -7,7 +7,7 @@ import { toResult } from "@/lib/result/map-api-result-to-result";
 import { DataLoadError } from "@/lib/errors/data-load-error";
 import type { PlatformAdminSession } from "../types";
 
-export async function listPlatformAdmins(
+export async function listPlatformAdminUsers(
   session: PlatformAdminSession,
   request: ListPlatformAdminsRequest,
 ) {
@@ -16,25 +16,6 @@ export async function listPlatformAdmins(
   const result = toResult(apiResult, {
     fallbackMessage: "Failed to load platform administrators.",
     logMessage: "Failed to load platform administrators.",
-    loggerName: "platform-admin.admins",
-  });
-
-  if (Result.isError(result)) {
-    throw new DataLoadError(result.message);
-  }
-
-  return result.value;
-}
-
-export async function listPlatformAdminCandidates(
-  session: PlatformAdminSession,
-  request: ListPlatformAdminsRequest,
-) {
-  const api = new EndatixApi(session.accessToken);
-  const apiResult = await api.platformAdmins.listCandidates(request);
-  const result = toResult(apiResult, {
-    fallbackMessage: "Failed to load platform administrator candidates.",
-    logMessage: "Failed to load platform administrator candidates.",
     loggerName: "platform-admin.admins",
   });
 

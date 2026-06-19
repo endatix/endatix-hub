@@ -13,6 +13,7 @@ type PlatformAdminUserActionButtonProps = {
   pendingLabel: string;
   fallbackErrorMessage: string;
   action: (userId: string) => Promise<Result<string>>;
+  onSuccess?: () => void;
 };
 
 export function PlatformAdminUserActionButton({
@@ -21,6 +22,7 @@ export function PlatformAdminUserActionButton({
   pendingLabel,
   fallbackErrorMessage,
   action,
+  onSuccess,
 }: Readonly<PlatformAdminUserActionButtonProps>) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -31,6 +33,7 @@ export function PlatformAdminUserActionButton({
 
       if (Result.isSuccess(result)) {
         toast.success(result.value || `${actionLabel} completed`);
+        onSuccess?.();
         router.refresh();
         return;
       }

@@ -101,6 +101,20 @@ describe("normalizePagedItemsResponse", () => {
     expect(result.hasNextPage).toBe(false);
   });
 
+  it("clamps totalPages up when inferred totalRecords requires more pages than reported", () => {
+    const result = normalizePagedResponse({
+      page: 2,
+      pageSize: 10,
+      totalRecords: 0,
+      totalPages: 1,
+      items: ["Reviewer", "Scripter"],
+    });
+
+    expect(result.totalRecords).toBe(12);
+    expect(result.totalPages).toBe(2);
+    expect(result.hasNextPage).toBe(false);
+  });
+
   it("keeps reported totals when they exceed visible records", () => {
     const result = normalizePagedResponse({
       page: 1,
@@ -254,9 +268,7 @@ describe("normalizePagedItemsResponse", () => {
   });
 
   it("handles null/undefined response", () => {
-    const result = normalizePagedResponse(
-      null as unknown as PagedResponse<string>,
-    );
+    const result = normalizePagedResponse(null);
     expect(result.page).toBe(1);
     expect(result.pageSize).toBe(20);
     expect(result.items).toEqual([]);
