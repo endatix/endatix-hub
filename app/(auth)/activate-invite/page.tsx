@@ -6,10 +6,12 @@ import {
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, type ResultType } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Accept Invitation | Endatix Hub",
   description: "Accept your Endatix Hub invitation and set your password.",
+  robots: ROBOTS.hiddenPage,
 };
 
 interface ActivateInvitePageProps {

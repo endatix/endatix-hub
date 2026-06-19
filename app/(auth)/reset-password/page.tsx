@@ -2,10 +2,12 @@ import { Metadata } from "next";
 import ResetPasswordForm, {
   InvalidResetLinkMessage,
 } from "./reset-password-form";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Reset Password",
   description: "Reset your password",
+  robots: ROBOTS.hiddenPage,
 };
 
 interface ResetPasswordPageProps {

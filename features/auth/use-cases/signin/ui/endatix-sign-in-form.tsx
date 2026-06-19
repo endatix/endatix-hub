@@ -46,6 +46,15 @@ const EndatixSignInForm: FC<EndatixSignInFormProps> = ({
             width={180}
             height={60}
             priority
+            className="dark:hidden"
+          />
+          <Image
+            src={getPublicAssetPath("/assets/icons/endatix-white.svg")}
+            alt="Endatix logo"
+            width={180}
+            height={60}
+            priority
+            className="hidden dark:block"
           />
         </div>
         <p className="mb-6 text-balance text-muted-foreground">

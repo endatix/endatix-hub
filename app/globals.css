@@ -291,6 +291,29 @@
   }
 }
 
+@utility bg-grid {
+  --bg-grid-size: 3.5rem;
+  --bg-grid-color: color-mix(in srgb, var(--primary) 18%, transparent);
+  background-image:
+    linear-gradient(var(--bg-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid-color) 1px, transparent 1px);
+  background-size: var(--bg-grid-size) var(--bg-grid-size);
+  mask-image: radial-gradient(
+    ellipse 90% 80% at 50% 50%,
+    black 0%,
+    transparent 90%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 80% at 50% 50%,
+    black 0%,
+    transparent 90%
+  );
+}
+
+.dark .bg-grid {
+  --bg-grid-color: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;
