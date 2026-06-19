@@ -4,6 +4,7 @@ import { AppProvider } from "@/components/providers";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Endatix Hub - Error",
@@ -18,10 +19,7 @@ export const metadata: Metadata = {
   ],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: ROBOTS.hiddenPage,
 };
 
 interface UnauthorizedLayoutProps {

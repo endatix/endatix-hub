@@ -3,13 +3,11 @@ import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-provider";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Endatix Form",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: ROBOTS.hiddenPage,
 };
 
 export default async function EmbedLayout({

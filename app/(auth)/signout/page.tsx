@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import SignoutButton from "@/features/auth/use-cases/signout/ui/signout-button";
 import GoBackButton from "@/components/layout-ui/navigation/go-back-button";
 import { getPublicAssetPath } from "@/lib/hosting";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Sign out | Endatix Hub",
@@ -20,10 +21,7 @@ export const metadata: Metadata = {
       },
     ],
   },
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: ROBOTS.hiddenPage,
 };
 
 export default function SignOutPage() {

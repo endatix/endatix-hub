@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SIGNIN_PATH, SIGNOUT_PATH } from "@/features/auth";
 import { Metadata } from "next";
 import { getPublicAssetPath } from "@/lib/hosting";
+import { ROBOTS } from "@/lib/seo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -24,10 +25,7 @@ export const metadata: Metadata = {
       },
     ],
   },
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: ROBOTS.hiddenPage,
 };
 
 export default async function UnauthorizedPage() {

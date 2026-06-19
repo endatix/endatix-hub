@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
+import { ROBOTS } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Edit Submission - Endatix",
@@ -11,10 +12,7 @@ export const metadata: Metadata = {
   keywords: ["endatix", "edit", "submission", "form"],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: ROBOTS.hiddenPage,
 };
 
 export default async function EditLayout({
