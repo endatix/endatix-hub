@@ -3,7 +3,14 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getPublicAssetPath } from "@/lib/hosting";
-import { BarChart2, Database, FileText, PenLine, Send, Users } from "lucide-react";
+import {
+  BarChart2,
+  Database,
+  FileText,
+  PenLine,
+  Send,
+  Users,
+} from "lucide-react";
 import { Instrument_Sans } from "next/font/google";
 import { Metadata } from "next";
 
@@ -44,42 +51,45 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
           type="image/svg+xml"
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable}`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable}`}
+      >
         <AppProvider session={session}>
           <div className="h-screen w-full overflow-hidden bg-muted/40">
             <a
               href="https://endatix.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="fixed bottom-8 right-8 text-sm text-primary/70 hover:text-primary transition-colors duration-200 z-50"
+              className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
             >
               endatix.com
             </a>
-            <main className="grid h-full p-6 lg:grid-cols-[1fr_auto_1fr]">
+            <main className="grid h-full gap-8 p-6 lg:grid-cols-2">
               {/* Left — sign-in form */}
               <div className="flex items-center justify-center">
                 <div className="w-[400px] space-y-6">{children}</div>
               </div>
 
-              {/* Vertical separator */}
-              <div className="hidden lg:flex flex-col items-center self-stretch py-12 mx-4">
-                <div className="w-px flex-1 bg-gradient-to-b from-transparent via-primary/30 to-transparent" />
-              </div>
-
               {/* Right — hero panel */}
-              <div className="hidden lg:flex items-center justify-center relative overflow-hidden">
-                <div className="auth-hero-grid absolute inset-0 pointer-events-none" aria-hidden="true" />
+              <div className="relative hidden items-center justify-center overflow-hidden lg:flex">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-grid"
+                  aria-hidden="true"
+                />
 
                 {/* Radial glow behind content */}
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                <div
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                  aria-hidden="true"
+                >
                   <div className="h-72 w-[560px] rounded-full blur-[72px] dark:bg-primary/[0.14]" />
                 </div>
 
                 <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
-                  <h2 className="font-[family-name:var(--font-instrument-sans)] text-4xl xl:text-5xl font-semibold tracking-tight text-primary leading-tight">
+                  <h2 className="font-[family-name:var(--font-instrument-sans)] text-4xl leading-tight font-semibold tracking-tight text-primary xl:text-5xl">
                     Form Management Platform
                   </h2>
-                  <p className="inline-block text-sm text-muted-foreground leading-relaxed backdrop-blur-sm bg-background/60 border border-primary/35 dark:border-primary/30 rounded-full px-5 py-1.5">
+                  <p className="inline-block rounded-full border border-primary/35 bg-background/60 px-5 py-1.5 text-sm leading-relaxed text-muted-foreground backdrop-blur-sm dark:border-primary/30">
                     Build, collect, and analyze your form and survey data.
                   </p>
 
@@ -95,7 +105,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
                             strokeWidth={1.5}
                           />
                         </div>
-                        <span className="text-[10px] xl:text-[9px] font-medium leading-tight text-muted-foreground whitespace-nowrap">
+                        <span className="text-[10px] leading-tight font-medium whitespace-nowrap text-muted-foreground xl:text-[9px]">
                           {label}
                         </span>
                       </div>
