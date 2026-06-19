@@ -146,11 +146,20 @@ export const InvalidResetLinkMessage = () => {
     <div className="grid gap-2 text-center">
       <div className="mb-2 flex justify-center">
         <Image
-          src={getPublicAssetPath("/assets/icons/endatix.svg")}
-          alt="Endatix logo"
-          width={180}
-          height={60}
+          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
+          alt="Endatix Hub"
+          width={3778}
+          height={706}
           priority
+          className="h-10 w-auto dark:hidden"
+        />
+        <Image
+          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
+          alt="Endatix Hub"
+          width={3778}
+          height={706}
+          priority
+          className="hidden h-10 w-auto dark:block"
         />
       </div>
       <div className="space-y-4">
