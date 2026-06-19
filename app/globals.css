@@ -216,6 +216,22 @@
     @apply relative flex min-h-svh min-w-0 flex-1 flex-col bg-content-canvas md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2;
   }
 
+  /* Auth layout — right panel grid background */
+  .auth-hero-grid {
+    --auth-grid-size: 3.5rem;
+    --auth-grid-color: color-mix(in srgb, var(--primary) 18%, transparent);
+    background-image:
+      linear-gradient(var(--auth-grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--auth-grid-color) 1px, transparent 1px);
+    background-size: var(--auth-grid-size) var(--auth-grid-size);
+    mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, black 0%, transparent 90%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, black 0%, transparent 90%);
+  }
+
+  .dark .auth-hero-grid {
+    --auth-grid-color: color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+
   /*
    * Submission grid: bounded scroll + themed scrollbar.
    * Scoped here so components/ui/table.tsx stays stock shadcn (no containerClassName prop).
