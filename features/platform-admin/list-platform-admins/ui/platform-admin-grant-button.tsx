@@ -73,16 +73,10 @@ export function PlatformAdminGrantButton({
           <AlertDialogHeader>
             <AlertDialogTitle>Grant platform admin access?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to make{" "}
-              <span className="font-medium text-foreground">{displayName}</span>
-              {email !== displayName ? (
-                <>
-                  {" "}
-                  (<span className="font-medium text-foreground">{email}</span>)
-                </>
-              ) : null}{" "}
-              a platform administrator? This gives them access to all platform
-              settings, tenants, and organizations.
+              Grant platform administrator access to{" "}
+              <GrantTargetUser displayName={displayName} email={email} />? They
+              will be able to manage all platform settings, tenants, and
+              organizations.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -107,5 +101,19 @@ export function PlatformAdminGrantButton({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function GrantTargetUser({
+  displayName,
+  email,
+}: Readonly<{ displayName: string; email: string }>) {
+  const showEmail = email !== displayName;
+
+  return (
+    <span className="font-medium text-foreground">
+      {displayName}
+      {showEmail ? ` (${email})` : null}
+    </span>
   );
 }

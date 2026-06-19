@@ -23,7 +23,7 @@ interface PlatformAdminsPageProps {
 
 export default async function PlatformAdminsPage({
   searchParams,
-}: PlatformAdminsPageProps) {
+}: Readonly<PlatformAdminsPageProps>) {
   const session = await requirePlatformAdmin();
   const { getAuthorizationData } = await authorization(session);
   const authorizationData = await getAuthorizationData();

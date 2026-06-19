@@ -236,6 +236,35 @@ function PlatformAdminUserRow({
   isLastApprovedAdmin: boolean;
   onRevokeSuccess: () => void;
 }>) {
+  let actionControl;
+
+  if (isActionDisabled) {
+    actionControl = (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled
+        title={getDisabledActionTitle(isCurrentUser, isLastApprovedAdmin)}
+      >
+        {isCurrentUser ? "Current user" : "Last admin"}
+      </Button>
+    );
+  } else if (isLocallyApproved) {
+    actionControl = (
+      <PlatformAdminUserActionButton
+        userId={user.id}
+        actionLabel="Revoke"
+        pendingLabel="Revoking..."
+        fallbackErrorMessage="Failed to revoke platform administrator access."
+        action={revokePlatformAdminAction}
+        onSuccess={onRevokeSuccess}
+      />
+    );
+  } else {
+    actionControl = <PlatformAdminGrantButton user={user} />;
+  }
+
   const row = (
     <TableRow
       className={
@@ -288,30 +317,7 @@ function PlatformAdminUserRow({
         <ApprovalBadges user={user} />
       </TableCell>
       <TableCell>{getFormattedDate(user.lastLoginAt, "Never")}</TableCell>
-      <TableCell className="text-right">
-        {isActionDisabled ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled
-            title={getDisabledActionTitle(isCurrentUser, isLastApprovedAdmin)}
-          >
-            {isCurrentUser ? "Current user" : "Last admin"}
-          </Button>
-        ) : isLocallyApproved ? (
-          <PlatformAdminUserActionButton
-            userId={user.id}
-            actionLabel="Revoke"
-            pendingLabel="Revoking..."
-            fallbackErrorMessage="Failed to revoke platform administrator access."
-            action={revokePlatformAdminAction}
-            onSuccess={onRevokeSuccess}
-          />
-        ) : (
-          <PlatformAdminGrantButton user={user} />
-        )}
-      </TableCell>
+      <TableCell className="text-right">{actionControl}</TableCell>
     </TableRow>
   );
 
