@@ -112,7 +112,11 @@ export function RolesTable({
 }: Readonly<RolesTableProps>) {
   const pagedRoles = normalizePagedResponse(use(rolesPromise));
   const permissions = use(permissionsPromise);
-  const roles = pagedRoles.items;
+  const roleRows = pagedRoles.items.map((role) => ({
+    permissionSummary: getRolePermissionSummary(role),
+    role,
+    userCount: role.usersCount,
+  }));
   const router = useRouter();
   const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
   const { trackEvent } = useTrackEvent();
@@ -231,16 +235,6 @@ export function RolesTable({
       toast.error(result.formErrors?.[0] ?? "Failed to update role");
     });
   };
-
-  const roleRows = useMemo(
-    () =>
-      roles.map((role) => ({
-        permissionSummary: getRolePermissionSummary(role),
-        role,
-        userCount: role.usersCount,
-      })),
-    [roles],
-  );
 
   return (
     <>
