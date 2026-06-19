@@ -27,19 +27,19 @@ function EndatixLogoIcon({ className }: Readonly<{ className?: string }>) {
   return (
     <>
       <Image
-        src={getPublicAssetPath("/assets/icons/endatix-hub-square-blue.svg")}
+        src={getPublicAssetPath("/assets/icons/endatix-paperclip-icon-blue.svg")}
         alt=""
         className={cn(className, "dark:hidden")}
-        width={32}
-        height={32}
+        width={706}
+        height={706}
         aria-hidden
       />
       <Image
-        src={getPublicAssetPath("/assets/icons/endatix-hub-square-white.svg")}
+        src={getPublicAssetPath("/assets/icons/endatix-paperclip-icon-white.svg")}
         alt=""
         className={cn(className, "hidden dark:block")}
-        width={32}
-        height={32}
+        width={706}
+        height={706}
         aria-hidden
       />
     </>
@@ -154,19 +154,19 @@ const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
             {/* Expanded: horizontal wordmark */}
             <div className="flex items-center group-data-[collapsible=icon]:hidden">
               <Image
-                src={getPublicAssetPath("/assets/icons/endatix-hub-logo-v2-blue-v2.svg")}
+                src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
                 alt="Endatix Hub"
-                width={1232}
-                height={198}
-                className="h-6 w-auto dark:hidden"
+                width={3778}
+                height={706}
+                className="h-7 w-auto dark:hidden"
                 priority
               />
               <Image
-                src={getPublicAssetPath("/assets/icons/endatix-hub-logo-v2-white.svg")}
+                src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
                 alt="Endatix Hub"
-                width={1232}
-                height={198}
-                className="hidden h-6 w-auto dark:block"
+                width={3778}
+                height={706}
+                className="hidden h-7 w-auto dark:block"
                 priority
               />
             </div>
