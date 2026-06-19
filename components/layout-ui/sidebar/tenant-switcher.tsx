@@ -176,7 +176,7 @@ const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
                 alt="Endatix Hub"
                 width={217}
                 height={46}
-                className="h-7 w-auto dark:hidden"
+                className="h-5 w-auto dark:hidden"
                 priority
               />
               <Image
@@ -184,7 +184,7 @@ const SingleTenantDisplay = ({ tenant }: Readonly<{ tenant: Tenant }>) => {
                 alt="Endatix Hub"
                 width={217}
                 height={46}
-                className="hidden h-7 w-auto dark:block"
+                className="hidden h-5 w-auto dark:block"
                 priority
               />
             </div>
