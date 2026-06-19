@@ -69,7 +69,9 @@ export function normalizePagedResponse<T>(
   const expectedTotalPages = calculateTotalPages(totalRecords, pageSize);
   const parsedTotalPages = readNonNegativeMetric(response.totalPages);
   const totalPages =
-    parsedTotalPages > 0 ? parsedTotalPages : expectedTotalPages;
+    parsedTotalPages > 0
+      ? Math.max(parsedTotalPages, expectedTotalPages)
+      : expectedTotalPages;
   const hasNextPage = totalPages > 0 && page < totalPages;
 
   return {
