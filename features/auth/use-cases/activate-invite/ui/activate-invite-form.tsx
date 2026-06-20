@@ -25,6 +25,7 @@ import {
   type ActivateInviteActionState,
 } from "../activate-invite.action";
 import { getStringFormValue } from "@/lib/utils/form-data-utils";
+import { getPublicAssetPath } from "@/lib/hosting";
 
 interface ActivateInviteFormProps {
   token: string;
@@ -101,11 +102,20 @@ export default function ActivateInviteForm({
       <div className="grid gap-2 text-center">
         <div className="mb-2 flex justify-center">
           <Image
-            src="/assets/icons/endatix.svg"
-            alt="Endatix logo"
-            width={180}
-            height={60}
+            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
+            alt="Endatix Hub"
+            width={3778}
+            height={706}
             priority
+            className="h-10 w-auto dark:hidden"
+          />
+          <Image
+            src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
+            alt="Endatix Hub"
+            width={3778}
+            height={706}
+            priority
+            className="hidden h-10 w-auto dark:block"
           />
         </div>
         <h1 className="text-2xl font-semibold">Accept your invitation</h1>
@@ -198,11 +208,20 @@ export const InvalidInviteLinkMessage = () => {
     <div className="grid gap-2 text-center">
       <div className="mb-2 flex justify-center">
         <Image
-          src="/assets/icons/endatix.svg"
-          alt="Endatix logo"
-          width={180}
-          height={60}
+          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-blue.svg")}
+          alt="Endatix Hub"
+          width={3778}
+          height={706}
           priority
+          className="h-10 w-auto dark:hidden"
+        />
+        <Image
+          src={getPublicAssetPath("/assets/icons/endatix-logo-wordmark-white.svg")}
+          alt="Endatix Hub"
+          width={3778}
+          height={706}
+          priority
+          className="hidden h-10 w-auto dark:block"
         />
       </div>
       <div className="space-y-4">

@@ -47,7 +47,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
       <head>
         <link
           rel="icon"
-          href={getPublicAssetPath("/assets/icons/endatix-hub-square-blue.svg")}
+          href={getPublicAssetPath("/assets/icons/icon.svg")}
           type="image/svg+xml"
         />
       </head>
@@ -105,7 +105,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
                             strokeWidth={1.5}
                           />
                         </div>
-                        <span className="text-[10px] leading-tight font-medium whitespace-nowrap text-muted-foreground xl:text-[9px]">
+                        <span className="text-xs leading-tight font-medium whitespace-nowrap text-muted-foreground">
                           {label}
                         </span>
                       </div>
