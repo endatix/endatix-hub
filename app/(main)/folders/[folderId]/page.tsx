@@ -1,7 +1,10 @@
 import { auth } from "@/auth";
 import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { getFolderManagementDetailCached, FolderDetailsView } from "@/features/folders/view-folder-management";
+import {
+  getFolderManagementDetailCached,
+  FolderDetailsView,
+} from "@/features/folders/view-folder-management";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { notFound, redirect } from "next/navigation";
 
@@ -78,7 +81,7 @@ export default async function FolderDetailsPage({
   return (
     <FolderDetailsView
       folder={folder}
-      forms={formsResult.data}
+      forms={formsResult.data.items}
       templates={templatesResult.data}
       moveTargetFolders={allFolders}
     />

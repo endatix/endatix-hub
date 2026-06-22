@@ -3,24 +3,30 @@ import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  getFormsHeaderDataCached,
   buildFormsBreadcrumbModel,
+  getFormsHeaderDataCached,
 } from "@/features/folders/view-forms-header";
-import { AssetStorageProvider } from "@/features/asset-storage/server";
-import CreateFormSheet from "@/features/forms/ui/create-form-sheet";
-import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
+import { FormsHeaderCreateActions } from "@/features/forms/ui/forms-header-create-actions";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { Suspense } from "react";
 import type { FormsBreadcrumbItem } from "@/features/folders/types";
 
-export default async function FormsHeaderSlot() {
+interface FormsHeaderPageProps {
+  searchParams?: Promise<{ browse?: string }>;
+}
+
+export default async function FormsHeaderSlot({
+  searchParams,
+}: Readonly<FormsHeaderPageProps>) {
   const session = await auth();
   const aiFeatureFlag = await aiFeaturesFlag();
+  const resolvedSearchParams = await searchParams;
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const breadcrumbItemsPromise = headerDataPromise.then((headerData) =>
     buildFormsBreadcrumbModel({
       section: "forms",
       folders: headerData.folders,
+      browse: resolvedSearchParams?.browse ?? null,
     }),
   );
 
@@ -65,14 +71,9 @@ async function FormsHeaderActions({
   const headerData = await headerDataPromise;
 
   return (
-    <AssetStorageProvider>
-      <FormAssistantProvider
-        isAssistantEnabled={aiFeatureFlag}
-        requireFolderForNewForms={headerData.requireFolderForNewForms}
-        assignableFolders={headerData.assignableFolders}
-      >
-        <CreateFormSheet />
-      </FormAssistantProvider>
-    </AssetStorageProvider>
+    <FormsHeaderCreateActions
+      aiFeatureFlag={aiFeatureFlag}
+      headerData={headerData}
+    />
   );
 }

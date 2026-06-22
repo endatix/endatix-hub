@@ -1,13 +1,17 @@
-import PageTitle from '@/components/headings/page-title';
-import { Button } from '@/components/ui/button';
-import { auth } from '@/auth';
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from '@/features/auth';
-import { authorization } from '@/features/auth/authorization';
-import { AssetStorageProvider } from '@/features/asset-storage/server';
-import FormsList from '@/features/forms/ui/forms-list';
-import { ApiErrorType, ApiResult, EndatixApi } from '@/lib/endatix-api';
-import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { auth } from "@/auth";
+import { authorization } from "@/features/auth/authorization";
+import { AssetStorageProvider } from "@/features/asset-storage/server";
+import { getFormsListPromise } from "@/features/forms/list-forms/list-forms.server";
+import { FormsListSection } from "@/features/forms/list-forms/ui/forms-list-section";
+import { FormsListSkeleton } from "@/features/forms/list-forms/ui/forms-list-skeleton";
+import { FormsListToolbar } from "@/features/forms/list-forms/ui/forms-list-toolbar";
+import { parseFormsListParams } from "@/features/forms/list-forms/utils";
+import { buildCreateFormHref } from "@/features/forms/use-cases/create-form/resolve-default-create-folder";
+import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
+import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import {
   Empty,
   EmptyContent,
@@ -15,14 +19,26 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty';
-import { FilePlus2, FolderOpen } from 'lucide-react';
+} from "@/components/ui/empty";
+import { FilePlus2, FolderOpen, SearchX } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type PageProps = {
   params: Promise<{ folderSlug: string }>;
+  searchParams?: Promise<{
+    page?: string;
+    pageSize?: string;
+    search?: string;
+    status?: string;
+    visibility?: string;
+    browse?: string;
+  }>;
 };
 
-export default async function FolderSlugFormsPage({ params }: PageProps) {
+export default async function FolderSlugFormsPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { folderSlug } = await params;
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
@@ -42,62 +58,83 @@ export default async function FolderSlugFormsPage({ params }: PageProps) {
   }
 
   const folder = folderResult.data;
-  const formsResult = await api.forms.list({ folderId: folder.id });
-
-  if (ApiResult.isError(formsResult)) {
-    if (formsResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    if (formsResult.error.type === ApiErrorType.ForbiddenError) {
-      redirect(UNAUTHORIZED_PATH);
-    }
-    return (
-      <div className="mt-4 p-6 text-destructive">
-        {formsResult.error.message}
-      </div>
-    );
-  }
+  const resolvedSearchParams = await searchParams;
+  const listRequest = parseFormsListParams(resolvedSearchParams, {
+    kind: "folder",
+    folderId: folder.id,
+  });
+  const formsPromise = getFormsListPromise(listRequest, session);
 
   return (
     <AssetStorageProvider>
-      <div className="mt-2 mb-4 flex flex-col gap-4 sm:mt-2 sm:flex-row sm:items-center sm:justify-between">
-        <PageTitle title={folder.name} />
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/forms/folders">Folders</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/forms">All forms</Link>
-          </Button>
-        </div>
-      </div>
       {folder.description ? (
-        <p className="text-muted-foreground mb-6 text-sm">{folder.description}</p>
+        <p className="mb-3 text-sm text-muted-foreground">
+          {folder.description}
+        </p>
       ) : null}
-      {formsResult.data.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant='icon'>
-              <FolderOpen />
-            </EmptyMedia>
-            <EmptyTitle>No forms in this folder</EmptyTitle>
-            <EmptyDescription>
-              This folder does not contain any forms yet. Create a form and
-              assign it here to get started.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent className='flex-row justify-center gap-2'>
-            <Button asChild>
-              <Link href='/forms/create'>
-                <FilePlus2 data-icon='inline-start' />
-                Create a Form
-              </Link>
-            </Button>
-          </EmptyContent>
-        </Empty>
-      ) : (
-        <FormsList forms={formsResult.data} />
-      )}
+      <FormsListToolbar variant="folder" />
+      <Suspense
+        fallback={<FormsListSkeleton pageSize={listRequest.pageSize} />}
+      >
+        <FormsListSection
+          formsPromise={formsPromise}
+          scope="folder"
+          emptyState={
+            <NoFolderFormsEmptyState
+              folderId={folder.id}
+              folderSlug={folder.slug}
+            />
+          }
+          filteredEmptyState={<NoMatchingFormsEmptyState />}
+        />
+      </Suspense>
     </AssetStorageProvider>
+  );
+}
+
+function NoFolderFormsEmptyState({
+  folderId,
+  folderSlug,
+}: Readonly<{ folderId: string; folderSlug: string }>) {
+  const createHref = buildCreateFormHref({ folderId, folderSlug });
+
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <FolderOpen />
+        </EmptyMedia>
+        <EmptyTitle>No forms in this folder</EmptyTitle>
+        <EmptyDescription>
+          This folder does not contain any forms yet. Create a form and assign
+          it here to get started.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent className="flex-row justify-center gap-2">
+        <Button asChild>
+          <Link href={{ pathname: createHref }}>
+            <FilePlus2 data-icon="inline-start" />
+            Create a Form
+          </Link>
+        </Button>
+      </EmptyContent>
+    </Empty>
+  );
+}
+
+function NoMatchingFormsEmptyState() {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <SearchX />
+        </EmptyMedia>
+        <EmptyTitle>No forms match your filters</EmptyTitle>
+        <EmptyDescription>
+          Try a different search term or adjust the status and visibility
+          filters.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }

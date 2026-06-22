@@ -60,7 +60,7 @@ export default async function FoldersManagementPage({
 
       return {
         folder,
-        formCount: formsResult.success ? formsResult.data.length : 0,
+        formCount: formsResult.success ? formsResult.data.totalRecords : 0,
         templateCount: templatesResult.success
           ? templatesResult.data.length
           : 0,
