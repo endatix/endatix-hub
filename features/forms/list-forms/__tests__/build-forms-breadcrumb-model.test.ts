@@ -98,7 +98,10 @@ describe("buildFormsBreadcrumbModel", () => {
   it("matches folder slugs case-insensitively and with encoding", () => {
     const items = buildFormsBreadcrumbModel({
       section: "forms",
-      folders: [{ name: "My Folder", slug: "My-Folder" }],
+      folders: [
+        { name: "My Folder", slug: "My-Folder" },
+        { name: "Special Folder", slug: "special folder" },
+      ],
       currentFolderSlug: "my-folder",
     });
 
@@ -108,6 +111,24 @@ describe("buildFormsBreadcrumbModel", () => {
     }
 
     expect(dropdown.label).toBe("My Folder");
+    expect(dropdown.options[2]?.isActive).toBe(true);
+    expect(dropdown.options[3]?.label).toBe("Special Folder");
+    expect(dropdown.options[3]?.isActive).toBe(false);
+  });
+
+  it("matches encoded folder slugs by decoding them", () => {
+    const items = buildFormsBreadcrumbModel({
+      section: "forms",
+      folders: [{ name: "Special Folder", slug: "special folder" }],
+      currentFolderSlug: "special%20folder",
+    });
+
+    const dropdown = items.find((item) => item.type === "dropdown");
+    if (dropdown?.type !== "dropdown") {
+      throw new Error("Expected dropdown breadcrumb item");
+    }
+
+    expect(dropdown.label).toBe("Special Folder");
     expect(dropdown.options[2]?.isActive).toBe(true);
   });
 });
