@@ -24,9 +24,7 @@ export function useCreateFormSheetBootstrap({
   useEffect(() => {
     setRequireFolderAssignment(initialRequireFolderAssignment);
     setFolders(initialFolders);
-    if (initialFolders.length > 0) {
-      setFoldersReady(true);
-    }
+    setFoldersReady(initialFolders.length > 0);
   }, [initialFolders, initialRequireFolderAssignment]);
 
   useEffect(() => {

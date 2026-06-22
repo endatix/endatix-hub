@@ -100,9 +100,9 @@ export function CreateFormSheet({
     : "/forms";
 
   useEffect(() => {
-    if (effectiveFolderId) {
-      setSelectedFolderId(String(effectiveFolderId));
-    }
+    setSelectedFolderId(
+      effectiveFolderId ? String(effectiveFolderId) : NO_FOLDER_ID,
+    );
   }, [effectiveFolderId]);
 
   const handleTemplateSelect = useCallback(
