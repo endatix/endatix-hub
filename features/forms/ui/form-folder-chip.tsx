@@ -7,6 +7,7 @@ export type FormFolderChipProps = {
   immutable?: boolean;
   isActive?: boolean;
   unassigned?: boolean;
+  className?: string;
 };
 
 export function FormFolderChip({
@@ -14,6 +15,7 @@ export function FormFolderChip({
   immutable = false,
   isActive = true,
   unassigned = false,
+  className,
 }: Readonly<FormFolderChipProps>) {
   let Icon;
   if (unassigned) {
@@ -38,7 +40,10 @@ export function FormFolderChip({
   return (
     <Badge
       variant="outline"
-      className="mb-2 w-fit gap-1.5 pr-2 pl-1.5 text-xs font-normal"
+      className={cn(
+        "mb-2 w-fit gap-1.5 pr-2 pl-1.5 text-xs font-normal",
+        className,
+      )}
     >
       <Icon className={cn("size-3.5 shrink-0", iconClassName)} aria-hidden />
       {label}
