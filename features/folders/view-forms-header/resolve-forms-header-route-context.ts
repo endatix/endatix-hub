@@ -18,7 +18,10 @@ export function resolveFormsHeaderRouteContext(
     .filter((segment) => segment.length > 0);
 
   if (segments.length === 0) {
-    return { section: "forms", currentFolderSlug: null };
+    return {
+      section: segments[0] === "templates" ? "templates" : "forms",
+      currentFolderSlug: null,
+    };
   }
 
   const templatesIndex = segments.indexOf("templates");
