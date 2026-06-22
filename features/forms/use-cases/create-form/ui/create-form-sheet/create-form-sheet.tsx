@@ -176,7 +176,7 @@ export function CreateFormSheet({
           <DotLoader className="m-auto flex-1 text-center" />
         ) : null}
 
-        {!isFromScratch ? (
+        {!isFromScratch && (
           <SheetFooter className="flex-end">
             <div className="flex w-full flex-col gap-4">
               {isFromTemplate ? (
@@ -196,7 +196,7 @@ export function CreateFormSheet({
               {isAssistantEnabled ? <CreateFormAssistantPanel /> : null}
             </div>
           </SheetFooter>
-        ) : null}
+        )}
 
         {previewTemplateId ? (
           <FormTemplatePreview
