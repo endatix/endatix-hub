@@ -6,7 +6,7 @@ import { CreateFolderDialog } from "@/features/folders/create-folder";
 import { FolderManagementListCard } from "@/features/folders/list-folders";
 import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
-import { FolderCog } from "lucide-react";
+import { FolderCog, FolderOpen } from "lucide-react";
 import { redirect } from "next/navigation";
 import {
   Empty,
@@ -16,7 +16,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { FolderOpen } from "lucide-react";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 
 interface FoldersManagementPageProps {

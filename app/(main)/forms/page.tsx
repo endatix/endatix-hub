@@ -39,7 +39,9 @@ interface FormsPageProps {
   }>;
 }
 
-export default async function FormsPage({ searchParams }: FormsPageProps) {
+export default async function FormsPage({
+  searchParams,
+}: Readonly<FormsPageProps>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
@@ -59,11 +61,11 @@ export default async function FormsPage({ searchParams }: FormsPageProps) {
   return (
     <>
       <FormsListToolbar variant="root" />
-      {!hideFolders ? (
+      {!hideFolders && (
         <Suspense fallback={<FolderCardsSkeleton />}>
           <FormsFoldersSection headerDataPromise={headerDataPromise} />
         </Suspense>
-      ) : null}
+      )}
       <AssetStorageProvider>
         <Suspense
           fallback={<FormsListSkeleton pageSize={listRequest.pageSize} />}

@@ -38,7 +38,7 @@ type PageProps = {
 export default async function FolderSlugFormsPage({
   params,
   searchParams,
-}: PageProps) {
+}: Readonly<PageProps>) {
   const { folderSlug } = await params;
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
