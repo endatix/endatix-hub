@@ -147,6 +147,7 @@ const DeleteFormDialog = ({
 
 interface FormDetailsProps {
   form: Form;
+  mode?: "sheet" | "page";
   enableEditing?: boolean;
   showHeader?: boolean;
   enableAnalytics?: boolean;
@@ -157,6 +158,7 @@ interface FormDetailsProps {
 
 const FormDetails = ({
   form,
+  mode = "page",
   enableEditing = false,
   showHeader = true,
   enableAnalytics = false,
@@ -222,6 +224,10 @@ const FormDetails = ({
   }, [folders, form.folderId]);
 
   const displayedFolderLink = useMemo((): FormFolderLinkProps | undefined => {
+    if (mode === "sheet") {
+      return undefined;
+    }
+
     if (!folderLink && !enableEditing) {
       return undefined;
     }
@@ -243,7 +249,7 @@ const FormDetails = ({
     }
 
     return folderLink;
-  }, [enableEditing, folderLink, folderSelectItems, selectedFolderId]);
+  }, [mode, enableEditing, folderLink, folderSelectItems, selectedFolderId]);
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";

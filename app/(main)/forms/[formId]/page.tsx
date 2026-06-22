@@ -49,6 +49,7 @@ export default async function FormOverviewPage({ params }: Params) {
   return (
     <FormDetails
       form={form}
+      mode="page"
       showHeader={true}
       enableEditing={true}
       enableAnalytics={enableAnalytics}
