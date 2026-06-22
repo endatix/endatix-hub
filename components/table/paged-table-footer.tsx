@@ -24,6 +24,7 @@ export interface PagedTableFooterProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   pageSizeOptions?: readonly number[];
+  rowsPerPageLabel?: string;
 }
 
 export function PagedTableFooter({
@@ -36,6 +37,7 @@ export function PagedTableFooter({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = defaultPageSizeOptions,
+  rowsPerPageLabel = "Rows per page",
 }: Readonly<PagedTableFooterProps>) {
   const showingFrom = totalRecords === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(page * pageSize, totalRecords);
@@ -48,7 +50,7 @@ export function PagedTableFooter({
           Showing {showingFrom}-{showingTo} of {totalRecords} {entityLabel}
         </span>
         <div className="flex items-center gap-2">
-          <span>Rows per page</span>
+          <span>{rowsPerPageLabel}</span>
           <Select
             value={String(pageSize)}
             onValueChange={(value) => onPageSizeChange(Number(value))}

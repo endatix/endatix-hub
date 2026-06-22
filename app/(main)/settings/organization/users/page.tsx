@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Session } from "next-auth";
 import { UnauthorizedComponent } from "@/components/error-handling/unauthorized";
 import { Result } from "@/lib/result";
-import { parseNumber } from "@/lib/utils/type-parsers";
+import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-params";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { DataLoadError } from "@/lib/errors/data-load-error";
 
@@ -87,7 +87,8 @@ export default async function SettingsOrganizationUsersPage(
   props?: SettingsOrganizationUsersPageProps,
 ) {
   const session = await auth();
-  const { requireHubAccess, evaluatePermissions } = await authorization(session);
+  const { requireHubAccess, evaluatePermissions } =
+    await authorization(session);
   await requireHubAccess();
 
   const permissionsResult = await evaluatePermissions([
@@ -156,8 +157,7 @@ function parseUsersSearchParams(searchParams?: {
   status?: string;
 }): ListUsersRequest {
   return {
-    page: parseNumber(searchParams?.page, 1),
-    pageSize: parseNumber(searchParams?.pageSize, 10),
+    ...parsePagedSearchParams(searchParams, 10),
     search: searchParams?.search?.trim() || undefined,
     role: searchParams?.role?.trim() || undefined,
     status: parseStatus(searchParams?.status),
