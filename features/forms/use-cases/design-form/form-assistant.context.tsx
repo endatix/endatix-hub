@@ -4,7 +4,6 @@ import {
   createContext,
   ReactNode,
   use,
-  useEffect,
   useOptimistic,
   useReducer,
   useState,
@@ -82,20 +81,14 @@ export function FormAssistantProvider({
   const initialConversation = getConversationPromise
     ? use(getConversationPromise)
     : emptyConversationState();
+  const initialAssignFolderId =
+    defaultAssignFolderId ??
+    (requireFolderForNewForms && assignableFolders.length === 1
+      ? assignableFolders[0].id
+      : undefined);
   const [assignFolderId, setAssignFolderId] = useState<string | undefined>(
-    defaultAssignFolderId,
+    initialAssignFolderId,
   );
-
-  useEffect(() => {
-    if (defaultAssignFolderId) {
-      setAssignFolderId(defaultAssignFolderId);
-      return;
-    }
-
-    if (requireFolderForNewForms && assignableFolders.length === 1) {
-      setAssignFolderId(assignableFolders[0].id);
-    }
-  }, [defaultAssignFolderId, requireFolderForNewForms, assignableFolders]);
 
   const [chatContext, dispatch] = useReducer(
     conversationStateReducer,
