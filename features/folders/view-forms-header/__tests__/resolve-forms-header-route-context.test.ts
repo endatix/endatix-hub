@@ -13,10 +13,14 @@ describe("resolveFormsHeaderRouteContext", () => {
     });
   });
 
-  it("reads slug from forms/folders catch-all with one segment", () => {
+  it("does not treat a bare segment as a folder slug", () => {
     expect(resolveFormsHeaderRouteContext(["folder-exports"])).toEqual({
       section: "forms",
-      currentFolderSlug: "folder-exports",
+      currentFolderSlug: null,
+    });
+    expect(resolveFormsHeaderRouteContext(["form-123"])).toEqual({
+      section: "forms",
+      currentFolderSlug: null,
     });
   });
 

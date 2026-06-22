@@ -8,9 +8,8 @@ export type FormsHeaderRouteContext = {
 /**
  * Derives folder breadcrumb context from @header forms catch-all segments.
  *
- * Handles both shapes:
- * - `['folder-exports']` from `@header/forms/folders/[...catchAll]`
- * - `['folders', 'folder-exports']` from `@header/forms/[[...catchAll]]`
+ * Folder slugs are only resolved when a `folders` segment is present, e.g.
+ * `['folders', 'folder-exports']` for `/forms/folders/folder-exports`.
  */
 export function resolveFormsHeaderRouteContext(
   catchAll: string[] | undefined,
@@ -37,14 +36,6 @@ export function resolveFormsHeaderRouteContext(
   const foldersIndex = segments.indexOf("folders");
   if (foldersIndex >= 0) {
     return resolveFolderSlugFromSegments(segments, foldersIndex, "forms");
-  }
-
-  const lastSegment = segments.at(-1);
-  if (lastSegment && lastSegment !== "folders" && lastSegment !== "templates") {
-    return {
-      section: segments[0] === "templates" ? "templates" : "forms",
-      currentFolderSlug: safeDecodeURIComponent(lastSegment),
-    };
   }
 
   return { section: "forms", currentFolderSlug: null };

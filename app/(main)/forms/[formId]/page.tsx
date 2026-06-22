@@ -7,6 +7,8 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { formAnalyticsFlag } from "@/lib/feature-flags";
+import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
+import { resolveFormFolderLink } from "@/features/forms/ui/resolve-form-folder-link";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -19,6 +21,7 @@ export default async function FormOverviewPage({ params }: Params) {
 
   const { formId } = await params;
   const enableAnalytics = await formAnalyticsFlag();
+  const headerData = await getFormsHeaderDataCached(session?.accessToken);
 
   let form: Form | null = null;
 
@@ -49,6 +52,7 @@ export default async function FormOverviewPage({ params }: Params) {
       showHeader={true}
       enableEditing={true}
       enableAnalytics={enableAnalytics}
+      folderLink={resolveFormFolderLink(form, headerData.folders)}
     />
   );
 }
