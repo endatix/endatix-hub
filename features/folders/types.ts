@@ -1,5 +1,7 @@
 import type { Folder } from "@/lib/endatix-api/folders/types";
+import type { PageError } from "@/lib/errors/page-error";
 import type { Route } from "next";
+import type { Form, FormTemplate } from "@/types";
 
 export type FormsNavFolder = {
   id: string;
@@ -46,11 +48,19 @@ export type FolderManagementDetailSuccess = {
   allFolders: Folder[];
 };
 
-export type FolderManagementDetailFailure =
-  | { kind: "not_found" }
-  | { kind: "auth" }
-  | { kind: "api"; message: string };
+export type FolderManagementDetailFailure = PageError;
 
 export type FolderManagementDetailResult =
   | { ok: true; data: FolderManagementDetailSuccess }
   | { ok: false; error: FolderManagementDetailFailure };
+
+export type FolderManagementPageData = {
+  folder: Folder;
+  forms: readonly Form[];
+  templates: readonly FormTemplate[];
+  moveTargetFolders: readonly Folder[];
+};
+
+export type FolderManagementPageResult =
+  | { ok: true; data: FolderManagementPageData }
+  | { ok: false; error: PageError };
