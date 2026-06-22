@@ -48,9 +48,9 @@ import { useState, useTransition } from "react";
 
 type FolderDetailsViewProps = {
   folder: Folder;
-  forms: Form[];
-  templates: FormTemplate[];
-  moveTargetFolders: Folder[];
+  forms: readonly Form[];
+  templates: readonly FormTemplate[];
+  moveTargetFolders: readonly Folder[];
 };
 
 type ContainedItem = {
