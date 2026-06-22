@@ -61,7 +61,7 @@ export function CreateFormFolderSelect({
               <SelectItem value={NO_FOLDER_ID}>No folder</SelectItem>
             ) : null}
             {folders.map((folder) => (
-              <SelectItem key={folder.id} value={String(folder.id)}>
+              <SelectItem key={folder.id} value={folder.id}>
                 {folder.name}
               </SelectItem>
             ))}
