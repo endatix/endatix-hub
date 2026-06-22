@@ -5,6 +5,8 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { EndatixApi } from "@/lib/endatix-api";
+import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -24,15 +26,29 @@ export default async function CreateFormPage({
   const requestedFolderSlug = resolvedSearchParams?.folderSlug?.trim();
 
   const api = new EndatixApi(session?.accessToken);
-  const [settingsResult, foldersResult] = await Promise.all([
+  const [rawSettingsResult, rawFoldersResult] = await Promise.all([
     api.tenant.getSettings(),
     api.folders.list(),
   ]);
 
+  const settingsResult = toResult(rawSettingsResult, {
+    fallbackMessage: "Failed to get tenant settings",
+    logMessage: "Failed to get tenant settings for create form page",
+    loggerName: "forms.create.page",
+  });
+
+  const foldersResult = toResult(rawFoldersResult, {
+    fallbackMessage: "Failed to load folders",
+    logMessage: "Failed to load folders for create form page",
+    loggerName: "forms.create.page",
+  });
+
   const requireFolderAssignment =
-    settingsResult.success &&
-    (settingsResult.data.requireFolderAssignment ?? false);
-  const folders: Folder[] = foldersResult.success ? foldersResult.data : [];
+    Result.isSuccess(settingsResult) &&
+    (settingsResult.value.requireFolderAssignment ?? false);
+  const folders: Folder[] = Result.isSuccess(foldersResult)
+    ? foldersResult.value
+    : [];
   const defaultFolderId = resolveEffectiveCreateFolderId(folders, {
     folderId: requestedFolderId,
     folderSlug: requestedFolderSlug,
