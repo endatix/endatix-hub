@@ -63,6 +63,7 @@ export function FormsListToolbar({ variant }: Readonly<FormsListToolbarProps>) {
       search: null,
       status: null,
       visibility: null,
+      browse: null,
       page: "1",
     });
   };
