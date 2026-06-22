@@ -39,25 +39,6 @@ export const createForm = async (
   return response.json();
 };
 
-export const getForms = async (filter?: string): Promise<Form[]> => {
-  const session = await getSession();
-  const headers = new HeaderBuilder().withAuth(session).build();
-  let url = `${API_BASE_URL}/forms?pageSize=100`;
-  if (filter) {
-    url += `&filter=${encodeURIComponent(filter)}`;
-  }
-
-  const response = await fetch(url, {
-    headers: headers,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch data");
-  }
-
-  return response.json();
-};
-
 export const getForm = async (formId: string): Promise<Form> => {
   const requestOptions: RequestInit = {};
 

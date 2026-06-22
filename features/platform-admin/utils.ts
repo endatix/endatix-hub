@@ -1,4 +1,4 @@
-import { parseNumber } from "@/lib/utils/type-parsers";
+import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-params";
 import type {
   ListPlatformAdminsRequest,
   PlatformAdminListScope,
@@ -14,8 +14,7 @@ export function parsePlatformAdminListParams(
   searchParams?: PlatformAdminSearchParams,
 ): ListPlatformAdminsRequest {
   return {
-    page: parseNumber(searchParams?.page, 1),
-    pageSize: parseNumber(searchParams?.pageSize, 10),
+    ...parsePagedSearchParams(searchParams, 10),
     search: searchParams?.search?.trim() || undefined,
     scope: parseScope(searchParams?.scope),
     tenantId: searchParams?.tenantId?.trim() || undefined,

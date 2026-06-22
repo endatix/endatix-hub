@@ -1,8 +1,10 @@
+import { buildQueryEndpoint } from "../shared/query-params";
+import { EndatixApi } from "../endatix-api";
+import { ApiResult } from "../shared/api-result";
+import type { PagedResponse } from "../shared/types";
 import { Form } from "@/types";
 import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
-import { EndatixApi } from "../endatix-api";
-import { ApiResult } from "../shared/api-result";
 import {
   CreateFormAccessTokenRequest,
   FormAccessTokenResponse,
@@ -20,16 +22,12 @@ export class Forms {
     return this.endatix.post<Form>("/forms", request);
   }
 
-  async list(request?: FormsListRequest): Promise<ApiResult<Form[]>> {
-    const params = new URLSearchParams();
-    params.set("pageSize", "100");
-    if (request?.filter) {
-      params.set("filter", request.filter);
-    }
-    if (request?.folderId) {
-      params.set("folderId", request.folderId);
-    }
-    return this.endatix.get<Form[]>(`/forms?${params.toString()}`);
+  async list(
+    request: FormsListRequest = {},
+  ): Promise<ApiResult<PagedResponse<Form>>> {
+    return this.endatix.get<PagedResponse<Form>>(
+      buildListFormsEndpoint(request),
+    );
   }
 
   async get(formId: string): Promise<ApiResult<Form>> {
@@ -109,4 +107,25 @@ export class Forms {
 
     return this.endatix.get<PublicFormAccessResponse>(path, { requireAuth });
   }
+}
+
+function buildListFormsEndpoint(request: FormsListRequest): string {
+  const entries: [string, string | number | boolean | null | undefined][] = [
+    ["page", request.page],
+    ["pageSize", request.pageSize],
+    ["search", request.search],
+    ["isEnabled", request.isEnabled],
+    ["isPublic", request.isPublic],
+    ["folderId", request.folderId],
+  ];
+
+  if (request.unassignedOnly) {
+    entries.push(["filter", "folderId:null"]);
+  } else if (request.themeId) {
+    entries.push(["filter", `themeId:${request.themeId}`]);
+  } else if (request.filter) {
+    entries.push(["filter", request.filter]);
+  }
+
+  return buildQueryEndpoint("/forms", entries);
 }
