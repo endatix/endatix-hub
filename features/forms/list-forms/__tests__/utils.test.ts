@@ -34,6 +34,26 @@ describe("parseFormsListParams", () => {
     });
   });
 
+  it("normalizes invalid paging inputs to defaults", () => {
+    expect(
+      parseFormsListParams(
+        { page: "0", pageSize: "-3", search: "demo" },
+        { kind: "root" },
+      ),
+    ).toMatchObject({
+      page: 1,
+      pageSize: DEFAULT_FORMS_PAGE_SIZE,
+      search: "demo",
+    });
+
+    expect(
+      parseFormsListParams({ page: "2.9", pageSize: "12.4" }, { kind: "root" }),
+    ).toMatchObject({
+      page: 2,
+      pageSize: 12,
+    });
+  });
+
   it("escalates to tenant-wide when filters are active on root", () => {
     expect(
       parseFormsListParams({ search: "survey" }, { kind: "root" }),
