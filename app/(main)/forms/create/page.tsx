@@ -46,7 +46,7 @@ export default async function CreateFormPage({
   }
 
   const backHref = defaultFolder?.slug
-    ? `/forms/folders/${defaultFolder.slug}`
+    ? `/forms/folders/${encodeURIComponent(defaultFolder.slug)}`
     : "/forms";
 
   return (
