@@ -2,19 +2,29 @@
 
 import { Form } from "@/types";
 import FormCard from "./form-card";
+import type { FormFolderContext } from "@/features/forms/list-forms/utils";
+import type { FormFolderChipProps } from "./form-folder-chip";
 import { useState, useMemo } from "react";
 import FormSheet from "./form-sheet";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 
 type FormDataProps = {
   forms: Form[];
+  showFolderContext?: boolean;
+  folderContextById?: ReadonlyMap<string, FormFolderContext>;
 };
 
-const FormsList = ({ forms }: FormDataProps) => {
+const FormsList = ({
+  forms,
+  showFolderContext = false,
+  folderContextById,
+}: FormDataProps) => {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isSaveAsTemplateOpen, setIsSaveAsTemplateOpen] = useState(false);
-  const [saveAsTemplateFormId, setSaveAsTemplateFormId] = useState<string | null>(null);
+  const [saveAsTemplateFormId, setSaveAsTemplateFormId] = useState<
+    string | null
+  >(null);
 
   const selectedForm = useMemo(
     () => forms.find((form) => form.id === selectedFormId),
@@ -37,7 +47,7 @@ const FormsList = ({ forms }: FormDataProps) => {
     setSelectedFormId(formId);
     setIsSheetOpen(true);
   };
-  
+
   const handleSaveAsTemplateClick = (formId: string) => {
     setSaveAsTemplateFormId(formId);
     setIsSaveAsTemplateOpen(true);
@@ -50,6 +60,29 @@ const FormsList = ({ forms }: FormDataProps) => {
     }
   };
 
+  const resolveFolderContext = (
+    form: Form,
+  ): FormFolderChipProps | undefined => {
+    if (!showFolderContext) {
+      return undefined;
+    }
+
+    if (!form.folderId) {
+      return { label: "Unassigned", unassigned: true };
+    }
+
+    const folderContext = folderContextById?.get(form.folderId);
+    if (!folderContext) {
+      return { label: "Folder" };
+    }
+
+    return {
+      label: folderContext.name,
+      immutable: folderContext.immutable,
+      isActive: folderContext.isActive,
+    };
+  };
+
   return (
     <>
       <div className="grid-card-list">
@@ -57,6 +90,7 @@ const FormsList = ({ forms }: FormDataProps) => {
           <FormCard
             key={form.id}
             form={form}
+            folderContext={resolveFolderContext(form)}
             isSelected={form.id === selectedFormId}
             onClick={() => handleFormSelected(form.id)}
             onSaveAsTemplate={() => handleSaveAsTemplateClick(form.id)}
@@ -70,7 +104,7 @@ const FormsList = ({ forms }: FormDataProps) => {
         selectedForm={selectedForm ?? null}
         enableEditing={true}
       />
-      
+
       {saveAsTemplateForm && (
         <SaveAsTemplateDialog
           formId={saveAsTemplateForm.id}

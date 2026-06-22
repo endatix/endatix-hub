@@ -67,6 +67,7 @@ interface FormAssistantProviderProps {
   getConversationPromise?: Promise<ConversationState>;
   /** When true, new forms from the assistant must include a folder (matches tenant requireFolderAssignment). */
   requireFolderForNewForms?: boolean;
+  defaultAssignFolderId?: string;
   assignableFolders?: AssistantFolderOption[];
 }
 
@@ -76,19 +77,25 @@ export function FormAssistantProvider({
   getConversationPromise,
   requireFolderForNewForms = false,
   assignableFolders = [],
+  defaultAssignFolderId,
 }: Readonly<FormAssistantProviderProps>) {
   const initialConversation = getConversationPromise
     ? use(getConversationPromise)
     : emptyConversationState();
   const [assignFolderId, setAssignFolderId] = useState<string | undefined>(
-    undefined,
+    defaultAssignFolderId,
   );
 
   useEffect(() => {
+    if (defaultAssignFolderId) {
+      setAssignFolderId(defaultAssignFolderId);
+      return;
+    }
+
     if (requireFolderForNewForms && assignableFolders.length === 1) {
       setAssignFolderId(assignableFolders[0].id);
     }
-  }, [requireFolderForNewForms, assignableFolders]);
+  }, [defaultAssignFolderId, requireFolderForNewForms, assignableFolders]);
 
   const [chatContext, dispatch] = useReducer(
     conversationStateReducer,

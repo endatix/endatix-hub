@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
+import { FormFolderChip, type FormFolderChipProps } from "./form-folder-chip";
 import Link from "next/link";
 import {
   FilePen,
@@ -44,6 +45,7 @@ import type { Route } from "next";
 
 type FormCardProps = React.ComponentProps<typeof Card> & {
   form: Form;
+  folderContext?: FormFolderChipProps;
   isSelected: boolean;
   onSaveAsTemplate: () => void;
 };
@@ -88,6 +90,7 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
 
 const FormCard = ({
   form,
+  folderContext,
   isSelected,
   onSaveAsTemplate,
   className,
@@ -208,6 +211,7 @@ const FormCard = ({
     >
       <div className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45">
         <CardHeader className="shrink-0 p-4 pt-4 pb-2">
+          {folderContext ? <FormFolderChip {...folderContext} /> : null}
           <CardTitle
             title={form.name}
             className="tracking-tigher line-clamp-2 min-w-0 font-sans text-2xl leading-snug font-normal break-words"
