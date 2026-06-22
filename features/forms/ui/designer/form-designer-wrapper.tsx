@@ -6,6 +6,7 @@ import FormEditorContainer from "../editor/form-editor-container";
 import FormEditorWithChat from "../editor/form-editor-with-chat";
 import { DesignSurveyProvider } from "@/lib/survey-features/designer/design-survey.context";
 import { ICreatorOptions } from "survey-creator-core";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useRef } from "react";
 import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
@@ -56,12 +57,16 @@ function FormDesignerContent({
     [formSaveHandlerRef],
   );
 
+  const handleNavigateBack = useCallback(() => {
+    router.push(`/forms/${formId}` as Route);
+  }, [router, formId]);
+
   const headerState = useFormEditorHeader({
     formId,
     initialFormName: formName,
     isCurrentThemeModified,
     onSave: handleSave,
-    onNavigateBack: () => router.push("/forms"),
+    onNavigateBack: handleNavigateBack,
   });
 
   return (

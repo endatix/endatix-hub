@@ -75,6 +75,7 @@ const FormSheet = ({
             <div className="mt-8 pb-6">
               <FormDetails
                 form={displayForm}
+                mode="sheet"
                 enableEditing={enableEditing}
                 showHeader={true}
                 onFormDeleted={handleFormDeleted}

@@ -66,6 +66,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { FormFolderLink, type FormFolderLinkProps } from "./form-folder-link";
 
 interface DeleteFormDialogProps {
   isOpen: boolean;
@@ -146,18 +147,22 @@ const DeleteFormDialog = ({
 
 interface FormDetailsProps {
   form: Form;
+  mode?: "sheet" | "page";
   enableEditing?: boolean;
   showHeader?: boolean;
   enableAnalytics?: boolean;
+  folderLink?: FormFolderLinkProps;
   onFormDeleted?: () => void; // Callback for when form is successfully deleted
   titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
 }
 
 const FormDetails = ({
   form,
+  mode = "page",
   enableEditing = false,
   showHeader = true,
   enableAnalytics = false,
+  folderLink,
   onFormDeleted,
   titleSize = "text-4xl",
 }: FormDetailsProps) => {
@@ -217,6 +222,34 @@ const FormDetails = ({
     }
     return folders;
   }, [folders, form.folderId]);
+
+  const displayedFolderLink = useMemo((): FormFolderLinkProps | undefined => {
+    if (mode === "sheet") {
+      return undefined;
+    }
+
+    if (!folderLink && !enableEditing) {
+      return undefined;
+    }
+
+    if (selectedFolderId === "__none__") {
+      return { label: "Unassigned", unassigned: true };
+    }
+
+    const folder = folderSelectItems.find(
+      (candidate) => candidate.id === selectedFolderId,
+    );
+    if (folder) {
+      return {
+        label: folder.name,
+        immutable: folder.immutable,
+        isActive: folder.isActive,
+        folderSlug: folder.slug || undefined,
+      };
+    }
+
+    return folderLink;
+  }, [mode, enableEditing, folderLink, folderSelectItems, selectedFolderId]);
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
@@ -421,6 +454,9 @@ const FormDetails = ({
         {/* Header - conditionally rendered for flexibility */}
         {showHeader && (
           <div>
+            {displayedFolderLink ? (
+              <FormFolderLink {...displayedFolderLink} className="mb-2" />
+            ) : null}
             <PageTitle title={form?.name} className={titleSize} />
             {form?.description && (
               <p className="text-muted-foreground">{form.description}</p>
