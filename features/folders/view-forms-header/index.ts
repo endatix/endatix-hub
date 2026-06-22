@@ -1,5 +1,11 @@
 export { buildFormsBreadcrumbModel } from "./build-forms-breadcrumb-model.server";
 export { getFormsHeaderDataCached } from "./get-forms-header-data.server";
-export { folderSlugsMatch, normalizeFolderSlug } from "./folder-slug.utils";
+export {
+  folderSlugsMatch,
+  normalizeFolderSlug,
+} from "@/features/folders/lib/folder-slug-matching";
 export { resolveFormsHeaderRouteContext } from "./resolve-forms-header-route-context";
-export { resolveFormsNavFolderBySlug } from "./resolve-forms-nav-folder.server";
+export {
+  resolveFolderForNavBySlug,
+  resolveFormsNavFolderBySlug,
+} from "@/features/folders/get-folder-by-slug";

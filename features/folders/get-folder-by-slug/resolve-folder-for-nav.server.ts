@@ -1,15 +1,15 @@
 import "server-only";
 
+import { folderSlugsMatch } from "@/features/folders/lib/folder-slug-matching";
 import type { FormsNavFolder } from "@/features/folders/types";
 import { EndatixApi } from "@/lib/endatix-api";
-import { folderSlugsMatch } from "./folder-slug.utils";
-
-export { folderSlugsMatch, normalizeFolderSlug } from "./folder-slug.utils";
+import { mapFolderToNavFolder } from "./map-folder-to-nav-folder";
 
 /**
- * Resolves a folder for forms navigation from the cached list, falling back to API by slug.
+ * Resolves a folder for forms navigation: match against a preloaded list first,
+ * then fall back to API lookup by slug.
  */
-export async function resolveFormsNavFolderBySlug(
+export async function resolveFolderForNavBySlug(
   accessToken: string | undefined,
   folderSlug: string,
   folders: FormsNavFolder[],
@@ -27,12 +27,8 @@ export async function resolveFormsNavFolderBySlug(
     return null;
   }
 
-  const folder = folderResult.data;
-  return {
-    id: folder.id,
-    name: folder.name,
-    slug: folder.slug,
-    isActive: folder.isActive,
-    immutable: folder.immutable,
-  };
+  return mapFolderToNavFolder(folderResult.data);
 }
+
+/** @deprecated Use resolveFolderForNavBySlug */
+export const resolveFormsNavFolderBySlug = resolveFolderForNavBySlug;

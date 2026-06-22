@@ -7,7 +7,7 @@ import {
   type FormsBrowseMode,
 } from "@/features/forms/list-forms/utils";
 import type { Route } from "next";
-import { folderSlugsMatch } from "./folder-slug.utils";
+import { folderSlugsMatch } from "@/features/folders/lib/folder-slug-matching";
 
 type BuildFormsBreadcrumbModelParams = {
   section: "forms" | "templates";
