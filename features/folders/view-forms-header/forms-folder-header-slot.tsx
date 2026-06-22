@@ -2,11 +2,9 @@ import { auth } from "@/auth";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  buildFormsBreadcrumbModel,
-  getFormsHeaderDataCached,
-  resolveFolderForNavBySlug,
-} from "@/features/folders/view-forms-header";
+import { buildFormsBreadcrumbModel } from "./build-forms-breadcrumb-model.server";
+import { getFormsHeaderDataCached } from "./get-forms-header-data.server";
+import { resolveFolderForNavBySlug } from "@/features/folders/get-folder-by-slug/resolve-folder-for-nav.server";
 import { FormsHeaderCreateActions } from "@/features/forms/ui/forms-header-create-actions";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { Suspense } from "react";
