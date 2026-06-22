@@ -5,4 +5,4 @@ export {
   normalizeFolderSlug,
 } from "@/features/folders/lib/folder-slug-matching";
 export { resolveFormsHeaderRouteContext } from "./resolve-forms-header-route-context";
-export { resolveFolderForNavBySlug } from "@/features/folders/get-folder-by-slug";
+export { resolveFolderForNavBySlug } from "@/features/folders/get-folder-by-slug/resolve-folder-for-nav.server";
