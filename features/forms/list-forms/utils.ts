@@ -153,17 +153,14 @@ export function parseFormsListParams(
   const status = searchParams?.status;
   const visibility = searchParams?.visibility;
 
+  const isEnabled = parseFormsIsEnabledFilter(status);
+  const isPublic = parseFormsIsPublicFilter(visibility);
+
   const base: FormsListRequest = {
     ...paging,
     search: searchParams?.search?.trim() || undefined,
-    isEnabled:
-      status === "enabled" ? true : status === "disabled" ? false : undefined,
-    isPublic:
-      visibility === "public"
-        ? true
-        : visibility === "private"
-          ? false
-          : undefined,
+    isEnabled,
+    isPublic,
   };
 
   if (scope?.kind === "folder") {
@@ -175,6 +172,34 @@ export function parseFormsListParams(
   }
 
   return { ...base, unassignedOnly: true };
+}
+
+function parseFormsIsEnabledFilter(
+  value: string | undefined,
+): boolean | undefined {
+  if (value === "enabled") {
+    return true;
+  }
+
+  if (value === "disabled") {
+    return false;
+  }
+
+  return undefined;
+}
+
+function parseFormsIsPublicFilter(
+  value: string | undefined,
+): boolean | undefined {
+  if (value === "public") {
+    return true;
+  }
+
+  if (value === "private") {
+    return false;
+  }
+
+  return undefined;
 }
 
 export function parseFormsStatusFilter(

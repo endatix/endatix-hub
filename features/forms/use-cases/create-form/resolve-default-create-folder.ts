@@ -2,6 +2,8 @@ import type { FormsNavFolder } from "@/features/folders/types";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { normalizeBasePath } from "@/lib/hosting/base-path";
 
+const formsFolderSlugPathRegex = /^\/forms\/folders\/([^/?#]+)/;
+
 function normalizeFolderSlug(slug: string): string {
   try {
     return decodeURIComponent(slug.trim());
@@ -45,7 +47,7 @@ export function parseFormsFolderSlugFromPathname(
   pathname: string,
 ): string | null {
   const path = stripBasePathFromPathname(pathname);
-  const match = path.match(/^\/forms\/folders\/([^/?#]+)/);
+  const match = formsFolderSlugPathRegex.exec(path);
   if (!match?.[1]) {
     return null;
   }

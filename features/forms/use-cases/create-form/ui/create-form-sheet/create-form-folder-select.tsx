@@ -57,28 +57,28 @@ export function CreateFormFolderSelect({
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            {!requireFolderAssignment ? (
+            {!requireFolderAssignment && (
               <SelectItem value={NO_FOLDER_ID}>No folder</SelectItem>
-            ) : null}
+            )}
             {folders.map((folder) => (
-              <SelectItem key={folder.id} value={folder.id}>
+              <SelectItem key={folder.id} value={String(folder.id)}>
                 {folder.name}
               </SelectItem>
             ))}
           </SelectGroup>
         </SelectContent>
       </Select>
-      {requireFolderAssignment ? (
+      {requireFolderAssignment && (
         <p className="text-sm text-muted-foreground">
           A folder is required by your organization policy.
         </p>
-      ) : null}
-      {requireFolderAssignment && folders.length === 0 ? (
+      )}
+      {requireFolderAssignment && folders.length === 0 && (
         <p className="text-sm text-destructive">
           No active folders exist. Create a folder under Forms → Folders before
           creating a form.
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

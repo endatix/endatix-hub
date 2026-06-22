@@ -36,7 +36,7 @@ export default function CreateFormWizard({
   defaultFolderId,
   defaultFolderName,
   cancelHref = "/forms",
-}: CreateFormWizardProps) {
+}: Readonly<CreateFormWizardProps>) {
   const router = useRouter();
   const normalizedDefaultFolderId = defaultFolderId
     ? String(defaultFolderId)

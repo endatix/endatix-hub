@@ -324,7 +324,12 @@ export function FolderDetailsView({
   );
 }
 
-function FolderIcon({ folder }: { folder: Folder }) {
+/**
+ * Folder icon component that displays the appropriate icon based on the folder's state.
+ * @param folder - The folder to display the icon for.
+ * @returns The folder icon component.
+ */
+function FolderIcon({ folder }: Readonly<{ folder: Folder }>) {
   if (folder.immutable) {
     return <FolderLock className="size-4 text-destructive" />;
   }

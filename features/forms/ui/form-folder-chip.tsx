@@ -15,14 +15,25 @@ export function FormFolderChip({
   isActive = true,
   unassigned = false,
 }: Readonly<FormFolderChipProps>) {
-  const Icon = unassigned ? FolderMinus : immutable ? FolderLock : FolderIcon;
-  const iconClassName = unassigned
-    ? "text-muted-foreground"
-    : immutable
-      ? "text-destructive"
-      : isActive
-        ? "text-primary"
-        : "text-muted-foreground";
+  let Icon;
+  if (unassigned) {
+    Icon = FolderMinus;
+  } else if (immutable) {
+    Icon = FolderLock;
+  } else {
+    Icon = FolderIcon;
+  }
+
+  let iconClassName: string;
+  if (unassigned) {
+    iconClassName = "text-muted-foreground";
+  } else if (immutable) {
+    iconClassName = "text-destructive";
+  } else if (isActive) {
+    iconClassName = "text-primary";
+  } else {
+    iconClassName = "text-muted-foreground";
+  }
 
   return (
     <Badge
