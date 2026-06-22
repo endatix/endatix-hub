@@ -19,8 +19,10 @@ export default async function FormsHeaderSlot({
   searchParams,
 }: Readonly<FormsHeaderPageProps>) {
   const session = await auth();
-  const aiFeatureFlag = await aiFeaturesFlag();
-  const resolvedSearchParams = await searchParams;
+  const [aiFeatureFlag, resolvedSearchParams] = await Promise.all([
+    aiFeaturesFlag(),
+    searchParams,
+  ]);
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const breadcrumbItemsPromise = headerDataPromise.then((headerData) =>
     buildFormsBreadcrumbModel({

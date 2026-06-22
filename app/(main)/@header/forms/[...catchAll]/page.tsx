@@ -91,7 +91,7 @@ async function FolderFormsHeaderActions({
       aiFeatureFlag={aiFeatureFlag}
       headerData={headerData}
       defaultFolderId={folder?.id}
-      defaultFolderSlug={folder?.slug ?? decodeURIComponent(folderSlug)}
+      defaultFolderSlug={folder?.slug ?? folderSlug}
       defaultFolderName={folder?.name}
     />
   );
