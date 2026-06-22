@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { getFolderManagementDetailCached, FolderDetailsView } from "@/features/folders/view-folder-management";
-import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { notFound, redirect } from "next/navigation";
+import {
+  FolderDetailsView,
+  getFolderManagementPageDataCached,
+} from "@/features/folders/view-folder-management";
+import { resolvePageError } from "@/lib/errors/resolve-page-error";
 
 type PageProps = {
   params: Promise<{ folderId: string }>;
@@ -14,73 +15,29 @@ export default async function FolderDetailsPage({
 }: Readonly<PageProps>) {
   const { folderId } = await params;
   const session = await auth();
-  const { requireHubAccess, checkPermission } = await authorization(session);
+  const { requireHubAccess, requirePermission } = await authorization(session);
   await requireHubAccess();
+  await requirePermission(Permissions.Folders.Manage);
 
-  const canManage = (await checkPermission(Permissions.Folders.Manage)).success;
-  if (!canManage) {
-    redirect(UNAUTHORIZED_PATH);
-  }
-
-  const detail = await getFolderManagementDetailCached(
+  const pageData = await getFolderManagementPageDataCached(
     session?.accessToken,
     folderId,
   );
-  if (!detail.ok) {
-    if (detail.error.kind === "not_found") {
-      notFound();
-    }
-    if (detail.error.kind === "auth") {
-      redirect(SIGNIN_PATH);
-    }
-    return (
-      <div className="text-sm text-destructive">{detail.error.message}</div>
-    );
+
+  if (!pageData.ok) {
+    return resolvePageError(pageData.error);
   }
 
-  const { folder, allFolders } = detail.data;
-
-  const api = new EndatixApi(session?.accessToken);
-
-  const [formsResult, templatesResult] = await Promise.all([
-    api.forms.list({ folderId: folder.id }),
-    api.formTemplates.list({ folderId: folder.id }),
-  ]);
-
-  if (ApiResult.isError(formsResult)) {
-    if (formsResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    if (formsResult.error.type === ApiErrorType.ForbiddenError) {
-      redirect(UNAUTHORIZED_PATH);
-    }
-    return (
-      <div className="text-sm text-destructive">
-        {formsResult.error.message}
-      </div>
-    );
-  }
-
-  if (ApiResult.isError(templatesResult)) {
-    if (templatesResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    if (templatesResult.error.type === ApiErrorType.ForbiddenError) {
-      redirect(UNAUTHORIZED_PATH);
-    }
-    return (
-      <div className="text-sm text-destructive">
-        {templatesResult.error.message}
-      </div>
-    );
-  }
+  const { folder, forms, templates, moveTargetFolders, contentsPreview } =
+    pageData.data;
 
   return (
     <FolderDetailsView
       folder={folder}
-      forms={formsResult.data}
-      templates={templatesResult.data}
-      moveTargetFolders={allFolders}
+      forms={forms}
+      templates={templates}
+      moveTargetFolders={moveTargetFolders}
+      contentsPreview={contentsPreview}
     />
   );
 }

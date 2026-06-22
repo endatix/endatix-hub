@@ -18,20 +18,37 @@ import { useRouter } from "next/navigation";
 
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import type { Folder } from "@/lib/endatix-api/folders/types";
+import { getSelectableCreateFolders } from "./resolve-default-create-folder";
 
 const INITIAL_STATE: CreateFormActionState = ServerActionState.emptyState();
 
 type CreateFormWizardProps = {
   requireFolderAssignment?: boolean;
   folders?: Folder[];
+  defaultFolderId?: string;
+  defaultFolderName?: string;
+  cancelHref?: string;
 };
 
 export default function CreateFormWizard({
   requireFolderAssignment = false,
   folders = [],
-}: CreateFormWizardProps) {
+  defaultFolderId,
+  defaultFolderName,
+  cancelHref = "/forms",
+}: Readonly<CreateFormWizardProps>) {
   const router = useRouter();
-  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
+  const normalizedDefaultFolderId = defaultFolderId
+    ? String(defaultFolderId)
+    : undefined;
+  const selectableFolders = getSelectableCreateFolders(
+    folders,
+    normalizedDefaultFolderId,
+    defaultFolderName,
+  );
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(
+    normalizedDefaultFolderId ?? "",
+  );
   const [state, formAction, isPending] = useActionState(
     createFormAction,
     INITIAL_STATE,
@@ -39,10 +56,17 @@ export default function CreateFormWizard({
   const isFormCreatedState = state?.isSuccess && state?.formId;
   const isFolderRequiredAndMissing =
     requireFolderAssignment && selectedFolderId.length === 0;
+  const showEmptyFolderOption =
+    !requireFolderAssignment || !normalizedDefaultFolderId;
 
   useEffect(() => {
+    if (normalizedDefaultFolderId) {
+      setSelectedFolderId(normalizedDefaultFolderId);
+      return;
+    }
+
     setSelectedFolderId(state?.data?.folderId ?? "");
-  }, [state?.data?.folderId]);
+  }, [normalizedDefaultFolderId, state?.data?.folderId]);
 
   useEffect(() => {
     if (isFormCreatedState) {
@@ -106,14 +130,17 @@ export default function CreateFormWizard({
               value={selectedFolderId}
               onChange={(event) => setSelectedFolderId(event.target.value)}
               disabled={isPending}
+              required={requireFolderAssignment}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">
-                {requireFolderAssignment ? "Select a folder" : "No folder"}
-              </option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
+              {showEmptyFolderOption ? (
+                <option value="">
+                  {requireFolderAssignment ? "Select a folder" : "No folder"}
+                </option>
+              ) : null}
+              {selectableFolders.map((folder) => (
+                <option key={folder.id} value={String(folder.id)}>
+                  {folder.name}
                 </option>
               ))}
             </select>
@@ -138,7 +165,7 @@ export default function CreateFormWizard({
 
       <div className="flex justify-end space-x-2">
         <Button variant="outline" asChild disabled={isPending}>
-          <Link href="/forms">Cancel</Link>
+          <Link href={{ pathname: cancelHref }}>Cancel</Link>
         </Button>
         <Button
           type="submit"

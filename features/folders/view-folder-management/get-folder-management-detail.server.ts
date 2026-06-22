@@ -1,6 +1,7 @@
-import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { cache } from "react";
 import type { FolderManagementDetailResult } from "@/features/folders/types";
+import { toApiPageError } from "@/lib/errors/page-error";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { cache } from "react";
 
 /**
  * Cached per request so parallel `@header` and page can share one folders list fetch.
@@ -12,13 +13,13 @@ export const getFolderManagementDetailCached = cache(
   ): Promise<FolderManagementDetailResult> => {
     const api = new EndatixApi(accessToken);
     const foldersResult = await api.folders.list({ includeInactive: true });
-    if (ApiResult.isError(foldersResult)) {
-      if (foldersResult.error.type === ApiErrorType.AuthError) {
-        return { ok: false, error: { kind: "auth" } };
-      }
+    if (!ApiResult.isSuccess(foldersResult)) {
       return {
         ok: false,
-        error: { kind: "api", message: foldersResult.error.message },
+        error: toApiPageError(foldersResult) ?? {
+          kind: "api",
+          message: "Failed to load folder management detail",
+        },
       };
     }
 

@@ -1,6 +1,15 @@
-export interface FormsListRequest {
+import type { IPagedRequest } from "../shared/types";
+
+export interface FormsListRequest extends IPagedRequest {
+  search?: string;
+  isEnabled?: boolean;
+  isPublic?: boolean;
+  /** Advanced filter expression when typed fields are not sufficient. */
   filter?: string;
   folderId?: string;
+  themeId?: string;
+  /** Computed: maps to filter folderId:null for unassigned forms. */
+  unassignedOnly?: boolean;
 }
 
 export interface UpdateFormRequest {

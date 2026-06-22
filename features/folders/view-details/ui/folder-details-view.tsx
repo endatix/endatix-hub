@@ -29,13 +29,17 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
 import { moveTemplateToFolderAction } from "@/features/folders/move-template-to-folder";
+import {
+  formatFolderContentsPreviewLabel,
+  type FolderContentsPreview,
+} from "@/features/folders/view-folder-management/folder-contents-preview";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import type { Form, FormTemplate } from "@/types";
 import {
   ClipboardList,
-  Folder as FolderIcon,
+  Folder as FolderSvg,
   FolderInput,
   FolderLock,
   LayoutTemplate,
@@ -48,9 +52,10 @@ import { useState, useTransition } from "react";
 
 type FolderDetailsViewProps = {
   folder: Folder;
-  forms: Form[];
-  templates: FormTemplate[];
-  moveTargetFolders: Folder[];
+  forms: readonly Form[];
+  templates: readonly FormTemplate[];
+  moveTargetFolders: readonly Folder[];
+  contentsPreview: FolderContentsPreview;
 };
 
 type ContainedItem = {
@@ -67,6 +72,7 @@ export function FolderDetailsView({
   forms,
   templates,
   moveTargetFolders,
+  contentsPreview,
 }: Readonly<FolderDetailsViewProps>) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -134,13 +140,7 @@ export function FolderDetailsView({
     <div className="flex flex-col gap-6">
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-          {folder.immutable ? (
-            <FolderLock className="size-4 text-destructive" />
-          ) : folder.isActive ? (
-            <FolderIcon className="size-4 text-primary" />
-          ) : (
-            <FolderIcon className="size-4 text-muted-foreground" />
-          )}
+          <FolderIcon folder={folder} />
           Folder details
         </div>
         <CardTitle className="text-5xl tracking-tight">{folder.name}</CardTitle>
@@ -182,9 +182,14 @@ export function FolderDetailsView({
         </Card>
 
         <div className="space-y-4 pt-1">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-2xl font-semibold">Contained Items</h3>
-            <Badge variant="secondary">{items.length} items</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {formatFolderContentsPreviewLabel(contentsPreview)}
+              </p>
+              <Badge variant="secondary">{items.length} items</Badge>
+            </div>
           </div>
           <div className="mt-2 flex flex-col gap-2">
             <div className="grid grid-cols-[minmax(0,1fr)_120px] items-center px-4 py-1 text-xs text-muted-foreground md:grid-cols-[minmax(0,1fr)_120px_220px_120px]">
@@ -328,4 +333,19 @@ export function FolderDetailsView({
       </Dialog>
     </div>
   );
+}
+
+/**
+ * Folder icon component that displays the appropriate icon based on the folder's state.
+ * @param folder - The folder to display the icon for.
+ * @returns The folder icon component.
+ */
+function FolderIcon({ folder }: Readonly<{ folder: Folder }>) {
+  if (folder.immutable) {
+    return <FolderLock className="size-4 text-destructive" />;
+  }
+  if (folder.isActive) {
+    return <FolderSvg className="size-4 text-primary" />;
+  }
+  return <FolderSvg className="size-4 text-muted-foreground" />;
 }

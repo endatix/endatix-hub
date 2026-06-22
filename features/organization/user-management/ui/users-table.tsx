@@ -144,8 +144,8 @@ export function UsersTable({
 }: Readonly<UsersTableProps>) {
   const pagedUsers = normalizePagedResponse(use(usersPromise));
   const availableRoles = use(availableRolesPromise ?? emptyRolesPromise);
-  const users = pagedUsers.items;
   const router = useRouter();
+  const users = pagedUsers.items;
   const { trackEvent } = useTrackEvent();
   const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
   const urlSearch = searchParams.get("search") ?? "";

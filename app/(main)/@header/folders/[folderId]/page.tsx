@@ -1,12 +1,16 @@
 import { auth } from "@/auth";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import { Button } from "@/components/ui/button";
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
+import { UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { getFolderManagementDetailCached, FolderDetailHeaderActions } from "@/features/folders/view-folder-management";
+import {
+  getFolderManagementDetailCached,
+  FolderDetailHeaderActions,
+} from "@/features/folders/view-folder-management";
+import { resolvePageError } from "@/lib/errors/resolve-page-error";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ folderId: string }>;
@@ -30,21 +34,8 @@ export default async function FolderDetailsHeaderSlot({
     folderId,
   );
   if (!detail.ok) {
-    if (detail.error.kind === "not_found") {
-      notFound();
-    }
-    if (detail.error.kind === "auth") {
-      redirect(SIGNIN_PATH);
-    }
-    return (
-      <MainHeader
-        breadcrumb={
-          <span className="text-sm text-destructive">
-            {detail.error.message}
-          </span>
-        }
-      />
-    );
+    const pageError = resolvePageError(detail.error);
+    return <MainHeader breadcrumb={pageError} />;
   }
 
   const { folder } = detail.data;

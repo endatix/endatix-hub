@@ -1,4 +1,5 @@
-/** Re-exports server actions/loaders (each `.action.ts` file has its own `"use server"`). */
+
+export { getFolderBySlugAction } from "./get-folder-by-slug/get-folder-by-slug.action";
 export { createFolderAction } from "./create-folder";
 export { listFoldersAction } from "./list-folders";
 export { updateFolderAction } from "./update-folder";

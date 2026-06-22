@@ -1,15 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardTitle } from "@/components/ui/card";
 import { Form } from "@/types";
 import { Badge } from "@/components/ui/badge";
+import { FormFolderChip, type FormFolderChipProps } from "./form-folder-chip";
 import Link from "next/link";
 import {
   FilePen,
@@ -44,6 +39,7 @@ import type { Route } from "next";
 
 type FormCardProps = React.ComponentProps<typeof Card> & {
   form: Form;
+  folderContext?: FormFolderChipProps;
   isSelected: boolean;
   onSaveAsTemplate: () => void;
 };
@@ -88,6 +84,7 @@ const SubmissionsLabel: React.FC<SubmissionsLabelProps> = ({
 
 const FormCard = ({
   form,
+  folderContext,
   isSelected,
   onSaveAsTemplate,
   className,
@@ -207,16 +204,18 @@ const FormCard = ({
       {...props}
     >
       <div className="flex min-h-0 min-w-0 flex-1 cursor-pointer flex-col rounded-t-md transition-colors group-hover:bg-muted/45">
-        <CardHeader className="shrink-0 p-4 pt-4 pb-2">
+        <div className="flex shrink-0 flex-col gap-2 p-4 pt-4 pb-2">
+          {folderContext ? (
+            <FormFolderChip {...folderContext} className="mb-0" />
+          ) : null}
           <CardTitle
             title={form.name}
-            className="tracking-tigher line-clamp-2 min-w-0 font-sans text-2xl leading-snug font-normal break-words"
+            className="tracking-tigher line-clamp-2 min-h-[4.125rem] min-w-0 font-sans text-2xl leading-snug font-normal break-words"
           >
             {form.name}
           </CardTitle>
-        </CardHeader>
-        <div className="min-h-0 flex-1 shrink" aria-hidden />
-        <CardContent className="shrink-0 p-4 pt-2">
+        </div>
+        <CardContent className="mt-auto shrink-0 p-4 pt-2">
           <div className="flex min-w-0 items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
               <SubmissionsLabel
