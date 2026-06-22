@@ -35,7 +35,7 @@ import { getFormattedDate } from "@/lib/utils";
 import type { Form, FormTemplate } from "@/types";
 import {
   ClipboardList,
-  Folder as FolderIcon,
+  Folder as FolderSvg,
   FolderInput,
   FolderLock,
   LayoutTemplate,
@@ -134,13 +134,7 @@ export function FolderDetailsView({
     <div className="flex flex-col gap-6">
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-          {folder.immutable ? (
-            <FolderLock className="size-4 text-destructive" />
-          ) : folder.isActive ? (
-            <FolderIcon className="size-4 text-primary" />
-          ) : (
-            <FolderIcon className="size-4 text-muted-foreground" />
-          )}
+          <FolderIcon folder={folder} />
           Folder details
         </div>
         <CardTitle className="text-5xl tracking-tight">{folder.name}</CardTitle>
@@ -328,4 +322,14 @@ export function FolderDetailsView({
       </Dialog>
     </div>
   );
+}
+
+function FolderIcon({ folder }: { folder: Folder }) {
+  if (folder.immutable) {
+    return <FolderLock className="size-4 text-destructive" />;
+  }
+  if (folder.isActive) {
+    return <FolderSvg className="size-4 text-primary" />;
+  }
+  return <FolderSvg className="size-4 text-muted-foreground" />;
 }

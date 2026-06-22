@@ -11,7 +11,7 @@ export type GetFolderBySlugResult = Result<Folder>;
 
 export async function getFolderBySlugAction(
   slug: string,
-): Promise<GetFolderBySlugResult | never> {
+): Promise<GetFolderBySlugResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();

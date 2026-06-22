@@ -44,14 +44,12 @@ export function FormsListSection({
       { kind: "root" },
     );
 
+  const emptyListState = filtersActive ? filteredEmptyState : emptyState;
+
   return (
     <div className="flex flex-col gap-6">
       {pagedForms.items.length === 0 ? (
-        filtersActive ? (
-          filteredEmptyState
-        ) : (
-          emptyState
-        )
+        emptyListState
       ) : (
         <FormsList
           forms={[...pagedForms.items]}

@@ -47,12 +47,14 @@ export function FormsListToolbar({ variant }: Readonly<FormsListToolbarProps>) {
           browse: searchParams.get("browse") ?? undefined,
         })
       : null;
-  const browseFilter =
-    viewMode === "global-search"
-      ? allBrowseScopesValue
-      : parseFormsBrowseMode(searchParams.get("browse")) === "all"
-        ? "all"
-        : unassignedBrowseValue;
+
+  let browseFilter = unassignedBrowseValue;
+  if (viewMode === "global-search") {
+    browseFilter = allBrowseScopesValue;
+  } else if (parseFormsBrowseMode(searchParams.get("browse")) === "all") {
+    browseFilter = "all";
+  }
+
   const searchPlaceholder = resolveFormsSearchPlaceholder({
     variant,
     viewMode,
