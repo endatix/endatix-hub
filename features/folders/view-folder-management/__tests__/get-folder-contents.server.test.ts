@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Form, FormTemplate } from "@/types";
+import { FOLDER_CONTENTS_PREVIEW_LIMIT } from "../folder-contents-preview";
 import { getFolderContents } from "../get-folder-contents.server";
 
 vi.mock("@/lib/endatix-api", async (importOriginal) => {
@@ -47,10 +48,16 @@ describe("getFolderContents", () => {
     });
   });
 
-  it("returns forms and templates when both API calls succeed", async () => {
+  it("requests a preview-sized forms page and returns preview metadata", async () => {
     listForms.mockResolvedValue({
       success: true,
-      data: { items: sampleForms, totalRecords: 1 },
+      data: {
+        items: sampleForms,
+        totalRecords: 1,
+        page: 1,
+        pageSize: FOLDER_CONTENTS_PREVIEW_LIMIT,
+        totalPages: 1,
+      },
     });
     listTemplates.mockResolvedValue({
       success: true,
@@ -59,13 +66,22 @@ describe("getFolderContents", () => {
 
     const result = await getFolderContents("token", "folder-1");
 
-    expect(listForms).toHaveBeenCalledWith({ folderId: "folder-1" });
+    expect(listForms).toHaveBeenCalledWith({
+      folderId: "folder-1",
+      page: 1,
+      pageSize: FOLDER_CONTENTS_PREVIEW_LIMIT,
+    });
     expect(listTemplates).toHaveBeenCalledWith({ folderId: "folder-1" });
     expect(result).toEqual({
       ok: true,
       data: {
         forms: sampleForms,
         templates: sampleTemplates,
+        preview: {
+          limit: FOLDER_CONTENTS_PREVIEW_LIMIT,
+          shownItemCount: 2,
+          isTruncated: false,
+        },
       },
     });
   });
@@ -84,7 +100,13 @@ describe("getFolderContents", () => {
   it("returns api error when templates lookup fails", async () => {
     listForms.mockResolvedValue({
       success: true,
-      data: { items: sampleForms, totalRecords: 1 },
+      data: {
+        items: sampleForms,
+        totalRecords: 1,
+        page: 1,
+        pageSize: FOLDER_CONTENTS_PREVIEW_LIMIT,
+        totalPages: 1,
+      },
     });
     listTemplates.mockResolvedValue({
       success: false,

@@ -29,6 +29,10 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
 import { moveTemplateToFolderAction } from "@/features/folders/move-template-to-folder";
+import {
+  formatFolderContentsPreviewLabel,
+  type FolderContentsPreview,
+} from "@/features/folders/view-folder-management/folder-contents-preview";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
@@ -51,6 +55,7 @@ type FolderDetailsViewProps = {
   forms: readonly Form[];
   templates: readonly FormTemplate[];
   moveTargetFolders: readonly Folder[];
+  contentsPreview: FolderContentsPreview;
 };
 
 type ContainedItem = {
@@ -67,6 +72,7 @@ export function FolderDetailsView({
   forms,
   templates,
   moveTargetFolders,
+  contentsPreview,
 }: Readonly<FolderDetailsViewProps>) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -176,9 +182,14 @@ export function FolderDetailsView({
         </Card>
 
         <div className="space-y-4 pt-1">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-2xl font-semibold">Contained Items</h3>
-            <Badge variant="secondary">{items.length} items</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {formatFolderContentsPreviewLabel(contentsPreview)}
+              </p>
+              <Badge variant="secondary">{items.length} items</Badge>
+            </div>
           </div>
           <div className="mt-2 flex flex-col gap-2">
             <div className="grid grid-cols-[minmax(0,1fr)_120px] items-center px-4 py-1 text-xs text-muted-foreground md:grid-cols-[minmax(0,1fr)_120px_220px_120px]">

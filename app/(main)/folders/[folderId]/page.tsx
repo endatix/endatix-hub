@@ -28,7 +28,8 @@ export default async function FolderDetailsPage({
     return resolvePageError(pageData.error);
   }
 
-  const { folder, forms, templates, moveTargetFolders } = pageData.data;
+  const { folder, forms, templates, moveTargetFolders, contentsPreview } =
+    pageData.data;
 
   return (
     <FolderDetailsView
@@ -36,6 +37,7 @@ export default async function FolderDetailsPage({
       forms={forms}
       templates={templates}
       moveTargetFolders={moveTargetFolders}
+      contentsPreview={contentsPreview}
     />
   );
 }

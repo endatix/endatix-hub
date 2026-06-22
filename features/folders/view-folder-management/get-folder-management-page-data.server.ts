@@ -33,6 +33,7 @@ export const getFolderManagementPageDataCached = cache(
         moveTargetFolders: detail.data.allFolders,
         forms: contents.data.forms,
         templates: contents.data.templates,
+        contentsPreview: contents.data.preview,
       },
     };
   },
