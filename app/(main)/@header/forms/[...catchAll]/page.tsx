@@ -6,7 +6,7 @@ import {
   buildFormsBreadcrumbModel,
   getFormsHeaderDataCached,
   resolveFormsHeaderRouteContext,
-  resolveFormsNavFolderBySlug,
+  resolveFolderForNavBySlug,
 } from "@/features/folders/view-forms-header";
 import { FormsHeaderCreateActions } from "@/features/forms/ui/forms-header-create-actions";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
@@ -29,7 +29,7 @@ export default async function FormsCatchAllHeaderSlot({
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const breadcrumbItemsPromise = headerDataPromise.then(async (headerData) => {
     const currentFolder = routeContext.currentFolderSlug
-      ? await resolveFormsNavFolderBySlug(
+      ? await resolveFolderForNavBySlug(
           session?.accessToken,
           routeContext.currentFolderSlug,
           headerData.folders,
@@ -80,7 +80,7 @@ async function FolderFormsHeaderActions({
 }>) {
   const session = await auth();
   const headerData = await headerDataPromise;
-  const folder = await resolveFormsNavFolderBySlug(
+  const folder = await resolveFolderForNavBySlug(
     session?.accessToken,
     folderSlug,
     headerData.folders,

@@ -29,6 +29,3 @@ export async function resolveFolderForNavBySlug(
 
   return mapFolderToNavFolder(folderResult.data);
 }
-
-/** @deprecated Use resolveFolderForNavBySlug */
-export const resolveFormsNavFolderBySlug = resolveFolderForNavBySlug;
