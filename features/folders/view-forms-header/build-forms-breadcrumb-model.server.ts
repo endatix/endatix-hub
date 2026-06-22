@@ -7,7 +7,10 @@ import {
   type FormsBrowseMode,
 } from "@/features/forms/list-forms/utils";
 import type { Route } from "next";
-import { folderSlugsMatch } from "@/features/folders/lib/folder-slug-matching";
+import {
+  folderSlugsMatch,
+  safeDecodeURIComponent,
+} from "@/features/folders/lib/folder-slug-matching";
 
 type BuildFormsBreadcrumbModelParams = {
   section: "forms" | "templates";
@@ -57,6 +60,7 @@ export function buildFormsBreadcrumbModel({
   });
 
   const folderLabel = resolveFolderDropdownLabel({
+    section,
     currentFolderSlug,
     currentFolderName,
     folders,
@@ -90,9 +94,7 @@ function buildFolderDropdownOptions({
   allFormsHref: Route;
   folderBaseHref: Route;
 }) {
-  const unassignedLabel =
-    section === "forms" ? "Unassigned" : "Unassigned templates";
-  const allLabel = section === "forms" ? "All forms" : "All form templates";
+  const { unassignedLabel, allLabel } = getRootBrowseLabels(section);
 
   return [
     {
@@ -117,11 +119,13 @@ function buildFolderDropdownOptions({
 }
 
 function resolveFolderDropdownLabel({
+  section,
   currentFolderSlug,
   currentFolderName,
   folders,
   rootBrowseMode,
 }: {
+  section: "forms" | "templates";
   currentFolderSlug?: string | null;
   currentFolderName?: string | null;
   folders: Pick<FormsNavFolder, "name" | "slug">[];
@@ -140,8 +144,17 @@ function resolveFolderDropdownLabel({
       return matchedFolder.name;
     }
 
-    return decodeURIComponent(currentFolderSlug);
+    return safeDecodeURIComponent(currentFolderSlug);
   }
 
-  return rootBrowseMode === "all" ? "All forms" : "Unassigned";
+  const { unassignedLabel, allLabel } = getRootBrowseLabels(section);
+  return rootBrowseMode === "all" ? allLabel : unassignedLabel;
+}
+
+function getRootBrowseLabels(section: "forms" | "templates") {
+  return {
+    unassignedLabel:
+      section === "forms" ? "Unassigned" : "Unassigned templates",
+    allLabel: section === "forms" ? "All forms" : "All form templates",
+  };
 }

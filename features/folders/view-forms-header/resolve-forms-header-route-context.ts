@@ -1,3 +1,5 @@
+import { safeDecodeURIComponent } from "@/features/folders/lib/folder-slug-matching";
+
 export type FormsHeaderRouteContext = {
   section: "forms" | "templates";
   currentFolderSlug: string | null;
@@ -41,7 +43,7 @@ export function resolveFormsHeaderRouteContext(
   if (lastSegment && lastSegment !== "folders" && lastSegment !== "templates") {
     return {
       section: segments[0] === "templates" ? "templates" : "forms",
-      currentFolderSlug: decodeURIComponent(lastSegment),
+      currentFolderSlug: safeDecodeURIComponent(lastSegment),
     };
   }
 
@@ -60,6 +62,6 @@ function resolveFolderSlugFromSegments(
 
   return {
     section,
-    currentFolderSlug: decodeURIComponent(slug),
+    currentFolderSlug: safeDecodeURIComponent(slug),
   };
 }

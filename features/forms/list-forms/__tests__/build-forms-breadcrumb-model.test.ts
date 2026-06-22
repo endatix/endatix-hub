@@ -131,4 +131,43 @@ describe("buildFormsBreadcrumbModel", () => {
     expect(dropdown.label).toBe("Special Folder");
     expect(dropdown.options[2]?.isActive).toBe(true);
   });
+
+  it("uses template-specific root browse labels", () => {
+    const unassignedItems = buildFormsBreadcrumbModel({
+      section: "templates",
+      folders,
+      browse: null,
+    });
+    const unassignedDropdown = unassignedItems.find(
+      (item) => item.type === "dropdown",
+    );
+    if (unassignedDropdown?.type !== "dropdown") {
+      throw new Error("Expected dropdown breadcrumb item");
+    }
+
+    expect(unassignedDropdown.label).toBe("Unassigned templates");
+    expect(unassignedDropdown.options.map((option) => option.label)).toEqual([
+      "Unassigned templates",
+      "All form templates",
+      "Active Folder",
+      "My Folder",
+    ]);
+    expect(unassignedDropdown.options[0]?.href).toBe("/forms/templates");
+    expect(unassignedDropdown.options[1]?.href).toBe(
+      "/forms/templates?browse=all",
+    );
+
+    const allItems = buildFormsBreadcrumbModel({
+      section: "templates",
+      folders,
+      browse: "all",
+    });
+    const allDropdown = allItems.find((item) => item.type === "dropdown");
+    if (allDropdown?.type !== "dropdown") {
+      throw new Error("Expected dropdown breadcrumb item");
+    }
+
+    expect(allDropdown.label).toBe("All form templates");
+    expect(allDropdown.options[1]?.isActive).toBe(true);
+  });
 });
