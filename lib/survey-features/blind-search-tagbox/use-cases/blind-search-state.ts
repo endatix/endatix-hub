@@ -11,7 +11,9 @@ export function isBlindSearchTagboxQuestion(
   return question.getType() === BLIND_SEARCH_TAGBOX_TYPE;
 }
 
-export function isBlindSearchEnabled(question: Question): boolean {
+export function isBlindSearchEnabled(
+  question: Question,
+): question is BlindSearchTagboxQuestion {
   if (!isBlindSearchTagboxQuestion(question)) {
     return false;
   }
@@ -102,6 +104,13 @@ export function shouldEnableOtherFallback(
   return visibleChoiceCount === 0;
 }
 
+function isOtherAnswerValue(
+  question: BlindSearchTagboxQuestion,
+  entry: unknown,
+): boolean {
+  return entry === question.otherItem.value;
+}
+
 export function isOtherInQuestionValue(question: Question): boolean {
   if (!isBlindSearchTagboxQuestion(question)) {
     return false;
@@ -109,12 +118,12 @@ export function isOtherInQuestionValue(question: Question): boolean {
 
   const value = question.value;
   if (Array.isArray(value)) {
-    return value.some((entry) => question.isOtherValue(entry));
+    return value.some((entry) => isOtherAnswerValue(question, entry));
   }
 
   if (value === null || value === undefined || value === "") {
     return false;
   }
 
-  return question.isOtherValue(value);
+  return isOtherAnswerValue(question, value);
 }
