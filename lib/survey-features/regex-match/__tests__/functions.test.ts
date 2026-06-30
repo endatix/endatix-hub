@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import {
+  UNSAFE_NESTED_PLUS_PATTERN,
+  UNSAFE_NESTED_STAR_PATTERN,
+} from '../pattern-safety';
 import { regexMatchFunction } from '../functions';
-
 describe('regexMatchFunction', () => {
   it('returns true when value matches pattern', () => {
     // Arrange
@@ -94,12 +97,15 @@ describe('regexMatchFunction', () => {
   it('returns false for patterns that risk catastrophic backtracking', () => {
     // Act & Assert
     expect(() =>
-      regexMatchFunction(['aaaaaaaaaaaaaaaaaaaa!', '(a+)+$']),
+      regexMatchFunction(['value', UNSAFE_NESTED_PLUS_PATTERN]),
     ).not.toThrow();
-    expect(regexMatchFunction(['aaaaaaaaaaaaaaaaaaaa!', '(a+)+$'])).toBe(false);
-    expect(regexMatchFunction(['text', '(.*)*$'])).toBe(false);
+    expect(regexMatchFunction(['value', UNSAFE_NESTED_PLUS_PATTERN])).toBe(
+      false,
+    );
+    expect(regexMatchFunction(['text', UNSAFE_NESTED_STAR_PATTERN])).toBe(
+      false,
+    );
   });
-
   it('returns false for overly long patterns or values', () => {
     expect(regexMatchFunction(['x', `${'a'.repeat(257)}$`])).toBe(false);
     expect(regexMatchFunction(['x'.repeat(2049), '^x$'])).toBe(false);
