@@ -6,6 +6,7 @@ import {
 } from "@/features/asset-storage/client";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
+import { useRegexMatch } from "@/lib/survey-features/regex-match";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import { useSurveyExtensions } from "@/lib/survey-extensions";
@@ -45,6 +46,7 @@ export default function SurveyPreviewComponent({
   useRichText(model);
   useLoopAwareSummaryTable(model);
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
+  const { initGlobals: initRegexMatchGlobals } = useRegexMatch();
   const {
     initGlobals: initQuestionLoopsGlobals,
     bindToSurvey: bindQuestionLoops,
@@ -55,6 +57,7 @@ export default function SurveyPreviewComponent({
 
     try {
       initAnyAnsweredGlobals();
+      initRegexMatchGlobals();
       initQuestionLoopsGlobals();
       const survey = new Model(template.jsonData);
       const unbindQuestionLoops = bindQuestionLoops(survey);
@@ -89,6 +92,7 @@ export default function SurveyPreviewComponent({
     setModelMetadata,
     prefetchPrivateReadUrlsForModel,
     initAnyAnsweredGlobals,
+    initRegexMatchGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);

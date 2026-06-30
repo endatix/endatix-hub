@@ -2,6 +2,7 @@
 
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
+import { useRegexMatch } from "@/lib/survey-features/regex-match";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import { useEffect, useState } from "react";
@@ -31,6 +32,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
+  const { initGlobals: initRegexMatchGlobals } = useRegexMatch();
   const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
 
   useEffect(() => {
@@ -46,6 +48,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     }
 
     initAnyAnsweredGlobals();
+    initRegexMatchGlobals();
     initQuestionLoopsGlobals();
     const newCreator = new SurveyCreator(creatorOptions);
     const cleanupQuestionLoops = bindQuestionLoops(newCreator);
@@ -59,7 +62,7 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     return () => {
       cleanupQuestionLoops?.();
     }
-  }, [creator, model, slkVal, initAnyAnsweredGlobals, initQuestionLoopsGlobals, bindQuestionLoops]);
+  }, [creator, model, slkVal, initAnyAnsweredGlobals, initRegexMatchGlobals, initQuestionLoopsGlobals, bindQuestionLoops]);
 
   return creator && <SurveyCreatorComponent creator={creator} />;
 };

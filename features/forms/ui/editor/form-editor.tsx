@@ -14,6 +14,7 @@ import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
+import { useRegexMatch } from "@/lib/survey-features/regex-match";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import {
@@ -221,6 +222,7 @@ function FormEditor({
     refetch: refetchDataLists,
   } = useDataListsLoader();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
+  const { initGlobals: initRegexMatchGlobals } = useRegexMatch();
 
   const {
     initGlobals: initFormDiagnosticsGlobals,
@@ -527,6 +529,7 @@ function FormEditor({
           showSidebar: initialPropertyGridVisible,
         };
         initAnyAnsweredGlobals();
+        initRegexMatchGlobals();
         initQuestionLoopsGlobals();
         initFormDiagnosticsGlobals();
         initDataListsGlobals();
@@ -604,6 +607,7 @@ function FormEditor({
     bindQuestionLoops,
     bindFormDiagnostics,
     initAnyAnsweredGlobals,
+    initRegexMatchGlobals,
     initDataListsGlobals,
     initFormDiagnosticsGlobals,
     initQuestionLoopsGlobals,
