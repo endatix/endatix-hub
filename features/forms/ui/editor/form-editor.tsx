@@ -32,6 +32,7 @@ import {
   useDataLists,
   useDataListsLoader,
 } from "@/lib/survey-features/data-lists";
+import { useBlindSearchTagbox } from "@/lib/survey-features/blind-search-tagbox";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -214,6 +215,7 @@ function FormEditor({
   } = useQuestionLoops();
   const { initGlobals: initDataListsGlobals, setAvailableDataLists } =
     useDataLists();
+  const { initGlobals: initBlindSearchTagboxGlobals } = useBlindSearchTagbox();
   const {
     dataLists,
     isLoading: isDataListsLoading,
@@ -530,6 +532,7 @@ function FormEditor({
         initQuestionLoopsGlobals();
         initFormDiagnosticsGlobals();
         initDataListsGlobals();
+        initBlindSearchTagboxGlobals();
         const newCreator = new SurveyCreator(creatorOptions);
         const resolvedTheme = resolveCreatorThemeCssVariables(
           creatorThemeRef.current,
@@ -605,6 +608,7 @@ function FormEditor({
     bindFormDiagnostics,
     initAnyAnsweredGlobals,
     initDataListsGlobals,
+    initBlindSearchTagboxGlobals,
     initFormDiagnosticsGlobals,
     initQuestionLoopsGlobals,
   ]);

@@ -82,6 +82,69 @@ describe("createFormAnalyzer", () => {
       expect(analyzer.usesQuestionType("country")).toBe(false);
     });
   });
+
+  describe("hasCustomProperty", () => {
+    it("returns true when the custom property is present in JSON", () => {
+      // Arrange
+      const form = {
+        pages: [
+          {
+            elements: [
+              {
+                type: "tagbox",
+                name: "q1",
+                edxHideUntilTyping: true,
+              },
+            ],
+          },
+        ],
+      };
+      const analyzer = createFormAnalyzer(form);
+
+      // Act & Assert
+      expect(analyzer.hasCustomProperty("edxHideUntilTyping")).toBe(true);
+    });
+
+    it("returns false when the custom property is absent", () => {
+      // Arrange
+      const form = {
+        pages: [{ elements: [{ type: "tagbox", name: "q1" }] }],
+      };
+      const analyzer = createFormAnalyzer(form);
+
+      // Act & Assert
+      expect(analyzer.hasCustomProperty("edxHideUntilTyping")).toBe(false);
+    });
+
+    it("returns false for null form JSON", () => {
+      // Arrange
+      const analyzer = createFormAnalyzer(null);
+
+      // Act & Assert
+      expect(analyzer.hasCustomProperty("edxHideUntilTyping")).toBe(false);
+    });
+
+    it("does not match the property name inside a string value", () => {
+      // Arrange
+      const form = {
+        pages: [
+          {
+            elements: [
+              {
+                type: "text",
+                name: "q1",
+                title: 'Use "edxHideUntilTyping": true in tagbox settings',
+              },
+            ],
+          },
+        ],
+      };
+      const analyzer = createFormAnalyzer(form);
+
+      // Act & Assert
+      expect(analyzer.hasCustomProperty("edxHideUntilTyping")).toBe(false);
+    });
+  });
 });
 
 describe("extractQuestionTypes", () => {

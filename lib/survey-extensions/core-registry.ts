@@ -12,6 +12,7 @@ import { expressionFormattingExtension } from "@/lib/survey-features/expression-
 import { dataListsExtension } from "@/lib/survey-features/data-lists";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
+export const BLIND_SEARCH_TAGBOX_EXTENSION_ID = "blind-search-tagbox";
 
 /**
  * Core extensions that ship with the platform.
@@ -51,6 +52,22 @@ export const coreExtensions: ExtensionDefinition[] = [
         "Loads dropdown/choice options through Endatix public data-list endpoints.",
     },
     module: dataListsExtension,
+  },
+  {
+    id: BLIND_SEARCH_TAGBOX_EXTENSION_ID,
+    type: "feature",
+    loading: "dynamic",
+    shouldLoad: (_, analyzer) =>
+      analyzer.hasCustomProperty("edxHideUntilTyping"),
+    load: () =>
+      import(
+        "@/lib/survey-features/blind-search-tagbox/infrastructure/blind-search-tagbox.extension"
+      ).then((module) => module.blindSearchTagboxExtension),
+    metadata: {
+      name: "Blind Search Tagbox",
+      description:
+        "Hides tag box choices until the respondent types a minimum number of characters.",
+    },
   },
 ];
 
