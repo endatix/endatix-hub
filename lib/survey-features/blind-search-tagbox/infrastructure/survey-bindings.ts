@@ -41,7 +41,7 @@ function getRuntimeState(question: Question): BlindSearchRuntimeState {
     };
     runtimeStateByQuestion.set(question, state);
 
-    const model = question.survey;
+    const model = question.survey as Model | null;
     if (model) {
       trackQuestionForModel(model, question);
     }
