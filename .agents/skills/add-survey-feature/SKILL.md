@@ -105,6 +105,14 @@ const myFeatureExtension: ExtensionModule = {
 Read runtime context via `deps.getRuntimeState()` inside hooks when you need
 `formId`, JWT, etc. Do not attach Endatix state onto SurveyJS model objects.
 
+**Binding idempotency (707):** Features may use `__endatix*Bound` sentinels on
+`SurveyCreator` / `Model` for now (matches data-lists). **Target (h709 PR-3b):**
+Hub-owned `WeakMap` side tables in
+`lib/survey-extensions/infrastructure/extension-binding-state.ts` — same approach
+as `runtimeStateByQuestion` in blind-search survey-bindings and
+`inflightByState` in `form-access-jwt-orchestrator.ts`. New features should prefer
+WeakMap helpers once PR-3b lands.
+
 ### Designer vs respondent loading
 
 Consumers use [useSurveyExtensions](lib/survey-extensions/ui/use-survey-extensions.ts):
@@ -160,15 +168,17 @@ respondent page load.
 |----------|------|----------|
 | **No `shouldLoad` (eager)** | Static module + cheap per-event guards | Core features on common question types (tagbox, dropdown) |
 | **`usesQuestionType` only** | Regex scan on JSON string — still O(form size) | Large optional bundles tied to a question type |
-| **`hasCustomProperty`** | `JSON.parse` + full object traversal — expensive on 3MB+ forms | Avoid on client until server manifest exists |
+
+Do not traverse or fully parse form JSON on the client to detect custom Serializer
+properties — use eager core extensions with per-question guards, or (future) a
+server-side extension manifest from `FormDependency`.
 
 Extensions without `shouldLoad` are always included when the extension loader runs.
 
 **Future (SSR):** Server-maintained dependency manifest via
 [`FormDependency`](../../../../oss/src/Endatix.Core/Entities/FormDependency.cs) will
 record which extensions a form needs. Hub pages will pass `extensionIdsToLoad` from
-that manifest (whitelist) instead of client-side JSON analysis. Until then, prefer
-eager core extensions over `hasCustomProperty` scans.
+that manifest (whitelist) instead of client-side JSON analysis.
 
 ---
 
@@ -212,7 +222,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 | `hub/customizations/questions/` + `discover-questions.mjs` | `hub/extensions/questions/` + `user-extensions.ts` |
 | Manual `initDataListsGlobals()` etc. in `form-editor` | h709: `onRegisterGlobals` + single designer bootstrap |
 | Greedy `customQuestions` loop in `form-editor` | Extension registry + designer load-all |
-| Client `hasCustomProperty` in `shouldLoad` on large forms | Eager core extension + per-question guards; future `FormDependency` SSR manifest |
+| Client JSON property traversal in `shouldLoad` on large forms | Eager core extension + per-question guards; future `FormDependency` SSR manifest |
 
 ---
 

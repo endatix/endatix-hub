@@ -1,3 +1,4 @@
+import type { Model } from "survey-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import type { SurveyInstanceCreatedEvent } from "survey-creator-core";
 import { bindBlindSearchToSurvey } from "./survey-bindings";
@@ -5,8 +6,11 @@ import { bindBlindSearchToSurvey } from "./survey-bindings";
 const BLIND_SEARCH_CREATOR_BOUND_KEY = "__endatixBlindSearchCreatorBound";
 const DESIGNER_TAB_SURVEY_AREA = "designer-tab";
 
-export function bindBlindSearchToCreator(creator: SurveyCreatorModel): () => void {
-  const creatorWithFlags = creator as SurveyCreatorModel & Record<string, unknown>;
+export function bindBlindSearchToCreator(
+  creator: SurveyCreatorModel,
+): () => void {
+  const creatorWithFlags = creator as SurveyCreatorModel &
+    Record<string, unknown>;
   if (creatorWithFlags[BLIND_SEARCH_CREATOR_BOUND_KEY]) {
     return () => {};
   }
@@ -14,16 +18,13 @@ export function bindBlindSearchToCreator(creator: SurveyCreatorModel): () => voi
 
   const creatorSurveyDisposers = new Map<string, () => void>();
 
-  const bindSurveyForCreatorArea = (
-    area: string,
-    survey: SurveyInstanceCreatedEvent["survey"],
-  ) => {
+  function bindSurveyForCreatorArea(area: string, survey: Model): void {
     const previousDispose = creatorSurveyDisposers.get(area);
     previousDispose?.();
 
     const dispose = bindBlindSearchToSurvey(survey);
     creatorSurveyDisposers.set(area, dispose);
-  };
+  }
 
   const handleSurveyInstanceCreated = (
     _: unknown,

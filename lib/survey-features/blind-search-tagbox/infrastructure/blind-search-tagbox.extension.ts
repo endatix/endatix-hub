@@ -9,9 +9,8 @@ import {
   applyBlindSearchOtherFallbackAfterLazyLoad,
   bindBlindSearchToSurvey,
 } from "./survey-bindings";
+import { BLIND_SEARCH_TAGBOX_EXTENSION_ID } from "../constants";
 import { shouldSuppressChoices } from "../use-cases/blind-search-state";
-
-const BLIND_SEARCH_LAZY_LOAD_GUARD_ID = "blind-search-tagbox";
 
 /**
  * Survey extension entry point. All install logic lives here — do not wire this
@@ -26,11 +25,11 @@ const blindSearchTagboxExtension: ExtensionModule = {
   onInit: () => {
     registerBlindSearchTagboxGlobals();
     registerChoicesLazyLoadGuard(
-      BLIND_SEARCH_LAZY_LOAD_GUARD_ID,
+      BLIND_SEARCH_TAGBOX_EXTENSION_ID,
       shouldSuppressChoices,
     );
     registerChoicesLazyLoadCompletedHandler(
-      BLIND_SEARCH_LAZY_LOAD_GUARD_ID,
+      BLIND_SEARCH_TAGBOX_EXTENSION_ID,
       applyBlindSearchOtherFallbackAfterLazyLoad,
     );
   },
