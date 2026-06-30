@@ -14,9 +14,13 @@ import {
   BLIND_SEARCH_TAGBOX_EXTENSION_ID,
   blindSearchTagboxExtension,
 } from "@/lib/survey-features/blind-search-tagbox";
+import {
+  REGEX_MATCH_EXTENSION_ID,
+  regexMatchExtension,
+} from "@/lib/survey-features/regex-match";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
-export { BLIND_SEARCH_TAGBOX_EXTENSION_ID };
+export { BLIND_SEARCH_TAGBOX_EXTENSION_ID, REGEX_MATCH_EXTENSION_ID };
 
 /**
  * Core extensions that ship with the platform.
@@ -66,6 +70,17 @@ export const coreExtensions: ExtensionDefinition[] = [
       name: "Blind Search Tagbox",
       description:
         "Hides tag box choices until the respondent types a minimum number of characters.",
+    },
+  },
+  {
+    id: REGEX_MATCH_EXTENSION_ID,
+    type: "feature",
+    loading: "static",
+    module: regexMatchExtension,
+    metadata: {
+      name: "Regex Match",
+      description:
+        "Adds regexMatch() for visibleIf and enableIf conditional logic.",
     },
   },
 ];

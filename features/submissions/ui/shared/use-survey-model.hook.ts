@@ -7,7 +7,7 @@ import { initializeCustomQuestions } from "@/lib/questions/infrastructure/specia
 import { Result } from "@/lib/result";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
-import { useRegexMatch } from "@/lib/survey-features/regex-match";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { useEndatixSurveyTheme } from "@/lib/themes/use-endatix-themes";
 import { useEffect, useRef, useState } from "react";
 import { Model } from "survey-core";
@@ -30,7 +30,12 @@ export function useSurveyModel(
     bindToSurvey: bindQuestionLoops,
   } = useQuestionLoops();
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
-  const { initGlobals: initRegexMatchGlobals } = useRegexMatch();
+  const { isReady: isExtensionsReady } = useSurveyExtensions({
+    formJson: submission.formDefinition?.jsonData,
+    runtimeDeps: {
+      getRuntimeState: () => ({}),
+    },
+  });
 
   const surveyTheme = useEndatixSurveyTheme();
   const surveyThemeRef = useRef(surveyTheme);
@@ -38,6 +43,10 @@ export function useSurveyModel(
 
   useEffect(() => {
     const initializeModel = async () => {
+      if (!isExtensionsReady) {
+        return;
+      }
+
       if (modelRef.current) {
         setIsLoading(false);
         return;
@@ -69,7 +78,6 @@ export function useSurveyModel(
         }
 
         initAnyAnsweredGlobals();
-        initRegexMatchGlobals();
         initQuestionLoopsGlobals();
         const definitionJson = JSON.parse(submission.formDefinition.jsonData);
         const submissionData = JSON.parse(submission.jsonData);
@@ -127,8 +135,8 @@ export function useSurveyModel(
     customQuestions,
     readOnly,
     onModelCreated,
+    isExtensionsReady,
     initAnyAnsweredGlobals,
-    initRegexMatchGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
   ]);

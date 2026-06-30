@@ -12,7 +12,6 @@ import { setSubmissionData } from "@/lib/survey-features";
 import { useInitOnly } from "@/lib/utils/hooks";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
-import { useRegexMatch } from "@/lib/survey-features/regex-match";
 import { FormRuntimeContextValue } from "@/lib/form-runtime/form-runtime.context";
 
 interface UseSurveyModelProps {
@@ -37,7 +36,6 @@ export function useSurveyModel({
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const { processSearchParams, cleanupUrl } = useSearchParamsVariables(formId);
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
-  const { initGlobals: initRegexMatchGlobals } = useRegexMatch();
   const {
     initGlobals: initQuestionLoopsGlobals,
     bindToSurvey: bindQuestionLoops,
@@ -91,7 +89,6 @@ export function useSurveyModel({
 
     initPublicSurveyRuntime();
     initAnyAnsweredGlobals();
-    initRegexMatchGlobals();
     initQuestionLoopsGlobals();
     const model = new SurveyModel(definition);
 
@@ -129,7 +126,6 @@ export function useSurveyModel({
     submissionRef,
     onModelCreated,
     initAnyAnsweredGlobals,
-    initRegexMatchGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
     formRuntime,
