@@ -10,7 +10,7 @@
 import type { ExtensionDefinition } from "./types";
 import { expressionFormattingExtension } from "@/lib/survey-features/expression-formatting";
 import { dataListsExtension } from "@/lib/survey-features/data-lists";
-import { EDX_HIDE_UNTIL_TYPING_PROPERTY } from "@/lib/survey-features/blind-search-tagbox/constants";
+import { blindSearchTagboxExtension } from "@/lib/survey-features/blind-search-tagbox";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
 export const BLIND_SEARCH_TAGBOX_EXTENSION_ID = "blind-search-tagbox";
@@ -57,13 +57,8 @@ export const coreExtensions: ExtensionDefinition[] = [
   {
     id: BLIND_SEARCH_TAGBOX_EXTENSION_ID,
     type: "feature",
-    loading: "dynamic",
-    shouldLoad: (_, analyzer) =>
-      analyzer.hasCustomProperty(EDX_HIDE_UNTIL_TYPING_PROPERTY),
-    load: () =>
-      import(
-        "@/lib/survey-features/blind-search-tagbox/infrastructure/blind-search-tagbox.extension"
-      ).then((module) => module.blindSearchTagboxExtension),
+    loading: "static",
+    module: blindSearchTagboxExtension,
     metadata: {
       name: "Blind Search Tagbox",
       description:

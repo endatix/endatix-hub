@@ -12,7 +12,8 @@ export interface FormAnalyzer {
 
   /**
    * Check if form JSON defines a custom Serializer property by name.
-   * Traverses parsed JSON so property names inside string values are not matched.
+   * Parses JSON lazily on first call, then traverses the object graph.
+   * Prefer server-side FormDependency manifests over this on large forms.
    */
   hasCustomProperty: (propertyName: string) => boolean;
 }
@@ -82,7 +83,7 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
 
   const jsonString =
     typeof formJson === "string" ? formJson : JSON.stringify(formJson);
-  const parsedFormJson = parseFormJson(formJson);
+  let parsedFormJson: unknown | null | undefined;
 
   return {
     formJson,
@@ -96,6 +97,10 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
       return regex.test(jsonString);
     },
     hasCustomProperty: (propertyName: string) => {
+      if (parsedFormJson === undefined) {
+        parsedFormJson = parseFormJson(formJson);
+      }
+
       if (!parsedFormJson) {
         return false;
       }

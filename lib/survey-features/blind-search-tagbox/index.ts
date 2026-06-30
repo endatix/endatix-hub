@@ -6,9 +6,9 @@ export {
   EDX_MIN_SEARCH_LENGTH_PROPERTY,
 } from "./constants";
 export { blindSearchTagboxExtension } from "./infrastructure/blind-search-tagbox.extension";
+export { bindBlindSearchToCreator } from "./infrastructure/creator-bindings";
 export { registerBlindSearchTagboxGlobals } from "./infrastructure/registry";
 export { bindBlindSearchToSurvey } from "./infrastructure/survey-bindings";
-export { useBlindSearchTagbox } from "./ui/use-blind-search-tagbox.hook";
 export type {
   BlindSearchRuntimeState,
   BlindSearchTagboxQuestion,
