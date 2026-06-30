@@ -90,4 +90,18 @@ describe('regexMatchFunction', () => {
     expect(regexMatchFunction(['No', '^(yes|no)$', 'i'])).toBe(true);
     expect(regexMatchFunction(['maybe', '^(yes|no)$', 'i'])).toBe(false);
   });
+
+  it('returns false for patterns that risk catastrophic backtracking', () => {
+    // Act & Assert
+    expect(() =>
+      regexMatchFunction(['aaaaaaaaaaaaaaaaaaaa!', '(a+)+$']),
+    ).not.toThrow();
+    expect(regexMatchFunction(['aaaaaaaaaaaaaaaaaaaa!', '(a+)+$'])).toBe(false);
+    expect(regexMatchFunction(['text', '(.*)*$'])).toBe(false);
+  });
+
+  it('returns false for overly long patterns or values', () => {
+    expect(regexMatchFunction(['x', `${'a'.repeat(257)}$`])).toBe(false);
+    expect(regexMatchFunction(['x'.repeat(2049), '^x$'])).toBe(false);
+  });
 });

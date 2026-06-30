@@ -1,12 +1,42 @@
 import { Model } from 'survey-core';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { REGEX_MATCH_FUNCTION_NAME } from '../types';
 import { registerRegexMatchGlobals } from '../infrastructure/registry';
 
 describe('registerRegexMatchGlobals', () => {
-  beforeAll(() => {
-    registerRegexMatchGlobals();
-    registerRegexMatchGlobals();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
+
+  it('registers once when invoked repeatedly', async () => {
+    // Arrange
+    vi.resetModules();
+    const { FunctionFactory } = await import('survey-core');
+    const registry = await import('../infrastructure/registry');
+    const registerSpy = vi.spyOn(FunctionFactory.Instance, 'register');
+
+    // Act
+    registry.registerRegexMatchGlobals();
+    const registeredCallable = registerSpy.mock.calls[0]?.[1];
+    registry.registerRegexMatchGlobals();
+
+    // Assert
+    expect(registerSpy).toHaveBeenCalledTimes(1);
+    expect(registerSpy).toHaveBeenCalledWith(
+      REGEX_MATCH_FUNCTION_NAME,
+      registeredCallable,
+      false,
+      false,
+    );
+    expect(FunctionFactory.Instance.hasFunction(REGEX_MATCH_FUNCTION_NAME)).toBe(
+      true,
+    );
+  });
+
+  describe('expression evaluation', () => {
+    beforeAll(() => {
+      registerRegexMatchGlobals();
+    });
 
   it('evaluates regexMatch(...) == true for exactly 4 digits', () => {
     // Arrange
@@ -163,5 +193,6 @@ describe('registerRegexMatchGlobals', () => {
     expect(survey.runCondition("regexMatch({q1}, '[invalid') == true")).toBe(
       false,
     );
+  });
   });
 });
