@@ -24,10 +24,18 @@ describe('regexMatchFunction', () => {
     expect(result).toBe(false);
   });
 
-  it('returns false for null, undefined, or empty string value', () => {
+  it('returns false for null, undefined, empty string, or empty array value', () => {
     expect(regexMatchFunction([null, '^\\d+$'])).toBe(false);
     expect(regexMatchFunction([undefined, '^\\d+$'])).toBe(false);
     expect(regexMatchFunction(['', '^\\d+$'])).toBe(false);
+    expect(regexMatchFunction([[], '^\\d+$'])).toBe(false);
+    expect(regexMatchFunction([[], '.*'])).toBe(false);
+  });
+
+  it('returns false for non-array params without throwing', () => {
+    // Act & Assert
+    expect(() => regexMatchFunction({} as unknown as unknown[])).not.toThrow();
+    expect(regexMatchFunction({} as unknown as unknown[])).toBe(false);
   });
 
   it('returns false for missing, non-string, or empty pattern', () => {
@@ -45,6 +53,7 @@ describe('regexMatchFunction', () => {
 
   it('coerces non-string values to string before matching', () => {
     expect(regexMatchFunction([1234, '^\\d{4}$'])).toBe(true);
+    expect(regexMatchFunction([0, '^0$'])).toBe(true);
     expect(regexMatchFunction([true, '^true$'])).toBe(true);
   });
 

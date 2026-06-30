@@ -1,7 +1,11 @@
+import { Helpers } from 'survey-core';
+
 export function regexMatchFunction(params: unknown[]): boolean {
-  const [value, pattern, flags] = params ?? [];
+  if (!Array.isArray(params) || params.length === 0) return false;
+
+  const [value, pattern, flags] = params;
   if (typeof pattern !== 'string' || pattern.length === 0) return false;
-  if (value == null || value === '') return false;
+  if (Helpers.isValueEmpty(value)) return false;
 
   try {
     const regex = new RegExp(
