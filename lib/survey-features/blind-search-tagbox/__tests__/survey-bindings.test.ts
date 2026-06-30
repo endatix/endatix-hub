@@ -191,7 +191,7 @@ describe("bindBlindSearchToSurvey", () => {
     question.showOtherItem = false;
 
     // Act
-    applyBlindSearchOtherFallbackAfterLazyLoad(question, "zzz", 0);
+    applyBlindSearchOtherFallbackAfterLazyLoad(question, "zzz", 0, true);
 
     // Assert
     expect(question.showOtherItem).toBe(false);
@@ -206,13 +206,30 @@ describe("bindBlindSearchToSurvey", () => {
     const model = new Model(blindTagboxSurveyJson);
     const question = model.getQuestionByName("countries");
     question!.showOtherItem = false;
-    applyBlindSearchOtherFallbackAfterLazyLoad(question!, "zzz", 0);
+    applyBlindSearchOtherFallbackAfterLazyLoad(question!, "zzz", 0, true);
 
     // Act
-    applyBlindSearchOtherFallbackAfterLazyLoad(question!, "ite", 3);
+    applyBlindSearchOtherFallbackAfterLazyLoad(question!, "ite", 3, true);
 
     // Assert
     expect(question!.showOtherItem).toBe(false);
+  });
+
+  it("does not show Other in the dropdown after a failed lazy load", () => {
+    // Arrange
+    const model = new Model(blindTagboxSurveyJson);
+    const question = model.getQuestionByName(
+      "countries",
+    ) as QuestionTagboxModel;
+    question.showOtherItem = false;
+    applyBlindSearchOtherFallbackAfterLazyLoad(question, "zzz", 0, true);
+    expect(question.dropdownListModel.listModel.visibleItems).toHaveLength(1);
+
+    // Act
+    applyBlindSearchOtherFallbackAfterLazyLoad(question, "zzz", 0, false);
+
+    // Assert
+    expect(question.showOtherItem).toBe(false);
   });
 
   it("does not restore showOtherItem on popup close while Other remains selected", async () => {
@@ -326,7 +343,7 @@ describe("bindBlindSearchToSurvey", () => {
 
     // Act & Assert
     expect(() =>
-      applyBlindSearchOtherFallbackAfterLazyLoad(detachedQuestion, "zzz", 0),
+      applyBlindSearchOtherFallbackAfterLazyLoad(detachedQuestion, "zzz", 0, true),
     ).not.toThrow();
     expect(detachedQuestion.showOtherItem).toBe(false);
   });

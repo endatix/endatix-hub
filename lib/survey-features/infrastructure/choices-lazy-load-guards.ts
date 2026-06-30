@@ -33,6 +33,7 @@ export type ChoicesLazyLoadCompletedHandler = (
   question: Question,
   filter: string,
   itemCount: number,
+  success: boolean,
 ) => void;
 
 const completedHandlers = new Map<string, ChoicesLazyLoadCompletedHandler>();
@@ -52,8 +53,11 @@ export function notifyChoicesLazyLoadCompleted(
   question: Question,
   filter: string,
   itemCount: number,
+  success = true,
 ): void {
-  completedHandlers.forEach((handler) => handler(question, filter, itemCount));
+  completedHandlers.forEach((handler) =>
+    handler(question, filter, itemCount, success),
+  );
 }
 
 export function clearChoicesLazyLoadCompletedHandlersForTests(): void {

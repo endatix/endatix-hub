@@ -4,7 +4,10 @@ import {
   EDX_HIDE_UNTIL_TYPING_PROPERTY,
   EDX_MIN_SEARCH_LENGTH_PROPERTY,
 } from "../constants";
-import { registerBlindSearchTagboxGlobals } from "../infrastructure/registry";
+import {
+  registerBlindSearchTagboxGlobals,
+  resetBlindSearchTagboxRegistryForTests,
+} from "../infrastructure/registry";
 
 describe("registerBlindSearchTagboxGlobals", () => {
   beforeAll(() => {
@@ -50,5 +53,20 @@ describe("registerBlindSearchTagboxGlobals", () => {
   it("is idempotent", () => {
     // Act & Assert
     expect(() => registerBlindSearchTagboxGlobals()).not.toThrow();
+  });
+
+  it("resetBlindSearchTagboxRegistryForTests clears serializer metadata", () => {
+    // Act
+    resetBlindSearchTagboxRegistryForTests();
+
+    // Assert
+    expect(
+      Serializer.findProperty("tagbox", EDX_HIDE_UNTIL_TYPING_PROPERTY),
+    ).toBeUndefined();
+    expect(
+      Serializer.findProperty("tagbox", EDX_MIN_SEARCH_LENGTH_PROPERTY),
+    ).toBeUndefined();
+
+    registerBlindSearchTagboxGlobals();
   });
 });

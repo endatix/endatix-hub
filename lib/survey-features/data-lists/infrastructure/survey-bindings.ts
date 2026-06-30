@@ -84,7 +84,7 @@ export function bindDataListsToSurvey(
     if (!response.success) {
       console.error("Failed to lazy-load data list choices.", response.error);
       options.setItems([], 0);
-      notifyChoicesLazyLoadCompleted(options.question, filter, 0);
+      notifyChoicesLazyLoadCompleted(options.question, filter, 0, false);
       return;
     }
 
@@ -97,6 +97,7 @@ export function bindDataListsToSurvey(
       options.question,
       filter,
       items.length,
+      true,
     );
   };
 

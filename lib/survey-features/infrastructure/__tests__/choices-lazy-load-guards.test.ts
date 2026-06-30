@@ -78,7 +78,21 @@ describe("choices-lazy-load completed handlers", () => {
     notifyChoicesLazyLoadCompleted(question, "abc", 2);
 
     // Assert
-    expect(handler).toHaveBeenCalledWith(question, "abc", 2);
+    expect(handler).toHaveBeenCalledWith(question, "abc", 2, true);
+  });
+
+  it("passes success=false when lazy load fails", () => {
+    // Arrange
+    clearChoicesLazyLoadCompletedHandlersForTests();
+    const question = { name: "q1" } as Question;
+    const handler = vi.fn();
+    registerChoicesLazyLoadCompletedHandler("blind-search-tagbox", handler);
+
+    // Act
+    notifyChoicesLazyLoadCompleted(question, "abc", 0, false);
+
+    // Assert
+    expect(handler).toHaveBeenCalledWith(question, "abc", 0, false);
   });
 
   it("replaces a handler registered under the same id", () => {
@@ -98,7 +112,7 @@ describe("choices-lazy-load completed handlers", () => {
 
     // Assert
     expect(firstHandler).not.toHaveBeenCalled();
-    expect(secondHandler).toHaveBeenCalledWith(question, "abc", 2);
+    expect(secondHandler).toHaveBeenCalledWith(question, "abc", 2, true);
   });
 
   it("stops notifying after unregister", () => {

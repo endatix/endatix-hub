@@ -191,12 +191,18 @@ export function applyBlindSearchOtherFallbackAfterLazyLoad(
   question: Question,
   filter: string,
   itemCount: number,
+  success: boolean,
 ): void {
   if (!question.survey || !isBlindSearchEnabled(question)) {
     return;
   }
 
   const tagboxQuestion = question as BlindSearchTagboxQuestion;
+  if (!success) {
+    restoreOtherIfForced(tagboxQuestion);
+    return;
+  }
+
   if (shouldEnableOtherFallback(question, filter, itemCount)) {
     syncOtherOnlyInDropdown(tagboxQuestion);
     return;

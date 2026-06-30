@@ -14,6 +14,7 @@ import { shouldSuppressChoices } from "../use-cases/blind-search-state";
 
 const BLIND_SEARCH_CREATOR_BOUND_KEY = "__endatixBlindSearchCreatorBound";
 const BLIND_SEARCH_LAZY_LOAD_GUARD_ID = "blind-search-tagbox";
+const DESIGNER_TAB_SURVEY_AREA = "designer-tab";
 
 function bindBlindSearchToCreator(creator: SurveyCreatorModel): () => void {
   const creatorWithFlags = creator as SurveyCreatorModel & Record<string, unknown>;
@@ -24,6 +25,17 @@ function bindBlindSearchToCreator(creator: SurveyCreatorModel): () => void {
 
   const creatorSurveyDisposers = new Map<string, () => void>();
 
+  const bindSurveyForCreatorArea = (
+    area: string,
+    survey: SurveyInstanceCreatedEvent["survey"],
+  ) => {
+    const previousDispose = creatorSurveyDisposers.get(area);
+    previousDispose?.();
+
+    const dispose = bindBlindSearchToSurvey(survey);
+    creatorSurveyDisposers.set(area, dispose);
+  };
+
   const handleSurveyInstanceCreated = (
     _: unknown,
     options: SurveyInstanceCreatedEvent,
@@ -32,22 +44,13 @@ function bindBlindSearchToCreator(creator: SurveyCreatorModel): () => void {
       return;
     }
 
-    const previousDispose = creatorSurveyDisposers.get(options.area);
-    previousDispose?.();
-
-    const dispose = bindBlindSearchToSurvey(options.survey);
-    creatorSurveyDisposers.set(options.area, dispose);
+    bindSurveyForCreatorArea(options.area, options.survey);
   };
 
   creator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
 
   if (creator.survey) {
-    const initialSurveyArea = "__creator-initial-survey";
-    const previousDispose = creatorSurveyDisposers.get(initialSurveyArea);
-    previousDispose?.();
-
-    const dispose = bindBlindSearchToSurvey(creator.survey);
-    creatorSurveyDisposers.set(initialSurveyArea, dispose);
+    bindSurveyForCreatorArea(DESIGNER_TAB_SURVEY_AREA, creator.survey);
   }
 
   return () => {

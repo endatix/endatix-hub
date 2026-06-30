@@ -105,6 +105,27 @@ describe("createFormAnalyzer", () => {
       expect(analyzer.hasCustomProperty("edxHideUntilTyping")).toBe(true);
     });
 
+    it("returns true when form is a JSON string containing the property", () => {
+      // Arrange
+      const jsonString = JSON.stringify({
+        pages: [
+          {
+            elements: [
+              {
+                type: "tagbox",
+                name: "q1",
+                edxHideUntilTyping: true,
+              },
+            ],
+          },
+        ],
+      });
+      const analyzer = createFormAnalyzer(jsonString);
+
+      // Act & Assert
+      expect(analyzer.hasCustomProperty("edxHideUntilTyping")).toBe(true);
+    });
+
     it("returns false when the custom property is absent", () => {
       // Arrange
       const form = {
