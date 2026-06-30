@@ -10,8 +10,13 @@
 import type { ExtensionDefinition } from "./types";
 import { expressionFormattingExtension } from "@/lib/survey-features/expression-formatting";
 import { dataListsExtension } from "@/lib/survey-features/data-lists";
+import {
+  BLIND_SEARCH_TAGBOX_EXTENSION_ID,
+  blindSearchTagboxExtension,
+} from "@/lib/survey-features/blind-search-tagbox";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
+export { BLIND_SEARCH_TAGBOX_EXTENSION_ID };
 
 /**
  * Core extensions that ship with the platform.
@@ -19,12 +24,12 @@ export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
  * to avoid merge conflicts when updating from upstream.
  * @example
  * {
- *   id: 'camera-fix',
- *   type: 'feature',
+ *   id: 'hello-world',
+ *   type: 'question',
  *   loading: 'dynamic',
- *   shouldLoad: (_) => true,
+ *   shouldLoad: (_, analyzer) => analyzer.usesQuestionType('hello-world'),
  *   load: () =>
- *     import('@/extensions/camera-fix').then(
+ *     import('@/extensions/questions/hello-world').then(
  *       (module) => module.default,
  *     ),
  * },
@@ -51,6 +56,17 @@ export const coreExtensions: ExtensionDefinition[] = [
         "Loads dropdown/choice options through Endatix public data-list endpoints.",
     },
     module: dataListsExtension,
+  },
+  {
+    id: BLIND_SEARCH_TAGBOX_EXTENSION_ID,
+    type: "feature",
+    loading: "static",
+    module: blindSearchTagboxExtension,
+    metadata: {
+      name: "Blind Search Tagbox",
+      description:
+        "Hides tag box choices until the respondent types a minimum number of characters.",
+    },
   },
 ];
 

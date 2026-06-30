@@ -11,6 +11,10 @@ export interface FormAnalyzer {
   usesQuestionType: (questionType: string) => boolean;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
 /**
  * Creates a form analyzer with cached string representation
  * @param formJson - The form definition JSON
@@ -33,7 +37,7 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
         return false;
       }
 
-      const questionTypePattern = String.raw`"type"\s*:\s*"${questionType}"`;
+      const questionTypePattern = String.raw`"type"\s*:\s*"${escapeRegExp(questionType)}"`;
       const regex = new RegExp(questionTypePattern);
       return regex.test(jsonString);
     },

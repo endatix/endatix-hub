@@ -12,6 +12,10 @@ import {
   GetChoiceDisplayValueEvent,
   Model,
 } from "survey-core";
+import {
+  notifyChoicesLazyLoadCompleted,
+  shouldSuppressChoicesLazyLoad,
+} from "@/lib/survey-features/infrastructure/choices-lazy-load-guards";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
 import { registerDataListGlobals } from "./registry";
 
@@ -53,6 +57,12 @@ export function bindDataListsToSurvey(
   const api = createEndatixPublicApi().dataLists;
 
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {
+    const filter = options.filter ?? "";
+    if (shouldSuppressChoicesLazyLoad(options.question, filter)) {
+      options.setItems([], 0);
+      return;
+    }
+
     const runtime = resolveFormRuntimeState(deps.getRuntimeState());
     const dataListId = getDataListIdFromQuestion(options.question);
     if (!runtime || !dataListId) {
@@ -74,15 +84,20 @@ export function bindDataListsToSurvey(
     if (!response.success) {
       console.error("Failed to lazy-load data list choices.", response.error);
       options.setItems([], 0);
+      notifyChoicesLazyLoadCompleted(options.question, filter, 0, false);
       return;
     }
 
-    options.setItems(
-      response.data.items.map((item) => ({
-        value: item.value,
-        text: item.label,
-      })),
-      response.data.totalRecords,
+    const items = response.data.items.map((item) => ({
+      value: item.value,
+      text: item.label,
+    }));
+    options.setItems(items, response.data.totalRecords);
+    notifyChoicesLazyLoadCompleted(
+      options.question,
+      filter,
+      items.length,
+      true,
     );
   };
 
