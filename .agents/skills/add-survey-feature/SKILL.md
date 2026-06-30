@@ -1,136 +1,233 @@
 ---
+name: add-survey-feature
+description: >-
+  Add or extend SurveyJS / Survey Creator platform features in Hub using the
+  survey-extensions framework. Use when implementing survey behavior (event
+  handlers, Serializer properties, Creator settings), registering a core
+  extension, or reviewing survey-feature PRs. Reference implementation:
+  lib/survey-features/blind-search-tagbox.
+---
 
-## \*name: add-survey-feature
+# Add Survey Feature (Hub)
 
-description: Add or extend Survey Creator or Survey Runner (SurveyJS) features in this codebase. Use when creating hooks that attach behavior, registering plugins, or customizing SurveyJS functionality.\*
+Use this skill when adding **platform** SurveyJS behavior (not Endatix business
+features under `features/`). The **extensions framework** is the primary install
+path — see the ongoing consolidation plan:
+[h709-extensions-framework-first-class-plan.md](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md).
 
-# _Add Survey Feature_
+**Canonical example:** [lib/survey-features/blind-search-tagbox](lib/survey-features/blind-search-tagbox)
 
-_This codebase uses a strict **Vertical Slice Architecture** combined with a **Registration Pattern** for SurveyJS features. Because SurveyJS models are heavy, mutable class instances, we bridge them to React by returning imperative registration functions that yield explicit cleanup functions._
+**Do not** add `initGlobals` / `bindToCreator` calls in `form-editor` for new
+survey features. Wire through `ExtensionModule` + `core-registry.ts` (or
+`extensions/user-extensions.ts` for self-hosted customizations).
 
-## _When to Use_
+---
 
-- _Use this skill when adding a new custom capability to the SurveyJS Creator (e.g., JSON editors, asset storage, custom properties)._
-- _Use this skill when adding custom behavior to the runtime Survey Runner (e.g., question loops, dynamic visibility)._
-- _This skill is helpful for ensuring features are isolated, do not cause React re-renders, and do not leak memory via lingering event listeners._
-- _Use this skill when wiring **runtime** SurveyJS model events that should be registered in **one place** (e.g., `onChoicesLazyLoad`, `onGetChoiceDisplayValue`) and loaded deterministically via the Hub extension loader._
+## 1. Decide scope
 
-## _Instructions_
+| Kind | `type` | Registry | Example |
+|------|--------|----------|---------|
+| Behavior on existing question types (tagbox, dropdown, …) | `feature` | `core-registry.ts` | blind-search-tagbox |
+| New question type or ComponentCollection | `question` | `user-extensions.ts` or core | hello-world, country |
+| Always-on expression / formatting helper | `feature` + `static` | `core-registry.ts` | expression-formatting |
 
-### _1. Vertical Slicing & File Structure_
+**Not in scope here:** API-persisted custom questions (`createCustomQuestionAction`),
+`hub/customizations/` (deprecated — see h709), or vertical slices under
+`features/forms/`.
 
-_Group feature code by domain under_ `hub/lib/survey-features/<feature-name>/`_._
+---
 
-- `registry.ts`_ (or_ `infrastructure/registry.ts`_ for larger slices): Strictly for global registrations (_`Serializer`_,_ `FunctionFactory`_)._
-- `survey-bindings.ts`_ (or_ `infrastructure/survey-bindings.ts`_): Pure functions for binding runner events; return a single cleanup that removes every listener and restores any injected state (e.g. visibility wrappers)._
-- _Creator logic may live in_ `creator-bindings.ts`_ or be inlined in the hook; when the creator spawns survey instances (_`onSurveyInstanceCreated`_), collect each survey’s cleanup in a ref and run them all in the creator’s cleanup._
-- `use-<feature>.hook.ts`_ (e.g. under_ `ui/`_): The unified hook exposing_ `initGlobals`_ and_ `bindToSurvey`_ / _`registerWithCreator`_._
+## 2. Folder layout
 
-### _1b. Prefer `hub/lib/survey-extensions` for runtime model events (Runner)_
+Create under `lib/survey-features/{feature-name}/`:
 
-_For features that primarily attach to a `SurveyModel` at runtime (e.g., REST-backed choice loading), prefer the **Survey Extensions** infrastructure so registration stays centralized and pages do not duplicate listeners._
-
-- _Read:_ `hub/lib/survey-extensions/README.md`
-- _Register extensions in:_ `hub/lib/survey-extensions/core-registry.ts` _(platform-owned; default for first-party features shipped in this monorepo)_ **or** `hub/extensions/user-extensions.ts` _(customer-owned; preferred for forks/custom deployments to reduce merge conflicts)_.
-- _Load extensions through:_ `hub/lib/survey-extensions/ui/use-extension-loader.tsx` _(and pass `extensionIdsToLoad` from server components when possible)._
-- _Keep `survey-features` for vertical slices that include Serializer / FunctionFactory globals, but avoid scattering `survey.on*` handlers across random UI files._
-- _For hybrid features (creator + runtime), keep domain logic in_ `hub/lib/survey-features/<feature>/` _(registry/bindings/hook), then expose runtime by calling those bindings from an extension module’s_ `onModelReady` _(and creator path via_ `onCreatorReady` _when creator wiring is globally enabled)._
-- _When creator wiring is page-specific (for example needs tenant check, form check or other runtime data), call the feature hook from the creator page/component instead of forcing all creator behavior into static extension_ `onInit` _._
-- _Use_ `hub/lib/endatix-api/public` _for browser/runtime public endpoint calls. Keep the rest of_ `hub/lib/endatix-api` _for server-side authenticated flows (session/JWT/cookies). Both share_ `ApiResult`/`ApiErrorType` _from_ `endatix-api/shared`_._
-
-### _2. Isolate Global Logic (_`registry.ts`_)_
-
-_Global configurations must run exactly once per app load._
-
-- _Guard with a **module-level flag** (e.g.,_ `let areGlobalsRegistered = false`_)._
-- _Export a function (e.g.,_ `registerMyFeatureGlobals()`_) and call it synchronously before_ `new Model()` _or_ `new Creator()` _is instantiated. Do not rely on_ `useEffect` _for this, as custom properties must exist before the SurveyJS JSON parser runs._
-
-### _3. Isolate Instance Bindings (_`*-bindings.ts`_)_
-
-_Write pure, imperative functions that accept the_ `SurveyModel` _or_ `SurveyCreatorModel`_._
-
-- **\*Always return a cleanup function** that removes every* `.add()` *listener and restores any injected state (e.g. if you inject visibility expressions, call the corresponding “remove/restore” function in cleanup).\*
-
-### *4. Hook API Design (`*use-<feature>.hook.ts`_)_
-
-- **\*Decouple config from instance**: The hook receives options (callbacks, flags) and returns registration functions.\*
-- **\*No reactive models**: Never pass* `SurveyModel` *or* `SurveyCreatorModel` *into the hook's arguments or* `useEffect` *dependency arrays.\*
-- **\*Return explicit registers**: Return functions like* `registerWithCreator(creator)` *and* `bindToSurvey(survey)`*.\*
-
-### _5. Instance Reusability (_`survey.JSON` _vs_ `new Model`_)_
-
-_Whenever possible, prefer mutating_ `survey.JSON = newJson` _to update a schema rather than creating a_ `new Model(json)`_._
-
-- _Because our bindings attach to the model instance, updating_ `.JSON` _preserves all registered events._
-- _You only need to bind events once when the model is initially created._
-
-### _6. Feature Orchestration (Avoiding Dependency Bloat)_
-
-_When a component uses multiple features, do not import all hooks directly into the UI component (which bloats the_ `useEffect` _dependency array). Instead, create a **Composer Hook** (e.g.,_ `useSurveyCreatorFeatures`_) that aggregates them._
-
-### _7. Lazy-loaded choices (`onChoicesLazyLoad`) vs `choicesByUrl`_
-
-_When implementing large choice sets, prefer **lazy loading** via `SurveyModel.onChoicesLazyLoad`._
-
-- _Enable per-question:_ `choicesLazyLoadEnabled: true` _(and optionally tune page size via `choicesLazyLoadPageSize`)._
-- _In the handler, use `options.skip`, `options.take`, and `options.filter` to call your API, then:_ `options.setItems(items, totalCount)` _._
-- _Do **not** assume SurveyJS will automatically fetch `choicesByUrl` when lazy loading is enabled. In modern SurveyJS versions, lazy loading is the driver; treat `choicesByUrl` as optional metadata at most (some versions ignore automatic `choicesByUrl` fetching when lazy loading is enabled)._
-- _If respondents can have prefilled selected values before opening the dropdown, also implement `SurveyModel.onGetChoiceDisplayValue` to resolve labels for known values._
-- _For REST-backed options, wire both handlers in one binding module and ensure cleanup removes both listeners:_
-  - _`survey.onChoicesLazyLoad` → call paged endpoint with `skip`/`take`/`filter`, then `options.setItems(items, total)`._
-  - _`survey.onGetChoiceDisplayValue` → resolve labels for persisted/default values, then `options.setItems(displayValues)`._
-
-## _Templates & Examples_
-
-**_Feature Hook Template (_`use-my-feature.hook.ts`_)_**
-
-```typescript
-'use client';
-
-import { useCallback } from 'react';
-import type { SurveyCreatorModel } from 'survey-creator-core';
-import type { SurveyModel } from 'survey-core';
-import { registerMyFeatureGlobals } from './registry';
-
-export interface UseMyFeatureOptions {
-  onModified?: () => void;
-}
-
-export function useMyFeature(options: UseMyFeatureOptions) {
-  const { onModified } = options;
-
-  // 1. Synchronous Global Registration
-  const initGlobals = useCallback(() => {
-    registerMyFeatureGlobals();
-  }, []);
-
-  // 2. Creator Registration
-  const registerWithCreator = useCallback(
-    (creator: SurveyCreatorModel): (() => void) => {
-      const spawnedSurveyCleanups: (() => void)[] = [];
-
-      const handleModified = () => onModified?.();
-      creator.onModified.add(handleModified);
-
-      const handleSurveyCreated = (sender: any, options: { survey: SurveyModel }) => {
-        // e.g., const cleanup = bindToSurvey(options.survey);
-        // spawnedSurveyCleanups.push(cleanup);
-      };
-      creator.onSurveyInstanceCreated.add(handleSurveyCreated);
-
-      return () => {
-        creator.onModified.remove(handleModified);
-        creator.onSurveyInstanceCreated.remove(handleSurveyCreated);
-        spawnedSurveyCleanups.forEach(cleanup => cleanup());
-      };
-    },
-    [onModified]
-  );
-
-  return { initGlobals, registerWithCreator };
-}
+```text
+lib/survey-features/{feature-name}/
+├── constants.ts                    # Property names, question types, magic keys
+├── types.ts                        # Question / runtime TypeScript interfaces
+├── index.ts                        # Curated public exports
+├── use-cases/
+│   └── {feature}-state.ts          # Pure logic (no SurveyJS side effects)
+├── infrastructure/
+│   ├── registry.ts                 # Serializer.addProperty / global registration
+│   ├── survey-bindings.ts          # Model event handlers (respondent runtime)
+│   ├── creator-bindings.ts         # SurveyCreator wiring (designer preview)
+│   └── {feature}.extension.ts      # ExtensionModule entry (onInit / onCreatorReady / onModelReady)
+└── __tests__/
+    ├── {feature}-state.test.ts
+    ├── registry.test.ts
+    └── survey-bindings.test.ts
 ```
 
-**Reference:** `hub/lib/survey-extensions/README.md` + `hub/lib/survey-extensions/core-registry.ts` (extension modules with explicit loading modes).
+Rules:
 
-**Legacy reference (may differ by branch):** `hub/lib/survey-features/question-loops/` (older pattern: registry + survey-bindings + hook with initGlobals + bindToSurvey + bindToCreator and creator-spawned survey cleanups).
+- **Pure logic** in `use-cases/` — test without mounting SurveyJS when possible.
+- **Side effects** only in `infrastructure/`.
+- **One** `ExtensionModule` per feature in `{feature}.extension.ts`.
+- Do **not** add `ui/use-{feature}.hook.ts` with `initGlobals` / `bindToCreator`
+  unless the feature needs React state (e.g. loading API data). Data-fetch hooks
+  like `useDataListsLoader` are fine; install hooks are not.
+
+---
+
+## 3. Extension module lifecycle
+
+Implement `ExtensionModule` ([lib/survey-extensions/types.ts](lib/survey-extensions/types.ts)):
+
+```typescript
+const myFeatureExtension: ExtensionModule = {
+  // Runs when extension is selected for this session (see shouldLoad).
+  // Serializer metadata, shared guard registries, FunctionFactory, etc.
+  onInit: () => {
+    registerMyFeatureGlobals();
+  },
+
+  // Designer: after SurveyCreator is constructed — call onCreatorCreated from useSurveyExtensions.
+  onCreatorReady: (creator, deps) => {
+    bindMyFeatureToCreator(creator);
+  },
+
+  // Respondent / standalone Model — call onModelCreated from useSurveyExtensions.
+  onModelReady: (model, deps) => {
+    bindMyFeatureToSurvey(model);
+  },
+};
+```
+
+### Hook responsibilities
+
+| Hook | When | Examples |
+|------|------|----------|
+| `onInit` | Once per selected extension | `Serializer.addProperty`, `registerChoicesLazyLoadGuard` |
+| `onCreatorReady` | Each `SurveyCreator` instance | `onSurveyInstanceCreated` → bind preview surveys |
+| `onModelReady` | Each `Model` instance | `onChoicesSearch`, `onValueChanged` |
+
+Read runtime context via `deps.getRuntimeState()` inside hooks when you need
+`formId`, JWT, etc. Do not attach Endatix state onto SurveyJS model objects.
+
+**Binding idempotency (707):** Features may use `__endatix*Bound` sentinels on
+`SurveyCreator` / `Model` for now (matches data-lists). **Target (h709 PR-3b):**
+Hub-owned `WeakMap` side tables in
+`lib/survey-extensions/infrastructure/extension-binding-state.ts` — same approach
+as `runtimeStateByQuestion` in blind-search survey-bindings and
+`inflightByState` in `form-access-jwt-orchestrator.ts`. New features should prefer
+WeakMap helpers once PR-3b lands.
+
+### Designer vs respondent loading
+
+Consumers use [useSurveyExtensions](lib/survey-extensions/ui/use-survey-extensions.ts):
+
+- **Designer** (`form-editor`, `form-template-editor`): no `formJson` → all
+  extensions load; `onCreatorReady` runs after `new SurveyCreator()`.
+- **Respondent** (`survey-js-wrapper`): passes `formJson` → extensions without
+  `shouldLoad` always load; optional `shouldLoad` filters the rest (prefer server
+  manifest later — see §4).
+
+`form-editor` already calls `useSurveyExtensions` and `onCreatorCreated(creator)`.
+**Do not** duplicate install logic there.
+
+---
+
+## 4. Register in core-registry
+
+Add to [lib/survey-extensions/core-registry.ts](lib/survey-extensions/core-registry.ts):
+
+```typescript
+import { myFeatureExtension } from '@/lib/survey-features/my-feature';
+
+export const MY_FEATURE_EXTENSION_ID = 'my-feature';
+
+{
+  id: MY_FEATURE_EXTENSION_ID,
+  type: 'feature',
+  loading: 'static', // prefer static for core platform features
+  module: myFeatureExtension,
+  metadata: {
+    name: 'My Feature',
+    description: '…',
+  },
+},
+```
+
+### `loading`: static vs dynamic
+
+| Mode | Use when |
+|------|----------|
+| **`static`** | Core platform features (blind-search, data-lists, expression-formatting). Eager module import; bindings no-op unless the question uses the feature. |
+| **`dynamic`** | Large optional add-ons, tenant-specific bundles, or rare question types. Use `load: () => import('…').then(m => m.default)`. |
+
+### `shouldLoad` — when to use (and when not to)
+
+**Default for core platform features: omit `shouldLoad`.** Load the extension eagerly;
+gate behavior inside bindings / use-cases (e.g. `isBlindSearchEnabled`) per question.
+SurveyJS loads question types eagerly for the same reason — extension `onInit` and
+handler registration are nanoseconds compared to parsing multi-MB form JSON on every
+respondent page load.
+
+| Approach | Cost | Use when |
+|----------|------|----------|
+| **No `shouldLoad` (eager)** | Static module + cheap per-event guards | Core features on common question types (tagbox, dropdown) |
+| **`usesQuestionType` only** | Regex scan on JSON string — still O(form size) | Large optional bundles tied to a question type |
+
+Do not traverse or fully parse form JSON on the client to detect custom Serializer
+properties — use eager core extensions with per-question guards, or (future) a
+server-side extension manifest from `FormDependency`.
+
+Extensions without `shouldLoad` are always included when the extension loader runs.
+
+**Future (SSR):** Server-maintained dependency manifest via
+[`FormDependency`](../../../../oss/src/Endatix.Core/Entities/FormDependency.cs) will
+record which extensions a form needs. Hub pages will pass `extensionIdsToLoad` from
+that manifest (whitelist) instead of client-side JSON analysis.
+
+---
+
+## 5. Cross-feature infrastructure
+
+Shared registries live in `lib/survey-features/infrastructure/` (e.g.
+`choices-lazy-load-guards.ts`). Register from your feature's `onInit`, not from
+`form-editor`.
+
+---
+
+## 6. Tests
+
+Follow AAA pattern in `__tests__/`:
+
+1. **`use-cases`** — pure functions, no SurveyJS mount.
+2. **`registry`** — Serializer properties exist, idempotent `register*Globals`.
+3. **`survey-bindings`** — `Model` + event firing for runtime behavior.
+
+Run: `pnpm test` from `hub/` (filter by feature path).
+
+---
+
+## 7. Checklist before opening PR
+
+- [ ] `ExtensionModule` owns all install logic (no `form-editor` `initGlobals`)
+- [ ] Entry in `core-registry.ts` (or `user-extensions.ts`); omit `shouldLoad` for core features unless bundle size demands it
+- [ ] `loading: 'static'` for core features unless bundle size requires `dynamic`
+- [ ] Pure logic extracted to `use-cases/`
+- [ ] `creator-bindings.ts` and `survey-bindings.ts` separated
+- [ ] Tests for state, registry, and bindings
+- [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until [h709 PR-2](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) lands (extensions off = runtime no-op)
+
+---
+
+## 8. Legacy patterns (do not copy)
+
+| Legacy | Replacement |
+|--------|-------------|
+| `useBlindSearchTagbox`-style install hooks in `form-editor` | `ExtensionModule` lifecycle |
+| `hub/customizations/questions/` + `discover-questions.mjs` | `hub/extensions/questions/` + `user-extensions.ts` |
+| Manual `initDataListsGlobals()` etc. in `form-editor` | h709: `onRegisterGlobals` + single designer bootstrap |
+| Greedy `customQuestions` loop in `form-editor` | Extension registry + designer load-all |
+| Client JSON property traversal in `shouldLoad` on large forms | Eager core extension + per-question guards; future `FormDependency` SSR manifest |
+
+---
+
+## 9. Further reading
+
+- [lib/survey-extensions/README.md](lib/survey-extensions/README.md) — loader, server analyzer, authorized extensions
+- [extensions/README.md](extensions/README.md) — self-hosted custom extensions
+- [h709-extensions-framework-first-class-plan.md](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) — experimental flag removal, customizations sunset, unified designer bootstrap

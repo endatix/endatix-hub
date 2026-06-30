@@ -10,10 +10,13 @@
 import type { ExtensionDefinition } from "./types";
 import { expressionFormattingExtension } from "@/lib/survey-features/expression-formatting";
 import { dataListsExtension } from "@/lib/survey-features/data-lists";
-import { EDX_HIDE_UNTIL_TYPING_PROPERTY } from "@/lib/survey-features/blind-search-tagbox/constants";
+import {
+  BLIND_SEARCH_TAGBOX_EXTENSION_ID,
+  blindSearchTagboxExtension,
+} from "@/lib/survey-features/blind-search-tagbox";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
-export const BLIND_SEARCH_TAGBOX_EXTENSION_ID = "blind-search-tagbox";
+export { BLIND_SEARCH_TAGBOX_EXTENSION_ID };
 
 /**
  * Core extensions that ship with the platform.
@@ -21,12 +24,12 @@ export const BLIND_SEARCH_TAGBOX_EXTENSION_ID = "blind-search-tagbox";
  * to avoid merge conflicts when updating from upstream.
  * @example
  * {
- *   id: 'camera-fix',
- *   type: 'feature',
+ *   id: 'hello-world',
+ *   type: 'question',
  *   loading: 'dynamic',
- *   shouldLoad: (_) => true,
+ *   shouldLoad: (_, analyzer) => analyzer.usesQuestionType('hello-world'),
  *   load: () =>
- *     import('@/extensions/camera-fix').then(
+ *     import('@/extensions/questions/hello-world').then(
  *       (module) => module.default,
  *     ),
  * },
@@ -57,13 +60,8 @@ export const coreExtensions: ExtensionDefinition[] = [
   {
     id: BLIND_SEARCH_TAGBOX_EXTENSION_ID,
     type: "feature",
-    loading: "dynamic",
-    shouldLoad: (_, analyzer) =>
-      analyzer.hasCustomProperty(EDX_HIDE_UNTIL_TYPING_PROPERTY),
-    load: () =>
-      import(
-        "@/lib/survey-features/blind-search-tagbox/infrastructure/blind-search-tagbox.extension"
-      ).then((module) => module.blindSearchTagboxExtension),
+    loading: "static",
+    module: blindSearchTagboxExtension,
     metadata: {
       name: "Blind Search Tagbox",
       description:

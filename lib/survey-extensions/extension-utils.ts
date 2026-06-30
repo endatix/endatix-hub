@@ -9,62 +9,10 @@ export interface FormAnalyzer {
    * Optimized to search in the stringified JSON without re-parsing/re-stringifying
    */
   usesQuestionType: (questionType: string) => boolean;
-
-  /**
-   * Check if form JSON defines a custom Serializer property by name.
-   * Traverses parsed JSON so property names inside string values are not matched.
-   */
-  hasCustomProperty: (propertyName: string) => boolean;
 }
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function formContainsPropertyKey(obj: unknown, propertyName: string): boolean {
-  if (!obj || typeof obj !== "object") {
-    return false;
-  }
-
-  let found = false;
-
-  const traverse = (current: unknown) => {
-    if (found || !current || typeof current !== "object") {
-      return;
-    }
-
-    if (Array.isArray(current)) {
-      current.forEach(traverse);
-      return;
-    }
-
-    const record = current as Record<string, unknown>;
-    if (Object.prototype.hasOwnProperty.call(record, propertyName)) {
-      found = true;
-      return;
-    }
-
-    Object.values(record).forEach(traverse);
-  };
-
-  traverse(obj);
-  return found;
-}
-
-function parseFormJson(formJson: unknown): unknown | null {
-  if (typeof formJson === "string") {
-    if (formJson.length === 0) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(formJson);
-    } catch {
-      return null;
-    }
-  }
-
-  return formJson;
 }
 
 /**
@@ -76,13 +24,11 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
     return {
       formJson: null,
       usesQuestionType: () => false,
-      hasCustomProperty: () => false,
     };
   }
 
   const jsonString =
     typeof formJson === "string" ? formJson : JSON.stringify(formJson);
-  const parsedFormJson = parseFormJson(formJson);
 
   return {
     formJson,
@@ -94,13 +40,6 @@ export function createFormAnalyzer(formJson: any): FormAnalyzer {
       const questionTypePattern = String.raw`"type"\s*:\s*"${escapeRegExp(questionType)}"`;
       const regex = new RegExp(questionTypePattern);
       return regex.test(jsonString);
-    },
-    hasCustomProperty: (propertyName: string) => {
-      if (!parsedFormJson) {
-        return false;
-      }
-
-      return formContainsPropertyKey(parsedFormJson, propertyName);
     },
   };
 }

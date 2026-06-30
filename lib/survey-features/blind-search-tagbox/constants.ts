@@ -1,3 +1,5 @@
+export const BLIND_SEARCH_TAGBOX_EXTENSION_ID = "blind-search-tagbox";
+
 export const BLIND_SEARCH_TAGBOX_TYPE = "tagbox";
 
 export const EDX_HIDE_UNTIL_TYPING_PROPERTY = "edxHideUntilTyping";
