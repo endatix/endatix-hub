@@ -4,6 +4,7 @@ import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { useEffect, useState } from "react";
 import { slk } from "survey-core";
 import "survey-core/survey-core.css";
@@ -30,10 +31,19 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   useRichTextEditing(creator);
   useLoopAwareSummaryTableEditing(creator);
+  const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
+    runtimeDeps: {
+      getRuntimeState: () => ({}),
+    },
+  });
   const { initGlobals: initAnyAnsweredGlobals } = useAnyAnswered();
   const { initGlobals: initQuestionLoopsGlobals, bindToCreator: bindQuestionLoops } = useQuestionLoops();
 
   useEffect(() => {
+    if (!isExtensionsReady) {
+      return;
+    }
+
     if (creator) {
       if (model && Object.keys(model).length > 0) {
         creator.JSON = model;
@@ -53,13 +63,27 @@ const PreviewForm = ({ model, slkVal }: PreviewFormProps) => {
     newCreator.activeTab = "test";
     newCreator.applyCreatorTheme(SurveyCreatorTheme.DefaultContrast);
     newCreator.theme = BorderlessLight;
-    
+
+    onCreatorCreated(newCreator);
     setCreator(newCreator);
 
     return () => {
       cleanupQuestionLoops?.();
-    }
-  }, [creator, model, slkVal, initAnyAnsweredGlobals, initQuestionLoopsGlobals, bindQuestionLoops]);
+    };
+  }, [
+    creator,
+    model,
+    slkVal,
+    isExtensionsReady,
+    onCreatorCreated,
+    initAnyAnsweredGlobals,
+    initQuestionLoopsGlobals,
+    bindQuestionLoops,
+  ]);
+
+  if (!isExtensionsReady) {
+    return null;
+  }
 
   return creator && <SurveyCreatorComponent creator={creator} />;
 };
