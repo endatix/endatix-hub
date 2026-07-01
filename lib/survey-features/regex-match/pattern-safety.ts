@@ -8,7 +8,12 @@ const NESTED_QUANTIFIER_PATTERN = /\([^)]*[+*][^)]*\)[+*?{]/;
 export const UNSAFE_NESTED_PLUS_PATTERN = ['(', 'a', '+', ')', '+', '$'].join('');
 export const UNSAFE_NESTED_STAR_PATTERN = ['(', '.', '*', ')', '*', '$'].join('');
 
-export function isSafeRegexPattern(pattern: string): boolean {  if (pattern.length > MAX_REGEX_PATTERN_LENGTH) {
+/**
+ * Best-effort static guard before regexMatch runs RegExp.test().
+ * Complements length limits; does not replace a dedicated safe-regex analyzer.
+ */
+export function isSafeRegexPattern(pattern: string): boolean {
+  if (pattern.length > MAX_REGEX_PATTERN_LENGTH) {
     return false;
   }
 
