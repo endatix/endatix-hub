@@ -5,8 +5,25 @@ import {
   bindAdvancedCarryForwardToSurvey,
   clearAdvancedCarryForwardBindingsForTests,
 } from '../infrastructure/survey-bindings';
-import { resetCarryForwardUpdateGuardForTests } from '../use-cases/load-carry-forward-targets';
+import {
+  loadCarryForwardTargets,
+  resetCarryForwardUpdateGuardForTests,
+} from '../use-cases/load-carry-forward-targets';
 import type { AdvancedCarryForwardQuestion } from '../types';
+
+function countValueChangedListeners(model: Model): number {
+  return (
+    (model.onValueChanged as { callbacks?: unknown[] }).callbacks?.length ?? 0
+  );
+}
+
+function countLoadCarryForwardValueChangedListeners(model: Model): number {
+  const callbacks =
+    (model.onValueChanged as { callbacks?: unknown[] }).callbacks ?? [];
+
+  return callbacks.filter((callback) => callback === loadCarryForwardTargets)
+    .length;
+}
 
 const carryForwardSurveyJson = {
   elements: [
@@ -84,15 +101,19 @@ describe('bindAdvancedCarryForwardToSurvey', () => {
   });
 
   it('binds only once per model instance', () => {
-    // Arrange
     const model = new Model(carryForwardSurveyJson);
+    expect(countValueChangedListeners(model)).toBe(0);
+
     const firstDispose = bindAdvancedCarryForwardToSurvey(model);
+    expect(countValueChangedListeners(model)).toBe(1);
+    expect(countLoadCarryForwardValueChangedListeners(model)).toBe(1);
 
-    // Act
     const secondDispose = bindAdvancedCarryForwardToSurvey(model);
-
-    // Assert
+    expect(countValueChangedListeners(model)).toBe(1);
+    expect(countLoadCarryForwardValueChangedListeners(model)).toBe(1);
     expect(secondDispose).toBeTypeOf('function');
+
     firstDispose();
+    expect(countValueChangedListeners(model)).toBe(0);
   });
 });

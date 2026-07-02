@@ -60,6 +60,43 @@ describe('loadCarryForwardTargets', () => {
     // `.not.toThrow()` alone can't distinguish from a real, successful sync.
     expect(syncSpy).toHaveBeenCalledTimes(2);
   });
+
+  it('scopes the re-entrancy guard per survey instance', () => {
+    const makeSurvey = () =>
+      new SurveyModel({
+        elements: [
+          {
+            type: 'checkbox',
+            name: 'dest',
+            choices: [],
+            advancedCarryForwardEnabled: true,
+            advancedCarryForwardSources: ['src'],
+          },
+          { type: 'checkbox', name: 'src', choices: ['A'] },
+        ],
+      });
+
+    const surveyA = makeSurvey();
+    const surveyB = makeSurvey();
+    let syncCallCount = 0;
+
+    vi.spyOn(syncModule, 'syncSingleCarryForwardTarget').mockImplementation(() => {
+      syncCallCount += 1;
+      if (syncCallCount === 1) {
+        loadCarryForwardTargets(surveyB, {
+          name: 'src',
+          value: ['A'],
+        } as never);
+      }
+    });
+
+    loadCarryForwardTargets(surveyA, {
+      name: 'src',
+      value: ['A'],
+    } as never);
+
+    expect(syncCallCount).toBe(2);
+  });
 });
 
 describe('bindAdvancedCarryForwardToSurvey property changes', () => {

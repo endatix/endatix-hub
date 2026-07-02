@@ -21,6 +21,17 @@ import {
   resetAdvancedCarryForwardRegistryForTests,
 } from '../infrastructure/registry';
 
+const CARRY_FORWARD_SECTION_DEPENDS_ON = [
+  DATA_LIST_PROPERTY_NAME,
+  'choicesByUrl',
+  'choicesFromQuestion',
+] as const;
+
+const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
+  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+  ...CARRY_FORWARD_SECTION_DEPENDS_ON,
+] as const;
+
 const EXPECTED_PROPERTY_NAMES = [
   ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
   ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
@@ -74,7 +85,16 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       expect(property?.choicesfunc).toBeTypeOf('function');
     });
 
-    it('registers priority items with dependsOn enabled and sources', () => {
+    it('registers enabled toggle with dependsOn conflicting choice sources', () => {
+      const property = Serializer.findProperty(
+        'checkbox',
+        ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+      );
+
+      expect(property?.dependsOn).toEqual([...CARRY_FORWARD_SECTION_DEPENDS_ON]);
+    });
+
+    it('registers priority items with dependsOn enabled, sources, and conflicts', () => {
       const property = Serializer.findProperty(
         'checkbox',
         ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
@@ -82,21 +102,19 @@ describe('registerAdvancedCarryForwardGlobals', () => {
 
       expect(property?.type).toBe('multiplevalues');
       expect(property?.dependsOn).toEqual([
-        ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+        ...CARRY_FORWARD_FEATURE_DEPENDS_ON,
         ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
       ]);
     });
 
-    it('registers dependent properties with dependsOn enabled toggle', () => {
+    it('registers dependent properties with dependsOn enabled toggle and conflicts', () => {
       for (const propertyName of [
         ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
         ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
         ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
       ]) {
         const property = Serializer.findProperty('checkbox', propertyName);
-        expect(property?.dependsOn).toEqual([
-          ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-        ]);
+        expect(property?.dependsOn).toEqual([...CARRY_FORWARD_FEATURE_DEPENDS_ON]);
       }
     });
 
@@ -219,6 +237,24 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       ).toBe(false);
       expect(
         choicesFromQuestionProperty?.visibleIf?.({
+          advancedCarryForwardEnabled: false,
+        }),
+      ).toBe(true);
+    });
+
+    it('hides choices by url when advanced carry forward is enabled', () => {
+      const choicesByUrlProperty = Serializer.findProperty(
+        'checkbox',
+        'choicesByUrl',
+      );
+
+      expect(
+        choicesByUrlProperty?.visibleIf?.({
+          advancedCarryForwardEnabled: true,
+        }),
+      ).toBe(false);
+      expect(
+        choicesByUrlProperty?.visibleIf?.({
           advancedCarryForwardEnabled: false,
         }),
       ).toBe(true);

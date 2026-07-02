@@ -4,6 +4,7 @@ import {
   QuestionSelectBase,
   SurveyModel,
 } from "survey-core";
+import { isSelectBaseQuestion } from "@/lib/survey-features/infrastructure/select-base-question-utils";
 import {
   ChoiceValue,
   DynamicLoopModel,
@@ -98,18 +99,6 @@ function isNonEmptyCondition(
   condition: string | undefined,
 ): condition is string {
   return !isEmptyString(condition);
-}
-
-/**
- * Checks if the question is a select base question.
- * As opposed to providing list of question types, this function checks if the question is an instance of QuestionSelectBase, which means it has a choices property.
- * @param question - The question to check
- * @returns True if the question is a select base question, false otherwise
- */
-function isSelectBaseQuestion(
-  question: Question,
-): question is QuestionSelectBase {
-  return question instanceof QuestionSelectBase;
 }
 
 /**

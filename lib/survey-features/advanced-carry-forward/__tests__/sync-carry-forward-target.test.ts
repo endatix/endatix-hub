@@ -301,6 +301,63 @@ describe('syncSingleCarryForwardTarget', () => {
     expect(Array.from(target.value as string[])).toEqual(['A']);
   });
 
+  it('preserves None and Other selections when choices resync', () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: 'checkbox',
+          name: 'brands',
+          choices: ['A', 'B', 'C'],
+        },
+        {
+          type: 'checkbox',
+          name: 'target',
+          choices: ['legacy'],
+          hasNone: true,
+          hasOther: true,
+          advancedCarryForwardEnabled: true,
+          advancedCarryForwardSources: ['brands'],
+          advancedCarryForwardMode: 'selected',
+        },
+      ],
+    });
+    survey.setValue('brands', ['A', 'B']);
+    survey.setValue('target', ['none', 'other', 'A']);
+    const target = survey.getQuestionByName('target') as AdvancedCarryForwardQuestion;
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(target.choices.map((item) => item.value)).toEqual(['A', 'B']);
+    expect(Array.from(target.value as string[])).toEqual(['none', 'other', 'A']);
+  });
+
+  it('preserves Other selection on single-value questions when choices resync', () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: 'checkbox',
+          name: 'brands',
+          choices: ['A', 'B'],
+        },
+        {
+          type: 'radiogroup',
+          name: 'target',
+          choices: ['legacy'],
+          hasOther: true,
+          advancedCarryForwardEnabled: true,
+          advancedCarryForwardSources: ['brands'],
+        },
+      ],
+    });
+    survey.setValue('target', 'other');
+    const target = survey.getQuestionByName('target') as AdvancedCarryForwardQuestion;
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(target.choices.map((item) => item.value)).toEqual(['A', 'B']);
+    expect(target.value).toBe('other');
+  });
+
   it('preserves imageLink when copying to imagepicker targets', () => {
     const survey = new SurveyModel({
       elements: [

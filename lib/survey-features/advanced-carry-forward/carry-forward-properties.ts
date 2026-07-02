@@ -3,6 +3,7 @@ import {
   getAllSelectBasedQuestions,
   getAllUniqueChoices,
 } from '@/lib/survey-features/question-loops/loop-utils';
+import { DATA_LIST_PROPERTY_NAME } from '@/lib/survey-features/data-lists/constants';
 import {
   ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
   ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
@@ -46,6 +47,17 @@ export function isCarryForwardFeatureVisible(
   );
 }
 
+const CARRY_FORWARD_SECTION_DEPENDS_ON = [
+  DATA_LIST_PROPERTY_NAME,
+  'choicesByUrl',
+  'choicesFromQuestion',
+] as const;
+
+const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
+  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+  ...CARRY_FORWARD_SECTION_DEPENDS_ON,
+] as const;
+
 const ENABLED_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
   displayName: 'Advanced carry forward',
@@ -53,12 +65,13 @@ const ENABLED_PROPERTY: IJsonPropertyInfo = {
   type: 'boolean',
   default: false,
   visibleIndex: 1,
+  dependsOn: [...CARRY_FORWARD_SECTION_DEPENDS_ON],
   visibleIf: isCarryForwardChoicesSectionVisible,
 };
 
 const SOURCES_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
-  dependsOn: [ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
+  dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
   displayName: 'Copy choices from questions',
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
   type: 'multiplevalues',
@@ -90,7 +103,7 @@ const SOURCES_PROPERTY: IJsonPropertyInfo = {
 
 const MODE_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
-  dependsOn: [ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
+  dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
   displayName: 'Which choice options to copy',
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
   type: 'string',
@@ -103,7 +116,7 @@ const MODE_PROPERTY: IJsonPropertyInfo = {
 const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
   dependsOn: [
-    ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+    ...CARRY_FORWARD_FEATURE_DEPENDS_ON,
     ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
   ],
   displayName: 'Priority items',
@@ -148,7 +161,7 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
 
 const MAX_CHOICES_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
-  dependsOn: [ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
+  dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
   displayName: 'Maximum number of choices',
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
   type: 'number',

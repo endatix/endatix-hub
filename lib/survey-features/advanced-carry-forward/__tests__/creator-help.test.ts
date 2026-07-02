@@ -5,6 +5,7 @@ import {
   ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
   ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
   ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
 } from '../constants';
 import {
   registerAdvancedCarryForwardCreatorHelp,
@@ -25,6 +26,9 @@ describe('registerAdvancedCarryForwardCreatorHelp', () => {
       translations.pehelp[ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
     ).toContain('build this question\'s choice list');
     expect(
+      translations.pehelp[ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY],
+    ).toContain('earlier choice questions');
+    expect(
       translations.pehelp[ADVANCED_CARRY_FORWARD_MODE_PROPERTY],
     ).toContain('Selected');
     expect(
@@ -43,6 +47,9 @@ describe('registerAdvancedCarryForwardCreatorHelp', () => {
 
     expect(
       translations.pehelp[ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
+    ).toBeUndefined();
+    expect(
+      translations.pehelp[ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY],
     ).toBeUndefined();
     expect(
       translations.pehelp[ADVANCED_CARRY_FORWARD_MODE_PROPERTY],

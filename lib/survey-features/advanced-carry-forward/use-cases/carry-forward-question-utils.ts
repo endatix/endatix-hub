@@ -1,5 +1,5 @@
 import type { Question } from 'survey-core';
-import { isSelectBaseQuestion } from '@/lib/survey-features/question-loops/loop-utils';
+import { isSelectBaseQuestion } from '@/lib/survey-features/infrastructure/select-base-question-utils';
 import { DATA_LIST_PROPERTY_NAME } from '@/lib/survey-features/data-lists/constants';
 import { ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY } from '../constants';
 import type { AdvancedCarryForwardQuestion } from '../types';

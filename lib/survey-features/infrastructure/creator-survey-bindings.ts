@@ -4,11 +4,17 @@ import type {
   SurveyInstanceCreatedEvent,
 } from 'survey-creator-core';
 
-const PROPERTY_GRID_AREA = 'property-grid';
 const DESIGNER_TAB_SURVEY_AREA = 'designer-tab';
+const PREVIEW_TAB_SURVEY_AREA = 'preview-tab';
+
+const CREATOR_PREVIEW_SURVEY_AREAS = new Set([
+  DESIGNER_TAB_SURVEY_AREA,
+  PREVIEW_TAB_SURVEY_AREA,
+]);
 
 /**
- * Binds a survey-level feature handler to Creator preview instances (not property-grid).
+ * Binds a survey-level feature handler to Creator preview instances only
+ * (designer and preview tabs), not property grids or internal editor popups.
  */
 export function bindSurveyToCreatorAreas(
   creator: SurveyCreatorModel,
@@ -38,7 +44,7 @@ export function bindSurveyToCreatorAreas(
     _: unknown,
     options: SurveyInstanceCreatedEvent,
   ) => {
-    if (options.area === PROPERTY_GRID_AREA) {
+    if (!CREATOR_PREVIEW_SURVEY_AREAS.has(options.area)) {
       return;
     }
 

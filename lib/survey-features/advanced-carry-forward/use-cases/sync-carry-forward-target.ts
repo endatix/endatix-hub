@@ -123,10 +123,26 @@ function isChoiceValueValid(
   return validValues.has(String(value));
 }
 
-function pruneInvalidSelections(target: AdvancedCarryForwardQuestion): void {
+function buildValidChoiceValues(
+  target: AdvancedCarryForwardQuestion,
+): Set<string> {
   const validValues = new Set(
     target.choices.map((choice) => String(choice.value)),
   );
+
+  if (target.hasNone && target.noneItem) {
+    validValues.add(String(target.noneItem.value));
+  }
+
+  if (target.hasOther && target.otherItem) {
+    validValues.add(String(target.otherItem.value));
+  }
+
+  return validValues;
+}
+
+function pruneInvalidSelections(target: AdvancedCarryForwardQuestion): void {
+  const validValues = buildValidChoiceValues(target);
   const currentValue = target.value;
 
   if (currentValue == null) {

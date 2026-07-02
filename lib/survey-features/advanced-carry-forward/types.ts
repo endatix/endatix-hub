@@ -4,7 +4,7 @@ import type { AdvancedCarryForwardModeValue } from './carry-forward-mode-values'
 export interface AdvancedCarryForwardQuestion extends QuestionSelectBase {
   advancedCarryForwardEnabled?: boolean;
   advancedCarryForwardSources?: string[];
-  advancedCarryForwardMode?: AdvancedCarryForwardModeValue | string;
+  advancedCarryForwardMode?: AdvancedCarryForwardModeValue;
   advancedCarryForwardPriorityItems?: string[];
   advancedCarryForwardMaxChoices?: number;
   edxDataListId?: string;
