@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Model } from 'survey-core';
-import { SourceSelectionModes } from '@/lib/survey-features/question-loops/types';
 import { registerAdvancedCarryForwardGlobals } from '../infrastructure/registry';
 import {
   bindAdvancedCarryForwardToSurvey,
@@ -23,7 +22,7 @@ const carryForwardSurveyJson = {
       choices: ['legacy'],
       advancedCarryForwardEnabled: true,
       advancedCarryForwardSources: ['brands'],
-      advancedCarryForwardMode: SourceSelectionModes.SelectedOnly,
+      advancedCarryForwardMode: 'selected',
     },
   ],
 };

@@ -1,6 +1,7 @@
 import { getLocaleStrings } from 'survey-creator-core';
 import {
   ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
   ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
 } from '../constants';
 
@@ -12,6 +13,10 @@ export function registerAdvancedCarryForwardCreatorHelp(): void {
   }
 
   const translations = getLocaleStrings('en');
+
+  translations.pehelp[ADVANCED_CARRY_FORWARD_MODE_PROPERTY] =
+    'Choose from: "All" - copies all choice options from the selected questions; "Selected" - dynamically copies only selected choice options; "Unselected" - dynamically copies only unselected choice options. ' +
+    'For ranking source questions, Selected and Unselected follow the ranking value (often the full ranked list), not a partial checkbox-style selection.';
 
   translations.pehelp[ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY] =
     'Pins these choices to the top of the destination list in the order shown. ' +

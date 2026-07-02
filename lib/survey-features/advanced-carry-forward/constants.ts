@@ -1,6 +1,7 @@
 export const ADVANCED_CARRY_FORWARD_EXTENSION_ID = 'advanced-carry-forward';
 
-export const ADVANCED_CARRY_FORWARD_CATEGORY = 'advancedCarryForward';
+/** SurveyJS Serializer category for choice-source settings in Creator. */
+export const ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY = 'choices';
 
 /** Question types that extend QuestionSelectBase (Serializer registration). */
 export const ADVANCED_CARRY_FORWARD_QUESTION_TYPES = [
@@ -25,8 +26,3 @@ export const ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY =
 
 export const ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY =
   '__endatixAdvancedCarryForwardBound';
-
-export const ADVANCED_CARRY_FORWARD_ICON_NAME = 'icon-advanced-carry-forward';
-
-export const ADVANCED_CARRY_FORWARD_ICON_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px}</style></defs><path class="st0" d="M4 10h12"/><path class="st0" d="M4 16h12"/><path class="st0" d="M4 22h12"/><path class="st0" d="M20 16h8"/><path class="st0" d="m24 12 4 4-4 4"/></svg>';

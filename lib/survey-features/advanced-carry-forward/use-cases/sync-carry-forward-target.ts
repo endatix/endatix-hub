@@ -2,17 +2,46 @@ import { Helpers, ItemValue, SurveyModel } from 'survey-core';
 import {
   extractUniqueChoicesBy,
   getLoopChoicesFromQuestion,
-  isSelectBaseQuestion,
 } from '@/lib/survey-features/question-loops/loop-utils';
-import { SourceSelectionModes } from '@/lib/survey-features/question-loops/types';
 import type { AdvancedCarryForwardQuestion } from '../types';
-import { isAdvancedCarryForwardEnabled } from './carry-forward-question-utils';
+import {
+  getCarryForwardSourceQuestions,
+  isAdvancedCarryForwardEnabled,
+} from './carry-forward-question-utils';
+import { resolveCarryForwardSelectionMode } from './map-carry-forward-mode';
 import {
   limitCarryForwardChoices,
   parseCarryForwardMaxChoices,
 } from './limit-carry-forward-choices';
 
 const PRIORITY_GROUP = 'priority';
+
+function findSourceChoiceForValue(
+  sourceQuestions: ReturnType<typeof getCarryForwardSourceQuestions>,
+  value: unknown,
+): ItemValue | undefined {
+  for (const source of sourceQuestions) {
+    const match = (source.choices ?? []).find(
+      (choice) => String(choice.value) === String(value),
+    );
+
+    if (match) {
+      return match;
+    }
+  }
+
+  return undefined;
+}
+
+function enrichAggregatedChoicesFromSources(
+  aggregatedChoices: ItemValue[],
+  sourceQuestions: ReturnType<typeof getCarryForwardSourceQuestions>,
+): ItemValue[] {
+  return aggregatedChoices.map(
+    (choice) =>
+      findSourceChoiceForValue(sourceQuestions, choice.value) ?? choice,
+  );
+}
 
 export function splitByPriority(
   choices: ItemValue[],
@@ -22,12 +51,15 @@ export function splitByPriority(
     return { priority: [], rest: choices };
   }
 
+  const uniquePriorityValues = [
+    ...new Set(priorityValues.map((value) => String(value))),
+  ];
   const choiceByValue = new Map(
     choices.map((choice) => [String(choice.value), choice]),
   );
-  const prioritySet = new Set(priorityValues.map(String));
-  const priority = priorityValues
-    .map((value) => choiceByValue.get(String(value)))
+  const prioritySet = new Set(uniquePriorityValues);
+  const priority = uniquePriorityValues
+    .map((value) => choiceByValue.get(value))
     .filter((choice): choice is ItemValue => choice !== undefined);
   const rest = choices.filter(
     (choice) => !prioritySet.has(String(choice.value)),
@@ -40,7 +72,24 @@ function cloneChoice(
   target: AdvancedCarryForwardQuestion,
   choice: ItemValue,
 ): ItemValue {
-  return target.createItemValue(choice.value, choice.text ?? choice.value);
+  const item = target.createItemValue(choice.value, choice.text ?? choice.value);
+  const sourceImageLink =
+    choice.imageLink ||
+    (choice.getPropertyValue?.('imageLink') as string | undefined);
+
+  if (sourceImageLink) {
+    item.imageLink = sourceImageLink;
+  }
+
+  if (choice.imageHeight != null) {
+    item.imageHeight = choice.imageHeight;
+  }
+
+  if (choice.imageWidth != null) {
+    item.imageWidth = choice.imageWidth;
+  }
+
+  return item;
 }
 
 function markPriorityChoices(
@@ -60,8 +109,17 @@ function markPriorityChoices(
   });
 }
 
+function isChoiceValueValid(
+  validValues: Set<string>,
+  value: unknown,
+): boolean {
+  return validValues.has(String(value));
+}
+
 function pruneInvalidSelections(target: AdvancedCarryForwardQuestion): void {
-  const validValues = new Set(target.choices.map((choice) => choice.value));
+  const validValues = new Set(
+    target.choices.map((choice) => String(choice.value)),
+  );
   const currentValue = target.value;
 
   if (currentValue == null) {
@@ -69,7 +127,9 @@ function pruneInvalidSelections(target: AdvancedCarryForwardQuestion): void {
   }
 
   if (Array.isArray(currentValue)) {
-    const prunedValue = currentValue.filter((value) => validValues.has(value));
+    const prunedValue = currentValue.filter((value) =>
+      isChoiceValueValid(validValues, value),
+    );
 
     if (prunedValue.length !== currentValue.length) {
       target.value = prunedValue;
@@ -78,7 +138,7 @@ function pruneInvalidSelections(target: AdvancedCarryForwardQuestion): void {
     return;
   }
 
-  if (!validValues.has(currentValue)) {
+  if (!isChoiceValueValid(validValues, currentValue)) {
     target.clearValue();
   }
 }
@@ -91,13 +151,15 @@ export function syncSingleCarryForwardTarget(
     return;
   }
 
-  const sourceQuestions = (target.advancedCarryForwardSources ?? [])
-    .map((sourceName) => survey.getQuestionByName(sourceName))
-    .filter(isSelectBaseQuestion);
-  const selectionMode =
-    target.advancedCarryForwardMode ?? SourceSelectionModes.All;
-  const aggregatedChoices = extractUniqueChoicesBy(sourceQuestions, (source) =>
-    getLoopChoicesFromQuestion(source, selectionMode),
+  const sourceQuestions = getCarryForwardSourceQuestions(survey, target);
+  const selectionMode = resolveCarryForwardSelectionMode(
+    target.advancedCarryForwardMode,
+  );
+  const aggregatedChoices = enrichAggregatedChoicesFromSources(
+    extractUniqueChoicesBy(sourceQuestions, (source) =>
+      getLoopChoicesFromQuestion(source, selectionMode),
+    ),
+    sourceQuestions,
   );
   const { priority, rest } = splitByPriority(
     aggregatedChoices,

@@ -1,11 +1,11 @@
 import { Serializer, SurveyModel } from 'survey-core';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
-  isCarryForwardCategoryVisible,
+  isCarryForwardChoicesSectionVisible,
   isCarryForwardFeatureVisible,
 } from '../carry-forward-properties';
 import {
-  ADVANCED_CARRY_FORWARD_CATEGORY,
+  ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
   ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
   ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
   ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
@@ -15,7 +15,7 @@ import {
 } from '../constants';
 import { registerDataListGlobals } from '@/lib/survey-features/data-lists/infrastructure/registry';
 import { DATA_LIST_PROPERTY_NAME } from '@/lib/survey-features/data-lists/constants';
-import { SourceSelectionModes } from '@/lib/survey-features/question-loops/types';
+import { ADVANCED_CARRY_FORWARD_MODE_VALUES } from '../carry-forward-mode-values';
 import {
   registerAdvancedCarryForwardGlobals,
   resetAdvancedCarryForwardRegistryForTests,
@@ -59,7 +59,7 @@ describe('registerAdvancedCarryForwardGlobals', () => {
         for (const propertyName of EXPECTED_PROPERTY_NAMES) {
           const property = Serializer.findProperty(questionType, propertyName);
           expect(property, `property ${propertyName}`).toBeDefined();
-          expect(property?.category).toBe(ADVANCED_CARRY_FORWARD_CATEGORY);
+          expect(property?.category).toBe(ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY);
         }
       },
     );
@@ -74,7 +74,7 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       expect(property?.choicesfunc).toBeTypeOf('function');
     });
 
-    it('registers priority items with dependsOn sources', () => {
+    it('registers priority items with dependsOn enabled and sources', () => {
       const property = Serializer.findProperty(
         'checkbox',
         ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
@@ -82,18 +82,33 @@ describe('registerAdvancedCarryForwardGlobals', () => {
 
       expect(property?.type).toBe('multiplevalues');
       expect(property?.dependsOn).toEqual([
+        ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
         ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
       ]);
     });
 
-    it('registers mode dropdown with SourceSelectionModes choices', () => {
+    it('registers dependent properties with dependsOn enabled toggle', () => {
+      for (const propertyName of [
+        ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+        ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
+        ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+      ]) {
+        const property = Serializer.findProperty('checkbox', propertyName);
+        expect(property?.dependsOn).toEqual([
+          ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+        ]);
+      }
+    });
+
+    it('registers mode as string with native all/selected/unselected choices', () => {
       const property = Serializer.findProperty(
         'checkbox',
         ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
       );
 
-      expect(property?.type).toBe('dropdown');
-      expect(property?.choices).toEqual(Object.values(SourceSelectionModes));
+      expect(property?.type).toBe('string');
+      expect(property?.displayName).toBe('Which choice options to copy');
+      expect(property?.choices).toEqual([...ADVANCED_CARRY_FORWARD_MODE_VALUES]);
     });
 
     it('registers max choices as number with default 0', () => {
@@ -108,40 +123,40 @@ describe('registerAdvancedCarryForwardGlobals', () => {
   });
 
   describe('mutual exclusion visibleIf', () => {
-    it('hides carry-forward category when data list is bound', () => {
+    it('hides carry-forward settings when data list is bound', () => {
       expect(
-        isCarryForwardCategoryVisible({
+        isCarryForwardChoicesSectionVisible({
           edxDataListId: 'list-1',
         }),
       ).toBe(false);
     });
 
-    it('hides carry-forward category when choicesByUrl is set', () => {
+    it('hides carry-forward settings when choicesByUrl is set', () => {
       expect(
-        isCarryForwardCategoryVisible({
+        isCarryForwardChoicesSectionVisible({
           choicesByUrl: { url: 'https://example.com' },
         }),
       ).toBe(false);
     });
 
-    it('shows carry-forward category when choicesByUrl object has no url', () => {
+    it('shows carry-forward settings when choicesByUrl object has no url', () => {
       expect(
-        isCarryForwardCategoryVisible({
+        isCarryForwardChoicesSectionVisible({
           choicesByUrl: { url: '' },
         }),
       ).toBe(true);
     });
 
-    it('hides carry-forward category when choicesFromQuestion is set', () => {
+    it('hides carry-forward settings when choicesFromQuestion is set', () => {
       expect(
-        isCarryForwardCategoryVisible({
+        isCarryForwardChoicesSectionVisible({
           choicesFromQuestion: 'q1',
         }),
       ).toBe(false);
     });
 
-    it('shows carry-forward category when no conflicting choice source is set', () => {
-      expect(isCarryForwardCategoryVisible({})).toBe(true);
+    it('shows carry-forward settings when no conflicting choice source is set', () => {
+      expect(isCarryForwardChoicesSectionVisible({})).toBe(true);
     });
 
     it('hides dependent properties when carry forward is disabled', () => {
@@ -187,8 +202,41 @@ describe('registerAdvancedCarryForwardGlobals', () => {
         ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
       );
 
-      expect(isCarryForwardCategoryVisible(question as never)).toBe(true);
+      expect(isCarryForwardChoicesSectionVisible(question as never)).toBe(true);
       expect(enabledProperty?.visibleIf?.(question)).toBe(true);
+    });
+
+    it('hides native copy choices from when advanced carry forward is enabled', () => {
+      const choicesFromQuestionProperty = Serializer.findProperty(
+        'checkbox',
+        'choicesFromQuestion',
+      );
+
+      expect(
+        choicesFromQuestionProperty?.visibleIf?.({
+          advancedCarryForwardEnabled: true,
+        }),
+      ).toBe(false);
+      expect(
+        choicesFromQuestionProperty?.visibleIf?.({
+          advancedCarryForwardEnabled: false,
+        }),
+      ).toBe(true);
+    });
+
+    it('hides inline choices editor when advanced carry forward is enabled', () => {
+      const choicesProperty = Serializer.findProperty('checkbox', 'choices');
+
+      expect(
+        choicesProperty?.visibleIf?.({
+          advancedCarryForwardEnabled: true,
+        }),
+      ).toBe(false);
+      expect(
+        choicesProperty?.visibleIf?.({
+          advancedCarryForwardEnabled: false,
+        }),
+      ).toBe(true);
     });
 
     it('re-evaluates data list visibility when carry-forward flag toggles via dependsOn', () => {
@@ -291,5 +339,20 @@ describe('registerAdvancedCarryForwardGlobals', () => {
     ).toBeUndefined();
 
     registerAdvancedCarryForwardGlobals();
+  });
+
+  it('does not stack native visibleIf wrappers across reset/register cycles', () => {
+    const property = Serializer.findProperty('checkbox', 'choicesFromQuestion');
+    const countWrapMarkers = (value: string) =>
+      (value.match(/advancedCarryForwardEnabled/g) ?? []).length;
+
+    const afterFirstRegister = property?.visibleIf?.toString() ?? '';
+    resetAdvancedCarryForwardRegistryForTests();
+    registerAdvancedCarryForwardGlobals();
+    const afterResetAndRegister = property?.visibleIf?.toString() ?? '';
+
+    expect(countWrapMarkers(afterResetAndRegister)).toBe(
+      countWrapMarkers(afterFirstRegister),
+    );
   });
 });

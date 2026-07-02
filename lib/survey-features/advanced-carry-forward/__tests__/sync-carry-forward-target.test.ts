@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Helpers, ItemValue, SurveyModel } from 'survey-core';
 import addRandomizeGroupFeature from '@/lib/questions/features/group-randomization';
-import { SourceSelectionModes } from '@/lib/survey-features/question-loops/types';
+import { registerDataListGlobals } from '@/lib/survey-features/data-lists/infrastructure/registry';
 import { registerAdvancedCarryForwardGlobals } from '../infrastructure/registry';
 import {
   splitByPriority,
@@ -15,6 +15,7 @@ function choice(value: string, text?: string): ItemValue {
 
 beforeAll(() => {
   registerAdvancedCarryForwardGlobals();
+  registerDataListGlobals();
   addRandomizeGroupFeature();
 });
 
@@ -41,6 +42,14 @@ describe('splitByPriority', () => {
     // Assert
     expect(result.priority.map((item) => item.value)).toEqual(['c', 'a']);
     expect(result.rest.map((item) => item.value)).toEqual(['b']);
+  });
+
+  it('deduplicates repeated priority values', () => {
+    const choices = [choice('a'), choice('b')];
+
+    const result = splitByPriority(choices, ['a', 'a', 'b']);
+
+    expect(result.priority.map((item) => item.value)).toEqual(['a', 'b']);
   });
 });
 
@@ -69,7 +78,7 @@ describe('syncSingleCarryForwardTarget', () => {
           choices: ['legacy'],
           advancedCarryForwardEnabled: true,
           advancedCarryForwardSources: ['brands', 'colors'],
-          advancedCarryForwardMode: SourceSelectionModes.All,
+          advancedCarryForwardMode: 'all',
         },
       ],
     });
@@ -97,7 +106,7 @@ describe('syncSingleCarryForwardTarget', () => {
           choices: ['legacy'],
           advancedCarryForwardEnabled: true,
           advancedCarryForwardSources: ['brands'],
-          advancedCarryForwardMode: SourceSelectionModes.SelectedOnly,
+          advancedCarryForwardMode: 'selected',
         },
       ],
     });
@@ -126,7 +135,7 @@ describe('syncSingleCarryForwardTarget', () => {
           choices: ['legacy'],
           advancedCarryForwardEnabled: true,
           advancedCarryForwardSources: ['brands'],
-          advancedCarryForwardMode: SourceSelectionModes.UnselectedOnly,
+          advancedCarryForwardMode: 'unselected',
         },
       ],
     });
@@ -276,7 +285,7 @@ describe('syncSingleCarryForwardTarget', () => {
           value: ['legacy', 'A'],
           advancedCarryForwardEnabled: true,
           advancedCarryForwardSources: ['brands'],
-          advancedCarryForwardMode: SourceSelectionModes.SelectedOnly,
+          advancedCarryForwardMode: 'selected',
         },
       ],
     });
@@ -290,6 +299,61 @@ describe('syncSingleCarryForwardTarget', () => {
     // Assert
     expect(target.choices.map((item) => item.value)).toEqual(['A']);
     expect(Array.from(target.value as string[])).toEqual(['A']);
+  });
+
+  it('preserves imageLink when copying to imagepicker targets', () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: 'imagepicker',
+          name: 'src',
+          choices: [
+            {
+              value: 'img1',
+              text: 'Image 1',
+              imageLink: 'https://example.com/1.png',
+            },
+          ],
+        },
+        {
+          type: 'imagepicker',
+          name: 'target',
+          choices: [],
+          advancedCarryForwardEnabled: true,
+          advancedCarryForwardSources: ['src'],
+        },
+      ],
+    });
+    const target = survey.getQuestionByName('target') as AdvancedCarryForwardQuestion;
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(target.choices[0]?.imageLink).toBe('https://example.com/1.png');
+  });
+
+  it('skips sync when data list is also configured on the same question', () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: 'checkbox',
+          name: 'src',
+          choices: ['A', 'B'],
+        },
+        {
+          type: 'dropdown',
+          name: 'target',
+          choices: ['legacy'],
+          edxDataListId: 'list-1',
+          advancedCarryForwardEnabled: true,
+          advancedCarryForwardSources: ['src'],
+        },
+      ],
+    });
+    const target = survey.getQuestionByName('target') as AdvancedCarryForwardQuestion;
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(target.choices.map((item) => item.value)).toEqual(['legacy']);
   });
 
   it('works on tagbox with blind search enabled without errors', () => {
