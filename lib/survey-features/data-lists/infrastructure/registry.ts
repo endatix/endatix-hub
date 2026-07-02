@@ -21,9 +21,12 @@ export function registerDataListGlobals(): void {
     displayName: "Data list",
     category: "choices",
     visibleIndex: 0,
-    dependsOn: "choicesFromQuestion",
-    visibleIf: (obj: { choicesFromQuestion?: unknown }) => {
-      return !obj.choicesFromQuestion;
+    dependsOn: ["choicesFromQuestion", "advancedCarryForwardEnabled"],
+    visibleIf: (obj: {
+      choicesFromQuestion?: unknown;
+      advancedCarryForwardEnabled?: boolean;
+    }) => {
+      return !obj.choicesFromQuestion && !obj.advancedCarryForwardEnabled;
     },
     choices: [],
   };
