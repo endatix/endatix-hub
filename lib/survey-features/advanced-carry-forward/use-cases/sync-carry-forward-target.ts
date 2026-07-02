@@ -16,30 +16,37 @@ import {
 
 const PRIORITY_GROUP = 'priority';
 
-function findSourceChoiceForValue(
+function buildSourceChoiceIndex(
   sourceQuestions: ReturnType<typeof getCarryForwardSourceQuestions>,
-  value: unknown,
-): ItemValue | undefined {
-  for (const source of sourceQuestions) {
-    const match = (source.choices ?? []).find(
-      (choice) => String(choice.value) === String(value),
-    );
+): Map<unknown, ItemValue> {
+  const index = new Map<unknown, ItemValue>();
 
-    if (match) {
-      return match;
+  for (const source of sourceQuestions) {
+    for (const choice of source.choices ?? []) {
+      if (!index.has(choice.value)) {
+        index.set(choice.value, choice);
+      }
     }
   }
 
-  return undefined;
+  return index;
 }
 
+/**
+ * Recovers the original source ItemValue (with image fields) for each
+ * aggregated choice. Keyed by raw (non-coerced) value to match
+ * extractUniqueChoicesBy's own dedup key exactly — this guarantees we
+ * enrich from the same source choice that "won" the dedup, even when two
+ * sources have values that are string-equal but type-different (e.g. 1 vs '1').
+ */
 function enrichAggregatedChoicesFromSources(
   aggregatedChoices: ItemValue[],
   sourceQuestions: ReturnType<typeof getCarryForwardSourceQuestions>,
 ): ItemValue[] {
+  const sourceChoiceIndex = buildSourceChoiceIndex(sourceQuestions);
+
   return aggregatedChoices.map(
-    (choice) =>
-      findSourceChoiceForValue(sourceQuestions, choice.value) ?? choice,
+    (choice) => sourceChoiceIndex.get(choice.value) ?? choice,
   );
 }
 

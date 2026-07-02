@@ -331,6 +331,52 @@ describe('syncSingleCarryForwardTarget', () => {
     expect(target.choices[0]?.imageLink).toBe('https://example.com/1.png');
   });
 
+  it('keeps each source\'s own image when sources have colliding string-coerced but type-different values', () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: 'imagepicker',
+          name: 'numericSrc',
+          choices: [
+            {
+              value: 1,
+              text: 'Numeric',
+              imageLink: 'https://example.com/numeric.png',
+            },
+          ],
+        },
+        {
+          type: 'imagepicker',
+          name: 'stringSrc',
+          choices: [
+            {
+              value: '1',
+              text: 'String',
+              imageLink: 'https://example.com/string.png',
+            },
+          ],
+        },
+        {
+          type: 'imagepicker',
+          name: 'target',
+          choices: [],
+          advancedCarryForwardEnabled: true,
+          advancedCarryForwardSources: ['numericSrc', 'stringSrc'],
+        },
+      ],
+    });
+    const target = survey.getQuestionByName('target') as AdvancedCarryForwardQuestion;
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    const numericChoice = target.choices.find((choice) => choice.value === 1);
+    const stringChoice = target.choices.find((choice) => choice.value === '1');
+
+    expect(target.choices).toHaveLength(2);
+    expect(numericChoice?.imageLink).toBe('https://example.com/numeric.png');
+    expect(stringChoice?.imageLink).toBe('https://example.com/string.png');
+  });
+
   it('skips sync when data list is also configured on the same question', () => {
     const survey = new SurveyModel({
       elements: [

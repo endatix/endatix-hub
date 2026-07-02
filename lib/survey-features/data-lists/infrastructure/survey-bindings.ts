@@ -16,7 +16,6 @@ import {
   notifyChoicesLazyLoadCompleted,
   shouldSuppressChoicesLazyLoad,
 } from "@/lib/survey-features/infrastructure/choices-lazy-load-guards";
-import { isAdvancedCarryForwardEnabled } from "@/lib/survey-features/advanced-carry-forward/use-cases/carry-forward-question-utils";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
 import { registerDataListGlobals } from "./registry";
 
@@ -60,11 +59,6 @@ export function bindDataListsToSurvey(
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {
     const filter = options.filter ?? "";
     if (shouldSuppressChoicesLazyLoad(options.question, filter)) {
-      options.setItems([], 0);
-      return;
-    }
-
-    if (isAdvancedCarryForwardEnabled(options.question)) {
       options.setItems([], 0);
       return;
     }

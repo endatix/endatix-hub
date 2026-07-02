@@ -33,7 +33,8 @@ describe('loadCarryForwardTargets', () => {
       ],
     });
 
-    vi.spyOn(syncModule, 'syncSingleCarryForwardTarget')
+    const syncSpy = vi
+      .spyOn(syncModule, 'syncSingleCarryForwardTarget')
       .mockImplementationOnce(() => {
         throw new Error('sync failed');
       })
@@ -46,12 +47,18 @@ describe('loadCarryForwardTargets', () => {
       } as never),
     ).toThrow('sync failed');
 
+    expect(syncSpy).toHaveBeenCalledTimes(1);
+
     expect(() =>
       loadCarryForwardTargets(survey, {
         name: 'src',
         value: ['B'],
       } as never),
     ).not.toThrow();
+
+    // A guard stuck true would silently no-op instead of throwing, which
+    // `.not.toThrow()` alone can't distinguish from a real, successful sync.
+    expect(syncSpy).toHaveBeenCalledTimes(2);
   });
 });
 

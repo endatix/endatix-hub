@@ -341,18 +341,29 @@ describe('registerAdvancedCarryForwardGlobals', () => {
     registerAdvancedCarryForwardGlobals();
   });
 
-  it('does not stack native visibleIf wrappers across reset/register cycles', () => {
-    const property = Serializer.findProperty('checkbox', 'choicesFromQuestion');
-    const countWrapMarkers = (value: string) =>
-      (value.match(/advancedCarryForwardEnabled/g) ?? []).length;
-
-    const afterFirstRegister = property?.visibleIf?.toString() ?? '';
+  it('fully restores the native visibleIf reference on reset (no wrapper stacking)', () => {
+    // Arrange: reach a clean baseline, then install a controllable spy as the
+    // "native" visibleIf so we can assert exact reference identity after reset —
+    // stacked wrappers would never restore back to this exact function.
     resetAdvancedCarryForwardRegistryForTests();
-    registerAdvancedCarryForwardGlobals();
-    const afterResetAndRegister = property?.visibleIf?.toString() ?? '';
+    const property = Serializer.findProperty('checkbox', 'choicesFromQuestion') as {
+      visibleIf?: (obj: unknown) => boolean;
+    };
+    const nativeVisibleIf = () => true;
+    property.visibleIf = nativeVisibleIf;
 
-    expect(countWrapMarkers(afterResetAndRegister)).toBe(
-      countWrapMarkers(afterFirstRegister),
-    );
+    // Act + Assert: two full register/reset cycles should each wrap the exact
+    // same native reference and fully restore it, not stack on a prior wrapper.
+    registerAdvancedCarryForwardGlobals();
+    expect(property.visibleIf).not.toBe(nativeVisibleIf);
+    resetAdvancedCarryForwardRegistryForTests();
+    expect(property.visibleIf).toBe(nativeVisibleIf);
+
+    property.visibleIf = nativeVisibleIf;
+    registerAdvancedCarryForwardGlobals();
+    resetAdvancedCarryForwardRegistryForTests();
+    expect(property.visibleIf).toBe(nativeVisibleIf);
+
+    registerAdvancedCarryForwardGlobals();
   });
 });

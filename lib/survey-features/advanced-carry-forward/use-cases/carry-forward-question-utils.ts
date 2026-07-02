@@ -26,7 +26,9 @@ export function isAdvancedCarryForwardEnabled(
 
   return (
     !dataListId &&
-    !isChoicesByUrlConfigured(carryForwardQuestion) &&
+    !isChoicesByUrlConfigured({
+      choicesByUrl: carryForwardQuestion.choicesByUrl as { url?: string } | null,
+    }) &&
     !isChoicesFromQuestionConfigured(carryForwardQuestion)
   );
 }
@@ -45,12 +47,13 @@ export function getAllCarryForwardTargets(
 
 export function getCarryForwardSourceQuestions(
   survey: { getQuestionByName: (name: string) => Question | null },
-  target: AdvancedCarryForwardQuestion,
+  target: Pick<AdvancedCarryForwardQuestion, 'advancedCarryForwardSources'>,
 ) {
   const sources = target.advancedCarryForwardSources ?? [];
 
   return sources
     .map((sourceName) => survey.getQuestionByName(sourceName))
+    .filter((question): question is Question => question != null)
     .filter(isSelectBaseQuestion);
 }
 

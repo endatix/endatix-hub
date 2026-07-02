@@ -2,7 +2,6 @@ import type { IJsonPropertyInfo, SurveyModel } from 'survey-core';
 import {
   getAllSelectBasedQuestions,
   getAllUniqueChoices,
-  isSelectBaseQuestion,
 } from '@/lib/survey-features/question-loops/loop-utils';
 import {
   ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
@@ -21,6 +20,7 @@ import {
   isChoicesByUrlConfigured,
   isChoicesFromQuestionConfigured,
 } from './types';
+import { getCarryForwardSourceQuestions } from './use-cases/carry-forward-question-utils';
 
 export function isCarryForwardChoicesSectionVisible(
   obj: CarryForwardVisibleQuestion,
@@ -128,9 +128,9 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
       return;
     }
 
-    const sourceQuestions = advancedCarryForwardSources
-      .map((name) => survey.getQuestionByName(name))
-      .filter(isSelectBaseQuestion);
+    const sourceQuestions = getCarryForwardSourceQuestions(survey, {
+      advancedCarryForwardSources,
+    });
 
     const uniqueChoices = getAllUniqueChoices(
       sourceQuestions,
