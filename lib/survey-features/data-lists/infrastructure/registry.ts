@@ -3,10 +3,9 @@ import {
   DATA_LIST_PROPERTY_NAME,
   DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE,
 } from "../constants";
-import { ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/advanced-carry-forward/constants";
+import { CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/carry-forward/constants";
 import {
-  isChoiceSourceSectionAvailable,
-  type ChoiceSourceVisibleQuestion,
+  isDataListPropertyVisible,
 } from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import { DATA_LIST_QUESTION_TYPES } from "./data-list-survey-integration";
 
@@ -23,16 +22,11 @@ export function registerDataListGlobals(): void {
 
   const dataListProperty = {
     name: `${DATA_LIST_PROPERTY_NAME}:dropdown`,
-    displayName: "Data list",
+    displayName: "Choices from data list",
     category: "choices",
     visibleIndex: 0,
-    dependsOn: ["choicesFromQuestion", ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
-    visibleIf: (obj: ChoiceSourceVisibleQuestion) => {
-      return (
-        isChoiceSourceSectionAvailable(obj) &&
-        obj.advancedCarryForwardEnabled !== true
-      );
-    },
+    dependsOn: ["choicesFromQuestion", CARRY_FORWARD_ENABLED_PROPERTY],
+    visibleIf: isDataListPropertyVisible,
     choices: [],
   };
 

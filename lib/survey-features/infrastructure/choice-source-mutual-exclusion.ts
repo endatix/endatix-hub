@@ -1,19 +1,20 @@
 import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
-import { ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/advanced-carry-forward/constants";
+import { CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/carry-forward/constants";
 import {
   isChoicesByUrlConfigured,
   isChoicesFromQuestionConfigured,
-} from "@/lib/survey-features/advanced-carry-forward/types";
+} from "@/lib/survey-features/carry-forward/types";
 
 export interface ChoiceSourceVisibleQuestion {
   edxDataListId?: string;
   choicesByUrl?: { url?: string } | null;
   choicesFromQuestion?: string;
-  advancedCarryForwardEnabled?: boolean;
+  edxCarryForwardEnabled?: boolean;
 }
 
 /**
- * Whether the manual / advanced choice-source UI should be available in Creator.
+ * Whether alternate choice-source options (e.g. carry forward) may be configured
+ * in Creator. False when any exclusive source is already active.
  */
 export function isChoiceSourceSectionAvailable(
   obj: ChoiceSourceVisibleQuestion,
@@ -26,7 +27,25 @@ export function isChoiceSourceSectionAvailable(
 }
 
 /**
- * Whether advanced carry forward is active at runtime on a question.
+ * Whether the data list picker should appear in Creator. Unlike
+ * {@link isChoiceSourceSectionAvailable}, stays visible when a list is already
+ * bound so builders can view or change it.
+ */
+export function isDataListPropertyVisible(
+  obj: ChoiceSourceVisibleQuestion,
+): boolean {
+  if (obj.edxCarryForwardEnabled === true) {
+    return false;
+  }
+
+  return (
+    !isChoicesByUrlConfigured(obj) &&
+    !isChoicesFromQuestionConfigured(obj)
+  );
+}
+
+/**
+ * Whether Carry forward is active at runtime on a question.
  */
 export function isAdvancedCarryForwardRuntimeEnabled(question: {
   getPropertyValue: (name: string) => unknown;
@@ -34,7 +53,7 @@ export function isAdvancedCarryForwardRuntimeEnabled(question: {
   choicesFromQuestion?: string;
 }): boolean {
   if (
-    question.getPropertyValue(ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY) !== true
+    question.getPropertyValue(CARRY_FORWARD_ENABLED_PROPERTY) !== true
   ) {
     return false;
   }

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import { ItemValue, SurveyModel } from "survey-core";
 import { SourceSelectionModes } from "@/lib/survey-features/question-loops/types";
-import { registerAdvancedCarryForwardGlobals } from "@/lib/survey-features/advanced-carry-forward/infrastructure/registry";
+import { registerAdvancedCarryForwardGlobals } from "@/lib/survey-features/carry-forward/infrastructure/registry";
 import { getChoicesFromSourceQuestion } from "@/lib/utils/survey";
 import { normalizeChoiceKey } from "@/lib/utils/survey/choice-values";
 import { extractUniqueChoicesBy } from "@/lib/utils/survey/merge-choices";
@@ -94,8 +94,8 @@ describe("extractUniqueChoicesBy media", () => {
           type: "imagepicker",
           name: "target",
           choices: [],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["src"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["src"],
         },
       ],
     });
