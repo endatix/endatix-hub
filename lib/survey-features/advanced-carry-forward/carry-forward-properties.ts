@@ -1,9 +1,10 @@
-import type { IJsonPropertyInfo, SurveyModel } from 'survey-core';
+import type { IJsonPropertyInfo, SurveyModel } from "survey-core";
 import {
   getAllSelectBasedQuestions,
   getAllUniqueChoices,
-} from '@/lib/survey-features/question-loops/loop-utils';
-import { DATA_LIST_PROPERTY_NAME } from '@/lib/survey-features/data-lists/constants';
+} from "@/lib/survey-features/question-loops/loop-utils";
+import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
+import { isChoiceSourceSectionAvailable } from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import {
   ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
   ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
@@ -11,32 +12,25 @@ import {
   ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
   ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
   ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
-} from './constants';
+} from "./constants";
 import {
   ADVANCED_CARRY_FORWARD_MODE_VALUES,
   DEFAULT_ADVANCED_CARRY_FORWARD_MODE,
-} from './carry-forward-mode-values';
-import type { CarryForwardVisibleQuestion } from './types';
-import {
-  isChoicesByUrlConfigured,
-  isChoicesFromQuestionConfigured,
-} from './types';
-import { getCarryForwardSourceQuestions } from './use-cases/carry-forward-question-utils';
+} from "./carry-forward-mode-values";
+import type { CarryForwardVisibleQuestion } from "./types";
+import { getCarryForwardSourceQuestions } from "./utils/carry-forward-target-query";
+import { normalizeChoiceKey } from "@/lib/utils/survey";
 
 export function isCarryForwardChoicesSectionVisible(
   obj: CarryForwardVisibleQuestion,
 ): boolean {
-  return (
-    !obj.edxDataListId &&
-    !isChoicesByUrlConfigured(obj) &&
-    !isChoicesFromQuestionConfigured(obj)
-  );
+  return isChoiceSourceSectionAvailable(obj);
 }
 
 export {
   isChoicesByUrlConfigured,
   isChoicesFromQuestionConfigured,
-} from './types';
+} from "./types";
 
 export function isCarryForwardFeatureVisible(
   obj: CarryForwardVisibleQuestion,
@@ -49,8 +43,8 @@ export function isCarryForwardFeatureVisible(
 
 const CARRY_FORWARD_SECTION_DEPENDS_ON = [
   DATA_LIST_PROPERTY_NAME,
-  'choicesByUrl',
-  'choicesFromQuestion',
+  "choicesByUrl",
+  "choicesFromQuestion",
 ] as const;
 
 const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
@@ -60,9 +54,9 @@ const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
 
 const ENABLED_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  displayName: 'Advanced carry forward',
+  displayName: "Advanced carry forward",
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
-  type: 'boolean',
+  type: "boolean",
   default: false,
   visibleIndex: 1,
   dependsOn: [...CARRY_FORWARD_SECTION_DEPENDS_ON],
@@ -72,9 +66,9 @@ const ENABLED_PROPERTY: IJsonPropertyInfo = {
 const SOURCES_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
   dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
-  displayName: 'Copy choices from questions',
+  displayName: "Copy choices from questions",
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
-  type: 'multiplevalues',
+  type: "multiplevalues",
   visibleIndex: 2,
   visibleIf: isCarryForwardFeatureVisible,
   choices: function (
@@ -83,10 +77,7 @@ const SOURCES_PROPERTY: IJsonPropertyInfo = {
   ) {
     const survey = obj ? obj.survey : null;
 
-    if (!survey || typeof choicesCallback !== 'function') {
-      if (typeof choicesCallback === 'function') {
-        choicesCallback([]);
-      }
+    if (!survey || typeof choicesCallback !== "function") {
       return;
     }
 
@@ -104,9 +95,9 @@ const SOURCES_PROPERTY: IJsonPropertyInfo = {
 const MODE_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
   dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
-  displayName: 'Which choice options to copy',
+  displayName: "Which choice options to copy",
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
-  type: 'string',
+  type: "string",
   default: DEFAULT_ADVANCED_CARRY_FORWARD_MODE,
   visibleIndex: 3,
   choices: [...ADVANCED_CARRY_FORWARD_MODE_VALUES],
@@ -119,9 +110,9 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
     ...CARRY_FORWARD_FEATURE_DEPENDS_ON,
     ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
   ],
-  displayName: 'Priority items',
+  displayName: "Priority items",
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
-  type: 'multiplevalues',
+  type: "multiplevalues",
   visibleIndex: 4,
   visibleIf: isCarryForwardFeatureVisible,
   choices: function (
@@ -133,11 +124,8 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
     if (
       !survey ||
       !advancedCarryForwardSources ||
-      typeof choicesCallback !== 'function'
+      typeof choicesCallback !== "function"
     ) {
-      if (typeof choicesCallback === 'function') {
-        choicesCallback([]);
-      }
       return;
     }
 
@@ -152,7 +140,7 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
 
     choicesCallback(
       uniqueChoices.map((choice) => ({
-        value: String(choice.value),
+        value: normalizeChoiceKey(choice.value),
         text: String(choice.text ?? choice.value),
       })),
     );
@@ -162,9 +150,9 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
 const MAX_CHOICES_PROPERTY: IJsonPropertyInfo = {
   name: ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
   dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
-  displayName: 'Maximum number of choices',
+  displayName: "Maximum number of choices",
   category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
-  type: 'number',
+  type: "number",
   default: 0,
   minValue: 0,
   visibleIndex: 5,

@@ -1,9 +1,9 @@
-import { Serializer, SurveyModel } from 'survey-core';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { Serializer, SurveyModel } from "survey-core";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   isCarryForwardChoicesSectionVisible,
   isCarryForwardFeatureVisible,
-} from '../carry-forward-properties';
+} from "../carry-forward-properties";
 import {
   ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
   ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
@@ -12,19 +12,19 @@ import {
   ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
   ADVANCED_CARRY_FORWARD_QUESTION_TYPES,
   ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
-} from '../constants';
-import { registerDataListGlobals } from '@/lib/survey-features/data-lists/infrastructure/registry';
-import { DATA_LIST_PROPERTY_NAME } from '@/lib/survey-features/data-lists/constants';
-import { ADVANCED_CARRY_FORWARD_MODE_VALUES } from '../carry-forward-mode-values';
+} from "../constants";
+import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
+import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
+import { ADVANCED_CARRY_FORWARD_MODE_VALUES } from "../carry-forward-mode-values";
 import {
   registerAdvancedCarryForwardGlobals,
   resetAdvancedCarryForwardRegistryForTests,
-} from '../infrastructure/registry';
+} from "../infrastructure/registry";
 
 const CARRY_FORWARD_SECTION_DEPENDS_ON = [
   DATA_LIST_PROPERTY_NAME,
-  'choicesByUrl',
-  'choicesFromQuestion',
+  "choicesByUrl",
+  "choicesFromQuestion",
 ] as const;
 
 const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
@@ -57,127 +57,135 @@ function getPropertyChoices(
   });
 }
 
-describe('registerAdvancedCarryForwardGlobals', () => {
+describe("registerAdvancedCarryForwardGlobals", () => {
   beforeAll(() => {
     registerAdvancedCarryForwardGlobals();
     registerDataListGlobals();
   });
 
-  describe('Serializer properties on SelectBase question types', () => {
+  describe("Serializer properties on SelectBase question types", () => {
     it.each(ADVANCED_CARRY_FORWARD_QUESTION_TYPES)(
-      'registers all carry-forward properties on %s',
+      "registers all carry-forward properties on %s",
       (questionType) => {
         for (const propertyName of EXPECTED_PROPERTY_NAMES) {
           const property = Serializer.findProperty(questionType, propertyName);
           expect(property, `property ${propertyName}`).toBeDefined();
-          expect(property?.category).toBe(ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY);
+          expect(property?.category).toBe(
+            ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
+          );
         }
       },
     );
 
-    it('registers sources as multiplevalues with dynamic choices', () => {
+    it("registers sources as multiplevalues with dynamic choices", () => {
       const property = Serializer.findProperty(
-        'checkbox',
+        "checkbox",
         ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
       ) as { type?: string; choicesfunc?: unknown } | null;
 
-      expect(property?.type).toBe('multiplevalues');
-      expect(property?.choicesfunc).toBeTypeOf('function');
+      expect(property?.type).toBe("multiplevalues");
+      expect(property?.choicesfunc).toBeTypeOf("function");
     });
 
-    it('registers enabled toggle with dependsOn conflicting choice sources', () => {
+    it("registers enabled toggle with dependsOn conflicting choice sources", () => {
       const property = Serializer.findProperty(
-        'checkbox',
+        "checkbox",
         ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
       );
 
-      expect(property?.dependsOn).toEqual([...CARRY_FORWARD_SECTION_DEPENDS_ON]);
+      expect(property?.dependsOn).toEqual([
+        ...CARRY_FORWARD_SECTION_DEPENDS_ON,
+      ]);
     });
 
-    it('registers priority items with dependsOn enabled, sources, and conflicts', () => {
+    it("registers priority items with dependsOn enabled, sources, and conflicts", () => {
       const property = Serializer.findProperty(
-        'checkbox',
+        "checkbox",
         ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
       );
 
-      expect(property?.type).toBe('multiplevalues');
+      expect(property?.type).toBe("multiplevalues");
       expect(property?.dependsOn).toEqual([
         ...CARRY_FORWARD_FEATURE_DEPENDS_ON,
         ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
       ]);
     });
 
-    it('registers dependent properties with dependsOn enabled toggle and conflicts', () => {
+    it("registers dependent properties with dependsOn enabled toggle and conflicts", () => {
       for (const propertyName of [
         ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
         ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
         ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
       ]) {
-        const property = Serializer.findProperty('checkbox', propertyName);
-        expect(property?.dependsOn).toEqual([...CARRY_FORWARD_FEATURE_DEPENDS_ON]);
+        const property = Serializer.findProperty("checkbox", propertyName);
+        expect(property?.dependsOn).toEqual([
+          ...CARRY_FORWARD_FEATURE_DEPENDS_ON,
+        ]);
       }
     });
 
-    it('registers mode as string with native all/selected/unselected choices', () => {
+    it("registers mode as string with native all/selected/unselected choices", () => {
       const property = Serializer.findProperty(
-        'checkbox',
+        "checkbox",
         ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
       );
 
-      expect(property?.type).toBe('string');
-      expect(property?.displayName).toBe('Which choice options to copy');
-      expect(property?.choices).toEqual([...ADVANCED_CARRY_FORWARD_MODE_VALUES]);
+      expect(property?.type).toBe("string");
+      expect(property?.displayName).toBe("Which choice options to copy");
+      expect(property?.choices).toEqual([
+        ...ADVANCED_CARRY_FORWARD_MODE_VALUES,
+      ]);
     });
 
-    it('registers max choices as number with default 0', () => {
+    it("registers max choices as number with default 0", () => {
       const property = Serializer.findProperty(
-        'checkbox',
+        "checkbox",
         ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
       );
 
-      expect(property?.type).toBe('number');
+      expect(property?.type).toBe("number");
       expect(property?.minValue).toBe(0);
     });
   });
 
-  describe('mutual exclusion visibleIf', () => {
-    it('hides carry-forward settings when data list is bound', () => {
+  describe("mutual exclusion visibleIf", () => {
+    it("hides carry-forward settings when data list is bound", () => {
       expect(
         isCarryForwardChoicesSectionVisible({
-          edxDataListId: 'list-1',
+          edxDataListId: "list-1",
         }),
       ).toBe(false);
     });
 
-    it('hides carry-forward settings when choicesByUrl is set', () => {
+    it("hides carry-forward settings when choicesByUrl is set", () => {
       expect(
         isCarryForwardChoicesSectionVisible({
-          choicesByUrl: { url: 'https://example.com' },
+          choicesByUrl: { url: "https://example.com" },
         }),
       ).toBe(false);
     });
 
-    it('shows carry-forward settings when choicesByUrl object has no url', () => {
+    it("shows carry-forward settings when choicesByUrl object has no url", () => {
       expect(
         isCarryForwardChoicesSectionVisible({
-          choicesByUrl: { url: '' },
+          choicesByUrl: { url: "" },
         }),
       ).toBe(true);
     });
 
-    it('hides carry-forward settings when choicesFromQuestion is set', () => {
+    it("hides carry-forward settings when choicesFromQuestion is set", () => {
       expect(
         isCarryForwardChoicesSectionVisible({
-          choicesFromQuestion: 'q1',
+          choicesFromQuestion: "q1",
         }),
       ).toBe(false);
     });
 
-    it('shows carry-forward settings when no conflicting choice source is set', () => {
+    it("shows carry-forward settings when no conflicting choice source is set", () => {
       expect(isCarryForwardChoicesSectionVisible({})).toBe(true);
     });
 
-    it('hides dependent properties when carry forward is disabled', () => {
+    it("hides dependent properties when carry forward is disabled", () => {
       expect(
         isCarryForwardFeatureVisible({
           advancedCarryForwardEnabled: false,
@@ -185,9 +193,9 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       ).toBe(false);
     });
 
-    it('hides data list property when advanced carry forward is enabled', () => {
+    it("hides data list property when advanced carry forward is enabled", () => {
       const dataListProperty = Serializer.findProperty(
-        'dropdown',
+        "dropdown",
         DATA_LIST_PROPERTY_NAME,
       );
 
@@ -203,20 +211,20 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       ).toBe(true);
     });
 
-    it('shows carry-forward category for a plain checkbox question', () => {
+    it("shows carry-forward category for a plain checkbox question", () => {
       const survey = new SurveyModel({
         elements: [
           {
-            type: 'checkbox',
-            name: 'choicesDestination',
-            choices: ['Item 1', 'Item 2', 'Item 3'],
+            type: "checkbox",
+            name: "choicesDestination",
+            choices: ["Item 1", "Item 2", "Item 3"],
           },
         ],
       });
 
-      const question = survey.getQuestionByName('choicesDestination');
+      const question = survey.getQuestionByName("choicesDestination");
       const enabledProperty = Serializer.findProperty(
-        'checkbox',
+        "checkbox",
         ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
       );
 
@@ -224,10 +232,10 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       expect(enabledProperty?.visibleIf?.(question)).toBe(true);
     });
 
-    it('hides native copy choices from when advanced carry forward is enabled', () => {
+    it("hides native copy choices from when advanced carry forward is enabled", () => {
       const choicesFromQuestionProperty = Serializer.findProperty(
-        'checkbox',
-        'choicesFromQuestion',
+        "checkbox",
+        "choicesFromQuestion",
       );
 
       expect(
@@ -242,10 +250,10 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       ).toBe(true);
     });
 
-    it('hides choices by url when advanced carry forward is enabled', () => {
+    it("hides choices by url when advanced carry forward is enabled", () => {
       const choicesByUrlProperty = Serializer.findProperty(
-        'checkbox',
-        'choicesByUrl',
+        "checkbox",
+        "choicesByUrl",
       );
 
       expect(
@@ -260,8 +268,8 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       ).toBe(true);
     });
 
-    it('hides inline choices editor when advanced carry forward is enabled', () => {
-      const choicesProperty = Serializer.findProperty('checkbox', 'choices');
+    it("hides inline choices editor when advanced carry forward is enabled", () => {
+      const choicesProperty = Serializer.findProperty("checkbox", "choices");
 
       expect(
         choicesProperty?.visibleIf?.({
@@ -275,75 +283,82 @@ describe('registerAdvancedCarryForwardGlobals', () => {
       ).toBe(true);
     });
 
-    it('re-evaluates data list visibility when carry-forward flag toggles via dependsOn', () => {
+    it("re-evaluates data list visibility when carry-forward flag toggles via dependsOn", () => {
       const dataListProperty = Serializer.findProperty(
-        'dropdown',
+        "dropdown",
         DATA_LIST_PROPERTY_NAME,
       );
 
       expect(dataListProperty?.dependsOn).toEqual([
-        'choicesFromQuestion',
-        'advancedCarryForwardEnabled',
+        "choicesFromQuestion",
+        "advancedCarryForwardEnabled",
       ]);
     });
   });
 
-  describe('dynamic picker callbacks', () => {
-    it('returns select-base source questions excluding self', async () => {
+  describe("dynamic picker callbacks", () => {
+    it("returns select-base source questions excluding self", async () => {
       const survey = new SurveyModel({
         elements: [
           {
-            type: 'checkbox',
-            name: 'brands',
-            choices: ['A', 'B'],
+            type: "checkbox",
+            name: "brands",
+            choices: ["A", "B"],
           },
           {
-            type: 'radiogroup',
-            name: 'colors',
-            choices: ['Red', 'Blue'],
+            type: "radiogroup",
+            name: "colors",
+            choices: ["Red", "Blue"],
           },
           {
-            type: 'checkbox',
-            name: 'target',
-            choices: ['X'],
+            type: "checkbox",
+            name: "target",
+            choices: ["X"],
           },
         ],
       });
 
-      const target = survey.getQuestionByName('target');
-      const choices = await getPropertyChoices('checkbox', ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY, {
-        survey,
-        name: target.name,
-      });
+      const target = survey.getQuestionByName("target");
+      const choices = await getPropertyChoices(
+        "checkbox",
+        ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+        {
+          survey,
+          name: target.name,
+        },
+      );
 
-      expect(choices.map((choice) => choice.value)).toEqual(['brands', 'colors']);
+      expect(choices.map((choice) => choice.value)).toEqual([
+        "brands",
+        "colors",
+      ]);
     });
 
-    it('returns union of source choices for priority picker', async () => {
+    it("returns union of source choices for priority picker", async () => {
       const survey = new SurveyModel({
         elements: [
           {
-            type: 'checkbox',
-            name: 'brands',
-            choices: ['A', 'B'],
+            type: "checkbox",
+            name: "brands",
+            choices: ["A", "B"],
           },
           {
-            type: 'radiogroup',
-            name: 'colors',
-            choices: ['Red', 'Blue'],
+            type: "radiogroup",
+            name: "colors",
+            choices: ["Red", "Blue"],
           },
           {
-            type: 'checkbox',
-            name: 'target',
-            choices: ['X'],
-            advancedCarryForwardSources: ['brands', 'colors'],
+            type: "checkbox",
+            name: "target",
+            choices: ["X"],
+            advancedCarryForwardSources: ["brands", "colors"],
           },
         ],
       });
 
-      const target = survey.getQuestionByName('target');
+      const target = survey.getQuestionByName("target");
       const choices = await getPropertyChoices(
-        'checkbox',
+        "checkbox",
         ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
         {
           survey,
@@ -353,53 +368,64 @@ describe('registerAdvancedCarryForwardGlobals', () => {
 
       expect(choices).toEqual(
         expect.arrayContaining([
-          { value: 'A', text: 'brands: (A)' },
-          { value: 'B', text: 'brands: (B)' },
-          { value: 'Red', text: 'colors: (Red)' },
-          { value: 'Blue', text: 'colors: (Blue)' },
+          { value: "A", text: "brands: (A)" },
+          { value: "B", text: "brands: (B)" },
+          { value: "Red", text: "colors: (Red)" },
+          { value: "Blue", text: "colors: (Blue)" },
         ]),
       );
       expect(choices).toHaveLength(4);
     });
   });
 
-  it('is idempotent', () => {
+  it("is idempotent", () => {
     expect(() => registerAdvancedCarryForwardGlobals()).not.toThrow();
   });
 
-  it('resetAdvancedCarryForwardRegistryForTests clears serializer metadata', () => {
+  it("resetAdvancedCarryForwardRegistryForTests clears serializer metadata", () => {
     resetAdvancedCarryForwardRegistryForTests();
 
     expect(
-      Serializer.findProperty('checkbox', ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY),
+      Serializer.findProperty(
+        "checkbox",
+        ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+      ),
     ).toBeUndefined();
 
     registerAdvancedCarryForwardGlobals();
   });
 
-  it('fully restores the native visibleIf reference on reset (no wrapper stacking)', () => {
-    // Arrange: reach a clean baseline, then install a controllable spy as the
-    // "native" visibleIf so we can assert exact reference identity after reset —
-    // stacked wrappers would never restore back to this exact function.
+  it("restores native choice-source visibility on reset (no wrapper stacking)", () => {
     resetAdvancedCarryForwardRegistryForTests();
-    const property = Serializer.findProperty('checkbox', 'choicesFromQuestion') as {
-      visibleIf?: (obj: unknown) => boolean;
-    };
-    const nativeVisibleIf = () => true;
-    property.visibleIf = nativeVisibleIf;
 
-    // Act + Assert: two full register/reset cycles should each wrap the exact
-    // same native reference and fully restore it, not stack on a prior wrapper.
+    const property = Serializer.findProperty("checkbox", "choicesFromQuestion");
+    const baselineVisibleIf = property?.visibleIf;
+
     registerAdvancedCarryForwardGlobals();
-    expect(property.visibleIf).not.toBe(nativeVisibleIf);
-    resetAdvancedCarryForwardRegistryForTests();
-    expect(property.visibleIf).toBe(nativeVisibleIf);
+    const configuredProperty = Serializer.findProperty(
+      "checkbox",
+      "choicesFromQuestion",
+    );
+    expect(
+      configuredProperty?.visibleIf?.({
+        advancedCarryForwardEnabled: true,
+      }),
+    ).toBe(false);
 
-    property.visibleIf = nativeVisibleIf;
+    resetAdvancedCarryForwardRegistryForTests();
+    const restoredProperty = Serializer.findProperty(
+      "checkbox",
+      "choicesFromQuestion",
+    );
+    expect(restoredProperty?.visibleIf).toBe(baselineVisibleIf);
+    expect(
+      restoredProperty?.visibleIf?.({
+        advancedCarryForwardEnabled: true,
+      }),
+    ).not.toBe(false);
+
     registerAdvancedCarryForwardGlobals();
     resetAdvancedCarryForwardRegistryForTests();
-    expect(property.visibleIf).toBe(nativeVisibleIf);
-
     registerAdvancedCarryForwardGlobals();
   });
 });

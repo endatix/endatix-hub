@@ -1,4 +1,5 @@
-import type { ItemValue } from 'survey-core';
+import type { ItemValue } from "survey-core";
+import { parseNumber } from "@/lib/utils/type-parsers";
 
 /**
  * Caps how many non-priority carried-forward choices appear when maxLimit >= 1.
@@ -22,7 +23,11 @@ export function limitCarryForwardChoices(
   };
 }
 
+/** Serializer / JSON may yield string or number; normalize at the parse boundary. */
 export function parseCarryForwardMaxChoices(value: unknown): number {
-  const parsed = Number.parseInt(String(value ?? 0), 10);
-  return Number.isFinite(parsed) ? parsed : 0;
+  if (typeof value === "string" || typeof value === "number") {
+    return parseNumber(value, 0);
+  }
+
+  return parseNumber(null, 0);
 }

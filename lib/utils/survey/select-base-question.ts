@@ -1,4 +1,4 @@
-import { QuestionSelectBase, type Question } from 'survey-core';
+import { QuestionSelectBase, type Question } from "survey-core";
 
 /**
  * Checks whether a question is a SelectBase type (has a choices collection).

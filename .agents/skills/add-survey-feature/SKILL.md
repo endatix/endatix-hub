@@ -46,23 +46,27 @@ lib/survey-features/{feature-name}/
 ├── constants.ts                    # Property names, question types, magic keys
 ├── types.ts                        # Question / runtime TypeScript interfaces
 ├── index.ts                        # Curated public exports
+├── utils/                          # Pure helpers (queries, transforms, graph) — no SurveyJS side effects
+│   ├── index.ts
+│   └── __tests__/
 ├── use-cases/
-│   └── {feature}-state.ts          # Pure logic (no SurveyJS side effects)
+│   └── sync-{target}.ts            # Single verb use-cases (orchestrate utils, no bindings)
 ├── infrastructure/
 │   ├── registry.ts                 # Serializer.addProperty / global registration
 │   ├── survey-bindings.ts          # Model event handlers (respondent runtime)
 │   ├── creator-bindings.ts         # SurveyCreator wiring (designer preview)
+│   ├── {feature}-sync.ts           # Sync orchestration, re-entrancy guards (if needed)
 │   └── {feature}.extension.ts      # ExtensionModule entry (onInit / onCreatorReady / onModelReady)
 └── __tests__/
-    ├── {feature}-state.test.ts
     ├── registry.test.ts
     └── survey-bindings.test.ts
 ```
 
 Rules:
 
-- **Pure logic** in `use-cases/` — test without mounting SurveyJS when possible.
-- **Side effects** only in `infrastructure/`.
+- **Shares helpers** in `utils/` — queries, transforms, graph logic; test without SurveyJS when possible.
+- **Use-cases** in `use-cases/` — single verb orchestration (e.g. `syncSingleCarryForwardTarget`); focus on domain/feature based use-case. no event bindings.
+- **Side effects** only in `infrastructure/` — bindings, dependencies, sync guards.
 - **One** `ExtensionModule` per feature in `{feature}.extension.ts`.
 - Do **not** add `ui/use-{feature}.hook.ts` with `initGlobals` / `bindToCreator`
   unless the feature needs React state (e.g. loading API data). Data-fetch hooks
@@ -182,7 +186,25 @@ that manifest (whitelist) instead of client-side JSON analysis.
 
 ---
 
-## 5. Cross-feature infrastructure
+## 5. Cross-feature infrastructure and shared utilities
+
+### Utils hierarchy — check before adding slice-local helpers
+
+| Layer | Path | Use for |
+|-------|------|---------|
+| Generic | `lib/utils/` | Domain-agnostic parse/format (`type-parsers.ts`, `type-validators.ts`) |
+| SurveyJS shared | `lib/utils/survey/` | Reusable SurveyJS compute/copy (`getChoicesFromSourceQuestion`, `copyChoiceItem`, `normalizeChoiceKey`, `extractUniqueChoicesBy`) |
+| Platform cross-feature | `lib/survey-features/infrastructure/` | Extension wiring shared across slices (`creator-survey-bindings`, `choice-source-mutual-exclusion`, lazy-load guards) |
+| Feature slice | `lib/survey-features/{feature}/` | edx Serializer props, Creator registry, bindings, feature-only product rules |
+
+**Rules:**
+
+- Use `parseScalarString` / `parseNumber` from [`lib/utils/type-parsers.ts`](lib/utils/type-parsers.ts) — do not hand-roll `String(value)` or `parseInt` in slices.
+- SurveyJS choice semantics (visibleChoices, isBuiltInChoice, isItemSelected) belong in `lib/utils/survey/`, not duplicated per feature.
+- Cross-feature mutual exclusion (data list vs carry forward vs URL) → `lib/survey-features/infrastructure/choice-source-mutual-exclusion.ts`.
+- Prefer **extend** existing slices + shared utils over parallel implementations (see [`carry-forward`](lib/survey-features/advanced-carry-forward/) vs reusing `question-loops` internals incorrectly).
+
+**Canonical examples:** [`blind-search-tagbox`](lib/survey-features/blind-search-tagbox) (single-source feature), [`advanced-carry-forward`](lib/survey-features/advanced-carry-forward) (multi-source + SurveyJS `addDependedQuestion`).
 
 Shared registries live in `lib/survey-features/infrastructure/` (e.g.
 `choices-lazy-load-guards.ts`). Register from your feature's `onInit`, not from
@@ -207,7 +229,8 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 - [ ] `ExtensionModule` owns all install logic (no `form-editor` `initGlobals`)
 - [ ] Entry in `core-registry.ts` (or `user-extensions.ts`); omit `shouldLoad` for core features unless bundle size demands it
 - [ ] `loading: 'static'` for core features unless bundle size requires `dynamic`
-- [ ] Pure logic extracted to `use-cases/`
+- [ ] Pure logic extracted to `use-cases/` (or `lib/utils/survey/` when reusable across features)
+- [ ] No new parse/format helpers in slice without checking `lib/utils` and `lib/utils/survey`
 - [ ] `creator-bindings.ts` and `survey-bindings.ts` separated
 - [ ] Tests for state, registry, and bindings
 - [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until [h709 PR-2](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) lands (extensions off = runtime no-op)
