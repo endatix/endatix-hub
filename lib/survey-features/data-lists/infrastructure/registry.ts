@@ -3,6 +3,10 @@ import {
   DATA_LIST_PROPERTY_NAME,
   DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE,
 } from "../constants";
+import { CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/carry-forward/constants";
+import {
+  isDataListPropertyVisible,
+} from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import { DATA_LIST_QUESTION_TYPES } from "./data-list-survey-integration";
 
 let isDataListRegistryInitialized = false;
@@ -18,13 +22,11 @@ export function registerDataListGlobals(): void {
 
   const dataListProperty = {
     name: `${DATA_LIST_PROPERTY_NAME}:dropdown`,
-    displayName: "Data list",
+    displayName: "Choices from data list",
     category: "choices",
     visibleIndex: 0,
-    dependsOn: "choicesFromQuestion",
-    visibleIf: (obj: { choicesFromQuestion?: unknown }) => {
-      return !obj.choicesFromQuestion;
-    },
+    dependsOn: ["choicesFromQuestion", CARRY_FORWARD_ENABLED_PROPERTY],
+    visibleIf: isDataListPropertyVisible,
     choices: [],
   };
 
