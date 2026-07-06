@@ -1,65 +1,10 @@
-import type { Question } from 'survey-core';
-import { isSelectBaseQuestion } from '@/lib/survey-features/infrastructure/select-base-question-utils';
-import { DATA_LIST_PROPERTY_NAME } from '@/lib/survey-features/data-lists/constants';
-import { ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY } from '../constants';
-import type { AdvancedCarryForwardQuestion } from '../types';
-import {
-  isChoicesByUrlConfigured,
-  isChoicesFromQuestionConfigured,
-} from '../types';
+import type { Question } from "survey-core";
+import type { AdvancedCarryForwardQuestion } from "../types";
+import { getAllCarryForwardTargets } from "./carry-forward-target-query";
 
-export function isAdvancedCarryForwardEnabled(
-  question: Question | null | undefined,
-): question is AdvancedCarryForwardQuestion {
-  if (!question) {
-    return false;
-  }
-
-  if (
-    question.getPropertyValue(ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY) !== true
-  ) {
-    return false;
-  }
-
-  const carryForwardQuestion = question as AdvancedCarryForwardQuestion;
-  const dataListId = question.getPropertyValue(DATA_LIST_PROPERTY_NAME);
-
-  return (
-    !dataListId &&
-    !isChoicesByUrlConfigured({
-      choicesByUrl: carryForwardQuestion.choicesByUrl as { url?: string } | null,
-    }) &&
-    !isChoicesFromQuestionConfigured(carryForwardQuestion)
-  );
-}
-
-export function getAllCarryForwardTargets(
-  survey: { getAllQuestions: () => Question[] },
-): AdvancedCarryForwardQuestion[] {
-  if (!survey) {
-    return [];
-  }
-
-  return survey
-    .getAllQuestions()
-    .filter(isAdvancedCarryForwardEnabled) as AdvancedCarryForwardQuestion[];
-}
-
-export function getCarryForwardSourceQuestions(
-  survey: { getQuestionByName: (name: string) => Question | null },
-  target: Pick<AdvancedCarryForwardQuestion, 'advancedCarryForwardSources'>,
-) {
-  const sources = target.advancedCarryForwardSources ?? [];
-
-  return sources
-    .map((sourceName) => survey.getQuestionByName(sourceName))
-    .filter((question): question is Question => question != null)
-    .filter(isSelectBaseQuestion);
-}
-
-export function getCarryForwardTargetsInDependencyOrder(
-  survey: { getAllQuestions: () => Question[] },
-): AdvancedCarryForwardQuestion[] {
+export function getCarryForwardTargetsInDependencyOrder(survey: {
+  getAllQuestions: () => Question[];
+}): AdvancedCarryForwardQuestion[] {
   const targets = getAllCarryForwardTargets(survey);
 
   if (targets.length <= 1) {
@@ -95,6 +40,12 @@ export function getCarryForwardTargetsInDependencyOrder(
     });
 
     if (ready.length === 0) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "[carry-forward] Circular dependency detected; falling back to survey order.",
+        );
+      }
+
       const fallbackOrder = [...remaining].sort(
         (left, right) =>
           (orderIndex.get(left) ?? 0) - (orderIndex.get(right) ?? 0),
@@ -132,5 +83,47 @@ export function orderCarryForwardTargetsByDependencies(
   const targetSet = new Set(targets);
   return getCarryForwardTargetsInDependencyOrder(survey).filter((target) =>
     targetSet.has(target),
+  );
+}
+
+/**
+ * Returns carry-forward targets that transitively depend on the named question
+ * (as a direct or indirect source).
+ */
+export function getDownstreamCarryForwardTargets(
+  survey: { getAllQuestions: () => Question[] },
+  changedQuestionName: string,
+): AdvancedCarryForwardQuestion[] {
+  const targets = getAllCarryForwardTargets(survey);
+  if (targets.length === 0) {
+    return [];
+  }
+
+  const targetByName = new Map(targets.map((target) => [target.name, target]));
+  const downstreamNames = new Set<string>();
+  const queue = [changedQuestionName];
+
+  while (queue.length > 0) {
+    const currentName = queue.shift()!;
+
+    for (const target of targets) {
+      if (!target.advancedCarryForwardSources?.includes(currentName)) {
+        continue;
+      }
+
+      if (downstreamNames.has(target.name)) {
+        continue;
+      }
+
+      downstreamNames.add(target.name);
+      if (targetByName.has(target.name)) {
+        queue.push(target.name);
+      }
+    }
+  }
+
+  return orderCarryForwardTargetsByDependencies(
+    survey,
+    [...downstreamNames].map((name) => targetByName.get(name)!),
   );
 }

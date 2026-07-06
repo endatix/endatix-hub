@@ -1,37 +1,73 @@
-import type { Model, Question, QuestionAddedEvent } from 'survey-core';
-import { ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY } from '../constants';
-import { getCarryForwardTargetsInDependencyOrder } from '../use-cases/carry-forward-question-utils';
+import type { Model, Question, QuestionAddedEvent } from "survey-core";
 import {
-  loadCarryForwardTargets,
+  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+  ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY,
+  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+} from "../constants";
+import type { AdvancedCarryForwardQuestion } from "../types";
+import {
+  getAllCarryForwardTargets,
+  getCarryForwardTargetsInDependencyOrder,
+  isAdvancedCarryForwardEnabled,
+} from "../utils";
+import {
+  clearCarryForwardDependencyStateForModel,
+  installCarryForwardTargetSyncWrapper,
+  registerCarryForwardDependencies,
+  unregisterCarryForwardDependencies,
+} from "./carry-forward-dependencies";
+import {
   loadCarryForwardTargetsFromPropertyChange,
-} from '../use-cases/load-carry-forward-targets';
-import { syncSingleCarryForwardTarget } from '../use-cases/sync-carry-forward-target';
+  syncCarryForwardTargets,
+} from "./carry-forward-sync";
+import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-target";
 
 const boundModelsForTests = new Map<Model, () => void>();
 
+/**
+ * Wires carry-forward config changes on targets (sources, mode, enabled, etc.).
+ * Source *value* sync uses SurveyJS `addDependedQuestion` + `updateDependedQuestion`
+ * (see carry-forward-dependencies.ts), not per-question value listeners.
+ */
 function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   const questionHandlers = new Map<
-    Question,
+    AdvancedCarryForwardQuestion,
     (_: unknown, options: { name: string }) => void
   >();
 
-  const attachToQuestion = (question: Question): void => {
-    if (questionHandlers.has(question)) {
+  const attachToTarget = (question: Question): void => {
+    if (!isAdvancedCarryForwardEnabled(question)) {
+      return;
+    }
+
+    const target = question as AdvancedCarryForwardQuestion;
+    if (questionHandlers.has(target)) {
       return;
     }
 
     const handler = (_: unknown, options: { name: string }) => {
-      loadCarryForwardTargetsFromPropertyChange(model, options.name);
+      if (
+        options.name === ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY ||
+        options.name === ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY
+      ) {
+        unregisterCarryForwardDependencies(model, target);
+        if (isAdvancedCarryForwardEnabled(target)) {
+          registerCarryForwardDependencies(model, target);
+        }
+      }
+
+      loadCarryForwardTargetsFromPropertyChange(model, target, options.name);
     };
 
-    question.onPropertyChanged.add(handler);
-    questionHandlers.set(question, handler);
+    target.onPropertyChanged.add(handler);
+    questionHandlers.set(target, handler);
+    registerCarryForwardDependencies(model, target);
   };
 
-  model.getAllQuestions().forEach(attachToQuestion);
+  getAllCarryForwardTargets(model).forEach(attachToTarget);
 
   const handleQuestionAdded = (_: unknown, options: QuestionAddedEvent) => {
-    attachToQuestion(options.question);
+    attachToTarget(options.question);
   };
 
   model.onQuestionAdded.add(handleQuestionAdded);
@@ -39,31 +75,47 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
   return () => {
     questionHandlers.forEach((handler, question) => {
       question.onPropertyChanged.remove(handler);
+      unregisterCarryForwardDependencies(model, question);
     });
     questionHandlers.clear();
     model.onQuestionAdded.remove(handleQuestionAdded);
   };
 }
 
+function installTargetSyncWrappers(model: Model): void {
+  for (const target of getAllCarryForwardTargets(model)) {
+    installCarryForwardTargetSyncWrapper(model, target, (syncTarget) => {
+      syncCarryForwardTargets(model, [syncTarget]);
+    });
+  }
+}
+
 export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
   const modelWithFlags = model as Model & Record<string, unknown>;
 
   if (modelWithFlags[ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY]) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        "[advanced-carry-forward] bindAdvancedCarryForwardToSurvey: handlers already attached to this model; skipping duplicate bind.",
+      );
+    }
     return () => {};
   }
 
   modelWithFlags[ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = true;
 
+  installTargetSyncWrappers(model);
+
   getCarryForwardTargetsInDependencyOrder(model).forEach((target) => {
     syncSingleCarryForwardTarget(model, target);
   });
 
-  model.onValueChanged.add(loadCarryForwardTargets);
-  const detachPropertyHandlers = attachCarryForwardPropertyChangeHandlers(model);
+  const detachPropertyHandlers =
+    attachCarryForwardPropertyChangeHandlers(model);
 
   const dispose = () => {
-    model.onValueChanged.remove(loadCarryForwardTargets);
     detachPropertyHandlers();
+    clearCarryForwardDependencyStateForModel(model);
     boundModelsForTests.delete(model);
     modelWithFlags[ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = false;
   };

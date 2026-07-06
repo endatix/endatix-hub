@@ -4,9 +4,9 @@ import {
   QuestionSelectBase,
   SurveyModel,
 } from "survey-core";
-import { isSelectBaseQuestion } from "@/lib/survey-features/infrastructure/select-base-question-utils";
+import { isSelectBaseQuestion, extractUniqueChoicesBy } from '@/lib/utils/survey';
+import { getChoicesFromSourceQuestion } from "@/lib/utils/survey/get-choices-from-source-question";
 import {
-  ChoiceValue,
   DynamicLoopModel,
   SourceSelectionMode,
   SourceSelectionModes,
@@ -122,6 +122,19 @@ function getLoopChoicesFromQuestion(
   question: Question,
   selectionMode: SourceSelectionMode,
 ): ItemValue[] {
+  const isKnownMode =
+    selectionMode === SourceSelectionModes.All ||
+    selectionMode === SourceSelectionModes.SelectedOnly ||
+    selectionMode === SourceSelectionModes.UnselectedOnly;
+
+  if (
+    isKnownMode &&
+    isSelectBaseQuestion(question) &&
+    question.getType() !== "ranking"
+  ) {
+    return getChoicesFromSourceQuestion(question, selectionMode);
+  }
+
   const allChoices = question.choices || [];
 
   if (selectionMode === SourceSelectionModes.All) {
@@ -196,39 +209,6 @@ function getUniqueSelectedChoices(
     },
     formatChoiceText,
   );
-}
-
-/**
- * Base engine to extract and deduplicate choices from a list of questions.
- */
-function extractUniqueChoicesBy(
-  questions: QuestionSelectBase[],
-  choiceSelector: (question: QuestionSelectBase) => ItemValue[],
-  formatChoiceText?: (
-    question: QuestionSelectBase,
-    choice: ItemValue,
-  ) => string,
-): ItemValue[] {
-  const choicesMap = new Map<ChoiceValue, ItemValue>();
-
-  for (const question of questions) {
-    const choicesToProcess = choiceSelector(question) || [];
-
-    for (const choice of choicesToProcess) {
-      if (choicesMap.has(choice.value)) continue;
-
-      const text = formatChoiceText
-        ? formatChoiceText(question, choice)
-        : choice.text || choice.value; // Fallback to value if text is missing
-
-      choicesMap.set(
-        choice.value,
-        question.createItemValue(choice.value, text),
-      );
-    }
-  }
-
-  return Array.from(choicesMap.values());
 }
 
 export {

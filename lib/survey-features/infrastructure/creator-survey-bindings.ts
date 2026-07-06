@@ -1,11 +1,11 @@
-import type { Model } from 'survey-core';
+import type { Model } from "survey-core";
 import type {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
-} from 'survey-creator-core';
+} from "survey-creator-core";
 
-const DESIGNER_TAB_SURVEY_AREA = 'designer-tab';
-const PREVIEW_TAB_SURVEY_AREA = 'preview-tab';
+const DESIGNER_TAB_SURVEY_AREA = "designer-tab";
+const PREVIEW_TAB_SURVEY_AREA = "preview-tab";
 
 const CREATOR_PREVIEW_SURVEY_AREAS = new Set([
   DESIGNER_TAB_SURVEY_AREA,
@@ -25,6 +25,11 @@ export function bindSurveyToCreatorAreas(
     Record<string, unknown>;
 
   if (creatorWithFlags[boundKey]) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[survey-features] bindSurveyToCreatorAreas: "${boundKey}" already bound on this creator; skipping duplicate bind.`,
+      );
+    }
     return () => {};
   }
 

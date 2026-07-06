@@ -3,6 +3,11 @@ import {
   DATA_LIST_PROPERTY_NAME,
   DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE,
 } from "../constants";
+import { ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/advanced-carry-forward/constants";
+import {
+  isChoiceSourceSectionAvailable,
+  type ChoiceSourceVisibleQuestion,
+} from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import { DATA_LIST_QUESTION_TYPES } from "./data-list-survey-integration";
 
 let isDataListRegistryInitialized = false;
@@ -21,12 +26,12 @@ export function registerDataListGlobals(): void {
     displayName: "Data list",
     category: "choices",
     visibleIndex: 0,
-    dependsOn: ["choicesFromQuestion", "advancedCarryForwardEnabled"],
-    visibleIf: (obj: {
-      choicesFromQuestion?: unknown;
-      advancedCarryForwardEnabled?: boolean;
-    }) => {
-      return !obj.choicesFromQuestion && !obj.advancedCarryForwardEnabled;
+    dependsOn: ["choicesFromQuestion", ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
+    visibleIf: (obj: ChoiceSourceVisibleQuestion) => {
+      return (
+        isChoiceSourceSectionAvailable(obj) &&
+        obj.advancedCarryForwardEnabled !== true
+      );
     },
     choices: [],
   };
