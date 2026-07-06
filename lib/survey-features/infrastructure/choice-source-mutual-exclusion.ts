@@ -13,13 +13,32 @@ export interface ChoiceSourceVisibleQuestion {
 }
 
 /**
- * Whether the manual / advanced choice-source UI should be available in Creator.
+ * Whether alternate choice-source options (e.g. carry forward) may be configured
+ * in Creator. False when any exclusive source is already active.
  */
 export function isChoiceSourceSectionAvailable(
   obj: ChoiceSourceVisibleQuestion,
 ): boolean {
   return (
     !obj.edxDataListId &&
+    !isChoicesByUrlConfigured(obj) &&
+    !isChoicesFromQuestionConfigured(obj)
+  );
+}
+
+/**
+ * Whether the data list picker should appear in Creator. Unlike
+ * {@link isChoiceSourceSectionAvailable}, stays visible when a list is already
+ * bound so builders can view or change it.
+ */
+export function isDataListPropertyVisible(
+  obj: ChoiceSourceVisibleQuestion,
+): boolean {
+  if (obj.edxCarryForwardEnabled === true) {
+    return false;
+  }
+
+  return (
     !isChoicesByUrlConfigured(obj) &&
     !isChoicesFromQuestionConfigured(obj)
   );

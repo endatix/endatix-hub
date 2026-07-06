@@ -5,8 +5,7 @@ import {
 } from "../constants";
 import { CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/carry-forward/constants";
 import {
-  isChoiceSourceSectionAvailable,
-  type ChoiceSourceVisibleQuestion,
+  isDataListPropertyVisible,
 } from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import { DATA_LIST_QUESTION_TYPES } from "./data-list-survey-integration";
 
@@ -23,16 +22,11 @@ export function registerDataListGlobals(): void {
 
   const dataListProperty = {
     name: `${DATA_LIST_PROPERTY_NAME}:dropdown`,
-    displayName: "Data list",
+    displayName: "Choices from data list",
     category: "choices",
     visibleIndex: 0,
     dependsOn: ["choicesFromQuestion", CARRY_FORWARD_ENABLED_PROPERTY],
-    visibleIf: (obj: ChoiceSourceVisibleQuestion) => {
-      return (
-        isChoiceSourceSectionAvailable(obj) &&
-        obj.edxCarryForwardEnabled !== true
-      );
-    },
+    visibleIf: isDataListPropertyVisible,
     choices: [],
   };
 

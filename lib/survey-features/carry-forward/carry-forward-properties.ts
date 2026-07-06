@@ -54,11 +54,11 @@ const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
 
 const ENABLED_PROPERTY: IJsonPropertyInfo = {
   name: CARRY_FORWARD_ENABLED_PROPERTY,
-  displayName: "Carry forward",
+  displayName: "Carry forward from other questions",
   category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "boolean",
   default: false,
-  visibleIndex: 1,
+  visibleIndex: 2,
   dependsOn: [...CARRY_FORWARD_SECTION_DEPENDS_ON],
   visibleIf: isCarryForwardChoicesSectionVisible,
 };
@@ -69,7 +69,7 @@ const SOURCES_PROPERTY: IJsonPropertyInfo = {
   displayName: "Copy choices from questions",
   category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "multiplevalues",
-  visibleIndex: 2,
+  visibleIndex: 3,
   visibleIf: isCarryForwardFeatureVisible,
   choices: function (
     obj: { survey: SurveyModel; name: string },
@@ -99,7 +99,7 @@ const MODE_PROPERTY: IJsonPropertyInfo = {
   category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "string",
   default: DEFAULT_CARRY_FORWARD_MODE,
-  visibleIndex: 3,
+  visibleIndex: 4,
   choices: [...CARRY_FORWARD_MODE_VALUES],
   visibleIf: isCarryForwardFeatureVisible,
 };
@@ -113,7 +113,7 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
   displayName: "Priority items",
   category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "multiplevalues",
-  visibleIndex: 4,
+  visibleIndex: 5,
   visibleIf: isCarryForwardFeatureVisible,
   choices: function (
     obj: { survey: SurveyModel; edxCarryForwardSources?: string[] },
@@ -155,7 +155,7 @@ const MAX_CHOICES_PROPERTY: IJsonPropertyInfo = {
   type: "number",
   default: 0,
   minValue: 0,
-  visibleIndex: 5,
+  visibleIndex: 6,
   visibleIf: isCarryForwardFeatureVisible,
 };
 
