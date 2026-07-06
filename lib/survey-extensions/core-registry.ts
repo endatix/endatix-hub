@@ -19,13 +19,13 @@ import {
   regexMatchExtension,
 } from "@/lib/survey-features/regex-match";
 import {
-  ADVANCED_CARRY_FORWARD_EXTENSION_ID,
-  advancedCarryForwardExtension,
-} from "@/lib/survey-features/advanced-carry-forward";
+  CARRY_FORWARD_EXTENSION_ID,
+  carryForwardExtension,
+} from "@/lib/survey-features/carry-forward";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
 export {
-  ADVANCED_CARRY_FORWARD_EXTENSION_ID,
+  CARRY_FORWARD_EXTENSION_ID,
   BLIND_SEARCH_TAGBOX_EXTENSION_ID,
   REGEX_MATCH_EXTENSION_ID,
 };
@@ -92,12 +92,12 @@ export const coreExtensions: ExtensionDefinition[] = [
     },
   },
   {
-    id: ADVANCED_CARRY_FORWARD_EXTENSION_ID,
+    id: CARRY_FORWARD_EXTENSION_ID,
     type: "feature",
     loading: "static",
-    module: advancedCarryForwardExtension,
+    module: carryForwardExtension,
     metadata: {
-      name: "Advanced Carry Forward",
+      name: "Carry forward",
       description:
         "Aggregates choices from multiple source questions with deduplication, priority ordering, and max-selection controls.",
     },

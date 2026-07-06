@@ -3,7 +3,7 @@ import {
   DATA_LIST_PROPERTY_NAME,
   DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE,
 } from "../constants";
-import { ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/advanced-carry-forward/constants";
+import { CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/carry-forward/constants";
 import {
   isChoiceSourceSectionAvailable,
   type ChoiceSourceVisibleQuestion,
@@ -26,7 +26,7 @@ export function registerDataListGlobals(): void {
     displayName: "Data list",
     category: "choices",
     visibleIndex: 0,
-    dependsOn: ["choicesFromQuestion", ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY],
+    dependsOn: ["choicesFromQuestion", CARRY_FORWARD_ENABLED_PROPERTY],
     visibleIf: (obj: ChoiceSourceVisibleQuestion) => {
       return (
         isChoiceSourceSectionAvailable(obj) &&

@@ -3,7 +3,7 @@ import type { AdvancedCarryForwardQuestion } from "../types";
 import { getCarryForwardSourceQuestions } from "../utils/carry-forward-target-query";
 
 /**
- * SurveyJS dependency wiring for advanced carry forward (mirrors native
+ * SurveyJS dependency wiring for Carry forward (mirrors native
  * `choicesFromQuestion` in QuestionSelectBase):
  *
  * - Sources call `addDependedQuestion(target)` so when a source value or
@@ -108,7 +108,7 @@ export function unregisterCarryForwardDependencies(
 }
 
 /**
- * Installs a wrapper around the updateDependedQuestion method of an advanced carry forward target.
+ * Installs a wrapper around the updateDependedQuestion method of an Carry forward target.
  * This wrapper is used to sync the target when the depended question changes.
  * @param model - The model to install the wrapper on.
  * @param target - The target to install the wrapper on.
@@ -123,7 +123,7 @@ export function installCarryForwardTargetSyncWrapper(
   if (existingWrappers?.some((wrapper) => wrapper.target === target)) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        "[advanced-carry-forward] installCarryForwardTargetSyncWrapper: sync wrapper already installed for target; skipping duplicate wrap.",
+        "[carry-forward] installCarryForwardTargetSyncWrapper: sync wrapper already installed for target; skipping duplicate wrap.",
       );
     }
     return;

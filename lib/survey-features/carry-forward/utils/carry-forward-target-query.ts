@@ -4,9 +4,9 @@ import type { AdvancedCarryForwardQuestion } from "../types";
 import { isAdvancedCarryForwardEnabled } from "./is-carry-forward-target";
 
 /**
- * Gets all the advanced carry forward targets in the survey.
- * @param survey - The survey to get the advanced carry forward targets from.
- * @returns The advanced carry forward targets in the survey.
+ * Gets all the Carry forward targets in the survey.
+ * @param survey - The survey to get the Carry forward targets from.
+ * @returns The Carry forward targets in the survey.
  */
 export function getAllCarryForwardTargets(survey: {
   getAllQuestions: () => Question[];

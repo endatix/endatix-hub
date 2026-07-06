@@ -1,11 +1,11 @@
 import type { Question } from "survey-core";
 import { isSelectBaseQuestion } from "@/lib/utils/survey";
 import { isAdvancedCarryForwardRuntimeEnabled } from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
-import { ADVANCED_CARRY_FORWARD_QUESTION_TYPES } from "../constants";
+import { CARRY_FORWARD_QUESTION_TYPES } from "../constants";
 import type { AdvancedCarryForwardQuestion } from "../types";
 
 const SUPPORTED_CARRY_FORWARD_QUESTION_TYPES = new Set<string>(
-  ADVANCED_CARRY_FORWARD_QUESTION_TYPES,
+  CARRY_FORWARD_QUESTION_TYPES,
 );
 
 function isSupportedCarryForwardQuestionType(question: Question): boolean {

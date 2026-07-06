@@ -25,7 +25,7 @@ export function splitByPriority(
   const priority = uniquePriorityValues
     .map((value) => choiceByValue.get(value))
     .filter((choice): choice is ItemValue => choice !== undefined);
-    
+
   const rest = choices.filter(
     (choice) => !prioritySet.has(normalizeChoiceKey(choice.value)),
   );

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Model, SurveyModel } from "survey-core";
+import { ItemValue, Model, SurveyModel } from "survey-core";
 import { registerAdvancedCarryForwardGlobals } from "../registry";
 import {
   bindAdvancedCarryForwardToSurvey,
@@ -170,7 +170,7 @@ describe("bindAdvancedCarryForwardToSurvey property changes", () => {
     bindAdvancedCarryForwardToSurvey(model);
 
     const targetB = model.getQuestionByName("targetB");
-    expect(targetB.choices.map((choice) => choice.value)).toEqual(["X", "Y"]);
+    expect(targetB.choices.map((choice: ItemValue) => choice.value)).toEqual(["X", "Y"]);
   });
 
   it("re-syncs downstream targets when an upstream source value changes", () => {
@@ -199,6 +199,6 @@ describe("bindAdvancedCarryForwardToSurvey property changes", () => {
     model.setValue("src", ["X"]);
 
     const targetB = model.getQuestionByName("targetB");
-    expect(targetB.choices.map((choice) => choice.value)).toEqual(["X"]);
+    expect(targetB.choices.map((choice: ItemValue) => choice.value)).toEqual(["X"]);
   });
 });

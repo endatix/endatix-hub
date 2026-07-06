@@ -1,22 +1,22 @@
 import { Serializer } from "survey-core";
 
-import { ADVANCED_CARRY_FORWARD_PROPERTIES } from "../carry-forward-properties";
+import { CARRY_FORWARD_PROPERTIES } from "../carry-forward-properties";
 import {
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
-  ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
-  ADVANCED_CARRY_FORWARD_QUESTION_TYPES,
-  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  CARRY_FORWARD_MODE_PROPERTY,
+  CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  CARRY_FORWARD_QUESTION_TYPES,
+  CARRY_FORWARD_SOURCES_PROPERTY,
 } from "../constants";
 import type { CarryForwardVisibleQuestion } from "../types";
 
 const CARRY_FORWARD_PROPERTY_NAMES = [
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
-  ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_SOURCES_PROPERTY,
+  CARRY_FORWARD_MODE_PROPERTY,
+  CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  CARRY_FORWARD_MAX_CHOICES_PROPERTY,
 ] as const;
 
 /** Safe to extend via `Serializer.addProperty` (does not replace choice item types). */
@@ -42,7 +42,7 @@ type InlineChoicesPropertySnapshot = {
 };
 
 /**
- * One-time Serializer registration for Advanced Carry Forward.
+ * One-time Serializer registration for Carry forward.
  *
  * Call `registerAdvancedCarryForwardGlobals()` exactly once per app session
  * (via the survey extension `onInit` hook) before any SurveyModel / Creator
@@ -59,7 +59,7 @@ const patchedInlineChoicesProperties = new Map<
 >();
 
 function hasAdvancedCarryForwardSerializerProperties(): boolean {
-  return ADVANCED_CARRY_FORWARD_QUESTION_TYPES.every((questionType) =>
+  return CARRY_FORWARD_QUESTION_TYPES.every((questionType) =>
     CARRY_FORWARD_PROPERTY_NAMES.every((propertyName) =>
       Boolean(Serializer.findProperty(questionType, propertyName)),
     ),
@@ -117,7 +117,7 @@ function hideNativeChoiceSourceProperty(
     name: propertyName,
     dependsOn: mergeDependsOn(
       existing.dependsOn,
-      ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+      CARRY_FORWARD_ENABLED_PROPERTY,
     ),
     visibleIf: (obj: CarryForwardVisibleQuestion) => {
       if (obj.advancedCarryForwardEnabled === true) {
@@ -158,13 +158,13 @@ function patchInlineChoicesVisibility(property: SerializerProperty): void {
     return true;
   };
 
-  appendDependsOn(property, ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY);
+  appendDependsOn(property, CARRY_FORWARD_ENABLED_PROPERTY);
 }
 
 function configureNativeChoiceSourceMutualExclusion(): void {
   const wrappedInlineChoices = new Set<SerializerProperty>();
 
-  for (const questionType of ADVANCED_CARRY_FORWARD_QUESTION_TYPES) {
+  for (const questionType of CARRY_FORWARD_QUESTION_TYPES) {
     for (const propertyName of NATIVE_CHOICE_SOURCE_PROPERTIES_TO_HIDE) {
       hideNativeChoiceSourceProperty(questionType, propertyName);
     }
@@ -217,13 +217,13 @@ function assertOneTimeRegistryInit(): void {
     !hasAdvancedCarryForwardSerializerProperties()
   ) {
     console.warn(
-      "[advanced-carry-forward] registerAdvancedCarryForwardGlobals: init flag is set but serializer metadata is missing. Call resetAdvancedCarryForwardRegistryForTests() before re-registering in tests.",
+      "[carry-forward] registerAdvancedCarryForwardGlobals: init flag is set but serializer metadata is missing. Call resetAdvancedCarryForwardRegistryForTests() before re-registering in tests.",
     );
   }
 }
 
 /**
- * Registers Creator-visible Advanced Carry Forward metadata on SelectBase types.
+ * Registers Creator-visible Carry forward metadata on SelectBase types.
  * Must run before SurveyCreator or SurveyModel initializes JSON metadata.
  */
 export function registerAdvancedCarryForwardGlobals(): void {
@@ -239,8 +239,8 @@ export function registerAdvancedCarryForwardGlobals(): void {
     assertOneTimeRegistryInit();
   }
 
-  for (const questionType of ADVANCED_CARRY_FORWARD_QUESTION_TYPES) {
-    Serializer.addProperties(questionType, ADVANCED_CARRY_FORWARD_PROPERTIES);
+  for (const questionType of CARRY_FORWARD_QUESTION_TYPES) {
+    Serializer.addProperties(questionType, CARRY_FORWARD_PROPERTIES);
   }
 
   configureNativeChoiceSourceMutualExclusion();
@@ -249,7 +249,7 @@ export function registerAdvancedCarryForwardGlobals(): void {
 }
 
 export function resetAdvancedCarryForwardRegistryForTests(): void {
-  for (const questionType of ADVANCED_CARRY_FORWARD_QUESTION_TYPES) {
+  for (const questionType of CARRY_FORWARD_QUESTION_TYPES) {
     for (const propertyName of CARRY_FORWARD_PROPERTY_NAMES) {
       if (Serializer.findProperty(questionType, propertyName)) {
         Serializer.removeProperty(questionType, propertyName);

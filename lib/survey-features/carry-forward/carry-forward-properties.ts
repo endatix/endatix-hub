@@ -6,16 +6,16 @@ import {
 import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
 import { isChoiceSourceSectionAvailable } from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import {
-  ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
-  ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
-  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+  CARRY_FORWARD_CHOICES_CATEGORY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  CARRY_FORWARD_MODE_PROPERTY,
+  CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  CARRY_FORWARD_SOURCES_PROPERTY,
 } from "./constants";
 import {
-  ADVANCED_CARRY_FORWARD_MODE_VALUES,
-  DEFAULT_ADVANCED_CARRY_FORWARD_MODE,
+  CARRY_FORWARD_MODE_VALUES,
+  DEFAULT_CARRY_FORWARD_MODE,
 } from "./carry-forward-mode-values";
 import type { CarryForwardVisibleQuestion } from "./types";
 import { getCarryForwardSourceQuestions } from "./utils/carry-forward-target-query";
@@ -48,14 +48,14 @@ const CARRY_FORWARD_SECTION_DEPENDS_ON = [
 ] as const;
 
 const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
   ...CARRY_FORWARD_SECTION_DEPENDS_ON,
 ] as const;
 
 const ENABLED_PROPERTY: IJsonPropertyInfo = {
-  name: ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  displayName: "Advanced carry forward",
-  category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
+  name: CARRY_FORWARD_ENABLED_PROPERTY,
+  displayName: "Carry forward",
+  category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "boolean",
   default: false,
   visibleIndex: 1,
@@ -64,10 +64,10 @@ const ENABLED_PROPERTY: IJsonPropertyInfo = {
 };
 
 const SOURCES_PROPERTY: IJsonPropertyInfo = {
-  name: ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+  name: CARRY_FORWARD_SOURCES_PROPERTY,
   dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
   displayName: "Copy choices from questions",
-  category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
+  category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "multiplevalues",
   visibleIndex: 2,
   visibleIf: isCarryForwardFeatureVisible,
@@ -93,25 +93,25 @@ const SOURCES_PROPERTY: IJsonPropertyInfo = {
 };
 
 const MODE_PROPERTY: IJsonPropertyInfo = {
-  name: ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
+  name: CARRY_FORWARD_MODE_PROPERTY,
   dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
   displayName: "Which choice options to copy",
-  category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
+  category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "string",
-  default: DEFAULT_ADVANCED_CARRY_FORWARD_MODE,
+  default: DEFAULT_CARRY_FORWARD_MODE,
   visibleIndex: 3,
-  choices: [...ADVANCED_CARRY_FORWARD_MODE_VALUES],
+  choices: [...CARRY_FORWARD_MODE_VALUES],
   visibleIf: isCarryForwardFeatureVisible,
 };
 
 const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
-  name: ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  name: CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
   dependsOn: [
     ...CARRY_FORWARD_FEATURE_DEPENDS_ON,
-    ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+    CARRY_FORWARD_SOURCES_PROPERTY,
   ],
   displayName: "Priority items",
-  category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
+  category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "multiplevalues",
   visibleIndex: 4,
   visibleIf: isCarryForwardFeatureVisible,
@@ -148,10 +148,10 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
 };
 
 const MAX_CHOICES_PROPERTY: IJsonPropertyInfo = {
-  name: ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  name: CARRY_FORWARD_MAX_CHOICES_PROPERTY,
   dependsOn: [...CARRY_FORWARD_FEATURE_DEPENDS_ON],
   displayName: "Maximum number of choices",
-  category: ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
+  category: CARRY_FORWARD_CHOICES_CATEGORY,
   type: "number",
   default: 0,
   minValue: 0,
@@ -159,7 +159,7 @@ const MAX_CHOICES_PROPERTY: IJsonPropertyInfo = {
   visibleIf: isCarryForwardFeatureVisible,
 };
 
-export const ADVANCED_CARRY_FORWARD_PROPERTIES: IJsonPropertyInfo[] = [
+export const CARRY_FORWARD_PROPERTIES: IJsonPropertyInfo[] = [
   ENABLED_PROPERTY,
   SOURCES_PROPERTY,
   MODE_PROPERTY,

@@ -48,9 +48,8 @@ export function syncSingleCarryForwardTarget(
   const selectionMode = resolveCarryForwardSelectionMode(
     target.advancedCarryForwardMode,
   );
-  const aggregatedChoices = extractUniqueChoicesBy(
-    sourceQuestions,
-    (source) => getChoicesFromSourceQuestion(source, selectionMode),
+  const aggregatedChoices = extractUniqueChoicesBy(sourceQuestions, (source) =>
+    getChoicesFromSourceQuestion(source, selectionMode),
   );
   const { priority, rest } = splitByPriority(
     aggregatedChoices,

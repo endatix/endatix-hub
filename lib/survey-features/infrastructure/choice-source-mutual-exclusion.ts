@@ -1,9 +1,9 @@
 import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
-import { ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/advanced-carry-forward/constants";
+import { CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/carry-forward/constants";
 import {
   isChoicesByUrlConfigured,
   isChoicesFromQuestionConfigured,
-} from "@/lib/survey-features/advanced-carry-forward/types";
+} from "@/lib/survey-features/carry-forward/types";
 
 export interface ChoiceSourceVisibleQuestion {
   edxDataListId?: string;
@@ -26,7 +26,7 @@ export function isChoiceSourceSectionAvailable(
 }
 
 /**
- * Whether advanced carry forward is active at runtime on a question.
+ * Whether Carry forward is active at runtime on a question.
  */
 export function isAdvancedCarryForwardRuntimeEnabled(question: {
   getPropertyValue: (name: string) => unknown;
@@ -34,7 +34,7 @@ export function isAdvancedCarryForwardRuntimeEnabled(question: {
   choicesFromQuestion?: string;
 }): boolean {
   if (
-    question.getPropertyValue(ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY) !== true
+    question.getPropertyValue(CARRY_FORWARD_ENABLED_PROPERTY) !== true
   ) {
     return false;
   }

@@ -202,9 +202,9 @@ that manifest (whitelist) instead of client-side JSON analysis.
 - Use `parseScalarString` / `parseNumber` from [`lib/utils/type-parsers.ts`](lib/utils/type-parsers.ts) — do not hand-roll `String(value)` or `parseInt` in slices.
 - SurveyJS choice semantics (visibleChoices, isBuiltInChoice, isItemSelected) belong in `lib/utils/survey/`, not duplicated per feature.
 - Cross-feature mutual exclusion (data list vs carry forward vs URL) → `lib/survey-features/infrastructure/choice-source-mutual-exclusion.ts`.
-- Prefer **extend** existing slices + shared utils over parallel implementations (see [`carry-forward`](lib/survey-features/advanced-carry-forward/) vs reusing `question-loops` internals incorrectly).
+- Prefer **extend** existing slices + shared utils over parallel implementations (see [`carry-forward`](lib/survey-features/carry-forward/) vs reusing `question-loops` internals incorrectly).
 
-**Canonical examples:** [`blind-search-tagbox`](lib/survey-features/blind-search-tagbox) (single-source feature), [`advanced-carry-forward`](lib/survey-features/advanced-carry-forward) (multi-source + SurveyJS `addDependedQuestion`).
+**Canonical examples:** [`blind-search-tagbox`](lib/survey-features/blind-search-tagbox) (single-source feature), [`carry-forward`](lib/survey-features/carry-forward) (multi-source + SurveyJS `addDependedQuestion`).
 
 Shared registries live in `lib/survey-features/infrastructure/` (e.g.
 `choices-lazy-load-guards.ts`). Register from your feature's `onInit`, not from

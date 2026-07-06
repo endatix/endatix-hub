@@ -1,8 +1,8 @@
 import type { Model, Question, QuestionAddedEvent } from "survey-core";
 import {
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY,
-  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_HANDLERS_ATTACHED_KEY,
+  CARRY_FORWARD_SOURCES_PROPERTY,
 } from "../constants";
 import type { AdvancedCarryForwardQuestion } from "../types";
 import {
@@ -47,8 +47,8 @@ function attachCarryForwardPropertyChangeHandlers(model: Model): () => void {
 
     const handler = (_: unknown, options: { name: string }) => {
       if (
-        options.name === ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY ||
-        options.name === ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY
+        options.name === CARRY_FORWARD_SOURCES_PROPERTY ||
+        options.name === CARRY_FORWARD_ENABLED_PROPERTY
       ) {
         unregisterCarryForwardDependencies(model, target);
         if (isAdvancedCarryForwardEnabled(target)) {
@@ -93,16 +93,16 @@ function installTargetSyncWrappers(model: Model): void {
 export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
   const modelWithFlags = model as Model & Record<string, unknown>;
 
-  if (modelWithFlags[ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY]) {
+  if (modelWithFlags[CARRY_FORWARD_HANDLERS_ATTACHED_KEY]) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        "[advanced-carry-forward] bindAdvancedCarryForwardToSurvey: handlers already attached to this model; skipping duplicate bind.",
+        "[carry-forward] bindAdvancedCarryForwardToSurvey: handlers already attached to this model; skipping duplicate bind.",
       );
     }
     return () => {};
   }
 
-  modelWithFlags[ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = true;
+  modelWithFlags[CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = true;
 
   installTargetSyncWrappers(model);
 
@@ -117,7 +117,7 @@ export function bindAdvancedCarryForwardToSurvey(model: Model): () => void {
     detachPropertyHandlers();
     clearCarryForwardDependencyStateForModel(model);
     boundModelsForTests.delete(model);
-    modelWithFlags[ADVANCED_CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = false;
+    modelWithFlags[CARRY_FORWARD_HANDLERS_ATTACHED_KEY] = false;
   };
 
   boundModelsForTests.set(model, dispose);

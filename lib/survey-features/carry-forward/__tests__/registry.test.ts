@@ -5,17 +5,17 @@ import {
   isCarryForwardFeatureVisible,
 } from "../carry-forward-properties";
 import {
-  ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
-  ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
-  ADVANCED_CARRY_FORWARD_QUESTION_TYPES,
-  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+  CARRY_FORWARD_CHOICES_CATEGORY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  CARRY_FORWARD_MODE_PROPERTY,
+  CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  CARRY_FORWARD_QUESTION_TYPES,
+  CARRY_FORWARD_SOURCES_PROPERTY,
 } from "../constants";
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
 import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
-import { ADVANCED_CARRY_FORWARD_MODE_VALUES } from "../carry-forward-mode-values";
+import { CARRY_FORWARD_MODE_VALUES } from "../carry-forward-mode-values";
 import {
   registerAdvancedCarryForwardGlobals,
   resetAdvancedCarryForwardRegistryForTests,
@@ -28,16 +28,16 @@ const CARRY_FORWARD_SECTION_DEPENDS_ON = [
 ] as const;
 
 const CARRY_FORWARD_FEATURE_DEPENDS_ON = [
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
   ...CARRY_FORWARD_SECTION_DEPENDS_ON,
 ] as const;
 
 const EXPECTED_PROPERTY_NAMES = [
-  ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
-  ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
-  ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
-  ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_SOURCES_PROPERTY,
+  CARRY_FORWARD_MODE_PROPERTY,
+  CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  CARRY_FORWARD_MAX_CHOICES_PROPERTY,
 ] as const;
 
 function getPropertyChoices(
@@ -64,14 +64,14 @@ describe("registerAdvancedCarryForwardGlobals", () => {
   });
 
   describe("Serializer properties on SelectBase question types", () => {
-    it.each(ADVANCED_CARRY_FORWARD_QUESTION_TYPES)(
+    it.each(CARRY_FORWARD_QUESTION_TYPES)(
       "registers all carry-forward properties on %s",
       (questionType) => {
         for (const propertyName of EXPECTED_PROPERTY_NAMES) {
           const property = Serializer.findProperty(questionType, propertyName);
           expect(property, `property ${propertyName}`).toBeDefined();
           expect(property?.category).toBe(
-            ADVANCED_CARRY_FORWARD_CHOICES_CATEGORY,
+            CARRY_FORWARD_CHOICES_CATEGORY,
           );
         }
       },
@@ -80,7 +80,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     it("registers sources as multiplevalues with dynamic choices", () => {
       const property = Serializer.findProperty(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+        CARRY_FORWARD_SOURCES_PROPERTY,
       ) as { type?: string; choicesfunc?: unknown } | null;
 
       expect(property?.type).toBe("multiplevalues");
@@ -90,7 +90,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     it("registers enabled toggle with dependsOn conflicting choice sources", () => {
       const property = Serializer.findProperty(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+        CARRY_FORWARD_ENABLED_PROPERTY,
       );
 
       expect(property?.dependsOn).toEqual([
@@ -101,21 +101,21 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     it("registers priority items with dependsOn enabled, sources, and conflicts", () => {
       const property = Serializer.findProperty(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+        CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
       );
 
       expect(property?.type).toBe("multiplevalues");
       expect(property?.dependsOn).toEqual([
         ...CARRY_FORWARD_FEATURE_DEPENDS_ON,
-        ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+        CARRY_FORWARD_SOURCES_PROPERTY,
       ]);
     });
 
     it("registers dependent properties with dependsOn enabled toggle and conflicts", () => {
       for (const propertyName of [
-        ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
-        ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
-        ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+        CARRY_FORWARD_SOURCES_PROPERTY,
+        CARRY_FORWARD_MODE_PROPERTY,
+        CARRY_FORWARD_MAX_CHOICES_PROPERTY,
       ]) {
         const property = Serializer.findProperty("checkbox", propertyName);
         expect(property?.dependsOn).toEqual([
@@ -127,20 +127,20 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     it("registers mode as string with native all/selected/unselected choices", () => {
       const property = Serializer.findProperty(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_MODE_PROPERTY,
+        CARRY_FORWARD_MODE_PROPERTY,
       );
 
       expect(property?.type).toBe("string");
       expect(property?.displayName).toBe("Which choice options to copy");
       expect(property?.choices).toEqual([
-        ...ADVANCED_CARRY_FORWARD_MODE_VALUES,
+        ...CARRY_FORWARD_MODE_VALUES,
       ]);
     });
 
     it("registers max choices as number with default 0", () => {
       const property = Serializer.findProperty(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+        CARRY_FORWARD_MAX_CHOICES_PROPERTY,
       );
 
       expect(property?.type).toBe("number");
@@ -193,7 +193,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
       ).toBe(false);
     });
 
-    it("hides data list property when advanced carry forward is enabled", () => {
+    it("hides data list property when Carry forward is enabled", () => {
       const dataListProperty = Serializer.findProperty(
         "dropdown",
         DATA_LIST_PROPERTY_NAME,
@@ -225,14 +225,14 @@ describe("registerAdvancedCarryForwardGlobals", () => {
       const question = survey.getQuestionByName("choicesDestination");
       const enabledProperty = Serializer.findProperty(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+        CARRY_FORWARD_ENABLED_PROPERTY,
       );
 
       expect(isCarryForwardChoicesSectionVisible(question as never)).toBe(true);
       expect(enabledProperty?.visibleIf?.(question)).toBe(true);
     });
 
-    it("hides native copy choices from when advanced carry forward is enabled", () => {
+    it("hides native copy choices from when Carry forward is enabled", () => {
       const choicesFromQuestionProperty = Serializer.findProperty(
         "checkbox",
         "choicesFromQuestion",
@@ -250,7 +250,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
       ).toBe(true);
     });
 
-    it("hides choices by url when advanced carry forward is enabled", () => {
+    it("hides choices by url when Carry forward is enabled", () => {
       const choicesByUrlProperty = Serializer.findProperty(
         "checkbox",
         "choicesByUrl",
@@ -268,7 +268,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
       ).toBe(true);
     });
 
-    it("hides inline choices editor when advanced carry forward is enabled", () => {
+    it("hides inline choices editor when Carry forward is enabled", () => {
       const choicesProperty = Serializer.findProperty("checkbox", "choices");
 
       expect(
@@ -321,7 +321,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
       const target = survey.getQuestionByName("target");
       const choices = await getPropertyChoices(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_SOURCES_PROPERTY,
+        CARRY_FORWARD_SOURCES_PROPERTY,
         {
           survey,
           name: target.name,
@@ -359,7 +359,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
       const target = survey.getQuestionByName("target");
       const choices = await getPropertyChoices(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+        CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
         {
           survey,
           advancedCarryForwardSources: target.advancedCarryForwardSources,
@@ -388,7 +388,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     expect(
       Serializer.findProperty(
         "checkbox",
-        ADVANCED_CARRY_FORWARD_ENABLED_PROPERTY,
+        CARRY_FORWARD_ENABLED_PROPERTY,
       ),
     ).toBeUndefined();
 

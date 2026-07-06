@@ -1,5 +1,5 @@
-import type { QuestionSelectBase } from 'survey-core';
-import type { AdvancedCarryForwardModeValue } from './carry-forward-mode-values';
+import type { QuestionSelectBase } from "survey-core";
+import type { AdvancedCarryForwardModeValue } from "./carry-forward-mode-values";
 
 export interface AdvancedCarryForwardQuestion extends QuestionSelectBase {
   advancedCarryForwardEnabled?: boolean;
@@ -21,14 +21,14 @@ export function isChoicesByUrlConfigured(obj: {
   choicesByUrl?: { url?: string } | null;
 }): boolean {
   const url = obj.choicesByUrl?.url;
-  return typeof url === 'string' && url.trim().length > 0;
+  return typeof url === "string" && url.trim().length > 0;
 }
 
 export function isChoicesFromQuestionConfigured(obj: {
   choicesFromQuestion?: string;
 }): boolean {
   return (
-    typeof obj.choicesFromQuestion === 'string' &&
+    typeof obj.choicesFromQuestion === "string" &&
     obj.choicesFromQuestion.trim().length > 0
   );
 }
