@@ -2,11 +2,11 @@ import type { QuestionSelectBase } from "survey-core";
 import type { AdvancedCarryForwardModeValue } from "./carry-forward-mode-values";
 
 export interface AdvancedCarryForwardQuestion extends QuestionSelectBase {
-  advancedCarryForwardEnabled?: boolean;
-  advancedCarryForwardSources?: string[];
-  advancedCarryForwardMode?: AdvancedCarryForwardModeValue;
-  advancedCarryForwardPriorityItems?: string[];
-  advancedCarryForwardMaxChoices?: number;
+  edxCarryForwardEnabled?: boolean;
+  edxCarryForwardSources?: string[];
+  edxCarryForwardMode?: AdvancedCarryForwardModeValue;
+  edxCarryForwardPriorityItems?: string[];
+  edxCarryForwardMaxChoices?: number;
   edxDataListId?: string;
 }
 
@@ -14,7 +14,7 @@ export interface CarryForwardVisibleQuestion {
   edxDataListId?: string;
   choicesByUrl?: { url?: string } | null;
   choicesFromQuestion?: string;
-  advancedCarryForwardEnabled?: boolean;
+  edxCarryForwardEnabled?: boolean;
 }
 
 export function isChoicesByUrlConfigured(obj: {

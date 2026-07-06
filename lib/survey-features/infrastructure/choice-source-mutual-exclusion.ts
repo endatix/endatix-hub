@@ -9,7 +9,7 @@ export interface ChoiceSourceVisibleQuestion {
   edxDataListId?: string;
   choicesByUrl?: { url?: string } | null;
   choicesFromQuestion?: string;
-  advancedCarryForwardEnabled?: boolean;
+  edxCarryForwardEnabled?: boolean;
 }
 
 /**

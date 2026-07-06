@@ -26,8 +26,8 @@ describe("loadCarryForwardTargets", () => {
           type: "checkbox",
           name: "dest",
           choices: [],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["src"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["src"],
         },
         { type: "checkbox", name: "src", choices: ["A"] },
       ],
@@ -69,8 +69,8 @@ describe("loadCarryForwardTargets", () => {
             type: "checkbox",
             name: "dest",
             choices: [],
-            advancedCarryForwardEnabled: true,
-            advancedCarryForwardSources: ["src"],
+            edxCarryForwardEnabled: true,
+            edxCarryForwardSources: ["src"],
           },
           { type: "checkbox", name: "src", choices: ["A"] },
         ],
@@ -121,9 +121,9 @@ describe("bindAdvancedCarryForwardToSurvey property changes", () => {
           type: "checkbox",
           name: "target",
           choices: ["legacy"],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["brands"],
-          advancedCarryForwardMode: "all",
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["brands"],
+          edxCarryForwardMode: "all",
         },
       ],
     });
@@ -140,7 +140,7 @@ describe("bindAdvancedCarryForwardToSurvey property changes", () => {
       "C",
     ]);
 
-    target.setPropertyValue("advancedCarryForwardMode", "selected");
+    target.setPropertyValue("edxCarryForwardMode", "selected");
     model.setValue("brands", ["A", "B"]);
 
     expect(target.choices.map((choice) => choice.value)).toEqual(["A", "B"]);
@@ -153,16 +153,16 @@ describe("bindAdvancedCarryForwardToSurvey property changes", () => {
           type: "checkbox",
           name: "targetB",
           choices: [],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["targetA"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["targetA"],
         },
         { type: "checkbox", name: "src", choices: ["X", "Y"] },
         {
           type: "checkbox",
           name: "targetA",
           choices: [],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["src"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["src"],
         },
       ],
     });
@@ -180,17 +180,17 @@ describe("bindAdvancedCarryForwardToSurvey property changes", () => {
           type: "checkbox",
           name: "targetB",
           choices: [],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["targetA"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["targetA"],
         },
         { type: "checkbox", name: "src", choices: ["X", "Y"] },
         {
           type: "checkbox",
           name: "targetA",
           choices: [],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["src"],
-          advancedCarryForwardMode: "selected",
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["src"],
+          edxCarryForwardMode: "selected",
         },
       ],
     });

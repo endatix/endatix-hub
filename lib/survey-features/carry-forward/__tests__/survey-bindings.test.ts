@@ -20,9 +20,9 @@ const carryForwardSurveyJson = {
       type: "checkbox",
       name: "target",
       choices: ["legacy"],
-      advancedCarryForwardEnabled: true,
-      advancedCarryForwardSources: ["brands"],
-      advancedCarryForwardMode: "selected",
+      edxCarryForwardEnabled: true,
+      edxCarryForwardSources: ["brands"],
+      edxCarryForwardMode: "selected",
     },
   ],
 };

@@ -14,15 +14,13 @@ export const CARRY_FORWARD_QUESTION_TYPES = [
   "buttongroup",
 ] as const;
 
-export const CARRY_FORWARD_ENABLED_PROPERTY =
-  "advancedCarryForwardEnabled";
-export const CARRY_FORWARD_SOURCES_PROPERTY =
-  "advancedCarryForwardSources";
-export const CARRY_FORWARD_MODE_PROPERTY = "advancedCarryForwardMode";
+export const CARRY_FORWARD_ENABLED_PROPERTY = "edxCarryForwardEnabled";
+export const CARRY_FORWARD_SOURCES_PROPERTY = "edxCarryForwardSources";
+export const CARRY_FORWARD_MODE_PROPERTY = "edxCarryForwardMode";
 export const CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY =
-  "advancedCarryForwardPriorityItems";
+  "edxCarryForwardPriorityItems";
 export const CARRY_FORWARD_MAX_CHOICES_PROPERTY =
-  "advancedCarryForwardMaxChoices";
+  "edxCarryForwardMaxChoices";
 
 export const CARRY_FORWARD_HANDLERS_ATTACHED_KEY =
-  "__endatixAdvancedCarryForwardBound";
+  "__endatixCarryForwardBound";

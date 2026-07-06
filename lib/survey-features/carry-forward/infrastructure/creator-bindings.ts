@@ -5,7 +5,7 @@ import { bindSurveyToCreatorAreas } from "@/lib/survey-features/infrastructure/c
 import { bindAdvancedCarryForwardToSurvey } from "./survey-bindings";
 
 const CARRY_FORWARD_CREATOR_BOUND_KEY =
-  "__endatixAdvancedCarryForwardCreatorBound";
+  "__endatixCarryForwardCreatorBound";
 
 export function bindAdvancedCarryForwardToCreator(
   creator: SurveyCreatorModel,

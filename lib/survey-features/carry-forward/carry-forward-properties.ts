@@ -37,7 +37,7 @@ export function isCarryForwardFeatureVisible(
 ): boolean {
   return (
     isCarryForwardChoicesSectionVisible(obj) &&
-    obj.advancedCarryForwardEnabled === true
+    obj.edxCarryForwardEnabled === true
   );
 }
 
@@ -116,21 +116,21 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
   visibleIndex: 4,
   visibleIf: isCarryForwardFeatureVisible,
   choices: function (
-    obj: { survey: SurveyModel; advancedCarryForwardSources?: string[] },
+    obj: { survey: SurveyModel; edxCarryForwardSources?: string[] },
     choicesCallback: (choices: { value: string; text: string }[]) => void,
   ) {
-    const { survey, advancedCarryForwardSources } = obj || {};
+    const { survey, edxCarryForwardSources } = obj || {};
 
     if (
       !survey ||
-      !advancedCarryForwardSources ||
+      !edxCarryForwardSources ||
       typeof choicesCallback !== "function"
     ) {
       return;
     }
 
     const sourceQuestions = getCarryForwardSourceQuestions(survey, {
-      advancedCarryForwardSources,
+      edxCarryForwardSources,
     });
 
     const uniqueChoices = getAllUniqueChoices(

@@ -30,7 +30,7 @@ export function registerDataListGlobals(): void {
     visibleIf: (obj: ChoiceSourceVisibleQuestion) => {
       return (
         isChoiceSourceSectionAvailable(obj) &&
-        obj.advancedCarryForwardEnabled !== true
+        obj.edxCarryForwardEnabled !== true
       );
     },
     choices: [],

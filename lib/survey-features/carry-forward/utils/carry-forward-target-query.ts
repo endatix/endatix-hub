@@ -20,9 +20,9 @@ export function getAllCarryForwardTargets(survey: {
 
 export function getCarryForwardSourceQuestions(
   survey: { getQuestionByName: (name: string) => Question | null },
-  target: Pick<AdvancedCarryForwardQuestion, "advancedCarryForwardSources">,
+  target: Pick<AdvancedCarryForwardQuestion, "edxCarryForwardSources">,
 ) {
-  const sources = target.advancedCarryForwardSources ?? [];
+  const sources = target.edxCarryForwardSources ?? [];
 
   return sources
     .map((sourceName) => survey.getQuestionByName(sourceName))

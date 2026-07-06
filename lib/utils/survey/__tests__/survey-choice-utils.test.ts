@@ -94,8 +94,8 @@ describe("extractUniqueChoicesBy media", () => {
           type: "imagepicker",
           name: "target",
           choices: [],
-          advancedCarryForwardEnabled: true,
-          advancedCarryForwardSources: ["src"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["src"],
         },
       ],
     });

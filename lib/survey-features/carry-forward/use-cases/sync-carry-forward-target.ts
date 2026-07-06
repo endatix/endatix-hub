@@ -46,17 +46,17 @@ export function syncSingleCarryForwardTarget(
 
   const sourceQuestions = getCarryForwardSourceQuestions(survey, target);
   const selectionMode = resolveCarryForwardSelectionMode(
-    target.advancedCarryForwardMode,
+    target.edxCarryForwardMode,
   );
   const aggregatedChoices = extractUniqueChoicesBy(sourceQuestions, (source) =>
     getChoicesFromSourceQuestion(source, selectionMode),
   );
   const { priority, rest } = splitByPriority(
     aggregatedChoices,
-    target.advancedCarryForwardPriorityItems,
+    target.edxCarryForwardPriorityItems,
   );
   const maxChoiceLimit = parseCarryForwardMaxChoices(
-    target.advancedCarryForwardMaxChoices,
+    target.edxCarryForwardMaxChoices,
   );
   const limitedChoices = limitCarryForwardChoices(
     priority,

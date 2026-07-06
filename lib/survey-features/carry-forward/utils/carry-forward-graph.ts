@@ -21,7 +21,7 @@ export function getCarryForwardTargetsInDependencyOrder(survey: {
   for (const target of targets) {
     const sourceDependencies = new Set<string>();
 
-    for (const sourceName of target.advancedCarryForwardSources ?? []) {
+    for (const sourceName of target.edxCarryForwardSources ?? []) {
       if (targetByName.has(sourceName)) {
         sourceDependencies.add(sourceName);
       }
@@ -107,7 +107,7 @@ export function getDownstreamCarryForwardTargets(
     const currentName = queue.shift()!;
 
     for (const target of targets) {
-      if (!target.advancedCarryForwardSources?.includes(currentName)) {
+      if (!target.edxCarryForwardSources?.includes(currentName)) {
         continue;
       }
 

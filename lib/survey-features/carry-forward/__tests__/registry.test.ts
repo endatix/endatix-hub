@@ -188,7 +188,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     it("hides dependent properties when carry forward is disabled", () => {
       expect(
         isCarryForwardFeatureVisible({
-          advancedCarryForwardEnabled: false,
+          edxCarryForwardEnabled: false,
         }),
       ).toBe(false);
     });
@@ -201,12 +201,12 @@ describe("registerAdvancedCarryForwardGlobals", () => {
 
       expect(
         dataListProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: true,
+          edxCarryForwardEnabled: true,
         }),
       ).toBe(false);
       expect(
         dataListProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: false,
+          edxCarryForwardEnabled: false,
         }),
       ).toBe(true);
     });
@@ -240,12 +240,12 @@ describe("registerAdvancedCarryForwardGlobals", () => {
 
       expect(
         choicesFromQuestionProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: true,
+          edxCarryForwardEnabled: true,
         }),
       ).toBe(false);
       expect(
         choicesFromQuestionProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: false,
+          edxCarryForwardEnabled: false,
         }),
       ).toBe(true);
     });
@@ -258,12 +258,12 @@ describe("registerAdvancedCarryForwardGlobals", () => {
 
       expect(
         choicesByUrlProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: true,
+          edxCarryForwardEnabled: true,
         }),
       ).toBe(false);
       expect(
         choicesByUrlProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: false,
+          edxCarryForwardEnabled: false,
         }),
       ).toBe(true);
     });
@@ -273,12 +273,12 @@ describe("registerAdvancedCarryForwardGlobals", () => {
 
       expect(
         choicesProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: true,
+          edxCarryForwardEnabled: true,
         }),
       ).toBe(false);
       expect(
         choicesProperty?.visibleIf?.({
-          advancedCarryForwardEnabled: false,
+          edxCarryForwardEnabled: false,
         }),
       ).toBe(true);
     });
@@ -291,7 +291,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
 
       expect(dataListProperty?.dependsOn).toEqual([
         "choicesFromQuestion",
-        "advancedCarryForwardEnabled",
+        "edxCarryForwardEnabled",
       ]);
     });
   });
@@ -351,7 +351,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
             type: "checkbox",
             name: "target",
             choices: ["X"],
-            advancedCarryForwardSources: ["brands", "colors"],
+            edxCarryForwardSources: ["brands", "colors"],
           },
         ],
       });
@@ -362,7 +362,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
         CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
         {
           survey,
-          advancedCarryForwardSources: target.advancedCarryForwardSources,
+          edxCarryForwardSources: target.edxCarryForwardSources,
         },
       );
 
@@ -408,7 +408,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     );
     expect(
       configuredProperty?.visibleIf?.({
-        advancedCarryForwardEnabled: true,
+        edxCarryForwardEnabled: true,
       }),
     ).toBe(false);
 
@@ -420,7 +420,7 @@ describe("registerAdvancedCarryForwardGlobals", () => {
     expect(restoredProperty?.visibleIf).toBe(baselineVisibleIf);
     expect(
       restoredProperty?.visibleIf?.({
-        advancedCarryForwardEnabled: true,
+        edxCarryForwardEnabled: true,
       }),
     ).not.toBe(false);
 

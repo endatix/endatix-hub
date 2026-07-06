@@ -120,7 +120,7 @@ function hideNativeChoiceSourceProperty(
       CARRY_FORWARD_ENABLED_PROPERTY,
     ),
     visibleIf: (obj: CarryForwardVisibleQuestion) => {
-      if (obj.advancedCarryForwardEnabled === true) {
+      if (obj.edxCarryForwardEnabled === true) {
         return false;
       }
 
@@ -147,7 +147,7 @@ function patchInlineChoicesVisibility(property: SerializerProperty): void {
   patchedInlineChoicesProperties.set(property, snapshot);
 
   property.visibleIf = (obj: CarryForwardVisibleQuestion) => {
-    if (obj.advancedCarryForwardEnabled === true) {
+    if (obj.edxCarryForwardEnabled === true) {
       return false;
     }
 
