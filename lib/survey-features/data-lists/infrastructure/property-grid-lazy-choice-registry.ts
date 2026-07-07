@@ -1,4 +1,5 @@
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
+import type { SurveyCreatorModel } from "survey-creator-core";
 import type { Question } from "survey-core";
 import { DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE } from "../constants";
 import type {
@@ -37,14 +38,10 @@ export function clearPropertyGridLazyChoiceProvidersForTests(): void {
   providers.clear();
 }
 
-export function setupPropertyGridLazyChoices(
+export function refreshPropertyGridLazyChoices(
   ctx: PropertyGridLazyChoiceContext,
 ): void {
   for (const provider of providers.values()) {
-    if (!provider.shouldEnable(ctx)) {
-      continue;
-    }
-
     const editor = ctx.propertyGridSurvey.getQuestionByName(
       provider.propertyName,
     );
@@ -58,10 +55,34 @@ export function setupPropertyGridLazyChoices(
       choices?: unknown[];
     };
 
+    if (!provider.shouldEnable(ctx)) {
+      tagbox.choicesLazyLoadEnabled = false;
+      continue;
+    }
+
     tagbox.choicesLazyLoadEnabled = true;
     tagbox.choicesLazyLoadPageSize = DEFAULT_CHOICES_LAZY_LOAD_PAGE_SIZE;
     tagbox.choices = provider.getStaticChoices?.(ctx, "") ?? [];
   }
+}
+
+export function refreshPropertyGridLazyChoicesForCreator(
+  creator: SurveyCreatorModel,
+): void {
+  const designerSurvey = creator.survey;
+  const propertyGridSurvey = creator.propertyGrid;
+  const editingObj =
+    creator.selectedElement ?? propertyGridSurvey?.editingObj ?? null;
+
+  if (!designerSurvey || !propertyGridSurvey || editingObj == null) {
+    return;
+  }
+
+  refreshPropertyGridLazyChoices({
+    designerSurvey,
+    propertyGridSurvey,
+    editingObj,
+  });
 }
 
 export async function dispatchPropertyGridChoicesLazyLoad(

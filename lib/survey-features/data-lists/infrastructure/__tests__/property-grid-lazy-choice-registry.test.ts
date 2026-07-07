@@ -4,7 +4,8 @@ import {
   clearPropertyGridLazyChoiceProvidersForTests,
   getPropertyGridLazyChoiceProvider,
   registerPropertyGridLazyChoiceProvider,
-  setupPropertyGridLazyChoices,
+  refreshPropertyGridLazyChoices,
+  refreshPropertyGridLazyChoicesForCreator,
 } from "../property-grid-lazy-choice-registry";
 
 describe("property-grid-lazy-choice-registry", () => {
@@ -46,7 +47,7 @@ describe("property-grid-lazy-choice-registry", () => {
     });
     propertyGridSurvey.editingObj = designerSurvey.getQuestionByName("target");
 
-    setupPropertyGridLazyChoices({
+    refreshPropertyGridLazyChoices({
       designerSurvey,
       propertyGridSurvey,
       editingObj: propertyGridSurvey.editingObj,
@@ -76,7 +77,7 @@ describe("property-grid-lazy-choice-registry", () => {
       ],
     });
 
-    setupPropertyGridLazyChoices({
+    refreshPropertyGridLazyChoices({
       designerSurvey: new SurveyModel({ elements: [] }),
       propertyGridSurvey,
       editingObj: {},
@@ -97,5 +98,67 @@ describe("property-grid-lazy-choice-registry", () => {
     });
 
     expect(getPropertyGridLazyChoiceProvider("priorityItems")).toBeDefined();
+  });
+
+  it("enables lazy load on refresh after dependencies become available", () => {
+    let hasDataListSource = false;
+
+    registerPropertyGridLazyChoiceProvider({
+      propertyName: "priorityItems",
+      shouldEnable: () => hasDataListSource,
+      getStaticChoices: () => [{ value: "A", text: "static: (A)" }],
+      loadPage: async () => ({ items: [], total: 0 }),
+      resolveDisplayValues: async (_ctx, values) => values,
+    });
+
+    const designerSurvey = new SurveyModel({ elements: [] });
+    const propertyGridSurvey = new Model({
+      elements: [{ type: "tagbox", name: "priorityItems" }],
+    });
+    const loopPanel = { loopSource: ["Cars"] };
+    const ctx = {
+      designerSurvey,
+      propertyGridSurvey,
+      editingObj: loopPanel,
+    };
+
+    refreshPropertyGridLazyChoices(ctx);
+
+    const editor = propertyGridSurvey.getQuestionByName("priorityItems");
+    expect(editor?.choicesLazyLoadEnabled).not.toBe(true);
+
+    hasDataListSource = true;
+    refreshPropertyGridLazyChoices(ctx);
+
+    expect(editor?.choicesLazyLoadEnabled).toBe(true);
+    expect(editor?.choices).toHaveLength(1);
+    expect(editor?.choices?.[0]?.value).toBe("A");
+    expect(editor?.choices?.[0]?.text).toBe("static: (A)");
+  });
+
+  it("refreshes from an open creator property grid", () => {
+    registerPropertyGridLazyChoiceProvider({
+      propertyName: "priorityItems",
+      shouldEnable: () => true,
+      loadPage: async () => ({ items: [], total: 0 }),
+      resolveDisplayValues: async (_ctx, values) => values,
+    });
+
+    const designerSurvey = new SurveyModel({ elements: [] });
+    const propertyGridSurvey = new Model({
+      elements: [{ type: "tagbox", name: "priorityItems" }],
+    });
+    const loopPanel = { loopSource: ["Cars"] };
+
+    refreshPropertyGridLazyChoicesForCreator({
+      survey: designerSurvey,
+      propertyGrid: propertyGridSurvey,
+      selectedElement: loopPanel,
+    } as never);
+
+    expect(
+      propertyGridSurvey.getQuestionByName("priorityItems")
+        ?.choicesLazyLoadEnabled,
+    ).toBe(true);
   });
 });

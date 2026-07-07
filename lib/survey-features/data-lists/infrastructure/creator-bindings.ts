@@ -3,17 +3,27 @@ import {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
-import { DATA_LIST_PROPERTY_NAME } from "../constants";
+import {
+  DATA_LIST_PROPERTY_NAME,
+  PROPERTY_GRID_LAZY_REFRESH_PROPERTY_NAMES,
+} from "../constants";
 import { parseDataListId } from "./data-list-survey-integration";
 import { bindDataListsToSurvey } from "./survey-bindings";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { bindConvertInlineChoicesTitleActions } from "./convert-inline-choices-title-actions";
-import { setupPropertyGridLazyChoices } from "./property-grid-lazy-choice-registry";
+import {
+  refreshPropertyGridLazyChoices,
+  refreshPropertyGridLazyChoicesForCreator,
+} from "./property-grid-lazy-choice-registry";
 import { registerDataListGlobals } from "./registry";
 
 export { setDataListPropertyChoices } from "./data-list-property-choices";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
+
+const LAZY_REFRESH_PROPERTY_NAMES = new Set<string>(
+  PROPERTY_GRID_LAZY_REFRESH_PROPERTY_NAMES,
+);
 
 export function bindDataListsToCreator(
   creator: SurveyCreatorModel,
@@ -29,24 +39,24 @@ export function bindDataListsToCreator(
 
   const creatorSurveyDisposers = new Map<string, () => void>();
 
-  const onDataListChanged = (
+  const onPropertyChanged = (
     _: SurveyCreatorModel,
     options: AfterPropertyChangedEvent,
   ) => {
-    if (options.propertyName !== DATA_LIST_PROPERTY_NAME) {
-      return;
+    if (options.propertyName === DATA_LIST_PROPERTY_NAME) {
+      const question = options.element;
+      if (question) {
+        const dataListId = parseDataListId(options.value);
+        const creatorQuestion = question as unknown as Record<string, unknown>;
+        creatorQuestion.choicesLazyLoadEnabled = Boolean(dataListId);
+        if (dataListId) {
+          creatorQuestion.choices = [];
+        }
+      }
     }
 
-    const question = options.element;
-    if (!question) {
-      return;
-    }
-
-    const dataListId = parseDataListId(options.value);
-    const creatorQuestion = question as unknown as Record<string, unknown>;
-    creatorQuestion.choicesLazyLoadEnabled = Boolean(dataListId);
-    if (dataListId) {
-      creatorQuestion.choices = [];
+    if (LAZY_REFRESH_PROPERTY_NAMES.has(options.propertyName)) {
+      refreshPropertyGridLazyChoicesForCreator(creator);
     }
   };
 
@@ -78,7 +88,7 @@ export function bindDataListsToCreator(
       const designerSurvey = creator.survey;
       const editingObj = options.element ?? options.survey.editingObj;
       if (designerSurvey && editingObj != null) {
-        setupPropertyGridLazyChoices({
+        refreshPropertyGridLazyChoices({
           designerSurvey,
           propertyGridSurvey: options.survey,
           editingObj,
@@ -87,7 +97,7 @@ export function bindDataListsToCreator(
     }
   };
 
-  creator.onAfterPropertyChanged.add(onDataListChanged);
+  creator.onAfterPropertyChanged.add(onPropertyChanged);
   creator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
 
   const disposeConvertTitleActions =
@@ -99,7 +109,7 @@ export function bindDataListsToCreator(
 
   return () => {
     disposeConvertTitleActions();
-    creator.onAfterPropertyChanged.remove(onDataListChanged);
+    creator.onAfterPropertyChanged.remove(onPropertyChanged);
     creator.onSurveyInstanceCreated.remove(handleSurveyInstanceCreated);
     creatorSurveyDisposers.forEach((dispose) => dispose?.());
     creatorSurveyDisposers.clear();
