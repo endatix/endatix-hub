@@ -45,7 +45,7 @@ export function refreshPropertyGridLazyChoices(
     const editor = ctx.propertyGridSurvey.getQuestionByName(
       provider.propertyName,
     );
-    if (!editor || editor.getType() !== "tagbox") {
+    if (editor?.getType() !== "tagbox") {
       continue;
     }
 
