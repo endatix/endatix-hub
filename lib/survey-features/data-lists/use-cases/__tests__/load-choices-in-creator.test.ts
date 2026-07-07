@@ -329,6 +329,39 @@ describe("loadChoicesInCreator", () => {
     consoleError.mockRestore();
   });
 
+  it("reports merged total when the first page is filled entirely by static items", async () => {
+    vi.mocked(searchDataListChoices).mockImplementation(
+      async (_deps, dataListId, params) => {
+        if (dataListId === "cars-list") {
+          expect(params).toEqual(expect.objectContaining({ skip: 0, take: 1 }));
+          return mockSource("cars", params, [], 400);
+        }
+
+        return ApiResult.success({ items: [], total: 0 });
+      },
+    );
+
+    const staticItems = Array.from({ length: 10 }, (_, index) => ({
+      value: `static-${index}`,
+      text: `Static ${index}`,
+    }));
+
+    const result = await loadChoicesInCreator(
+      deps,
+      [{ sourceName: "Cars", dataListId: "cars-list" }],
+      staticItems,
+      { skip: 0, take: 10 },
+      formatLabel,
+    );
+
+    expect(result.items).toHaveLength(10);
+    expect(result.items[0]).toEqual({
+      value: "static-0",
+      text: "Static 0",
+    });
+    expect(result.total).toBe(410);
+  });
+
   it("merges static choices before paging into data-list sources", async () => {
     vi.mocked(searchDataListChoices).mockImplementation(
       async (_deps, _dataListId, params) =>

@@ -30,8 +30,17 @@ export async function loadChoicesInCreator(
     );
     const apiTake = params.take - staticPage.length;
 
-    if (apiTake <= 0) {
-      return { items: staticPage, total: staticItems.length };
+    if (apiTake === 0) {
+      const dataListTotal = await getMergedDataListChoicesTotal(
+        deps,
+        dataListSources,
+        filter,
+      );
+
+      return {
+        items: staticPage,
+        total: staticItems.length + dataListTotal,
+      };
     }
 
     const apiItems = await fetchMergedDataListChoices(
@@ -116,6 +125,31 @@ async function fetchMergedDataListChoices(
   }
 
   return { items: merged.slice(0, params.take), total };
+}
+
+async function getMergedDataListChoicesTotal(
+  deps: ExtensionRuntimeDeps,
+  dataListSources: DataListSourceRef[],
+  filter: string,
+): Promise<number> {
+  const totals = await Promise.all(
+    dataListSources.map(async ({ sourceName, dataListId }) => {
+      const response = await searchDataListChoices(deps, dataListId, {
+        filter,
+        skip: 0,
+        take: 1,
+      });
+
+      if (!response.success) {
+        logDataListSourceError(sourceName, dataListId, response);
+        return 0;
+      }
+
+      return response.data.total;
+    }),
+  );
+
+  return totals.reduce((sum, total) => sum + total, 0);
 }
 
 function resolveSourceTotal(response: DataListSearchResult): number | null {
