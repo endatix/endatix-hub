@@ -95,7 +95,7 @@ export async function dispatchPropertyGridChoicesLazyLoad(
   total: number;
 } | null> {
   const provider = providers.get(propertyName);
-  if (!provider || !provider.shouldEnable(ctx)) {
+  if (!provider?.shouldEnable(ctx)) {
     return null;
   }
 
@@ -109,7 +109,7 @@ export async function dispatchPropertyGridChoiceDisplayValues(
   deps: ExtensionRuntimeDeps,
 ): Promise<string[] | null> {
   const provider = providers.get(propertyName);
-  if (!provider || values.length === 0 || !provider.shouldEnable(ctx)) {
+  if (!provider?.shouldEnable(ctx) || values.length === 0) {
     return null;
   }
 
