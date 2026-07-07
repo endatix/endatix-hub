@@ -210,6 +210,28 @@ Shared registries live in `lib/survey-features/infrastructure/` (e.g.
 `choices-lazy-load-guards.ts`). Register from your feature's `onInit`, not from
 `form-editor`.
 
+**data-lists layout (reference for cross-feature reuse):**
+
+```text
+lib/survey-features/data-lists/
+├── types.ts
+├── utils/                    # property-grid-source-choices, with-form-access-jwt-retry
+├── use-cases/
+│   ├── search-data-list-choices.ts      # respondent + creator API search
+│   ├── resolve-data-list-display-values.ts
+│   └── load-choices-in-creator.ts       # merged static + data-list paging for Creator
+└── infrastructure/
+    ├── property-grid-lazy-choice-registry.ts
+    ├── survey-bindings.ts
+    └── creator-bindings.ts
+```
+
+Cross-feature consumers should import **use-cases** and **utils** directly (not the
+data-lists `index.ts` barrel) to avoid pulling UI hooks into survey-feature tests.
+
+Reference: carry-forward `edxCarryForwardPriorityItems`, question-loops `priorityItems`
+(issue #717).
+
 ---
 
 ## 6. Tests
