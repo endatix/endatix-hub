@@ -106,8 +106,16 @@ async function fetchMergedDataListChoices(
 
     if (!response.success) {
       logDataListSourceError(sourceName, dataListId, response);
-      if (sourceTotal !== null && remainingSkip >= sourceTotal) {
-        remainingSkip -= sourceTotal;
+      if (remainingSkip > 0) {
+        const probeResponse = await probeDataListSourceTotal(
+          deps,
+          dataListId,
+          params.filter ?? "",
+        );
+        const probedTotal = resolveSourceTotal(probeResponse);
+        if (probedTotal !== null && remainingSkip >= probedTotal) {
+          remainingSkip -= probedTotal;
+        }
       }
       continue;
     }
@@ -140,12 +148,7 @@ async function getMergedDataListChoicesTotal(
 ): Promise<number> {
   const totals = await Promise.all(
     dataListSources.map(async ({ sourceName, dataListId }) => {
-      const response = await searchDataListChoices(deps, dataListId, {
-        filter,
-        skip: 0,
-        take: 1,
-      });
-
+      const response = await probeDataListSourceTotal(deps, dataListId, filter);
       if (!response.success) {
         logDataListSourceError(sourceName, dataListId, response);
         return 0;
@@ -156,6 +159,18 @@ async function getMergedDataListChoicesTotal(
   );
 
   return totals.reduce((sum, total) => sum + total, 0);
+}
+
+async function probeDataListSourceTotal(
+  deps: ExtensionRuntimeDeps,
+  dataListId: string,
+  filter: string,
+): Promise<DataListSearchResult> {
+  return searchDataListChoices(deps, dataListId, {
+    filter,
+    skip: 0,
+    take: 1,
+  });
 }
 
 function resolveSourceTotal(response: DataListSearchResult): number | null {

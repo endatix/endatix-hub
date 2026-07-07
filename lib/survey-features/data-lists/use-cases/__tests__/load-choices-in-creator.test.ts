@@ -391,6 +391,69 @@ describe("loadChoicesInCreator", () => {
     consoleError.mockRestore();
   });
 
+  it("advances skip past a failed source when its total can be probed", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    vi.mocked(searchDataListChoices).mockImplementation(
+      async (_deps, dataListId, params) => {
+        if (dataListId === "games") {
+          if (params.skip > 0) {
+            return ApiResult.authError("Games unavailable");
+          }
+
+          return mockSource(
+            "games",
+            params,
+            [{ value: "game-1", text: "Game 1" }],
+            100,
+          );
+        }
+
+        return mockSource(
+          "brands",
+          params,
+          Array.from({ length: params.take }, (_, index) => ({
+            value: `brand-${index + 1 + params.skip}`,
+            text: `Brand ${index + 1 + params.skip}`,
+          })),
+          300,
+        );
+      },
+    );
+
+    const result = await loadChoicesInCreator(
+      deps,
+      [
+        { sourceName: "games", dataListId: "games" },
+        { sourceName: "brands", dataListId: "brands" },
+      ],
+      [],
+      { skip: 120, take: 25 },
+      formatLabel,
+    );
+
+    expect(result.items[0]).toEqual({
+      value: "brand-21",
+      text: "brands: (Brand 21)",
+    });
+    expect(searchDataListChoices).toHaveBeenNthCalledWith(
+      2,
+      deps,
+      "games",
+      expect.objectContaining({ skip: 0, take: 1 }),
+    );
+    expect(searchDataListChoices).toHaveBeenNthCalledWith(
+      3,
+      deps,
+      "brands",
+      expect.objectContaining({ skip: 20, take: 25 }),
+    );
+
+    consoleError.mockRestore();
+  });
+
   it("reports merged total when the first page is filled entirely by static items", async () => {
     vi.mocked(searchDataListChoices).mockImplementation(
       async (_deps, dataListId, params) => {
