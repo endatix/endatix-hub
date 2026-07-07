@@ -1,52 +1,65 @@
-import { createEndatixPublicApi } from "@/lib/endatix-api/public";
-import { ApiErrorType, ApiResult } from "@/lib/endatix-api/shared/api-result";
-import {
-  ensureRuntimeFormAccessJwt,
-  invalidateRuntimeFormAccessJwt,
-} from "@/lib/form-runtime/form-access-jwt-orchestrator";
-import type { FormRuntimeState } from "@/lib/form-runtime/form-runtime.context";
 import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import {
   ChoicesLazyLoadEvent,
   GetChoiceDisplayValueEvent,
   Model,
+  SurveyModel,
 } from "survey-core";
 import {
   notifyChoicesLazyLoadCompleted,
   shouldSuppressChoicesLazyLoad,
 } from "@/lib/survey-features/infrastructure/choices-lazy-load-guards";
+import { searchDataListChoices } from "../use-cases/search-data-list-choices";
+import { resolveDataListDisplayValues } from "../use-cases/resolve-data-list-display-values";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
+import {
+  dispatchPropertyGridChoiceDisplayValues,
+  dispatchPropertyGridChoicesLazyLoad,
+  type PropertyGridLazyChoiceContext,
+} from "./property-grid-lazy-choice-registry";
 import { registerDataListGlobals } from "./registry";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
 
-async function withJwtRetry<T>(
-  runtimeState: FormRuntimeState,
-  call: (jwt: string) => Promise<ApiResult<T>>,
-): Promise<ApiResult<T>> {
-  let jwt = await ensureRuntimeFormAccessJwt(runtimeState);
-  if (!jwt) {
-    return ApiResult.authError<T>("Could not obtain form access token.");
+export type BindDataListsToSurveyOptions = {
+  deps: ExtensionRuntimeDeps;
+  getDesignerSurvey?: () => SurveyModel | null;
+};
+
+function resolveBindOptions(
+  depsOrOptions: ExtensionRuntimeDeps | BindDataListsToSurveyOptions,
+): BindDataListsToSurveyOptions {
+  if ("deps" in depsOrOptions) {
+    return depsOrOptions;
   }
 
-  let response = await call(jwt);
-  if (!response.success && response.error.type === ApiErrorType.AuthError) {
-    invalidateRuntimeFormAccessJwt(runtimeState);
-    jwt = await ensureRuntimeFormAccessJwt(runtimeState);
-    if (!jwt) {
-      return response;
-    }
-    response = await call(jwt);
+  return { deps: depsOrOptions };
+}
+
+function buildPropertyGridContext(
+  model: Model,
+  getDesignerSurvey?: () => SurveyModel | null,
+): PropertyGridLazyChoiceContext | null {
+  const designerSurvey = getDesignerSurvey?.() ?? null;
+  if (!designerSurvey || model.editingObj == null) {
+    return null;
   }
-  return response;
+
+  return {
+    designerSurvey,
+    propertyGridSurvey: model,
+    editingObj: model.editingObj,
+  };
 }
 
 export function bindDataListsToSurvey(
   model: Model,
-  deps: ExtensionRuntimeDeps,
+  depsOrOptions: ExtensionRuntimeDeps | BindDataListsToSurveyOptions,
 ): () => void {
   registerDataListGlobals();
+
+  const { deps, getDesignerSurvey } = resolveBindOptions(depsOrOptions);
 
   const modelWithFlags = model as Model & Record<string, unknown>;
   if (modelWithFlags[DATA_LIST_HANDLERS_ATTACHED_KEY]) {
@@ -54,13 +67,36 @@ export function bindDataListsToSurvey(
   }
   modelWithFlags[DATA_LIST_HANDLERS_ATTACHED_KEY] = true;
 
-  const api = createEndatixPublicApi().dataLists;
-
   const onChoicesLazyLoad = async (_: Model, options: ChoicesLazyLoadEvent) => {
     const filter = options.filter ?? "";
     if (shouldSuppressChoicesLazyLoad(options.question, filter)) {
       options.setItems([], 0);
       return;
+    }
+
+    const propertyGridCtx = buildPropertyGridContext(model, getDesignerSurvey);
+    if (propertyGridCtx) {
+      const providerResult = await dispatchPropertyGridChoicesLazyLoad(
+        propertyGridCtx,
+        options.question.name,
+        {
+          filter: options.filter,
+          skip: options.skip,
+          take: options.take,
+        },
+        deps,
+      );
+
+      if (providerResult) {
+        options.setItems(providerResult.items, providerResult.total);
+        notifyChoicesLazyLoadCompleted(
+          options.question,
+          filter,
+          providerResult.items.length,
+          true,
+        );
+        return;
+      }
     }
 
     const runtime = resolveFormRuntimeState(deps.getRuntimeState());
@@ -70,16 +106,11 @@ export function bindDataListsToSurvey(
       return;
     }
 
-    const response = await withJwtRetry(runtime, (jwt) =>
-      api.search({
-        formId: runtime.formId,
-        dataListId,
-        formAccessJwt: jwt,
-        query: options.filter,
-        skip: options.skip,
-        take: options.take,
-      }),
-    );
+    const response = await searchDataListChoices(deps, dataListId, {
+      filter: options.filter,
+      skip: options.skip,
+      take: options.take,
+    });
 
     if (!response.success) {
       console.error("Failed to lazy-load data list choices.", response.error);
@@ -88,15 +119,11 @@ export function bindDataListsToSurvey(
       return;
     }
 
-    const items = response.data.items.map((item) => ({
-      value: item.value,
-      text: item.label,
-    }));
-    options.setItems(items, response.data.totalRecords);
+    options.setItems(response.data.items, response.data.total);
     notifyChoicesLazyLoadCompleted(
       options.question,
       filter,
-      items.length,
+      response.data.items.length,
       true,
     );
   };
@@ -105,19 +132,31 @@ export function bindDataListsToSurvey(
     _: Model,
     options: GetChoiceDisplayValueEvent,
   ) => {
+    const propertyGridCtx = buildPropertyGridContext(model, getDesignerSurvey);
+    if (propertyGridCtx) {
+      const labels = await dispatchPropertyGridChoiceDisplayValues(
+        propertyGridCtx,
+        options.question.name,
+        options.values.map(String),
+        deps,
+      );
+
+      if (labels) {
+        options.setItems(labels);
+        return;
+      }
+    }
+
     const runtime = resolveFormRuntimeState(deps.getRuntimeState());
     const dataListId = getDataListIdFromQuestion(options.question);
     if (!runtime || !dataListId || options.values.length === 0) {
       return;
     }
 
-    const response = await withJwtRetry(runtime, (jwt) =>
-      api.getDisplayValues({
-        formId: runtime.formId,
-        dataListId,
-        formAccessJwt: jwt,
-        values: options.values.map(String),
-      }),
+    const response = await resolveDataListDisplayValues(
+      deps,
+      dataListId,
+      options.values.map(String),
     );
 
     if (!response.success) {
@@ -130,12 +169,9 @@ export function bindDataListsToSurvey(
       return;
     }
 
-    const valueMap = new Map(
-      response.data.map((item) => [item.value, item.label] as const),
-    );
     options.setItems(
       options.values.map(
-        (value) => valueMap.get(String(value)) ?? String(value),
+        (value) => response.data.get(String(value)) ?? String(value),
       ),
     );
   };

@@ -3,16 +3,27 @@ import {
   SurveyCreatorModel,
   SurveyInstanceCreatedEvent,
 } from "survey-creator-core";
-import { DATA_LIST_PROPERTY_NAME } from "../constants";
+import {
+  DATA_LIST_PROPERTY_NAME,
+  PROPERTY_GRID_LAZY_REFRESH_PROPERTY_NAMES,
+} from "../constants";
 import { parseDataListId } from "./data-list-survey-integration";
 import { bindDataListsToSurvey } from "./survey-bindings";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { bindConvertInlineChoicesTitleActions } from "./convert-inline-choices-title-actions";
+import {
+  refreshPropertyGridLazyChoices,
+  refreshPropertyGridLazyChoicesForCreator,
+} from "./property-grid-lazy-choice-registry";
 import { registerDataListGlobals } from "./registry";
 
 export { setDataListPropertyChoices } from "./data-list-property-choices";
 
 const DATA_LIST_CREATOR_BOUND_KEY = "__endatixDataListsCreatorBound";
+
+const LAZY_REFRESH_PROPERTY_NAMES = new Set<string>(
+  PROPERTY_GRID_LAZY_REFRESH_PROPERTY_NAMES,
+);
 
 export function bindDataListsToCreator(
   creator: SurveyCreatorModel,
@@ -28,25 +39,39 @@ export function bindDataListsToCreator(
 
   const creatorSurveyDisposers = new Map<string, () => void>();
 
-  const onDataListChanged = (
+  const onPropertyChanged = (
     _: SurveyCreatorModel,
     options: AfterPropertyChangedEvent,
   ) => {
-    if (options.propertyName !== DATA_LIST_PROPERTY_NAME) {
-      return;
+    if (options.propertyName === DATA_LIST_PROPERTY_NAME) {
+      const question = options.element;
+      if (question) {
+        const dataListId = parseDataListId(options.value);
+        const creatorQuestion = question as unknown as Record<string, unknown>;
+        creatorQuestion.choicesLazyLoadEnabled = Boolean(dataListId);
+        if (dataListId) {
+          creatorQuestion.choices = [];
+        }
+      }
     }
 
-    const question = options.element;
-    if (!question) {
-      return;
+    if (LAZY_REFRESH_PROPERTY_NAMES.has(options.propertyName)) {
+      refreshPropertyGridLazyChoicesForCreator(creator);
     }
+  };
 
-    const dataListId = parseDataListId(options.value);
-    const creatorQuestion = question as unknown as Record<string, unknown>;
-    creatorQuestion.choicesLazyLoadEnabled = Boolean(dataListId);
-    if (dataListId) {
-      creatorQuestion.choices = [];
-    }
+  const bindSurveyForArea = (
+    area: string,
+    survey: Parameters<typeof bindDataListsToSurvey>[0],
+  ) => {
+    const previousDispose = creatorSurveyDisposers.get(area);
+    previousDispose?.();
+
+    const dispose = bindDataListsToSurvey(survey, {
+      deps,
+      getDesignerSurvey: () => creator.survey ?? null,
+    });
+    creatorSurveyDisposers.set(area, dispose);
   };
 
   const handleSurveyInstanceCreated = (
@@ -57,30 +82,34 @@ export function bindDataListsToCreator(
       return;
     }
 
-    const previousDispose = creatorSurveyDisposers.get(options.area);
-    previousDispose?.();
+    bindSurveyForArea(options.area, options.survey);
 
-    const dispose = bindDataListsToSurvey(options.survey, deps);
-    creatorSurveyDisposers.set(options.area, dispose);
+    if (options.area === "property-grid") {
+      const designerSurvey = creator.survey;
+      const editingObj = options.element ?? options.survey.editingObj;
+      if (designerSurvey && editingObj != null) {
+        refreshPropertyGridLazyChoices({
+          designerSurvey,
+          propertyGridSurvey: options.survey,
+          editingObj,
+        });
+      }
+    }
   };
 
-  creator.onAfterPropertyChanged.add(onDataListChanged);
+  creator.onAfterPropertyChanged.add(onPropertyChanged);
   creator.onSurveyInstanceCreated.add(handleSurveyInstanceCreated);
 
-  const disposeConvertTitleActions = bindConvertInlineChoicesTitleActions(creator);
+  const disposeConvertTitleActions =
+    bindConvertInlineChoicesTitleActions(creator);
 
   if (creator.survey) {
-    const initialSurveyArea = "__creator-initial-survey";
-    const previousDispose = creatorSurveyDisposers.get(initialSurveyArea);
-    previousDispose?.();
-
-    const dispose = bindDataListsToSurvey(creator.survey, deps);
-    creatorSurveyDisposers.set(initialSurveyArea, dispose);
+    bindSurveyForArea("__creator-initial-survey", creator.survey);
   }
 
   return () => {
     disposeConvertTitleActions();
-    creator.onAfterPropertyChanged.remove(onDataListChanged);
+    creator.onAfterPropertyChanged.remove(onPropertyChanged);
     creator.onSurveyInstanceCreated.remove(handleSurveyInstanceCreated);
     creatorSurveyDisposers.forEach((dispose) => dispose?.());
     creatorSurveyDisposers.clear();

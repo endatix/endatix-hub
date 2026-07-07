@@ -403,6 +403,36 @@ describe("registerAdvancedCarryForwardGlobals", () => {
       );
       expect(choices).toHaveLength(4);
     });
+
+    it("returns empty choices when any source uses a data list (lazy load handles options)", async () => {
+      const survey = new SurveyModel({
+        elements: [
+          {
+            type: "tagbox",
+            name: "brands",
+            edxDataListId: "list-1",
+          },
+          {
+            type: "checkbox",
+            name: "target",
+            choices: ["X"],
+            edxCarryForwardSources: ["brands"],
+          },
+        ],
+      });
+
+      const target = survey.getQuestionByName("target");
+      const choices = await getPropertyChoices(
+        "checkbox",
+        CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+        {
+          survey,
+          edxCarryForwardSources: target.edxCarryForwardSources,
+        },
+      );
+
+      expect(choices).toEqual([]);
+    });
   });
 
   it("is idempotent", () => {

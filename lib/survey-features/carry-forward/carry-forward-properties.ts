@@ -1,8 +1,5 @@
 import type { IJsonPropertyInfo, SurveyModel } from "survey-core";
-import {
-  getAllSelectBasedQuestions,
-  getAllUniqueChoices,
-} from "@/lib/survey-features/question-loops/loop-utils";
+import { getAllSelectBasedQuestions } from "@/lib/survey-features/question-loops/loop-utils";
 import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
 import { isChoiceSourceSectionAvailable } from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import {
@@ -19,7 +16,11 @@ import {
 } from "./carry-forward-mode-values";
 import type { CarryForwardVisibleQuestion } from "./types";
 import { getCarryForwardSourceQuestions } from "./utils/carry-forward-target-query";
-import { normalizeChoiceKey } from "@/lib/utils/survey";
+import {
+  formatSourceChoiceLabel,
+  getStaticChoicesFromSources,
+  hasDataListSource,
+} from "@/lib/survey-features/data-lists/utils/property-grid-source-choices";
 
 export function isCarryForwardChoicesSectionVisible(
   obj: CarryForwardVisibleQuestion,
@@ -133,16 +134,13 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
       edxCarryForwardSources,
     });
 
-    const uniqueChoices = getAllUniqueChoices(
-      sourceQuestions,
-      (question, choice) => `${question.name}: (${choice.value})`,
-    );
+    if (hasDataListSource(sourceQuestions)) {
+      choicesCallback([]);
+      return;
+    }
 
     choicesCallback(
-      uniqueChoices.map((choice) => ({
-        value: normalizeChoiceKey(choice.value),
-        text: String(choice.text ?? choice.value),
-      })),
+      getStaticChoicesFromSources(sourceQuestions, "", formatSourceChoiceLabel),
     );
   },
 };

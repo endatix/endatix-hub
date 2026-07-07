@@ -29,3 +29,9 @@ export {
   parseSurveyJsonRoot,
 } from "./survey-json-walk";
 export { resolveLocalizedText, toPlainText } from "./survey-localized-text";
+export {
+  formatSourceChoiceLabel,
+  getDataListSourceRefs,
+  getStaticChoicesFromSources,
+  hasDataListSource,
+} from "./property-grid-source-choices";
