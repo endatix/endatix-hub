@@ -8,6 +8,12 @@ type DataListSearchResult = Awaited<ReturnType<typeof searchDataListChoices>>;
 /**
  * Loads a paged choice list for Creator property-grid tagboxes that aggregate
  * static source choices with one or more data-list sources.
+ *
+ * **Total count:** `total` is `staticItems.length` plus the sum of each data-list
+ * source's API `total`. Cross-source duplicate values are removed from `items`, but
+ * not subtracted from `total`, so `total` may exceed the number of distinct choices
+ * when sources overlap. SurveyJS may allow scrolling slightly past the last distinct
+ * item before pages return empty.
  */
 export async function loadChoicesInCreator(
   deps: ExtensionRuntimeDeps,

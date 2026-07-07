@@ -287,6 +287,68 @@ describe("loadChoicesInCreator", () => {
       { value: "shared", text: "games: (Shared Game)" },
       { value: "brand-2", text: "brands: (Brand 2)" },
     ]);
+    // Summed API totals (1 + 2); only two distinct values are returned.
+    expect(result.total).toBe(3);
+  });
+
+  it("reports summed source totals when values overlap across sources", async () => {
+    const listA = ["v1", "v2", "v3", "shared", "x4"];
+    const listB = ["shared", "x5", "x6", "x7", "x8"];
+
+    vi.mocked(searchDataListChoices).mockImplementation(
+      async (_deps, dataListId, params) => {
+        const source = dataListId === "list-a" ? listA : listB;
+        const items = source
+          .slice(params.skip, params.skip + params.take)
+          .map((value) => ({ value, text: value }));
+
+        return mockSource(dataListId, params, items, source.length);
+      },
+    );
+
+    const result = await loadChoicesInCreator(
+      deps,
+      [
+        { sourceName: "sourceA", dataListId: "list-a" },
+        { sourceName: "sourceB", dataListId: "list-b" },
+      ],
+      [],
+      { skip: 0, take: 25 },
+      formatLabel,
+    );
+
+    expect(result.items).toHaveLength(9);
+    expect(result.total).toBe(10);
+  });
+
+  it("returns an empty page only after summed total is exceeded when sources overlap", async () => {
+    const listA = ["v1", "v2", "v3", "shared", "x4"];
+    const listB = ["shared", "x5", "x6", "x7", "x8"];
+
+    vi.mocked(searchDataListChoices).mockImplementation(
+      async (_deps, dataListId, params) => {
+        const source = dataListId === "list-a" ? listA : listB;
+        const items = source
+          .slice(params.skip, params.skip + params.take)
+          .map((value) => ({ value, text: value }));
+
+        return mockSource(dataListId, params, items, source.length);
+      },
+    );
+
+    const result = await loadChoicesInCreator(
+      deps,
+      [
+        { sourceName: "sourceA", dataListId: "list-a" },
+        { sourceName: "sourceB", dataListId: "list-b" },
+      ],
+      [],
+      { skip: 10, take: 25 },
+      formatLabel,
+    );
+
+    expect(result.items).toHaveLength(0);
+    expect(result.total).toBe(10);
   });
 
   it("continues loading from healthy sources when one source fails", async () => {
