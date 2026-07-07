@@ -64,6 +64,7 @@ describe("property-grid-lazy-choice-registry", () => {
     registerPropertyGridLazyChoiceProvider({
       propertyName: "edxCarryForwardPriorityItems",
       shouldEnable: () => false,
+      getStaticChoices: () => [{ value: "A", text: "static: (A)" }],
       loadPage: async () => ({ items: [], total: 0 }),
       resolveDisplayValues: async (_ctx, values) => values,
     });
@@ -87,6 +88,8 @@ describe("property-grid-lazy-choice-registry", () => {
       "edxCarryForwardPriorityItems",
     );
     expect(editor?.choicesLazyLoadEnabled).not.toBe(true);
+    expect(editor?.choices).toHaveLength(1);
+    expect(editor?.choices?.[0]?.value).toBe("A");
   });
 
   it("registers providers by property name", () => {
@@ -134,6 +137,48 @@ describe("property-grid-lazy-choice-registry", () => {
     expect(editor?.choices).toHaveLength(1);
     expect(editor?.choices?.[0]?.value).toBe("A");
     expect(editor?.choices?.[0]?.text).toBe("static: (A)");
+  });
+
+  it("restores static choices when lazy load is disabled after a source change", () => {
+    let hasDataListSource = true;
+
+    registerPropertyGridLazyChoiceProvider({
+      propertyName: "priorityItems",
+      shouldEnable: () => hasDataListSource,
+      getStaticChoices: () =>
+        hasDataListSource
+          ? []
+          : [
+              { value: "A", text: "static: (A)" },
+              { value: "B", text: "static: (B)" },
+            ],
+      loadPage: async () => ({ items: [], total: 0 }),
+      resolveDisplayValues: async (_ctx, values) => values,
+    });
+
+    const designerSurvey = new SurveyModel({ elements: [] });
+    const propertyGridSurvey = new Model({
+      elements: [{ type: "tagbox", name: "priorityItems" }],
+    });
+    const ctx = {
+      designerSurvey,
+      propertyGridSurvey,
+      editingObj: { loopSource: ["Cars"] },
+    };
+
+    refreshPropertyGridLazyChoices(ctx);
+
+    const editor = propertyGridSurvey.getQuestionByName("priorityItems");
+    expect(editor?.choicesLazyLoadEnabled).toBe(true);
+    expect(editor?.choices).toHaveLength(0);
+
+    hasDataListSource = false;
+    refreshPropertyGridLazyChoices(ctx);
+
+    expect(editor?.choicesLazyLoadEnabled).toBe(false);
+    expect(editor?.choices).toHaveLength(2);
+    expect(editor?.choices?.[0]?.value).toBe("A");
+    expect(editor?.choices?.[1]?.value).toBe("B");
   });
 
   it("refreshes from an open creator property grid", () => {

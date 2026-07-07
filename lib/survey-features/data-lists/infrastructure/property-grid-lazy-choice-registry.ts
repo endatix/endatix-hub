@@ -57,6 +57,7 @@ export function refreshPropertyGridLazyChoices(
 
     if (!provider.shouldEnable(ctx)) {
       tagbox.choicesLazyLoadEnabled = false;
+      tagbox.choices = provider.getStaticChoices?.(ctx, "") ?? [];
       continue;
     }
 
