@@ -1,5 +1,6 @@
 import { FunctionFactory, Serializer } from "survey-core";
 import { getDynamicLoopDefinition } from "../dynamic-loop-question";
+import { registerLoopPriorityLazyProvider } from "./loop-priority-lazy-provider";
 import { LOOP_EXIT_FUNCTION_NAME } from "../types";
 
 let areGlobalsRegistered = false;
@@ -24,6 +25,8 @@ export function registerQuestionLoopsGlobals() {
     false,
     false,
   );
+
+  registerLoopPriorityLazyProvider();
 
   areGlobalsRegistered = true;
 }

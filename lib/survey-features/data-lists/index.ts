@@ -16,6 +16,8 @@ export type {
 export { searchDataListChoices } from "./use-cases/search-data-list-choices";
 export { resolveDataListDisplayValues } from "./use-cases/resolve-data-list-display-values";
 export { loadChoicesInCreator } from "./use-cases/load-choices-in-creator";
+export { loadMultiSourceChoicesInCreator } from "./use-cases/load-multi-source-choices-in-creator";
+export { resolveMultiSourceDisplayValues } from "./use-cases/resolve-multi-source-display-values";
 export {
   type ConvertibleChoiceQuestionRef,
   findConvertibleChoiceQuestions,

@@ -1,5 +1,6 @@
 import type { ExtensionModule } from "@/lib/survey-extensions/types";
 import { bindAdvancedCarryForwardToCreator } from "./creator-bindings";
+import { registerCarryForwardPriorityLazyProvider } from "./carry-forward-priority-lazy-provider";
 import { registerAdvancedCarryForwardCreatorHelp } from "./creator-help";
 import { registerAdvancedCarryForwardGlobals } from "./registry";
 import { bindAdvancedCarryForwardToSurvey } from "./survey-bindings";
@@ -12,6 +13,7 @@ const carryForwardExtension: ExtensionModule = {
   onInit: () => {
     registerAdvancedCarryForwardGlobals();
     registerAdvancedCarryForwardCreatorHelp();
+    registerCarryForwardPriorityLazyProvider();
   },
   onCreatorReady: (creator) => {
     bindAdvancedCarryForwardToCreator(creator);

@@ -3,6 +3,8 @@ import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import type { DataListSourceRef, PropertyGridChoice } from "../types";
 import { searchDataListChoices } from "./search-data-list-choices";
 
+type DataListSearchResult = Awaited<ReturnType<typeof searchDataListChoices>>;
+
 /**
  * Loads a paged choice list for Creator property-grid tagboxes that aggregate
  * static source choices with one or more data-list sources.
@@ -68,38 +70,102 @@ async function fetchMergedDataListChoices(
   const seen = new Set<string>();
   const merged: PropertyGridChoice[] = [];
   let total = 0;
+  let remainingSkip = params.skip;
+  let remainingTake = params.take;
 
-  const responses = await Promise.all(
-    dataListSources.map(async ({ sourceName, dataListId }) => {
-      const response = await searchDataListChoices(deps, dataListId, params);
-      return { sourceName, response };
-    }),
-  );
+  for (const { sourceName, dataListId } of dataListSources) {
+    if (remainingTake <= 0) {
+      break;
+    }
 
-  for (const { sourceName, response } of responses) {
+    const response = await searchDataListChoices(deps, dataListId, {
+      filter: params.filter,
+      skip: remainingSkip,
+      take: remainingTake,
+    });
+
+    const sourceTotal = resolveSourceTotal(response);
+    if (sourceTotal !== null) {
+      total += sourceTotal;
+    }
+
     if (!response.success) {
+      logDataListSourceError(sourceName, dataListId, response);
+      if (sourceTotal !== null && remainingSkip >= sourceTotal) {
+        remainingSkip -= sourceTotal;
+      }
       continue;
     }
 
-    total += response.data.total;
-
-    for (const item of response.data.items) {
-      const value = normalizeChoiceKey(item.value);
-      if (!value || seen.has(value)) {
-        continue;
-      }
-
-      seen.add(value);
-      merged.push({
-        value,
-        text: formatLabel(sourceName, value, item.text),
-      });
-
-      if (merged.length >= params.take) {
-        break;
-      }
+    if (remainingSkip >= response.data.total) {
+      remainingSkip -= response.data.total;
+      continue;
     }
+
+    appendUniqueChoices(
+      merged,
+      seen,
+      response.data.items,
+      sourceName,
+      formatLabel,
+      params.take,
+    );
+
+    remainingSkip = 0;
+    remainingTake = params.take - merged.length;
   }
 
   return { items: merged.slice(0, params.take), total };
+}
+
+function resolveSourceTotal(response: DataListSearchResult): number | null {
+  if (response.success) {
+    return response.data.total;
+  }
+
+  return null;
+}
+
+function logDataListSourceError(
+  sourceName: string,
+  dataListId: string,
+  response: DataListSearchResult,
+): void {
+  if (response.success) {
+    return;
+  }
+
+  console.error("Failed to lazy-load data list choices for merged source.", {
+    sourceName,
+    dataListId,
+    type: response.error.type,
+    message: response.error.message,
+    errorCode: response.error.errorCode,
+  });
+}
+
+function appendUniqueChoices(
+  merged: PropertyGridChoice[],
+  seen: Set<string>,
+  items: Array<{ value: string; text: string }>,
+  sourceName: string,
+  formatLabel: (sourceName: string, value: string, text: string) => string,
+  takeTarget: number,
+): void {
+  for (const item of items) {
+    if (merged.length >= takeTarget) {
+      break;
+    }
+
+    const value = normalizeChoiceKey(item.value);
+    if (!value || seen.has(value)) {
+      continue;
+    }
+
+    seen.add(value);
+    merged.push({
+      value,
+      text: formatLabel(sourceName, value, item.text),
+    });
+  }
 }

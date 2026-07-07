@@ -219,7 +219,9 @@ lib/survey-features/data-lists/
 ├── use-cases/
 │   ├── search-data-list-choices.ts      # respondent + creator API search
 │   ├── resolve-data-list-display-values.ts
-│   └── load-choices-in-creator.ts       # merged static + data-list paging for Creator
+│   ├── load-choices-in-creator.ts       # low-level static + multi-list paging
+│   ├── load-multi-source-choices-in-creator.ts
+│   └── resolve-multi-source-display-values.ts
 └── infrastructure/
     ├── property-grid-lazy-choice-registry.ts
     ├── survey-bindings.ts

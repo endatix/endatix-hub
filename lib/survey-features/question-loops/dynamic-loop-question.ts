@@ -1,4 +1,4 @@
-import { IJsonPropertyInfo, ItemValue, SurveyModel } from "survey-core";
+import { IJsonPropertyInfo, SurveyModel } from "survey-core";
 import {
   ConditionRunnerContext,
   DynamicLoopDefinition,
@@ -6,11 +6,15 @@ import {
   SourceSelectionModes,
 } from "./types";
 import {
-  getAllUniqueChoices,
   getAllSelectBasedQuestions,
   isLoopQuestion,
   isSelectBaseQuestion,
 } from "./loop-utils";
+import {
+  formatSourceChoiceLabel,
+  getStaticChoicesFromSources,
+  hasDataListSource,
+} from "@/lib/survey-features/data-lists/utils/property-grid-source-choices";
 import { createLoopExitQuery } from "./use-cases/handle-loop-exit";
 
 const PANEL_QUESTION_TYPE = "paneldynamic";
@@ -34,11 +38,11 @@ export function isLoopExitedFunction(
   ];
 
   const survey: SurveyModel | undefined = this.survey ?? this.question?.survey;
-  
+
   if (!survey) return false;
 
   const panel = survey.getQuestionByName(panelName);
-  
+
   if (!panel?.exitMeta?.exitAll && !panel?.exitMeta?.exitCurrent) return false;
 
   const query = createLoopExitQuery(panel.exitMeta);
@@ -112,7 +116,7 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
   type: "multiplevalues",
   choices: function (
     obj: { survey: SurveyModel; loopSource: string[] },
-    choicesCallback: (choices: ItemValue[]) => void,
+    choicesCallback: (choices: { value: string; text: string }[]) => void,
   ) {
     const { survey, loopSource } = obj || {};
     if (!survey || !loopSource) return choicesCallback([]);
@@ -121,12 +125,18 @@ const PRIORITY_ITEMS_PROPERTY: IJsonPropertyInfo = {
       .map((name) => survey.getQuestionByName(name))
       .filter(isSelectBaseQuestion);
 
-    const uniqueChoices = getAllUniqueChoices(
-      loopSourceQuestions,
-      (question, choice) => `${question.name}: (${choice.value})`,
-    );
+    if (hasDataListSource(loopSourceQuestions)) {
+      choicesCallback([]);
+      return;
+    }
 
-    choicesCallback(uniqueChoices);
+    choicesCallback(
+      getStaticChoicesFromSources(
+        loopSourceQuestions,
+        "",
+        formatSourceChoiceLabel,
+      ),
+    );
   },
   visibleIf: isLoopQuestion,
 };
