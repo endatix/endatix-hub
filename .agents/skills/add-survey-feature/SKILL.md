@@ -236,7 +236,44 @@ Reference: carry-forward `edxCarryForwardPriorityItems`, question-loops `priorit
 
 ---
 
-## 6. Tests
+## 6. Image and file uploads
+
+The hub has two pre-wired upload paths. **Do not add a new `onUploadFile` / `onUploadFiles` handler** — plug into the existing ones instead.
+
+### Creator-side (property-level images, content uploads)
+
+`form-editor.tsx` calls `registerStorageHandlers(creator)` from `useStorageWithCreator`, which registers `creator.onUploadFile` via `useContentUpload`. This handler intercepts **all** file uploads triggered by the Creator UI — including property-level image pickers.
+
+**What you must do:** Declare image properties with `type: "image"` in `Serializer.addClass` / `Serializer.addProperty`. No other wiring is needed; the existing handler picks them up automatically.
+
+```typescript
+Serializer.addClass("myquestionitem", [
+  { name: "imageUrl", type: "image", displayName: "Image" },
+], ...);
+```
+
+Relevant files:
+- `features/asset-storage/use-cases/upload-content-files/use-content-upload.hook.tsx` — registers `creator.onUploadFile`
+- `features/asset-storage/ui/hooks/use-storage-with-creator.hook.tsx` — called by `form-editor.tsx`
+
+### Runner-side (respondent file uploads)
+
+`survey-component.tsx` calls `useStorageWithSurvey`, which registers `model.onUploadFiles`. This covers file-type questions and any model that fires `onUploadFiles`.
+
+Custom question models that need file upload support should set `waitForUpload = true` and `storeDataAsText = false` (see `AudioQuestionModel`). The runner-side handler is already active; no extra wiring is required in the extension.
+
+Relevant files:
+- `features/asset-storage/use-cases/upload-user-files/use-storage-upload.hook.tsx` — registers `model.onUploadFiles`
+- `features/asset-storage/ui/hooks/use-storage-with-survey.hook.tsx` — called by `survey-component.tsx`
+
+### What NOT to do
+
+- Do not register a new `creator.onUploadFile` handler in `creator-bindings.ts` or `ExtensionModule` — it will double-upload or shadow the existing handler.
+- Do not store uploaded images as base64 in the JSON. Use `type: "image"` in the Serializer and the existing handler returns a storage URL.
+
+---
+
+## 7. Tests
 
 Follow AAA pattern in `__tests__/`:
 
@@ -248,7 +285,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 
 ---
 
-## 7. Checklist before opening PR
+## 8. Checklist before opening PR
 
 - [ ] `ExtensionModule` owns all install logic (no `form-editor` `initGlobals`)
 - [ ] Entry in `core-registry.ts` (or `user-extensions.ts`); omit `shouldLoad` for core features unless bundle size demands it
@@ -261,7 +298,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 
 ---
 
-## 8. Legacy patterns (do not copy)
+## 9. Legacy patterns (do not copy)
 
 | Legacy | Replacement |
 |--------|-------------|
@@ -273,7 +310,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 
 ---
 
-## 9. Further reading
+## 10. Further reading
 
 - [lib/survey-extensions/README.md](lib/survey-extensions/README.md) — loader, server analyzer, authorized extensions
 - [extensions/README.md](extensions/README.md) — self-hosted custom extensions
