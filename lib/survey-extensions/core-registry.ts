@@ -22,12 +22,19 @@ import {
   CARRY_FORWARD_EXTENSION_ID,
   carryForwardExtension,
 } from "@/lib/survey-features/carry-forward";
+// Constants-only import (not the barrel) so the dynamically loaded
+// drag-categorize bundle stays code-split.
+import {
+  DRAG_CATEGORIZE_EXTENSION_ID,
+  DRAG_CATEGORIZE_TYPE,
+} from "@/lib/survey-features/drag-categorize/constants";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
 export {
   CARRY_FORWARD_EXTENSION_ID,
   BLIND_SEARCH_TAGBOX_EXTENSION_ID,
   REGEX_MATCH_EXTENSION_ID,
+  DRAG_CATEGORIZE_EXTENSION_ID,
 };
 
 /**
@@ -100,6 +107,23 @@ export const coreExtensions: ExtensionDefinition[] = [
       name: "Carry forward",
       description:
         "Aggregates choices from multiple source questions with deduplication, priority ordering, and max-selection controls.",
+    },
+  },
+  {
+    id: DRAG_CATEGORIZE_EXTENSION_ID,
+    type: "question",
+    loading: "dynamic",
+    shouldLoad: (_, analyzer) =>
+      analyzer.usesQuestionType(DRAG_CATEGORIZE_TYPE),
+    load: () =>
+      import("@/lib/survey-features/drag-categorize").then(
+        (module) => module.dragCategorizeExtension,
+      ),
+    metadata: {
+      name: "Drag Categorize",
+      description:
+        "Drag-and-drop question letting respondents categorize items into named zones.",
+      category: "choice",
     },
   },
 ];

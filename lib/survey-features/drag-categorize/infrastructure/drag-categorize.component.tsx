@@ -1,0 +1,162 @@
+import React from "react";
+import {
+  ReactQuestionFactory,
+  SurveyQuestionElementBase,
+} from "survey-react-ui";
+import { DRAG_CATEGORIZE_TYPE, POOL_ZONE_ID } from "../constants";
+import type { DragCategorizeQuestion } from "./drag-categorize-question.model";
+import type {
+  DragCategorizeItemValue,
+  DragCategorizeZoneItemValue,
+} from "./item-values";
+import "./drag-categorize.styles.css";
+
+/**
+ * Renders the item pool plus N drop zones. Zone containers carry
+ * `data-categorize={zoneId}` — the attribute DragDropCategorize scans for
+ * during drag-over. Item chips reuse the `sv-ranking-item` class so the
+ * floating drag shortcut inherits theme styling and the engine's cursor
+ * handling keeps working.
+ */
+export class DragCategorizeComponent extends SurveyQuestionElementBase {
+  protected get question(): DragCategorizeQuestion {
+    return this.questionBase as unknown as DragCategorizeQuestion;
+  }
+
+  protected renderElement(): React.JSX.Element {
+    const question = this.question;
+    return (
+      <div
+        className={question.rootClass}
+        ref={(root: HTMLDivElement | null) => {
+          this.control = root as HTMLElement;
+        }}
+      >
+        {this.renderPool()}
+        <div className="sv-categorize__zones">
+          {question.zones.map((zone) => this.renderZone(zone))}
+        </div>
+      </div>
+    );
+  }
+
+  private renderPool(): React.JSX.Element {
+    const pool = this.question.pool;
+    const isOver = this.question.hoveredZoneId === POOL_ZONE_ID;
+    return (
+      <div
+        className={`sv-categorize__pool${
+          isOver ? " sv-categorize__zone--over" : ""
+        }`}
+        data-categorize={POOL_ZONE_ID}
+      >
+        {pool.map((item) => this.renderItem(item, POOL_ZONE_ID))}
+        {pool.length === 0 && (
+          <span className="sv-categorize__pool-empty">All items placed</span>
+        )}
+      </div>
+    );
+  }
+
+  private renderZone(zone: DragCategorizeZoneItemValue): React.JSX.Element {
+    const question = this.question;
+    const zoneId = String(zone.value);
+    const isOver = question.hoveredZoneId === zoneId;
+    return (
+      <div
+        key={zoneId}
+        className={`sv-categorize__zone${
+          isOver ? " sv-categorize__zone--over" : ""
+        }`}
+        data-categorize={zoneId}
+      >
+        <div className="sv-categorize__zone-title">
+          {zone.text || zoneId}
+        </div>
+        <div className="sv-categorize__zone-body">
+          {question
+            .getZoneItems(zoneId)
+            .map((item) => this.renderItem(item, zoneId))}
+        </div>
+        {(zone.minItems > 0 || zone.maxItems > 0) && (
+          <span className="sv-categorize__zone-hint">
+            {[
+              zone.minItems > 0 ? `Min ${zone.minItems}` : "",
+              zone.maxItems > 0 ? `Max ${zone.maxItems}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  private renderItem(
+    item: DragCategorizeItemValue,
+    zoneId: string,
+  ): React.JSX.Element | null {
+    const question = this.question;
+    if (item.isGhost) {
+      // Design-mode "newitem" placeholder appended by SurveyJS.
+      if (!question.isDesignMode) return null;
+      return (
+        <div
+          key="newitem"
+          className="sv-categorize__item sv-categorize__item--ghost"
+          onClick={() => question.addItemFromDesigner()}
+        >
+          <div className="sv-categorize__item-content">
+            <span className="sv-categorize__item-text">+ Add an item</span>
+          </div>
+        </div>
+      );
+    }
+    const isInteractive = !this.isDisplayMode && !question.isReadOnly;
+    return (
+      <div
+        key={`${zoneId}:${item.value}`}
+        className="sv-ranking-item sv-categorize__item"
+        data-categorize-item={String(item.value)}
+        onPointerDown={
+          isInteractive
+            ? (event: React.PointerEvent<HTMLDivElement>) => {
+                // Stop the browser from starting a text selection during the
+                // pre-drag mouse movement (before the engine disables
+                // user-select on <body>).
+                event.preventDefault();
+                question.handlePointerDown(
+                  event.nativeEvent,
+                  item,
+                  zoneId,
+                  event.currentTarget,
+                );
+              }
+            : undefined
+        }
+      >
+        <div className="sv-ranking-item__content sv-categorize__item-content">
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt={item.text}
+              className="sv-categorize__item-img"
+              draggable={false}
+            />
+          ) : (
+            <span className="sv-ranking-item__text sv-categorize__item-text">
+              {item.text}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+}
+
+export function registerDragCategorizeComponent(): void {
+  ReactQuestionFactory.Instance.registerQuestion(
+    DRAG_CATEGORIZE_TYPE,
+    (props) => React.createElement(DragCategorizeComponent, props),
+  );
+}
