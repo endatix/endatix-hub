@@ -79,12 +79,12 @@ function ReportingExportSubmissionsButton({
           disabled={disabled || isExporting}
           className={className}
         >
-          {isExporting && !currentExportName ? (
+          {isExporting ? (
             <Spinner className="mr-2 h-4 w-4" />
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          {isExporting && !currentExportName
+          {isExporting
             ? "Exporting..."
             : "Export Submissions"}
           <ChevronDown className="ml-2 h-4 w-4" />
@@ -185,12 +185,12 @@ function LegacyExportSubmissionsButton({
           disabled={disabled || isExporting}
           className={className}
         >
-          {isExporting && !currentExportName ? (
+          {isExporting ? (
             <Spinner className="mr-2 h-4 w-4" />
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          {isExporting && !currentExportName
+          {isExporting
             ? "Exporting..."
             : "Export Submissions"}
           <ChevronDown className="ml-2 h-4 w-4" />

@@ -12,7 +12,7 @@ export function parseLegacyExportFormat(
 
 export function parseReportingExportFormat(
   format: string | null,
-): ExportFormat | undefined {
+): ExportFormat {
   // TODO(E10): Resolve format from tenant ExportFormats API (by id or slug) instead of hardcoded allow-list.
   if (
     format === "csv" ||
