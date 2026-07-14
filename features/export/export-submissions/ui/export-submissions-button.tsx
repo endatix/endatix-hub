@@ -9,17 +9,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/loaders/spinner";
-import { toast } from "@/components/ui/toast";
 import { Download, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
-import {
-  getFilenameFromContentDisposition,
-  initiateFileDownload,
-} from "@/lib/utils/files-download";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import type { CustomExportSettings } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
-import { readExportErrorMessage } from "../../export-error-message";
 import {
   buildLegacyExportUrl,
   buildReportingExportUrl,
@@ -29,6 +23,7 @@ import {
   HARDCODED_REPORTING_EXPORT_OPTIONS,
   getReportingExportFallbackExtension,
 } from "../reporting-export-options";
+import { useSubmissionsExport } from "../use-submissions-export.hook";
 
 interface ExportSubmissionsButtonProps {
   formId: string;
@@ -67,56 +62,14 @@ function ReportingExportSubmissionsButton({
   className,
   disabled,
 }: Omit<ExportSubmissionsButtonProps, "useReportingExport">) {
-  const [isExporting, setIsExporting] = useState(false);
-  const [currentExportName, setCurrentExportName] = useState<string | null>(
-    null,
-  );
+  const { currentExportName, isExporting, runExport } = useSubmissionsExport();
 
-  const handleExport = async (
-    format: ReportingExportFormat,
-    exportName: string,
-  ) => {
-    try {
-      setIsExporting(true);
-      setCurrentExportName(exportName);
-
-      toast.info({
-        title: "Starting export",
-        description: "Preparing your file for download...",
-      });
-
-      const response = await fetch(buildReportingExportUrl(formId, format));
-
-      if (!response.ok) {
-        throw new Error(await readExportErrorMessage(response));
-      }
-
-      const filename = getFilenameFromContentDisposition(
-        response.headers,
-        `form-${formId}-submissions.${getReportingExportFallbackExtension(format)}`,
-      );
-
-      const blob = await response.blob();
-      initiateFileDownload(blob, filename);
-
-      toast.success({
-        title: "Export successful",
-        description: "Your file has been downloaded successfully.",
-      });
-    } catch (error) {
-      console.error("Export failed:", error);
-      toast.error({
-        title: "Export failed",
-        description:
-          typeof error === "object" && error !== null && "message" in error
-            ? String(error.message)
-            : "There was a problem exporting the submissions.",
-      });
-    } finally {
-      setIsExporting(false);
-      setCurrentExportName(null);
-    }
-  };
+  const handleExport = (format: ReportingExportFormat, exportName: string) =>
+    runExport({
+      exportName,
+      fallbackFilename: `form-${formId}-submissions.${getReportingExportFallbackExtension(format)}`,
+      url: buildReportingExportUrl(formId, format),
+    });
 
   return (
     <DropdownMenu>
@@ -164,13 +117,10 @@ function LegacyExportSubmissionsButton({
   className,
   disabled,
 }: Omit<ExportSubmissionsButtonProps, "useReportingExport">) {
-  const [isExporting, setIsExporting] = useState(false);
+  const { currentExportName, isExporting, runExport } = useSubmissionsExport();
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [customExports, setCustomExports] = useState<CustomExportSettings[]>(
     [],
-  );
-  const [currentExportName, setCurrentExportName] = useState<string | null>(
-    null,
   );
 
   useEffect(() => {
@@ -193,48 +143,12 @@ function LegacyExportSubmissionsButton({
     fetchTenantSettings();
   }, []);
 
-  const handleExport = async (exportId?: string, exportName?: string) => {
-    try {
-      setIsExporting(true);
-      setCurrentExportName(exportName || null);
-
-      toast.info({
-        title: "Starting export",
-        description: "Preparing your file for download...",
-      });
-
-      const response = await fetch(buildLegacyExportUrl(formId, exportId));
-
-      if (!response.ok) {
-        throw new Error(await readExportErrorMessage(response));
-      }
-
-      const filename = getFilenameFromContentDisposition(
-        response.headers,
-        `form-${formId}-submissions.csv`,
-      );
-
-      const blob = await response.blob();
-      initiateFileDownload(blob, filename);
-
-      toast.success({
-        title: "Export successful",
-        description: "Your file has been downloaded successfully.",
-      });
-    } catch (error) {
-      console.error("Export failed:", error);
-      toast.error({
-        title: "Export failed",
-        description:
-          typeof error === "object" && error !== null && "message" in error
-            ? String(error.message)
-            : "There was a problem exporting the submissions.",
-      });
-    } finally {
-      setIsExporting(false);
-      setCurrentExportName(null);
-    }
-  };
+  const handleExport = (exportId?: string, exportName?: string) =>
+    runExport({
+      exportName: exportName ?? null,
+      fallbackFilename: `form-${formId}-submissions.csv`,
+      url: buildLegacyExportUrl(formId, exportId),
+    });
 
   if (isLoadingSettings) {
     return (

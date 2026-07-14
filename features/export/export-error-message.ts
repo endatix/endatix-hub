@@ -33,3 +33,11 @@ export async function readExportErrorMessage(
     return getExportErrorMessage(undefined, response.status);
   }
 }
+
+export function getExportFailureMessage(error: unknown): string {
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String(error.message);
+  }
+
+  return "There was a problem exporting the submissions.";
+}
