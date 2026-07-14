@@ -19,13 +19,16 @@ import {
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import type { CustomExportSettings } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
-import { readExportErrorMessage } from "../export-error-message";
-import { buildLegacyExportUrl, buildReportingExportUrl } from "../export-url";
-import type { ReportingExportFormat } from "../types";
+import { readExportErrorMessage } from "../../export-error-message";
+import {
+  buildLegacyExportUrl,
+  buildReportingExportUrl,
+} from "../../export-url";
+import type { ReportingExportFormat } from "../../types";
 import {
   HARDCODED_REPORTING_EXPORT_OPTIONS,
   getReportingExportFallbackExtension,
-} from "./reporting-export-options";
+} from "../reporting-export-options";
 
 interface ExportSubmissionsButtonProps {
   formId: string;
