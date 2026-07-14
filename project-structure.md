@@ -53,6 +53,20 @@ Use `features/folders` as the canonical implementation of this pattern:
 - server-safe curated exports via `features/folders/server.ts`
 - slice-local tests in `features/folders/create-folder/__tests__/`
 
+### Reporting export slices (`features/export`)
+
+Reporting export is a dedicated feature (not nested under `forms/` or `submissions/`). Slices map to API capabilities and UI surfaces:
+
+| Slice | Scope | Responsibility |
+|-------|--------|----------------|
+| `prepare-reporting-export` | Form | Compile `FormSchema` + backfill flattened submissions (UAT / admin prep) |
+| `export-submissions` | Submissions list | Tabular CSV/JSON download + legacy `CustomExports` path |
+| `export-codebook` | Form artifacts | Codebook format constants (`codebook`, `codebook-shoji`); form-level download UI can land here later |
+
+Shared feature root: `types.ts`, `export-url.ts`, `export-error-message.ts`. BFF route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-bff-request.ts`.
+
+Import from `@/features/export` (client UI) or `@/features/export/server` (server actions). Slice barrels: `@/features/export/export-submissions`, etc.
+
 ### Organization Management Slices
 
 Organization identity surfaces follow the same vertical-slice rule:
