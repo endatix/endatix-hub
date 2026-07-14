@@ -43,8 +43,11 @@ export function PrepareReportingExportCard({
   };
 
   return (
-    <div className="mt-8 space-y-4">
-      <SectionTitle title="Reporting export (beta)" />
+    <div className="mx-auto max-w-2xl space-y-4">
+      <SectionTitle
+        title="Reporting export (beta)"
+        headingClassName="text-xl mt-4"
+      />
       <p className="text-sm text-muted-foreground">
         Compiles the export schema and backfills completed submissions into the
         reporting read model. Use this when testing the new CSV/JSON export

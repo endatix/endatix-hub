@@ -51,6 +51,12 @@ vi.mock("../save-as-template-dialog", () => ({
   SaveAsTemplateDialog: () => <div data-testid="save-as-template-dialog" />,
 }));
 
+vi.mock("@/features/export", () => ({
+  PrepareReportingExportCard: () => (
+    <div data-testid="prepare-reporting-export-card" />
+  ),
+}));
+
 describe("FormDetails", () => {
   beforeEach(() => {
     vi.clearAllMocks();
