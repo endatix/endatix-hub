@@ -15,7 +15,7 @@ interface PrepareReportingExportCardProps {
 
 export function PrepareReportingExportCard({
   formId,
-}: PrepareReportingExportCardProps) {
+}: Readonly<PrepareReportingExportCardProps>) {
   const [isPending, startTransition] = useTransition();
   const [lastSummary, setLastSummary] = useState<string | null>(null);
 

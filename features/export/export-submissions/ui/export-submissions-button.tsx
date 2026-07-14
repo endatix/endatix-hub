@@ -37,7 +37,7 @@ export function ExportSubmissionsButton({
   className,
   disabled = false,
   useReportingExport = false,
-}: ExportSubmissionsButtonProps) {
+}: Readonly<ExportSubmissionsButtonProps>) {
   if (useReportingExport) {
     return (
       <ReportingExportSubmissionsButton
@@ -61,7 +61,7 @@ function ReportingExportSubmissionsButton({
   formId,
   className,
   disabled,
-}: Omit<ExportSubmissionsButtonProps, "useReportingExport">) {
+}: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
   const { currentExportName, isExporting, runExport } = useSubmissionsExport();
 
   const handleExport = (format: ReportingExportFormat, exportName: string) =>
@@ -84,9 +84,7 @@ function ReportingExportSubmissionsButton({
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          {isExporting
-            ? "Exporting..."
-            : "Export Submissions"}
+          {isExporting ? "Exporting..." : "Export Submissions"}
           <ChevronDown className="ml-2 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -116,7 +114,7 @@ function LegacyExportSubmissionsButton({
   formId,
   className,
   disabled,
-}: Omit<ExportSubmissionsButtonProps, "useReportingExport">) {
+}: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
   const { currentExportName, isExporting, runExport } = useSubmissionsExport();
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [customExports, setCustomExports] = useState<CustomExportSettings[]>(
@@ -190,9 +188,7 @@ function LegacyExportSubmissionsButton({
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          {isExporting
-            ? "Exporting..."
-            : "Export Submissions"}
+          {isExporting ? "Exporting..." : "Export Submissions"}
           <ChevronDown className="ml-2 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
