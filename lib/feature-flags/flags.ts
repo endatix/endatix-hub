@@ -27,11 +27,17 @@ export const storageStatsFlag = flag<boolean>({
   defaultValue: false,
 });
 
+export const reportingExportFlag = flag<boolean>({
+  key: "reporting-export",
+  defaultValue: false,
+});
+
 // Get all flags at once (async version)
 export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   experimentalFeatures: await experimentalFeaturesFlag(),
   advancedAnalytics: await advancedAnalyticsFlag(),
   aiFeatures: await aiFeaturesFlag(),
   formAnalytics: await formAnalyticsFlag(),
-  storageStats: await storageStatsFlag()
+  storageStats: await storageStatsFlag(),
+  reportingExport: await reportingExportFlag(),
 });
