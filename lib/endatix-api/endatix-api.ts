@@ -150,9 +150,7 @@ export class EndatixApi {
   }
 
   get reporting(): Reporting {
-    if (!this._reporting) {
-      this._reporting = new Reporting(this);
-    }
+    this._reporting ??= new Reporting(this);
     return this._reporting;
   }
 

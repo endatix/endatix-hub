@@ -67,9 +67,9 @@ export function PrepareReportingExportCard({
         {isPending ? "Preparing..." : "Prepare for export"}
       </Button>
       {lastSummary ? (
-        <p className="text-sm text-muted-foreground" role="status">
+        <output className="block text-sm text-muted-foreground">
           {lastSummary}
-        </p>
+        </output>
       ) : null}
     </div>
   );
