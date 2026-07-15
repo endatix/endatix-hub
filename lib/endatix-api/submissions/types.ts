@@ -84,7 +84,8 @@ export type UpdateSubmissionStatusDto = {
 };
 
 export type ExportSubmissionsDto = {
-  exportFormat: "csv" | "xlsx" | "json";
+  // TODO(E10): Replace hardcoded union with tenant-configured ExportFormats from API.
+  exportFormat: "csv" | "xlsx" | "json" | "codebook" | "codebook-shoji";
   includeMetadata?: boolean;
   dateRange?: {
     from: string; // ISO date string
@@ -93,6 +94,11 @@ export type ExportSubmissionsDto = {
 };
 
 export type ExportFormat = ExportSubmissionsDto["exportFormat"];
+// TODO(E10): Drive from tenant ExportFormats API instead of hardcoded codebook variants.
+export type ReportingExportFormat =
+  | Extract<ExportFormat, "csv" | "json">
+  | "codebook"
+  | "codebook-shoji";
 export type BooleanFilterValue = "true" | "false";
 export type SubmissionReviewStatus = "new" | "read" | "approved";
 
@@ -100,6 +106,8 @@ export interface ExportSubmissionsRequest {
   formId: string;
   exportFormat?: ExportFormat;
   exportId?: string;
+  includeTestSubmissions?: boolean;
+  columnScope?: string[];
 }
 
 export interface ListSubmissionsRequest {

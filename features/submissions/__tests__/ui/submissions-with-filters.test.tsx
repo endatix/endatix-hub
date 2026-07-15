@@ -42,7 +42,7 @@ vi.mock(
   }),
 );
 
-vi.mock("@/features/submissions/ui/export", () => ({
+vi.mock("@/features/export", () => ({
   ExportSubmissionsButton: ({ disabled }: { disabled?: boolean }) => (
     <button disabled={disabled}>Export Submissions</button>
   ),

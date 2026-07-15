@@ -6,7 +6,7 @@ import {
   serializeSubmissionListSearchParams,
   submissionListUrlStateFromClientFilters,
 } from "@/features/submissions/list-submission-query";
-import { ExportSubmissionsButton } from "@/features/submissions/ui/export";
+import { ExportSubmissionsButton } from "@/features/export";
 import { SubmissionsFilterToolbar } from "@/features/submissions/ui/filters/submissions-filter-toolbar";
 import { NoSubmissionsEmptyState } from "@/features/submissions/ui/submissions-empty-state";
 import {
@@ -49,6 +49,7 @@ interface SubmissionsWithFiltersProps {
   data: Submission[];
   formId: string;
   hasAnySubmissions: boolean;
+  useReportingExport?: boolean;
   definitionFields?: DefinitionField[];
   initialIsComplete?: string[];
   initialStatus?: string[];
@@ -74,6 +75,7 @@ function SubmissionsContent({
   data,
   formId,
   hasAnySubmissions,
+  useReportingExport = false,
   isCompleteFilter,
   statusFilter,
   testSubmissionFilter,
@@ -98,6 +100,7 @@ function SubmissionsContent({
   data: Submission[];
   formId: string;
   hasAnySubmissions: boolean;
+  useReportingExport?: boolean;
   isCompleteFilter: Set<string>;
   statusFilter: Set<string>;
   testSubmissionFilter: Set<string>;
@@ -226,6 +229,7 @@ function SubmissionsContent({
           <ExportSubmissionsButton
             formId={formId}
             disabled={disableTableControls}
+            useReportingExport={useReportingExport}
           />
         </div>
       </div>
@@ -272,6 +276,7 @@ export function SubmissionsWithFilters({
   data,
   formId,
   hasAnySubmissions,
+  useReportingExport = false,
   definitionFields = [],
   initialIsComplete = EMPTY_INITIAL_FILTER_VALUES,
   initialStatus = EMPTY_INITIAL_FILTER_VALUES,
@@ -583,6 +588,7 @@ export function SubmissionsWithFilters({
           data={data}
           formId={formId}
           hasAnySubmissions={hasAnySubmissions}
+          useReportingExport={useReportingExport}
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
           testSubmissionFilter={testSubmissionFilter}

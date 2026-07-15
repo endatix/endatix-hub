@@ -3,10 +3,15 @@ import {
   ApiResult,
   EndatixApi,
   ExportSubmissionsRequest,
-  type ExportFormat,
 } from "@/lib/endatix-api";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
+import { reportingExportFlag } from "@/lib/feature-flags/flags";
+import {
+  parseIncludeTestSubmissionsQuery,
+  parseLegacyExportFormat,
+  parseReportingExportFormat,
+} from "@/features/export/export-submissions";
 
 export async function GET(
   request: NextRequest,
@@ -21,11 +26,23 @@ export async function GET(
   const searchParams = request.nextUrl.searchParams;
   const format = searchParams.get("format");
   const exportId = searchParams.get("exportId");
-  const exportFormat = parseExportFormat(format);
+  const includeTestSubmissionsParam = searchParams.get(
+    "includeTestSubmissions",
+  );
+
+  const useReportingExport = await reportingExportFlag();
+
+  const exportFormat = useReportingExport
+    ? parseReportingExportFormat(format)
+    : parseLegacyExportFormat(format);
+
   const exportOptions: ExportSubmissionsRequest = {
     formId,
     exportFormat,
-    exportId: exportId ?? undefined,
+    exportId: useReportingExport ? undefined : (exportId ?? undefined),
+    includeTestSubmissions: parseIncludeTestSubmissionsQuery(
+      includeTestSubmissionsParam,
+    ),
   };
 
   const endatix = new EndatixApi(session?.accessToken);
@@ -66,12 +83,4 @@ export async function GET(
       "Content-Disposition": contentDisposition,
     },
   });
-}
-
-function parseExportFormat(format: string | null): ExportFormat | undefined {
-  if (format === "csv" || format === "xlsx" || format === "json") {
-    return format;
-  }
-
-  return undefined;
 }

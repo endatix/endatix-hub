@@ -22,6 +22,7 @@ import Email from "./email/email";
 import AuthAdmin from "./auth-admin/auth-admin";
 import PlatformTenants from "./platform-tenants/platform-tenants";
 import PlatformAdmins from "./platform-admins/platform-admins";
+import { Reporting } from "./reporting/reporting";
 
 /**
  * Gets the validated and cached API URL
@@ -62,6 +63,7 @@ export class EndatixApi {
   private _dataLists?: DataLists;
   private _forms?: Forms;
   private _submissions?: Submissions;
+  private _reporting?: Reporting;
   private _agents?: Agents;
   private _auth?: Auth;
   private _account?: Account;
@@ -145,6 +147,11 @@ export class EndatixApi {
       this._submissions = new Submissions(this);
     }
     return this._submissions;
+  }
+
+  get reporting(): Reporting {
+    this._reporting ??= new Reporting(this);
+    return this._reporting;
   }
 
   /**

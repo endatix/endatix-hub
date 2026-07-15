@@ -164,7 +164,13 @@ export class Submissions {
   async export(
     request: ExportSubmissionsRequest,
   ): Promise<ApiResult<Response>> {
-    const { formId, exportFormat, exportId } = request;
+    const {
+      formId,
+      exportFormat,
+      exportId,
+      includeTestSubmissions,
+      columnScope,
+    } = request;
 
     const validateFormIdResult = validateEndatixId(formId, "formId");
     if (Result.isError(validateFormIdResult)) {
@@ -174,7 +180,12 @@ export class Submissions {
     const validatedFormId = validateFormIdResult.value;
     return this.endatix.postStream(
       `/forms/${validatedFormId}/submissions/export`,
-      { exportFormat, exportId },
+      {
+        exportFormat,
+        exportId,
+        includeTestSubmissions,
+        columnScope,
+      },
     );
   }
 

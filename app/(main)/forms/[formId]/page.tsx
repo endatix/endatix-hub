@@ -7,6 +7,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { formAnalyticsFlag } from "@/lib/feature-flags";
+import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import { resolveFormFolderLink } from "@/features/forms/ui/resolve-form-folder-link";
 
@@ -21,6 +22,7 @@ export default async function FormOverviewPage({ params }: Params) {
 
   const { formId } = await params;
   const enableAnalytics = await formAnalyticsFlag();
+  const enableReportingExport = await reportingExportFlag();
   const headerData = await getFormsHeaderDataCached(session?.accessToken);
 
   let form: Form | null = null;
@@ -53,6 +55,7 @@ export default async function FormOverviewPage({ params }: Params) {
       showHeader={true}
       enableEditing={true}
       enableAnalytics={enableAnalytics}
+      enableReportingExport={enableReportingExport}
       folderLink={resolveFormFolderLink(form, headerData.folders)}
     />
   );

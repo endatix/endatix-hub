@@ -7,6 +7,7 @@ import {
   experimentalFeaturesFlag,
   advancedAnalyticsFlag,
   formAnalyticsFlag,
+  reportingExportFlag,
   getAllFlags,
   flagFactoryProvider,
   PostHogFlagFactory,
@@ -56,6 +57,7 @@ describe("Feature Flags Module Exports", () => {
       expect(typeof experimentalFeaturesFlag).toBe("function");
       expect(typeof advancedAnalyticsFlag).toBe("function");
       expect(typeof formAnalyticsFlag).toBe("function");
+      expect(typeof reportingExportFlag).toBe("function");
       expect(typeof getAllFlags).toBe("function");
     });
   });
@@ -92,6 +94,7 @@ describe("Feature Flags Module Exports", () => {
         "experimentalFeaturesFlag",
         "advancedAnalyticsFlag",
         "formAnalyticsFlag",
+        "reportingExportFlag",
         "getAllFlags",
         "flagFactoryProvider",
         "PostHogFlagFactory",

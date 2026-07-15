@@ -12,6 +12,7 @@ import {
   submissionListUrlStateToListRequest,
 } from "@/features/submissions/list-submission-query";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
+import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
@@ -148,6 +149,7 @@ async function SubmissionsTableData({
 
   const session = await getSession();
   const api = new EndatixApi(session ?? undefined);
+  const useReportingExport = await reportingExportFlag();
 
   const listRequest = submissionListUrlStateToListRequest(listState);
 
@@ -203,6 +205,7 @@ async function SubmissionsTableData({
       data={submissions}
       formId={formId}
       hasAnySubmissions={hasAnySubmissions}
+      useReportingExport={useReportingExport}
       definitionFields={definitionFields}
       initialPage={submissionsResult.data.page}
       initialPageSize={submissionsResult.data.pageSize}
