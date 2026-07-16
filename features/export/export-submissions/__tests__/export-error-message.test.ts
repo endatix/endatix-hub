@@ -19,6 +19,13 @@ describe("getExportErrorMessage", () => {
     expect(message).toBe("Export format is not supported.");
   });
 
+  it("returns the API message for missing form schema compilation", () => {
+    const apiMessage =
+      "Form schema has not been compiled for this form. Save or publish the form definition to trigger compilation.";
+
+    expect(getExportErrorMessage(apiMessage)).toBe(apiMessage);
+  });
+
   it("returns a default message when the API error is missing", () => {
     expect(getExportErrorMessage(undefined, 500)).toContain(
       "problem exporting",

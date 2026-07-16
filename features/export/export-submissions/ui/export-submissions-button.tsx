@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import type { Route } from "next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,12 +20,8 @@ import {
   buildLegacyExportUrl,
   buildReportingExportUrl,
 } from "../../export-url";
-import type { ReportingExportFormat } from "../../types";
-import {
-  HARDCODED_REPORTING_EXPORT_OPTIONS,
-  getReportingExportFallbackExtension,
-} from "../reporting-export-options";
 import { useSubmissionsExport } from "../use-submissions-export.hook";
+import { useTenantExportFormats } from "../use-tenant-export-formats.hook";
 
 interface ExportSubmissionsButtonProps {
   formId: string;
@@ -63,13 +61,44 @@ function ReportingExportSubmissionsButton({
   disabled,
 }: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
   const { currentExportName, isExporting, runExport } = useSubmissionsExport();
+  const { groups, isLoading, isEmpty, loadError } = useTenantExportFormats();
 
-  const handleExport = (format: ReportingExportFormat, exportName: string) =>
+  const handleExport = (
+    wireKey: string,
+    exportName: string,
+    exportFormatId: string,
+    fallbackExtension: string,
+  ) =>
     runExport({
       exportName,
-      fallbackFilename: `form-${formId}-submissions.${getReportingExportFallbackExtension(format)}`,
-      url: buildReportingExportUrl(formId, format),
+      fallbackFilename: `form-${formId}-submissions.${fallbackExtension}`,
+      url: buildReportingExportUrl(formId, wireKey, exportFormatId),
     });
+
+  if (isLoading) {
+    return (
+      <Button variant="outline" disabled className={className}>
+        <Spinner className="mr-2 h-4 w-4" />
+        Loading...
+      </Button>
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <Button
+        variant="outline"
+        disabled={disabled}
+        className={className}
+        asChild
+      >
+        <Link href={"/settings/organization/export-formats" as Route}>
+          <Download className="mr-2 h-4 w-4" />
+          Configure export formats
+        </Link>
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -78,6 +107,7 @@ function ReportingExportSubmissionsButton({
           variant="outline"
           disabled={disabled || isExporting}
           className={className}
+          title={loadError ?? undefined}
         >
           {isExporting ? (
             <Spinner className="mr-2 h-4 w-4" />
@@ -90,20 +120,38 @@ function ReportingExportSubmissionsButton({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        {/* TODO(E10): Replace hardcoded options with tenant ExportFormats from API. */}
-        {HARDCODED_REPORTING_EXPORT_OPTIONS.map(({ format, label }) => (
-          <DropdownMenuItem
-            key={format}
-            onClick={() => handleExport(format, label)}
-            disabled={disabled || isExporting}
-          >
-            {isExporting && currentExportName === label ? (
-              <Spinner className="mr-2 h-4 w-4" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
+        {groups.map((group, groupIndex) => (
+          <div key={group.target}>
+            {groupIndex > 0 ? <DropdownMenuSeparator /> : null}
+            {groups.length > 1 ? (
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                {group.label}
+              </div>
+            ) : null}
+            {group.options.map(
+              ({ wireKey, label, exportFormatId, fallbackExtension }) => (
+                <DropdownMenuItem
+                  key={exportFormatId}
+                  onClick={() =>
+                    handleExport(
+                      wireKey,
+                      label,
+                      exportFormatId,
+                      fallbackExtension,
+                    )
+                  }
+                  disabled={disabled || isExporting}
+                >
+                  {isExporting && currentExportName === label ? (
+                    <Spinner className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  {label}
+                </DropdownMenuItem>
+              ),
             )}
-            {label}
-          </DropdownMenuItem>
+          </div>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>

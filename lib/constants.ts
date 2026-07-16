@@ -4,6 +4,7 @@ import {
   BookOpen,
   ClipboardList,
   DatabaseZap,
+  FileDown,
   FolderCog,
   HardDrive,
   KeyRound,
@@ -135,6 +136,12 @@ const sitemapArray: INavItem[] = [
         title: "Roles",
         url: "/settings/organization/roles",
         icon: UserCog,
+      },
+      {
+        key: "exportFormats",
+        title: "Export formats",
+        url: "/settings/organization/export-formats",
+        icon: FileDown,
       },
       {
         key: "myAccountSection",
