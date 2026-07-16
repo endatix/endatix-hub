@@ -60,12 +60,14 @@ Reporting export is a dedicated feature (not nested under `forms/` or `submissio
 | Slice | Scope | Responsibility |
 |-------|--------|----------------|
 | `prepare-reporting-export` | Form | Compile `FormSchema` + backfill flattened submissions (UAT / admin prep) |
-| `export-submissions` | Submissions list | Tabular CSV/JSON download + legacy `CustomExports` path |
-| `export-codebook` | Form artifacts | Codebook format constants (`codebook`, `codebook-shoji`); form-level download UI can land here later |
+| `export-submissions` | Submissions list | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off) |
+| `manage-export-formats` | Tenant settings (E10b) | CRUD UI for tenant export formats + tenant default mapping picker (alias, key separator, include-test) |
 
 Shared feature root: `types.ts`, `export-url.ts`, `export-error-message.ts`. BFF route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-bff-request.ts`.
 
-Import from `@/features/export` (client UI) or `@/features/export/server` (server actions). Slice barrels: `@/features/export/export-submissions`, etc.
+Import from `@/features/export` (client UI) or `@/features/export/server` (server actions). Slice barrels: `@/features/export/export-submissions`, `@/features/export/manage-export-formats`.
+
+> **Note:** Codebook/Shoji downloads use the same tenant formats + submissions export dropdown (no separate `export-codebook` / `manage-export-mappings` slices). Locale stays request-time on the export API and is not edited on format definitions.
 
 ### Organization Management Slices
 

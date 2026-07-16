@@ -10,7 +10,7 @@ import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import {
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
-  parseReportingExportFormat,
+  parseReportingExportWireKey,
 } from "@/features/export/export-submissions";
 
 export async function GET(
@@ -25,6 +25,7 @@ export async function GET(
 
   const searchParams = request.nextUrl.searchParams;
   const format = searchParams.get("format");
+  const exportFormatId = searchParams.get("exportFormatId");
   const exportId = searchParams.get("exportId");
   const includeTestSubmissionsParam = searchParams.get(
     "includeTestSubmissions",
@@ -32,13 +33,26 @@ export async function GET(
 
   const useReportingExport = await reportingExportFlag();
 
+  if (useReportingExport && !exportFormatId) {
+    return new Response(
+      JSON.stringify({
+        error: "exportFormatId is required for reporting export.",
+      }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
   const exportFormat = useReportingExport
-    ? parseReportingExportFormat(format)
+    ? parseReportingExportWireKey(format)
     : parseLegacyExportFormat(format);
 
   const exportOptions: ExportSubmissionsRequest = {
     formId,
     exportFormat,
+    exportFormatId: exportFormatId ?? undefined,
     exportId: useReportingExport ? undefined : (exportId ?? undefined),
     includeTestSubmissions: parseIncludeTestSubmissionsQuery(
       includeTestSubmissionsParam,
