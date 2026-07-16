@@ -252,6 +252,18 @@ export function ExportFormatFormFields({
   };
 
   const isEdit = mode === "edit";
+  const hasAdvancedErrors = Boolean(
+    fieldErrors?.keySeparator?.length || fieldErrors?.aliasProfile?.length,
+  );
+  const [advancedSection, setAdvancedSection] = useState<string | undefined>(
+    hasAdvancedErrors ? "advanced" : undefined,
+  );
+
+  useEffect(() => {
+    if (hasAdvancedErrors) {
+      setAdvancedSection("advanced");
+    }
+  }, [hasAdvancedErrors]);
 
   return (
     <>
@@ -281,6 +293,7 @@ export function ExportFormatFormFields({
       />
       <input type="hidden" name="profile" value={values.profile} />
       <input type="hidden" name="aliasProfile" value={values.aliasProfile} />
+      <input type="hidden" name="keySeparator" value={values.keySeparator} />
 
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
@@ -430,7 +443,13 @@ export function ExportFormatFormFields({
           </div>
         ) : null}
 
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full"
+          value={advancedSection}
+          onValueChange={setAdvancedSection}
+        >
           <AccordionItem value="advanced" className="border-b-0">
             <AccordionTrigger className="py-3 hover:no-underline">
               <span className="flex flex-col items-start gap-1 text-left">
@@ -505,7 +524,6 @@ export function ExportFormatFormFields({
                 </p>
                 <Input
                   id={`${mode}-keySeparator`}
-                  name="keySeparator"
                   value={values.keySeparator}
                   onChange={(event) =>
                     setValues((current) => ({
