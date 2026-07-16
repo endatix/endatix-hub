@@ -7,15 +7,21 @@ import { authorization, Permissions } from "@/features/auth/authorization";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 import {
   buildExportFormatSettingsInput,
+  getColumnAliasNamingConvention,
+  getExportCapabilityForSelection,
   getExportFormatSettingsFieldVisibility,
 } from "@/lib/endatix-api/reporting/export-format-types";
 import type {
+  ColumnAliasNamingConventionDto,
   CreateExportFormatRequestBody,
+  ExportCapabilityDto,
   ExportDeliveryFormat,
   ExportProfile,
   ExportTarget,
   UpdateExportFormatRequestBody,
 } from "@/lib/endatix-api/reporting/reporting";
+import { normalizeExportCapabilities } from "@/lib/endatix-api/reporting/normalize-export-capabilities";
+import { normalizeExportNamingConventions } from "@/lib/endatix-api/reporting/normalize-export-naming-conventions";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
@@ -30,6 +36,7 @@ const exportFormatIdSchema = createEndatixIdSchema("exportFormatId");
 
 const exportFormatSettingsFieldsSchema = z.object({
   exportTarget: exportTargetSchema,
+  deliveryFormat: deliveryFormatSchema,
   profile: profileSchema,
   aliasProfile: z.string().trim().min(1),
   keySeparator: z.string().trim().min(1),
@@ -38,7 +45,6 @@ const exportFormatSettingsFieldsSchema = z.object({
 
 const createExportFormatSchema = exportFormatSettingsFieldsSchema.extend({
   name: z.string().trim().min(1).max(200),
-  deliveryFormat: deliveryFormatSchema,
   description: z.string().trim().max(500).optional(),
 });
 
@@ -99,6 +105,82 @@ function validateSettingsFields(
   return issues.length > 0 ? new z.ZodError(issues) : null;
 }
 
+function validateCatalogMembership(
+  selection: {
+    exportTarget: ExportTarget;
+    deliveryFormat: ExportDeliveryFormat;
+    profile: ExportProfile;
+    aliasProfile: string;
+  },
+  capabilities: ReadonlyArray<ExportCapabilityDto>,
+  namingConventions: ReadonlyArray<ColumnAliasNamingConventionDto>,
+): z.ZodError | null {
+  const issues: z.ZodIssue[] = [];
+
+  const capability = getExportCapabilityForSelection(
+    selection.exportTarget,
+    selection.deliveryFormat,
+    selection.profile,
+    capabilities,
+  );
+  if (!capability) {
+    issues.push({
+      code: "custom",
+      path: ["exportTarget"],
+      message:
+        "Selected export type is not supported by the available capabilities.",
+    });
+  }
+
+  if (
+    !getColumnAliasNamingConvention(selection.aliasProfile, namingConventions)
+  ) {
+    issues.push({
+      code: "custom",
+      path: ["aliasProfile"],
+      message: "Selected column naming is not supported.",
+    });
+  }
+
+  return issues.length > 0 ? new z.ZodError(issues) : null;
+}
+
+async function loadExportCatalogs(api: EndatixApi): Promise<
+  Result<{
+    capabilities: ExportCapabilityDto[];
+    namingConventions: ColumnAliasNamingConventionDto[];
+  }>
+> {
+  const [capabilitiesApiResult, namingApiResult] = await Promise.all([
+    api.reporting.exportCapabilities.list(),
+    api.reporting.exportNamingConventions.list(),
+  ]);
+
+  const capabilitiesResult = toResult(capabilitiesApiResult, {
+    fallbackMessage: "Failed to load export capabilities.",
+    logMessage: "Failed to load export capabilities for catalog validation.",
+    loggerName: LOGGER_NAME,
+  });
+  if (Result.isError(capabilitiesResult)) {
+    return capabilitiesResult;
+  }
+
+  const namingResult = toResult(namingApiResult, {
+    fallbackMessage: "Failed to load column naming conventions.",
+    logMessage:
+      "Failed to load export naming conventions for catalog validation.",
+    loggerName: LOGGER_NAME,
+  });
+  if (Result.isError(namingResult)) {
+    return namingResult;
+  }
+
+  return Result.success({
+    capabilities: normalizeExportCapabilities(capabilitiesResult.value),
+    namingConventions: normalizeExportNamingConventions(namingResult.value),
+  });
+}
+
 export type ExportFormatActionState = ServerActionState<{
   exportFormatId?: string;
   name?: string;
@@ -153,6 +235,25 @@ export async function createExportFormatAction(
     return ServerActionState.fromZodError(settingsValidationError, rawData);
   }
 
+  const api = new EndatixApi(session?.accessToken);
+  const catalogsResult = await loadExportCatalogs(api);
+  if (Result.isError(catalogsResult)) {
+    return {
+      isSuccess: false,
+      message: catalogsResult.message,
+      data: rawData,
+    };
+  }
+
+  const catalogValidationError = validateCatalogMembership(
+    validated.data,
+    catalogsResult.value.capabilities,
+    catalogsResult.value.namingConventions,
+  );
+  if (catalogValidationError) {
+    return ServerActionState.fromZodError(catalogValidationError, rawData);
+  }
+
   const body: CreateExportFormatRequestBody = {
     name: validated.data.name,
     exportTarget: validated.data.exportTarget as ExportTarget,
@@ -170,7 +271,6 @@ export async function createExportFormatAction(
     ),
   };
 
-  const api = new EndatixApi(session?.accessToken);
   const apiResult = await api.reporting.exportFormats.create(body);
 
   if (ApiResult.isSuccess(apiResult)) {
@@ -210,6 +310,7 @@ export async function updateExportFormatAction(
     exportFormatId: getStringFormValue(formData, "exportFormatId"),
     name: getStringFormValue(formData, "name"),
     exportTarget: getStringFormValue(formData, "exportTarget"),
+    deliveryFormat: getStringFormValue(formData, "deliveryFormat"),
     profile: getStringFormValue(formData, "profile"),
     description: getStringFormValue(formData, "description"),
     aliasProfile: getStringFormValue(formData, "aliasProfile"),
@@ -230,6 +331,25 @@ export async function updateExportFormatAction(
     return ServerActionState.fromZodError(settingsValidationError, rawData);
   }
 
+  const api = new EndatixApi(session?.accessToken);
+  const catalogsResult = await loadExportCatalogs(api);
+  if (Result.isError(catalogsResult)) {
+    return {
+      isSuccess: false,
+      message: catalogsResult.message,
+      data: rawData,
+    };
+  }
+
+  const catalogValidationError = validateCatalogMembership(
+    validated.data,
+    catalogsResult.value.capabilities,
+    catalogsResult.value.namingConventions,
+  );
+  if (catalogValidationError) {
+    return ServerActionState.fromZodError(catalogValidationError, rawData);
+  }
+
   const body: UpdateExportFormatRequestBody = {
     name: validated.data.name,
     description: validated.data.description ?? null,
@@ -244,7 +364,6 @@ export async function updateExportFormatAction(
     ),
   };
 
-  const api = new EndatixApi(session?.accessToken);
   const apiResult = await api.reporting.exportFormats.update(
     validated.data.exportFormatId,
     body,
