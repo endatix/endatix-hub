@@ -1,13 +1,10 @@
-/** Wire key for a column naming convention (e.g. native, crunch). Sourced from OSS. */
-export type ColumnAliasProfile = string;
-
 /** Wire enum values from the Reporting API contract — not UI copy. */
 export type ExportTarget = "Submissions" | "Codebook";
 export type ExportDeliveryFormat = "Csv" | "Json";
 export type ExportProfile = "Native" | "Shoji";
 
 export interface ColumnAliasNamingConventionDto {
-  wireKey: ColumnAliasProfile;
+  wireKey: string;
   label: string;
   description: string;
   example?: string | null;
@@ -25,7 +22,7 @@ export interface ExportCapabilityDto {
 
 /** Persisted export format settings (locale / columnScope are request-time only). */
 export interface ExportFormatSettingsDto {
-  aliasProfile: ColumnAliasProfile;
+  aliasProfile: string;
   keySeparator: string;
   includeTestSubmissions: boolean;
 }
@@ -45,7 +42,7 @@ export interface ExportFormatListItem {
 }
 
 export interface ExportFormatSettingsInput {
-  aliasProfile?: ColumnAliasProfile;
+  aliasProfile?: string;
   keySeparator?: string;
   includeTestSubmissions?: boolean;
 }
@@ -97,7 +94,7 @@ export function getExportFormatLabel(format: ExportFormatListItem): string {
 }
 
 export function getColumnAliasProfileLabel(
-  aliasProfile: ColumnAliasProfile,
+  aliasProfile: string,
   namingConventions: ReadonlyArray<ColumnAliasNamingConventionDto> = [],
 ): string {
   return (
@@ -107,7 +104,7 @@ export function getColumnAliasProfileLabel(
 }
 
 export function getColumnAliasNamingConvention(
-  aliasProfile: ColumnAliasProfile,
+  aliasProfile: string,
   namingConventions: ReadonlyArray<ColumnAliasNamingConventionDto>,
 ): ColumnAliasNamingConventionDto | undefined {
   return namingConventions.find((option) => option.wireKey === aliasProfile);
@@ -179,7 +176,7 @@ export function buildExportFormatSettingsInput(
   exportTarget: ExportTarget,
   profile: ExportProfile,
   values: {
-    aliasProfile?: ColumnAliasProfile;
+    aliasProfile?: string;
     keySeparator?: string;
     includeTestSubmissions?: boolean;
   },

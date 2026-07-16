@@ -1,103 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type {
   ColumnAliasNamingConventionDto,
-  ColumnAliasProfile,
   ExportCapabilityDto,
-  ExportDeliveryFormat,
   ExportFormatListItem,
-  ExportProfile,
-  ExportTarget,
 } from "@/lib/endatix-api/reporting/export-format-types";
+import { getExportFormatTypeLabel } from "@/lib/endatix-api/reporting/export-format-types";
+import { ExportFormatAdvancedFields } from "./export-format-advanced-fields";
+import { ExportFormatTypeFields } from "./export-format-type-fields";
 import {
-  getColumnAliasNamingConvention,
-  getDefaultExportFormatSelection,
-  getDefaultExportKeySeparator,
-  getDeliveryFormatOptionsForTarget,
-  getExportCapabilityForSelection,
-  getExportFormatSettingsFieldVisibility,
-  getExportFormatTypeLabel,
-  getExportTargetOptions,
-  getProfileOptionsForSelection,
-} from "@/lib/endatix-api/reporting/export-format-types";
+  useExportFormatFormState,
+  type ExportFormatFormMode,
+  type ExportFormatFormValues,
+} from "./use-export-format-form-state.hook";
 
-export interface ExportFormatFormValues {
-  name: string;
-  description: string;
-  exportTarget: ExportTarget;
-  deliveryFormat: ExportDeliveryFormat;
-  profile: ExportProfile;
-  aliasProfile: ColumnAliasProfile;
-  keySeparator: string;
-  includeTestSubmissions: boolean;
-}
+export type { ExportFormatFormValues };
 
 interface ExportFormatFormFieldsProps {
   capabilities: ExportCapabilityDto[];
   namingConventions: ColumnAliasNamingConventionDto[];
-  mode: "create" | "edit";
+  mode: ExportFormatFormMode;
   initialFormat?: ExportFormatListItem;
   fieldErrors?: Record<string, string[] | undefined>;
   defaultValues?: Partial<ExportFormatFormValues>;
-}
-
-function getInitialValues(
-  mode: "create" | "edit",
-  capabilities: ExportCapabilityDto[],
-  initialFormat?: ExportFormatListItem,
-  defaultValues?: Partial<ExportFormatFormValues>,
-): ExportFormatFormValues {
-  if (mode === "edit" && initialFormat) {
-    return {
-      name: initialFormat.name,
-      description: initialFormat.description ?? "",
-      exportTarget: initialFormat.exportTarget,
-      deliveryFormat: initialFormat.deliveryFormat,
-      profile: initialFormat.profile,
-      aliasProfile: initialFormat.settings.aliasProfile,
-      keySeparator: initialFormat.settings.keySeparator,
-      includeTestSubmissions: initialFormat.settings.includeTestSubmissions,
-    };
-  }
-
-  const catalogDefault = getDefaultExportFormatSelection(capabilities);
-  const exportTarget =
-    defaultValues?.exportTarget ??
-    catalogDefault?.exportTarget ??
-    "Submissions";
-  const deliveryFormat =
-    defaultValues?.deliveryFormat ?? catalogDefault?.deliveryFormat ?? "Csv";
-  const profile = defaultValues?.profile ?? catalogDefault?.profile ?? "Native";
-
-  return {
-    name: defaultValues?.name ?? "",
-    description: defaultValues?.description ?? "",
-    exportTarget,
-    deliveryFormat,
-    profile,
-    aliasProfile: defaultValues?.aliasProfile ?? "native",
-    keySeparator:
-      defaultValues?.keySeparator ?? getDefaultExportKeySeparator(profile),
-    includeTestSubmissions: defaultValues?.includeTestSubmissions ?? false,
-  };
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -115,155 +44,30 @@ export function ExportFormatFormFields({
   initialFormat,
   fieldErrors,
   defaultValues,
-}: ExportFormatFormFieldsProps) {
-  const [values, setValues] = useState<ExportFormatFormValues>(() =>
-    getInitialValues(mode, capabilities, initialFormat, defaultValues),
-  );
-
-  const availableTargets = useMemo(
-    () => getExportTargetOptions(capabilities),
-    [capabilities],
-  );
-
-  const selectedNamingConvention = useMemo(
-    () =>
-      getColumnAliasNamingConvention(values.aliasProfile, namingConventions),
-    [namingConventions, values.aliasProfile],
-  );
-
-  const selectedProfileCapability = useMemo(
-    () =>
-      getExportCapabilityForSelection(
-        values.exportTarget,
-        values.deliveryFormat,
-        values.profile,
-        capabilities,
-      ),
-    [capabilities, values.deliveryFormat, values.exportTarget, values.profile],
-  );
-
-  const availableDeliveryFormats = useMemo(
-    () => getDeliveryFormatOptionsForTarget(values.exportTarget, capabilities),
-    [capabilities, values.exportTarget],
-  );
-
-  const availableProfiles = useMemo(
-    () =>
-      getProfileOptionsForSelection(
-        values.exportTarget,
-        values.deliveryFormat,
-        capabilities,
-      ),
-    [capabilities, values.deliveryFormat, values.exportTarget],
-  );
-
-  const visibility = getExportFormatSettingsFieldVisibility(
-    values.exportTarget,
-  );
-
-  useEffect(() => {
-    if (mode === "edit") {
-      return;
-    }
-
-    const hasCurrentDelivery = availableDeliveryFormats.some(
-      (option) => option.value === values.deliveryFormat,
-    );
-
-    if (!hasCurrentDelivery && availableDeliveryFormats.length > 0) {
-      setValues((current) => ({
-        ...current,
-        deliveryFormat: availableDeliveryFormats[0].value,
-      }));
-    }
-  }, [availableDeliveryFormats, mode, values.deliveryFormat]);
-
-  useEffect(() => {
-    if (mode === "edit") {
-      return;
-    }
-
-    const hasCurrentProfile = availableProfiles.some(
-      (option) => option.value === values.profile,
-    );
-
-    if (!hasCurrentProfile && availableProfiles.length > 0) {
-      setValues((current) => ({
-        ...current,
-        profile: availableProfiles[0].value,
-      }));
-    }
-  }, [availableProfiles, mode, values.profile]);
-
-  const handleTargetChange = (nextTarget: ExportTarget) => {
-    const nextDeliveryOptions = getDeliveryFormatOptionsForTarget(
-      nextTarget,
-      capabilities,
-    );
-    const nextDelivery = nextDeliveryOptions[0]?.value;
-    if (!nextDelivery) {
-      return;
-    }
-
-    const nextProfileOptions = getProfileOptionsForSelection(
-      nextTarget,
-      nextDelivery,
-      capabilities,
-    );
-    const nextProfile = nextProfileOptions[0]?.value;
-    if (!nextProfile) {
-      return;
-    }
-
-    setValues((current) => ({
-      ...current,
-      exportTarget: nextTarget,
-      deliveryFormat: nextDelivery,
-      profile: nextProfile,
-      keySeparator: getDefaultExportKeySeparator(nextProfile),
-    }));
-  };
-
-  const handleDeliveryChange = (nextDelivery: ExportDeliveryFormat) => {
-    const nextProfileOptions = getProfileOptionsForSelection(
-      values.exportTarget,
-      nextDelivery,
-      capabilities,
-    );
-    const nextProfile = nextProfileOptions[0]?.value;
-    if (!nextProfile) {
-      return;
-    }
-
-    setValues((current) => ({
-      ...current,
-      deliveryFormat: nextDelivery,
-      profile: nextProfile,
-      keySeparator: getDefaultExportKeySeparator(nextProfile),
-    }));
-  };
-
-  const handleProfileChange = (nextProfile: ExportProfile) => {
-    setValues((current) => ({
-      ...current,
-      profile: nextProfile,
-      keySeparator: getDefaultExportKeySeparator(nextProfile),
-    }));
-  };
-
-  const isEdit = mode === "edit";
-  const hasAdvancedErrors = Boolean(
-    fieldErrors?.keySeparator?.length || fieldErrors?.aliasProfile?.length,
-  );
-  const [advancedSection, setAdvancedSection] = useState<string | undefined>(
-    hasAdvancedErrors ? "advanced" : undefined,
-  );
-
-  useEffect(() => {
-    if (hasAdvancedErrors) {
-      setAdvancedSection("advanced");
-    }
-  }, [hasAdvancedErrors]);
+}: Readonly<ExportFormatFormFieldsProps>) {
+  const {
+    values,
+    setValues,
+    isEdit,
+    visibility,
+    availableTargets,
+    availableDeliveryFormats,
+    availableProfiles,
+    selectedNamingConvention,
+    selectedProfileCapability,
+    advancedSection,
+    setAdvancedSection,
+    handleTargetChange,
+    handleDeliveryChange,
+    handleProfileChange,
+  } = useExportFormatFormState({
+    capabilities,
+    namingConventions,
+    mode,
+    initialFormat,
+    defaultValues,
+    fieldErrors,
+  });
 
   return (
     <>
@@ -312,97 +116,20 @@ export function ExportFormatFormFields({
         </div>
 
         {!isEdit ? (
-          <>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={`${mode}-exportTarget`}>Export target</Label>
-              <Select
-                value={values.exportTarget}
-                onValueChange={(value) =>
-                  handleTargetChange(value as ExportTarget)
-                }
-                disabled={availableTargets.length === 0}
-              >
-                <SelectTrigger id={`${mode}-exportTarget`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTargets.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={`${mode}-deliveryFormat`}>Delivery format</Label>
-              <Select
-                value={values.deliveryFormat}
-                onValueChange={(value) =>
-                  handleDeliveryChange(value as ExportDeliveryFormat)
-                }
-                disabled={availableDeliveryFormats.length === 0}
-              >
-                <SelectTrigger id={`${mode}-deliveryFormat`}>
-                  <SelectValue placeholder="Select delivery format" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDeliveryFormats.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {visibility.variant ? (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${mode}-profile`}>Variant</Label>
-                <Select
-                  value={values.profile}
-                  onValueChange={(value) =>
-                    handleProfileChange(value as ExportProfile)
-                  }
-                  disabled={availableProfiles.length === 0}
-                >
-                  <SelectTrigger id={`${mode}-profile`}>
-                    <SelectValue placeholder="Select variant">
-                      {
-                        availableProfiles.find(
-                          (option) => option.value === values.profile,
-                        )?.label
-                      }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableProfiles.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        className="items-start py-2"
-                      >
-                        <span className="flex flex-col gap-0.5 whitespace-normal">
-                          <span>{option.label}</span>
-                          {option.description ? (
-                            <span className="text-xs font-normal text-muted-foreground">
-                              {option.description}
-                            </span>
-                          ) : null}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedProfileCapability?.description ? (
-                  <p className="text-sm text-muted-foreground">
-                    {selectedProfileCapability.description}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </>
+          <ExportFormatTypeFields
+            mode={mode}
+            exportTarget={values.exportTarget}
+            deliveryFormat={values.deliveryFormat}
+            profile={values.profile}
+            showVariant={visibility.variant}
+            availableTargets={availableTargets}
+            availableDeliveryFormats={availableDeliveryFormats}
+            availableProfiles={availableProfiles}
+            selectedProfileDescription={selectedProfileCapability?.description}
+            onTargetChange={handleTargetChange}
+            onDeliveryChange={handleDeliveryChange}
+            onProfileChange={handleProfileChange}
+          />
         ) : null}
 
         {visibility.includeTestSubmissions ? (
@@ -443,100 +170,22 @@ export function ExportFormatFormFields({
           </div>
         ) : null}
 
-        <Accordion
-          type="single"
-          collapsible
-          className="w-full"
-          value={advancedSection}
-          onValueChange={setAdvancedSection}
-        >
-          <AccordionItem value="advanced" className="border-b-0">
-            <AccordionTrigger className="py-3 hover:no-underline">
-              <span className="flex flex-col items-start gap-1 text-left">
-                <span>Advanced</span>
-                <span className="text-sm font-normal text-muted-foreground">
-                  Column naming for submission headers, plus the key separator
-                  used when joining nested keys in submissions and codebook
-                  exports.
-                </span>
-              </span>
-            </AccordionTrigger>
-            <AccordionContent className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${mode}-aliasProfile`}>Column naming</Label>
-                <p className="text-sm text-muted-foreground">
-                  Naming convention applied to submission export headers.
-                </p>
-                <Select
-                  value={values.aliasProfile}
-                  onValueChange={(value) =>
-                    setValues((current) => ({
-                      ...current,
-                      aliasProfile: value as ColumnAliasProfile,
-                    }))
-                  }
-                >
-                  <SelectTrigger id={`${mode}-aliasProfile`} className="w-full">
-                    <SelectValue placeholder="Select naming convention">
-                      {selectedNamingConvention?.label}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {namingConventions.map((option) => (
-                      <SelectItem
-                        key={option.wireKey}
-                        value={option.wireKey}
-                        className="items-start py-2"
-                      >
-                        <span className="flex flex-col gap-0.5 whitespace-normal">
-                          <span>{option.label}</span>
-                          <span className="text-xs font-normal text-muted-foreground">
-                            {option.description}
-                          </span>
-                          {option.example ? (
-                            <span className="font-mono text-xs font-normal text-muted-foreground">
-                              e.g. {option.example}
-                            </span>
-                          ) : null}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedNamingConvention ? (
-                  <p className="text-sm text-muted-foreground">
-                    {selectedNamingConvention.description}
-                    {selectedNamingConvention.example ? (
-                      <>
-                        {" "}
-                        Example: <code>{selectedNamingConvention.example}</code>
-                      </>
-                    ) : null}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${mode}-keySeparator`}>Key separator</Label>
-                <p className="text-sm text-muted-foreground">
-                  Joins nested question keys, for example{" "}
-                  <code>question__choice</code>.
-                </p>
-                <Input
-                  id={`${mode}-keySeparator`}
-                  value={values.keySeparator}
-                  onChange={(event) =>
-                    setValues((current) => ({
-                      ...current,
-                      keySeparator: event.target.value,
-                    }))
-                  }
-                />
-                <FieldError message={fieldErrors?.keySeparator?.[0]} />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <ExportFormatAdvancedFields
+          mode={mode}
+          aliasProfile={values.aliasProfile}
+          keySeparator={values.keySeparator}
+          namingConventions={namingConventions}
+          selectedNamingConvention={selectedNamingConvention}
+          keySeparatorError={fieldErrors?.keySeparator?.[0]}
+          accordionValue={advancedSection}
+          onAccordionValueChange={setAdvancedSection}
+          onAliasProfileChange={(aliasProfile) =>
+            setValues((current) => ({ ...current, aliasProfile }))
+          }
+          onKeySeparatorChange={(keySeparator) =>
+            setValues((current) => ({ ...current, keySeparator }))
+          }
+        />
       </div>
     </>
   );

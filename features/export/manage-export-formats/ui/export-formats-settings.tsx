@@ -83,7 +83,7 @@ export function ExportFormatsSettings({
   mappingsPromise,
   capabilitiesPromise,
   namingConventionsPromise,
-}: ExportFormatsSettingsProps) {
+}: Readonly<ExportFormatsSettingsProps>) {
   const formats = use(formatsPromise);
   const mappings = use(mappingsPromise);
   const capabilities = use(capabilitiesPromise);

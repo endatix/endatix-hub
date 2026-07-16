@@ -1,5 +1,4 @@
 import type {
-  ColumnAliasProfile,
   ExportDeliveryFormat,
   ExportFormatListItem,
   ExportFormatSettingsDto,
@@ -12,10 +11,7 @@ const DELIVERY_VALUES: ExportDeliveryFormat[] = ["Csv", "Json"];
 const PROFILE_VALUES: ExportProfile[] = ["Native", "Shoji"];
 
 /** Legacy numeric enum values from older API responses. */
-const LEGACY_ALIAS_PROFILE_BY_INDEX: ColumnAliasProfile[] = [
-  "native",
-  "crunch",
-];
+const LEGACY_ALIAS_PROFILE_BY_INDEX: string[] = ["native", "crunch"];
 
 function normalizeEnumValue<T extends string>(
   value: unknown,
@@ -42,7 +38,7 @@ function normalizeEnumValue<T extends string>(
   return undefined;
 }
 
-function normalizeAliasProfile(value: unknown): ColumnAliasProfile {
+function normalizeAliasProfile(value: unknown): string {
   if (typeof value === "string" && value.trim()) {
     return value.trim().toLowerCase();
   }
