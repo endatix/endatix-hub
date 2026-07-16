@@ -20,6 +20,7 @@ export function getExportErrorMessage(
     return BACKFILL_HINT;
   }
 
+  // Prefer the API's own guidance for missing/invalid schema (already actionable).
   return errorMessage;
 }
 

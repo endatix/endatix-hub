@@ -167,9 +167,11 @@ export class Submissions {
     const {
       formId,
       exportFormat,
+      exportFormatId,
       exportId,
       includeTestSubmissions,
       columnScope,
+      locale,
     } = request;
 
     const validateFormIdResult = validateEndatixId(formId, "formId");
@@ -178,13 +180,28 @@ export class Submissions {
     }
 
     const validatedFormId = validateFormIdResult.value;
+
+    let exportFormatIdValue: string | undefined;
+    if (exportFormatId) {
+      const validateExportFormatIdResult = validateEndatixId(
+        exportFormatId,
+        'exportFormatId',
+      );
+      if (Result.isError(validateExportFormatIdResult)) {
+        return ApiResult.validationError(validateExportFormatIdResult.message);
+      }
+      exportFormatIdValue = validateExportFormatIdResult.value;
+    }
+
     return this.endatix.postStream(
       `/forms/${validatedFormId}/submissions/export`,
       {
         exportFormat,
+        exportFormatId: exportFormatIdValue,
         exportId,
         includeTestSubmissions,
         columnScope,
+        locale,
       },
     );
   }

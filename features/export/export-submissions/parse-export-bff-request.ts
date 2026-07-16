@@ -1,4 +1,4 @@
-import type { ExportFormat } from "../types";
+import type { ExportFormat, ReportingExportFormat } from "../types";
 
 export function parseLegacyExportFormat(
   format: string | null,
@@ -10,10 +10,9 @@ export function parseLegacyExportFormat(
   return undefined;
 }
 
-export function parseReportingExportFormat(
+export function parseReportingExportWireKey(
   format: string | null,
-): ExportFormat {
-  // TODO(E10): Resolve format from tenant ExportFormats API (by id or slug) instead of hardcoded allow-list.
+): ReportingExportFormat | undefined {
   if (
     format === "csv" ||
     format === "json" ||
@@ -23,7 +22,7 @@ export function parseReportingExportFormat(
     return format;
   }
 
-  return "csv";
+  return undefined;
 }
 
 export function parseIncludeTestSubmissionsQuery(

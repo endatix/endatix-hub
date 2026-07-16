@@ -83,20 +83,25 @@ export type UpdateSubmissionStatusDto = {
   status: SubmissionStatus;
 };
 
+export type ExportFormat =
+  | "csv"
+  | "xlsx"
+  | "json"
+  | "codebook"
+  | "codebook-shoji";
+
 export type ExportSubmissionsDto = {
-  // TODO(E10): Replace hardcoded union with tenant-configured ExportFormats from API.
-  exportFormat: "csv" | "xlsx" | "json" | "codebook" | "codebook-shoji";
+  exportFormat?: ExportFormat;
   includeMetadata?: boolean;
   dateRange?: {
-    from: string; // ISO date string
-    to: string; // ISO date string
+    from: string;
+    to: string;
   };
 };
 
-export type ExportFormat = ExportSubmissionsDto["exportFormat"];
-// TODO(E10): Drive from tenant ExportFormats API instead of hardcoded codebook variants.
-export type ReportingExportFormat =
-  | Extract<ExportFormat, "csv" | "json">
+export type ReportingExportWireKey =
+  | "csv"
+  | "json"
   | "codebook"
   | "codebook-shoji";
 export type BooleanFilterValue = "true" | "false";
@@ -105,9 +110,12 @@ export type SubmissionReviewStatus = "new" | "read" | "approved";
 export interface ExportSubmissionsRequest {
   formId: string;
   exportFormat?: ExportFormat;
+  exportFormatId?: string;
   exportId?: string;
   includeTestSubmissions?: boolean;
   columnScope?: string[];
+  /** Optional codebook label locale for this export run. */
+  locale?: string;
 }
 
 export interface ListSubmissionsRequest {
@@ -127,7 +135,11 @@ export interface ListSubmissionsRequest {
   };
 }
 
-export type SubmissionAccessTokenPermission = "view" | "edit" | "export" | "submit";
+export type SubmissionAccessTokenPermission =
+  | "view"
+  | "edit"
+  | "export"
+  | "submit";
 
 export interface CreateSubmissionAccessTokenRequest {
   formId: string;

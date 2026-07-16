@@ -10,8 +10,17 @@ import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import {
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
-  parseReportingExportFormat,
+  parseReportingExportWireKey,
 } from "@/features/export/export-submissions";
+import { Result } from "@/lib/result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
+
+function badRequest(error: string): Response {
+  return new Response(JSON.stringify({ error }), {
+    status: 400,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -25,6 +34,7 @@ export async function GET(
 
   const searchParams = request.nextUrl.searchParams;
   const format = searchParams.get("format");
+  const exportFormatId = searchParams.get("exportFormatId");
   const exportId = searchParams.get("exportId");
   const includeTestSubmissionsParam = searchParams.get(
     "includeTestSubmissions",
@@ -32,14 +42,40 @@ export async function GET(
 
   const useReportingExport = await reportingExportFlag();
 
+  if (useReportingExport && !exportFormatId) {
+    return badRequest("exportFormatId is required for reporting export.");
+  }
+
+  let validatedExportFormatId: string | undefined;
+  if (exportFormatId) {
+    const exportFormatIdResult = validateEndatixId(
+      exportFormatId,
+      "exportFormatId",
+    );
+    if (Result.isError(exportFormatIdResult)) {
+      return badRequest(exportFormatIdResult.message);
+    }
+    validatedExportFormatId = exportFormatIdResult.value;
+  }
+
+  let validatedExportId: string | undefined;
+  if (!useReportingExport && exportId) {
+    const exportIdResult = validateEndatixId(exportId, "exportId");
+    if (Result.isError(exportIdResult)) {
+      return badRequest(exportIdResult.message);
+    }
+    validatedExportId = exportIdResult.value;
+  }
+
   const exportFormat = useReportingExport
-    ? parseReportingExportFormat(format)
+    ? parseReportingExportWireKey(format)
     : parseLegacyExportFormat(format);
 
   const exportOptions: ExportSubmissionsRequest = {
     formId,
     exportFormat,
-    exportId: useReportingExport ? undefined : (exportId ?? undefined),
+    exportFormatId: validatedExportFormatId,
+    exportId: validatedExportId,
     includeTestSubmissions: parseIncludeTestSubmissionsQuery(
       includeTestSubmissionsParam,
     ),

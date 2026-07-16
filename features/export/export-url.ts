@@ -1,4 +1,15 @@
-import type { ReportingExportFormat } from "./types";
+export function buildReportingExportUrl(
+  formId: string,
+  wireKey: string,
+  exportFormatId: string,
+): string {
+  const params = new URLSearchParams({
+    format: wireKey,
+    exportFormatId,
+  });
+
+  return `/api/forms/${formId}/export?${params.toString()}`;
+}
 
 export function buildLegacyExportUrl(
   formId: string,
@@ -9,13 +20,4 @@ export function buildLegacyExportUrl(
   }
 
   return `/api/forms/${formId}/export`;
-}
-
-export function buildReportingExportUrl(
-  formId: string,
-  format: ReportingExportFormat,
-): string {
-  const params = new URLSearchParams({ format });
-
-  return `/api/forms/${formId}/export?${params.toString()}`;
 }

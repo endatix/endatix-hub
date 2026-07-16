@@ -2,10 +2,13 @@ import { z } from "zod";
 
 /**
  * The schema for a ProblemDetails object. More information about the ProblemDetails object can be found here: https://datatracker.ietf.org/doc/html/rfc7807
+ *
+ * `type` and `title` are optional so partial payloads (e.g. streaming endpoints that only set
+ * `detail` + `status`) still surface a useful message instead of falling back to a generic one.
  */
 export const ProblemDetailsSchema = z.object({
-  type: z.string(),
-  title: z.string(),
+  type: z.string().optional(),
+  title: z.string().optional(),
   status: z.number(),
   detail: z.string(),
   errorCode: z.string().optional(),
@@ -26,15 +29,54 @@ export const ValidationProblemDetailsSchema = z.object({
 export type ProblemDetails = z.infer<typeof ProblemDetailsSchema>;
 
 /**
+ * Normalize common ProblemDetails shapes (camelCase RFC7807 and PascalCase .NET defaults).
+ */
+function normalizeProblemDetailsCandidate(data: unknown): unknown {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    return data;
+  }
+
+  const record = data as Record<string, unknown>;
+  const detail = record.detail ?? record.Detail;
+  const status = record.status ?? record.Status;
+  const title = record.title ?? record.Title;
+  const type = record.type ?? record.Type;
+  const errorCode = record.errorCode ?? record.ErrorCode;
+  const traceId = record.traceId ?? record.TraceId;
+  const fields =
+    record.fields ?? record.Fields ?? record.errors ?? record.Errors;
+
+  return {
+    ...record,
+    ...(typeof detail === "string" ? { detail } : {}),
+    ...(typeof status === "number" ? { status } : {}),
+    ...(typeof title === "string" ? { title } : {}),
+    ...(typeof type === "string" ? { type } : {}),
+    ...(typeof errorCode === "string" ? { errorCode } : {}),
+    ...(typeof traceId === "string" ? { traceId } : {}),
+    ...(fields !== undefined ? { fields } : {}),
+  };
+}
+
+/**
  * Parse the data as JSON and return a ProblemDetails object if the data is a valid ProblemDetails.
  * @param data - The data to parse.
  * @returns The ProblemDetails object if the data is a valid ProblemDetails, otherwise null.
  */
 export function parseProblemDetails(data: unknown): ProblemDetails | null {
-  const result = ProblemDetailsSchema.safeParse(data);
+  const normalized = normalizeProblemDetailsCandidate(data);
+  const result = ProblemDetailsSchema.safeParse(normalized);
 
   if (result.success) {
-    return result.data;
+    return {
+      type: result.data.type ?? "about:blank",
+      title: result.data.title ?? "Error",
+      status: result.data.status,
+      detail: result.data.detail,
+      errorCode: result.data.errorCode,
+      traceId: result.data.traceId,
+      fields: result.data.fields,
+    };
   }
 
   const validationResult = ValidationProblemDetailsSchema.safeParse(data);
@@ -73,7 +115,7 @@ export async function parseErrorResponse(
     return parseProblemDetails(data);
   } catch (error) {
     console.warn(
-      'Error response body was not valid JSON or problem details:',
+      "Error response body was not valid JSON or problem details:",
       error instanceof Error ? error.message : String(error),
     );
     return null;

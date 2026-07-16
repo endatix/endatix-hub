@@ -1,6 +1,13 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { LineChart, ShieldCheck, UserCog, Users, Wrench } from "lucide-react";
+import {
+  LineChart,
+  ShieldCheck,
+  UserCog,
+  Users,
+  Wrench,
+  FileDown,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { reportingExportFlag } from "@/lib/feature-flags/flags";
 
 const SETTINGS_GROUPS = [
   {
@@ -44,6 +52,14 @@ const SETTINGS_GROUPS = [
         href: "/settings/organization/roles",
         icon: UserCog,
       },
+      {
+        title: "Export formats",
+        description:
+          "Configure CSV, JSON, and codebook export formats for your organization.",
+        href: "/settings/organization/export-formats",
+        icon: FileDown,
+        requiresReportingExport: true,
+      },
     ],
   },
   {
@@ -60,7 +76,26 @@ const SETTINGS_GROUPS = [
   },
 ] as const;
 
-export default function SettingsPage() {
+type SettingsItem = (typeof SETTINGS_GROUPS)[number]["items"][number];
+
+export default async function SettingsPage() {
+  const reportingExportEnabled = await reportingExportFlag();
+
+  const groups = SETTINGS_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      if (
+        "requiresReportingExport" in item &&
+        item.requiresReportingExport &&
+        !reportingExportEnabled
+      ) {
+        return false;
+      }
+
+      return true;
+    }),
+  }));
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -72,7 +107,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-10">
-        {SETTINGS_GROUPS.map((group) => (
+        {groups.map((group) => (
           <section key={group.title} className="space-y-4">
             <div className="space-y-1">
               <h2 className="text-xl font-semibold tracking-tight">
@@ -96,7 +131,7 @@ export default function SettingsPage() {
 }
 
 interface SettingsCardProps {
-  item: (typeof SETTINGS_GROUPS)[number]["items"][number];
+  item: SettingsItem;
 }
 
 function SettingsCard({ item }: Readonly<SettingsCardProps>) {

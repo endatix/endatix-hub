@@ -12,15 +12,15 @@ describe("export url builders", () => {
     );
   });
 
-  it("builds reporting export urls with format query param", () => {
-    expect(buildReportingExportUrl("100", "csv")).toBe(
-      "/api/forms/100/export?format=csv",
+  it("builds reporting export urls with format and exportFormatId", () => {
+    expect(buildReportingExportUrl("100", "csv", "42")).toBe(
+      "/api/forms/100/export?format=csv&exportFormatId=42",
     );
-    expect(buildReportingExportUrl("100", "json")).toBe(
-      "/api/forms/100/export?format=json",
+    expect(buildReportingExportUrl("100", "json", "43")).toBe(
+      "/api/forms/100/export?format=json&exportFormatId=43",
     );
-    expect(buildReportingExportUrl("100", "codebook-shoji")).toBe(
-      "/api/forms/100/export?format=codebook-shoji",
+    expect(buildReportingExportUrl("100", "codebook-shoji", "44")).toBe(
+      "/api/forms/100/export?format=codebook-shoji&exportFormatId=44",
     );
   });
 });

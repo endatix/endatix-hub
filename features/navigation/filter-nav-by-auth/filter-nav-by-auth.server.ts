@@ -4,11 +4,14 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { SitemapService } from "@/services/sitemap-service";
 import type { INavItem } from "@/types/navigation-models";
+import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import {
   filterNavByAuth,
   getNavItemKeys,
   type NavigationAuthData,
 } from "./filter-nav-by-auth";
+
+const REPORTING_EXPORT_NAV_KEYS = new Set(["exportFormats"]);
 
 function hasUsableSession(session: Session | null): session is Session {
   return (
@@ -55,5 +58,12 @@ export const getAuthorizedNavItemKeys = cache(async (): Promise<string[]> => {
     session,
   );
 
-  return getNavItemKeys(navItems);
+  const keys = getNavItemKeys(navItems);
+  const reportingExportEnabled = await reportingExportFlag();
+  if (reportingExportEnabled) {
+    return keys;
+  }
+
+  // Hide reporting export settings nav until the flag is on; legacy export stays available.
+  return keys.filter((key) => !REPORTING_EXPORT_NAV_KEYS.has(key));
 });
