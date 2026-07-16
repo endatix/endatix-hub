@@ -67,10 +67,7 @@ function getBooleanFormValue(formData: FormData, key: string): boolean {
 function validateSettingsFields(
   data: z.infer<typeof exportFormatSettingsFieldsSchema>,
 ): z.ZodError | null {
-  const visibility = getExportFormatSettingsFieldVisibility(
-    data.exportTarget,
-    data.profile,
-  );
+  const visibility = getExportFormatSettingsFieldVisibility(data.exportTarget);
   const issues: z.ZodIssue[] = [];
 
   if (!data.aliasProfile) {

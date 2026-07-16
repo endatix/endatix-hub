@@ -15,7 +15,6 @@ function format(
     label: overrides.name,
     settings: {
       aliasProfile: "native",
-      locale: "default",
       keySeparator: "__",
       includeTestSubmissions: false,
     },

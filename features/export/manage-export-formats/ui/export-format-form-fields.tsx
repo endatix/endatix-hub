@@ -87,8 +87,7 @@ function getInitialValues(
     profile,
     aliasProfile: defaultValues?.aliasProfile ?? "native",
     keySeparator:
-      defaultValues?.keySeparator ??
-      getDefaultExportKeySeparator(exportTarget, profile),
+      defaultValues?.keySeparator ?? getDefaultExportKeySeparator(profile),
     includeTestSubmissions: defaultValues?.includeTestSubmissions ?? false,
   };
 }
@@ -147,7 +146,6 @@ export function ExportFormatFormFields({
 
   const visibility = getExportFormatSettingsFieldVisibility(
     values.exportTarget,
-    values.profile,
   );
 
   useEffect(() => {
@@ -202,7 +200,7 @@ export function ExportFormatFormFields({
       exportTarget: nextTarget,
       deliveryFormat: nextDelivery,
       profile: nextProfile,
-      keySeparator: getDefaultExportKeySeparator(nextTarget, nextProfile),
+      keySeparator: getDefaultExportKeySeparator(nextProfile),
     }));
   };
 
@@ -218,10 +216,7 @@ export function ExportFormatFormFields({
       ...current,
       deliveryFormat: nextDelivery,
       profile: nextProfile,
-      keySeparator: getDefaultExportKeySeparator(
-        current.exportTarget,
-        nextProfile,
-      ),
+      keySeparator: getDefaultExportKeySeparator(nextProfile),
     }));
   };
 
@@ -229,10 +224,7 @@ export function ExportFormatFormFields({
     setValues((current) => ({
       ...current,
       profile: nextProfile,
-      keySeparator: getDefaultExportKeySeparator(
-        current.exportTarget,
-        nextProfile,
-      ),
+      keySeparator: getDefaultExportKeySeparator(nextProfile),
     }));
   };
 
