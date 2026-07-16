@@ -1,4 +1,4 @@
-import { TelemetryLogger } from "@/features/telemetry";
+import { parseErrorMessage, TelemetryLogger } from "@/features/telemetry";
 import type {
   ExportDeliveryFormat,
   ExportFormatListItem,
@@ -56,7 +56,7 @@ function logEnumFallback(
       "format.id": format.id,
       "format.name": format.name,
       field,
-      "original.value": String(originalValue ?? ""),
+      "original.value": parseErrorMessage(originalValue),
       "default.value": defaultValue,
     },
     LOGGER_NAME,

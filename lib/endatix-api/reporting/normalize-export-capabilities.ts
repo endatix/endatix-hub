@@ -1,4 +1,4 @@
-import { TelemetryLogger } from "@/features/telemetry";
+import { parseErrorMessage, TelemetryLogger } from "@/features/telemetry";
 import type { ExportCapabilityDto } from "./export-format-types";
 import {
   DELIVERY_VALUES,
@@ -41,11 +41,11 @@ export function normalizeExportCapability(
     TelemetryLogger.warn(
       "Dropped invalid export capability during normalization",
       {
-        "capability.target": String(capability.target ?? ""),
-        "capability.deliveryFormat": String(capability.deliveryFormat ?? ""),
-        "capability.profile": String(capability.profile ?? ""),
-        "capability.wireKey": String(capability.wireKey ?? ""),
-        "capability.label": String(capability.label ?? ""),
+        "capability.target": parseErrorMessage(capability.target),
+        "capability.deliveryFormat": parseErrorMessage(capability.deliveryFormat),
+        "capability.profile": parseErrorMessage(capability.profile),
+        "capability.wireKey": parseErrorMessage(capability.wireKey),
+        "capability.label": parseErrorMessage(capability.label),
         "normalization.failures": failures.join(","),
       },
       LOGGER_NAME,

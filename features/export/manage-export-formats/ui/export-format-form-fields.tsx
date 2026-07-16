@@ -29,7 +29,7 @@ interface ExportFormatFormFieldsProps {
   defaultValues?: Partial<ExportFormatFormValues>;
 }
 
-function FieldError({ message }: { message?: string }) {
+function FieldError({ message }: Readonly<{ message?: string }>) {
   if (!message) {
     return null;
   }

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import type { ColumnAliasNamingConventionDto } from "@/lib/endatix-api/reporting/export-format-types";
 
-function FieldError({ message }: { message?: string }) {
+function FieldError({ message }: Readonly<{ message?: string }>) {
   if (!message) {
     return null;
   }

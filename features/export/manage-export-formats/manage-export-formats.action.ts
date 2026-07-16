@@ -348,7 +348,7 @@ export async function upsertTenantDefaultExportMappingAction(
   const selectedFormat = formatsResult.value.find(
     (format) => format.id === validated.data.exportFormatId,
   );
-  if (!selectedFormat || selectedFormat.exportTarget !== "Submissions") {
+  if (selectedFormat?.exportTarget !== "Submissions") {
     return {
       isSuccess: false,
       message: "Default export format must target submissions.",
