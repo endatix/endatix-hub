@@ -1,28 +1,13 @@
-import type {
-  ExportCapabilityDto,
-  ExportDeliveryFormat,
-  ExportProfile,
-  ExportTarget,
-} from "./export-format-types";
+import { TelemetryLogger } from "@/features/telemetry";
+import type { ExportCapabilityDto } from "./export-format-types";
+import {
+  DELIVERY_VALUES,
+  PROFILE_VALUES,
+  TARGET_VALUES,
+  normalizeEnumValue,
+} from "./normalize-export-enums";
 
-const TARGET_VALUES: ExportTarget[] = ["Submissions", "Codebook"];
-const DELIVERY_VALUES: ExportDeliveryFormat[] = ["Csv", "Json"];
-const PROFILE_VALUES: ExportProfile[] = ["Native", "Shoji"];
-
-function normalizeEnumValue<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-): T | undefined {
-  if (typeof value === "string" && allowed.includes(value as T)) {
-    return value as T;
-  }
-
-  if (typeof value === "number" && value >= 0 && value < allowed.length) {
-    return allowed[value];
-  }
-
-  return undefined;
-}
+const LOGGER_NAME = "reporting.normalize-export-capabilities";
 
 export function normalizeExportCapability(
   capability: ExportCapabilityDto,
@@ -33,8 +18,38 @@ export function normalizeExportCapability(
     DELIVERY_VALUES,
   );
   const profile = normalizeEnumValue(capability.profile, PROFILE_VALUES);
+  const wireKey =
+    typeof capability.wireKey === "string" && capability.wireKey.trim()
+      ? capability.wireKey.trim()
+      : undefined;
 
-  if (!target || !deliveryFormat || !profile || !capability.wireKey) {
+  if (!target || !deliveryFormat || !profile || !wireKey) {
+    const failures: string[] = [];
+    if (!target) {
+      failures.push("target");
+    }
+    if (!deliveryFormat) {
+      failures.push("deliveryFormat");
+    }
+    if (!profile) {
+      failures.push("profile");
+    }
+    if (!wireKey) {
+      failures.push("wireKey");
+    }
+
+    TelemetryLogger.warn(
+      "Dropped invalid export capability during normalization",
+      {
+        "capability.target": String(capability.target ?? ""),
+        "capability.deliveryFormat": String(capability.deliveryFormat ?? ""),
+        "capability.profile": String(capability.profile ?? ""),
+        "capability.wireKey": String(capability.wireKey ?? ""),
+        "capability.label": String(capability.label ?? ""),
+        "normalization.failures": failures.join(","),
+      },
+      LOGGER_NAME,
+    );
     return null;
   }
 
@@ -42,7 +57,7 @@ export function normalizeExportCapability(
     target,
     deliveryFormat,
     profile,
-    wireKey: capability.wireKey,
+    wireKey,
     label: capability.label,
     itemTypeName: capability.itemTypeName,
     description: capability.description ?? "",

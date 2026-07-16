@@ -75,8 +75,9 @@ export function ExportFormatAdvancedFields({
               Naming convention applied to submission export headers.
             </p>
             <Select
-              value={aliasProfile}
+              value={aliasProfile || undefined}
               onValueChange={(value) => onAliasProfileChange(value)}
+              disabled={namingConventions.length === 0}
             >
               <SelectTrigger id={`${mode}-aliasProfile`} className="w-full">
                 <SelectValue placeholder="Select naming convention">

@@ -1,3 +1,4 @@
+import { TelemetryLogger } from "@/features/telemetry";
 import type {
   ExportDeliveryFormat,
   ExportFormatListItem,
@@ -5,38 +6,17 @@ import type {
   ExportProfile,
   ExportTarget,
 } from "./export-format-types";
+import {
+  DELIVERY_VALUES,
+  PROFILE_VALUES,
+  TARGET_VALUES,
+  normalizeEnumValue,
+} from "./normalize-export-enums";
 
-const TARGET_VALUES: ExportTarget[] = ["Submissions", "Codebook"];
-const DELIVERY_VALUES: ExportDeliveryFormat[] = ["Csv", "Json"];
-const PROFILE_VALUES: ExportProfile[] = ["Native", "Shoji"];
+const LOGGER_NAME = "reporting.normalize-export-formats";
 
 /** Legacy numeric enum values from older API responses. */
 const LEGACY_ALIAS_PROFILE_BY_INDEX: string[] = ["native", "crunch"];
-
-function normalizeEnumValue<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-): T | undefined {
-  if (typeof value === "string") {
-    const exact = allowed.find((option) => option === value);
-    if (exact) {
-      return exact;
-    }
-
-    const caseInsensitive = allowed.find(
-      (option) => option.toLowerCase() === value.toLowerCase(),
-    );
-    if (caseInsensitive) {
-      return caseInsensitive;
-    }
-  }
-
-  if (typeof value === "number" && value >= 0 && value < allowed.length) {
-    return allowed[value];
-  }
-
-  return undefined;
-}
 
 function normalizeAliasProfile(value: unknown): string {
   if (typeof value === "string" && value.trim()) {
@@ -64,16 +44,62 @@ function normalizeSettings(
   };
 }
 
+function logEnumFallback(
+  format: ExportFormatListItem,
+  field: "exportTarget" | "deliveryFormat" | "profile",
+  originalValue: unknown,
+  defaultValue: string,
+): void {
+  TelemetryLogger.warn(
+    `Export format ${field} fell back to default during normalization`,
+    {
+      "format.id": format.id,
+      "format.name": format.name,
+      field,
+      "original.value": String(originalValue ?? ""),
+      "default.value": defaultValue,
+    },
+    LOGGER_NAME,
+  );
+}
+
 export function normalizeExportFormat(
   format: ExportFormatListItem,
 ): ExportFormatListItem {
+  const normalizedTarget = normalizeEnumValue(
+    format.exportTarget,
+    TARGET_VALUES,
+  );
+  const exportTarget: ExportTarget = normalizedTarget ?? "Submissions";
+  if (!normalizedTarget) {
+    logEnumFallback(format, "exportTarget", format.exportTarget, exportTarget);
+  }
+
+  const normalizedDelivery = normalizeEnumValue(
+    format.deliveryFormat,
+    DELIVERY_VALUES,
+  );
+  const deliveryFormat: ExportDeliveryFormat = normalizedDelivery ?? "Csv";
+  if (!normalizedDelivery) {
+    logEnumFallback(
+      format,
+      "deliveryFormat",
+      format.deliveryFormat,
+      deliveryFormat,
+    );
+  }
+
+  const normalizedProfile = normalizeEnumValue(format.profile, PROFILE_VALUES);
+  const profile: ExportProfile = normalizedProfile ?? "Native";
+  if (!normalizedProfile) {
+    logEnumFallback(format, "profile", format.profile, profile);
+  }
+
   return {
     ...format,
-    exportTarget:
-      normalizeEnumValue(format.exportTarget, TARGET_VALUES) ?? "Submissions",
-    deliveryFormat:
-      normalizeEnumValue(format.deliveryFormat, DELIVERY_VALUES) ?? "Csv",
-    profile: normalizeEnumValue(format.profile, PROFILE_VALUES) ?? "Native",
+    exportTarget,
+    deliveryFormat,
+    profile,
     settings: normalizeSettings(format.settings),
   };
 }

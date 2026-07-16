@@ -4,14 +4,23 @@ import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { ExportFormatListItem } from "@/lib/endatix-api/reporting/reporting";
+import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+
+const REPORTING_EXPORT_DISABLED_MESSAGE =
+  "Reporting export is not enabled for this environment.";
 
 export async function listTenantExportFormatsAction(): Promise<
   Result<ExportFormatListItem[]>
 > {
   const session = await auth();
   const { evaluatePermissions } = await authorization(session);
+
+  const reportingExportEnabled = await reportingExportFlag();
+  if (!reportingExportEnabled) {
+    return Result.error(REPORTING_EXPORT_DISABLED_MESSAGE);
+  }
 
   const permissionsResult = await evaluatePermissions([
     Permissions.Tenant.ManageSettings,

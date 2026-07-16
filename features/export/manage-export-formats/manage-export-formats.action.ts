@@ -20,11 +20,13 @@ import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { getStringFormValue } from "@/lib/utils/form-data-utils";
+import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
 const exportTargetSchema = z.enum(["Submissions", "Codebook"]);
 const deliveryFormatSchema = z.enum(["Csv", "Json"]);
 const profileSchema = z.enum(["Native", "Shoji"]);
+const exportFormatIdSchema = createEndatixIdSchema("exportFormatId");
 
 const exportFormatSettingsFieldsSchema = z.object({
   exportTarget: exportTargetSchema,
@@ -41,17 +43,17 @@ const createExportFormatSchema = exportFormatSettingsFieldsSchema.extend({
 });
 
 const updateExportFormatSchema = exportFormatSettingsFieldsSchema.extend({
-  exportFormatId: z.string().trim().min(1),
+  exportFormatId: exportFormatIdSchema,
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(500).optional(),
 });
 
 const deleteExportFormatSchema = z.object({
-  exportFormatId: z.string().trim().min(1),
+  exportFormatId: exportFormatIdSchema,
 });
 
 const upsertDefaultMappingSchema = z.object({
-  exportFormatId: z.string().trim().min(1),
+  exportFormatId: exportFormatIdSchema,
 });
 
 const EXPORT_FORMATS_PATH = "/settings/organization/export-formats";
@@ -131,9 +133,9 @@ export async function createExportFormatAction(
     name: getStringFormValue(formData, "name"),
     exportTarget: getStringFormValue(formData, "exportTarget"),
     deliveryFormat: getStringFormValue(formData, "deliveryFormat"),
-    profile: getStringFormValue(formData, "profile") || "Native",
+    profile: getStringFormValue(formData, "profile"),
     description: getStringFormValue(formData, "description"),
-    aliasProfile: getStringFormValue(formData, "aliasProfile") || "native",
+    aliasProfile: getStringFormValue(formData, "aliasProfile"),
     keySeparator: getStringFormValue(formData, "keySeparator") || undefined,
     includeTestSubmissions: getBooleanFormValue(
       formData,
@@ -208,9 +210,9 @@ export async function updateExportFormatAction(
     exportFormatId: getStringFormValue(formData, "exportFormatId"),
     name: getStringFormValue(formData, "name"),
     exportTarget: getStringFormValue(formData, "exportTarget"),
-    profile: getStringFormValue(formData, "profile") || "Native",
+    profile: getStringFormValue(formData, "profile"),
     description: getStringFormValue(formData, "description"),
-    aliasProfile: getStringFormValue(formData, "aliasProfile") || "native",
+    aliasProfile: getStringFormValue(formData, "aliasProfile"),
     keySeparator: getStringFormValue(formData, "keySeparator") || undefined,
     includeTestSubmissions: getBooleanFormValue(
       formData,
@@ -328,6 +330,32 @@ export async function upsertTenantDefaultExportMappingAction(
   }
 
   const api = new EndatixApi(session?.accessToken);
+  const formatsApiResult = await api.reporting.exportFormats.list();
+  const formatsResult = toResult(formatsApiResult, {
+    fallbackMessage: "Failed to load export formats.",
+    logMessage: "Failed to load export formats for default mapping validation.",
+    loggerName: LOGGER_NAME,
+  });
+
+  if (Result.isError(formatsResult)) {
+    return {
+      isSuccess: false,
+      message: formatsResult.message,
+      data: { exportFormatId },
+    };
+  }
+
+  const selectedFormat = formatsResult.value.find(
+    (format) => format.id === validated.data.exportFormatId,
+  );
+  if (!selectedFormat || selectedFormat.exportTarget !== "Submissions") {
+    return {
+      isSuccess: false,
+      message: "Default export format must target submissions.",
+      data: { exportFormatId },
+    };
+  }
+
   const apiResult = await api.reporting.exportMappings.upsert({
     exportFormatId: validated.data.exportFormatId,
     isDefault: true,

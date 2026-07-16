@@ -23,9 +23,9 @@ import {
 export interface ExportFormatFormValues {
   name: string;
   description: string;
-  exportTarget: ExportTarget;
-  deliveryFormat: ExportDeliveryFormat;
-  profile: ExportProfile;
+  exportTarget: ExportTarget | "";
+  deliveryFormat: ExportDeliveryFormat | "";
+  profile: ExportProfile | "";
   aliasProfile: string;
   keySeparator: string;
   includeTestSubmissions: boolean;
@@ -36,6 +36,7 @@ export type ExportFormatFormMode = "create" | "edit";
 function getInitialValues(
   mode: ExportFormatFormMode,
   capabilities: ExportCapabilityDto[],
+  namingConventions: ColumnAliasNamingConventionDto[],
   initialFormat?: ExportFormatListItem,
   defaultValues?: Partial<ExportFormatFormValues>,
 ): ExportFormatFormValues {
@@ -54,12 +55,15 @@ function getInitialValues(
 
   const catalogDefault = getDefaultExportFormatSelection(capabilities);
   const exportTarget =
-    defaultValues?.exportTarget ??
-    catalogDefault?.exportTarget ??
-    "Submissions";
+    defaultValues?.exportTarget || catalogDefault?.exportTarget || "";
   const deliveryFormat =
-    defaultValues?.deliveryFormat ?? catalogDefault?.deliveryFormat ?? "Csv";
-  const profile = defaultValues?.profile ?? catalogDefault?.profile ?? "Native";
+    defaultValues?.deliveryFormat || catalogDefault?.deliveryFormat || "";
+  const profile = defaultValues?.profile || catalogDefault?.profile || "";
+  const aliasProfile =
+    defaultValues?.aliasProfile || namingConventions[0]?.wireKey || "";
+  const keySeparator =
+    defaultValues?.keySeparator ||
+    (profile ? getDefaultExportKeySeparator(profile) : "");
 
   return {
     name: defaultValues?.name ?? "",
@@ -67,9 +71,8 @@ function getInitialValues(
     exportTarget,
     deliveryFormat,
     profile,
-    aliasProfile: defaultValues?.aliasProfile ?? "native",
-    keySeparator:
-      defaultValues?.keySeparator ?? getDefaultExportKeySeparator(profile),
+    aliasProfile,
+    keySeparator,
     includeTestSubmissions: defaultValues?.includeTestSubmissions ?? false,
   };
 }
@@ -92,7 +95,13 @@ export function useExportFormatFormState({
   fieldErrors,
 }: UseExportFormatFormStateArgs) {
   const [values, setValues] = useState<ExportFormatFormValues>(() =>
-    getInitialValues(mode, capabilities, initialFormat, defaultValues),
+    getInitialValues(
+      mode,
+      capabilities,
+      namingConventions,
+      initialFormat,
+      defaultValues,
+    ),
   );
 
   const availableTargets = useMemo(
@@ -101,17 +110,22 @@ export function useExportFormatFormState({
   );
 
   const availableDeliveryFormats = useMemo(
-    () => getDeliveryFormatOptionsForTarget(values.exportTarget, capabilities),
+    () =>
+      values.exportTarget
+        ? getDeliveryFormatOptionsForTarget(values.exportTarget, capabilities)
+        : [],
     [capabilities, values.exportTarget],
   );
 
   const availableProfiles = useMemo(
     () =>
-      getProfileOptionsForSelection(
-        values.exportTarget,
-        values.deliveryFormat,
-        capabilities,
-      ),
+      values.exportTarget && values.deliveryFormat
+        ? getProfileOptionsForSelection(
+            values.exportTarget,
+            values.deliveryFormat,
+            capabilities,
+          )
+        : [],
     [capabilities, values.deliveryFormat, values.exportTarget],
   );
 
@@ -123,18 +137,20 @@ export function useExportFormatFormState({
 
   const selectedProfileCapability = useMemo(
     () =>
-      getExportCapabilityForSelection(
-        values.exportTarget,
-        values.deliveryFormat,
-        values.profile,
-        capabilities,
-      ),
+      values.exportTarget && values.deliveryFormat && values.profile
+        ? getExportCapabilityForSelection(
+            values.exportTarget,
+            values.deliveryFormat,
+            values.profile,
+            capabilities,
+          )
+        : undefined,
     [capabilities, values.deliveryFormat, values.exportTarget, values.profile],
   );
 
-  const visibility = getExportFormatSettingsFieldVisibility(
-    values.exportTarget,
-  );
+  const visibility = values.exportTarget
+    ? getExportFormatSettingsFieldVisibility(values.exportTarget)
+    : { includeTestSubmissions: false, variant: false };
   const isEdit = mode === "edit";
 
   // Keep create-mode selects aligned with the capability catalog when options change.
@@ -214,6 +230,10 @@ export function useExportFormatFormState({
   };
 
   const handleDeliveryChange = (nextDelivery: ExportDeliveryFormat) => {
+    if (!values.exportTarget) {
+      return;
+    }
+
     const nextProfile = getProfileOptionsForSelection(
       values.exportTarget,
       nextDelivery,

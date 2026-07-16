@@ -56,6 +56,7 @@ import {
   getExportFormatLabel,
   getExportFormatSettingsSummary,
   getExportFormatTypeLabel,
+  canCreateExportFormat,
 } from "@/lib/endatix-api/reporting/export-format-types";
 import {
   createExportFormatAction,
@@ -78,6 +79,19 @@ const initialActionState: ExportFormatActionState = {
   message: "",
 };
 
+function shouldToastActionState(state: ExportFormatActionState): boolean {
+  if (!state.message) {
+    return false;
+  }
+
+  // Field validation errors are shown inline — skip error toasts for them.
+  if (!state.isSuccess && state.errors) {
+    return false;
+  }
+
+  return true;
+}
+
 export function ExportFormatsSettings({
   formatsPromise,
   mappingsPromise,
@@ -91,6 +105,10 @@ export function ExportFormatsSettings({
   const tenantDefault = mappings.find(
     (mapping) => mapping.isDefault && !mapping.surveyTypeId,
   );
+  const submissionFormats = formats.filter(
+    (format) => format.exportTarget === "Submissions",
+  );
+  const canCreate = canCreateExportFormat(capabilities, namingConventions);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createFormKey, setCreateFormKey] = useState(0);
@@ -101,6 +119,7 @@ export function ExportFormatsSettings({
   const [defaultFormatId, setDefaultFormatId] = useState(
     tenantDefault?.exportFormatId ?? "",
   );
+  const [isUpdatingDefault, setIsUpdatingDefault] = useState(false);
 
   const [createState, createFormAction, isCreating] = useActionState(
     createExportFormatAction,
@@ -112,7 +131,7 @@ export function ExportFormatsSettings({
   );
 
   useEffect(() => {
-    if (!createState.message) {
+    if (!shouldToastActionState(createState)) {
       return;
     }
 
@@ -127,7 +146,7 @@ export function ExportFormatsSettings({
   }, [createState]);
 
   useEffect(() => {
-    if (!updateState.message) {
+    if (!shouldToastActionState(updateState)) {
       return;
     }
 
@@ -155,12 +174,28 @@ export function ExportFormatsSettings({
   };
 
   const handleDefaultChange = async (exportFormatId: string) => {
+    if (isUpdatingDefault) {
+      return;
+    }
+
+    const previousDefaultId = defaultFormatId;
     setDefaultFormatId(exportFormatId);
-    const result = await upsertTenantDefaultExportMappingAction(exportFormatId);
-    toast[result.isSuccess ? "success" : "error"]({
-      title: result.isSuccess ? "Default updated" : "Error",
-      description: result.message,
-    });
+    setIsUpdatingDefault(true);
+
+    try {
+      const result =
+        await upsertTenantDefaultExportMappingAction(exportFormatId);
+      if (!result.isSuccess) {
+        setDefaultFormatId(previousDefaultId);
+      }
+
+      toast[result.isSuccess ? "success" : "error"]({
+        title: result.isSuccess ? "Default updated" : "Error",
+        description: result.message,
+      });
+    } finally {
+      setIsUpdatingDefault(false);
+    }
   };
 
   return (
@@ -179,13 +214,13 @@ export function ExportFormatsSettings({
             <Select
               value={defaultFormatId}
               onValueChange={handleDefaultChange}
-              disabled={formats.length === 0}
+              disabled={submissionFormats.length === 0 || isUpdatingDefault}
             >
               <SelectTrigger id="default-export-format">
                 <SelectValue placeholder="Select default export format" />
               </SelectTrigger>
               <SelectContent>
-                {formats.map((format) => (
+                {submissionFormats.map((format) => (
                   <SelectItem key={format.id} value={format.id}>
                     {getExportFormatLabel(format)}
                   </SelectItem>
@@ -207,6 +242,7 @@ export function ExportFormatsSettings({
           </div>
           <Button
             type="button"
+            disabled={!canCreate}
             onClick={() => {
               setCreateFormKey((current) => current + 1);
               setCreateOpen(true);
@@ -321,7 +357,7 @@ export function ExportFormatsSettings({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating}>
+            <Button type="submit" disabled={isCreating || !canCreate}>
               {isCreating ? "Creating…" : "Create format"}
             </Button>
           </ResponsivePanelFooter>

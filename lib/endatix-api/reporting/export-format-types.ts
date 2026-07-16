@@ -320,3 +320,14 @@ export function getDefaultExportFormatSelection(
     profile: first.profile,
   };
 }
+
+/** Whether create UI has the catalogs needed for a valid export format. */
+export function canCreateExportFormat(
+  capabilities: ReadonlyArray<ExportCapabilityDto>,
+  namingConventions: ReadonlyArray<ColumnAliasNamingConventionDto>,
+): boolean {
+  return (
+    getDefaultExportFormatSelection(capabilities) !== null &&
+    namingConventions.length > 0
+  );
+}

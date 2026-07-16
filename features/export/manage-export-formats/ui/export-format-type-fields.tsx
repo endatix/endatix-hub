@@ -22,9 +22,9 @@ interface CatalogOption<T extends string> {
 
 interface ExportFormatTypeFieldsProps {
   mode: string;
-  exportTarget: ExportTarget;
-  deliveryFormat: ExportDeliveryFormat;
-  profile: ExportProfile;
+  exportTarget: ExportTarget | "";
+  deliveryFormat: ExportDeliveryFormat | "";
+  profile: ExportProfile | "";
   showVariant: boolean;
   availableTargets: ReadonlyArray<CatalogOption<ExportTarget>>;
   availableDeliveryFormats: ReadonlyArray<CatalogOption<ExportDeliveryFormat>>;
@@ -54,12 +54,12 @@ export function ExportFormatTypeFields({
       <div className="flex flex-col gap-2">
         <Label htmlFor={`${mode}-exportTarget`}>Export target</Label>
         <Select
-          value={exportTarget}
+          value={exportTarget || undefined}
           onValueChange={(value) => onTargetChange(value as ExportTarget)}
           disabled={availableTargets.length === 0}
         >
           <SelectTrigger id={`${mode}-exportTarget`}>
-            <SelectValue />
+            <SelectValue placeholder="Select export target" />
           </SelectTrigger>
           <SelectContent>
             {availableTargets.map((option) => (
@@ -74,7 +74,7 @@ export function ExportFormatTypeFields({
       <div className="flex flex-col gap-2">
         <Label htmlFor={`${mode}-deliveryFormat`}>Delivery format</Label>
         <Select
-          value={deliveryFormat}
+          value={deliveryFormat || undefined}
           onValueChange={(value) =>
             onDeliveryChange(value as ExportDeliveryFormat)
           }
@@ -97,7 +97,7 @@ export function ExportFormatTypeFields({
         <div className="flex flex-col gap-2">
           <Label htmlFor={`${mode}-profile`}>Variant</Label>
           <Select
-            value={profile}
+            value={profile || undefined}
             onValueChange={(value) => onProfileChange(value as ExportProfile)}
             disabled={availableProfiles.length === 0}
           >

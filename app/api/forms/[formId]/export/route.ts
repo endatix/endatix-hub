@@ -12,6 +12,15 @@ import {
   parseLegacyExportFormat,
   parseReportingExportWireKey,
 } from "@/features/export/export-submissions";
+import { Result } from "@/lib/result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
+
+function badRequest(error: string): Response {
+  return new Response(JSON.stringify({ error }), {
+    status: 400,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -34,15 +43,28 @@ export async function GET(
   const useReportingExport = await reportingExportFlag();
 
   if (useReportingExport && !exportFormatId) {
-    return new Response(
-      JSON.stringify({
-        error: "exportFormatId is required for reporting export.",
-      }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      },
+    return badRequest("exportFormatId is required for reporting export.");
+  }
+
+  let validatedExportFormatId: string | undefined;
+  if (exportFormatId) {
+    const exportFormatIdResult = validateEndatixId(
+      exportFormatId,
+      "exportFormatId",
     );
+    if (Result.isError(exportFormatIdResult)) {
+      return badRequest(exportFormatIdResult.message);
+    }
+    validatedExportFormatId = exportFormatIdResult.value;
+  }
+
+  let validatedExportId: string | undefined;
+  if (!useReportingExport && exportId) {
+    const exportIdResult = validateEndatixId(exportId, "exportId");
+    if (Result.isError(exportIdResult)) {
+      return badRequest(exportIdResult.message);
+    }
+    validatedExportId = exportIdResult.value;
   }
 
   const exportFormat = useReportingExport
@@ -52,8 +74,8 @@ export async function GET(
   const exportOptions: ExportSubmissionsRequest = {
     formId,
     exportFormat,
-    exportFormatId: exportFormatId ?? undefined,
-    exportId: useReportingExport ? undefined : (exportId ?? undefined),
+    exportFormatId: validatedExportFormatId,
+    exportId: validatedExportId,
     includeTestSubmissions: parseIncludeTestSubmissionsQuery(
       includeTestSubmissionsParam,
     ),
