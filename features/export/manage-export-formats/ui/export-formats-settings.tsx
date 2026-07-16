@@ -248,7 +248,7 @@ export function ExportFormatsSettings({
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {getExportFormatTypeLabel(format)}
+                        {getExportFormatTypeLabel(format, capabilities)}
                       </TableCell>
                       <TableCell className="max-w-md text-sm text-muted-foreground">
                         {getExportFormatSettingsSummary(

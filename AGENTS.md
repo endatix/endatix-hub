@@ -40,6 +40,22 @@
 - Client UI should display messages returned by `Result<T>` or `ServerActionState`.
 - Reserve error toasts for non-recoverable failures and prefer inline validation for recoverable form errors.
 
+## API-sourced catalogs (no Hub label duplication)
+
+When the Endatix API exposes a catalog for options, labels, or descriptions (capabilities, naming conventions, feature flags metadata, etc.), Hub must treat that catalog as the source of truth.
+
+- **Do** fetch the catalog (server page / action) and derive select options from it.
+- **Do** keep TypeScript unions or Zod enums only for **wire contract** values (`"Submissions"`, `"Native"`, `"csv"`) — those are protocol discriminators, not UI copy.
+- **Do not** hardcode parallel Hub catalogs such as `EXPORT_PROFILE_OPTIONS` / `HARDCODED_*` that duplicate API `label` / `description` / `example` fields.
+- **Do not** invent fallback option lists when the catalog is empty; show an error or empty state and fix the data load instead.
+- Prefer displaying `capability.label` / `format.label` / naming-convention `label` over concatenating Hub-authored strings.
+
+**Status (reporting export):**
+- Done: Hub derives create-form options + type labels from `GET /settings/export-capabilities` and column naming from `GET /settings/export-naming-conventions` (`lib/endatix-api/reporting/export-format-types.ts` projects only; no Hub label catalog).
+- Not yet: target group headings still use raw wire enum names; no i18n for API-sourced copy; no codegen of wire unions/labels from .NET into TypeScript.
+
+**Hints / follow-ups:** route remaining Hub-authored strings through i18n (or keep them only on the API); consider CI that generates TS wire unions (and optional label maps) from Reporting contracts/capabilities so Hub and .NET stay aligned. When a stronger pattern ships, update this section so agents keep following it.
+
 ## Analytics
 
 - In client components, use `useTrackEvent()` from `features/analytics/posthog/client` and track success transitions from effects or event handlers. Guard effects with refs when a state transition should emit once.

@@ -21,11 +21,6 @@ export interface TenantExportOptionGroup {
   options: TenantExportOption[];
 }
 
-const TARGET_LABELS: Record<ExportTarget, string> = {
-  Submissions: "Submissions",
-  Codebook: "Codebook",
-};
-
 export function mapFormatsToTenantExportOptions(
   formats: ExportFormatListItem[],
 ): TenantExportOption[] {
@@ -49,9 +44,10 @@ export function groupTenantExportOptions(
     grouped.set(option.exportTarget, existing);
   }
 
+  // Group heading uses the wire target name (API enum), not a Hub label catalog.
   return Array.from(grouped.entries()).map(([target, groupOptions]) => ({
     target,
-    label: TARGET_LABELS[target],
+    label: target,
     options: groupOptions,
   }));
 }

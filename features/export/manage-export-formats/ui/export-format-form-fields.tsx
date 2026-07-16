@@ -28,13 +28,14 @@ import type {
   ExportTarget,
 } from "@/lib/endatix-api/reporting/export-format-types";
 import {
-  EXPORT_TARGET_OPTIONS,
   getColumnAliasNamingConvention,
+  getDefaultExportFormatSelection,
   getDefaultExportKeySeparator,
   getDeliveryFormatOptionsForTarget,
   getExportCapabilityForSelection,
   getExportFormatSettingsFieldVisibility,
   getExportFormatTypeLabel,
+  getExportTargetOptions,
   getProfileOptionsForSelection,
 } from "@/lib/endatix-api/reporting/export-format-types";
 
@@ -60,6 +61,7 @@ interface ExportFormatFormFieldsProps {
 
 function getInitialValues(
   mode: "create" | "edit",
+  capabilities: ExportCapabilityDto[],
   initialFormat?: ExportFormatListItem,
   defaultValues?: Partial<ExportFormatFormValues>,
 ): ExportFormatFormValues {
@@ -76,14 +78,20 @@ function getInitialValues(
     };
   }
 
-  const exportTarget = defaultValues?.exportTarget ?? "Submissions";
-  const profile = defaultValues?.profile ?? "Native";
+  const catalogDefault = getDefaultExportFormatSelection(capabilities);
+  const exportTarget =
+    defaultValues?.exportTarget ??
+    catalogDefault?.exportTarget ??
+    "Submissions";
+  const deliveryFormat =
+    defaultValues?.deliveryFormat ?? catalogDefault?.deliveryFormat ?? "Csv";
+  const profile = defaultValues?.profile ?? catalogDefault?.profile ?? "Native";
 
   return {
     name: defaultValues?.name ?? "",
     description: defaultValues?.description ?? "",
     exportTarget,
-    deliveryFormat: defaultValues?.deliveryFormat ?? "Csv",
+    deliveryFormat,
     profile,
     aliasProfile: defaultValues?.aliasProfile ?? "native",
     keySeparator:
@@ -109,7 +117,12 @@ export function ExportFormatFormFields({
   defaultValues,
 }: ExportFormatFormFieldsProps) {
   const [values, setValues] = useState<ExportFormatFormValues>(() =>
-    getInitialValues(mode, initialFormat, defaultValues),
+    getInitialValues(mode, capabilities, initialFormat, defaultValues),
+  );
+
+  const availableTargets = useMemo(
+    () => getExportTargetOptions(capabilities),
+    [capabilities],
   );
 
   const selectedNamingConvention = useMemo(
@@ -187,13 +200,20 @@ export function ExportFormatFormFields({
       nextTarget,
       capabilities,
     );
-    const nextDelivery = nextDeliveryOptions[0]?.value ?? "Json";
+    const nextDelivery = nextDeliveryOptions[0]?.value;
+    if (!nextDelivery) {
+      return;
+    }
+
     const nextProfileOptions = getProfileOptionsForSelection(
       nextTarget,
       nextDelivery,
       capabilities,
     );
-    const nextProfile = nextProfileOptions[0]?.value ?? "Native";
+    const nextProfile = nextProfileOptions[0]?.value;
+    if (!nextProfile) {
+      return;
+    }
 
     setValues((current) => ({
       ...current,
@@ -210,7 +230,10 @@ export function ExportFormatFormFields({
       nextDelivery,
       capabilities,
     );
-    const nextProfile = nextProfileOptions[0]?.value ?? "Native";
+    const nextProfile = nextProfileOptions[0]?.value;
+    if (!nextProfile) {
+      return;
+    }
 
     setValues((current) => ({
       ...current,
@@ -235,8 +258,17 @@ export function ExportFormatFormFields({
       {isEdit && initialFormat ? (
         <Alert variant="info">
           <AlertDescription>
-            {getExportFormatTypeLabel(initialFormat)}. Export type cannot be
-            changed after creation.
+            {getExportFormatTypeLabel(initialFormat, capabilities)}. Export type
+            cannot be changed after creation.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {!isEdit && availableTargets.length === 0 ? (
+        <Alert variant="destructive">
+          <AlertDescription>
+            No export capabilities are available from the API. Refresh the page
+            or contact support if this persists.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -275,12 +307,13 @@ export function ExportFormatFormFields({
                 onValueChange={(value) =>
                   handleTargetChange(value as ExportTarget)
                 }
+                disabled={availableTargets.length === 0}
               >
                 <SelectTrigger id={`${mode}-exportTarget`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {EXPORT_TARGET_OPTIONS.map((option) => (
+                  {availableTargets.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>

@@ -1,6 +1,7 @@
 /** Wire key for a column naming convention (e.g. native, crunch). Sourced from OSS. */
 export type ColumnAliasProfile = string;
 
+/** Wire enum values from the Reporting API contract — not UI copy. */
 export type ExportTarget = "Submissions" | "Codebook";
 export type ExportDeliveryFormat = "Csv" | "Json";
 export type ExportProfile = "Native" | "Shoji";
@@ -11,14 +12,6 @@ export interface ColumnAliasNamingConventionDto {
   description: string;
   example?: string | null;
 }
-
-export const EXPORT_PROFILE_OPTIONS: ReadonlyArray<{
-  value: ExportProfile;
-  label: string;
-}> = [
-  { value: "Native", label: "Standard" },
-  { value: "Shoji", label: "Shoji (Crunch codebook)" },
-];
 
 export interface ExportCapabilityDto {
   target: ExportTarget;
@@ -86,6 +79,15 @@ export interface UpsertExportMappingRequestBody {
   isDefault: boolean;
 }
 
+export interface ExportSelectOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+export interface ExportProfileSelectOption extends ExportSelectOption<ExportProfile> {
+  description: string;
+}
+
 export function getExportFormatLabel(format: ExportFormatListItem): string {
   if (format.name?.trim()) {
     return format.name.trim();
@@ -111,13 +113,6 @@ export function getColumnAliasNamingConvention(
   return namingConventions.find((option) => option.wireKey === aliasProfile);
 }
 
-export function getExportProfileLabel(profile: ExportProfile): string {
-  return (
-    EXPORT_PROFILE_OPTIONS.find((option) => option.value === profile)?.label ??
-    profile
-  );
-}
-
 export interface ExportFormatSettingsFieldVisibility {
   includeTestSubmissions: boolean;
   variant: boolean;
@@ -140,17 +135,21 @@ export function getDefaultExportKeySeparator(profile: ExportProfile): string {
   return "__";
 }
 
-export function getExportFormatTypeLabel(format: ExportFormatListItem): string {
-  const delivery =
-    format.deliveryFormat === "Csv"
-      ? "CSV"
-      : format.deliveryFormat.toUpperCase();
+/**
+ * Display label for an export format's type — prefers the API capability/format label.
+ */
+export function getExportFormatTypeLabel(
+  format: ExportFormatListItem,
+  capabilities: ReadonlyArray<ExportCapabilityDto> = [],
+): string {
+  const capability = getExportCapabilityForSelection(
+    format.exportTarget,
+    format.deliveryFormat,
+    format.profile,
+    capabilities,
+  );
 
-  if (format.exportTarget === "Codebook") {
-    return `Codebook · ${delivery} · ${getExportProfileLabel(format.profile)}`;
-  }
-
-  return `Submissions · ${delivery}`;
+  return capability?.label ?? format.label;
 }
 
 export function getExportFormatSettingsSummary(
@@ -206,52 +205,67 @@ export function getExportFormatFallbackExtension(wireKey: string): string {
   return wireKey;
 }
 
-export const EXPORT_TARGET_OPTIONS: ReadonlyArray<{
-  value: ExportTarget;
-  label: string;
-}> = [
-  { value: "Submissions", label: "Submissions" },
-  { value: "Codebook", label: "Codebook" },
-];
+function formatDeliveryLabel(deliveryFormat: ExportDeliveryFormat): string {
+  if (deliveryFormat === "Csv") {
+    return "CSV";
+  }
 
-export const EXPORT_DELIVERY_FORMAT_OPTIONS: ReadonlyArray<{
-  value: ExportDeliveryFormat;
-  label: string;
-}> = [
-  { value: "Csv", label: "CSV" },
-  { value: "Json", label: "JSON" },
-];
+  return deliveryFormat.toUpperCase();
+}
 
+/** Distinct export targets present in the capabilities catalog. */
+export function getExportTargetOptions(
+  capabilities: ReadonlyArray<ExportCapabilityDto>,
+): ReadonlyArray<ExportSelectOption<ExportTarget>> {
+  const options: ExportSelectOption<ExportTarget>[] = [];
+  const seen = new Set<ExportTarget>();
+
+  for (const capability of capabilities) {
+    if (seen.has(capability.target)) {
+      continue;
+    }
+
+    seen.add(capability.target);
+    options.push({
+      value: capability.target,
+      label: capability.target,
+    });
+  }
+
+  return options;
+}
+
+/** Delivery formats for a target, derived from capabilities (no Hub fallback catalog). */
 export function getDeliveryFormatOptionsForTarget(
   exportTarget: ExportTarget,
-  capabilities: ExportCapabilityDto[],
-): ReadonlyArray<{ value: ExportDeliveryFormat; label: string }> {
-  const fromCapabilities = EXPORT_DELIVERY_FORMAT_OPTIONS.filter((option) =>
-    capabilities.some(
-      (capability) =>
-        capability.target === exportTarget &&
-        capability.deliveryFormat === option.value,
-    ),
-  );
+  capabilities: ReadonlyArray<ExportCapabilityDto>,
+): ReadonlyArray<ExportSelectOption<ExportDeliveryFormat>> {
+  const options: ExportSelectOption<ExportDeliveryFormat>[] = [];
+  const seen = new Set<ExportDeliveryFormat>();
 
-  if (fromCapabilities.length > 0) {
-    return fromCapabilities;
+  for (const capability of capabilities) {
+    if (
+      capability.target !== exportTarget ||
+      seen.has(capability.deliveryFormat)
+    ) {
+      continue;
+    }
+
+    seen.add(capability.deliveryFormat);
+    options.push({
+      value: capability.deliveryFormat,
+      label: formatDeliveryLabel(capability.deliveryFormat),
+    });
   }
 
-  if (exportTarget === "Codebook") {
-    return EXPORT_DELIVERY_FORMAT_OPTIONS.filter(
-      (option) => option.value === "Json",
-    );
-  }
-
-  return EXPORT_DELIVERY_FORMAT_OPTIONS;
+  return options;
 }
 
 export function getExportCapabilityForSelection(
   exportTarget: ExportTarget,
   deliveryFormat: ExportDeliveryFormat,
   profile: ExportProfile,
-  capabilities: ExportCapabilityDto[],
+  capabilities: ReadonlyArray<ExportCapabilityDto>,
 ): ExportCapabilityDto | undefined {
   return capabilities.find(
     (capability) =>
@@ -261,42 +275,51 @@ export function getExportCapabilityForSelection(
   );
 }
 
+/** Profile/variant options for a target+delivery pair — labels/descriptions from capabilities. */
 export function getProfileOptionsForSelection(
   exportTarget: ExportTarget,
   deliveryFormat: ExportDeliveryFormat,
-  capabilities: ExportCapabilityDto[],
-): ReadonlyArray<{ value: ExportProfile; label: string; description: string }> {
-  const matchingCapabilities = capabilities.filter(
-    (capability) =>
-      capability.target === exportTarget &&
-      capability.deliveryFormat === deliveryFormat,
-  );
+  capabilities: ReadonlyArray<ExportCapabilityDto>,
+): ReadonlyArray<ExportProfileSelectOption> {
+  const options: ExportProfileSelectOption[] = [];
+  const seen = new Set<ExportProfile>();
 
-  const fromCapabilities = EXPORT_PROFILE_OPTIONS.filter((option) =>
-    matchingCapabilities.some(
-      (capability) => capability.profile === option.value,
-    ),
-  ).map((option) => ({
-    value: option.value,
-    label: option.label,
-    description:
-      matchingCapabilities.find(
-        (capability) => capability.profile === option.value,
-      )?.description ?? "",
-  }));
+  for (const capability of capabilities) {
+    if (
+      capability.target !== exportTarget ||
+      capability.deliveryFormat !== deliveryFormat ||
+      seen.has(capability.profile)
+    ) {
+      continue;
+    }
 
-  if (fromCapabilities.length > 0) {
-    return fromCapabilities;
+    seen.add(capability.profile);
+    options.push({
+      value: capability.profile,
+      label: capability.label,
+      description: capability.description,
+    });
   }
 
-  if (exportTarget === "Codebook" && deliveryFormat === "Json") {
-    return EXPORT_PROFILE_OPTIONS.map((option) => ({
-      ...option,
-      description: "",
-    }));
+  return options;
+}
+
+/** First valid create selection from the capabilities catalog, or null when empty. */
+export function getDefaultExportFormatSelection(
+  capabilities: ReadonlyArray<ExportCapabilityDto>,
+): {
+  exportTarget: ExportTarget;
+  deliveryFormat: ExportDeliveryFormat;
+  profile: ExportProfile;
+} | null {
+  const first = capabilities[0];
+  if (!first) {
+    return null;
   }
 
-  return EXPORT_PROFILE_OPTIONS.filter(
-    (option) => option.value === "Native",
-  ).map((option) => ({ ...option, description: "" }));
+  return {
+    exportTarget: first.target,
+    deliveryFormat: first.deliveryFormat,
+    profile: first.profile,
+  };
 }
