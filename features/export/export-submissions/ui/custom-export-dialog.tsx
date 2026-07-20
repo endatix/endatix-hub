@@ -78,6 +78,7 @@ export function ExportSubmissionsDialog({
   onExport,
 }: Readonly<ExportSubmissionsDialogProps>) {
   const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
   const [exportFormatId, setExportFormatId] = useState("");
   const [includeTestSubmissions, setIncludeTestSubmissions] = useState(false);
   const [createdAtFrom, setCreatedAtFrom] = useState("");
@@ -107,7 +108,10 @@ export function ExportSubmissionsDialog({
     : false;
 
   useEffect(() => {
-    if (!open) {
+    const justOpened = open && !wasOpenRef.current;
+    wasOpenRef.current = open;
+
+    if (!justOpened) {
       return;
     }
 
