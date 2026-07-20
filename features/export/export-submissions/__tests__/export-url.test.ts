@@ -129,4 +129,24 @@ describe("export url builders", () => {
     expect(shoji).toContain("locale=es");
     expect(shoji).not.toContain("includeTestSubmissions");
   });
+
+  it("uses allowedFilters allow-list instead of wireKey fallback gating", () => {
+    const listFilters = {
+      includeTestSubmissions: true,
+      createdAtFrom: "2026-01-01",
+      locale: "es",
+    };
+
+    const url = buildReportingExportUrl({
+      formId: "100",
+      wireKey: "csv",
+      exportFormatId: "42",
+      listFilters,
+      allowedFilters: ["locale"],
+    });
+
+    expect(url).toContain("locale=es");
+    expect(url).not.toContain("includeTestSubmissions");
+    expect(url).not.toContain("createdAfter=");
+  });
 });

@@ -67,7 +67,8 @@ function ReportingExportSubmissionsButton({
   listFilters,
 }: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
   const { isExporting, runExport } = useSubmissionsExport();
-  const { groups, isLoading, isEmpty, loadError } = useTenantExportFormats();
+  const { options, groups, isLoading, isEmpty, loadError } =
+    useTenantExportFormats();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleExport = async (
@@ -76,8 +77,12 @@ function ReportingExportSubmissionsButton({
     exportFormatId: string,
     fallbackExtension: string,
     filters: SubmissionExportListFilters,
-  ): Promise<boolean> =>
-    runExport({
+  ): Promise<boolean> => {
+    const selected = options.find(
+      (option) => option.exportFormatId === exportFormatId,
+    );
+
+    return runExport({
       exportName,
       fallbackFilename: `form-${formId}-submissions.${fallbackExtension}`,
       url: buildReportingExportUrl({
@@ -85,9 +90,10 @@ function ReportingExportSubmissionsButton({
         wireKey,
         exportFormatId,
         listFilters: filters,
+        allowedFilters: selected?.allowedFilters,
       }),
     });
-
+  };
   if (isLoading) {
     return (
       <Button variant="outline" disabled className={className}>

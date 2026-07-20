@@ -198,6 +198,12 @@ function createProps(
             label: "CSV",
             fallbackExtension: "csv",
             exportTarget: "Submissions" as ExportTarget,
+            allowedFilters: [
+              "includeTestSubmissions",
+              "createdAtRange",
+              "completedAtRange",
+              "locale",
+            ],
           },
           {
             exportFormatId: "json-1",
@@ -205,6 +211,12 @@ function createProps(
             label: "JSON",
             fallbackExtension: "json",
             exportTarget: "Submissions" as ExportTarget,
+            allowedFilters: [
+              "includeTestSubmissions",
+              "createdAtRange",
+              "completedAtRange",
+              "locale",
+            ],
           },
         ],
       },
@@ -218,6 +230,7 @@ function createProps(
             label: "Native codebook",
             fallbackExtension: "json",
             exportTarget: "Codebook" as ExportTarget,
+            allowedFilters: [],
           },
           {
             exportFormatId: "cb-shoji",
@@ -225,6 +238,7 @@ function createProps(
             label: "Shoji codebook",
             fallbackExtension: "json",
             exportTarget: "Codebook" as ExportTarget,
+            allowedFilters: ["locale"],
           },
         ],
       },
