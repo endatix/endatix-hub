@@ -5,7 +5,6 @@ import {
   type ExportSubmissionsDialogProps,
 } from "../ui/custom-export-dialog";
 
-const mockToastError = vi.fn();
 const mockOnExport = vi.fn();
 const mockOnOpenChange = vi.fn();
 const mockTrackFeatureUsage = vi.fn();
@@ -182,12 +181,6 @@ vi.mock("@/components/ui/label", () => ({
   ),
 }));
 
-vi.mock("@/components/ui/toast", () => ({
-  toast: {
-    error: (...args: unknown[]) => mockToastError(...args),
-  },
-}));
-
 function createProps(
   overrides?: Partial<ExportSubmissionsDialogProps>,
 ): ExportSubmissionsDialogProps {
@@ -266,7 +259,7 @@ describe("ExportSubmissionsDialog", () => {
     expect(screen.getByText("Completed at")).toBeDefined();
   });
 
-  it("shows toast error when created from > created to", () => {
+  it("shows inline error when created from > created to", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
 
     const fromInput = screen.getAllByLabelText("From")[0];
@@ -277,15 +270,14 @@ describe("ExportSubmissionsDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /export/i }));
 
-    expect(mockToastError).toHaveBeenCalledWith({
-      title: "Invalid date range",
-      description: "Created From must be on or before Created To.",
-    });
+    expect(
+      screen.getByText("Created From must be on or before Created To."),
+    ).toBeDefined();
     expect(mockOnExport).not.toHaveBeenCalled();
     expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
   });
 
-  it("shows toast error when completed from > completed to", () => {
+  it("shows inline error when completed from > completed to", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
 
     const completedFrom = screen.getAllByLabelText("From")[1];
@@ -296,10 +288,9 @@ describe("ExportSubmissionsDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /export/i }));
 
-    expect(mockToastError).toHaveBeenCalledWith({
-      title: "Invalid date range",
-      description: "Completed From must be on or before Completed To.",
-    });
+    expect(
+      screen.getByText("Completed From must be on or before Completed To."),
+    ).toBeDefined();
     expect(mockOnExport).not.toHaveBeenCalled();
     expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
   });

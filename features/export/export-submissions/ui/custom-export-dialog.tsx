@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/loaders/spinner";
-import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import type { ExportTarget } from "@/lib/endatix-api/reporting/reporting";
 import {
@@ -31,6 +30,11 @@ import {
   type SubmissionExportListFilters,
 } from "../../export-url";
 import type { TenantExportOptionGroup } from "../map-tenant-export-options";
+
+const CREATED_AT_RANGE_ERROR =
+  "Created From must be on or before Created To.";
+const COMPLETED_AT_RANGE_ERROR =
+  "Completed From must be on or before Completed To.";
 
 export interface ExportSubmissionsDialogProps {
   open: boolean;
@@ -82,6 +86,12 @@ export function ExportSubmissionsDialog({
   const [completedAtFrom, setCompletedAtFrom] = useState("");
   const [completedAtTo, setCompletedAtTo] = useState("");
   const [locale, setLocale] = useState("default");
+  const [createdAtRangeError, setCreatedAtRangeError] = useState<string | null>(
+    null,
+  );
+  const [completedAtRangeError, setCompletedAtRangeError] = useState<
+    string | null
+  >(null);
 
   const options = useMemo(
     () => groups.flatMap((group) => group.options),
@@ -124,6 +134,8 @@ export function ExportSubmissionsDialog({
     setCompletedAtFrom(listFilters?.completedAtFrom ?? "");
     setCompletedAtTo(listFilters?.completedAtTo ?? "");
     setLocale(listFilters?.locale?.trim() || "default");
+    setCreatedAtRangeError(null);
+    setCompletedAtRangeError(null);
   }, [open, options, listFilters]);
 
   const showGroupLabels = groups.length > 1;
@@ -134,29 +146,25 @@ export function ExportSubmissionsDialog({
       return;
     }
 
-    if (
+    const nextCreatedAtError =
       showRowFilters &&
       createdAtFrom &&
       createdAtTo &&
       createdAtFrom > createdAtTo
-    ) {
-      toast.error({
-        title: "Invalid date range",
-        description: "Created From must be on or before Created To.",
-      });
-      return;
-    }
-
-    if (
+        ? CREATED_AT_RANGE_ERROR
+        : null;
+    const nextCompletedAtError =
       showRowFilters &&
       completedAtFrom &&
       completedAtTo &&
       completedAtFrom > completedAtTo
-    ) {
-      toast.error({
-        title: "Invalid date range",
-        description: "Completed From must be on or before Completed To.",
-      });
+        ? COMPLETED_AT_RANGE_ERROR
+        : null;
+
+    setCreatedAtRangeError(nextCreatedAtError);
+    setCompletedAtRangeError(nextCompletedAtError);
+
+    if (nextCreatedAtError || nextCompletedAtError) {
       return;
     }
 
@@ -301,10 +309,17 @@ export function ExportSubmissionsDialog({
                         id="export-submissions-created-from"
                         type="date"
                         value={createdAtFrom}
-                        onChange={(event) =>
-                          setCreatedAtFrom(event.target.value)
-                        }
+                        onChange={(event) => {
+                          setCreatedAtFrom(event.target.value);
+                          setCreatedAtRangeError(null);
+                        }}
                         disabled={isExporting}
+                        aria-invalid={createdAtRangeError != null}
+                        aria-describedby={
+                          createdAtRangeError
+                            ? "export-submissions-created-range-error"
+                            : undefined
+                        }
                       />
                     </div>
                     <div className="grid gap-1">
@@ -318,11 +333,29 @@ export function ExportSubmissionsDialog({
                         id="export-submissions-created-to"
                         type="date"
                         value={createdAtTo}
-                        onChange={(event) => setCreatedAtTo(event.target.value)}
+                        onChange={(event) => {
+                          setCreatedAtTo(event.target.value);
+                          setCreatedAtRangeError(null);
+                        }}
                         disabled={isExporting}
+                        aria-invalid={createdAtRangeError != null}
+                        aria-describedby={
+                          createdAtRangeError
+                            ? "export-submissions-created-range-error"
+                            : undefined
+                        }
                       />
                     </div>
                   </div>
+                  {createdAtRangeError ? (
+                    <p
+                      id="export-submissions-created-range-error"
+                      className="text-sm text-destructive"
+                      role="alert"
+                    >
+                      {createdAtRangeError}
+                    </p>
+                  ) : null}
                 </fieldset>
 
                 <fieldset className="grid gap-2">
@@ -339,10 +372,17 @@ export function ExportSubmissionsDialog({
                         id="export-submissions-completed-from"
                         type="date"
                         value={completedAtFrom}
-                        onChange={(event) =>
-                          setCompletedAtFrom(event.target.value)
-                        }
+                        onChange={(event) => {
+                          setCompletedAtFrom(event.target.value);
+                          setCompletedAtRangeError(null);
+                        }}
                         disabled={isExporting}
+                        aria-invalid={completedAtRangeError != null}
+                        aria-describedby={
+                          completedAtRangeError
+                            ? "export-submissions-completed-range-error"
+                            : undefined
+                        }
                       />
                     </div>
                     <div className="grid gap-1">
@@ -356,13 +396,29 @@ export function ExportSubmissionsDialog({
                         id="export-submissions-completed-to"
                         type="date"
                         value={completedAtTo}
-                        onChange={(event) =>
-                          setCompletedAtTo(event.target.value)
-                        }
+                        onChange={(event) => {
+                          setCompletedAtTo(event.target.value);
+                          setCompletedAtRangeError(null);
+                        }}
                         disabled={isExporting}
+                        aria-invalid={completedAtRangeError != null}
+                        aria-describedby={
+                          completedAtRangeError
+                            ? "export-submissions-completed-range-error"
+                            : undefined
+                        }
                       />
                     </div>
                   </div>
+                  {completedAtRangeError ? (
+                    <p
+                      id="export-submissions-completed-range-error"
+                      className="text-sm text-destructive"
+                      role="alert"
+                    >
+                      {completedAtRangeError}
+                    </p>
+                  ) : null}
                 </fieldset>
               </>
             ) : (
