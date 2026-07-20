@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type SubmitEvent,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type SubmitEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -30,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/loaders/spinner";
 import { toast } from "@/components/ui/toast";
+import { useTrackEvent } from "@/features/analytics/posthog/client";
 import type { ExportTarget } from "@/lib/endatix-api/reporting/reporting";
 import {
   isCodebookWireKey,
@@ -50,7 +45,7 @@ export interface ExportSubmissionsDialogProps {
     exportFormatId: string;
     fallbackExtension: string;
     filters: SubmissionExportListFilters;
-  }) => void | Promise<void>;
+  }) => boolean | void | Promise<boolean | void>;
 }
 
 function showsSubmissionRowFilters(
@@ -77,6 +72,7 @@ export function ExportSubmissionsDialog({
   isExporting,
   onExport,
 }: Readonly<ExportSubmissionsDialogProps>) {
+  const { trackFeatureUsage } = useTrackEvent();
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
   const [exportFormatId, setExportFormatId] = useState("");
@@ -181,13 +177,28 @@ export function ExportSubmissionsDialog({
       filters.completedAtTo = completedAtTo || undefined;
     }
 
-    await onExport({
-      wireKey: selectedOption.wireKey,
-      exportName: selectedOption.label,
-      exportFormatId: selectedOption.exportFormatId,
-      fallbackExtension: selectedOption.fallbackExtension,
-      filters,
-    });
+    try {
+      const succeeded = await onExport({
+        wireKey: selectedOption.wireKey,
+        exportName: selectedOption.label,
+        exportFormatId: selectedOption.exportFormatId,
+        fallbackExtension: selectedOption.fallbackExtension,
+        filters,
+      });
+
+      if (succeeded === false) {
+        return;
+      }
+
+      trackFeatureUsage("export", "submissions_export", {
+        wire_key: selectedOption.wireKey,
+        export_format_id: selectedOption.exportFormatId,
+        export_target: selectedOption.exportTarget,
+        export_name: selectedOption.label,
+      });
+    } catch {
+      // Export failures are reported by the owner; do not track.
+    }
   };
 
   return (
@@ -216,7 +227,10 @@ export function ExportSubmissionsDialog({
                 onValueChange={setExportFormatId}
                 disabled={isExporting || options.length === 0}
               >
-                <SelectTrigger id="export-submissions-format" className="w-full">
+                <SelectTrigger
+                  id="export-submissions-format"
+                  className="w-full"
+                >
                   <SelectValue placeholder="Select format" />
                 </SelectTrigger>
                 <SelectContent>

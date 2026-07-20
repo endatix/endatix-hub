@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ExportSubmissionsDialog,
@@ -8,6 +8,7 @@ import {
 const mockToastError = vi.fn();
 const mockOnExport = vi.fn();
 const mockOnOpenChange = vi.fn();
+const mockTrackFeatureUsage = vi.fn();
 
 type ExportTarget = "Submissions" | "Codebook";
 
@@ -19,6 +20,12 @@ vi.stubGlobal(
     disconnect: vi.fn(),
   })),
 );
+
+vi.mock("@/features/analytics/posthog/client", () => ({
+  useTrackEvent: () => ({
+    trackFeatureUsage: mockTrackFeatureUsage,
+  }),
+}));
 
 vi.mock("@/components/ui/dialog", () => ({
   Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
@@ -275,6 +282,7 @@ describe("ExportSubmissionsDialog", () => {
       description: "Created From must be on or before Created To.",
     });
     expect(mockOnExport).not.toHaveBeenCalled();
+    expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
   });
 
   it("shows toast error when completed from > completed to", () => {
@@ -293,9 +301,11 @@ describe("ExportSubmissionsDialog", () => {
       description: "Completed From must be on or before Completed To.",
     });
     expect(mockOnExport).not.toHaveBeenCalled();
+    expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
   });
 
-  it("passes filters to onExport on submit", () => {
+  it("passes filters to onExport on submit", async () => {
+    mockOnExport.mockResolvedValue(true);
     render(<ExportSubmissionsDialog {...createProps()} />);
 
     const fromInput = screen.getAllByLabelText("From")[0];
@@ -303,19 +313,56 @@ describe("ExportSubmissionsDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /export/i }));
 
-    expect(mockOnExport).toHaveBeenCalledWith({
-      wireKey: "csv",
-      exportName: "CSV",
-      exportFormatId: "csv-1",
-      fallbackExtension: "csv",
-      filters: {
-        includeTestSubmissions: false,
-        createdAtFrom: "2026-01-01",
-        createdAtTo: undefined,
-        completedAtFrom: undefined,
-        completedAtTo: undefined,
-      },
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalledWith({
+        wireKey: "csv",
+        exportName: "CSV",
+        exportFormatId: "csv-1",
+        fallbackExtension: "csv",
+        filters: {
+          includeTestSubmissions: false,
+          createdAtFrom: "2026-01-01",
+          createdAtTo: undefined,
+          completedAtFrom: undefined,
+          completedAtTo: undefined,
+        },
+      });
     });
+
+    expect(mockTrackFeatureUsage).toHaveBeenCalledWith(
+      "export",
+      "submissions_export",
+      {
+        wire_key: "csv",
+        export_format_id: "csv-1",
+        export_target: "Submissions",
+        export_name: "CSV",
+      },
+    );
+  });
+
+  it("does not track analytics when onExport returns false", async () => {
+    mockOnExport.mockResolvedValue(false);
+    render(<ExportSubmissionsDialog {...createProps()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /export/i }));
+
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalled();
+    });
+    expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
+  });
+
+  it("does not track analytics when onExport rejects", async () => {
+    mockOnExport.mockRejectedValue(new Error("export failed"));
+    render(<ExportSubmissionsDialog {...createProps()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /export/i }));
+
+    await waitFor(() => {
+      expect(mockOnExport).toHaveBeenCalled();
+    });
+    expect(mockTrackFeatureUsage).not.toHaveBeenCalled();
   });
 
   it("hides row filters and shows codebook note when codebook is selected", () => {

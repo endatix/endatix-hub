@@ -153,6 +153,7 @@ function ReportingExportSubmissionsButton({
           if (succeeded) {
             setDialogOpen(false);
           }
+          return succeeded;
         }}
       />
     </>
