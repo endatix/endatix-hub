@@ -31,8 +31,7 @@ import {
 } from "../../export-url";
 import type { TenantExportOptionGroup } from "../map-tenant-export-options";
 
-const CREATED_AT_RANGE_ERROR =
-  "Created From must be on or before Created To.";
+const CREATED_AT_RANGE_ERROR = "Created From must be on or before Created To.";
 const COMPLETED_AT_RANGE_ERROR =
   "Completed From must be on or before Completed To.";
 
@@ -66,6 +65,137 @@ function showsSubmissionRowFilters(
 function showsLocale(wireKey: string): boolean {
   // Native codebook streams FormSchema JSON as-is (no request locale).
   return wireKey !== "codebook";
+}
+
+function isInvalidDateRange(from: string, to: string): boolean {
+  return Boolean(from && to && from > to);
+}
+
+function resolveDateRangeErrors(args: {
+  showRowFilters: boolean;
+  createdAtFrom: string;
+  createdAtTo: string;
+  completedAtFrom: string;
+  completedAtTo: string;
+}): {
+  createdAtRangeError: string | null;
+  completedAtRangeError: string | null;
+} {
+  if (!args.showRowFilters) {
+    return { createdAtRangeError: null, completedAtRangeError: null };
+  }
+
+  return {
+    createdAtRangeError: isInvalidDateRange(
+      args.createdAtFrom,
+      args.createdAtTo,
+    )
+      ? CREATED_AT_RANGE_ERROR
+      : null,
+    completedAtRangeError: isInvalidDateRange(
+      args.completedAtFrom,
+      args.completedAtTo,
+    )
+      ? COMPLETED_AT_RANGE_ERROR
+      : null,
+  };
+}
+
+function buildExportFilters(args: {
+  showLocaleField: boolean;
+  showRowFilters: boolean;
+  locale: string;
+  includeTestSubmissions: boolean;
+  createdAtFrom: string;
+  createdAtTo: string;
+  completedAtFrom: string;
+  completedAtTo: string;
+}): SubmissionExportListFilters {
+  const filters: SubmissionExportListFilters = {};
+
+  if (args.showLocaleField) {
+    const trimmedLocale = args.locale.trim();
+    if (trimmedLocale && trimmedLocale !== "default") {
+      filters.locale = trimmedLocale;
+    }
+  }
+
+  if (args.showRowFilters) {
+    filters.includeTestSubmissions = args.includeTestSubmissions;
+    filters.createdAtFrom = args.createdAtFrom || undefined;
+    filters.createdAtTo = args.createdAtTo || undefined;
+    filters.completedAtFrom = args.completedAtFrom || undefined;
+    filters.completedAtTo = args.completedAtTo || undefined;
+  }
+
+  return filters;
+}
+
+function ExportDateRangeFieldset({
+  legend,
+  fromId,
+  toId,
+  errorId,
+  fromValue,
+  toValue,
+  error,
+  disabled,
+  onFromChange,
+  onToChange,
+}: Readonly<{
+  legend: string;
+  fromId: string;
+  toId: string;
+  errorId: string;
+  fromValue: string;
+  toValue: string;
+  error: string | null;
+  disabled: boolean;
+  onFromChange: (value: string) => void;
+  onToChange: (value: string) => void;
+}>) {
+  const hasError = error != null;
+
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="text-sm font-medium">{legend}</legend>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-1">
+          <Label htmlFor={fromId} className="text-xs text-muted-foreground">
+            From
+          </Label>
+          <Input
+            id={fromId}
+            type="date"
+            value={fromValue}
+            onChange={(event) => onFromChange(event.target.value)}
+            disabled={disabled}
+            aria-invalid={hasError}
+            aria-describedby={hasError ? errorId : undefined}
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor={toId} className="text-xs text-muted-foreground">
+            To
+          </Label>
+          <Input
+            id={toId}
+            type="date"
+            value={toValue}
+            onChange={(event) => onToChange(event.target.value)}
+            disabled={disabled}
+            aria-invalid={hasError}
+            aria-describedby={hasError ? errorId : undefined}
+          />
+        </div>
+      </div>
+      {hasError ? (
+        <p id={errorId} className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </fieldset>
+  );
 }
 
 export function ExportSubmissionsDialog({
@@ -146,44 +276,30 @@ export function ExportSubmissionsDialog({
       return;
     }
 
-    const nextCreatedAtError =
-      showRowFilters &&
-      createdAtFrom &&
-      createdAtTo &&
-      createdAtFrom > createdAtTo
-        ? CREATED_AT_RANGE_ERROR
-        : null;
-    const nextCompletedAtError =
-      showRowFilters &&
-      completedAtFrom &&
-      completedAtTo &&
-      completedAtFrom > completedAtTo
-        ? COMPLETED_AT_RANGE_ERROR
-        : null;
+    const rangeErrors = resolveDateRangeErrors({
+      showRowFilters,
+      createdAtFrom,
+      createdAtTo,
+      completedAtFrom,
+      completedAtTo,
+    });
+    setCreatedAtRangeError(rangeErrors.createdAtRangeError);
+    setCompletedAtRangeError(rangeErrors.completedAtRangeError);
 
-    setCreatedAtRangeError(nextCreatedAtError);
-    setCompletedAtRangeError(nextCompletedAtError);
-
-    if (nextCreatedAtError || nextCompletedAtError) {
+    if (rangeErrors.createdAtRangeError || rangeErrors.completedAtRangeError) {
       return;
     }
 
-    const filters: SubmissionExportListFilters = {};
-
-    if (showLocaleField) {
-      const trimmedLocale = locale.trim();
-      if (trimmedLocale && trimmedLocale !== "default") {
-        filters.locale = trimmedLocale;
-      }
-    }
-
-    if (showRowFilters) {
-      filters.includeTestSubmissions = includeTestSubmissions;
-      filters.createdAtFrom = createdAtFrom || undefined;
-      filters.createdAtTo = createdAtTo || undefined;
-      filters.completedAtFrom = completedAtFrom || undefined;
-      filters.completedAtTo = completedAtTo || undefined;
-    }
+    const filters = buildExportFilters({
+      showLocaleField,
+      showRowFilters,
+      locale,
+      includeTestSubmissions,
+      createdAtFrom,
+      createdAtTo,
+      completedAtFrom,
+      completedAtTo,
+    });
 
     try {
       const succeeded = await onExport({
@@ -295,131 +411,43 @@ export function ExportSubmissionsDialog({
                   </Label>
                 </div>
 
-                <fieldset className="grid gap-2">
-                  <legend className="text-sm font-medium">Created at</legend>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="grid gap-1">
-                      <Label
-                        htmlFor="export-submissions-created-from"
-                        className="text-xs text-muted-foreground"
-                      >
-                        From
-                      </Label>
-                      <Input
-                        id="export-submissions-created-from"
-                        type="date"
-                        value={createdAtFrom}
-                        onChange={(event) => {
-                          setCreatedAtFrom(event.target.value);
-                          setCreatedAtRangeError(null);
-                        }}
-                        disabled={isExporting}
-                        aria-invalid={createdAtRangeError != null}
-                        aria-describedby={
-                          createdAtRangeError
-                            ? "export-submissions-created-range-error"
-                            : undefined
-                        }
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label
-                        htmlFor="export-submissions-created-to"
-                        className="text-xs text-muted-foreground"
-                      >
-                        To
-                      </Label>
-                      <Input
-                        id="export-submissions-created-to"
-                        type="date"
-                        value={createdAtTo}
-                        onChange={(event) => {
-                          setCreatedAtTo(event.target.value);
-                          setCreatedAtRangeError(null);
-                        }}
-                        disabled={isExporting}
-                        aria-invalid={createdAtRangeError != null}
-                        aria-describedby={
-                          createdAtRangeError
-                            ? "export-submissions-created-range-error"
-                            : undefined
-                        }
-                      />
-                    </div>
-                  </div>
-                  {createdAtRangeError ? (
-                    <p
-                      id="export-submissions-created-range-error"
-                      className="text-sm text-destructive"
-                      role="alert"
-                    >
-                      {createdAtRangeError}
-                    </p>
-                  ) : null}
-                </fieldset>
+                <ExportDateRangeFieldset
+                  legend="Created at"
+                  fromId="export-submissions-created-from"
+                  toId="export-submissions-created-to"
+                  errorId="export-submissions-created-range-error"
+                  fromValue={createdAtFrom}
+                  toValue={createdAtTo}
+                  error={createdAtRangeError}
+                  disabled={isExporting}
+                  onFromChange={(value) => {
+                    setCreatedAtFrom(value);
+                    setCreatedAtRangeError(null);
+                  }}
+                  onToChange={(value) => {
+                    setCreatedAtTo(value);
+                    setCreatedAtRangeError(null);
+                  }}
+                />
 
-                <fieldset className="grid gap-2">
-                  <legend className="text-sm font-medium">Completed at</legend>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="grid gap-1">
-                      <Label
-                        htmlFor="export-submissions-completed-from"
-                        className="text-xs text-muted-foreground"
-                      >
-                        From
-                      </Label>
-                      <Input
-                        id="export-submissions-completed-from"
-                        type="date"
-                        value={completedAtFrom}
-                        onChange={(event) => {
-                          setCompletedAtFrom(event.target.value);
-                          setCompletedAtRangeError(null);
-                        }}
-                        disabled={isExporting}
-                        aria-invalid={completedAtRangeError != null}
-                        aria-describedby={
-                          completedAtRangeError
-                            ? "export-submissions-completed-range-error"
-                            : undefined
-                        }
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label
-                        htmlFor="export-submissions-completed-to"
-                        className="text-xs text-muted-foreground"
-                      >
-                        To
-                      </Label>
-                      <Input
-                        id="export-submissions-completed-to"
-                        type="date"
-                        value={completedAtTo}
-                        onChange={(event) => {
-                          setCompletedAtTo(event.target.value);
-                          setCompletedAtRangeError(null);
-                        }}
-                        disabled={isExporting}
-                        aria-invalid={completedAtRangeError != null}
-                        aria-describedby={
-                          completedAtRangeError
-                            ? "export-submissions-completed-range-error"
-                            : undefined
-                        }
-                      />
-                    </div>
-                  </div>
-                  {completedAtRangeError ? (
-                    <p
-                      id="export-submissions-completed-range-error"
-                      className="text-sm text-destructive"
-                      role="alert"
-                    >
-                      {completedAtRangeError}
-                    </p>
-                  ) : null}
-                </fieldset>
+                <ExportDateRangeFieldset
+                  legend="Completed at"
+                  fromId="export-submissions-completed-from"
+                  toId="export-submissions-completed-to"
+                  errorId="export-submissions-completed-range-error"
+                  fromValue={completedAtFrom}
+                  toValue={completedAtTo}
+                  error={completedAtRangeError}
+                  disabled={isExporting}
+                  onFromChange={(value) => {
+                    setCompletedAtFrom(value);
+                    setCompletedAtRangeError(null);
+                  }}
+                  onToChange={(value) => {
+                    setCompletedAtTo(value);
+                    setCompletedAtRangeError(null);
+                  }}
+                />
               </>
             ) : (
               <p className="text-xs text-muted-foreground">

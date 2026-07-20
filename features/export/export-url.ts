@@ -4,7 +4,8 @@ import {
 } from "@/lib/endatix-api/submissions/submission-list-query-params";
 
 /** Query param / capability filter name for including test submissions. */
-export const INCLUDE_TEST_SUBMISSIONS_FILTER = "includeTestSubmissions" as const;
+export const INCLUDE_TEST_SUBMISSIONS_FILTER =
+  "includeTestSubmissions" as const;
 
 /** Wire names from ExportCapabilityDto.allowedFilters (Reporting API). */
 export type ExportRequestFilter =
@@ -116,6 +117,102 @@ function appendCalendarRange(
   }
 }
 
+function appendIncludeTestSubmissionsFilter(
+  params: URLSearchParams,
+  filters: SubmissionExportListFilters,
+): void {
+  if (filters.includeTestSubmissions !== undefined) {
+    params.set(
+      INCLUDE_TEST_SUBMISSIONS_FILTER,
+      String(filters.includeTestSubmissions),
+    );
+    return;
+  }
+
+  if (filters.isTestSubmission === undefined) {
+    return;
+  }
+
+  const includeTest = mapIncludeTestSubmissions(filters.isTestSubmission);
+  if (includeTest !== undefined) {
+    params.set(INCLUDE_TEST_SUBMISSIONS_FILTER, String(includeTest));
+  }
+}
+
+function appendSubmissionIdRangeFilter(
+  params: URLSearchParams,
+  filters: SubmissionExportListFilters,
+): void {
+  if (filters.minSubmissionId) {
+    params.set("minSubmissionId", filters.minSubmissionId);
+  }
+  if (filters.maxSubmissionId) {
+    params.set("maxSubmissionId", filters.maxSubmissionId);
+  }
+}
+
+function appendAllowedListFilters(
+  params: URLSearchParams,
+  filters: SubmissionExportListFilters,
+  allowedFilters: ReadonlyArray<string> | undefined,
+  wireKey: string,
+): void {
+  if (allowsFilter(allowedFilters, INCLUDE_TEST_SUBMISSIONS_FILTER, wireKey)) {
+    appendIncludeTestSubmissionsFilter(params, filters);
+  }
+
+  if (allowsFilter(allowedFilters, "createdAtRange", wireKey)) {
+    appendCalendarRange(
+      params,
+      "createdAfter",
+      "createdBefore",
+      filters.createdAtFrom,
+      filters.createdAtTo,
+    );
+  }
+
+  if (allowsFilter(allowedFilters, "completedAtRange", wireKey)) {
+    appendCalendarRange(
+      params,
+      "completedAfter",
+      "completedBefore",
+      filters.completedAtFrom,
+      filters.completedAtTo,
+    );
+  }
+
+  if (allowsFilter(allowedFilters, "submissionIdRange", wireKey)) {
+    appendSubmissionIdRangeFilter(params, filters);
+  }
+
+  if (
+    allowsFilter(allowedFilters, "locale", wireKey) &&
+    filters.locale?.trim()
+  ) {
+    params.set("locale", filters.locale.trim());
+  }
+}
+
+function toReportingExportUrlOptions(
+  formIdOrOptions: string | ReportingExportUrlOptions,
+  wireKey?: string,
+  exportFormatId?: string,
+  listFilters?: SubmissionExportListFilters,
+  allowedFilters?: ReadonlyArray<string>,
+): ReportingExportUrlOptions {
+  if (typeof formIdOrOptions !== "string") {
+    return formIdOrOptions;
+  }
+
+  return {
+    formId: formIdOrOptions,
+    wireKey: wireKey!,
+    exportFormatId: exportFormatId!,
+    listFilters,
+    allowedFilters,
+  };
+}
+
 export function buildReportingExportUrl(
   formId: string,
   wireKey: string,
@@ -133,75 +230,26 @@ export function buildReportingExportUrl(
   listFilters?: SubmissionExportListFilters,
   allowedFilters?: ReadonlyArray<string>,
 ): string {
-  const options: ReportingExportUrlOptions =
-    typeof formIdOrOptions === "string"
-      ? {
-          formId: formIdOrOptions,
-          wireKey: wireKey!,
-          exportFormatId: exportFormatId!,
-          listFilters,
-          allowedFilters,
-        }
-      : formIdOrOptions;
+  const options = toReportingExportUrlOptions(
+    formIdOrOptions,
+    wireKey,
+    exportFormatId,
+    listFilters,
+    allowedFilters,
+  );
 
   const params = new URLSearchParams({
     format: options.wireKey,
     exportFormatId: options.exportFormatId,
   });
 
-  const filters = options.listFilters;
-  if (!filters) {
-    return `/api/forms/${options.formId}/export?${params.toString()}`;
-  }
-
-  const allowed = options.allowedFilters;
-  const wireKeyValue = options.wireKey;
-
-  if (allowsFilter(allowed, INCLUDE_TEST_SUBMISSIONS_FILTER, wireKeyValue)) {
-    if (filters.includeTestSubmissions !== undefined) {
-      params.set(
-        INCLUDE_TEST_SUBMISSIONS_FILTER,
-        String(filters.includeTestSubmissions),
-      );
-    } else if (filters.isTestSubmission !== undefined) {
-      const includeTest = mapIncludeTestSubmissions(filters.isTestSubmission);
-      if (includeTest !== undefined) {
-        params.set(INCLUDE_TEST_SUBMISSIONS_FILTER, String(includeTest));
-      }
-    }
-  }
-
-  if (allowsFilter(allowed, "createdAtRange", wireKeyValue)) {
-    appendCalendarRange(
+  if (options.listFilters) {
+    appendAllowedListFilters(
       params,
-      "createdAfter",
-      "createdBefore",
-      filters.createdAtFrom,
-      filters.createdAtTo,
+      options.listFilters,
+      options.allowedFilters,
+      options.wireKey,
     );
-  }
-
-  if (allowsFilter(allowed, "completedAtRange", wireKeyValue)) {
-    appendCalendarRange(
-      params,
-      "completedAfter",
-      "completedBefore",
-      filters.completedAtFrom,
-      filters.completedAtTo,
-    );
-  }
-
-  if (allowsFilter(allowed, "submissionIdRange", wireKeyValue)) {
-    if (filters.minSubmissionId) {
-      params.set("minSubmissionId", filters.minSubmissionId);
-    }
-    if (filters.maxSubmissionId) {
-      params.set("maxSubmissionId", filters.maxSubmissionId);
-    }
-  }
-
-  if (allowsFilter(allowed, "locale", wireKeyValue) && filters.locale?.trim()) {
-    params.set("locale", filters.locale.trim());
   }
 
   return `/api/forms/${options.formId}/export?${params.toString()}`;

@@ -71,6 +71,18 @@ const SUBMITTER_FILTER_DEBOUNCE_MS = 300;
 
 type NavigationMode = "push" | "replace";
 
+interface UpdateSubmissionListUrlArgs {
+  isComplete: Set<string>;
+  status: Set<string>;
+  isTestSubmission: Set<string>;
+  submitterDisplayId: string;
+  submitterEmail: string;
+  dates: SubmissionDateFilters;
+  page: number;
+  pageSize: number;
+  navigation?: NavigationMode;
+}
+
 function SubmissionsContent({
   data,
   formId,
@@ -378,17 +390,17 @@ export function SubmissionsWithFilters({
     }
   };
 
-  const updateURL = (
-    isComplete: Set<string>,
-    status: Set<string>,
-    isTestSubmission: Set<string>,
-    submitterDisplayId: string,
-    submitterEmail: string,
-    dates: SubmissionDateFilters,
-    page: number,
-    pageSize: number,
-    navigation: NavigationMode = "push",
-  ) => {
+  const updateURL = ({
+    isComplete,
+    status,
+    isTestSubmission,
+    submitterDisplayId,
+    submitterEmail,
+    dates,
+    page,
+    pageSize,
+    navigation = "push",
+  }: UpdateSubmissionListUrlArgs) => {
     clearPendingSubmitterFilterUpdate();
 
     const listState = submissionListUrlStateFromClientFilters({
@@ -425,17 +437,17 @@ export function SubmissionsWithFilters({
     clearPendingSubmitterFilterUpdate();
 
     submitterFilterDebounceRef.current = setTimeout(() => {
-      updateURL(
-        isCompleteFilter,
-        statusFilter,
-        testSubmissionFilter,
-        nextSubmitterDisplayId,
-        nextSubmitterEmail,
-        dateFilters,
-        1,
-        pagination.pageSize,
-        "replace",
-      );
+      updateURL({
+        isComplete: isCompleteFilter,
+        status: statusFilter,
+        isTestSubmission: testSubmissionFilter,
+        submitterDisplayId: nextSubmitterDisplayId,
+        submitterEmail: nextSubmitterEmail,
+        dates: dateFilters,
+        page: 1,
+        pageSize: pagination.pageSize,
+        navigation: "replace",
+      });
     }, SUBMITTER_FILTER_DEBOUNCE_MS);
   };
 
@@ -446,46 +458,46 @@ export function SubmissionsWithFilters({
   const handleIsCompleteChange = (values: Set<string>) => {
     setIsCompleteFilter(values);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(
-      values,
-      statusFilter,
-      testSubmissionFilter,
-      submitterDisplayIdFilter,
-      submitterEmailFilter,
-      dateFilters,
-      1,
-      pagination.pageSize,
-    );
+    updateURL({
+      isComplete: values,
+      status: statusFilter,
+      isTestSubmission: testSubmissionFilter,
+      submitterDisplayId: submitterDisplayIdFilter,
+      submitterEmail: submitterEmailFilter,
+      dates: dateFilters,
+      page: 1,
+      pageSize: pagination.pageSize,
+    });
   };
 
   const handleStatusChange = (values: Set<string>) => {
     setStatusFilter(values);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(
-      isCompleteFilter,
-      values,
-      testSubmissionFilter,
-      submitterDisplayIdFilter,
-      submitterEmailFilter,
-      dateFilters,
-      1,
-      pagination.pageSize,
-    );
+    updateURL({
+      isComplete: isCompleteFilter,
+      status: values,
+      isTestSubmission: testSubmissionFilter,
+      submitterDisplayId: submitterDisplayIdFilter,
+      submitterEmail: submitterEmailFilter,
+      dates: dateFilters,
+      page: 1,
+      pageSize: pagination.pageSize,
+    });
   };
 
   const handleTestSubmissionChange = (values: Set<string>) => {
     setTestSubmissionFilter(values);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(
-      isCompleteFilter,
-      statusFilter,
-      values,
-      submitterDisplayIdFilter,
-      submitterEmailFilter,
-      dateFilters,
-      1,
-      pagination.pageSize,
-    );
+    updateURL({
+      isComplete: isCompleteFilter,
+      status: statusFilter,
+      isTestSubmission: values,
+      submitterDisplayId: submitterDisplayIdFilter,
+      submitterEmail: submitterEmailFilter,
+      dates: dateFilters,
+      page: 1,
+      pageSize: pagination.pageSize,
+    });
   };
 
   const handleDateFilterChange = (
@@ -498,16 +510,16 @@ export function SubmissionsWithFilters({
     };
     setDateFilters(nextDateFilters);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(
-      isCompleteFilter,
-      statusFilter,
-      testSubmissionFilter,
-      submitterDisplayIdFilter,
-      submitterEmailFilter,
-      nextDateFilters,
-      1,
-      pagination.pageSize,
-    );
+    updateURL({
+      isComplete: isCompleteFilter,
+      status: statusFilter,
+      isTestSubmission: testSubmissionFilter,
+      submitterDisplayId: submitterDisplayIdFilter,
+      submitterEmail: submitterEmailFilter,
+      dates: nextDateFilters,
+      page: 1,
+      pageSize: pagination.pageSize,
+    });
   };
 
   const handleSubmitterDisplayIdChange = (value: string) => {
@@ -531,16 +543,16 @@ export function SubmissionsWithFilters({
     setSubmitterEmailFilter("");
     setDateFilters(EMPTY_SUBMISSION_DATE_FILTERS);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
-    updateURL(
-      emptySet,
-      emptySet,
-      emptySet,
-      "",
-      "",
-      EMPTY_SUBMISSION_DATE_FILTERS,
-      1,
-      pagination.pageSize,
-    );
+    updateURL({
+      isComplete: emptySet,
+      status: emptySet,
+      isTestSubmission: emptySet,
+      submitterDisplayId: "",
+      submitterEmail: "",
+      dates: EMPTY_SUBMISSION_DATE_FILTERS,
+      page: 1,
+      pageSize: pagination.pageSize,
+    });
   };
 
   const handleResetSorting = () => {
@@ -552,16 +564,16 @@ export function SubmissionsWithFilters({
   ) => {
     const next = typeof updater === "function" ? updater(pagination) : updater;
     setPagination(next);
-    updateURL(
-      isCompleteFilter,
-      statusFilter,
-      testSubmissionFilter,
-      submitterDisplayIdFilter,
-      submitterEmailFilter,
-      dateFilters,
-      next.pageIndex + 1,
-      next.pageSize,
-    );
+    updateURL({
+      isComplete: isCompleteFilter,
+      status: statusFilter,
+      isTestSubmission: testSubmissionFilter,
+      submitterDisplayId: submitterDisplayIdFilter,
+      submitterEmail: submitterEmailFilter,
+      dates: dateFilters,
+      page: next.pageIndex + 1,
+      pageSize: next.pageSize,
+    });
   };
 
   const tableKey = buildSubmissionsTableKey({
