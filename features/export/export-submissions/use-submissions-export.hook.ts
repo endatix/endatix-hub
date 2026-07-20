@@ -31,7 +31,7 @@ export function useSubmissionsExport() {
     exportName = null,
     fallbackFilename,
     url,
-  }: RunSubmissionsExportOptions) => {
+  }: RunSubmissionsExportOptions): Promise<boolean> => {
     try {
       setIsExporting(true);
       setCurrentExportName(exportName);
@@ -47,12 +47,14 @@ export function useSubmissionsExport() {
         title: "Export successful",
         description: "Your file has been downloaded successfully.",
       });
+      return true;
     } catch (error) {
       console.error("Export failed:", error);
       toast.error({
         title: "Export failed",
         description: getExportFailureMessage(error),
       });
+      return false;
     } finally {
       setIsExporting(false);
       setCurrentExportName(null);

@@ -18,6 +18,32 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     label: "CSV",
     itemTypeName: "Endatix.Core.Entities.SubmissionExportRow",
     description: "Tabular CSV export with one row per submission.",
+    allowedFilters: [
+      "includeTestSubmissions",
+      "createdAtRange",
+      "completedAtRange",
+      "submissionIdRange",
+      "locale",
+      "columnScope",
+    ],
+  },
+  {
+    target: "Submissions",
+    deliveryFormat: "Csv",
+    profile: "Shoji",
+    wireKey: "csv-shoji",
+    label: "CSV (Shoji / Crunch)",
+    itemTypeName: "Endatix.Core.Entities.SubmissionExportRow",
+    description:
+      "Crunch-compatible CSV: -- key separators and boolean category ids 0/1.",
+    allowedFilters: [
+      "includeTestSubmissions",
+      "createdAtRange",
+      "completedAtRange",
+      "submissionIdRange",
+      "locale",
+      "columnScope",
+    ],
   },
   {
     target: "Submissions",
@@ -27,6 +53,14 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     label: "JSON",
     itemTypeName: "Endatix.Core.Entities.SubmissionExportRow",
     description: "Tabular JSON export with one object per submission.",
+    allowedFilters: [
+      "includeTestSubmissions",
+      "createdAtRange",
+      "completedAtRange",
+      "submissionIdRange",
+      "locale",
+      "columnScope",
+    ],
   },
   {
     target: "Codebook",
@@ -36,6 +70,7 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     label: "Codebook",
     itemTypeName: "Endatix.Core.Entities.DynamicExportRow",
     description: "Standard Endatix codebook JSON for question metadata.",
+    allowedFilters: [],
   },
   {
     target: "Codebook",
@@ -45,6 +80,7 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     label: "Codebook (Shoji)",
     itemTypeName: "Endatix.Core.Entities.DynamicExportRow",
     description: "Shoji produces Crunch-compatible codebook JSON.",
+    allowedFilters: ["locale"],
   },
 ];
 
@@ -70,6 +106,7 @@ describe("normalizeExportCapabilities", () => {
         label: "Codebook (Shoji)",
         itemTypeName: "Endatix.Core.Entities.DynamicExportRow",
         description: "",
+        allowedFilters: [],
       },
     ]);
   });

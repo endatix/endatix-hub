@@ -172,6 +172,12 @@ export class Submissions {
       includeTestSubmissions,
       columnScope,
       locale,
+      createdAfter,
+      createdBefore,
+      completedAfter,
+      completedBefore,
+      minSubmissionId,
+      maxSubmissionId,
     } = request;
 
     const validateFormIdResult = validateEndatixId(formId, "formId");
@@ -202,6 +208,12 @@ export class Submissions {
         includeTestSubmissions,
         columnScope,
         locale,
+        createdAfter,
+        createdBefore,
+        completedAfter,
+        completedBefore,
+        minSubmissionId,
+        maxSubmissionId,
       },
     );
   }

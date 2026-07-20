@@ -230,6 +230,12 @@ function SubmissionsContent({
             formId={formId}
             disabled={disableTableControls}
             useReportingExport={useReportingExport}
+            listFilters={{
+              createdAtFrom: dateFilters.createdAt?.from,
+              createdAtTo: dateFilters.createdAt?.to,
+              completedAtFrom: dateFilters.completedAt?.from,
+              completedAtTo: dateFilters.completedAt?.to,
+            }}
           />
         </div>
       </div>

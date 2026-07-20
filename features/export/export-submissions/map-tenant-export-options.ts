@@ -33,6 +33,12 @@ export function mapFormatsToTenantExportOptions(
   }));
 }
 
+/** Stable UX order for export target groups (matches former dropdown). */
+const EXPORT_TARGET_GROUP_ORDER: readonly ExportTarget[] = [
+  "Submissions",
+  "Codebook",
+];
+
 export function groupTenantExportOptions(
   options: TenantExportOption[],
 ): TenantExportOptionGroup[] {
@@ -45,9 +51,16 @@ export function groupTenantExportOptions(
   }
 
   // Group heading uses the wire target name (API enum), not a Hub label catalog.
-  return Array.from(grouped.entries()).map(([target, groupOptions]) => ({
+  const orderedTargets = [
+    ...EXPORT_TARGET_GROUP_ORDER.filter((target) => grouped.has(target)),
+    ...Array.from(grouped.keys()).filter(
+      (target) => !EXPORT_TARGET_GROUP_ORDER.includes(target),
+    ),
+  ];
+
+  return orderedTargets.map((target) => ({
     target,
     label: target,
-    options: groupOptions,
+    options: grouped.get(target) ?? [],
   }));
 }

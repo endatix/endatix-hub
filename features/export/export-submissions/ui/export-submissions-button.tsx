@@ -19,15 +19,18 @@ import { Result } from "@/lib/result";
 import {
   buildLegacyExportUrl,
   buildReportingExportUrl,
+  type SubmissionExportListFilters,
 } from "../../export-url";
 import { useSubmissionsExport } from "../use-submissions-export.hook";
 import { useTenantExportFormats } from "../use-tenant-export-formats.hook";
+import { ExportSubmissionsDialog } from "./custom-export-dialog";
 
 interface ExportSubmissionsButtonProps {
   formId: string;
   className?: string;
   disabled?: boolean;
   useReportingExport?: boolean;
+  listFilters?: SubmissionExportListFilters;
 }
 
 export function ExportSubmissionsButton({
@@ -35,6 +38,7 @@ export function ExportSubmissionsButton({
   className,
   disabled = false,
   useReportingExport = false,
+  listFilters,
 }: Readonly<ExportSubmissionsButtonProps>) {
   if (useReportingExport) {
     return (
@@ -42,6 +46,7 @@ export function ExportSubmissionsButton({
         formId={formId}
         className={className}
         disabled={disabled}
+        listFilters={listFilters}
       />
     );
   }
@@ -59,20 +64,28 @@ function ReportingExportSubmissionsButton({
   formId,
   className,
   disabled,
+  listFilters,
 }: Readonly<Omit<ExportSubmissionsButtonProps, "useReportingExport">>) {
-  const { currentExportName, isExporting, runExport } = useSubmissionsExport();
+  const { isExporting, runExport } = useSubmissionsExport();
   const { groups, isLoading, isEmpty, loadError } = useTenantExportFormats();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleExport = (
+  const handleExport = async (
     wireKey: string,
     exportName: string,
     exportFormatId: string,
     fallbackExtension: string,
-  ) =>
+    filters: SubmissionExportListFilters,
+  ): Promise<boolean> =>
     runExport({
       exportName,
       fallbackFilename: `form-${formId}-submissions.${fallbackExtension}`,
-      url: buildReportingExportUrl(formId, wireKey, exportFormatId),
+      url: buildReportingExportUrl({
+        formId,
+        wireKey,
+        exportFormatId,
+        listFilters: filters,
+      }),
     });
 
   if (isLoading) {
@@ -101,60 +114,48 @@ function ReportingExportSubmissionsButton({
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          disabled={disabled || isExporting}
-          className={className}
-          title={loadError ?? undefined}
-        >
-          {isExporting ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
-          )}
-          {isExporting ? "Exporting..." : "Export Submissions"}
-          <ChevronDown className="ml-2 h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
+    <>
+      <Button
+        variant="outline"
+        disabled={disabled || isExporting}
+        className={className}
+        title={loadError ?? undefined}
+        onClick={() => setDialogOpen(true)}
+      >
+        {isExporting ? (
+          <Spinner className="mr-2 h-4 w-4" />
+        ) : (
+          <Download className="mr-2 h-4 w-4" />
+        )}
+        {isExporting ? "Exporting..." : "Export Submissions"}
+      </Button>
 
-      <DropdownMenuContent align="end">
-        {groups.map((group, groupIndex) => (
-          <div key={group.target}>
-            {groupIndex > 0 ? <DropdownMenuSeparator /> : null}
-            {groups.length > 1 ? (
-              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                {group.label}
-              </div>
-            ) : null}
-            {group.options.map(
-              ({ wireKey, label, exportFormatId, fallbackExtension }) => (
-                <DropdownMenuItem
-                  key={exportFormatId}
-                  onClick={() =>
-                    handleExport(
-                      wireKey,
-                      label,
-                      exportFormatId,
-                      fallbackExtension,
-                    )
-                  }
-                  disabled={disabled || isExporting}
-                >
-                  {isExporting && currentExportName === label ? (
-                    <Spinner className="mr-2 h-4 w-4" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  {label}
-                </DropdownMenuItem>
-              ),
-            )}
-          </div>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      <ExportSubmissionsDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        groups={groups}
+        listFilters={listFilters}
+        isExporting={isExporting}
+        onExport={async ({
+          wireKey,
+          exportName,
+          exportFormatId,
+          fallbackExtension,
+          filters,
+        }) => {
+          const succeeded = await handleExport(
+            wireKey,
+            exportName,
+            exportFormatId,
+            fallbackExtension,
+            filters,
+          );
+          if (succeeded) {
+            setDialogOpen(false);
+          }
+        }}
+      />
+    </>
   );
 }
 

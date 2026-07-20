@@ -123,4 +123,28 @@ describe("groupTenantExportOptions", () => {
       },
     ]);
   });
+
+  it("keeps Submissions before Codebook regardless of input order", () => {
+    const groups = groupTenantExportOptions([
+      {
+        exportFormatId: "11",
+        exportTarget: "Codebook",
+        wireKey: "codebook",
+        label: "Codebook",
+        fallbackExtension: "json",
+      },
+      {
+        exportFormatId: "10",
+        exportTarget: "Submissions",
+        wireKey: "csv",
+        label: "CSV",
+        fallbackExtension: "csv",
+      },
+    ]);
+
+    expect(groups.map((group) => group.target)).toEqual([
+      "Submissions",
+      "Codebook",
+    ]);
+  });
 });
