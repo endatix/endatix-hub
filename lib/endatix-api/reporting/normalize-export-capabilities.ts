@@ -61,6 +61,11 @@ export function normalizeExportCapability(
     label: capability.label,
     itemTypeName: capability.itemTypeName,
     description: capability.description ?? "",
+    allowedFilters: Array.isArray(capability.allowedFilters)
+      ? capability.allowedFilters.filter(
+          (filter): filter is string => typeof filter === "string",
+        )
+      : [],
   };
 }
 

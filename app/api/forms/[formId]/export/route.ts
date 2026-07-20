@@ -10,8 +10,12 @@ import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import {
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
+  parseOptionalIsoDateQuery,
+  parseOptionalLocaleQuery,
+  parseOptionalPositiveIdQuery,
   parseReportingExportWireKey,
 } from "@/features/export/export-submissions";
+import { isCodebookWireKey } from "@/features/export/export-url";
 import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 
@@ -71,15 +75,44 @@ export async function GET(
     ? parseReportingExportWireKey(format)
     : parseLegacyExportFormat(format);
 
+  const wireKey = exportFormat ?? format ?? "";
+  const isCodebook = isCodebookWireKey(wireKey);
+
   const exportOptions: ExportSubmissionsRequest = {
     formId,
     exportFormat,
     exportFormatId: validatedExportFormatId,
     exportId: validatedExportId,
-    includeTestSubmissions: parseIncludeTestSubmissionsQuery(
-      includeTestSubmissionsParam,
-    ),
   };
+
+  // Native codebook streams FormSchema JSON as-is; only Shoji codebook applies locale.
+  if (wireKey !== "codebook") {
+    exportOptions.locale = parseOptionalLocaleQuery(searchParams.get("locale"));
+  }
+
+  if (!isCodebook) {
+    exportOptions.includeTestSubmissions = parseIncludeTestSubmissionsQuery(
+      includeTestSubmissionsParam,
+    );
+    exportOptions.createdAfter = parseOptionalIsoDateQuery(
+      searchParams.get("createdAfter"),
+    );
+    exportOptions.createdBefore = parseOptionalIsoDateQuery(
+      searchParams.get("createdBefore"),
+    );
+    exportOptions.completedAfter = parseOptionalIsoDateQuery(
+      searchParams.get("completedAfter"),
+    );
+    exportOptions.completedBefore = parseOptionalIsoDateQuery(
+      searchParams.get("completedBefore"),
+    );
+    exportOptions.minSubmissionId = parseOptionalPositiveIdQuery(
+      searchParams.get("minSubmissionId"),
+    );
+    exportOptions.maxSubmissionId = parseOptionalPositiveIdQuery(
+      searchParams.get("maxSubmissionId"),
+    );
+  }
 
   const endatix = new EndatixApi(session?.accessToken);
   const exportResult = await endatix.submissions.export(exportOptions);

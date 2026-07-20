@@ -1,8 +1,10 @@
 import type {
+  ExportCapabilityDto,
   ExportFormatListItem,
   ExportTarget,
 } from "@/lib/endatix-api/reporting/reporting";
 import {
+  getExportCapabilityForSelection,
   getExportFormatFallbackExtension,
   getExportFormatLabel,
 } from "@/lib/endatix-api/reporting/export-format-types";
@@ -13,6 +15,8 @@ export interface TenantExportOption {
   wireKey: string;
   label: string;
   fallbackExtension: string;
+  /** Capability allow-list for request-time filters (Reporting API wire names). */
+  allowedFilters: readonly string[];
 }
 
 export interface TenantExportOptionGroup {
@@ -23,15 +27,32 @@ export interface TenantExportOptionGroup {
 
 export function mapFormatsToTenantExportOptions(
   formats: ExportFormatListItem[],
+  capabilities: ReadonlyArray<ExportCapabilityDto> = [],
 ): TenantExportOption[] {
-  return formats.map((format) => ({
-    exportFormatId: format.id,
-    exportTarget: format.exportTarget,
-    wireKey: format.wireKey,
-    label: getExportFormatLabel(format),
-    fallbackExtension: getExportFormatFallbackExtension(format.wireKey),
-  }));
+  return formats.map((format) => {
+    const capability = getExportCapabilityForSelection(
+      format.exportTarget,
+      format.deliveryFormat,
+      format.profile,
+      capabilities,
+    );
+
+    return {
+      exportFormatId: format.id,
+      exportTarget: format.exportTarget,
+      wireKey: format.wireKey,
+      label: getExportFormatLabel(format),
+      fallbackExtension: getExportFormatFallbackExtension(format.wireKey),
+      allowedFilters: capability?.allowedFilters ?? [],
+    };
+  });
 }
+
+/** Stable UX order for export target groups (matches former dropdown). */
+const EXPORT_TARGET_GROUP_ORDER: readonly ExportTarget[] = [
+  "Submissions",
+  "Codebook",
+];
 
 export function groupTenantExportOptions(
   options: TenantExportOption[],
@@ -45,9 +66,16 @@ export function groupTenantExportOptions(
   }
 
   // Group heading uses the wire target name (API enum), not a Hub label catalog.
-  return Array.from(grouped.entries()).map(([target, groupOptions]) => ({
+  const orderedTargets = [
+    ...EXPORT_TARGET_GROUP_ORDER.filter((target) => grouped.has(target)),
+    ...Array.from(grouped.keys()).filter(
+      (target) => !EXPORT_TARGET_GROUP_ORDER.includes(target),
+    ),
+  ];
+
+  return orderedTargets.map((target) => ({
     target,
     label: target,
-    options: groupOptions,
+    options: grouped.get(target) ?? [],
   }));
 }

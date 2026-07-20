@@ -85,6 +85,7 @@ export type UpdateSubmissionStatusDto = {
 
 export type ExportFormat =
   | "csv"
+  | "csv-shoji"
   | "xlsx"
   | "json"
   | "codebook"
@@ -101,6 +102,7 @@ export type ExportSubmissionsDto = {
 
 export type ReportingExportWireKey =
   | "csv"
+  | "csv-shoji"
   | "json"
   | "codebook"
   | "codebook-shoji";
@@ -116,6 +118,12 @@ export interface ExportSubmissionsRequest {
   columnScope?: string[];
   /** Optional codebook label locale for this export run. */
   locale?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  completedAfter?: string;
+  completedBefore?: string;
+  minSubmissionId?: string;
+  maxSubmissionId?: string;
 }
 
 export interface ListSubmissionsRequest {

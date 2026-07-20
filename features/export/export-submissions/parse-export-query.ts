@@ -15,6 +15,7 @@ export function parseReportingExportWireKey(
 ): ReportingExportFormat | undefined {
   if (
     format === "csv" ||
+    format === "csv-shoji" ||
     format === "json" ||
     format === "codebook" ||
     format === "codebook-shoji"
@@ -37,4 +38,44 @@ export function parseIncludeTestSubmissionsQuery(
   }
 
   return undefined;
+}
+
+export function parseOptionalIsoDateQuery(
+  value: string | null,
+): string | undefined {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return undefined;
+  }
+
+  return new Date(parsed).toISOString();
+}
+
+export function parseOptionalPositiveIdQuery(
+  value: string | null,
+): string | undefined {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  if (!/^\d+$/.test(value.trim())) {
+    return undefined;
+  }
+
+  return value.trim();
+}
+
+export function parseOptionalLocaleQuery(
+  value: string | null,
+): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed.length > 32) {
+    return undefined;
+  }
+
+  return trimmed;
 }

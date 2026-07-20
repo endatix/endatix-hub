@@ -6,4 +6,7 @@ export {
   parseErrorMessage,
   type LogAttributes,
 } from "./infrastructure/telemetry-logger";
-export { TelemetryInitializer } from "./infrastructure/telemetry-initializer";
+
+// TelemetryInitializer is Node-only (OTEL/gRPC). Import it from
+// `./infrastructure/telemetry-initializer` (as instrumentation.node.ts does),
+// not from this barrel — otherwise client bundles pull in `net`/`fs`.

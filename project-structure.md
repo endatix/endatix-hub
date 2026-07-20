@@ -60,10 +60,10 @@ Reporting export is a dedicated feature (not nested under `forms/` or `submissio
 | Slice | Scope | Responsibility |
 |-------|--------|----------------|
 | `prepare-reporting-export` | Form | Compile `FormSchema` + backfill flattened submissions (UAT / admin prep) |
-| `export-submissions` | Submissions list | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off) |
+| `export-submissions` | Submissions list | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off); Export dialog with format + capability-aware request filters (dates prefilled from table) |
 | `manage-export-formats` | Tenant settings (E10b) | CRUD UI for tenant export formats + tenant default mapping picker (alias, key separator, include-test) |
 
-Shared feature root: `types.ts`, `export-url.ts`, `export-error-message.ts`. BFF route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-bff-request.ts`.
+Shared feature root: `types.ts`, `export-url.ts`, `export-error-message.ts`. Export route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-query.ts`.
 
 Import from `@/features/export` (client UI) or `@/features/export/server` (server actions). Slice barrels: `@/features/export/export-submissions`, `@/features/export/manage-export-formats`.
 

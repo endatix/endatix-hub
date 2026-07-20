@@ -18,6 +18,8 @@ export interface ExportCapabilityDto {
   label: string;
   itemTypeName: string;
   description: string;
+  /** Request-time filters this capability accepts (Reporting API wire names). */
+  allowedFilters: string[];
 }
 
 /** Persisted export format settings (locale / columnScope are request-time only). */
@@ -197,6 +199,10 @@ export function buildExportFormatSettingsInput(
 export function getExportFormatFallbackExtension(wireKey: string): string {
   if (wireKey === "codebook" || wireKey === "codebook-shoji") {
     return "json";
+  }
+
+  if (wireKey === "csv-shoji") {
+    return "csv";
   }
 
   return wireKey;
