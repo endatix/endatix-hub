@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { toast } from "@/components/ui/toast";
+import { TelemetryLogger } from "@/features/telemetry";
 import { getExportFailureMessage } from "../export-error-message";
 import { downloadSubmissionsExport } from "./download-submissions-export";
+
+const LOGGER_NAME = "export.submissions-export";
 
 /**
  * Options for running a submissions export.
@@ -49,7 +52,16 @@ export function useSubmissionsExport() {
       });
       return true;
     } catch (error) {
-      console.error("Export failed:", error);
+      TelemetryLogger.error(
+        "Submissions export failed",
+        undefined,
+        {
+          "export.has_name": Boolean(exportName?.trim()),
+          "export.fallback_filename_length": fallbackFilename.length,
+          "error.type": error instanceof Error ? error.name : typeof error,
+        },
+        LOGGER_NAME,
+      );
       toast.error({
         title: "Export failed",
         description: getExportFailureMessage(error),
