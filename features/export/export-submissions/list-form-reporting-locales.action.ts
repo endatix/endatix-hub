@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 
 export type ListFormReportingLocalesResult = Result<string[]>;
 
@@ -15,17 +16,19 @@ export async function listFormReportingLocalesAction(
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.reporting.getFormSchemaLocales(formId);
-  if (!result.success) {
-    return Result.error(
-      result.error.message || "Failed to load form locales for export.",
-    );
-  }
+  const apiResult = await api.reporting.getFormSchemaLocales(formId);
 
-  const locales = result.data.locales?.filter(
-    (locale): locale is string =>
-      typeof locale === "string" && locale.trim().length > 0,
-  );
+  return toResult(apiResult, {
+    fallbackMessage: "Failed to load form locales for export.",
+    logMessage: "Failed to load form reporting locales for export.",
+    loggerName: "export.list-form-reporting-locales",
+    mapData: (data) => {
+      const locales = data.locales?.filter(
+        (locale): locale is string =>
+          typeof locale === "string" && locale.trim().length > 0,
+      );
 
-  return Result.success(locales && locales.length > 0 ? locales : ["default"]);
+      return locales && locales.length > 0 ? locales : ["default"];
+    },
+  });
 }
