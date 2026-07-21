@@ -19,75 +19,69 @@ function format(
       includeTestSubmissions: false,
     },
     createdAt: "2026-01-01T00:00:00Z",
+    allowedFilters: [],
     ...overrides,
   };
 }
 
 describe("mapFormatsToTenantExportOptions", () => {
-  it("maps tenant formats to dropdown options with fallback extensions", () => {
-    const options = mapFormatsToTenantExportOptions(
-      [
-        format({
-          id: "10",
-          name: "Submissions CSV",
-          wireKey: "csv",
-          exportTarget: "Submissions",
-        }),
-        format({
-          id: "11",
-          name: "Shoji codebook",
-          wireKey: "codebook-shoji",
-          exportTarget: "Codebook",
-          deliveryFormat: "Json",
-          profile: "Shoji",
-        }),
-      ],
-      [
-        {
-          target: "Submissions",
-          deliveryFormat: "Csv",
-          profile: "Native",
-          wireKey: "csv",
-          label: "CSV",
-          itemTypeName: "submission",
-          description: "CSV",
-          allowedFilters: [
-            "includeTestSubmissions",
-            "createdAtRange",
-            "locale",
-          ],
-        },
-        {
-          target: "Codebook",
-          deliveryFormat: "Json",
-          profile: "Shoji",
-          wireKey: "codebook-shoji",
-          label: "Shoji codebook",
-          itemTypeName: "codebook",
-          description: "Shoji",
-          allowedFilters: ["locale"],
-        },
-      ],
-    );
+  it("maps formats using allowedFilters from the format DTO", () => {
+    const options = mapFormatsToTenantExportOptions([
+      format({
+        id: "10",
+        name: "Submissions CSV",
+        exportTarget: "Submissions",
+        wireKey: "csv",
+        allowedFilters: ["includeTestSubmissions", "createdAtRange"],
+      }),
+      format({
+        id: "11",
+        name: "Shoji codebook",
+        exportTarget: "Codebook",
+        deliveryFormat: "Json",
+        profile: "Shoji",
+        wireKey: "codebook-shoji",
+        label: "Shoji codebook",
+        allowedFilters: ["locale"],
+      }),
+    ]);
 
     expect(options).toEqual([
       {
         exportFormatId: "10",
         exportTarget: "Submissions",
-        wireKey: "csv",
+        profile: "Native",
+        formatKey: "csv",
         label: "Submissions CSV",
         fallbackExtension: "csv",
-        allowedFilters: ["includeTestSubmissions", "createdAtRange", "locale"],
+        allowedFilters: ["includeTestSubmissions", "createdAtRange"],
       },
       {
         exportFormatId: "11",
         exportTarget: "Codebook",
-        wireKey: "codebook-shoji",
+        profile: "Shoji",
+        formatKey: "codebook-shoji",
         label: "Shoji codebook",
         fallbackExtension: "json",
         allowedFilters: ["locale"],
       },
     ]);
+  });
+
+  it("keeps empty allowedFilters for native codebook", () => {
+    const options = mapFormatsToTenantExportOptions([
+      format({
+        id: "12",
+        name: "Codebook",
+        exportTarget: "Codebook",
+        deliveryFormat: "Json",
+        profile: "Native",
+        wireKey: "codebook",
+        allowedFilters: [],
+      }),
+    ]);
+
+    expect(options[0]?.allowedFilters).toEqual([]);
   });
 });
 
@@ -97,7 +91,8 @@ describe("groupTenantExportOptions", () => {
       {
         exportFormatId: "10",
         exportTarget: "Submissions",
-        wireKey: "csv",
+        profile: "Native",
+        formatKey: "csv",
         label: "CSV",
         fallbackExtension: "csv",
         allowedFilters: ["includeTestSubmissions"],
@@ -105,7 +100,8 @@ describe("groupTenantExportOptions", () => {
       {
         exportFormatId: "11",
         exportTarget: "Codebook",
-        wireKey: "codebook",
+        profile: "Native",
+        formatKey: "codebook",
         label: "Codebook",
         fallbackExtension: "json",
         allowedFilters: [],
@@ -113,7 +109,8 @@ describe("groupTenantExportOptions", () => {
       {
         exportFormatId: "12",
         exportTarget: "Submissions",
-        wireKey: "json",
+        profile: "Native",
+        formatKey: "json",
         label: "JSON",
         fallbackExtension: "json",
         allowedFilters: ["includeTestSubmissions"],
@@ -128,7 +125,8 @@ describe("groupTenantExportOptions", () => {
           {
             exportFormatId: "10",
             exportTarget: "Submissions",
-            wireKey: "csv",
+            profile: "Native",
+            formatKey: "csv",
             label: "CSV",
             fallbackExtension: "csv",
             allowedFilters: ["includeTestSubmissions"],
@@ -136,7 +134,8 @@ describe("groupTenantExportOptions", () => {
           {
             exportFormatId: "12",
             exportTarget: "Submissions",
-            wireKey: "json",
+            profile: "Native",
+            formatKey: "json",
             label: "JSON",
             fallbackExtension: "json",
             allowedFilters: ["includeTestSubmissions"],
@@ -150,7 +149,8 @@ describe("groupTenantExportOptions", () => {
           {
             exportFormatId: "11",
             exportTarget: "Codebook",
-            wireKey: "codebook",
+            profile: "Native",
+            formatKey: "codebook",
             label: "Codebook",
             fallbackExtension: "json",
             allowedFilters: [],
@@ -160,20 +160,22 @@ describe("groupTenantExportOptions", () => {
     ]);
   });
 
-  it("keeps Submissions before Codebook regardless of input order", () => {
+  it("preserves unexpected targets after known order", () => {
     const groups = groupTenantExportOptions([
       {
-        exportFormatId: "11",
+        exportFormatId: "99",
         exportTarget: "Codebook",
-        wireKey: "codebook",
-        label: "Codebook",
+        profile: "Shoji",
+        formatKey: "codebook-shoji",
+        label: "Shoji",
         fallbackExtension: "json",
         allowedFilters: [],
       },
       {
         exportFormatId: "10",
         exportTarget: "Submissions",
-        wireKey: "csv",
+        profile: "Native",
+        formatKey: "csv",
         label: "CSV",
         fallbackExtension: "csv",
         allowedFilters: ["includeTestSubmissions"],

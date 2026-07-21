@@ -25,25 +25,73 @@ import {
 import { Spinner } from "@/components/loaders/spinner";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import type { ExportTarget } from "@/lib/endatix-api/reporting/reporting";
+import { Result } from "@/lib/result";
 import {
-  isCodebookWireKey,
+  isCodebookFormatKey,
+  type ExportCompletionStatusFilter,
   type SubmissionExportListFilters,
 } from "../../export-url";
-import type { TenantExportOptionGroup } from "../map-tenant-export-options";
+import { listFormReportingLocalesAction } from "../list-form-reporting-locales.action";
+import type {
+  TenantExportOption,
+  TenantExportOptionGroup,
+} from "../map-tenant-export-options";
 
 const CREATED_AT_RANGE_ERROR = "Created From must be on or before Created To.";
 const COMPLETED_AT_RANGE_ERROR =
   "Completed From must be on or before Completed To.";
 
+const COMPLETION_STATUS_OPTIONS: ReadonlyArray<{
+  value: ExportCompletionStatusFilter;
+  label: string;
+}> = [
+  { value: "completed", label: "Completed" },
+  { value: "incomplete", label: "Incomplete" },
+  { value: "all", label: "All" },
+];
+
+function showsLocale(
+  option: Pick<TenantExportOption, "allowedFilters">,
+): boolean {
+  return option.allowedFilters.includes("locale");
+}
+
+function resolveDefaultLocale(
+  formLocales: readonly string[],
+  listLocale: string | undefined,
+): string {
+  if (listLocale && formLocales.includes(listLocale)) {
+    return listLocale;
+  }
+
+  if (formLocales.includes("default")) {
+    return "default";
+  }
+
+  return formLocales[0] ?? "default";
+}
+
+function coerceLocaleToOptions(
+  locale: string,
+  options: ReadonlyArray<{ value: string }>,
+): string {
+  if (options.some((option) => option.value === locale)) {
+    return locale;
+  }
+
+  return options[0]?.value ?? locale;
+}
+
 export interface ExportSubmissionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  formId: string;
   /** Grouped by export target (Submissions / Codebook) — same grouping as the former dropdown. */
   groups: TenantExportOptionGroup[];
   listFilters?: SubmissionExportListFilters;
   isExporting: boolean;
   onExport: (args: {
-    wireKey: string;
+    formatKey: string;
     exportName: string;
     exportFormatId: string;
     fallbackExtension: string;
@@ -53,18 +101,19 @@ export interface ExportSubmissionsDialogProps {
 
 function showsSubmissionRowFilters(
   exportTarget: ExportTarget,
-  wireKey: string,
+  formatKey: string,
 ): boolean {
-  if (exportTarget === "Codebook" || isCodebookWireKey(wireKey)) {
+  if (exportTarget === "Codebook" || isCodebookFormatKey(formatKey)) {
     return false;
   }
 
   return true;
 }
 
-function showsLocale(wireKey: string): boolean {
-  // Native codebook streams FormSchema JSON as-is (no request locale).
-  return wireKey !== "codebook";
+function showsCompletedAtFields(
+  completionStatus: ExportCompletionStatusFilter,
+): boolean {
+  return completionStatus === "completed" || completionStatus === "all";
 }
 
 function isInvalidDateRange(from: string, to: string): boolean {
@@ -73,6 +122,7 @@ function isInvalidDateRange(from: string, to: string): boolean {
 
 function resolveDateRangeErrors(args: {
   showRowFilters: boolean;
+  showCompletedAt: boolean;
   createdAtFrom: string;
   createdAtTo: string;
   completedAtFrom: string;
@@ -92,19 +142,20 @@ function resolveDateRangeErrors(args: {
     )
       ? CREATED_AT_RANGE_ERROR
       : null,
-    completedAtRangeError: isInvalidDateRange(
-      args.completedAtFrom,
-      args.completedAtTo,
-    )
-      ? COMPLETED_AT_RANGE_ERROR
-      : null,
+    completedAtRangeError:
+      args.showCompletedAt &&
+      isInvalidDateRange(args.completedAtFrom, args.completedAtTo)
+        ? COMPLETED_AT_RANGE_ERROR
+        : null,
   };
 }
 
 function buildExportFilters(args: {
   showLocaleField: boolean;
   showRowFilters: boolean;
+  showCompletedAt: boolean;
   locale: string;
+  completionStatus: ExportCompletionStatusFilter;
   includeTestSubmissions: boolean;
   createdAtFrom: string;
   createdAtTo: string;
@@ -113,19 +164,19 @@ function buildExportFilters(args: {
 }): SubmissionExportListFilters {
   const filters: SubmissionExportListFilters = {};
 
-  if (args.showLocaleField) {
-    const trimmedLocale = args.locale.trim();
-    if (trimmedLocale && trimmedLocale !== "default") {
-      filters.locale = trimmedLocale;
-    }
+  if (args.showLocaleField && args.locale.trim()) {
+    filters.locale = args.locale.trim();
   }
 
   if (args.showRowFilters) {
     filters.includeTestSubmissions = args.includeTestSubmissions;
+    filters.completionStatus = args.completionStatus;
     filters.createdAtFrom = args.createdAtFrom || undefined;
     filters.createdAtTo = args.createdAtTo || undefined;
-    filters.completedAtFrom = args.completedAtFrom || undefined;
-    filters.completedAtTo = args.completedAtTo || undefined;
+    if (args.showCompletedAt) {
+      filters.completedAtFrom = args.completedAtFrom || undefined;
+      filters.completedAtTo = args.completedAtTo || undefined;
+    }
   }
 
   return filters;
@@ -201,6 +252,7 @@ function ExportDateRangeFieldset({
 export function ExportSubmissionsDialog({
   open,
   onOpenChange,
+  formId,
   groups,
   listFilters,
   isExporting,
@@ -211,11 +263,17 @@ export function ExportSubmissionsDialog({
   const wasOpenRef = useRef(false);
   const [exportFormatId, setExportFormatId] = useState("");
   const [includeTestSubmissions, setIncludeTestSubmissions] = useState(false);
+  const [completionStatus, setCompletionStatus] =
+    useState<ExportCompletionStatusFilter>("completed");
   const [createdAtFrom, setCreatedAtFrom] = useState("");
   const [createdAtTo, setCreatedAtTo] = useState("");
   const [completedAtFrom, setCompletedAtFrom] = useState("");
   const [completedAtTo, setCompletedAtTo] = useState("");
   const [locale, setLocale] = useState("default");
+  const [localeDirty, setLocaleDirty] = useState(false);
+  const [formLocales, setFormLocales] = useState<string[]>(["default"]);
+  const [isLoadingLocales, setIsLoadingLocales] = useState(false);
+  const previousExportFormatIdRef = useRef<string | null>(null);
   const [createdAtRangeError, setCreatedAtRangeError] = useState<string | null>(
     null,
   );
@@ -236,12 +294,27 @@ export function ExportSubmissionsDialog({
   const showRowFilters = selectedOption
     ? showsSubmissionRowFilters(
         selectedOption.exportTarget,
-        selectedOption.wireKey,
+        selectedOption.formatKey,
       )
     : false;
   const showLocaleField = selectedOption
-    ? showsLocale(selectedOption.wireKey)
+    ? showsLocale(selectedOption)
     : false;
+  const showCompletedAt = showsCompletedAtFields(completionStatus);
+  const localeSelectOptions = useMemo(
+    () =>
+      formLocales.map((localeCode) => ({
+        value: localeCode,
+        label: localeCode,
+      })),
+    [formLocales],
+  );
+  const localeSelectValue = coerceLocaleToOptions(locale, localeSelectOptions);
+
+  const anyFormatAllowsLocale = useMemo(
+    () => options.some((option) => showsLocale(option)),
+    [options],
+  );
 
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
@@ -259,14 +332,84 @@ export function ExportSubmissionsDialog({
     );
     // Include-test defaults off. Grid "test only" is not mirrored (API has no test-only mode).
     setIncludeTestSubmissions(listFilters?.includeTestSubmissions ?? false);
+    setCompletionStatus(listFilters?.completionStatus ?? "completed");
     setCreatedAtFrom(listFilters?.createdAtFrom ?? "");
     setCreatedAtTo(listFilters?.createdAtTo ?? "");
     setCompletedAtFrom(listFilters?.completedAtFrom ?? "");
     setCompletedAtTo(listFilters?.completedAtTo ?? "");
-    setLocale(listFilters?.locale?.trim() || "default");
     setCreatedAtRangeError(null);
     setCompletedAtRangeError(null);
+    setLocaleDirty(false);
+    previousExportFormatIdRef.current = null;
   }, [open, options, listFilters]);
+
+  useEffect(() => {
+    if (!open || !formId || !anyFormatAllowsLocale) {
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingLocales(true);
+
+    void listFormReportingLocalesAction(formId)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        const locales = Result.isSuccess(result) ? result.value : ["default"];
+        setFormLocales(locales);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingLocales(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, formId, anyFormatAllowsLocale]);
+
+  useEffect(() => {
+    if (!open || !showLocaleField || !selectedOption) {
+      return;
+    }
+
+    const formatChanged =
+      previousExportFormatIdRef.current !== selectedOption.exportFormatId;
+    if (formatChanged) {
+      previousExportFormatIdRef.current = selectedOption.exportFormatId;
+      setLocaleDirty(false);
+    }
+
+    setLocale((current) => {
+      const optionsForFormat = formLocales.map((localeCode) => ({
+        value: localeCode,
+      }));
+
+      if (!formatChanged && localeDirty) {
+        return coerceLocaleToOptions(current, optionsForFormat);
+      }
+
+      return resolveDefaultLocale(formLocales, listFilters?.locale?.trim());
+    });
+  }, [
+    open,
+    showLocaleField,
+    selectedOption,
+    formLocales,
+    listFilters?.locale,
+    localeDirty,
+  ]);
+
+  useEffect(() => {
+    if (completionStatus === "incomplete") {
+      setCompletedAtFrom("");
+      setCompletedAtTo("");
+      setCompletedAtRangeError(null);
+    }
+  }, [completionStatus]);
 
   const showGroupLabels = groups.length > 1;
 
@@ -278,6 +421,7 @@ export function ExportSubmissionsDialog({
 
     const rangeErrors = resolveDateRangeErrors({
       showRowFilters,
+      showCompletedAt,
       createdAtFrom,
       createdAtTo,
       completedAtFrom,
@@ -293,7 +437,9 @@ export function ExportSubmissionsDialog({
     const filters = buildExportFilters({
       showLocaleField,
       showRowFilters,
-      locale,
+      showCompletedAt,
+      locale: localeSelectValue,
+      completionStatus,
       includeTestSubmissions,
       createdAtFrom,
       createdAtTo,
@@ -303,7 +449,7 @@ export function ExportSubmissionsDialog({
 
     try {
       const succeeded = await onExport({
-        wireKey: selectedOption.wireKey,
+        formatKey: selectedOption.formatKey,
         exportName: selectedOption.label,
         exportFormatId: selectedOption.exportFormatId,
         fallbackExtension: selectedOption.fallbackExtension,
@@ -315,7 +461,7 @@ export function ExportSubmissionsDialog({
       }
 
       trackFeatureUsage("export", "submissions_export", {
-        wire_key: selectedOption.wireKey,
+        format_key: selectedOption.formatKey,
         export_format_id: selectedOption.exportFormatId,
         export_target: selectedOption.exportTarget,
         export_name: selectedOption.label,
@@ -380,23 +526,66 @@ export function ExportSubmissionsDialog({
             {showLocaleField ? (
               <div className="grid gap-2">
                 <Label htmlFor="export-submissions-locale">Locale</Label>
-                <Input
-                  id="export-submissions-locale"
-                  value={locale}
-                  onChange={(event) => setLocale(event.target.value)}
-                  placeholder="default"
-                  maxLength={32}
-                  disabled={isExporting}
-                />
+                <Select
+                  value={localeSelectValue}
+                  onValueChange={(value) => {
+                    setLocaleDirty(true);
+                    setLocale(value);
+                  }}
+                  disabled={isExporting || isLoadingLocales}
+                >
+                  <SelectTrigger
+                    id="export-submissions-locale"
+                    className="w-full"
+                  >
+                    <SelectValue placeholder="Select locale" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {localeSelectOptions.map((localeOption) => (
+                      <SelectItem
+                        key={localeOption.value}
+                        value={localeOption.value}
+                      >
+                        {localeOption.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
-                  Leave as <code>default</code> or set a locale code (e.g.{" "}
-                  <code>es</code>) for translated labels.
+                  Label language for this codebook export.
                 </p>
               </div>
             ) : null}
 
             {showRowFilters ? (
               <>
+                <div className="grid gap-2">
+                  <Label htmlFor="export-submissions-completion">
+                    Completion
+                  </Label>
+                  <Select
+                    value={completionStatus}
+                    onValueChange={(value) =>
+                      setCompletionStatus(value as ExportCompletionStatusFilter)
+                    }
+                    disabled={isExporting}
+                  >
+                    <SelectTrigger
+                      id="export-submissions-completion"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Select completion" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPLETION_STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="export-submissions-include-test"
@@ -430,24 +619,26 @@ export function ExportSubmissionsDialog({
                   }}
                 />
 
-                <ExportDateRangeFieldset
-                  legend="Completed at"
-                  fromId="export-submissions-completed-from"
-                  toId="export-submissions-completed-to"
-                  errorId="export-submissions-completed-range-error"
-                  fromValue={completedAtFrom}
-                  toValue={completedAtTo}
-                  error={completedAtRangeError}
-                  disabled={isExporting}
-                  onFromChange={(value) => {
-                    setCompletedAtFrom(value);
-                    setCompletedAtRangeError(null);
-                  }}
-                  onToChange={(value) => {
-                    setCompletedAtTo(value);
-                    setCompletedAtRangeError(null);
-                  }}
-                />
+                {showCompletedAt ? (
+                  <ExportDateRangeFieldset
+                    legend="Completed at"
+                    fromId="export-submissions-completed-from"
+                    toId="export-submissions-completed-to"
+                    errorId="export-submissions-completed-range-error"
+                    fromValue={completedAtFrom}
+                    toValue={completedAtTo}
+                    error={completedAtRangeError}
+                    disabled={isExporting}
+                    onFromChange={(value) => {
+                      setCompletedAtFrom(value);
+                      setCompletedAtRangeError(null);
+                    }}
+                    onToChange={(value) => {
+                      setCompletedAtTo(value);
+                      setCompletedAtRangeError(null);
+                    }}
+                  />
+                ) : null}
               </>
             ) : (
               <p className="text-xs text-muted-foreground">

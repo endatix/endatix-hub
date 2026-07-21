@@ -10,6 +10,7 @@ import type {
   BackfillSubmissionsRequest,
   BackfillSubmissionsResponse,
   CompileFormSchemaResponse,
+  FormSchemaLocalesResponse,
 } from "./types";
 
 export class Reporting {
@@ -51,6 +52,19 @@ export class Reporting {
     return this.endatix.post<CompileFormSchemaResponse>(
       `/forms/${validateFormIdResult.value}/reporting/compile-schema`,
       {},
+    );
+  }
+
+  async getFormSchemaLocales(
+    formId: string,
+  ): Promise<ApiResult<FormSchemaLocalesResponse>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    return this.endatix.get<FormSchemaLocalesResponse>(
+      `/forms/${validateFormIdResult.value}/reporting/locales`,
     );
   }
 

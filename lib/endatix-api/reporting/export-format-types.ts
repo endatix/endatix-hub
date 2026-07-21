@@ -41,6 +41,8 @@ export interface ExportFormatListItem {
   settings: ExportFormatSettingsDto;
   createdAt: string;
   modifiedAt?: string | null;
+  /** Request-time filters this format's capability accepts (Reporting API wire names). */
+  allowedFilters: string[];
 }
 
 export interface ExportFormatSettingsInput {

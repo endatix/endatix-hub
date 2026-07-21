@@ -101,6 +101,12 @@ export function normalizeExportFormat(
     deliveryFormat,
     profile,
     settings: normalizeSettings(format.settings),
+    allowedFilters: Array.isArray(format.allowedFilters)
+      ? format.allowedFilters.filter(
+          (filter): filter is string =>
+            typeof filter === "string" && filter.trim().length > 0,
+        )
+      : [],
   };
 }
 

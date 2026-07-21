@@ -7,22 +7,25 @@ import {
 export const INCLUDE_TEST_SUBMISSIONS_FILTER =
   "includeTestSubmissions" as const;
 
-/** Wire names from ExportCapabilityDto.allowedFilters (Reporting API). */
+/** Filter names from ExportCapabilityDto.allowedFilters (Reporting API). */
 export type ExportRequestFilter =
   | typeof INCLUDE_TEST_SUBMISSIONS_FILTER
   | "createdAtRange"
   | "completedAtRange"
   | "submissionIdRange"
   | "locale"
-  | "columnScope";
+  | "columnScope"
+  | "completionStatus";
 
-export const CODEBOOK_WIRE_KEYS: ReadonlySet<string> = new Set([
+export type ExportCompletionStatusFilter = "all" | "completed" | "incomplete";
+
+export const CODEBOOK_FORMAT_KEYS: ReadonlySet<string> = new Set([
   "codebook",
   "codebook-shoji",
 ]);
 
-export function isCodebookWireKey(wireKey: string): boolean {
-  return CODEBOOK_WIRE_KEYS.has(wireKey);
+export function isCodebookFormatKey(formatKey: string): boolean {
+  return CODEBOOK_FORMAT_KEYS.has(formatKey);
 }
 
 /** Filters inherited from the submissions list URL or custom export dialog. */
@@ -37,11 +40,12 @@ export interface SubmissionExportListFilters {
   minSubmissionId?: string;
   maxSubmissionId?: string;
   locale?: string;
+  completionStatus?: ExportCompletionStatusFilter;
 }
 
 export interface ReportingExportUrlOptions {
   formId: string;
-  wireKey: string;
+  formatKey: string;
   exportFormatId: string;
   allowedFilters?: ReadonlyArray<string>;
   listFilters?: SubmissionExportListFilters;
@@ -50,22 +54,8 @@ export interface ReportingExportUrlOptions {
 function allowsFilter(
   allowedFilters: ReadonlyArray<string> | undefined,
   filter: ExportRequestFilter,
-  wireKey: string,
 ): boolean {
-  if (allowedFilters !== undefined) {
-    return allowedFilters.includes(filter);
-  }
-
-  // Fallback when capabilities are not loaded.
-  if (wireKey === "codebook") {
-    return false;
-  }
-
-  if (wireKey === "codebook-shoji") {
-    return filter === "locale";
-  }
-
-  return true;
+  return allowedFilters?.includes(filter) ?? false;
 }
 
 /**
@@ -155,13 +145,12 @@ function appendAllowedListFilters(
   params: URLSearchParams,
   filters: SubmissionExportListFilters,
   allowedFilters: ReadonlyArray<string> | undefined,
-  wireKey: string,
 ): void {
-  if (allowsFilter(allowedFilters, INCLUDE_TEST_SUBMISSIONS_FILTER, wireKey)) {
+  if (allowsFilter(allowedFilters, INCLUDE_TEST_SUBMISSIONS_FILTER)) {
     appendIncludeTestSubmissionsFilter(params, filters);
   }
 
-  if (allowsFilter(allowedFilters, "createdAtRange", wireKey)) {
+  if (allowsFilter(allowedFilters, "createdAtRange")) {
     appendCalendarRange(
       params,
       "createdAfter",
@@ -171,7 +160,7 @@ function appendAllowedListFilters(
     );
   }
 
-  if (allowsFilter(allowedFilters, "completedAtRange", wireKey)) {
+  if (allowsFilter(allowedFilters, "completedAtRange")) {
     appendCalendarRange(
       params,
       "completedAfter",
@@ -181,21 +170,25 @@ function appendAllowedListFilters(
     );
   }
 
-  if (allowsFilter(allowedFilters, "submissionIdRange", wireKey)) {
+  if (allowsFilter(allowedFilters, "submissionIdRange")) {
     appendSubmissionIdRangeFilter(params, filters);
   }
 
   if (
-    allowsFilter(allowedFilters, "locale", wireKey) &&
-    filters.locale?.trim()
+    allowsFilter(allowedFilters, "completionStatus") &&
+    filters.completionStatus
   ) {
+    params.set("completionStatus", filters.completionStatus);
+  }
+
+  if (allowsFilter(allowedFilters, "locale") && filters.locale?.trim()) {
     params.set("locale", filters.locale.trim());
   }
 }
 
 function toReportingExportUrlOptions(
   formIdOrOptions: string | ReportingExportUrlOptions,
-  wireKey?: string,
+  formatKey?: string,
   exportFormatId?: string,
   listFilters?: SubmissionExportListFilters,
   allowedFilters?: ReadonlyArray<string>,
@@ -206,7 +199,7 @@ function toReportingExportUrlOptions(
 
   return {
     formId: formIdOrOptions,
-    wireKey: wireKey!,
+    formatKey: formatKey!,
     exportFormatId: exportFormatId!,
     listFilters,
     allowedFilters,
@@ -215,7 +208,7 @@ function toReportingExportUrlOptions(
 
 export function buildReportingExportUrl(
   formId: string,
-  wireKey: string,
+  formatKey: string,
   exportFormatId: string,
   listFilters?: SubmissionExportListFilters,
   allowedFilters?: ReadonlyArray<string>,
@@ -225,21 +218,21 @@ export function buildReportingExportUrl(
 ): string;
 export function buildReportingExportUrl(
   formIdOrOptions: string | ReportingExportUrlOptions,
-  wireKey?: string,
+  formatKey?: string,
   exportFormatId?: string,
   listFilters?: SubmissionExportListFilters,
   allowedFilters?: ReadonlyArray<string>,
 ): string {
   const options = toReportingExportUrlOptions(
     formIdOrOptions,
-    wireKey,
+    formatKey,
     exportFormatId,
     listFilters,
     allowedFilters,
   );
 
   const params = new URLSearchParams({
-    format: options.wireKey,
+    format: options.formatKey,
     exportFormatId: options.exportFormatId,
   });
 
@@ -248,7 +241,6 @@ export function buildReportingExportUrl(
       params,
       options.listFilters,
       options.allowedFilters,
-      options.wireKey,
     );
   }
 

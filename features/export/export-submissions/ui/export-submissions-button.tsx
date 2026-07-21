@@ -72,7 +72,7 @@ function ReportingExportSubmissionsButton({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleExport = async (
-    wireKey: string,
+    formatKey: string,
     exportName: string,
     exportFormatId: string,
     fallbackExtension: string,
@@ -87,7 +87,7 @@ function ReportingExportSubmissionsButton({
       fallbackFilename: `form-${formId}-submissions.${fallbackExtension}`,
       url: buildReportingExportUrl({
         formId,
-        wireKey,
+        formatKey,
         exportFormatId,
         listFilters: filters,
         allowedFilters: selected?.allowedFilters,
@@ -139,18 +139,19 @@ function ReportingExportSubmissionsButton({
       <ExportSubmissionsDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        formId={formId}
         groups={groups}
         listFilters={listFilters}
         isExporting={isExporting}
         onExport={async ({
-          wireKey,
+          formatKey,
           exportName,
           exportFormatId,
           fallbackExtension,
           filters,
         }) => {
           const succeeded = await handleExport(
-            wireKey,
+            formatKey,
             exportName,
             exportFormatId,
             fallbackExtension,

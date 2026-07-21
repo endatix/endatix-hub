@@ -10,7 +10,7 @@ export function parseLegacyExportFormat(
   return undefined;
 }
 
-export function parseReportingExportWireKey(
+export function parseReportingExportFormat(
   format: string | null,
 ): ReportingExportFormat | undefined {
   if (
@@ -78,4 +78,14 @@ export function parseOptionalLocaleQuery(
   }
 
   return trimmed;
+}
+
+export function parseCompletionStatusQuery(
+  value: string | null,
+): "all" | "completed" | "incomplete" | undefined {
+  if (value === "all" || value === "completed" || value === "incomplete") {
+    return value;
+  }
+
+  return undefined;
 }
