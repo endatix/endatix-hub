@@ -1,10 +1,9 @@
 import type {
-  ExportCapabilityDto,
   ExportFormatListItem,
+  ExportProfile,
   ExportTarget,
 } from "@/lib/endatix-api/reporting/reporting";
 import {
-  getExportCapabilityForSelection,
   getExportFormatFallbackExtension,
   getExportFormatLabel,
 } from "@/lib/endatix-api/reporting/export-format-types";
@@ -12,10 +11,11 @@ import {
 export interface TenantExportOption {
   exportFormatId: string;
   exportTarget: ExportTarget;
-  wireKey: string;
+  profile: ExportProfile;
+  formatKey: string;
   label: string;
   fallbackExtension: string;
-  /** Capability allow-list for request-time filters (Reporting API wire names). */
+  /** Capability allow-list for request-time filters (Reporting API names). */
   allowedFilters: readonly string[];
 }
 
@@ -27,25 +27,16 @@ export interface TenantExportOptionGroup {
 
 export function mapFormatsToTenantExportOptions(
   formats: ExportFormatListItem[],
-  capabilities: ReadonlyArray<ExportCapabilityDto> = [],
 ): TenantExportOption[] {
-  return formats.map((format) => {
-    const capability = getExportCapabilityForSelection(
-      format.exportTarget,
-      format.deliveryFormat,
-      format.profile,
-      capabilities,
-    );
-
-    return {
-      exportFormatId: format.id,
-      exportTarget: format.exportTarget,
-      wireKey: format.wireKey,
-      label: getExportFormatLabel(format),
-      fallbackExtension: getExportFormatFallbackExtension(format.wireKey),
-      allowedFilters: capability?.allowedFilters ?? [],
-    };
-  });
+  return formats.map((format) => ({
+    exportFormatId: format.id,
+    exportTarget: format.exportTarget,
+    profile: format.profile,
+    formatKey: format.wireKey,
+    label: getExportFormatLabel(format),
+    fallbackExtension: getExportFormatFallbackExtension(format.wireKey),
+    allowedFilters: format.allowedFilters,
+  }));
 }
 
 /** Stable UX order for export target groups (matches former dropdown). */
@@ -65,7 +56,7 @@ export function groupTenantExportOptions(
     grouped.set(option.exportTarget, existing);
   }
 
-  // Group heading uses the wire target name (API enum), not a Hub label catalog.
+  // Group heading uses the API export-target name, not a Hub label catalog.
   const orderedTargets = [
     ...EXPORT_TARGET_GROUP_ORDER.filter((target) => grouped.has(target)),
     ...Array.from(grouped.keys()).filter(

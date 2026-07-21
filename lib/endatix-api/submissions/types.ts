@@ -109,6 +109,8 @@ export type ReportingExportWireKey =
 export type BooleanFilterValue = "true" | "false";
 export type SubmissionReviewStatus = "new" | "read" | "approved";
 
+export type ExportCompletionStatus = "all" | "completed" | "incomplete";
+
 export interface ExportSubmissionsRequest {
   formId: string;
   exportFormat?: ExportFormat;
@@ -118,6 +120,8 @@ export interface ExportSubmissionsRequest {
   columnScope?: string[];
   /** Optional codebook label locale for this export run. */
   locale?: string;
+  /** Optional completion filter. Omit means all (API default). */
+  completionStatus?: ExportCompletionStatus;
   createdAfter?: string;
   createdBefore?: string;
   completedAfter?: string;

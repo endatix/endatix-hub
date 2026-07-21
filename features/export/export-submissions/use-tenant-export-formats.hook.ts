@@ -31,12 +31,7 @@ export function useTenantExportFormats() {
       }
 
       if (Result.isSuccess(result)) {
-        setOptions(
-          mapFormatsToTenantExportOptions(
-            result.value.formats,
-            result.value.capabilities,
-          ),
-        );
+        setOptions(mapFormatsToTenantExportOptions(result.value));
       } else {
         setOptions([]);
         setLoadError(result.message);

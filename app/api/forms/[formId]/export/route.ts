@@ -8,14 +8,15 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import {
+  parseCompletionStatusQuery,
   parseIncludeTestSubmissionsQuery,
   parseLegacyExportFormat,
   parseOptionalIsoDateQuery,
   parseOptionalLocaleQuery,
   parseOptionalPositiveIdQuery,
-  parseReportingExportWireKey,
+  parseReportingExportFormat,
 } from "@/features/export/export-submissions";
-import { isCodebookWireKey } from "@/features/export/export-url";
+import { isCodebookFormatKey } from "@/features/export/export-url";
 import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 
@@ -72,11 +73,11 @@ export async function GET(
   }
 
   const exportFormat = useReportingExport
-    ? parseReportingExportWireKey(format)
+    ? parseReportingExportFormat(format)
     : parseLegacyExportFormat(format);
 
-  const wireKey = exportFormat ?? format ?? "";
-  const isCodebook = isCodebookWireKey(wireKey);
+  const formatKey = exportFormat ?? format ?? "";
+  const isCodebook = isCodebookFormatKey(formatKey);
 
   const exportOptions: ExportSubmissionsRequest = {
     formId,
@@ -85,8 +86,8 @@ export async function GET(
     exportId: validatedExportId,
   };
 
-  // Native codebook streams FormSchema JSON as-is; only Shoji codebook applies locale.
-  if (wireKey !== "codebook") {
+  // Codebook exports accept a label locale (native + Shoji).
+  if (isCodebook) {
     exportOptions.locale = parseOptionalLocaleQuery(searchParams.get("locale"));
   }
 
@@ -111,6 +112,9 @@ export async function GET(
     );
     exportOptions.maxSubmissionId = parseOptionalPositiveIdQuery(
       searchParams.get("maxSubmissionId"),
+    );
+    exportOptions.completionStatus = parseCompletionStatusQuery(
+      searchParams.get("completionStatus"),
     );
   }
 

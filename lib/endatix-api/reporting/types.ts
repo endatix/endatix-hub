@@ -3,6 +3,11 @@ export interface CompileFormSchemaResponse {
   formDefinitionId: string;
 }
 
+export interface FormSchemaLocalesResponse {
+  formId: string;
+  locales: string[];
+}
+
 export interface BackfillSubmissionsRequest {
   batchSize?: number;
   afterSubmissionId?: string;
