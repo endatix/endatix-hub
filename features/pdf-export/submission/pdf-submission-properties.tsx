@@ -45,9 +45,7 @@ export const PdfSubmissionProperties = ({
         <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Started at</Text>
           <Text style={styles.propertyValue}>
-            {submission.startedAt
-              ? getFormattedDate(submission.startedAt)
-              : DASH_NO_DATA}
+            {getFormattedDate(submission.startedAt, DASH_NO_DATA)}
           </Text>
         </View>
         <View style={styles.propertyRow}>

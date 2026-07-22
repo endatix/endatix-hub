@@ -51,9 +51,7 @@ function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
     },
     {
       label: "Started at",
-      value: submission.startedAt
-        ? getFormattedDate(submission.startedAt)
-        : DASH_NO_DATA,
+      value: getFormattedDate(submission.startedAt, DASH_NO_DATA),
     },
     {
       label: "Completed at",

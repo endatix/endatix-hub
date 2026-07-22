@@ -67,9 +67,7 @@ function EditSubmissionHeader({
     },
     {
       label: "Started at",
-      value: submission.startedAt
-        ? getFormattedDate(submission.startedAt)
-        : "—",
+      value: getFormattedDate(submission.startedAt, "—"),
     },
     {
       label: "Completed at",
