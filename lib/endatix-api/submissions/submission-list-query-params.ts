@@ -18,6 +18,7 @@ export const SUBMISSION_LIST_FILTER_FIELD_NAMES = Object.freeze({
   status: "status",
   isTestSubmission: "isTestSubmission",
   createdAt: "createdAt",
+  startedAt: "startedAt",
   completedAt: "completedAt",
   submitterDisplayId: "submitterDisplayId",
   submitterProfile: "submitterProfile",
@@ -118,6 +119,18 @@ export function appendSubmissionListFilters(
     params.append(
       SUBMISSION_LIST_FILTER_QUERY_PARAM,
       `${SUBMISSION_LIST_FILTER_FIELD_NAMES.createdAt}<${utcCalendarNextDayStartIso(request.createdAtTo)}`,
+    );
+  }
+  if (request.startedAtFrom && isValidCalendarDateYmd(request.startedAtFrom)) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.startedAt}>:${utcCalendarDayStartIso(request.startedAtFrom)}`,
+    );
+  }
+  if (request.startedAtTo && isValidCalendarDateYmd(request.startedAtTo)) {
+    params.append(
+      SUBMISSION_LIST_FILTER_QUERY_PARAM,
+      `${SUBMISSION_LIST_FILTER_FIELD_NAMES.startedAt}<${utcCalendarNextDayStartIso(request.startedAtTo)}`,
     );
   }
   if (

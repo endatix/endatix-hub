@@ -39,6 +39,7 @@ export interface Submission extends ApiEntity {
   metadata: JsonData;
   token: string;
   completedAt?: Date;
+  startedAt?: Date;
   status: SubmissionStatus;
   submitterId?: EntityId;
   submitterDisplayId?: string;
@@ -124,6 +125,8 @@ export interface ExportSubmissionsRequest {
   completionStatus?: ExportCompletionStatus;
   createdAfter?: string;
   createdBefore?: string;
+  startedAfter?: string;
+  startedBefore?: string;
   completedAfter?: string;
   completedBefore?: string;
   minSubmissionId?: string;
@@ -138,6 +141,8 @@ export interface ListSubmissionsRequest {
   isTestSubmission?: BooleanFilterValue[];
   createdAtFrom?: string;
   createdAtTo?: string;
+  startedAtFrom?: string;
+  startedAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
   submitterDisplayId?: string;
