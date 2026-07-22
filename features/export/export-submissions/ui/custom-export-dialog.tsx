@@ -22,10 +22,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Spinner } from "@/components/loaders/spinner";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import type { ExportTarget } from "@/lib/endatix-api/reporting/reporting";
 import { Result } from "@/lib/result";
+import { Info } from "lucide-react";
 import {
   isCodebookFormatKey,
   type ExportCompletionStatusFilter,
@@ -38,8 +45,14 @@ import type {
 } from "../map-tenant-export-options";
 
 const CREATED_AT_RANGE_ERROR = "Created From must be on or before Created To.";
+const STARTED_AT_RANGE_ERROR = "Started From must be on or before Started To.";
 const COMPLETED_AT_RANGE_ERROR =
   "Completed From must be on or before Completed To.";
+
+const CREATED_AT_TOOLTIP =
+  "When the submission record was created — including prefill or create-on-behalf before a respondent opens the form.";
+const STARTED_AT_TOOLTIP =
+  "When the respondent first saved an answer. Use this for time-to-complete; created can be much earlier for prefilled submissions.";
 
 const COMPLETION_STATUS_OPTIONS: ReadonlyArray<{
   value: ExportCompletionStatusFilter;
@@ -125,14 +138,21 @@ function resolveDateRangeErrors(args: {
   showCompletedAt: boolean;
   createdAtFrom: string;
   createdAtTo: string;
+  startedAtFrom: string;
+  startedAtTo: string;
   completedAtFrom: string;
   completedAtTo: string;
 }): {
   createdAtRangeError: string | null;
+  startedAtRangeError: string | null;
   completedAtRangeError: string | null;
 } {
   if (!args.showRowFilters) {
-    return { createdAtRangeError: null, completedAtRangeError: null };
+    return {
+      createdAtRangeError: null,
+      startedAtRangeError: null,
+      completedAtRangeError: null,
+    };
   }
 
   return {
@@ -141,6 +161,12 @@ function resolveDateRangeErrors(args: {
       args.createdAtTo,
     )
       ? CREATED_AT_RANGE_ERROR
+      : null,
+    startedAtRangeError: isInvalidDateRange(
+      args.startedAtFrom,
+      args.startedAtTo,
+    )
+      ? STARTED_AT_RANGE_ERROR
       : null,
     completedAtRangeError:
       args.showCompletedAt &&
@@ -159,6 +185,8 @@ function buildExportFilters(args: {
   includeTestSubmissions: boolean;
   createdAtFrom: string;
   createdAtTo: string;
+  startedAtFrom: string;
+  startedAtTo: string;
   completedAtFrom: string;
   completedAtTo: string;
 }): SubmissionExportListFilters {
@@ -173,6 +201,8 @@ function buildExportFilters(args: {
     filters.completionStatus = args.completionStatus;
     filters.createdAtFrom = args.createdAtFrom || undefined;
     filters.createdAtTo = args.createdAtTo || undefined;
+    filters.startedAtFrom = args.startedAtFrom || undefined;
+    filters.startedAtTo = args.startedAtTo || undefined;
     if (args.showCompletedAt) {
       filters.completedAtFrom = args.completedAtFrom || undefined;
       filters.completedAtTo = args.completedAtTo || undefined;
@@ -184,6 +214,7 @@ function buildExportFilters(args: {
 
 function ExportDateRangeFieldset({
   legend,
+  legendTooltip,
   fromId,
   toId,
   errorId,
@@ -195,6 +226,7 @@ function ExportDateRangeFieldset({
   onToChange,
 }: Readonly<{
   legend: string;
+  legendTooltip?: string;
   fromId: string;
   toId: string;
   errorId: string;
@@ -209,7 +241,27 @@ function ExportDateRangeFieldset({
 
   return (
     <fieldset className="grid gap-2">
-      <legend className="text-sm font-medium">{legend}</legend>
+      <legend className="flex items-center gap-1.5 text-sm font-medium">
+        <span>{legend}</span>
+        {legendTooltip ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  aria-label={`${legend} info`}
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">{legendTooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : null}
+      </legend>
       <div className="grid grid-cols-2 gap-2">
         <div className="grid gap-1">
           <Label htmlFor={fromId} className="text-xs text-muted-foreground">
@@ -267,6 +319,8 @@ export function ExportSubmissionsDialog({
     useState<ExportCompletionStatusFilter>("completed");
   const [createdAtFrom, setCreatedAtFrom] = useState("");
   const [createdAtTo, setCreatedAtTo] = useState("");
+  const [startedAtFrom, setStartedAtFrom] = useState("");
+  const [startedAtTo, setStartedAtTo] = useState("");
   const [completedAtFrom, setCompletedAtFrom] = useState("");
   const [completedAtTo, setCompletedAtTo] = useState("");
   const [locale, setLocale] = useState("default");
@@ -275,6 +329,9 @@ export function ExportSubmissionsDialog({
   const [isLoadingLocales, setIsLoadingLocales] = useState(false);
   const previousExportFormatIdRef = useRef<string | null>(null);
   const [createdAtRangeError, setCreatedAtRangeError] = useState<string | null>(
+    null,
+  );
+  const [startedAtRangeError, setStartedAtRangeError] = useState<string | null>(
     null,
   );
   const [completedAtRangeError, setCompletedAtRangeError] = useState<
@@ -297,9 +354,7 @@ export function ExportSubmissionsDialog({
         selectedOption.formatKey,
       )
     : false;
-  const showLocaleField = selectedOption
-    ? showsLocale(selectedOption)
-    : false;
+  const showLocaleField = selectedOption ? showsLocale(selectedOption) : false;
   const showCompletedAt = showsCompletedAtFields(completionStatus);
   const localeSelectOptions = useMemo(
     () =>
@@ -316,6 +371,13 @@ export function ExportSubmissionsDialog({
     [options],
   );
 
+  // Keep latest props in refs so open-edge hydration does not re-run when the
+  // parent passes a new listFilters object identity on every render.
+  const listFiltersRef = useRef(listFilters);
+  listFiltersRef.current = listFilters;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
     wasOpenRef.current = open;
@@ -324,24 +386,37 @@ export function ExportSubmissionsDialog({
       return;
     }
 
-    const defaultFormatId = options[0]?.exportFormatId ?? "";
-    setExportFormatId((current) =>
-      current && options.some((option) => option.exportFormatId === current)
-        ? current
-        : defaultFormatId,
-    );
+    const currentOptions = optionsRef.current;
+    const currentListFilters = listFiltersRef.current;
+
+    // Prefer a submissions format so row filters (created/started/completed) are
+    // visible. Preserving a prior codebook selection hid those fields on reopen
+    // and looked like grid prefill was lost.
+    const defaultFormatId =
+      currentOptions.find((option) =>
+        showsSubmissionRowFilters(option.exportTarget, option.formatKey),
+      )?.exportFormatId ??
+      currentOptions[0]?.exportFormatId ??
+      "";
+    setExportFormatId(defaultFormatId);
+
     // Include-test defaults off. Grid "test only" is not mirrored (API has no test-only mode).
-    setIncludeTestSubmissions(listFilters?.includeTestSubmissions ?? false);
-    setCompletionStatus(listFilters?.completionStatus ?? "completed");
-    setCreatedAtFrom(listFilters?.createdAtFrom ?? "");
-    setCreatedAtTo(listFilters?.createdAtTo ?? "");
-    setCompletedAtFrom(listFilters?.completedAtFrom ?? "");
-    setCompletedAtTo(listFilters?.completedAtTo ?? "");
+    setIncludeTestSubmissions(
+      currentListFilters?.includeTestSubmissions ?? false,
+    );
+    setCompletionStatus(currentListFilters?.completionStatus ?? "completed");
+    setCreatedAtFrom(currentListFilters?.createdAtFrom ?? "");
+    setCreatedAtTo(currentListFilters?.createdAtTo ?? "");
+    setStartedAtFrom(currentListFilters?.startedAtFrom ?? "");
+    setStartedAtTo(currentListFilters?.startedAtTo ?? "");
+    setCompletedAtFrom(currentListFilters?.completedAtFrom ?? "");
+    setCompletedAtTo(currentListFilters?.completedAtTo ?? "");
     setCreatedAtRangeError(null);
+    setStartedAtRangeError(null);
     setCompletedAtRangeError(null);
     setLocaleDirty(false);
     previousExportFormatIdRef.current = null;
-  }, [open, options, listFilters]);
+  }, [open]);
 
   useEffect(() => {
     if (!open || !formId || !anyFormatAllowsLocale) {
@@ -424,13 +499,20 @@ export function ExportSubmissionsDialog({
       showCompletedAt,
       createdAtFrom,
       createdAtTo,
+      startedAtFrom,
+      startedAtTo,
       completedAtFrom,
       completedAtTo,
     });
     setCreatedAtRangeError(rangeErrors.createdAtRangeError);
+    setStartedAtRangeError(rangeErrors.startedAtRangeError);
     setCompletedAtRangeError(rangeErrors.completedAtRangeError);
 
-    if (rangeErrors.createdAtRangeError || rangeErrors.completedAtRangeError) {
+    if (
+      rangeErrors.createdAtRangeError ||
+      rangeErrors.startedAtRangeError ||
+      rangeErrors.completedAtRangeError
+    ) {
       return;
     }
 
@@ -443,6 +525,8 @@ export function ExportSubmissionsDialog({
       includeTestSubmissions,
       createdAtFrom,
       createdAtTo,
+      startedAtFrom,
+      startedAtTo,
       completedAtFrom,
       completedAtTo,
     });
@@ -602,6 +686,7 @@ export function ExportSubmissionsDialog({
 
                 <ExportDateRangeFieldset
                   legend="Created at"
+                  legendTooltip={CREATED_AT_TOOLTIP}
                   fromId="export-submissions-created-from"
                   toId="export-submissions-created-to"
                   errorId="export-submissions-created-range-error"
@@ -616,6 +701,26 @@ export function ExportSubmissionsDialog({
                   onToChange={(value) => {
                     setCreatedAtTo(value);
                     setCreatedAtRangeError(null);
+                  }}
+                />
+
+                <ExportDateRangeFieldset
+                  legend="Started at"
+                  legendTooltip={STARTED_AT_TOOLTIP}
+                  fromId="export-submissions-started-from"
+                  toId="export-submissions-started-to"
+                  errorId="export-submissions-started-range-error"
+                  fromValue={startedAtFrom}
+                  toValue={startedAtTo}
+                  error={startedAtRangeError}
+                  disabled={isExporting}
+                  onFromChange={(value) => {
+                    setStartedAtFrom(value);
+                    setStartedAtRangeError(null);
+                  }}
+                  onToChange={(value) => {
+                    setStartedAtTo(value);
+                    setStartedAtRangeError(null);
                   }}
                 />
 

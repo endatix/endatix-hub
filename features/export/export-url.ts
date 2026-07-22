@@ -11,6 +11,7 @@ export const INCLUDE_TEST_SUBMISSIONS_FILTER =
 export type ExportRequestFilter =
   | typeof INCLUDE_TEST_SUBMISSIONS_FILTER
   | "createdAtRange"
+  | "startedAtRange"
   | "completedAtRange"
   | "submissionIdRange"
   | "locale"
@@ -35,6 +36,8 @@ export interface SubmissionExportListFilters {
   includeTestSubmissions?: boolean;
   createdAtFrom?: string;
   createdAtTo?: string;
+  startedAtFrom?: string;
+  startedAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
   minSubmissionId?: string;
@@ -157,6 +160,16 @@ function appendAllowedListFilters(
       "createdBefore",
       filters.createdAtFrom,
       filters.createdAtTo,
+    );
+  }
+
+  if (allowsFilter(allowedFilters, "startedAtRange")) {
+    appendCalendarRange(
+      params,
+      "startedAfter",
+      "startedBefore",
+      filters.startedAtFrom,
+      filters.startedAtTo,
     );
   }
 

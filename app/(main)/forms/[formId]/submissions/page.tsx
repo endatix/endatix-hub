@@ -28,6 +28,8 @@ type Params = {
     isTestSubmission?: string;
     createdAtFrom?: string;
     createdAtTo?: string;
+    startedAtFrom?: string;
+    startedAtTo?: string;
     completedAtFrom?: string;
     completedAtTo?: string;
     submitterDisplayId?: string;
@@ -102,6 +104,8 @@ async function SubmissionsTableData({
     isTestSubmission?: string;
     createdAtFrom?: string;
     createdAtTo?: string;
+    startedAtFrom?: string;
+    startedAtTo?: string;
     completedAtFrom?: string;
     completedAtTo?: string;
     submitterDisplayId?: string;
@@ -116,6 +120,8 @@ async function SubmissionsTableData({
     Boolean(
       listState.createdAtFrom ||
       listState.createdAtTo ||
+      listState.startedAtFrom ||
+      listState.startedAtTo ||
       listState.completedAtFrom ||
       listState.completedAtTo ||
       listState.submitterDisplayId ||
@@ -131,12 +137,16 @@ async function SubmissionsTableData({
       {
         rawCreatedAtFrom: searchParams.createdAtFrom,
         rawCreatedAtTo: searchParams.createdAtTo,
+        rawStartedAtFrom: searchParams.startedAtFrom,
+        rawStartedAtTo: searchParams.startedAtTo,
         rawCompletedAtFrom: searchParams.completedAtFrom,
         rawCompletedAtTo: searchParams.completedAtTo,
         rawSubmitterDisplayId: searchParams.submitterDisplayId,
         rawSubmitterEmail: searchParams.submitterEmail,
         createdAtFrom: listState.createdAtFrom,
         createdAtTo: listState.createdAtTo,
+        startedAtFrom: listState.startedAtFrom,
+        startedAtTo: listState.startedAtTo,
         completedAtFrom: listState.completedAtFrom,
         completedAtTo: listState.completedAtTo,
         submitterDisplayId: listState.submitterDisplayId,
@@ -216,6 +226,8 @@ async function SubmissionsTableData({
       initialIsTestSubmission={listState.isTestSubmission}
       initialCreatedAtFrom={listState.createdAtFrom}
       initialCreatedAtTo={listState.createdAtTo}
+      initialStartedAtFrom={listState.startedAtFrom}
+      initialStartedAtTo={listState.startedAtTo}
       initialCompletedAtFrom={listState.completedAtFrom}
       initialCompletedAtTo={listState.completedAtTo}
       initialSubmitterDisplayId={listState.submitterDisplayId}

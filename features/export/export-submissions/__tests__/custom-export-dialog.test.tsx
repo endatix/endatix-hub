@@ -236,6 +236,7 @@ function createProps(
             allowedFilters: [
               "includeTestSubmissions",
               "createdAtRange",
+              "startedAtRange",
               "completedAtRange",
               "completionStatus",
             ],
@@ -250,6 +251,7 @@ function createProps(
             allowedFilters: [
               "includeTestSubmissions",
               "createdAtRange",
+              "startedAtRange",
               "completedAtRange",
               "completionStatus",
             ],
@@ -312,6 +314,7 @@ describe("ExportSubmissionsDialog", () => {
     expect(screen.getByText("Include test submissions")).toBeDefined();
     expect(screen.getByText("Completion")).toBeDefined();
     expect(screen.getByText("Created at")).toBeDefined();
+    expect(screen.getByText("Started at")).toBeDefined();
     expect(screen.getByText("Completed at")).toBeDefined();
   });
 
@@ -346,8 +349,8 @@ describe("ExportSubmissionsDialog", () => {
   it("shows inline error when completed from > completed to", () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
 
-    const completedFrom = screen.getAllByLabelText("From")[1];
-    const completedTo = screen.getAllByLabelText("To")[1];
+    const completedFrom = screen.getAllByLabelText("From")[2];
+    const completedTo = screen.getAllByLabelText("To")[2];
 
     fireEvent.change(completedFrom, { target: { value: "2026-01-10" } });
     fireEvent.change(completedTo, { target: { value: "2026-01-01" } });
@@ -381,6 +384,8 @@ describe("ExportSubmissionsDialog", () => {
           completionStatus: "completed",
           createdAtFrom: "2026-01-01",
           createdAtTo: undefined,
+          startedAtFrom: undefined,
+          startedAtTo: undefined,
           completedAtFrom: undefined,
           completedAtTo: undefined,
         },
@@ -556,6 +561,8 @@ describe("ExportSubmissionsDialog", () => {
             completionStatus: "all",
             createdAtFrom: "2026-03-01",
             createdAtTo: "2026-03-15",
+            startedAtFrom: "2026-03-05",
+            startedAtTo: "2026-03-10",
           },
         })}
       />,
@@ -565,6 +572,12 @@ describe("ExportSubmissionsDialog", () => {
       (screen.getAllByLabelText("From")[0] as HTMLInputElement).value,
     ).toBe("2026-03-01");
     expect(
+      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+    ).toBe("2026-03-05");
+    expect((screen.getAllByLabelText("To")[1] as HTMLInputElement).value).toBe(
+      "2026-03-10",
+    );
+    expect(
       (screen.getByLabelText("Include test submissions") as HTMLInputElement)
         .checked,
     ).toBe(true);
@@ -572,6 +585,72 @@ describe("ExportSubmissionsDialog", () => {
       (screen.getByTestId("export-submissions-completion") as HTMLSelectElement)
         .value,
     ).toBe("all");
+  });
+
+  it("re-prefills grid filters including startedAt after close and reopen", () => {
+    const listFilters = {
+      createdAtFrom: "2026-04-01",
+      createdAtTo: "2026-04-02",
+      startedAtFrom: "2026-04-03",
+      startedAtTo: "2026-04-04",
+      completedAtFrom: "2026-04-05",
+      completedAtTo: "2026-04-06",
+      completionStatus: "all" as const,
+    };
+
+    const { rerender } = render(
+      <ExportSubmissionsDialog {...createProps({ open: true, listFilters })} />,
+    );
+
+    expect(
+      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+    ).toBe("2026-04-03");
+
+    fireEvent.change(screen.getAllByLabelText("From")[1], {
+      target: { value: "2026-01-01" },
+    });
+    expect(
+      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+    ).toBe("2026-01-01");
+
+    // Switch to codebook (hides row filters), then close — reopen must restore
+    // a submissions format and grid dates, not keep codebook.
+    fireEvent.change(screen.getByTestId("export-submissions-format"), {
+      target: { value: "cb-native" },
+    });
+    expect(screen.queryByText("Started at")).toBeNull();
+
+    rerender(
+      <ExportSubmissionsDialog
+        {...createProps({
+          open: false,
+          listFilters: { ...listFilters },
+        })}
+      />,
+    );
+    rerender(
+      <ExportSubmissionsDialog
+        {...createProps({
+          open: true,
+          listFilters: { ...listFilters },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Started at")).toBeDefined();
+    expect(
+      (screen.getByTestId("export-submissions-format") as HTMLSelectElement)
+        .value,
+    ).toBe("csv-1");
+    expect(
+      (screen.getAllByLabelText("From")[0] as HTMLInputElement).value,
+    ).toBe("2026-04-01");
+    expect(
+      (screen.getAllByLabelText("From")[1] as HTMLInputElement).value,
+    ).toBe("2026-04-03");
+    expect((screen.getAllByLabelText("To")[1] as HTMLInputElement).value).toBe(
+      "2026-04-04",
+    );
   });
 
   it("prefills locale when Shoji codebook is selected", async () => {

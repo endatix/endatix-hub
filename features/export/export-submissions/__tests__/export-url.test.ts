@@ -12,6 +12,7 @@ import {
 const SUBMISSIONS_FILTERS = [
   "includeTestSubmissions",
   "createdAtRange",
+  "startedAtRange",
   "completedAtRange",
   "submissionIdRange",
   "completionStatus",
@@ -148,10 +149,12 @@ describe("export url builders", () => {
       listFilters: {
         createdAtFrom: "2026-01-01",
         createdAtTo: "2026-01-02",
+        startedAtFrom: "2026-01-05",
+        startedAtTo: "2026-01-06",
         completedAtFrom: "2026-02-01",
         completedAtTo: "2026-02-03",
       },
-      allowedFilters: ["createdAtRange", "completedAtRange"],
+      allowedFilters: ["createdAtRange", "startedAtRange", "completedAtRange"],
     });
     const params = new URL(url, "https://example.test").searchParams;
 
@@ -160,6 +163,12 @@ describe("export url builders", () => {
     );
     expect(params.get("createdBefore")).toBe(
       utcCalendarNextDayStartIso("2026-01-02"),
+    );
+    expect(params.get("startedAfter")).toBe(
+      utcCalendarDayStartIso("2026-01-05"),
+    );
+    expect(params.get("startedBefore")).toBe(
+      utcCalendarNextDayStartIso("2026-01-06"),
     );
     expect(params.get("completedAfter")).toBe(
       utcCalendarDayStartIso("2026-02-01"),
