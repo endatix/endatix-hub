@@ -39,6 +39,12 @@ export function serializeSubmissionListSearchParams(
   if (state.createdAtTo) {
     params.set(searchParamKeys.createdAtTo, state.createdAtTo);
   }
+  if (state.startedAtFrom) {
+    params.set(searchParamKeys.startedAtFrom, state.startedAtFrom);
+  }
+  if (state.startedAtTo) {
+    params.set(searchParamKeys.startedAtTo, state.startedAtTo);
+  }
   if (state.completedAtFrom) {
     params.set(searchParamKeys.completedAtFrom, state.completedAtFrom);
   }

@@ -12,6 +12,8 @@ import type {
  * @param isTestSubmission - The is test submission.
  * @param createdAtFrom - The created at from.
  * @param createdAtTo - The created at to.
+ * @param startedAtFrom - The started at from.
+ * @param startedAtTo - The started at to.
  * @param completedAtFrom - The completed at from.
  * @param completedAtTo - The completed at to.
  * @param submitterDisplayId - The submitter display id filter.
@@ -25,6 +27,8 @@ export type SubmissionListUrlState = {
   isTestSubmission: BooleanFilterValue[];
   createdAtFrom?: string;
   createdAtTo?: string;
+  startedAtFrom?: string;
+  startedAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
   submitterDisplayId?: string;

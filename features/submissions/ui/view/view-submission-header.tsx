@@ -1,7 +1,11 @@
 import { Submission } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { LocalizationWrapper } from "@/lib/survey-features/infrastructure/localization-wrapper";
-import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
+import {
+  getElapsedTimeString,
+  getFormattedDate,
+  getSubmissionStartedAt,
+} from "@/lib/utils";
 import { tryParseJson } from "@/lib/utils/type-parsers";
 
 interface ViewSubmissionHeaderProps {
@@ -15,6 +19,7 @@ type SubmissionMetadataItem = {
 type SurveySchema = Record<string, unknown> | undefined;
 
 const DEFAULT_TITLE = "Untitled Form";
+const DASH_NO_DATA = "—";
 
 function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
   const formDefinitionResult = tryParseJson<SurveySchema>(
@@ -33,31 +38,40 @@ function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
       value: submission.id,
     },
     {
+      label: "Is Complete",
+      value: submission.isComplete ? "Yes" : "No",
+    },
+    {
       label: "Created at",
       value: getFormattedDate(submission.createdAt),
     },
     {
-      label: "Is Complete",
-      value: submission.isComplete ? "Yes" : "No",
+      label: "Last modified",
+      value: getFormattedDate(submission.modifiedAt),
+    },
+    {
+      label: "Started at",
+      value: submission.startedAt
+        ? getFormattedDate(submission.startedAt)
+        : DASH_NO_DATA,
+    },
+    {
+      label: "Completed at",
+      value: submission.isComplete
+        ? getFormattedDate(submission.completedAt)
+        : DASH_NO_DATA,
+    },
+    {
+      label: "Completion time",
+      value: submission.isComplete
+        ? getElapsedTimeString(
+            getSubmissionStartedAt(submission),
+            submission.completedAt,
+            "long",
+          )
+        : DASH_NO_DATA,
     },
   ];
-
-  if (submission.isComplete) {
-    metadataItems.push(
-      {
-        label: "Completed at",
-        value: getFormattedDate(submission.completedAt),
-      },
-      {
-        label: "Completion time",
-        value: getElapsedTimeString(
-          submission.createdAt,
-          submission.completedAt,
-          "long",
-        ),
-      },
-    );
-  }
 
   return (
     <section className="overflow-hidden rounded-lg border border-border/25 bg-surface-container-lowest shadow-sm">
@@ -70,7 +84,7 @@ function ViewSubmissionHeader({ submission }: ViewSubmissionHeaderProps) {
         </h1>
       </div>
 
-      <dl className="grid gap-px bg-border/20 sm:grid-cols-2 lg:grid-cols-5">
+      <dl className="grid gap-px bg-border/20 sm:grid-cols-2 lg:grid-cols-4">
         {metadataItems.map((item) => (
           <div
             key={item.label}

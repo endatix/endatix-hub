@@ -7,7 +7,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getElapsedTimeString, parseDate } from "@/lib/utils";
+import {
+  getElapsedTimeString,
+  getSubmissionStartedAt,
+  parseDate,
+} from "@/lib/utils";
 import { Info, TriangleAlert } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import {
@@ -94,7 +98,7 @@ export function MetadataCard() {
     submission.completedAt &&
     parseDate(submission.completedAt)
       ? getElapsedTimeString(
-          submission.createdAt,
+          getSubmissionStartedAt(submission),
           submission.completedAt,
           "long",
         )
@@ -128,14 +132,17 @@ export function MetadataCard() {
         <MetaCell label="Created at">
           <ValueText>{formatDate(submission.createdAt)}</ValueText>
         </MetaCell>
+        <MetaCell label="Last modified">
+          <ValueText>{formatDate(submission.modifiedAt)}</ValueText>
+        </MetaCell>
+        <MetaCell label="Started at">
+          <ValueText>{formatDate(submission.startedAt)}</ValueText>
+        </MetaCell>
         <MetaCell label="Completed at">
           <ValueText>{formatDate(submission.completedAt)}</ValueText>
         </MetaCell>
         <MetaCell label="Completion time">
           <ValueText>{completionTime}</ValueText>
-        </MetaCell>
-        <MetaCell label="Last modified">
-          <ValueText>{formatDate(submission.modifiedAt)}</ValueText>
         </MetaCell>
         <MetaCell label="Submission language">
           <span className="inline-flex min-w-0 items-center gap-2">

@@ -1,4 +1,4 @@
-export type DateFilterColumnId = "createdAt" | "completedAt";
+export type DateFilterColumnId = "createdAt" | "startedAt" | "completedAt";
 
 /**
  * Calendar date range for column filters. `from` / `to` are **UTC calendar** dates
@@ -21,5 +21,6 @@ export type DateFilterChangeHandler = (
 
 export const EMPTY_SUBMISSION_DATE_FILTERS: SubmissionDateFilters = {
   createdAt: {},
+  startedAt: {},
   completedAt: {},
 };

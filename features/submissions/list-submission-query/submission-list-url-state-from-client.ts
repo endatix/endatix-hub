@@ -28,6 +28,8 @@ export function submissionListUrlStateFromClientFilters(input: {
   isTestSubmission: Set<string>;
   createdAtFrom?: string;
   createdAtTo?: string;
+  startedAtFrom?: string;
+  startedAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
   submitterDisplayId?: string;
@@ -50,6 +52,8 @@ export function submissionListUrlStateFromClientFilters(input: {
     ),
     createdAtFrom: parseSubmissionListCalendarDate(input.createdAtFrom),
     createdAtTo: parseSubmissionListCalendarDate(input.createdAtTo),
+    startedAtFrom: parseSubmissionListCalendarDate(input.startedAtFrom),
+    startedAtTo: parseSubmissionListCalendarDate(input.startedAtTo),
     completedAtFrom: parseSubmissionListCalendarDate(input.completedAtFrom),
     completedAtTo: parseSubmissionListCalendarDate(input.completedAtTo),
     submitterDisplayId: input.submitterDisplayId?.trim() || undefined,
