@@ -33,9 +33,33 @@ describe("submission table column definitions", () => {
 
   it("labels the submitter display id column with NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL", () => {
     const columns = buildSubmissionSystemColumns();
-    const displayIdColumn = columns.find((col) => col.id === "submitterDisplayId");
+    const displayIdColumn = columns.find(
+      (col) => col.id === "submitterDisplayId",
+    );
 
     expect(displayIdColumn?.meta?.displayName).toBe("Submitter ID");
+  });
+
+  it("includes Started at as a default system column with date filter support", () => {
+    const onDateFilterChange = vi.fn();
+    const columns = buildSubmissionSystemColumns({
+      dateFilters: {
+        createdAt: {},
+        startedAt: {},
+        completedAt: {},
+      },
+      onDateFilterChange,
+    });
+    const startedAtColumn = columns.find((col) => col.id === "startedAt");
+
+    expect(startedAtColumn?.meta?.displayName).toBe("Started at");
+    expect(startedAtColumn?.meta?.defaultHidden).not.toBe(true);
+    expect(startedAtColumn).toEqual(
+      expect.objectContaining({
+        id: "startedAt",
+        accessorKey: "startedAt",
+      }),
+    );
   });
 
   it("uses humanized field names for dynamic form column labels and hides them by default", () => {

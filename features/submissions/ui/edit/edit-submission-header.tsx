@@ -2,7 +2,11 @@ import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
 import { Submission } from "@/lib/endatix-api";
 import { LocalizationWrapper } from "@/lib/survey-features/infrastructure/localization-wrapper";
-import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
+import {
+  getElapsedTimeString,
+  getFormattedDate,
+  getSubmissionStartedAt,
+} from "@/lib/utils";
 import { tryParseJson } from "@/lib/utils/type-parsers";
 import { Result } from "@/lib/result";
 
@@ -50,31 +54,38 @@ function EditSubmissionHeader({
       value: submission.id,
     },
     {
+      label: "Is Complete",
+      value: submission.isComplete ? "Yes" : "No",
+    },
+    {
       label: "Created at",
       value: getFormattedDate(submission.createdAt),
     },
     {
-      label: "Is Complete",
-      value: submission.isComplete ? "Yes" : "No",
+      label: "Last modified",
+      value: getFormattedDate(submission.modifiedAt),
+    },
+    {
+      label: "Started at",
+      value: getFormattedDate(submission.startedAt, "—"),
+    },
+    {
+      label: "Completed at",
+      value: submission.isComplete
+        ? getFormattedDate(submission.completedAt)
+        : "—",
+    },
+    {
+      label: "Completion time",
+      value: submission.isComplete
+        ? getElapsedTimeString(
+            getSubmissionStartedAt(submission),
+            submission.completedAt,
+            "long",
+          )
+        : "—",
     },
   ];
-
-  if (submission.isComplete) {
-    metadataItems.push(
-      {
-        label: "Completed at",
-        value: getFormattedDate(submission.completedAt),
-      },
-      {
-        label: "Completion time",
-        value: getElapsedTimeString(
-          submission.createdAt,
-          submission.completedAt,
-          "long",
-        ),
-      },
-    );
-  }
 
   return (
     <>
@@ -126,7 +137,7 @@ function EditSubmissionHeader({
 
       {isPublicMode && (
         <section className="overflow-hidden rounded-lg border border-border/25 bg-surface-container-lowest shadow-sm">
-          <dl className="grid gap-px bg-border/20 sm:grid-cols-2 lg:grid-cols-5">
+          <dl className="grid gap-px bg-border/20 sm:grid-cols-2 lg:grid-cols-4">
             {metadataItems.map((item) => (
               <div
                 key={item.label}
@@ -135,7 +146,7 @@ function EditSubmissionHeader({
                 <dt className="text-[10px] leading-none font-bold tracking-widest text-muted-foreground uppercase">
                   {item.label}
                 </dt>
-                <dd className="mt-2 break-words text-sm font-medium text-foreground">
+                <dd className="mt-2 text-sm font-medium break-words text-foreground">
                   {item.value}
                 </dd>
               </div>

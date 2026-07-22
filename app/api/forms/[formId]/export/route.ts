@@ -101,6 +101,12 @@ export async function GET(
     exportOptions.createdBefore = parseOptionalIsoDateQuery(
       searchParams.get("createdBefore"),
     );
+    exportOptions.startedAfter = parseOptionalIsoDateQuery(
+      searchParams.get("startedAfter"),
+    );
+    exportOptions.startedBefore = parseOptionalIsoDateQuery(
+      searchParams.get("startedBefore"),
+    );
     exportOptions.completedAfter = parseOptionalIsoDateQuery(
       searchParams.get("completedAfter"),
     );

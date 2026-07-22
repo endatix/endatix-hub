@@ -94,6 +94,21 @@ export function getElapsedTimeString(
 }
 
 /**
+ * Resolves the engagement start used for completion duration.
+ * Prefers API `startedAt` (first respondent save); falls back to `createdAt` for older payloads.
+ */
+export function getSubmissionStartedAt(submission: {
+  startedAt?: Date | string | null;
+  createdAt: Date | string;
+}): Date {
+  if (submission.startedAt) {
+    return new Date(submission.startedAt);
+  }
+
+  return new Date(submission.createdAt);
+}
+
+/**
  * Formats a date into a localized date/time string.
  * @param date - The date to format
  * @param fallbackMessage - Message when the date is missing or invalid

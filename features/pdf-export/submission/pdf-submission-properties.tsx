@@ -1,11 +1,17 @@
 import { Submission } from "@/lib/endatix-api";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { PDF_STYLES } from "./pdf-styles";
-import { getElapsedTimeString, getFormattedDate } from "@/lib/utils";
+import {
+  getElapsedTimeString,
+  getFormattedDate,
+  getSubmissionStartedAt,
+} from "@/lib/utils";
 
 interface PdfSubmissionPropertiesProps {
   submission: Submission;
 }
+
+const DASH_NO_DATA = "—";
 
 export const PdfSubmissionProperties = ({
   submission,
@@ -31,25 +37,35 @@ export const PdfSubmissionProperties = ({
           </Text>
         </View>
         <View style={styles.propertyRow}>
+          <Text style={styles.propertyLabel}>Last modified on</Text>
+          <Text style={styles.propertyValue}>
+            {getFormattedDate(submission.modifiedAt)}
+          </Text>
+        </View>
+        <View style={styles.propertyRow}>
+          <Text style={styles.propertyLabel}>Started at</Text>
+          <Text style={styles.propertyValue}>
+            {getFormattedDate(submission.startedAt, DASH_NO_DATA)}
+          </Text>
+        </View>
+        <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Completed at</Text>
           <Text style={styles.propertyValue}>
-            {getFormattedDate(submission.completedAt)}
+            {submission.isComplete
+              ? getFormattedDate(submission.completedAt)
+              : DASH_NO_DATA}
           </Text>
         </View>
         <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Completion time</Text>
           <Text style={styles.propertyValue}>
-            {getElapsedTimeString(
-              submission.createdAt,
-              submission.completedAt,
-              "long",
-            )}
-          </Text>
-        </View>
-        <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>Last modified on</Text>
-          <Text style={styles.propertyValue}>
-            {getFormattedDate(submission.modifiedAt)}
+            {submission.isComplete
+              ? getElapsedTimeString(
+                  getSubmissionStartedAt(submission),
+                  submission.completedAt,
+                  "long",
+                )
+              : DASH_NO_DATA}
           </Text>
         </View>
       </View>

@@ -3,6 +3,7 @@ import {
   QUESTION_REGISTRY,
   QuestionType,
 } from "@/lib/questions/questions-registry";
+import { getSubmissionStartedAt } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
@@ -99,6 +100,29 @@ export function buildSubmissionSystemColumns({
       ),
     },
     {
+      id: "startedAt",
+      accessorKey: "startedAt",
+      meta: {
+        displayName: "Started at",
+      },
+      header: ({ column }) => (
+        <ColumnHeader
+          column={column}
+          isSorted={column.getIsSorted()}
+          dateFilter={
+            dateFilters && onDateFilterChange
+              ? {
+                  value: dateFilters.startedAt,
+                  onChange: (value) => onDateFilterChange("startedAt", value),
+                }
+              : undefined
+          }
+          title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
+        />
+      ),
+      cell: ({ row }) => <CellDate date={row.original.startedAt} />,
+    },
+    {
       id: "completedAt",
       accessorKey: "completedAt",
       meta: {
@@ -161,7 +185,7 @@ export function buildSubmissionSystemColumns({
       accessorFn: (row) =>
         row.completedAt
           ? new Date(row.completedAt).getTime() -
-            new Date(row.createdAt).getTime()
+            getSubmissionStartedAt(row).getTime()
           : -1,
       meta: {
         displayName: "Completion Time",
@@ -175,7 +199,7 @@ export function buildSubmissionSystemColumns({
       ),
       cell: ({ row }) => (
         <CellCompletionTime
-          startedAt={row.original.createdAt}
+          startedAt={getSubmissionStartedAt(row.original)}
           completedAt={row.original.completedAt}
         />
       ),

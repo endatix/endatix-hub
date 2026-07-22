@@ -21,6 +21,7 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     allowedFilters: [
       "includeTestSubmissions",
       "createdAtRange",
+      "startedAtRange",
       "completedAtRange",
       "submissionIdRange",
       "columnScope",
@@ -38,6 +39,7 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     allowedFilters: [
       "includeTestSubmissions",
       "createdAtRange",
+      "startedAtRange",
       "completedAtRange",
       "submissionIdRange",
       "columnScope",
@@ -54,6 +56,7 @@ const CAPABILITIES: ExportCapabilityDto[] = [
     allowedFilters: [
       "includeTestSubmissions",
       "createdAtRange",
+      "startedAtRange",
       "completedAtRange",
       "submissionIdRange",
       "columnScope",

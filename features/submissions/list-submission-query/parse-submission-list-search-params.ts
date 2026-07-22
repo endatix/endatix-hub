@@ -131,6 +131,12 @@ export function parseSubmissionListSearchParams(
     createdAtTo: parseSubmissionListCalendarDate(
       firstString(searchParams[searchParamKeys.createdAtTo]),
     ),
+    startedAtFrom: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.startedAtFrom]),
+    ),
+    startedAtTo: parseSubmissionListCalendarDate(
+      firstString(searchParams[searchParamKeys.startedAtTo]),
+    ),
     completedAtFrom: parseSubmissionListCalendarDate(
       firstString(searchParams[searchParamKeys.completedAtFrom]),
     ),
@@ -162,6 +168,8 @@ export function submissionListUrlStateToListRequest(
     isTestSubmission: state.isTestSubmission,
     createdAtFrom: state.createdAtFrom,
     createdAtTo: state.createdAtTo,
+    startedAtFrom: state.startedAtFrom,
+    startedAtTo: state.startedAtTo,
     completedAtFrom: state.completedAtFrom,
     completedAtTo: state.completedAtTo,
     submitterDisplayId: state.submitterDisplayId,
@@ -188,10 +196,14 @@ export function submissionListUrlStateToListRequest(
 export type SubmissionListCanonicalDateFields = {
   rawCreatedAtFrom?: string;
   rawCreatedAtTo?: string;
+  rawStartedAtFrom?: string;
+  rawStartedAtTo?: string;
   rawCompletedAtFrom?: string;
   rawCompletedAtTo?: string;
   createdAtFrom?: string;
   createdAtTo?: string;
+  startedAtFrom?: string;
+  startedAtTo?: string;
   completedAtFrom?: string;
   completedAtTo?: string;
   rawSubmitterDisplayId?: string;
@@ -228,6 +240,8 @@ export function isCanonicalSubmissionListUrl(
     canonicalPageSize &&
     rawDates.rawCreatedAtFrom === rawDates.createdAtFrom &&
     rawDates.rawCreatedAtTo === rawDates.createdAtTo &&
+    rawDates.rawStartedAtFrom === rawDates.startedAtFrom &&
+    rawDates.rawStartedAtTo === rawDates.startedAtTo &&
     rawDates.rawCompletedAtFrom === rawDates.completedAtFrom &&
     rawDates.rawCompletedAtTo === rawDates.completedAtTo &&
     (rawDates.rawSubmitterDisplayId?.trim() || undefined) ===

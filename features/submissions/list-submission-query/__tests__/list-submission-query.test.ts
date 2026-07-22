@@ -18,6 +18,8 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
       isTestSubmission: "true",
       createdAtFrom: "2024-03-01",
       createdAtTo: "2024-03-31",
+      startedAtFrom: "2024-03-15",
+      startedAtTo: "2024-03-20",
       completedAtFrom: "2024-04-01",
       completedAtTo: "2024-04-30",
     };
@@ -37,6 +39,8 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
       isTestSubmission: ["true"],
       createdAtFrom: "2024-03-01",
       createdAtTo: "2024-03-31",
+      startedAtFrom: "2024-03-15",
+      startedAtTo: "2024-03-20",
       completedAtFrom: "2024-04-01",
       completedAtTo: "2024-04-30",
     });
@@ -126,10 +130,14 @@ describe("isCanonicalSubmissionListUrl", () => {
   const emptyDateBundle = {
     rawCreatedAtFrom: undefined as string | undefined,
     rawCreatedAtTo: undefined as string | undefined,
+    rawStartedAtFrom: undefined as string | undefined,
+    rawStartedAtTo: undefined as string | undefined,
     rawCompletedAtFrom: undefined as string | undefined,
     rawCompletedAtTo: undefined as string | undefined,
     createdAtFrom: undefined as string | undefined,
     createdAtTo: undefined as string | undefined,
+    startedAtFrom: undefined as string | undefined,
+    startedAtTo: undefined as string | undefined,
     completedAtFrom: undefined as string | undefined,
     completedAtTo: undefined as string | undefined,
   };
