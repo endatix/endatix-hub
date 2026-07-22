@@ -39,6 +39,7 @@ import {
   Dispatch,
   SetStateAction,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useTransition,
@@ -56,6 +57,8 @@ interface SubmissionsWithFiltersProps {
   initialIsTestSubmission?: string[];
   initialCreatedAtFrom?: string;
   initialCreatedAtTo?: string;
+  initialStartedAtFrom?: string;
+  initialStartedAtTo?: string;
   initialCompletedAtFrom?: string;
   initialCompletedAtTo?: string;
   initialSubmitterDisplayId?: string;
@@ -151,6 +154,25 @@ function SubmissionsContent({
   const isTrueEmptyState = !hasAnySubmissions;
   const disableTableControls = isTrueEmptyState;
 
+  const exportListFilters = useMemo(
+    () => ({
+      createdAtFrom: dateFilters.createdAt.from,
+      createdAtTo: dateFilters.createdAt.to,
+      startedAtFrom: dateFilters.startedAt.from,
+      startedAtTo: dateFilters.startedAt.to,
+      completedAtFrom: dateFilters.completedAt.from,
+      completedAtTo: dateFilters.completedAt.to,
+    }),
+    [
+      dateFilters.createdAt.from,
+      dateFilters.createdAt.to,
+      dateFilters.startedAt.from,
+      dateFilters.startedAt.to,
+      dateFilters.completedAt.from,
+      dateFilters.completedAt.to,
+    ],
+  );
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -242,12 +264,7 @@ function SubmissionsContent({
             formId={formId}
             disabled={disableTableControls}
             useReportingExport={useReportingExport}
-            listFilters={{
-              createdAtFrom: dateFilters.createdAt?.from,
-              createdAtTo: dateFilters.createdAt?.to,
-              completedAtFrom: dateFilters.completedAt?.from,
-              completedAtTo: dateFilters.completedAt?.to,
-            }}
+            listFilters={exportListFilters}
           />
         </div>
       </div>
@@ -285,6 +302,8 @@ function hasDateFilters(dateFilters: SubmissionDateFilters) {
   return Boolean(
     dateFilters.createdAt.from ||
     dateFilters.createdAt.to ||
+    dateFilters.startedAt.from ||
+    dateFilters.startedAt.to ||
     dateFilters.completedAt.from ||
     dateFilters.completedAt.to,
   );
@@ -301,6 +320,8 @@ export function SubmissionsWithFilters({
   initialIsTestSubmission = EMPTY_INITIAL_FILTER_VALUES,
   initialCreatedAtFrom,
   initialCreatedAtTo,
+  initialStartedAtFrom,
+  initialStartedAtTo,
   initialCompletedAtFrom,
   initialCompletedAtTo,
   initialSubmitterDisplayId = "",
@@ -333,6 +354,10 @@ export function SubmissionsWithFilters({
       from: initialCreatedAtFrom,
       to: initialCreatedAtTo,
     },
+    startedAt: {
+      from: initialStartedAtFrom,
+      to: initialStartedAtTo,
+    },
     completedAt: {
       from: initialCompletedAtFrom,
       to: initialCompletedAtTo,
@@ -362,6 +387,10 @@ export function SubmissionsWithFilters({
         from: initialCreatedAtFrom,
         to: initialCreatedAtTo,
       },
+      startedAt: {
+        from: initialStartedAtFrom,
+        to: initialStartedAtTo,
+      },
       completedAt: {
         from: initialCompletedAtFrom,
         to: initialCompletedAtTo,
@@ -373,6 +402,8 @@ export function SubmissionsWithFilters({
     initialIsTestSubmission,
     initialCreatedAtFrom,
     initialCreatedAtTo,
+    initialStartedAtFrom,
+    initialStartedAtTo,
     initialCompletedAtFrom,
     initialCompletedAtTo,
     initialSubmitterDisplayId,
@@ -413,6 +444,8 @@ export function SubmissionsWithFilters({
       submitterEmail,
       createdAtFrom: dates.createdAt.from,
       createdAtTo: dates.createdAt.to,
+      startedAtFrom: dates.startedAt.from,
+      startedAtTo: dates.startedAt.to,
       completedAtFrom: dates.completedAt.from,
       completedAtTo: dates.completedAt.to,
     });
