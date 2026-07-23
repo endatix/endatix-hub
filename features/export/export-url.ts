@@ -3,22 +3,39 @@ import {
   utcCalendarNextDayStartIso,
 } from "@/lib/endatix-api/submissions/submission-list-query-params";
 
-/** Query param / capability filter name for including test submissions. */
-export const INCLUDE_TEST_SUBMISSIONS_FILTER =
-  "includeTestSubmissions" as const;
+/**
+ * SurveyJS / FormSchema default locale key (SurveyJS uses "default" when no
+ * language pack is selected). Shared with reporting export locale catalog.
+ */
+export const DEFAULT_REPORTING_LOCALE = "default" as const;
 
 /** Filter names from ExportCapabilityDto.allowedFilters (Reporting API). */
-export type ExportRequestFilter =
-  | typeof INCLUDE_TEST_SUBMISSIONS_FILTER
-  | "createdAtRange"
-  | "startedAtRange"
-  | "completedAtRange"
-  | "submissionIdRange"
-  | "locale"
-  | "columnScope"
-  | "completionStatus";
+export const EXPORT_REQUEST_FILTER = {
+  includeTestSubmissions: "includeTestSubmissions",
+  createdAtRange: "createdAtRange",
+  startedAtRange: "startedAtRange",
+  completedAtRange: "completedAtRange",
+  submissionIdRange: "submissionIdRange",
+  locale: "locale",
+  columnScope: "columnScope",
+  completionStatus: "completionStatus",
+} as const;
 
-export type ExportCompletionStatusFilter = "all" | "completed" | "incomplete";
+export type ExportRequestFilter =
+  (typeof EXPORT_REQUEST_FILTER)[keyof typeof EXPORT_REQUEST_FILTER];
+
+export const EXPORT_COMPLETION_STATUS = {
+  all: "all",
+  completed: "completed",
+  incomplete: "incomplete",
+} as const;
+
+export type ExportCompletionStatusFilter =
+  (typeof EXPORT_COMPLETION_STATUS)[keyof typeof EXPORT_COMPLETION_STATUS];
+
+/** Hub dialog default — BI-friendly completed-only export. */
+export const DEFAULT_EXPORT_COMPLETION_STATUS =
+  EXPORT_COMPLETION_STATUS.completed;
 
 export const CODEBOOK_FORMAT_KEYS: ReadonlySet<string> = new Set([
   "codebook",
@@ -116,7 +133,7 @@ function appendIncludeTestSubmissionsFilter(
 ): void {
   if (filters.includeTestSubmissions !== undefined) {
     params.set(
-      INCLUDE_TEST_SUBMISSIONS_FILTER,
+      EXPORT_REQUEST_FILTER.includeTestSubmissions,
       String(filters.includeTestSubmissions),
     );
     return;
@@ -128,7 +145,10 @@ function appendIncludeTestSubmissionsFilter(
 
   const includeTest = mapIncludeTestSubmissions(filters.isTestSubmission);
   if (includeTest !== undefined) {
-    params.set(INCLUDE_TEST_SUBMISSIONS_FILTER, String(includeTest));
+    params.set(
+      EXPORT_REQUEST_FILTER.includeTestSubmissions,
+      String(includeTest),
+    );
   }
 }
 
@@ -149,11 +169,13 @@ function appendAllowedListFilters(
   filters: SubmissionExportListFilters,
   allowedFilters: ReadonlyArray<string> | undefined,
 ): void {
-  if (allowsFilter(allowedFilters, INCLUDE_TEST_SUBMISSIONS_FILTER)) {
+  if (
+    allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.includeTestSubmissions)
+  ) {
     appendIncludeTestSubmissionsFilter(params, filters);
   }
 
-  if (allowsFilter(allowedFilters, "createdAtRange")) {
+  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.createdAtRange)) {
     appendCalendarRange(
       params,
       "createdAfter",
@@ -163,7 +185,7 @@ function appendAllowedListFilters(
     );
   }
 
-  if (allowsFilter(allowedFilters, "startedAtRange")) {
+  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.startedAtRange)) {
     appendCalendarRange(
       params,
       "startedAfter",
@@ -173,7 +195,7 @@ function appendAllowedListFilters(
     );
   }
 
-  if (allowsFilter(allowedFilters, "completedAtRange")) {
+  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.completedAtRange)) {
     appendCalendarRange(
       params,
       "completedAfter",
@@ -183,19 +205,25 @@ function appendAllowedListFilters(
     );
   }
 
-  if (allowsFilter(allowedFilters, "submissionIdRange")) {
+  if (allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.submissionIdRange)) {
     appendSubmissionIdRangeFilter(params, filters);
   }
 
   if (
-    allowsFilter(allowedFilters, "completionStatus") &&
+    allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.completionStatus) &&
     filters.completionStatus
   ) {
-    params.set("completionStatus", filters.completionStatus);
+    params.set(
+      EXPORT_REQUEST_FILTER.completionStatus,
+      filters.completionStatus,
+    );
   }
 
-  if (allowsFilter(allowedFilters, "locale") && filters.locale?.trim()) {
-    params.set("locale", filters.locale.trim());
+  if (
+    allowsFilter(allowedFilters, EXPORT_REQUEST_FILTER.locale) &&
+    filters.locale?.trim()
+  ) {
+    params.set(EXPORT_REQUEST_FILTER.locale, filters.locale.trim());
   }
 }
 

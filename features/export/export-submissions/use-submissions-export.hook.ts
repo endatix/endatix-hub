@@ -8,16 +8,22 @@ import { downloadSubmissionsExport } from "./download-submissions-export";
 
 const LOGGER_NAME = "export.submissions-export";
 
+export type SubmissionsExportResult =
+  | { succeeded: true }
+  | { succeeded: false; message: string };
+
 /**
  * Options for running a submissions export.
  * @param exportName - The name of the export.
  * @param fallbackFilename - The fallback filename to use if the export name is not provided.
  * @param url - The URL to download the export from.
+ * @param suppressToasts - When true, skip toast feedback (dialog owns messaging).
  */
 interface RunSubmissionsExportOptions {
   exportName?: string | null;
   fallbackFilename: string;
   url: string;
+  suppressToasts?: boolean;
 }
 
 /**
@@ -34,24 +40,30 @@ export function useSubmissionsExport() {
     exportName = null,
     fallbackFilename,
     url,
-  }: RunSubmissionsExportOptions): Promise<boolean> => {
+    suppressToasts = false,
+  }: RunSubmissionsExportOptions): Promise<SubmissionsExportResult> => {
     try {
       setIsExporting(true);
       setCurrentExportName(exportName);
 
-      toast.info({
-        title: "Starting export",
-        description: "Preparing your file for download...",
-      });
+      if (!suppressToasts) {
+        toast.info({
+          title: "Starting export",
+          description: "Preparing your file for download...",
+        });
+      }
 
       await downloadSubmissionsExport(url, fallbackFilename);
 
-      toast.success({
-        title: "Export successful",
-        description: "Your file has been downloaded successfully.",
-      });
-      return true;
+      if (!suppressToasts) {
+        toast.success({
+          title: "Export successful",
+          description: "Your file has been downloaded successfully.",
+        });
+      }
+      return { succeeded: true };
     } catch (error) {
+      const message = getExportFailureMessage(error);
       TelemetryLogger.error(
         "Submissions export failed",
         undefined,
@@ -62,11 +74,13 @@ export function useSubmissionsExport() {
         },
         LOGGER_NAME,
       );
-      toast.error({
-        title: "Export failed",
-        description: getExportFailureMessage(error),
-      });
-      return false;
+      if (!suppressToasts) {
+        toast.error({
+          title: "Export failed",
+          description: message,
+        });
+      }
+      return { succeeded: false, message };
     } finally {
       setIsExporting(false);
       setCurrentExportName(null);
