@@ -3,6 +3,7 @@ import {
   getExportErrorMessage,
   getExportFailureMessage,
   isExportPrepareRecoveryError,
+  isExportSchemaMissingError,
 } from "../../export-error-message";
 
 describe("getExportErrorMessage", () => {
@@ -56,6 +57,29 @@ describe("getExportFailureMessage", () => {
     expect(getExportFailureMessage("unexpected")).toContain(
       "problem exporting",
     );
+  });
+});
+
+describe("isExportSchemaMissingError", () => {
+  it("detects schema-specific missing/compile messages", () => {
+    expect(
+      isExportSchemaMissingError(
+        "Form schema not found. Compile the schema first.",
+      ),
+    ).toBe(true);
+    expect(
+      isExportSchemaMissingError(
+        "Form schema has not been compiled for this form.",
+      ),
+    ).toBe(true);
+    expect(isExportSchemaMissingError("FormSchema not found")).toBe(true);
+  });
+
+  it("does not treat a generic form-not-found message as missing schema", () => {
+    expect(isExportSchemaMissingError("Form not found.")).toBe(false);
+    expect(
+      isExportSchemaMissingError("Form not found or export is unavailable."),
+    ).toBe(false);
   });
 });
 

@@ -63,7 +63,7 @@ export function isExportSchemaMissingError(message: string): boolean {
     normalized.includes("form schema") ||
     normalized.includes("compile the schema") ||
     normalized.includes("has not been compiled") ||
-    normalized.includes("not found")
+    (normalized.includes("formschema") && normalized.includes("not found"))
   );
 }
 
