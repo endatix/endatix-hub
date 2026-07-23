@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getExportErrorMessage,
   getExportFailureMessage,
+  isExportPrepareRecoveryError,
 } from "../../export-error-message";
 
 describe("getExportErrorMessage", () => {
@@ -11,6 +12,17 @@ describe("getExportErrorMessage", () => {
     );
 
     expect(message).toContain("backfill");
+  });
+
+  it("maps no-completed API errors without suggesting backfill", () => {
+    const message = getExportErrorMessage(
+      "No completed submissions are available to export for this form. Incomplete drafts are not included in the reporting export.",
+    );
+
+    expect(message).toContain(
+      "No completed submissions are available to export",
+    );
+    expect(message.toLowerCase()).not.toContain("backfill");
   });
 
   it("returns the original message for unrelated errors", () => {
@@ -44,5 +56,31 @@ describe("getExportFailureMessage", () => {
     expect(getExportFailureMessage("unexpected")).toContain(
       "problem exporting",
     );
+  });
+});
+
+describe("isExportPrepareRecoveryError", () => {
+  it("detects schema and backfill recovery cases", () => {
+    expect(
+      isExportPrepareRecoveryError(
+        "Form schema has not been compiled for this form.",
+      ),
+    ).toBe(true);
+    expect(
+      isExportPrepareRecoveryError(
+        "No processed flattened submissions found. Run admin backfill.",
+      ),
+    ).toBe(true);
+    expect(
+      isExportPrepareRecoveryError("Export format is not supported."),
+    ).toBe(false);
+  });
+
+  it("does not treat empty completed-export as prepare recovery", () => {
+    expect(
+      isExportPrepareRecoveryError(
+        "No completed submissions are available to export for this form.",
+      ),
+    ).toBe(false);
   });
 });

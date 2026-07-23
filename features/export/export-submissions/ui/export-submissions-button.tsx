@@ -23,7 +23,7 @@ import {
 } from "../../export-url";
 import { useSubmissionsExport } from "../use-submissions-export.hook";
 import { useTenantExportFormats } from "../use-tenant-export-formats.hook";
-import { ExportSubmissionsDialog } from "./custom-export-dialog";
+import { ExportSubmissionsDialog } from "./export-dialog";
 
 interface ExportSubmissionsButtonProps {
   formId: string;
@@ -77,7 +77,7 @@ function ReportingExportSubmissionsButton({
     exportFormatId: string,
     fallbackExtension: string,
     filters: SubmissionExportListFilters,
-  ): Promise<boolean> => {
+  ): Promise<{ succeeded: boolean; message?: string }> => {
     const selected = options.find(
       (option) => option.exportFormatId === exportFormatId,
     );
@@ -92,6 +92,7 @@ function ReportingExportSubmissionsButton({
         listFilters: filters,
         allowedFilters: selected?.allowedFilters,
       }),
+      suppressToasts: true,
     });
   };
   if (isLoading) {
@@ -149,19 +150,15 @@ function ReportingExportSubmissionsButton({
           exportFormatId,
           fallbackExtension,
           filters,
-        }) => {
-          const succeeded = await handleExport(
+        }) =>
+          handleExport(
             formatKey,
             exportName,
             exportFormatId,
             fallbackExtension,
             filters,
-          );
-          if (succeeded) {
-            setDialogOpen(false);
-          }
-          return succeeded;
-        }}
+          )
+        }
       />
     </>
   );
