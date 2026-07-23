@@ -387,10 +387,8 @@ export function useExportDialog({
         export_name: selectedOption.label,
       });
       setPhase("success");
-    } catch (error) {
-      setInlineError(
-        error instanceof Error ? error.message : GENERIC_EXPORT_FAILURE_MESSAGE,
-      );
+    } catch {
+      setInlineError(GENERIC_EXPORT_FAILURE_MESSAGE);
       setPhase("error");
     }
   };
