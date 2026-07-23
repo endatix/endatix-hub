@@ -119,6 +119,7 @@ export function ExportSubmissionsDialog({
             busy={dialog.busy}
             isExporting={isExporting}
             showPrepareCta={dialog.showPrepareCta}
+            showExportSubmit={dialog.showExportSubmit}
             canExport={Boolean(dialog.selectedOption)}
             exportButtonRef={dialog.exportButtonRef}
             onClose={() => onOpenChange(false)}

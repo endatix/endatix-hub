@@ -11,6 +11,7 @@ interface ExportDialogActionsProps {
   busy: boolean;
   isExporting: boolean;
   showPrepareCta: boolean;
+  showExportSubmit: boolean;
   canExport: boolean;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
@@ -23,6 +24,7 @@ export function ExportDialogActions({
   busy,
   isExporting,
   showPrepareCta,
+  showExportSubmit,
   canExport,
   exportButtonRef,
   onClose,
@@ -56,7 +58,7 @@ export function ExportDialogActions({
                 "Prepare for export"
               )}
             </Button>
-          ) : (
+          ) : showExportSubmit ? (
             <Button
               ref={exportButtonRef}
               type="submit"
@@ -71,7 +73,7 @@ export function ExportDialogActions({
                 "Export"
               )}
             </Button>
-          )}
+          ) : null}
         </>
       )}
     </DialogFooter>

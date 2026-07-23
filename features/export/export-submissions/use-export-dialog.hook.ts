@@ -79,6 +79,7 @@ export type UseExportDialogResult = {
   controlsLocked: boolean;
   showFiltersForm: boolean;
   showPrepareCta: boolean;
+  showExportSubmit: boolean;
   showGroupLabels: boolean;
   inlineError: string | null;
   prepareSuccessSummary: string | null;
@@ -135,6 +136,7 @@ export function useExportDialog({
   const [formLocales, setFormLocales] = useState<string[]>([
     DEFAULT_REPORTING_LOCALE,
   ]);
+  const [readinessPassed, setReadinessPassed] = useState(false);
 
   const options = useMemo(
     () => groups.flatMap((group) => group.options),
@@ -181,9 +183,12 @@ export function useExportDialog({
   ): boolean => {
     if (Result.isSuccess(result)) {
       setFormLocales(result.value);
+      setReadinessPassed(true);
       setPhase("ready");
       return true;
     }
+
+    setReadinessPassed(false);
 
     if (isExportSchemaMissingError(result.message)) {
       setFormLocales([DEFAULT_REPORTING_LOCALE]);
@@ -192,14 +197,14 @@ export function useExportDialog({
       return false;
     }
 
-    setFormLocales([DEFAULT_REPORTING_LOCALE]);
     setInlineError(result.message || GENERIC_EXPORT_FAILURE_MESSAGE);
-    setPhase("ready");
-    return true;
+    setPhase("error");
+    return false;
   };
 
   const refreshReadiness = async (): Promise<boolean> => {
     setPhase("checking");
+    setReadinessPassed(false);
     setInlineError(null);
     const result = await listFormReportingLocalesAction(formId);
     return applyReadinessResult(result);
@@ -246,6 +251,7 @@ export function useExportDialog({
     let cancelled = false;
     void (async () => {
       setPhase("checking");
+      setReadinessPassed(false);
       setInlineError(null);
       const result = await listFormReportingLocalesAction(formId);
       if (!cancelled) {
@@ -398,8 +404,9 @@ export function useExportDialog({
     description: getPhaseDescription(phase),
     busy,
     controlsLocked,
-    showFiltersForm: showsFiltersForm(phase),
+    showFiltersForm: showsFiltersForm(phase) && readinessPassed,
     showPrepareCta: showsPrepareCta(phase, inlineError),
+    showExportSubmit: readinessPassed && !showsPrepareCta(phase, inlineError),
     showGroupLabels: groups.length > 1,
     inlineError,
     prepareSuccessSummary,

@@ -565,6 +565,24 @@ describe("ExportSubmissionsDialog", () => {
     ).toBeDefined();
   });
 
+  it("surfaces unexpected readiness failures without export controls", async () => {
+    mockListFormReportingLocalesAction.mockResolvedValue(
+      Result.error("Reporting service unavailable"),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Reporting service unavailable")).toBeDefined();
+    });
+    expect(screen.queryByRole("button", { name: /^export$/i })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /prepare for export/i }),
+    ).toBeNull();
+    expect(screen.queryByText("Export format")).toBeNull();
+    expect(screen.queryByText("Completion")).toBeNull();
+    expect(screen.queryByText("Include test submissions")).toBeNull();
+  });
+
   it("runs prepare then returns to ready with success feedback", async () => {
     mockListFormReportingLocalesAction
       .mockResolvedValueOnce(
