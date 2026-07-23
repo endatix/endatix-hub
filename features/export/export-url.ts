@@ -24,10 +24,6 @@ export const EXPORT_REQUEST_FILTER = {
 export type ExportRequestFilter =
   (typeof EXPORT_REQUEST_FILTER)[keyof typeof EXPORT_REQUEST_FILTER];
 
-/** @deprecated Prefer EXPORT_REQUEST_FILTER.includeTestSubmissions */
-export const INCLUDE_TEST_SUBMISSIONS_FILTER =
-  EXPORT_REQUEST_FILTER.includeTestSubmissions;
-
 export const EXPORT_COMPLETION_STATUS = {
   all: "all",
   completed: "completed",
@@ -137,7 +133,7 @@ function appendIncludeTestSubmissionsFilter(
 ): void {
   if (filters.includeTestSubmissions !== undefined) {
     params.set(
-      INCLUDE_TEST_SUBMISSIONS_FILTER,
+      EXPORT_REQUEST_FILTER.includeTestSubmissions,
       String(filters.includeTestSubmissions),
     );
     return;
@@ -149,7 +145,10 @@ function appendIncludeTestSubmissionsFilter(
 
   const includeTest = mapIncludeTestSubmissions(filters.isTestSubmission);
   if (includeTest !== undefined) {
-    params.set(INCLUDE_TEST_SUBMISSIONS_FILTER, String(includeTest));
+    params.set(
+      EXPORT_REQUEST_FILTER.includeTestSubmissions,
+      String(includeTest),
+    );
   }
 }
 
