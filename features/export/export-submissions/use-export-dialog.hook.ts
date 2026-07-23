@@ -193,6 +193,7 @@ export function useExportDialog({
     }
 
     setFormLocales([DEFAULT_REPORTING_LOCALE]);
+    setInlineError(result.message || GENERIC_EXPORT_FAILURE_MESSAGE);
     setPhase("ready");
     return true;
   };

@@ -65,8 +65,15 @@ export function ExportSubmissionsDialog({
           }
         }}
         onOpenAutoFocus={(event) => {
+          const exportButton = dialog.exportButtonRef.current;
+          // Export submit is absent for prepare CTA and disabled while checking —
+          // let Radix autofocus the first interactive control in those cases.
+          if (!exportButton || exportButton.disabled) {
+            return;
+          }
+
           event.preventDefault();
-          dialog.exportButtonRef.current?.focus();
+          exportButton.focus();
         }}
       >
         <form onSubmit={dialog.handleSubmit} className="flex flex-col gap-5">
