@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
-import { mapToResult } from "@/lib/result/map-api-result-to-result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 
 export type DeleteSubmissionResult = Result<string>;
 
@@ -21,7 +21,7 @@ export async function deleteSubmissionAction(
   const apiResult = await api.submissions.delete(formId, submissionId);
 
   if (!apiResult.success) {
-    return mapToResult(apiResult, {
+    return toResult(apiResult, {
       fallbackMessage: "Failed to delete submission",
       logMessage: "Failed to delete submission",
       loggerName: "submissions.delete",
