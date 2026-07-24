@@ -194,7 +194,7 @@ export class Submissions {
     if (exportFormatId) {
       const validateExportFormatIdResult = validateEndatixId(
         exportFormatId,
-        'exportFormatId',
+        "exportFormatId",
       );
       if (Result.isError(validateExportFormatIdResult)) {
         return ApiResult.validationError(validateExportFormatIdResult.message);
@@ -273,6 +273,31 @@ export class Submissions {
         expiryMinutes: request.expiryMinutes,
         permissions: request.permissions,
       },
+    );
+  }
+
+  /**
+   * Soft-deletes a submission for a form.
+   */
+  async delete(
+    formId: string,
+    submissionId: string,
+  ): Promise<ApiResult<string>> {
+    const validateFormIdResult = validateEndatixId(formId, "formId");
+    if (Result.isError(validateFormIdResult)) {
+      return ApiResult.validationError(validateFormIdResult.message);
+    }
+
+    const validateSubmissionIdResult = validateEndatixId(
+      submissionId,
+      "submissionId",
+    );
+    if (Result.isError(validateSubmissionIdResult)) {
+      return ApiResult.validationError(validateSubmissionIdResult.message);
+    }
+
+    return this.endatix.delete<string>(
+      `/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     );
   }
 }
