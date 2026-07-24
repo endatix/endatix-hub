@@ -26,9 +26,11 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { saveToFileHandler } from "survey-creator-core";
 import { StatusDropdownMenuItem } from "../../use-cases/change-status";
+import { DeleteSubmissionDialog } from "../../use-cases/delete-submission";
 import { SubmissionShareLinksDialog } from "../../share-links/submission-share-links-dialog";
 import { DownloadFilesDropdownItem } from "../download-files-dropdown-item";
 import {
@@ -49,6 +51,8 @@ export function SubmissionDetailsHeader({
   const [copying, setCopying] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
   const [isShareLinksOpen, setIsShareLinksOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const { data: session } = useSession();
   const { trackEvent } = useTrackEvent();
   const { viewOptions } = useSubmissionDetailsViewOptions();
   const { submission } = useSubmissionDetails();
@@ -173,6 +177,7 @@ export function SubmissionDetailsHeader({
             submissionId={submissionId}
             status={submission.status}
             onShareLinksOpen={() => setIsShareLinksOpen(true)}
+            onDeleteOpen={() => setIsDeleteOpen(true)}
             className="text-muted-foreground"
           />
         </div>
@@ -182,6 +187,17 @@ export function SubmissionDetailsHeader({
         submissionId={submissionId}
         open={isShareLinksOpen}
         onOpenChange={setIsShareLinksOpen}
+      />
+      <DeleteSubmissionDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        formId={formId}
+        submissionId={submissionId}
+        isTestSubmission={submission.isTestSubmission}
+        submitterId={submission.submitterId}
+        submitterDisplayId={submission.submitterDisplayId}
+        currentUserId={session?.user?.id}
+        redirectToList
       />
     </>
   );
@@ -194,6 +210,7 @@ interface SubmissionActionsDropdownProps extends React.ComponentProps<
   formId: string;
   status: string;
   onShareLinksOpen: () => void;
+  onDeleteOpen: () => void;
 }
 
 function SubmissionActionsDropdown({
@@ -201,6 +218,7 @@ function SubmissionActionsDropdown({
   formId,
   status,
   onShareLinksOpen,
+  onDeleteOpen,
   ...props
 }: Readonly<SubmissionActionsDropdownProps>) {
   return (
@@ -253,7 +271,10 @@ function SubmissionActionsDropdown({
           formId={formId}
           status={status}
         />
-        <DropdownMenuItem className="cursor-pointer" hidden>
+        <DropdownMenuItem
+          className="cursor-pointer text-destructive focus:text-destructive"
+          onSelect={onDeleteOpen}
+        >
           <Trash2 className="mr-2 size-4" />
           <span>Delete</span>
         </DropdownMenuItem>
