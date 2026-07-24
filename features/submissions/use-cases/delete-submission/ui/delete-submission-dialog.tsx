@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/loaders/spinner";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
@@ -84,6 +85,7 @@ export function DeleteSubmissionDialog({
 }: Readonly<DeleteSubmissionDialogProps>) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { trackFeatureUsage } = useTrackEvent();
   const kindArgs = {
     isTestSubmission,
@@ -95,15 +97,20 @@ export function DeleteSubmissionDialog({
   const risk = resolveDeleteSubmissionRisk(kindArgs);
   const copy = dialogCopy(kind, risk);
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setErrorMessage(null);
+    }
+    onOpenChange(nextOpen);
+  };
+
   const handleDelete = () => {
     startTransition(async () => {
+      setErrorMessage(null);
       const result = await deleteSubmissionAction(formId, submissionId);
 
       if (Result.isError(result)) {
-        toast.error({
-          title: "Delete failed",
-          description: result.message,
-        });
+        setErrorMessage(result.message);
         return;
       }
 
@@ -116,7 +123,7 @@ export function DeleteSubmissionDialog({
       });
 
       toast.success(deleteSuccessToastContent(kind));
-      onOpenChange(false);
+      handleOpenChange(false);
 
       if (redirectToList) {
         router.push(`/forms/${formId}/submissions`);
@@ -128,7 +135,7 @@ export function DeleteSubmissionDialog({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent onClick={(event) => event.stopPropagation()}>
         <AlertDialogHeader>
           <AlertDialogTitle>{copy.title}</AlertDialogTitle>
@@ -143,6 +150,11 @@ export function DeleteSubmissionDialog({
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {errorMessage ? (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction

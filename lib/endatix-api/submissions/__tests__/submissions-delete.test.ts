@@ -26,4 +26,15 @@ describe("Submissions.delete", () => {
     expect(del).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
   });
+
+  it("returns validation error for invalid submissionId without calling API", async () => {
+    const del = vi.fn();
+    const endatix = { delete: del } as unknown as EndatixApi;
+    const submissions = new Submissions(endatix);
+
+    const result = await submissions.delete("1525035735390879744", "bad");
+
+    expect(del).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+  });
 });

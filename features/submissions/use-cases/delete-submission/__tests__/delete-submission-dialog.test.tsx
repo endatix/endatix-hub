@@ -212,4 +212,32 @@ describe("DeleteSubmissionDialog", () => {
       expect(mockRefresh).not.toHaveBeenCalled();
     });
   });
+
+  it("shows an inline alert on failure and keeps the dialog open", async () => {
+    mockDeleteSubmissionAction.mockResolvedValueOnce(
+      Result.error("You are not allowed to delete this submission"),
+    );
+    const onOpenChange = vi.fn();
+
+    render(
+      <DeleteSubmissionDialog
+        open
+        onOpenChange={onOpenChange}
+        formId="form-1"
+        submissionId="sub-1"
+        isTestSubmission
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("You are not allowed to delete this submission"),
+      ).toBeDefined();
+      expect(mockToastError).not.toHaveBeenCalled();
+      expect(onOpenChange).not.toHaveBeenCalled();
+      expect(mockRefresh).not.toHaveBeenCalled();
+    });
+  });
 });
