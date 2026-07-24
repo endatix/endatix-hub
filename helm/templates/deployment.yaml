@@ -1,19 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Chart.Name }}
+  name: {{ include "endatix-hub.fullname" . }}
   labels:
-    app: {{ .Chart.Name }}
+    {{- include "endatix-hub.selectorLabels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}
+      {{- include "endatix-hub.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ .Chart.Name }}
+        {{- include "endatix-hub.selectorLabels" . | nindent 8 }}
     spec:
+      # The Hub only talks to the Endatix API over HTTP — it never calls the
+      # Kubernetes API, so a mounted service-account token would just park a
+      # live credential in the pod for an attacker to find.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        # 1000 is the `node` user in the base image. The Dockerfile sets USER
+        # node; this asserts it at admission rather than trusting the build.
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -26,6 +38,12 @@ spec:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         ports:
         - containerPort: {{ .Values.service.port }}
         env:
@@ -85,3 +103,11 @@ spec:
             port: {{ .Values.service.port }}
           initialDelaySeconds: 30
           periodSeconds: 30
+        # The only writable path, required by readOnlyRootFilesystem above.
+        # Next.js and its dependencies spill to the OS temp dir at runtime.
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

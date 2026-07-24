@@ -1,9 +1,38 @@
-name: Build & Test
+name: Build, Test & Release
+
+# Thin consumer of endatix/release-workflows (see its README):
+#   • PR to main → tests (below) + build validation in the shared pipeline
+#     (scripts/release-prepare.sh @ 0.0.0-ci — builds the image and packages
+#     the chart, publishes nothing)
+#   • push main  → tests, then canary vX.Y.Z-canary.N: semantic-release builds
+#     once at the real version and publishes the image + Helm chart to GHCR
+#     (canaries NEVER go to Docker Hub — it is public and immutable).
+#   • stable releases → MANUAL, human-reviewed: run "Start Stable Release"
+#     (release-start.yml) → edit the draft notes → click "Publish release" →
+#     release-artifacts.yml rebuilds at the tag and publishes to GHCR +
+#     Docker Hub.
+#
+# The canary publishes ONLY after build + tests pass (needs: below).
+# Repo-specific release logic lives in scripts/release-prepare.sh and
+# scripts/release-publish.sh (the consumer contract), plus the dormant `stable`
+# branch required by semantic-release's branch validation.
 
 on:
+  pull_request:
+    branches: [main, "hotfix/**"] # PRs into maintenance-line branches validate too
   push:
-    branches:
-      - "**"
+    branches: [main, "hotfix/**"] # hotfix/X.Y.x pushes publish vX.Y.Z-hotfix.N builds
+  workflow_dispatch:
+
+# Serialize runs per ref so two quick merges to main can't run overlapping
+# releases. Cancel in-flight runs only for pull requests to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Elevated permissions live on the pipeline job only — the test job is read-only.
+permissions:
+  contents: read
 
 jobs:
   node-build:
@@ -53,3 +82,24 @@ jobs:
           name: "Endatix Hub"
           json-summary-path: ".coverage/endatix-hub/coverage-summary.json"
           json-final-path: ".coverage/endatix-hub/coverage-final.json"
+
+  # Build validation on PRs; canary release on main — publishes only after the
+  # tests above pass. docker-image makes the shared workflow log into GHCR and
+  # export DOCKER_IMAGE to the release scripts; canaries stay on GHCR only.
+  # Promoted releases mirror to Docker Hub — both stable AND maintenance (an
+  # older line's hotfix still ships publicly); only stable moves the `latest`
+  # tag, so a maintenance release never drags it backwards (release-publish.sh).
+  # No secrets are passed: the shared workflow uses the implicit GITHUB_TOKEN
+  # and fetches everything else via Infisical (OIDC, hence id-token).
+  pipeline:
+    name: Pipeline
+    needs: [node-build]
+    permissions:
+      contents: read # release writes use the App token inside the shared workflow
+      packages: write # GHCR image push + Helm chart push
+      id-token: write # OIDC for Infisical inside the shared workflow
+    uses: endatix/release-workflows/.github/workflows/canary.yml@cca02534258a68b196f9295afe9fd855ad9eee83 # v1
+    with:
+      docker-image: ghcr.io/endatix/endatix-hub
+      # No dotnet-version/java-version: the image builds inside Docker and the
+      # chart only needs the runner's preinstalled helm.

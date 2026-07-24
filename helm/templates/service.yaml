@@ -1,11 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Chart.Name }}
+  name: {{ include "endatix-hub.fullname" . }}
+  labels:
+    {{- include "endatix-hub.selectorLabels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   selector:
-    app: {{ .Chart.Name }}
+    {{- include "endatix-hub.selectorLabels" . | nindent 4 }}
   ports:
   - port: 80
     targetPort: {{ .Values.service.port }}
