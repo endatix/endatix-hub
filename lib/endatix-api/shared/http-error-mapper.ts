@@ -15,9 +15,13 @@ export async function mapResponseToApiError<T>(
 
   const serverErrorCode = problemDetails?.errorCode;
 
-  const problemMessage = problemDetails?.detail ?? problemDetails?.title;
+  const problemMessage = preferReadableProblemDetail(
+    response.status,
+    problemDetails?.detail ?? problemDetails?.title,
+  );
+  // Prefer the server's problem detail over a canned error-code message.
   const message = problemDetails
-    ? getErrorMessageWithFallback(serverErrorCode, problemMessage)
+    ? (problemMessage ?? getErrorMessageWithFallback(serverErrorCode))
     : undefined;
 
   const enrichedDetails: ApiErrorDetails = {
@@ -43,6 +47,29 @@ export async function mapResponseToApiError<T>(
     detailsWithRetryAfter,
     problemDetails?.fields,
   );
+}
+
+/**
+ * Ardalis/Endatix Conflict results often format detail as:
+ * "Next error(s) occurred:* A submission already exists..."
+ * Prefer the concrete message after `*` for respondent-facing UI.
+ */
+function preferReadableProblemDetail(
+  status: number,
+  detail?: string,
+): string | undefined {
+  if (!detail) {
+    return undefined;
+  }
+
+  if (status === 409) {
+    const match = detail.match(/\*\s*([^*\r\n]+)/);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+
+  return detail.trim();
 }
 
 function parseRetryAfter(retryAfter: string | null): number | undefined {

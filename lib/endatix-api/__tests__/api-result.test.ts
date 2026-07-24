@@ -100,7 +100,7 @@ describe("ApiResult", () => {
       it("should create an auth error with default message", () => {
         // Arrange
         // (no setup needed for default case)
-        
+
         // Act
         const result = ApiResult.authError();
 
@@ -112,9 +112,7 @@ describe("ApiResult", () => {
 
         expect(result.error.type).toBe(ApiErrorType.AuthError);
         expect(result.error.message).toBeTruthy();
-        expect(result.error.errorCode).toBe(
-          ERROR_CODE.AUTHENTICATION_REQUIRED,
-        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.AUTHENTICATION_REQUIRED);
       });
 
       it("should create an auth error with custom message and details", () => {
@@ -125,7 +123,11 @@ describe("ApiResult", () => {
         };
 
         // Act
-        const result = ApiResult.authError(customMessage, ERROR_CODE.ACCESS_FORBIDDEN, customDetails);
+        const result = ApiResult.authError(
+          customMessage,
+          ERROR_CODE.ACCESS_FORBIDDEN,
+          customDetails,
+        );
 
         // Assert
         expect(result.success).toBe(false);
@@ -155,9 +157,7 @@ describe("ApiResult", () => {
 
         expect(result.error.type).toBe(ApiErrorType.ValidationError);
         expect(result.error.message).toBeTruthy();
-        expect(result.error.errorCode).toBe(
-          ERROR_CODE.VALIDATION_ERROR,
-        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.VALIDATION_ERROR);
       });
 
       it("should create a validation error with custom message and details", () => {
@@ -169,7 +169,11 @@ describe("ApiResult", () => {
         };
 
         // Act
-        const result = ApiResult.validationError(customMessage, undefined, customDetails);
+        const result = ApiResult.validationError(
+          customMessage,
+          undefined,
+          customDetails,
+        );
 
         // Assert
         expect(result.success).toBe(false);
@@ -238,9 +242,7 @@ describe("ApiResult", () => {
 
         expect(result.error.type).toBe(ApiErrorType.NotFoundError);
         expect(result.error.message).toBeTruthy();
-        expect(result.error.errorCode).toBe(
-          ERROR_CODE.RESOURCE_NOT_FOUND,
-        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.RESOURCE_NOT_FOUND);
       });
 
       it("should create a not found error with custom message and details", () => {
@@ -278,9 +280,7 @@ describe("ApiResult", () => {
 
         expect(result.error.type).toBe(ApiErrorType.RateLimitError);
         expect(result.error.message).toBeTruthy();
-        expect(result.error.errorCode).toBe(
-          ERROR_CODE.RATE_LIMIT_EXCEEDED,
-        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.RATE_LIMIT_EXCEEDED);
       });
 
       it("should create a rate limit error with custom message and details", () => {
@@ -319,9 +319,7 @@ describe("ApiResult", () => {
 
         expect(result.error.type).toBe(ApiErrorType.JsonParseError);
         expect(result.error.message).toBeTruthy();
-        expect(result.error.errorCode).toBe(
-          ERROR_CODE.JSON_PARSE_ERROR,
-        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.JSON_PARSE_ERROR);
       });
 
       it("should create a JSON parse error with custom message and details", () => {
@@ -409,6 +407,25 @@ describe("ApiResult", () => {
         expect(result.error.errorCode).toBe(ERROR_CODE.ACCESS_FORBIDDEN);
         expect(result.error.details?.statusCode).toBe(403);
         expect(result.error.details?.endpoint).toBe("/api/forms/123");
+      });
+
+      it("should create a conflict error from a 409 status code", () => {
+        const result = ApiResult.httpStatusError(
+          409,
+          "A submission already exists for this user and form.",
+        );
+
+        expect(result.success).toBe(false);
+        if (result.success) {
+          fail("Result is not an error");
+        }
+
+        expect(result.error.type).toBe(ApiErrorType.ConflictError);
+        expect(result.error.message).toBe(
+          "A submission already exists for this user and form.",
+        );
+        expect(result.error.errorCode).toBe(ERROR_CODE.CONFLICT);
+        expect(result.error.details?.statusCode).toBe(409);
       });
 
       it("should create a server error from a 500 status code", () => {

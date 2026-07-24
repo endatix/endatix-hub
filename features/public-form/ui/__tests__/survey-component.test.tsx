@@ -274,9 +274,9 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
     // Assert
     expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
-    expect(
-      mockWaitForInFlightPartial.mock.invocationCallOrder[0],
-    ).toBeLessThan(mockSubmitPublicForm.mock.invocationCallOrder[0]);
+    expect(mockWaitForInFlightPartial.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSubmitPublicForm.mock.invocationCallOrder[0],
+    );
   });
 
   it("should prevent partial updates while a form submission is in progress", async () => {
@@ -344,6 +344,8 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
 
   it("should reset the guard flag on submission failure", async () => {
     // Arrange
+    realSurveyModel.completedHtml =
+      "<h3>Thank you for completing the survey</h3>";
     mockSubmitPublicForm.mockResolvedValue(
       ApiResult.networkError("Network error"),
     );
@@ -358,6 +360,13 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     // Assert
     await expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
     await expect(completeEventMocks.showSaveError).toHaveBeenCalledTimes(1);
+    expect(completeEventMocks.showSaveError).toHaveBeenCalledWith(
+      "Network error",
+    );
+    expect(realSurveyModel.showCompletePage).toBe(true);
+    expect(realSurveyModel.completedHtml).toBe(
+      "<h3>Failed to submit your form</h3>",
+    );
 
     // Act: firing a partial update
     await act(async () => {
@@ -369,6 +378,31 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     const callArgs = mockEnqueueSubmission.mock.calls[0][0];
     expect(callArgs.isComplete).toBe(false);
     expect(JSON.parse(callArgs.jsonData).question1).toBe("new value");
+  });
+
+  it("restores thank-you HTML after a successful retry", async () => {
+    const thankYouHtml = "<h3>Thank you for completing the survey</h3>";
+    realSurveyModel.completedHtml = thankYouHtml;
+    mockSubmitPublicForm
+      .mockResolvedValueOnce(ApiResult.networkError("Network error"))
+      .mockResolvedValueOnce({
+        success: true,
+        data: { submissionId: "sub-456" },
+      });
+    renderSurveyComponent();
+
+    await act(async () => {
+      fireCompleteEvent();
+    });
+    expect(realSurveyModel.completedHtml).toBe(
+      "<h3>Failed to submit your form</h3>",
+    );
+
+    await act(async () => {
+      fireCompleteEvent();
+    });
+
+    expect(realSurveyModel.completedHtml).toBe(thankYouHtml);
   });
 
   it("sends a structured embed error payload after failed submission", async () => {

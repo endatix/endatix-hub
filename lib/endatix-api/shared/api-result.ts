@@ -12,6 +12,7 @@ export enum ApiErrorType {
   AuthError = "AuthError", // Authentication issues e.g. invalid credentials, etc.
   ForbiddenError = "ForbiddenError", // Forbidden error e.g. user does not have permission to access the resource
   ValidationError = "ValidationError", // Client data issues e.g. validation issues or bad request
+  ConflictError = "ConflictError", // Resource conflict e.g. duplicate submission
   ServerError = "ServerError", // Server issues e.g. internal server error
   NotFoundError = "NotFoundError", // Resource not found e.g. form not found
   RateLimitError = "RateLimitError", // Rate limit exceeded e.g. too many requests
@@ -118,6 +119,20 @@ export const ApiResult = {
       errorCode: errorCode || ERROR_CODE.VALIDATION_ERROR,
       details,
       fields,
+    },
+  }),
+
+  conflictError: <T>(
+    message?: string,
+    details?: ApiErrorDetails,
+    errorCode?: string,
+  ): ApiResult<T> => ({
+    success: false,
+    error: {
+      type: ApiErrorType.ConflictError,
+      message: message || getErrorMessageWithFallback(ERROR_CODE.CONFLICT),
+      errorCode: errorCode || ERROR_CODE.CONFLICT,
+      details,
     },
   }),
 
@@ -231,6 +246,8 @@ export const ApiResult = {
         );
       case 404:
         return ApiResult.notFoundError(message, enrichedDetails, errorCode);
+      case 409:
+        return ApiResult.conflictError(message, enrichedDetails, errorCode);
       case 429:
         return ApiResult.rateLimitError(message, enrichedDetails, errorCode);
       default:
@@ -291,6 +308,9 @@ export const isForbiddenError = <T>(result: ApiResult<T>): boolean =>
 
 export const isValidationError = <T>(result: ApiResult<T>): boolean =>
   !result.success && result.error.type === ApiErrorType.ValidationError;
+
+export const isConflictError = <T>(result: ApiResult<T>): boolean =>
+  !result.success && result.error.type === ApiErrorType.ConflictError;
 
 export const isServerError = <T>(result: ApiResult<T>): boolean =>
   !result.success && result.error.type === ApiErrorType.ServerError;

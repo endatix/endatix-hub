@@ -41,11 +41,45 @@ describe("route-handlers", () => {
       expect(await response.json()).toEqual({
         type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
         title: "Bad Request",
-        detail: "The provided data is invalid.",
+        detail: "Submission data is required",
         status: 400,
         errorCode: ERROR_CODE.VALIDATION_ERROR,
         fields: { submissionData: ["Required"] },
       });
+    });
+
+    it("returns conflict errors as 409 problem details with the API message", async () => {
+      const result = ApiResult.conflictError(
+        "A submission already exists for this user and form.",
+        { statusCode: 409 },
+      );
+
+      const response = toApiResponse(result);
+      const body = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(body).toEqual({
+        type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8",
+        title: "Conflict",
+        detail: "A submission already exists for this user and form.",
+        status: 409,
+        errorCode: ERROR_CODE.CONFLICT,
+      });
+    });
+
+    it("prefers an explicit message over a canned unknown_error code message", async () => {
+      const result = ApiResult.unknownError(
+        "Next error(s) occurred:* A submission already exists for this user and form.",
+        { statusCode: 409 },
+      );
+
+      const response = toApiResponse(result);
+      const body = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(body.detail).toContain(
+        "A submission already exists for this user and form.",
+      );
     });
 
     it.each([

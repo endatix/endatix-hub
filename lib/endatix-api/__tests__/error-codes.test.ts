@@ -20,6 +20,7 @@ describe("ERROR_CODES", () => {
       "authentication_required",
       "access_forbidden",
       "resource_not_found",
+      "conflict",
       "rate_limit_exceeded",
       "server_error",
       "validation_error",
@@ -58,6 +59,9 @@ describe("ERROR_CODES", () => {
     expect(ERROR_CODES.resource_not_found).toBe(
       "The requested resource was not found.",
     );
+    expect(ERROR_CODES.conflict).toBe(
+      "This action conflicts with the current state. Please try again.",
+    );
     expect(ERROR_CODES.rate_limit_exceeded).toBe(
       "Too many requests. Please try again later.",
     );
@@ -77,7 +81,6 @@ describe("ERROR_CODES", () => {
 
     // Act
     try {
-       
       (ERROR_CODES as any).form_not_found = "Modified message";
     } catch {
       // Expected in strict mode
@@ -125,7 +128,6 @@ describe("ERROR_CODE", () => {
 
     // Act
     try {
-       
       (ERROR_CODE as any).FORM_NOT_FOUND = "modified_value";
     } catch {
       // Expected in strict mode
@@ -219,7 +221,7 @@ describe("getErrorMessage", () => {
 
   it("should return null for null input", () => {
     // Arrange
-     
+
     const input = null as any;
 
     // Act
@@ -303,7 +305,7 @@ describe("getErrorMessageWithFallback", () => {
 
   it("should return default message for null error code with no fallback", () => {
     // Arrange
-     
+
     const errorCode = null as any;
 
     // Act
