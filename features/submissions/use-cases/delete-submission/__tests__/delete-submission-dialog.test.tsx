@@ -3,12 +3,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { DeleteSubmissionDialog } from "../ui/delete-submission-dialog";
 
-const mockDeleteSubmissionAction = vi.fn();
-const mockTrackFeatureUsage = vi.fn();
-const mockPush = vi.fn();
-const mockRefresh = vi.fn();
-const mockToastSuccess = vi.fn();
-const mockToastError = vi.fn();
+const {
+  mockDeleteSubmissionAction,
+  mockTrackFeatureUsage,
+  mockPush,
+  mockRefresh,
+  mockToastSuccess,
+  mockToastError,
+} = vi.hoisted(() => ({
+  mockDeleteSubmissionAction: vi.fn(),
+  mockTrackFeatureUsage: vi.fn(),
+  mockPush: vi.fn(),
+  mockRefresh: vi.fn(),
+  mockToastSuccess: vi.fn(),
+  mockToastError: vi.fn(),
+}));
 
 vi.mock("../delete-submission.action", () => ({
   deleteSubmissionAction: (...args: unknown[]) =>
