@@ -63,13 +63,37 @@ function preferReadableProblemDetail(
   }
 
   if (status === 409) {
-    const match = detail.match(/\*\s*([^*\r\n]+)/);
-    if (match?.[1]) {
-      return match[1].trim();
+    const detailMessage = extractConflictDetailMessage(detail);
+    if (detailMessage) {
+      return detailMessage;
     }
   }
 
   return detail.trim();
+}
+
+/**
+ * Extract the message after the first `*` up to the next `*` or line break.
+ * Uses a linear string scan (no regex) to avoid ReDoS and Sonar String.match.
+ */
+function extractConflictDetailMessage(detail: string): string | undefined {
+  const starIndex = detail.indexOf("*");
+  if (starIndex < 0) {
+    return undefined;
+  }
+
+  const afterStar = detail.slice(starIndex + 1);
+  let end = afterStar.length;
+  for (let i = 0; i < afterStar.length; i += 1) {
+    const ch = afterStar[i];
+    if (ch === "*" || ch === "\r" || ch === "\n") {
+      end = i;
+      break;
+    }
+  }
+
+  const message = afterStar.slice(0, end).trim();
+  return message.length > 0 ? message : undefined;
 }
 
 function parseRetryAfter(retryAfter: string | null): number | undefined {
