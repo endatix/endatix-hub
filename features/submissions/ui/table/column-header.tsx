@@ -20,7 +20,7 @@ import {
   ListFilter,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useColumnVisibility } from "./column-visibility-context";
 import type { DateFilterValue } from "./date-filter-types";
 
@@ -58,6 +58,10 @@ interface ColumnHeaderProps<
   readonly isSorted?: false | SortDirection;
   readonly dateFilter?: DateFilterConfig;
   readonly textFilter?: TextFilterConfig;
+  /** Shrink header chrome (padding, menu button) for dense columns. */
+  readonly density?: "default" | "compact";
+  /** Optional visual title (e.g. icon); `title` remains the accessible name. */
+  readonly titleContent?: ReactNode;
 }
 
 export function ColumnHeader<TData, TValue>({
@@ -68,19 +72,26 @@ export function ColumnHeader<TData, TValue>({
   isSorted,
   dateFilter,
   textFilter,
+  density = "default",
+  titleContent,
 }: ColumnHeaderProps<TData, TValue>) {
   const { toggleColumnVisibility } = useColumnVisibility();
   const canSort = column.getCanSort();
   const hasDateFilter = Boolean(dateFilter?.value.from || dateFilter?.value.to);
   const hasTextFilter = Boolean(textFilter?.value.trim());
   const hasActiveFilter = hasDateFilter || hasTextFilter;
+  const isCompact = density === "compact";
 
   if (!visible) {
     return <span className="sr-only">{title}</span>;
   }
 
   if (!canSort && !dateFilter && !textFilter) {
-    return <div className={cn("cursor-default", className)}>{title}</div>;
+    return (
+      <div className={cn("cursor-default", className)}>
+        {titleContent ?? title}
+      </div>
+    );
   }
 
   let SortIcon: typeof ChevronsUpDown | null = null;
@@ -104,15 +115,27 @@ export function ColumnHeader<TData, TValue>({
     column.toggleSorting(false);
   };
 
+  const titleLabel = titleContent ?? <span className="truncate">{title}</span>;
+
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div
+      className={cn(
+        "flex items-center",
+        isCompact ? "gap-0.5" : "gap-2",
+        className,
+      )}
+    >
       {canSort ? (
         <button
           type="button"
-          className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          className={cn(
+            "flex cursor-pointer items-center rounded-md text-left text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+            isCompact ? "h-7 gap-1 px-1" : "h-8 min-w-0 flex-1 gap-1.5 px-2",
+          )}
           onClick={handleSortCycle}
+          aria-label={title}
         >
-          <span className="truncate">{title}</span>
+          {titleLabel}
           <span
             aria-hidden="true"
             className="flex h-3.5 w-3.5 shrink-0 items-center justify-center"
@@ -121,8 +144,13 @@ export function ColumnHeader<TData, TValue>({
           </span>
         </button>
       ) : (
-        <div className="flex h-8 min-w-0 flex-1 items-center px-2 text-sm font-medium">
-          <span className="truncate">{title}</span>
+        <div
+          className={cn(
+            "flex items-center text-sm font-medium",
+            isCompact ? "h-7 px-1" : "h-8 min-w-0 flex-1 px-2",
+          )}
+        >
+          {titleLabel}
         </div>
       )}
       <DropdownMenu>
@@ -130,7 +158,10 @@ export function ColumnHeader<TData, TValue>({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 data-[state=open]:bg-accent"
+            className={cn(
+              "data-[state=open]:bg-accent",
+              isCompact ? "h-7 w-7" : "h-8 w-8",
+            )}
             aria-label={`${title} column menu`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}

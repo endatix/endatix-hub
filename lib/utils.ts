@@ -52,14 +52,14 @@ export function parseDate(date: Date): Date | null {
   }
 }
 
-type ElapsedTimeFormat = "short" | "long";
+type ElapsedTimeFormat = "short" | "long" | "compact";
 
 /**
  * Calculates and formats the elapsed time between two dates
  * @param startedAt - The start date/time
  * @param completedAt - The end date/time
- * @param format - Format of the output string ("short" or "long"), defaults to "short"
- * @returns Formatted string of elapsed time in HH:MM:SS format, or "-" if invalid input
+ * @param format - `short` (HH:MM:SS), `long` (prose), or `compact` (`1m 41s`) for dense grids
+ * @returns Formatted elapsed time, or "-" if invalid input
  */
 export function getElapsedTimeString(
   startedAt?: Date,
@@ -80,6 +80,21 @@ export function getElapsedTimeString(
     const formattedSecs = secs.toString().padStart(2, "0");
 
     return `${formattedHours}:${formattedMins}:${formattedSecs}`;
+  }
+
+  if (format === "compact") {
+    const parts: string[] = [];
+    if (hours > 0) {
+      parts.push(`${hours}h`);
+    }
+    if (mins > 0) {
+      parts.push(`${mins}m`);
+    }
+    if (secs > 0 || parts.length === 0) {
+      parts.push(`${secs}s`);
+    }
+
+    return parts.join(" ");
   }
 
   const formattedHours = hours.toString().padStart(1, "0");

@@ -41,3 +41,32 @@ describe("getSubmissionStartedAt", () => {
     expect(duration).toBe("00:00:05");
   });
 });
+
+describe("getElapsedTimeString compact format", () => {
+  it("formats duration as human shorthand", () => {
+    // Arrange
+    const startedAt = new Date("2026-01-01T10:00:00.000Z");
+    const completedAt = new Date("2026-01-01T10:01:41.000Z");
+
+    // Act
+    const duration = getElapsedTimeString(startedAt, completedAt, "compact");
+
+    // Assert
+    expect(duration).toBe("1m 41s");
+  });
+
+  it("omits zero units and keeps seconds when only seconds elapsed", () => {
+    // Arrange
+    const startedAt = new Date("2026-01-01T10:00:00.000Z");
+    const completedAt = new Date("2026-01-01T12:03:00.000Z");
+    const zeroDurationEnd = new Date("2026-01-01T10:00:00.000Z");
+
+    // Act
+    const withHours = getElapsedTimeString(startedAt, completedAt, "compact");
+    const zero = getElapsedTimeString(startedAt, zeroDurationEnd, "compact");
+
+    // Assert
+    expect(withHours).toBe("2h 3m");
+    expect(zero).toBe("0s");
+  });
+});

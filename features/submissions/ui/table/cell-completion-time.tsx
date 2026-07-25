@@ -9,5 +9,9 @@ export function CellCompletionTime({
   startedAt,
   completedAt,
 }: CellCompletionTimeProps) {
-  return <div>{getElapsedTimeString(startedAt, completedAt)}</div>;
+  return (
+    <div className="whitespace-nowrap">
+      {getElapsedTimeString(startedAt, completedAt, "compact")}
+    </div>
+  );
 }

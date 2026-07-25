@@ -283,8 +283,9 @@ export function DataTable<TData extends Submission>({
                           key={header.id}
                           colSpan={header.colSpan}
                           className={cn(
-                            "sticky top-0 h-14 bg-muted shadow-[inset_0_-1px_0_0] shadow-border/40",
+                            "sticky top-0 h-10 bg-muted px-2 shadow-[inset_0_-1px_0_0] shadow-border/40",
                             isPinned === "left" ? "left-0 z-30" : "z-10",
+                            header.column.columnDef.meta?.headerClassName,
                           )}
                         >
                           {header.isPlaceholder ? null : (
@@ -315,12 +316,14 @@ export function DataTable<TData extends Submission>({
                         <TableCell
                           key={cell.id}
                           className={cn(
+                            "px-2 py-2",
                             isPinned &&
                               "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
                             isPinned === "left" && "left-0",
                             isPinned &&
                               row.getIsSelected() &&
                               "bg-accent group-hover:bg-accent",
+                            cell.column.columnDef.meta?.cellClassName,
                           )}
                         >
                           {flexRender(

@@ -1,24 +1,45 @@
-import { Badge } from "@/components/ui/badge";
+"use client";
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
-const getStatusLabel = (isComplete: boolean) => (isComplete ? "Yes" : "No");
-
-const COMPLETE_CLASSES =
-  "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300";
-const INCOMPLETE_CLASSES =
-  "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300";
+import { CheckCircle2, Circle } from "lucide-react";
 
 interface CellCompleteStatusProps {
   isComplete: boolean;
 }
 
 export function CellCompleteStatus({ isComplete }: CellCompleteStatusProps) {
+  const label = isComplete ? "Complete" : "Incomplete";
+
   return (
-    <Badge
-      variant="outline"
-      className={cn(isComplete ? COMPLETE_CLASSES : INCOMPLETE_CLASSES)}
-    >
-      {getStatusLabel(isComplete)}
-    </Badge>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex items-center justify-center"
+            aria-label={label}
+            role="img"
+          >
+            {isComplete ? (
+              <CheckCircle2
+                className={cn("size-4 text-emerald-600 dark:text-emerald-400")}
+                aria-hidden="true"
+              />
+            ) : (
+              <Circle
+                className={cn("size-4 text-muted-foreground")}
+                aria-hidden="true"
+              />
+            )}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
