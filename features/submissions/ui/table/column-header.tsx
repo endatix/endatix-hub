@@ -102,6 +102,351 @@ export function getColumnHeaderTitleSwapClassName(
   ].join(" ");
 }
 
+function getSortIcon(isSorted: false | SortDirection | undefined) {
+  if (isSorted === "asc") {
+    return ArrowUp;
+  }
+
+  if (isSorted === "desc") {
+    return ArrowDown;
+  }
+
+  return null;
+}
+
+function cycleColumnSort<TData, TValue>(
+  column: Column<TData, TValue>,
+  isSorted: false | SortDirection | undefined,
+): void {
+  if (isSorted === "asc") {
+    column.toggleSorting(true);
+    return;
+  }
+
+  if (isSorted === "desc") {
+    column.clearSorting();
+    return;
+  }
+
+  column.toggleSorting(false);
+}
+
+function SortIndicator({
+  isSorted,
+  chromeClassName,
+}: {
+  readonly isSorted: false | SortDirection | undefined;
+  readonly chromeClassName?: string;
+}) {
+  const SortIcon = getSortIcon(isSorted);
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex h-3.5 w-3.5 shrink-0 items-center justify-center transition-opacity",
+        chromeClassName,
+      )}
+    >
+      {SortIcon ? (
+        <SortIcon className="h-3.5 w-3.5" />
+      ) : (
+        <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+      )}
+    </span>
+  );
+}
+
+function ColumnHeaderMenu<TData, TValue>({
+  column,
+  title,
+  canSort,
+  isSorted,
+  dateFilter,
+  textFilter,
+  hasActiveFilter,
+  isCompact,
+  chromeClassName,
+  contentAlign,
+  onHideColumn,
+}: {
+  readonly column: Column<TData, TValue>;
+  readonly title: string;
+  readonly canSort: boolean;
+  readonly isSorted: false | SortDirection | undefined;
+  readonly dateFilter?: DateFilterConfig;
+  readonly textFilter?: TextFilterConfig;
+  readonly hasActiveFilter: boolean;
+  readonly isCompact: boolean;
+  readonly chromeClassName?: string;
+  readonly contentAlign: "start" | "end";
+  readonly onHideColumn: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "transition-opacity data-[state=open]:bg-accent data-[state=open]:opacity-100",
+            isCompact ? "h-7 w-7" : "h-8 w-8",
+            chromeClassName,
+          )}
+          aria-label={`${title} column menu`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {hasActiveFilter ? (
+            <Filter className="h-3.5 w-3.5 text-primary" />
+          ) : (
+            <ListFilter className="h-3.5 w-3.5" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={contentAlign}>
+        {canSort ? (
+          <>
+            <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
+              <ArrowUp className="h-3.5 w-3.5 text-muted-foreground/70" />
+              Asc
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
+              <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+              Desc
+            </DropdownMenuItem>
+            {isSorted ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => column.clearSorting()}>
+                  <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  Clear sorting
+                </DropdownMenuItem>
+              </>
+            ) : null}
+          </>
+        ) : null}
+        {dateFilter ? (
+          <>
+            {canSort ? <DropdownMenuSeparator /> : null}
+            <div className="w-56 space-y-3 p-2">
+              <DateFilterControls
+                idPrefix={column.id}
+                value={dateFilter.value}
+                onApply={dateFilter.onChange}
+              />
+            </div>
+          </>
+        ) : null}
+        {textFilter ? (
+          <>
+            {canSort || dateFilter ? <DropdownMenuSeparator /> : null}
+            <div className="w-56 space-y-3 p-2">
+              <TextFilterControls
+                idPrefix={column.id}
+                value={textFilter.value}
+                placeholder={textFilter.placeholder}
+                onApply={textFilter.onChange}
+              />
+            </div>
+          </>
+        ) : null}
+        {column.id !== "actions" ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onHideColumn}>
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground/70" />
+              Hide
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function CenterAlignedColumnHeader<TData, TValue>({
+  column,
+  title,
+  titleLabel,
+  className,
+  canSort,
+  isSorted,
+  dateFilter,
+  textFilter,
+  hasActiveFilter,
+  isCompact,
+  forceChromeVisible,
+  chromeClassName,
+  titleSwapClassName,
+  onHideColumn,
+}: {
+  readonly column: Column<TData, TValue>;
+  readonly title: string;
+  readonly titleLabel: ReactNode;
+  readonly className?: string;
+  readonly canSort: boolean;
+  readonly isSorted: false | SortDirection | undefined;
+  readonly dateFilter?: DateFilterConfig;
+  readonly textFilter?: TextFilterConfig;
+  readonly hasActiveFilter: boolean;
+  readonly isCompact: boolean;
+  readonly forceChromeVisible: boolean;
+  readonly chromeClassName: string;
+  readonly titleSwapClassName: string;
+  readonly onHideColumn: () => void;
+}) {
+  const handleSortCycle = () => cycleColumnSort(column, isSorted);
+  const sizeClassName = isCompact ? "h-7 w-7" : "h-8 w-8";
+
+  return (
+    <div
+      className={cn(
+        "group relative flex w-full items-center justify-center",
+        isCompact ? "h-7" : "h-8",
+        className,
+      )}
+    >
+      {canSort ? (
+        <button
+          type="button"
+          className={cn(
+            "flex cursor-pointer items-center justify-center rounded-md transition-opacity hover:bg-accent hover:text-accent-foreground",
+            sizeClassName,
+            titleSwapClassName,
+          )}
+          onClick={handleSortCycle}
+          aria-label={title}
+          tabIndex={forceChromeVisible ? -1 : undefined}
+        >
+          {titleLabel}
+        </button>
+      ) : (
+        <div
+          className={cn(
+            "flex items-center justify-center transition-opacity",
+            sizeClassName,
+            titleSwapClassName,
+          )}
+        >
+          {titleLabel}
+        </div>
+      )}
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center justify-center transition-opacity",
+          isCompact ? "gap-0.5" : "gap-1",
+          chromeClassName,
+        )}
+      >
+        {canSort ? (
+          <button
+            type="button"
+            className={cn(
+              "flex cursor-pointer items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
+              sizeClassName,
+            )}
+            onClick={handleSortCycle}
+            aria-label={`Sort ${title}`}
+          >
+            <SortIndicator isSorted={isSorted} />
+          </button>
+        ) : null}
+        <ColumnHeaderMenu
+          column={column}
+          title={title}
+          canSort={canSort}
+          isSorted={isSorted}
+          dateFilter={dateFilter}
+          textFilter={textFilter}
+          hasActiveFilter={hasActiveFilter}
+          isCompact={isCompact}
+          contentAlign="end"
+          onHideColumn={onHideColumn}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StartAlignedColumnHeader<TData, TValue>({
+  column,
+  title,
+  titleLabel,
+  className,
+  canSort,
+  isSorted,
+  dateFilter,
+  textFilter,
+  hasActiveFilter,
+  isCompact,
+  chromeClassName,
+  onHideColumn,
+}: {
+  readonly column: Column<TData, TValue>;
+  readonly title: string;
+  readonly titleLabel: ReactNode;
+  readonly className?: string;
+  readonly canSort: boolean;
+  readonly isSorted: false | SortDirection | undefined;
+  readonly dateFilter?: DateFilterConfig;
+  readonly textFilter?: TextFilterConfig;
+  readonly hasActiveFilter: boolean;
+  readonly isCompact: boolean;
+  readonly chromeClassName: string;
+  readonly onHideColumn: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "group flex items-center",
+        isCompact ? "gap-0.5" : "gap-2",
+        className,
+      )}
+    >
+      {canSort ? (
+        <button
+          type="button"
+          className={cn(
+            "flex cursor-pointer items-center rounded-md text-left hover:bg-accent hover:text-accent-foreground",
+            isCompact ? "h-7 gap-1 px-1" : "h-8 min-w-0 flex-1 gap-1.5 px-2",
+          )}
+          onClick={() => cycleColumnSort(column, isSorted)}
+          aria-label={title}
+        >
+          {titleLabel}
+          <SortIndicator
+            isSorted={isSorted}
+            chromeClassName={chromeClassName}
+          />
+        </button>
+      ) : (
+        <div
+          className={cn(
+            "flex items-center",
+            isCompact ? "h-7 px-1" : "h-8 min-w-0 flex-1 px-2",
+          )}
+        >
+          {titleLabel}
+        </div>
+      )}
+      <ColumnHeaderMenu
+        column={column}
+        title={title}
+        canSort={canSort}
+        isSorted={isSorted}
+        dateFilter={dateFilter}
+        textFilter={textFilter}
+        hasActiveFilter={hasActiveFilter}
+        isCompact={isCompact}
+        chromeClassName={chromeClassName}
+        contentAlign="start"
+        onHideColumn={onHideColumn}
+      />
+    </div>
+  );
+}
+
 export function ColumnHeader<TData, TValue>({
   column,
   title,
@@ -116,11 +461,10 @@ export function ColumnHeader<TData, TValue>({
 }: ColumnHeaderProps<TData, TValue>) {
   const { toggleColumnVisibility } = useColumnVisibility();
   const canSort = column.getCanSort();
-  const hasDateFilter = Boolean(dateFilter?.value.from || dateFilter?.value.to);
-  const hasTextFilter = Boolean(textFilter?.value.trim());
-  const hasActiveFilter = hasDateFilter || hasTextFilter;
+  const hasActiveFilter =
+    Boolean(dateFilter?.value.from || dateFilter?.value.to) ||
+    Boolean(textFilter?.value.trim());
   const isCompact = density === "compact";
-  const isCenterAligned = align === "center";
   const forceChromeVisible = Boolean(isSorted) || hasActiveFilter;
   const chromeClassName = getColumnHeaderChromeClassName(forceChromeVisible);
   const titleSwapClassName =
@@ -141,7 +485,7 @@ export function ColumnHeader<TData, TValue>({
       <div
         className={cn(
           "cursor-default",
-          isCenterAligned && "flex w-full justify-center",
+          align === "center" && "flex w-full justify-center",
           className,
         )}
       >
@@ -150,225 +494,33 @@ export function ColumnHeader<TData, TValue>({
     );
   }
 
-  let SortIcon: typeof ChevronsUpDown | null = null;
-  if (isSorted === "asc") {
-    SortIcon = ArrowUp;
-  } else if (isSorted === "desc") {
-    SortIcon = ArrowDown;
-  }
-
-  const handleSortCycle = () => {
-    if (isSorted === "asc") {
-      column.toggleSorting(true);
-      return;
-    }
-
-    if (isSorted === "desc") {
-      column.clearSorting();
-      return;
-    }
-
-    column.toggleSorting(false);
+  const onHideColumn = () => toggleColumnVisibility(column.id);
+  const sharedProps = {
+    column,
+    title,
+    titleLabel,
+    className,
+    canSort,
+    isSorted,
+    dateFilter,
+    textFilter,
+    hasActiveFilter,
+    isCompact,
+    chromeClassName,
+    onHideColumn,
   };
 
-  const renderSortIndicator = (withChrome: boolean) => (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "flex h-3.5 w-3.5 shrink-0 items-center justify-center transition-opacity",
-        withChrome && chromeClassName,
-      )}
-    >
-      {SortIcon ? (
-        <SortIcon className="h-3.5 w-3.5" />
-      ) : (
-        <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-      )}
-    </span>
-  );
-
-  const renderColumnMenu = ({
-    withChrome,
-    contentAlign,
-  }: {
-    readonly withChrome: boolean;
-    readonly contentAlign: "start" | "end";
-  }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "transition-opacity data-[state=open]:bg-accent data-[state=open]:opacity-100",
-            isCompact ? "h-7 w-7" : "h-8 w-8",
-            withChrome && chromeClassName,
-          )}
-          aria-label={`${title} column menu`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {hasActiveFilter ? (
-            <Filter className="h-3.5 w-3.5 text-primary" />
-          ) : (
-            <ListFilter className="h-3.5 w-3.5" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={contentAlign}>
-        {canSort && (
-          <>
-            <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
-              <ArrowUp className="h-3.5 w-3.5 text-muted-foreground/70" />
-              Asc
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
-              <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-              Desc
-            </DropdownMenuItem>
-            {isSorted && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => column.clearSorting()}>
-                  <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  Clear sorting
-                </DropdownMenuItem>
-              </>
-            )}
-          </>
-        )}
-        {dateFilter && (
-          <>
-            {canSort && <DropdownMenuSeparator />}
-            <div className="w-56 space-y-3 p-2">
-              <DateFilterControls
-                idPrefix={column.id}
-                value={dateFilter.value}
-                onApply={dateFilter.onChange}
-              />
-            </div>
-          </>
-        )}
-        {textFilter && (
-          <>
-            {(canSort || dateFilter) && <DropdownMenuSeparator />}
-            <div className="w-56 space-y-3 p-2">
-              <TextFilterControls
-                idPrefix={column.id}
-                value={textFilter.value}
-                placeholder={textFilter.placeholder}
-                onApply={textFilter.onChange}
-              />
-            </div>
-          </>
-        )}
-        {column.id !== "actions" && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toggleColumnVisibility(column.id)}>
-              <EyeOff className="h-3.5 w-3.5 text-muted-foreground/70" />
-              Hide
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
-  if (isCenterAligned) {
+  if (align === "center") {
     return (
-      <div
-        className={cn(
-          "group relative flex w-full items-center justify-center",
-          isCompact ? "h-7" : "h-8",
-          className,
-        )}
-      >
-        {canSort ? (
-          <button
-            type="button"
-            className={cn(
-              "flex cursor-pointer items-center justify-center rounded-md transition-opacity hover:bg-accent hover:text-accent-foreground",
-              isCompact ? "h-7 w-7" : "h-8 w-8",
-              titleSwapClassName,
-            )}
-            onClick={handleSortCycle}
-            aria-label={title}
-            tabIndex={forceChromeVisible ? -1 : undefined}
-          >
-            {titleLabel}
-          </button>
-        ) : (
-          <div
-            className={cn(
-              "flex items-center justify-center transition-opacity",
-              isCompact ? "h-7 w-7" : "h-8 w-8",
-              titleSwapClassName,
-            )}
-          >
-            {titleLabel}
-          </div>
-        )}
-        <div
-          className={cn(
-            "absolute inset-0 flex items-center justify-center transition-opacity",
-            isCompact ? "gap-0.5" : "gap-1",
-            chromeClassName,
-          )}
-        >
-          {canSort ? (
-            <button
-              type="button"
-              className={cn(
-                "flex cursor-pointer items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
-                isCompact ? "h-7 w-7" : "h-8 w-8",
-              )}
-              onClick={handleSortCycle}
-              aria-label={`Sort ${title}`}
-            >
-              {renderSortIndicator(false)}
-            </button>
-          ) : null}
-          {renderColumnMenu({ withChrome: false, contentAlign: "end" })}
-        </div>
-      </div>
+      <CenterAlignedColumnHeader
+        {...sharedProps}
+        forceChromeVisible={forceChromeVisible}
+        titleSwapClassName={titleSwapClassName}
+      />
     );
   }
 
-  return (
-    <div
-      className={cn(
-        "group flex items-center",
-        isCompact ? "gap-0.5" : "gap-2",
-        className,
-      )}
-    >
-      {canSort ? (
-        <button
-          type="button"
-          className={cn(
-            "flex cursor-pointer items-center rounded-md text-left hover:bg-accent hover:text-accent-foreground",
-            isCompact ? "h-7 gap-1 px-1" : "h-8 min-w-0 flex-1 gap-1.5 px-2",
-          )}
-          onClick={handleSortCycle}
-          aria-label={title}
-        >
-          {titleLabel}
-          {renderSortIndicator(true)}
-        </button>
-      ) : (
-        <div
-          className={cn(
-            "flex items-center",
-            isCompact ? "h-7 px-1" : "h-8 min-w-0 flex-1 px-2",
-          )}
-        >
-          {titleLabel}
-        </div>
-      )}
-      {renderColumnMenu({ withChrome: true, contentAlign: "start" })}
-    </div>
-  );
+  return <StartAlignedColumnHeader {...sharedProps} />;
 }
 
 export function TextFilterControls({

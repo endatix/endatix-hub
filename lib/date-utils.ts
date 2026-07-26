@@ -32,10 +32,12 @@ const preciseDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   hour12: true,
 });
 
+type DateInput = Date | string | null;
+
 /**
  * Parses a date-like value into a valid Date, or null when invalid/missing.
  */
-export function toValidDate(date?: Date | string | null): Date | null {
+export function toValidDate(date?: DateInput): Date | null {
   if (date == null || date === "") {
     return null;
   }

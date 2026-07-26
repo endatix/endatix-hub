@@ -17,7 +17,7 @@ interface CellDateProps {
   visible?: boolean;
 }
 
-export function CellDate({ date, visible = true }: CellDateProps) {
+export function CellDate({ date, visible = true }: Readonly<CellDateProps>) {
   if (!visible) {
     return null;
   }

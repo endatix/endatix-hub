@@ -38,7 +38,7 @@ export function TruncatedId({
   visibleChars = DEFAULT_VISIBLE_CHARS,
   className,
   copyLabel = "Copy ID",
-}: TruncatedIdProps) {
+}: Readonly<TruncatedIdProps>) {
   const trimmed = id.trim();
   if (trimmed.length === 0) {
     return (
