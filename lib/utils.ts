@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { DateInput } from "./date-utils";
 
 /**
  * Merges class names using clsx and tailwind-merge. Comes with ShadCN/UI
@@ -113,7 +114,7 @@ export function getElapsedTimeString(
  * Prefers API `startedAt` (first respondent save); falls back to `createdAt` for older payloads.
  */
 export function getSubmissionStartedAt(submission: {
-  startedAt?: Date | string | null;
+  startedAt?: DateInput;
   createdAt: Date | string;
 }): Date {
   if (submission.startedAt) {
@@ -130,7 +131,7 @@ export function getSubmissionStartedAt(submission: {
  * @returns Formatted date string, or the fallback message
  */
 export function getFormattedDate(
-  date?: Date | string | null,
+  date?: DateInput,
   fallbackMessage = "-",
 ): string {
   if (!date) {

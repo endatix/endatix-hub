@@ -37,7 +37,7 @@ const preciseDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: HUB_LIST_DATE_TIMEZONE,
 });
 
-type DateInput = Date | string | null;
+export type DateInput = Date | string | null;
 
 /**
  * Parses a date-like value into a valid Date, or null when invalid/missing.
@@ -55,7 +55,7 @@ export function toValidDate(date?: DateInput): Date | null {
  * Compact absolute datetime for dense grids (no seconds), e.g. `Jul 21, 2:53 PM`.
  */
 export function formatCompactDateTime(
-  date?: Date | string | null,
+  date?: DateInput,
   fallbackMessage = "-",
 ): string {
   const dateValue = toValidDate(date);
@@ -71,7 +71,7 @@ export function formatCompactDateTime(
  * Matches the precision style of detail `getFormattedDate` plus seconds.
  */
 export function formatPreciseDateTime(
-  date?: Date | string | null,
+  date?: DateInput,
   fallbackMessage = "-",
 ): string {
   const dateValue = toValidDate(date);
@@ -119,7 +119,7 @@ function formatRelativeWithinCutoff(dateValue: Date, now: Date): string | null {
  * returns compact absolute only so SSR and the first client paint stay aligned.
  */
 export function formatRelativeOrCompactDateTime(
-  date?: Date | string | null,
+  date?: DateInput,
   now?: Date,
   fallbackMessage = "-",
 ): string {
