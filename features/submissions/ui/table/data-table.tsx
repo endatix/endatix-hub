@@ -237,7 +237,7 @@ export function DataTable<TData extends Submission>({
     return (
       <div
         data-slot="submission-data-table"
-        className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
+        className="rounded-xl border border-border/40 bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
       >
         {isFilteredEmpty ? (
           <NoMatchingSubmissionsEmptyState
@@ -259,7 +259,7 @@ export function DataTable<TData extends Submission>({
     <>
       <div
         data-slot="submission-data-table"
-        className="rounded-xl border border-sidebar-border/70 bg-background/90 shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
+        className="rounded-xl border border-border/40 bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
       >
         <DndContext
           id={dndContextId}
@@ -269,13 +269,16 @@ export function DataTable<TData extends Submission>({
           onDragEnd={handleDragEnd}
         >
           <Table className="border-separate border-spacing-0">
-            <TableHeader className="border-b border-sidebar-border/50 bg-muted">
+            <TableHeader className="bg-surface-container-low">
               <SortableContext
                 items={visibleColumnOrder}
                 strategy={horizontalListSortingStrategy}
               >
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow
+                    key={headerGroup.id}
+                    className="border-0 hover:bg-transparent"
+                  >
                     {headerGroup.headers.map((header) => {
                       const isPinned = header.column.getIsPinned();
                       return (
@@ -283,7 +286,7 @@ export function DataTable<TData extends Submission>({
                           key={header.id}
                           colSpan={header.colSpan}
                           className={cn(
-                            "sticky top-0 h-10 bg-muted px-2 shadow-[inset_0_-1px_0_0] shadow-border/40",
+                            "sticky top-0 h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
                             isPinned === "left" ? "left-0 z-30" : "z-10",
                             header.column.columnDef.meta?.headerClassName,
                           )}
@@ -302,13 +305,21 @@ export function DataTable<TData extends Submission>({
               </SortableContext>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => {
+              {rows.map((row, rowIndex) => {
+                const isEvenRow = rowIndex % 2 === 1;
+                const isSelected = row.getIsSelected();
                 return (
                   <TableRow
                     key={row.id}
-                    className={cn("group cursor-pointer", getRowClassName(row))}
+                    className={cn(
+                      "group cursor-pointer border-0",
+                      isEvenRow
+                        ? "bg-surface-container-low hover:bg-surface-container"
+                        : "bg-surface-container-lowest hover:bg-surface-container",
+                      getRowClassName(row),
+                    )}
                     onClick={() => handleRowSelectionChange(row)}
-                    data-state={row.getIsSelected() && "selected"}
+                    data-state={isSelected && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => {
                       const isPinned = cell.column.getIsPinned();
@@ -318,11 +329,17 @@ export function DataTable<TData extends Submission>({
                           className={cn(
                             "px-2 py-2",
                             isPinned &&
-                              "sticky z-20 bg-background transition-colors duration-150 group-hover:bg-muted/50",
-                            isPinned === "left" && "left-0",
+                              "sticky z-20 transition-colors duration-150",
+                            // Opaque fill so scrolled columns cannot show through sticky Actions.
                             isPinned &&
-                              row.getIsSelected() &&
+                              !isSelected &&
+                              (isEvenRow
+                                ? "bg-surface-container-low group-hover:bg-surface-container"
+                                : "bg-surface-container-lowest group-hover:bg-surface-container"),
+                            isPinned &&
+                              isSelected &&
                               "bg-accent group-hover:bg-accent",
+                            isPinned === "left" && "left-0",
                             cell.column.columnDef.meta?.cellClassName,
                           )}
                         >

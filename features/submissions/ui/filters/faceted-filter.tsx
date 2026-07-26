@@ -65,7 +65,11 @@ export function FacetedFilter({
   return (
     <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="border-dashed" disabled={disabled}>
+        <Button
+          variant="outline"
+          className="rounded-full border-dashed"
+          disabled={disabled}
+        >
           {title}
           {selectedValues.size > 0 && (
             <>

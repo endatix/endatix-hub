@@ -96,7 +96,7 @@ export function buildSubmissionSystemColumns({
       accessorKey: "isComplete",
       meta: {
         displayName: "Complete",
-        headerClassName: SHRINK_WRAP,
+        headerClassName: `${SHRINK_WRAP} text-center`,
         cellClassName: `${SHRINK_WRAP} text-center`,
       },
       header: ({ column }) => (
@@ -104,6 +104,7 @@ export function buildSubmissionSystemColumns({
           column={column}
           isSorted={column.getIsSorted()}
           density="compact"
+          align="center"
           title="Complete"
           titleContent={
             <CheckCircle2
