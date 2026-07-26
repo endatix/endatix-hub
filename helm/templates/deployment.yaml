@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "endatix-hub.fullname" . }}
+  labels:
+    {{- include "endatix-hub.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "endatix-hub.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "endatix-hub.selectorLabels" . | nindent 8 }}
+    spec:
+      # The Hub only talks to the Endatix API over HTTP — it never calls the
+      # Kubernetes API, so a mounted service-account token would just park a
+      # live credential in the pod for an attacker to find.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        # 1000 is the `node` user in the base image. The Dockerfile sets USER
+        # node; this asserts it at admission rather than trusting the build.
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        env:
+        # Node / Next.js
+        - name: NODE_ENV
+          value: {{ .Values.nodeEnv | quote }}
+        - name: PORT
+          value: {{ .Values.service.port | quote }}
+
+        # Endatix API connection
+        - name: ENDATIX_BASE_URL
+          value: {{ .Values.api.baseUrl | quote }}
+        - name: ENDATIX_API_URL
+          value: {{ .Values.api.apiUrl | quote }}
+
+        # Auth
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.auth.secretName }}
+              key: session-secret
+        - name: AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.auth.secretName }}
+              key: auth-secret
+        - name: AUTH_TRUST_HOST
+          value: {{ .Values.auth.trustHost | quote }}
+        {{- if .Values.auth.url }}
+        - name: AUTH_URL
+          value: {{ .Values.auth.url | quote }}
+        {{- end }}
+
+        {{- if .Values.otel.enabled }}
+        # OpenTelemetry
+        - name: OTEL_SERVICE_NAME
+          value: {{ .Values.otel.serviceName | quote }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ .Values.otel.endpoint | quote }}
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: {{ .Values.otel.protocol | quote }}
+        - name: NEXT_OTEL_VERBOSE
+          value: "0"
+        {{- end }}
+
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.service.port }}
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.service.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        # The only writable path, required by readOnlyRootFilesystem above.
+        # Next.js and its dependencies spill to the OS temp dir at runtime.
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

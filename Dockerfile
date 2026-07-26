@@ -9,7 +9,13 @@ COPY . .
 RUN pnpm run build
 
 FROM base
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+# Run as the non-root `node` user (uid 1000) the base image already provides,
+# so the Helm chart can enforce runAsNonRoot. --chown matters as much as USER:
+# COPY otherwise preserves the build host's directory permissions, and a
+# restrictive local umask yields an image that cannot read its own /app/public
+# and crashes on startup once it is no longer root.
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
+USER node
 CMD ["node", "server.js"]

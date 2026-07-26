@@ -1,0 +1,6 @@
+apiVersion: v2
+name: endatix-hub
+description: Endatix Hub — Next.js form management frontend
+type: application
+version: 0.1.0
+appVersion: 0.1.0

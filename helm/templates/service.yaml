@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "endatix-hub.fullname" . }}
+  labels:
+    {{- include "endatix-hub.selectorLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "endatix-hub.selectorLabels" . | nindent 4 }}
+  ports:
+  - port: 80
+    targetPort: {{ .Values.service.port }}

@@ -1,0 +1,46 @@
+replicaCount: 1
+
+image:
+  repository: endatix/endatix-hub
+  pullPolicy: Always
+  # tag defaults to chart appVersion
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 8000
+
+api:
+  # Used by the Hub server to make backend API calls — must include /api suffix
+  # e.g. http://endatix-api:8080/api  (internal K8s service URL)
+  apiUrl: "http://endatix-api:8080/api"
+  # Base URL of the Endatix API, used for constructing links in emails etc.
+  # e.g. https://api.example.com
+  baseUrl: "http://endatix-api:8080"
+
+auth:
+  # Name of an existing secret with keys: session-secret, auth-secret
+  # session-secret: openssl rand -hex 32
+  # auth-secret:    npx auth secret
+  secretName: endatix-hub-auth-secret
+  trustHost: "true"
+  # Public URL of this hub, required for auth callbacks (e.g. https://hub.example.com)
+  url: ""
+
+nodeEnv: production
+
+otel:
+  enabled: false
+  endpoint: ""
+  protocol: grpc
+  serviceName: endatix-hub
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+nodeSelector: {}

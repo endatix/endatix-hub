@@ -1,0 +1,26 @@
+name: Publish Stable Artifacts
+
+# Thin consumer of endatix/release-workflows: fires when a human publishes the
+# reviewed draft release (that's when GitHub creates the vX.Y.Z tag).
+# promotion: rebuild — the Helm chart bakes its version into the packaged
+# artifact and cannot be retagged, so both the image and the chart are rebuilt
+# at the tagged commit and pushed to GHCR + Docker Hub (release scripts).
+# fetch-secrets provides the Docker Hub credentials via Infisical.
+# Canary prereleases are filtered out — build-ci.yml already shipped theirs.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  promote:
+    if: ${{ !github.event.release.prerelease }}
+    permissions:
+      contents: read
+      packages: write # GHCR image push + Helm chart push
+      id-token: write # OIDC for Infisical (fetch-secrets)
+    uses: endatix/release-workflows/.github/workflows/release-artifacts.yml@cca02534258a68b196f9295afe9fd855ad9eee83 # v1
+    with:
+      docker-image: ghcr.io/endatix/endatix-hub
+      promotion: rebuild # the chart bakes in its version — the image is rebuilt at the tag too
+      fetch-secrets: true # ENDATIX_DOCKERHUB_* via Infisical (prod)
