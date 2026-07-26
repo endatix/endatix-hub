@@ -52,7 +52,7 @@ export function SubmissionsFilterToolbar({
   return (
     <div className="flex items-center gap-2">
       <FacetedFilter
-        title="Is Complete"
+        title="Complete"
         options={isCompleteOptions}
         selectedValues={isCompleteFilter}
         onValueChange={onIsCompleteChange}

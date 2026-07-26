@@ -37,10 +37,10 @@ describe("submission table column definitions", () => {
       (col) => col.id === "submitterDisplayId",
     );
 
-    expect(displayIdColumn?.meta?.displayName).toBe("Submitter ID");
+    expect(displayIdColumn?.meta?.displayName).toBe("Submitter");
   });
 
-  it("includes Started at as a default system column with date filter support", () => {
+  it("includes Started as a default system column with date filter support", () => {
     const onDateFilterChange = vi.fn();
     const columns = buildSubmissionSystemColumns({
       dateFilters: {
@@ -52,7 +52,7 @@ describe("submission table column definitions", () => {
     });
     const startedAtColumn = columns.find((col) => col.id === "startedAt");
 
-    expect(startedAtColumn?.meta?.displayName).toBe("Started at");
+    expect(startedAtColumn?.meta?.displayName).toBe("Started");
     expect(startedAtColumn?.meta?.defaultHidden).not.toBe(true);
     expect(startedAtColumn).toEqual(
       expect.objectContaining({
@@ -62,6 +62,36 @@ describe("submission table column definitions", () => {
     );
   });
 
+  it("uses shortened system column headers for density", () => {
+    const columns = buildSubmissionSystemColumns();
+
+    expect(
+      columns.find((col) => col.id === "createdAt")?.meta?.displayName,
+    ).toBe("Created");
+    expect(
+      columns.find((col) => col.id === "complete")?.meta?.displayName,
+    ).toBe("Complete");
+    expect(
+      columns.find((col) => col.id === "completedAt")?.meta?.displayName,
+    ).toBe("Completed");
+    expect(
+      columns.find((col) => col.id === "completionTime")?.meta?.displayName,
+    ).toBe("Time");
+  });
+
+  it("shrink-wraps dense system columns and reserves min width for Status", () => {
+    const columns = buildSubmissionSystemColumns();
+
+    expect(
+      columns.find((col) => col.id === "complete")?.meta?.headerClassName,
+    ).toContain("w-[1%]");
+    expect(
+      columns.find((col) => col.id === "createdAt")?.meta?.cellClassName,
+    ).toContain("w-[1%]");
+    expect(
+      columns.find((col) => col.id === "status")?.meta?.headerClassName,
+    ).toContain("min-w-");
+  });
   it("uses humanized field names for dynamic form column labels and hides them by default", () => {
     const columns = buildSubmissionDataColumns([
       {

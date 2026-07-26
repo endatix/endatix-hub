@@ -1,10 +1,13 @@
+import { mockMatchMedia } from "@/__tests__/utils/mock-match-media";
 import {
   ColumnHeader,
   DateFilterControls,
+  getColumnHeaderChromeClassName,
+  getColumnHeaderTitleSwapClassName,
 } from "@/features/submissions/ui/table/column-header";
 import { ColumnVisibilityProvider } from "@/features/submissions/ui/table/column-visibility-context";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("DateFilterControls", () => {
   it("keeps date edits local until Apply is clicked", () => {
@@ -26,7 +29,52 @@ describe("DateFilterControls", () => {
   });
 });
 
+describe("getColumnHeaderChromeClassName", () => {
+  it("keeps chrome always visible when forceVisible is true", () => {
+    // Arrange & Act
+    const className = getColumnHeaderChromeClassName(true);
+
+    // Assert
+    expect(className).toBe("opacity-100");
+  });
+
+  it("hides chrome on md+ until hover or focus when inactive", () => {
+    // Arrange & Act
+    const className = getColumnHeaderChromeClassName(false);
+
+    // Assert
+    expect(className).toContain("md:opacity-0");
+    expect(className).toContain("md:pointer-events-none");
+    expect(className).toContain("md:group-hover:opacity-100");
+    expect(className).toContain("md:group-hover:pointer-events-auto");
+    expect(className).toContain("md:focus-within:opacity-100");
+    expect(className).toContain("opacity-100");
+  });
+});
+
+describe("getColumnHeaderTitleSwapClassName", () => {
+  it("hides the title when chrome is forced visible", () => {
+    expect(getColumnHeaderTitleSwapClassName(true)).toBe(
+      "opacity-0 pointer-events-none",
+    );
+  });
+
+  it("shows the title on md+ only until hover or focus", () => {
+    const className = getColumnHeaderTitleSwapClassName(false);
+
+    expect(className).toContain("opacity-0");
+    expect(className).toContain("md:opacity-100");
+    expect(className).toContain("md:group-hover:opacity-0");
+    expect(className).toContain("md:focus-within:opacity-0");
+  });
+});
+
 describe("ColumnHeader", () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+    localStorage.clear();
+  });
+
   function renderColumnHeader({
     isSorted = false,
   }: {
@@ -89,5 +137,57 @@ describe("ColumnHeader", () => {
     expect(
       screen.getByRole("button", { name: /created at column menu/i }),
     ).toBeDefined();
+  });
+
+  it("forces column menu chrome visible when sorted", () => {
+    // Arrange & Act
+    renderColumnHeader({ isSorted: "asc" });
+    const menuButton = screen.getByRole("button", {
+      name: /created at column menu/i,
+    });
+
+    // Assert
+    expect(menuButton.className).toContain("opacity-100");
+    expect(menuButton.className).not.toContain("md:opacity-0");
+  });
+
+  it("crossfades centered title with overlay chrome instead of stacking", () => {
+    const column = {
+      id: "complete",
+      getCanSort: () => true,
+      getIsSorted: () => false as const,
+      toggleSorting: vi.fn(),
+      clearSorting: vi.fn(),
+    };
+
+    const { container } = render(
+      <ColumnVisibilityProvider
+        formId="form-1"
+        defaultColumns={[{ id: "complete" }]}
+      >
+        <ColumnHeader
+          column={column as any}
+          title="Complete"
+          align="center"
+          titleContent={<span data-testid="complete-title">✓</span>}
+        />
+      </ColumnVisibilityProvider>,
+    );
+
+    const root = container.firstElementChild;
+    expect(root?.className).toContain("relative");
+    expect(root?.className).toContain("justify-center");
+    const title = screen.getByTestId("complete-title");
+    expect(title).toBeDefined();
+    expect(title.parentElement?.className).toContain(
+      "md:group-hover:opacity-0",
+    );
+    expect(
+      screen.getByRole("button", { name: /^sort complete$/i }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /complete column menu/i }),
+    ).toBeDefined();
+    expect(screen.queryByRole("button", { name: /^complete$/i })).toBeNull();
   });
 });

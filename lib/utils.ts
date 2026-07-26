@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { DateInput } from "./date-utils";
 
 /**
  * Merges class names using clsx and tailwind-merge. Comes with ShadCN/UI
@@ -52,14 +53,14 @@ export function parseDate(date: Date): Date | null {
   }
 }
 
-type ElapsedTimeFormat = "short" | "long";
+type ElapsedTimeFormat = "short" | "long" | "compact";
 
 /**
  * Calculates and formats the elapsed time between two dates
  * @param startedAt - The start date/time
  * @param completedAt - The end date/time
- * @param format - Format of the output string ("short" or "long"), defaults to "short"
- * @returns Formatted string of elapsed time in HH:MM:SS format, or "-" if invalid input
+ * @param format - `short` (HH:MM:SS), `long` (prose), or `compact` (`1m 41s`) for dense grids
+ * @returns Formatted elapsed time, or "-" if invalid input
  */
 export function getElapsedTimeString(
   startedAt?: Date,
@@ -82,6 +83,21 @@ export function getElapsedTimeString(
     return `${formattedHours}:${formattedMins}:${formattedSecs}`;
   }
 
+  if (format === "compact") {
+    const parts: string[] = [];
+    if (hours > 0) {
+      parts.push(`${hours}h`);
+    }
+    if (mins > 0) {
+      parts.push(`${mins}m`);
+    }
+    if (secs > 0 || parts.length === 0) {
+      parts.push(`${secs}s`);
+    }
+
+    return parts.join(" ");
+  }
+
   const formattedHours = hours.toString().padStart(1, "0");
   const formattedMins = mins.toString().padStart(1, "0");
   const formattedSecs = secs.toString().padStart(1, "0");
@@ -98,7 +114,7 @@ export function getElapsedTimeString(
  * Prefers API `startedAt` (first respondent save); falls back to `createdAt` for older payloads.
  */
 export function getSubmissionStartedAt(submission: {
-  startedAt?: Date | string | null;
+  startedAt?: DateInput;
   createdAt: Date | string;
 }): Date {
   if (submission.startedAt) {
@@ -115,7 +131,7 @@ export function getSubmissionStartedAt(submission: {
  * @returns Formatted date string, or the fallback message
  */
 export function getFormattedDate(
-  date?: Date | string | null,
+  date?: DateInput,
   fallbackMessage = "-",
 ): string {
   if (!date) {

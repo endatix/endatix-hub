@@ -1,3 +1,4 @@
+import { TruncatedId } from "@/components/common/truncated-id";
 import { DefinitionField, Submission } from "@/lib/endatix-api";
 import {
   QUESTION_REGISTRY,
@@ -5,6 +6,7 @@ import {
 } from "@/lib/questions/questions-registry";
 import { getSubmissionStartedAt } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
+import { CheckCircle2 } from "lucide-react";
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
 import { CellDate } from "./cell-date";
@@ -31,8 +33,10 @@ interface SubmissionSystemColumnsOptions {
 }
 
 const submitterPrimaryFilterLabel =
-  process.env.NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL?.trim() ||
-  "Submitter ID";
+  process.env.NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL?.trim() || "Submitter";
+
+/** Shrink-wrap column to content so leftover width goes to Status. */
+const SHRINK_WRAP = "w-[1%] whitespace-nowrap";
 
 export function buildSubmissionSystemColumns({
   dateFilters,
@@ -48,6 +52,8 @@ export function buildSubmissionSystemColumns({
       enableSorting: false,
       meta: {
         displayName: "Actions",
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -63,12 +69,15 @@ export function buildSubmissionSystemColumns({
       id: "createdAt",
       accessorKey: "createdAt",
       meta: {
-        displayName: "Created at",
+        displayName: "Created",
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
+          density="compact"
           dateFilter={
             dateFilters && onDateFilterChange
               ? {
@@ -86,13 +95,23 @@ export function buildSubmissionSystemColumns({
       id: "complete",
       accessorKey: "isComplete",
       meta: {
-        displayName: "Is Complete",
+        displayName: "Complete",
+        headerClassName: `${SHRINK_WRAP} text-center`,
+        cellClassName: `${SHRINK_WRAP} text-center`,
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
-          title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
+          density="compact"
+          align="center"
+          title="Complete"
+          titleContent={
+            <CheckCircle2
+              className="size-3.5 text-muted-foreground"
+              aria-hidden="true"
+            />
+          }
         />
       ),
       cell: ({ row }) => (
@@ -103,12 +122,15 @@ export function buildSubmissionSystemColumns({
       id: "startedAt",
       accessorKey: "startedAt",
       meta: {
-        displayName: "Started at",
+        displayName: "Started",
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
+          density="compact"
           dateFilter={
             dateFilters && onDateFilterChange
               ? {
@@ -126,12 +148,15 @@ export function buildSubmissionSystemColumns({
       id: "completedAt",
       accessorKey: "completedAt",
       meta: {
-        displayName: "Completed at",
+        displayName: "Completed",
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
+          density="compact"
           dateFilter={
             dateFilters && onDateFilterChange
               ? {
@@ -144,10 +169,7 @@ export function buildSubmissionSystemColumns({
         />
       ),
       cell: ({ row }) => (
-        <CellDate
-          date={row.original.completedAt}
-          visible={row.original.isComplete}
-        />
+        <CellDate date={row.original.completedAt} />
       ),
     },
     {
@@ -155,11 +177,14 @@ export function buildSubmissionSystemColumns({
       accessorKey: "submitterDisplayId",
       meta: {
         displayName: submitterPrimaryFilterLabel,
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
+          density="compact"
           textFilter={
             onSubmitterDisplayIdFilterChange
               ? {
@@ -173,7 +198,7 @@ export function buildSubmissionSystemColumns({
         />
       ),
       cell: ({ row }) => (
-        <span>{row.original.submitterDisplayId?.trim() || "N/A"}</span>
+        <TruncatedId id={row.original.submitterDisplayId ?? ""} />
       ),
     },
     ...buildSubmitterProfileColumns({
@@ -188,12 +213,15 @@ export function buildSubmissionSystemColumns({
             getSubmissionStartedAt(row).getTime()
           : -1,
       meta: {
-        displayName: "Completion Time",
+        displayName: "Time",
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
+          density="compact"
           title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
         />
       ),
@@ -209,11 +237,14 @@ export function buildSubmissionSystemColumns({
       accessorKey: "status",
       meta: {
         displayName: "Status",
+        headerClassName: "min-w-[7.5rem]",
+        cellClassName: "min-w-[7.5rem]",
       },
       header: ({ column }) => (
         <ColumnHeader
           column={column}
           isSorted={column.getIsSorted()}
+          density="compact"
           title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
         />
       ),
@@ -240,10 +271,13 @@ function buildSubmitterProfileColumns({
     enableSorting: false,
     meta: {
       displayName: humanizeFieldName(field),
+      headerClassName: SHRINK_WRAP,
+      cellClassName: SHRINK_WRAP,
     },
     header: ({ column }) => (
       <ColumnHeader
         column={column}
+        density="compact"
         textFilter={
           field.toLowerCase() === "email" && onSubmitterEmailFilterChange
             ? {

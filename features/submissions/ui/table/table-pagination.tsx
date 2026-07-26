@@ -19,16 +19,26 @@ interface TablePagination<TData> {
   readonly totalRows?: number;
 }
 
-export function TablePagination<TData>({ table, totalRows }: TablePagination<TData>) {
+export function TablePagination<TData>({
+  table,
+  totalRows,
+}: TablePagination<TData>) {
   return (
-    <div className="flex items-center justify-between border-t border-sidebar-border/50 px-4 py-3">
+    <div className="flex flex-col gap-3 border-t border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
       <div className="flex-1 text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length} of{" "}
-        {totalRows ?? table.getCoreRowModel().rows.length} row(s) selected.
+        <span className="sm:hidden">
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {totalRows ?? table.getCoreRowModel().rows.length} selected
+        </span>
+        <span className="hidden sm:inline">
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {totalRows ?? table.getCoreRowModel().rows.length} row(s) selected.
+        </span>
       </div>
-      <div className="flex items-center space-x-6 lg:space-x-8">
+      <div className="flex items-center justify-between gap-3 sm:justify-end sm:space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">Rows per page</p>
+          <p className="hidden text-sm font-medium sm:block">Rows per page</p>
+          <p className="text-sm font-medium sm:hidden">Rows</p>
           <Select
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={(value) => {
@@ -47,9 +57,14 @@ export function TablePagination<TData>({ table, totalRows }: TablePagination<TDa
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
+        <div className="flex w-auto items-center justify-center text-sm font-medium sm:w-[100px]">
+          <span className="sm:hidden">
+            {table.getState().pagination.pageIndex + 1}/{table.getPageCount()}
+          </span>
+          <span className="hidden sm:inline">
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
+          </span>
         </div>
         <div className="flex items-center space-x-2">
           <Button

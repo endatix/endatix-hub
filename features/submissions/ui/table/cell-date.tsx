@@ -1,28 +1,58 @@
-import { parseDate } from "@/lib/utils";
-import { useMemo } from "react";
+"use client";
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  formatCompactDateTime,
+  formatPreciseDateTime,
+  formatRelativeOrCompactDateTime,
+  toValidDate,
+} from "@/lib/date-utils";
+import { useEffect, useState } from "react";
 
 interface CellDateProps {
   date?: Date;
   visible?: boolean;
 }
 
-//TODO: Add a date formatting options
-export function CellDate({ date, visible = true }: CellDateProps) {
-  const parsedDate = useMemo(() => {
-    if (!date) {
-      return null;
-    }
-
-    return parseDate(date);
-  }, [date]);
-
-  if (!parsedDate) {
-    return visible ? (
-      <span className="font-normal text-muted-foreground">-</span>
-    ) : null;
+export function CellDate({ date, visible = true }: Readonly<CellDateProps>) {
+  if (!visible) {
+    return null;
   }
 
-  return visible ? (
-    <span className="font-normal">{parsedDate.toLocaleString("en-US")}</span>
-  ) : null;
+  const parsedDate = toValidDate(date ?? null);
+  if (parsedDate === null) {
+    return <span className="font-normal text-muted-foreground">-</span>;
+  }
+
+  return <CellDateValue date={parsedDate} />;
+}
+
+function CellDateValue({ date }: { readonly date: Date }) {
+  // SSR + first paint: compact absolute (UTC). After mount: relative when recent.
+  const [displayValue, setDisplayValue] = useState(() =>
+    formatCompactDateTime(date),
+  );
+  const preciseValue = formatPreciseDateTime(date);
+
+  useEffect(() => {
+    setDisplayValue(formatRelativeOrCompactDateTime(date, new Date()));
+  }, [date]);
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="font-normal whitespace-nowrap">{displayValue}</span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <span className="text-xs">{preciseValue}</span>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }

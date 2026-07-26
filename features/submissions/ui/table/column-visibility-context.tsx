@@ -1,6 +1,7 @@
 "use client";
 
 import { Submission } from "@/lib/endatix-api";
+import { useIsMobile } from "@/lib/utils/hooks/use-media-query.hook";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   createContext,
@@ -13,6 +14,7 @@ import {
   useState,
 } from "react";
 import { createColumnVisibilityStore } from "./column-visibility-store";
+import { withNarrowViewportDefaults } from "./narrow-viewport-columns";
 
 interface ColumnVisibilityContextType {
   columnVisibility: Record<string, boolean>;
@@ -33,10 +35,20 @@ interface ColumnVisibilityProviderProps<TData extends Submission = Submission> {
   readonly defaultColumns: ColumnDef<TData>[];
 }
 
+function visibilityEquals(
+  left: Record<string, boolean>,
+  right: Record<string, boolean>,
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function ColumnVisibilityProvider<
   TData extends Submission = Submission,
 >({ children, formId, defaultColumns }: ColumnVisibilityProviderProps<TData>) {
-  const defaultColumnVisibility = useMemo(() => {
+  const isMobile = useIsMobile();
+  const skipNextSaveRef = useRef(false);
+
+  const baseDefaultColumnVisibility = useMemo(() => {
     const visibility: Record<string, boolean> = {};
     defaultColumns.forEach((col) => {
       if (col.id && col.id !== "actions") {
@@ -46,9 +58,17 @@ export function ColumnVisibilityProvider<
     return visibility;
   }, [defaultColumns]);
 
+  const defaultColumnVisibility = useMemo(
+    () =>
+      withNarrowViewportDefaults(baseDefaultColumnVisibility, {
+        isNarrow: isMobile,
+      }),
+    [baseDefaultColumnVisibility, isMobile],
+  );
+
   const [columnVisibility, setColumnVisibilityState] = useState<
     Record<string, boolean>
-  >(defaultColumnVisibility);
+  >(baseDefaultColumnVisibility);
 
   const isFirstRender = useRef(true);
 
@@ -62,21 +82,35 @@ export function ColumnVisibilityProvider<
 
     if (saved && Object.keys(saved).length > 0) {
       const validVisibility: Record<string, boolean> = {};
-      Object.keys(defaultColumnVisibility).forEach((id) => {
+      Object.keys(baseDefaultColumnVisibility).forEach((id) => {
         if (id in saved) {
           validVisibility[id] = saved[id];
         } else {
-          validVisibility[id] = defaultColumnVisibility[id];
+          validVisibility[id] = baseDefaultColumnVisibility[id];
         }
       });
 
       setColumnVisibilityState((prev) =>
-        JSON.stringify(prev) === JSON.stringify(validVisibility)
-          ? prev
-          : validVisibility,
+        visibilityEquals(prev, validVisibility) ? prev : validVisibility,
       );
+      return;
     }
-  }, [formId, defaultColumnVisibility]);
+
+    const softDefaults = withNarrowViewportDefaults(
+      baseDefaultColumnVisibility,
+      {
+        isNarrow: isMobile,
+      },
+    );
+    setColumnVisibilityState((prev) => {
+      if (visibilityEquals(prev, softDefaults)) {
+        return prev;
+      }
+
+      skipNextSaveRef.current = true;
+      return softDefaults;
+    });
+  }, [formId, baseDefaultColumnVisibility, isMobile]);
 
   useEffect(() => {
     if (globalThis.window === undefined) {
@@ -85,6 +119,11 @@ export function ColumnVisibilityProvider<
 
     if (isFirstRender.current) {
       isFirstRender.current = false;
+      return;
+    }
+
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
       return;
     }
 
@@ -111,15 +150,23 @@ export function ColumnVisibilityProvider<
   }, []);
 
   const resetToDefault = useCallback(() => {
-    setColumnVisibilityState(defaultColumnVisibility);
     const store = createColumnVisibilityStore(formId);
     store.resetColumnVisibility();
-  }, [defaultColumnVisibility, formId]);
+    const next = withNarrowViewportDefaults(baseDefaultColumnVisibility, {
+      isNarrow: isMobile,
+    });
+    setColumnVisibilityState((prev) => {
+      if (visibilityEquals(prev, next)) {
+        return prev;
+      }
+
+      skipNextSaveRef.current = true;
+      return next;
+    });
+  }, [baseDefaultColumnVisibility, formId, isMobile]);
 
   const hasCustomVisibility = useMemo(
-    () =>
-      JSON.stringify(columnVisibility) !==
-      JSON.stringify(defaultColumnVisibility),
+    () => !visibilityEquals(columnVisibility, defaultColumnVisibility),
     [columnVisibility, defaultColumnVisibility],
   );
 

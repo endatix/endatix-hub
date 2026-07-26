@@ -42,7 +42,9 @@ describe("SubmissionsFilterToolbar", () => {
     );
 
     // Assert
-    expect(screen.getByRole("button", { name: /reset filters/i })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /reset filters/i }),
+    ).toBeDefined();
   });
 
   it("disables filter controls and reset when disabled", () => {
@@ -65,7 +67,7 @@ describe("SubmissionsFilterToolbar", () => {
 
     // Assert
     expect(
-      (screen.getByRole("button", { name: /is complete/i }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: /complete/i }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(
@@ -73,13 +75,18 @@ describe("SubmissionsFilterToolbar", () => {
         .disabled,
     ).toBe(true);
     expect(
-      (screen.getByRole("button", {
-        name: /submission type/i,
-      }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: /submission type/i,
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     expect(
-      (screen.getByRole("button", { name: /reset filters/i }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("button", {
+          name: /reset filters/i,
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
 });
