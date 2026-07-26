@@ -1,3 +1,4 @@
+import { mockMatchMedia } from "@/__tests__/utils/mock-match-media";
 import {
   ColumnHeader,
   DateFilterControls,
@@ -7,22 +8,6 @@ import {
 import { ColumnVisibilityProvider } from "@/features/submissions/ui/table/column-visibility-context";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-function mockMatchMedia(matches = false) {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: vi.fn().mockImplementation((query: string) => ({
-      matches,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-}
 
 describe("DateFilterControls", () => {
   it("keeps date edits local until Apply is clicked", () => {
@@ -192,12 +177,17 @@ describe("ColumnHeader", () => {
     const root = container.firstElementChild;
     expect(root?.className).toContain("relative");
     expect(root?.className).toContain("justify-center");
-    expect(screen.getByTestId("complete-title")).toBeDefined();
+    const title = screen.getByTestId("complete-title");
+    expect(title).toBeDefined();
+    expect(title.parentElement?.className).toContain(
+      "md:group-hover:opacity-0",
+    );
     expect(
-      screen.getByRole("button", { name: /^complete$/i }).className,
-    ).toContain("md:group-hover:opacity-0");
+      screen.getByRole("button", { name: /^sort complete$/i }),
+    ).toBeDefined();
     expect(
       screen.getByRole("button", { name: /complete column menu/i }),
     ).toBeDefined();
+    expect(screen.queryByRole("button", { name: /^complete$/i })).toBeNull();
   });
 });

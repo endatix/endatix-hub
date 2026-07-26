@@ -108,5 +108,17 @@ describe("date-utils", () => {
       // Arrange & Act & Assert
       expect(formatRelativeOrCompactDateTime(null, now)).toBe("-");
     });
+
+    it("uses compact absolute when now is omitted (SSR-safe default)", () => {
+      // Arrange
+      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+      // Act
+      const result = formatRelativeOrCompactDateTime(twoHoursAgo);
+
+      // Assert
+      expect(result).toMatch(/Jul/);
+      expect(result).not.toMatch(/hour/i);
+    });
   });
 });

@@ -114,15 +114,14 @@ const centerDragOverlayOnPointer: Modifier = ({
 };
 
 const getRowClassName = <TData extends Submission>(row: Row<TData>) => {
-  let className = "";
+  const classNames: string[] = [];
   if (row.getIsSelected()) {
-    className += ROW_CLASS_NAMES.selected;
+    classNames.push(ROW_CLASS_NAMES.selected);
   }
-  const submission = row.original;
-  if (submission.isComplete) {
-    className += ROW_CLASS_NAMES.complete;
+  if (row.original.isComplete) {
+    classNames.push(ROW_CLASS_NAMES.complete);
   }
-  return className || undefined;
+  return classNames.length > 0 ? classNames.join(" ") : undefined;
 };
 
 export function DataTable<TData extends Submission>({

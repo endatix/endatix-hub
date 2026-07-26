@@ -7,10 +7,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  formatCompactDateTime,
   formatPreciseDateTime,
   formatRelativeOrCompactDateTime,
   toValidDate,
 } from "@/lib/date-utils";
+import { useEffect, useState } from "react";
 
 interface CellDateProps {
   date?: Date;
@@ -27,8 +29,19 @@ export function CellDate({ date, visible = true }: Readonly<CellDateProps>) {
     return <span className="font-normal text-muted-foreground">-</span>;
   }
 
-  const displayValue = formatRelativeOrCompactDateTime(parsedDate);
-  const preciseValue = formatPreciseDateTime(parsedDate);
+  return <CellDateValue date={parsedDate} />;
+}
+
+function CellDateValue({ date }: { readonly date: Date }) {
+  // SSR + first paint: compact absolute (UTC). After mount: relative when recent.
+  const [displayValue, setDisplayValue] = useState(() =>
+    formatCompactDateTime(date),
+  );
+  const preciseValue = formatPreciseDateTime(date);
+
+  useEffect(() => {
+    setDisplayValue(formatRelativeOrCompactDateTime(date, new Date()));
+  }, [date]);
 
   return (
     <TooltipProvider delayDuration={200}>

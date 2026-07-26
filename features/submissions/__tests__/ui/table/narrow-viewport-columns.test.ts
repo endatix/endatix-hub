@@ -19,7 +19,6 @@ describe("withNarrowViewportDefaults", () => {
     // Arrange & Act
     const result = withNarrowViewportDefaults(visibility, {
       isNarrow: false,
-      respectUserPrefs: false,
     });
 
     // Assert
@@ -27,22 +26,10 @@ describe("withNarrowViewportDefaults", () => {
     expect(result).not.toBe(visibility);
   });
 
-  it("returns visibility unchanged when respecting user prefs", () => {
-    // Arrange & Act
-    const result = withNarrowViewportDefaults(visibility, {
-      isNarrow: true,
-      respectUserPrefs: true,
-    });
-
-    // Assert
-    expect(result).toEqual(visibility);
-  });
-
   it("soft-hides Started, Completed, and Time on narrow viewports", () => {
     // Arrange & Act
     const result = withNarrowViewportDefaults(visibility, {
       isNarrow: true,
-      respectUserPrefs: false,
     });
 
     // Assert
@@ -62,7 +49,6 @@ describe("withNarrowViewportDefaults", () => {
     // Act
     const result = withNarrowViewportDefaults(partial, {
       isNarrow: true,
-      respectUserPrefs: false,
     });
 
     // Assert

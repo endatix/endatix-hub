@@ -10,16 +10,15 @@ export type NarrowViewportHiddenColumnId =
 
 /**
  * Soft-hides lower-priority columns on narrow viewports.
- * Does nothing when `respectUserPrefs` is true (stored or user-customized View).
+ * Call only when applying soft defaults (no stored View prefs).
  */
 export function withNarrowViewportDefaults(
   visibility: Record<string, boolean>,
   options: {
     isNarrow: boolean;
-    respectUserPrefs: boolean;
   },
 ): Record<string, boolean> {
-  if (!options.isNarrow || options.respectUserPrefs) {
+  if (!options.isNarrow) {
     return { ...visibility };
   }
 

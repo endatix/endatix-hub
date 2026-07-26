@@ -2,7 +2,11 @@ export { CellCompleteStatus } from "./cell-complete-status";
 export { CellCompletionTime } from "./cell-completion-time";
 export { CellDate } from "./cell-date";
 export { CellReadStatus } from "./cell-read-status";
-export { ColumnHeader, getColumnHeaderChromeClassName } from "./column-header";
+export {
+  ColumnHeader,
+  getColumnHeaderChromeClassName,
+  getColumnHeaderTitleSwapClassName,
+} from "./column-header";
 export { ColumnOrderProvider, useColumnOrder } from "./column-order-context";
 export { ColumnViewOptionsDropdown } from "./column-view-options-dropdown";
 export {

@@ -1,26 +1,11 @@
+import { mockMatchMedia } from "@/__tests__/utils/mock-match-media";
 import {
   ColumnVisibilityProvider,
   useColumnVisibility,
 } from "@/features/submissions/ui/table/column-visibility-context";
 import { ColumnDef } from "@tanstack/react-table";
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-function mockMatchMedia(matches: boolean) {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: vi.fn().mockImplementation((query: string) => ({
-      matches,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-}
+import { beforeEach, describe, expect, it } from "vitest";
 
 function VisibilityProbe() {
   const { columnVisibility } = useColumnVisibility();

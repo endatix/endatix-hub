@@ -276,7 +276,6 @@ function CenterAlignedColumnHeader<TData, TValue>({
   textFilter,
   hasActiveFilter,
   isCompact,
-  forceChromeVisible,
   chromeClassName,
   titleSwapClassName,
   onHideColumn,
@@ -291,7 +290,6 @@ function CenterAlignedColumnHeader<TData, TValue>({
   readonly textFilter?: TextFilterConfig;
   readonly hasActiveFilter: boolean;
   readonly isCompact: boolean;
-  readonly forceChromeVisible: boolean;
   readonly chromeClassName: string;
   readonly titleSwapClassName: string;
   readonly onHideColumn: () => void;
@@ -307,31 +305,16 @@ function CenterAlignedColumnHeader<TData, TValue>({
         className,
       )}
     >
-      {canSort ? (
-        <button
-          type="button"
-          className={cn(
-            "flex cursor-pointer items-center justify-center rounded-md transition-opacity hover:bg-accent hover:text-accent-foreground",
-            sizeClassName,
-            titleSwapClassName,
-          )}
-          onClick={handleSortCycle}
-          aria-label={title}
-          tabIndex={forceChromeVisible ? -1 : undefined}
-        >
-          {titleLabel}
-        </button>
-      ) : (
-        <div
-          className={cn(
-            "flex items-center justify-center transition-opacity",
-            sizeClassName,
-            titleSwapClassName,
-          )}
-        >
-          {titleLabel}
-        </div>
-      )}
+      <div
+        className={cn(
+          "flex items-center justify-center transition-opacity",
+          sizeClassName,
+          titleSwapClassName,
+        )}
+        aria-hidden={canSort ? true : undefined}
+      >
+        {titleLabel}
+      </div>
       <div
         className={cn(
           "absolute inset-0 flex items-center justify-center transition-opacity",
@@ -514,7 +497,6 @@ export function ColumnHeader<TData, TValue>({
     return (
       <CenterAlignedColumnHeader
         {...sharedProps}
-        forceChromeVisible={forceChromeVisible}
         titleSwapClassName={titleSwapClassName}
       />
     );

@@ -35,11 +35,17 @@ interface ColumnVisibilityProviderProps<TData extends Submission = Submission> {
   readonly defaultColumns: ColumnDef<TData>[];
 }
 
+function visibilityEquals(
+  left: Record<string, boolean>,
+  right: Record<string, boolean>,
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function ColumnVisibilityProvider<
   TData extends Submission = Submission,
 >({ children, formId, defaultColumns }: ColumnVisibilityProviderProps<TData>) {
   const isMobile = useIsMobile();
-  const hasStoredPrefsRef = useRef(false);
   const skipNextSaveRef = useRef(false);
 
   const baseDefaultColumnVisibility = useMemo(() => {
@@ -56,7 +62,6 @@ export function ColumnVisibilityProvider<
     () =>
       withNarrowViewportDefaults(baseDefaultColumnVisibility, {
         isNarrow: isMobile,
-        respectUserPrefs: false,
       }),
     [baseDefaultColumnVisibility, isMobile],
   );
@@ -76,7 +81,6 @@ export function ColumnVisibilityProvider<
     const saved = store.getColumnVisibility();
 
     if (saved && Object.keys(saved).length > 0) {
-      hasStoredPrefsRef.current = true;
       const validVisibility: Record<string, boolean> = {};
       Object.keys(baseDefaultColumnVisibility).forEach((id) => {
         if (id in saved) {
@@ -87,27 +91,25 @@ export function ColumnVisibilityProvider<
       });
 
       setColumnVisibilityState((prev) =>
-        JSON.stringify(prev) === JSON.stringify(validVisibility)
-          ? prev
-          : validVisibility,
+        visibilityEquals(prev, validVisibility) ? prev : validVisibility,
       );
       return;
     }
 
-    hasStoredPrefsRef.current = false;
-    skipNextSaveRef.current = true;
     const softDefaults = withNarrowViewportDefaults(
       baseDefaultColumnVisibility,
       {
         isNarrow: isMobile,
-        respectUserPrefs: false,
       },
     );
-    setColumnVisibilityState((prev) =>
-      JSON.stringify(prev) === JSON.stringify(softDefaults)
-        ? prev
-        : softDefaults,
-    );
+    setColumnVisibilityState((prev) => {
+      if (visibilityEquals(prev, softDefaults)) {
+        return prev;
+      }
+
+      skipNextSaveRef.current = true;
+      return softDefaults;
+    });
   }, [formId, baseDefaultColumnVisibility, isMobile]);
 
   useEffect(() => {
@@ -127,12 +129,10 @@ export function ColumnVisibilityProvider<
 
     const store = createColumnVisibilityStore(formId);
     store.saveColumnVisibility(columnVisibility);
-    hasStoredPrefsRef.current = true;
   }, [formId, columnVisibility]);
 
   const setColumnVisibility = useCallback(
     (visibility: Record<string, boolean>) => {
-      hasStoredPrefsRef.current = true;
       setColumnVisibilityState(visibility);
     },
     [],
@@ -143,7 +143,6 @@ export function ColumnVisibilityProvider<
       return;
     }
 
-    hasStoredPrefsRef.current = true;
     setColumnVisibilityState((prev) => ({
       ...prev,
       [columnId]: !(prev[columnId] ?? true),
@@ -151,22 +150,23 @@ export function ColumnVisibilityProvider<
   }, []);
 
   const resetToDefault = useCallback(() => {
-    hasStoredPrefsRef.current = false;
-    skipNextSaveRef.current = true;
     const store = createColumnVisibilityStore(formId);
     store.resetColumnVisibility();
-    setColumnVisibilityState(
-      withNarrowViewportDefaults(baseDefaultColumnVisibility, {
-        isNarrow: isMobile,
-        respectUserPrefs: false,
-      }),
-    );
+    const next = withNarrowViewportDefaults(baseDefaultColumnVisibility, {
+      isNarrow: isMobile,
+    });
+    setColumnVisibilityState((prev) => {
+      if (visibilityEquals(prev, next)) {
+        return prev;
+      }
+
+      skipNextSaveRef.current = true;
+      return next;
+    });
   }, [baseDefaultColumnVisibility, formId, isMobile]);
 
   const hasCustomVisibility = useMemo(
-    () =>
-      JSON.stringify(columnVisibility) !==
-      JSON.stringify(defaultColumnVisibility),
+    () => !visibilityEquals(columnVisibility, defaultColumnVisibility),
     [columnVisibility, defaultColumnVisibility],
   );
 

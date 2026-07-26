@@ -5,6 +5,9 @@
 
 export const RELATIVE_DATE_CUTOFF_DAYS = 14;
 
+/** Fixed timezone for deterministic absolute SSR/client formatting on list surfaces. */
+export const HUB_LIST_DATE_TIMEZONE = "UTC";
+
 const MS_PER_SECOND = 1000;
 const MS_PER_MINUTE = 60 * MS_PER_SECOND;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
@@ -20,6 +23,7 @@ const compactDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
   hour12: true,
+  timeZone: HUB_LIST_DATE_TIMEZONE,
 });
 
 const preciseDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -30,6 +34,7 @@ const preciseDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
   second: "2-digit",
   hour12: true,
+  timeZone: HUB_LIST_DATE_TIMEZONE,
 });
 
 type DateInput = Date | string | null;
@@ -108,11 +113,14 @@ function formatRelativeWithinCutoff(dateValue: Date, now: Date): string | null {
 
 /**
  * Hybrid list/grid datetime: relative within {@link RELATIVE_DATE_CUTOFF_DAYS},
- * otherwise compact absolute. Pass `now` for deterministic tests.
+ * otherwise compact absolute.
+ *
+ * Pass `now` for relative formatting (tests and client-after-mount). When omitted,
+ * returns compact absolute only so SSR and the first client paint stay aligned.
  */
 export function formatRelativeOrCompactDateTime(
   date?: Date | string | null,
-  now: Date = new Date(),
+  now?: Date,
   fallbackMessage = "-",
 ): string {
   const dateValue = toValidDate(date);
@@ -120,9 +128,11 @@ export function formatRelativeOrCompactDateTime(
     return fallbackMessage;
   }
 
-  const relative = formatRelativeWithinCutoff(dateValue, now);
-  if (relative !== null) {
-    return relative;
+  if (now !== undefined) {
+    const relative = formatRelativeWithinCutoff(dateValue, now);
+    if (relative !== null) {
+      return relative;
+    }
   }
 
   return formatCompactDateTime(dateValue, fallbackMessage);
