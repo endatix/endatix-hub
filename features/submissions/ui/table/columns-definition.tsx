@@ -169,10 +169,7 @@ export function buildSubmissionSystemColumns({
         />
       ),
       cell: ({ row }) => (
-        <CellDate
-          date={row.original.completedAt}
-          visible={row.original.isComplete}
-        />
+        <CellDate date={row.original.completedAt} />
       ),
     },
     {
