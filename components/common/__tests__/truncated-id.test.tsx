@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { TruncatedId, truncateId } from "../common/truncated-id";
+import { TruncatedId, truncateId } from "@/components/common/truncated-id";
 
 const mockWriteText = vi.fn();
 Object.assign(navigator, {
