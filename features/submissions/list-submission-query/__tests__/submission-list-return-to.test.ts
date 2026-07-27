@@ -36,6 +36,31 @@ describe("submission list return-to", () => {
     expect(path).toContain("sort=createdAt%3Adesc");
   });
 
+  it("strips invalid sort segments when remembering return path", () => {
+    // Arrange
+    rememberSubmissionListReturnTo(
+      "form-1",
+      "page=2&sort=createdAt:desc,<script>:asc,status:nope",
+    );
+
+    // Act
+    const path = getSubmissionListReturnPath("form-1");
+
+    // Assert
+    expect(path).toBe("/forms/form-1/submissions?page=2&sort=createdAt%3Adesc");
+  });
+
+  it("does not keep sort when remembering an empty sort value", () => {
+    // Arrange
+    rememberSubmissionListReturnTo("form-1", "page=2&sort=");
+
+    // Act
+    const path = getSubmissionListReturnPath("form-1");
+
+    // Assert
+    expect(path).toBe("/forms/form-1/submissions?page=2");
+  });
+
   it("strips unknown query keys via list parser", () => {
     // Arrange
     rememberSubmissionListReturnTo(
