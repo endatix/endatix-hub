@@ -64,6 +64,7 @@ interface SubmissionsWithFiltersProps {
   initialCompletedAtTo?: string;
   initialSubmitterDisplayId?: string;
   initialSubmitterEmail?: string;
+  initialSorting?: SortingState;
   initialPage: number;
   initialPageSize: number;
   totalRecords: number;
@@ -71,6 +72,7 @@ interface SubmissionsWithFiltersProps {
 }
 
 const EMPTY_INITIAL_FILTER_VALUES: string[] = [];
+const EMPTY_INITIAL_SORTING: SortingState = [];
 const SUBMITTER_FILTER_DEBOUNCE_MS = 300;
 
 type NavigationMode = "push" | "replace";
@@ -84,6 +86,7 @@ interface UpdateSubmissionListUrlArgs {
   dates: SubmissionDateFilters;
   page: number;
   pageSize: number;
+  sorting: SortingState;
   navigation?: NavigationMode;
 }
 
@@ -327,6 +330,7 @@ export function SubmissionsWithFilters({
   initialCompletedAtTo,
   initialSubmitterDisplayId = "",
   initialSubmitterEmail = "",
+  initialSorting,
   initialPage,
   initialPageSize,
   totalRecords,
@@ -336,6 +340,7 @@ export function SubmissionsWithFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const resolvedInitialSorting = initialSorting ?? EMPTY_INITIAL_SORTING;
 
   useEffect(() => {
     rememberSubmissionListReturnTo(formId, searchParams.toString());
@@ -369,7 +374,7 @@ export function SubmissionsWithFilters({
       to: initialCompletedAtTo,
     },
   });
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>(resolvedInitialSorting);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: initialPage - 1,
     pageSize: initialPageSize,
@@ -381,6 +386,10 @@ export function SubmissionsWithFilters({
       pageSize: initialPageSize,
     });
   }, [initialPage, initialPageSize]);
+
+  useEffect(() => {
+    setSorting(resolvedInitialSorting);
+  }, [resolvedInitialSorting]);
 
   useEffect(() => {
     setIsCompleteFilter(new Set(initialIsComplete));
@@ -436,6 +445,7 @@ export function SubmissionsWithFilters({
     dates,
     page,
     pageSize,
+    sorting: nextSorting,
     navigation = "push",
   }: UpdateSubmissionListUrlArgs) => {
     clearPendingSubmitterFilterUpdate();
@@ -454,6 +464,7 @@ export function SubmissionsWithFilters({
       startedAtTo: dates.startedAt.to,
       completedAtFrom: dates.completedAt.from,
       completedAtTo: dates.completedAt.to,
+      sorting: nextSorting,
     });
     const queryString =
       serializeSubmissionListSearchParams(listState).toString();
@@ -485,6 +496,7 @@ export function SubmissionsWithFilters({
         dates: dateFilters,
         page: 1,
         pageSize: pagination.pageSize,
+        sorting,
         navigation: "replace",
       });
     }, SUBMITTER_FILTER_DEBOUNCE_MS);
@@ -506,6 +518,7 @@ export function SubmissionsWithFilters({
       dates: dateFilters,
       page: 1,
       pageSize: pagination.pageSize,
+      sorting,
     });
   };
 
@@ -521,6 +534,7 @@ export function SubmissionsWithFilters({
       dates: dateFilters,
       page: 1,
       pageSize: pagination.pageSize,
+      sorting,
     });
   };
 
@@ -536,6 +550,7 @@ export function SubmissionsWithFilters({
       dates: dateFilters,
       page: 1,
       pageSize: pagination.pageSize,
+      sorting,
     });
   };
 
@@ -558,6 +573,7 @@ export function SubmissionsWithFilters({
       dates: nextDateFilters,
       page: 1,
       pageSize: pagination.pageSize,
+      sorting,
     });
   };
 
@@ -591,11 +607,43 @@ export function SubmissionsWithFilters({
       dates: EMPTY_SUBMISSION_DATE_FILTERS,
       page: 1,
       pageSize: pagination.pageSize,
+      sorting,
+    });
+  };
+
+  const handleSortingChange: Dispatch<SetStateAction<SortingState>> = (
+    updater,
+  ) => {
+    const next = typeof updater === "function" ? updater(sorting) : updater;
+    setSorting(next);
+    updateURL({
+      isComplete: isCompleteFilter,
+      status: statusFilter,
+      isTestSubmission: testSubmissionFilter,
+      submitterDisplayId: submitterDisplayIdFilter,
+      submitterEmail: submitterEmailFilter,
+      dates: dateFilters,
+      page: pagination.pageIndex + 1,
+      pageSize: pagination.pageSize,
+      sorting: next,
+      navigation: "replace",
     });
   };
 
   const handleResetSorting = () => {
-    setSorting([]);
+    setSorting(EMPTY_INITIAL_SORTING);
+    updateURL({
+      isComplete: isCompleteFilter,
+      status: statusFilter,
+      isTestSubmission: testSubmissionFilter,
+      submitterDisplayId: submitterDisplayIdFilter,
+      submitterEmail: submitterEmailFilter,
+      dates: dateFilters,
+      page: pagination.pageIndex + 1,
+      pageSize: pagination.pageSize,
+      sorting: EMPTY_INITIAL_SORTING,
+      navigation: "replace",
+    });
   };
 
   const handlePaginationChange: Dispatch<SetStateAction<PaginationState>> = (
@@ -612,6 +660,7 @@ export function SubmissionsWithFilters({
       dates: dateFilters,
       page: next.pageIndex + 1,
       pageSize: next.pageSize,
+      sorting,
     });
   };
 
@@ -660,7 +709,7 @@ export function SubmissionsWithFilters({
           tableKey={tableKey}
           allColumns={allColumns}
           sorting={sorting}
-          onSortingChange={setSorting}
+          onSortingChange={handleSortingChange}
           onResetSorting={handleResetSorting}
           pagination={pagination}
           onPaginationChange={handlePaginationChange}

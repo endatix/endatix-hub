@@ -17,11 +17,11 @@ describe("submission list return-to", () => {
     );
   });
 
-  it("remembers and restores paging and filters", () => {
+  it("remembers and restores paging, filters, and sorting", () => {
     // Arrange
     rememberSubmissionListReturnTo(
       "form-1",
-      "page=2&pageSize=40&status=new&isComplete=true",
+      "page=2&pageSize=40&status=new&isComplete=true&sort=createdAt:desc",
     );
 
     // Act
@@ -33,6 +33,7 @@ describe("submission list return-to", () => {
     expect(path).toContain("pageSize=40");
     expect(path).toContain("status=new");
     expect(path).toContain("isComplete=true");
+    expect(path).toContain("sort=createdAt%3Adesc");
   });
 
   it("strips unknown query keys via list parser", () => {

@@ -3,6 +3,7 @@ import {
   SUBMISSION_LIST_DEFAULT_PAGE_SIZE,
   SUBMISSION_LIST_URL_SEARCH_PARAM_KEYS as searchParamKeys,
 } from "./submission-list-query.constants";
+import { serializeSubmissionListSorting } from "./parse-submission-list-search-params";
 import type { SubmissionListUrlState } from "./types";
 
 /**
@@ -56,6 +57,10 @@ export function serializeSubmissionListSearchParams(
   }
   if (state.submitterEmail) {
     params.set(searchParamKeys.submitterEmail, state.submitterEmail);
+  }
+  const sort = serializeSubmissionListSorting(state.sorting);
+  if (sort) {
+    params.set(searchParamKeys.sort, sort);
   }
 
   return params;

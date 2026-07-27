@@ -19,6 +19,8 @@ export {
   parseSubmissionListPage,
   parseSubmissionListPageSize,
   parseSubmissionListSearchParams,
+  parseSubmissionListSorting,
+  serializeSubmissionListSorting,
   submissionListUrlStateToListRequest,
 } from "./parse-submission-list-search-params";
 export type { SubmissionListCanonicalDateFields } from "./parse-submission-list-search-params";
@@ -35,5 +37,6 @@ export { serializeSubmissionListSearchParams } from "./serialize-submission-list
 export { submissionListUrlStateFromClientFilters } from "./submission-list-url-state-from-client";
 export type {
   SubmissionListRawSearchParams,
+  SubmissionListSortItem,
   SubmissionListUrlState,
 } from "./types";

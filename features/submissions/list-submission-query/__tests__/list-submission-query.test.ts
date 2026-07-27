@@ -108,6 +108,28 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
       "submitterEmail=external%40endatix.com",
     );
   });
+
+  it("round-trips sorting via the sort query param", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "createdAt:desc,status:asc",
+    });
+
+    expect(parsed.sorting).toEqual([
+      { id: "createdAt", desc: true },
+      { id: "status", desc: false },
+    ]);
+    expect(serializeSubmissionListSearchParams(parsed).toString()).toBe(
+      "sort=createdAt%3Adesc%2Cstatus%3Aasc",
+    );
+  });
+
+  it("drops invalid sort segments", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "createdAt:desc,<script>:asc,bad,status:sideways",
+    });
+
+    expect(parsed.sorting).toEqual([{ id: "createdAt", desc: true }]);
+  });
 });
 
 describe("buildSubmissionListPath", () => {
