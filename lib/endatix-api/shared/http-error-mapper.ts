@@ -15,10 +15,20 @@ export async function mapResponseToApiError<T>(
 
   const serverErrorCode = problemDetails?.errorCode;
 
-  const problemMessage = problemDetails?.detail ?? problemDetails?.title;
-  const message = problemDetails
-    ? getErrorMessageWithFallback(serverErrorCode, problemMessage)
-    : undefined;
+  const problemMessage = preferReadableProblemDetail(
+    response.status,
+    problemDetails?.detail ?? problemDetails?.title,
+  );
+  // Prefer the server's problem detail over a canned error-code message.
+  // When the body has no readable detail/title and no errorCode, leave message
+  // undefined so status-specific factories (e.g. conflictError) apply their own fallback.
+  let message: string | undefined;
+  if (problemDetails) {
+    message = problemMessage;
+    if (!message && serverErrorCode) {
+      message = getErrorMessageWithFallback(serverErrorCode);
+    }
+  }
 
   const enrichedDetails: ApiErrorDetails = {
     ...details,
@@ -43,6 +53,53 @@ export async function mapResponseToApiError<T>(
     detailsWithRetryAfter,
     problemDetails?.fields,
   );
+}
+
+/**
+ * Ardalis/Endatix Conflict results often format detail as:
+ * "Next error(s) occurred:* A submission already exists..."
+ * Prefer the concrete message after `*` for respondent-facing UI.
+ */
+function preferReadableProblemDetail(
+  status: number,
+  detail?: string,
+): string | undefined {
+  if (!detail) {
+    return undefined;
+  }
+
+  if (status === 409) {
+    const detailMessage = extractConflictDetailMessage(detail);
+    if (detailMessage) {
+      return detailMessage;
+    }
+  }
+
+  return detail.trim();
+}
+
+/**
+ * Extract the message after the first `*` up to the next `*` or line break.
+ * Uses a linear string scan (no regex) to avoid ReDoS and Sonar String.match.
+ */
+function extractConflictDetailMessage(detail: string): string | undefined {
+  const starIndex = detail.indexOf("*");
+  if (starIndex < 0) {
+    return undefined;
+  }
+
+  const afterStar = detail.slice(starIndex + 1);
+  let end = afterStar.length;
+  for (let i = 0; i < afterStar.length; i += 1) {
+    const ch = afterStar[i];
+    if (ch === "*" || ch === "\r" || ch === "\n") {
+      end = i;
+      break;
+    }
+  }
+
+  const message = afterStar.slice(0, end).trim();
+  return message.length > 0 ? message : undefined;
 }
 
 function parseRetryAfter(retryAfter: string | null): number | undefined {

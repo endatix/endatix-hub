@@ -67,7 +67,7 @@ describe("mapResponseToApiError", () => {
     }
 
     expect(result.error.type).toBe(ApiErrorType.ValidationError);
-    expect(result.error.message).toBe("The provided data is invalid.");
+    expect(result.error.message).toBe("Name is required.");
     expect(result.error.errorCode).toBe(ERROR_CODE.VALIDATION_ERROR);
     expect(result.error.fields).toEqual({
       name: ["Name is required."],

@@ -33,6 +33,10 @@ const HTTP_ERROR_PRESENTATION: Record<number, { title: string; type: string }> =
       title: "Not Found",
       type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
     },
+    409: {
+      title: "Conflict",
+      type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8",
+    },
     429: {
       title: "Too Many Requests",
       type: "https://datatracker.ietf.org/doc/html/rfc6585#section-4",
@@ -126,6 +130,8 @@ function getHttpStatusFromApiErrorType(errorType: ApiErrorType): number {
       return 403;
     case ApiErrorType.NotFoundError:
       return 404;
+    case ApiErrorType.ConflictError:
+      return 409;
     case ApiErrorType.ValidationError:
     case ApiErrorType.JsonParseError:
       return 400;
@@ -137,11 +143,14 @@ function getHttpStatusFromApiErrorType(errorType: ApiErrorType): number {
 }
 
 function mapApiErrorToErrorResponse(apiError: ApiError): ErrorResponse {
+  // Prefer the concrete API message when present. Canned error-code text is a
+  // fallback only — otherwise known codes like `unknown_error` wipe useful detail.
+  const detail =
+    apiError.error.message?.trim() ||
+    getErrorMessageWithFallback(apiError.error.errorCode);
+
   return {
-    detail: getErrorMessageWithFallback(
-      apiError.error.errorCode,
-      apiError.error.message,
-    ),
+    detail,
     errorCode: apiError.error.errorCode,
     fields: apiError.error.fields,
   };

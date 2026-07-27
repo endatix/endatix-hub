@@ -89,6 +89,7 @@ export default function SurveyComponent({
   useLoopAwareSummaryTable(surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
+  const originalCompletedHtmlRef = useRef<string | null>(null);
 
   const getSubmissionId = useCallback(() => {
     return stateRef.current.submissionId;
@@ -179,6 +180,10 @@ export default function SurveyComponent({
           runtimeToken,
         );
         if (ApiResult.isSuccess(result)) {
+          if (originalCompletedHtmlRef.current !== null) {
+            sender.completedHtml = originalCompletedHtmlRef.current;
+            originalCompletedHtmlRef.current = null;
+          }
           updateState({ submissionId: result.data.submissionId });
           onSubmitSuccess?.(result.data);
           event.showSaveSuccess("The results were saved successfully!");
@@ -195,6 +200,13 @@ export default function SurveyComponent({
             embedHeightReporting.freeze();
           }
 
+          // Keep showCompletePage true — SurveyJS renders showSaveError on the
+          // complete page. Hiding it leaves a blank screen (surveyjs#4865).
+          // Swap thank-you copy for a failure title; detail stays in the red banner.
+          if (originalCompletedHtmlRef.current === null) {
+            originalCompletedHtmlRef.current = sender.completedHtml ?? "";
+          }
+          sender.completedHtml = SUBMIT_FAILURE_COMPLETED_HTML;
           event.showSaveError(
             result.error.message ??
               "Failed to submit form. Please try again and contact us if the problem persists.",
@@ -301,3 +313,5 @@ function buildSubmissionData(
 
   return submissionData;
 }
+
+const SUBMIT_FAILURE_COMPLETED_HTML = "<h3>Failed to submit your form</h3>";
