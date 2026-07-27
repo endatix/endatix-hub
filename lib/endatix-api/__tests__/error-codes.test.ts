@@ -105,6 +105,7 @@ describe("ERROR_CODE", () => {
     expect(ERROR_CODE.AUTHENTICATION_REQUIRED).toBe("authentication_required");
     expect(ERROR_CODE.ACCESS_FORBIDDEN).toBe("access_forbidden");
     expect(ERROR_CODE.RESOURCE_NOT_FOUND).toBe("resource_not_found");
+    expect(ERROR_CODE.CONFLICT).toBe("conflict");
     expect(ERROR_CODE.RATE_LIMIT_EXCEEDED).toBe("rate_limit_exceeded");
     expect(ERROR_CODE.SERVER_ERROR).toBe("server_error");
     expect(ERROR_CODE.VALIDATION_ERROR).toBe("validation_error");
