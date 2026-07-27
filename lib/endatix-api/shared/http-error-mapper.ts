@@ -20,9 +20,15 @@ export async function mapResponseToApiError<T>(
     problemDetails?.detail ?? problemDetails?.title,
   );
   // Prefer the server's problem detail over a canned error-code message.
-  const message = problemDetails
-    ? (problemMessage ?? getErrorMessageWithFallback(serverErrorCode))
-    : undefined;
+  // When the body has no readable detail/title and no errorCode, leave message
+  // undefined so status-specific factories (e.g. conflictError) apply their own fallback.
+  let message: string | undefined;
+  if (problemDetails) {
+    message = problemMessage;
+    if (!message && serverErrorCode) {
+      message = getErrorMessageWithFallback(serverErrorCode);
+    }
+  }
 
   const enrichedDetails: ApiErrorDetails = {
     ...details,
