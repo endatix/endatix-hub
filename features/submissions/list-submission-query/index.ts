@@ -8,6 +8,11 @@
 export { buildSubmissionsTableKey } from "./build-submissions-table-key";
 export { buildSubmissionListPath } from "./build-submission-list-path";
 export {
+  clearSubmissionListReturnTo,
+  getSubmissionListReturnPath,
+  rememberSubmissionListReturnTo,
+} from "./submission-list-return-to";
+export {
   isCanonicalSubmissionListUrl,
   parseSubmissionListCalendarDate,
   parseSubmissionListFilterValues,

@@ -19,6 +19,7 @@ const navigationMocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/forms/form-1/submissions",
+  useSearchParams: () => new URLSearchParams("page=1&pageSize=10"),
   useRouter: () => ({
     push: navigationMocks.push,
     replace: navigationMocks.replace,

@@ -3,6 +3,7 @@
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import {
   buildSubmissionsTableKey,
+  rememberSubmissionListReturnTo,
   serializeSubmissionListSearchParams,
   submissionListUrlStateFromClientFilters,
 } from "@/features/submissions/list-submission-query";
@@ -34,7 +35,7 @@ import type {
   SortingState,
 } from "@tanstack/react-table";
 import type { Route } from "next";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Dispatch,
   SetStateAction,
@@ -225,7 +226,7 @@ function SubmissionsContent({
 
   return (
     <>
-      <div className="mt-8 mb-4 flex items-center justify-between gap-4">
+      <div className="mt-8 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <SubmissionsFilterToolbar
           isCompleteFilter={isCompleteFilter}
           statusFilter={statusFilter}
@@ -241,7 +242,7 @@ function SubmissionsContent({
             submitterEmailFilter.length > 0
           }
         />
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <div
             role="status"
             aria-live="polite"
@@ -333,7 +334,12 @@ export function SubmissionsWithFilters({
 }: SubmissionsWithFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    rememberSubmissionListReturnTo(formId, searchParams.toString());
+  }, [formId, searchParams]);
   const [isCompleteFilter, setIsCompleteFilter] = useState<Set<string>>(
     new Set(initialIsComplete),
   );
