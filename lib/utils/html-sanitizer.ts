@@ -183,6 +183,41 @@ const moderateSanitizationOptions: IOptions = {
 };
 
 /**
+ * Survey HTML sanitization preset - for the HTML-bearing survey properties
+ * (`html` questions, `completedHtml`, `completedHtmlOnCondition[].html`,
+ * `completedBeforeHtml`, `loadingHtml`).
+ *
+ * Same security posture as the moderate preset (identical schemes, attribute
+ * allow-list and link hardening), but authors use these properties to lay out
+ * whole blocks of content, so it additionally allows structural tags and a
+ * deeper nesting limit. The moderate preset's `nestingLimit: 3` is tuned for
+ * inline markdown output and would silently drop table cells and any emphasis
+ * nested more than three levels deep.
+ */
+const SURVEY_HTML_EXTRA_TAGS = [
+  "b",
+  "br",
+  "caption",
+  "col",
+  "colgroup",
+  "dd",
+  "div",
+  "dl",
+  "dt",
+  "figcaption",
+  "figure",
+  "hr",
+  "i",
+  "small",
+] as const;
+
+const surveyHtmlSanitizationOptions: IOptions = {
+  ...moderateSanitizationOptions,
+  allowedTags: [...ALLOWED_TAGS, ...SURVEY_HTML_EXTRA_TAGS],
+  nestingLimit: 12,
+};
+
+/**
  * Default sanitization options - uses moderate preset.
  * @internal This configuration is security-critical. Changes should be reviewed carefully.
  */
@@ -209,12 +244,14 @@ function sanitizeHtmlInline(dirtyHtml: string): string {
  * - `strict`: Minimal tags, maximum security (for untrusted input)
  * - `inline`: Phrasing content only, safe inside &lt;label&gt; (for titles, labels)
  * - `moderate`: Block + inline content (for descriptions, rich text)
+ * - `surveyHtml`: Moderate + structural tags, for HTML-bearing survey properties
  * - `pdf`: No tags, plain text only (for PDF export and non-DOM contexts)
  */
 export const sanitizationPresets = {
   strict: strictSanitizationOptions,
   inline: inlineSanitizationOptions,
   moderate: moderateSanitizationOptions,
+  surveyHtml: surveyHtmlSanitizationOptions,
   pdf: pdfSanitizationOptions,
 } as const;
 
