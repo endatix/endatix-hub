@@ -3,6 +3,12 @@ import type {
   SubmissionReviewStatus,
 } from "@/lib/endatix-api/submissions/types";
 
+/** One client-side table sort column (TanStack SortingState-compatible). */
+export type SubmissionListSortItem = {
+  id: string;
+  desc: boolean;
+};
+
 /**
  * The submission list URL state.
  * @param page - The page.
@@ -18,6 +24,7 @@ import type {
  * @param completedAtTo - The completed at to.
  * @param submitterDisplayId - The submitter display id filter.
  * @param submitterEmail - The submitter profile email filter.
+ * @param sorting - Client-side table sorting restored from the URL.
  */
 export type SubmissionListUrlState = {
   page: number;
@@ -33,6 +40,7 @@ export type SubmissionListUrlState = {
   completedAtTo?: string;
   submitterDisplayId?: string;
   submitterEmail?: string;
+  sorting: SubmissionListSortItem[];
 };
 
 /** Raw Next.js `searchParams` entry values (single string or repeated keys). */

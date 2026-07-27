@@ -108,6 +108,97 @@ describe("parseSubmissionListSearchParams + serializeSubmissionListSearchParams"
       "submitterEmail=external%40endatix.com",
     );
   });
+
+  it("defaults sorting to an empty array when sort is absent", () => {
+    expect(parseSubmissionListSearchParams({}).sorting).toEqual([]);
+  });
+});
+
+describe("submission list sorting URL state", () => {
+  it("round-trips sorting via the sort query param", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "createdAt:desc,status:asc",
+    });
+
+    expect(parsed.sorting).toEqual([
+      { id: "createdAt", desc: true },
+      { id: "status", desc: false },
+    ]);
+    expect(serializeSubmissionListSearchParams(parsed).toString()).toBe(
+      "sort=createdAt%3Adesc%2Cstatus%3Aasc",
+    );
+  });
+
+  it("parses underscore and hyphen column ids used by the grid", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "submitterDisplayId:asc,data_email:desc,submitterProfile_name:asc",
+    });
+
+    expect(parsed.sorting).toEqual([
+      { id: "submitterDisplayId", desc: false },
+      { id: "data_email", desc: true },
+      { id: "submitterProfile_name", desc: false },
+    ]);
+  });
+
+  it("trims whitespace around sort segments", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: " createdAt:desc , status:asc ",
+    });
+
+    expect(parsed.sorting).toEqual([
+      { id: "createdAt", desc: true },
+      { id: "status", desc: false },
+    ]);
+  });
+
+  it("drops invalid sort segments", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "createdAt:desc,<script>:asc,bad,status:sideways, :asc,:desc",
+    });
+
+    expect(parsed.sorting).toEqual([{ id: "createdAt", desc: true }]);
+  });
+
+  it("omits sort from serialized query when sorting is empty", () => {
+    const serialized = serializeSubmissionListSearchParams(
+      parseSubmissionListSearchParams({ page: "2" }),
+    ).toString();
+
+    expect(serialized).toBe("page=2");
+    expect(serialized).not.toContain("sort=");
+  });
+
+  it("does not include sorting in the list API request", () => {
+    const parsed = parseSubmissionListSearchParams({
+      page: "2",
+      sort: "createdAt:desc",
+    });
+
+    expect(submissionListUrlStateToListRequest(parsed)).not.toHaveProperty(
+      "sorting",
+    );
+    expect(submissionListUrlStateToListRequest(parsed)).not.toHaveProperty(
+      "sort",
+    );
+  });
+
+  it("preserves sorting alongside filters when round-tripping", () => {
+    const raw = {
+      page: "3",
+      status: "new",
+      sort: "completedAt:asc",
+    };
+    const parsed = parseSubmissionListSearchParams(raw);
+    const again = parseSubmissionListSearchParams(
+      Object.fromEntries(
+        new URLSearchParams(serializeSubmissionListSearchParams(parsed)),
+      ),
+    );
+
+    expect(again).toEqual(parsed);
+    expect(again.sorting).toEqual([{ id: "completedAt", desc: false }]);
+  });
 });
 
 describe("buildSubmissionListPath", () => {
@@ -122,6 +213,15 @@ describe("buildSubmissionListPath", () => {
     const state = parseSubmissionListSearchParams({ page: "2" });
     expect(buildSubmissionListPath("form-1", state)).toBe(
       "/forms/form-1/submissions?page=2",
+    );
+  });
+
+  it("includes sort in the path when sorting is set", () => {
+    const state = parseSubmissionListSearchParams({
+      sort: "createdAt:desc",
+    });
+    expect(buildSubmissionListPath("form-1", state)).toBe(
+      "/forms/form-1/submissions?sort=createdAt%3Adesc",
     );
   });
 });
@@ -214,6 +314,48 @@ describe("isCanonicalSubmissionListUrl", () => {
       }),
     ).toBe(true);
   });
+
+  it("is true when raw sort matches parsed sorting", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "createdAt:desc",
+    });
+
+    expect(
+      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
+        ...emptyDateBundle,
+        rawSort: "createdAt:desc",
+      }),
+    ).toBe(true);
+  });
+
+  it("is false when raw sort is invalid and parsed drops it", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "createdAt:nope",
+    });
+
+    expect(parsed.sorting).toEqual([]);
+    expect(
+      isCanonicalSubmissionListUrl(undefined, undefined, parsed, {
+        ...emptyDateBundle,
+        rawSort: "createdAt:nope",
+      }),
+    ).toBe(false);
+  });
+
+  it("is false when raw omits sort but parsed has sorting", () => {
+    const parsed = parseSubmissionListSearchParams({
+      sort: "createdAt:desc",
+    });
+
+    expect(
+      isCanonicalSubmissionListUrl(
+        undefined,
+        undefined,
+        parsed,
+        emptyDateBundle,
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("submissionListUrlStateFromClientFilters", () => {
@@ -235,5 +377,26 @@ describe("submissionListUrlStateFromClientFilters", () => {
     expect(state.createdAtFrom).toBe("2024-06-01");
     expect(state.createdAtTo).toBeUndefined();
     expect(state.submitterEmail).toBe("external@endatix.com");
+    expect(state.sorting).toEqual([]);
+  });
+
+  it("sanitizes client sorting the same way as URL parse", () => {
+    const state = submissionListUrlStateFromClientFilters({
+      page: 1,
+      pageSize: 10,
+      isComplete: new Set(),
+      status: new Set(),
+      isTestSubmission: new Set(),
+      sorting: [
+        { id: "createdAt", desc: true },
+        { id: "<script>", desc: false },
+        { id: "status", desc: false },
+      ],
+    });
+
+    expect(state.sorting).toEqual([
+      { id: "createdAt", desc: true },
+      { id: "status", desc: false },
+    ]);
   });
 });

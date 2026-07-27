@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
+import { getSubmissionListReturnPath } from "@/features/submissions/list-submission-query";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -26,8 +27,9 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { saveToFileHandler } from "survey-creator-core";
 import { StatusDropdownMenuItem } from "../../use-cases/change-status";
 import { DeleteSubmissionDialog } from "../../use-cases/delete-submission";
@@ -52,10 +54,15 @@ export function SubmissionDetailsHeader({
   const [jsonCopied, setJsonCopied] = useState(false);
   const [isShareLinksOpen, setIsShareLinksOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [listHref, setListHref] = useState(`/forms/${formId}/submissions`);
   const { data: session } = useSession();
   const { trackEvent } = useTrackEvent();
   const { viewOptions } = useSubmissionDetailsViewOptions();
   const { submission } = useSubmissionDetails();
+
+  useEffect(() => {
+    setListHref(getSubmissionListReturnPath(formId));
+  }, [formId]);
 
   const handleExportPdfClick = async () => {
     try {
@@ -131,7 +138,7 @@ export function SubmissionDetailsHeader({
             className="mr-2 data-[orientation=vertical]:h-4"
           />
           <Link
-            href={`/forms/${formId}/submissions`}
+            href={listHref as Route}
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 shrink-0" />

@@ -10,6 +10,7 @@ import {
 } from "./submission-list-query.constants";
 import type {
   SubmissionListRawSearchParams,
+  SubmissionListSortItem,
   SubmissionListUrlState,
 } from "./types";
 
@@ -95,6 +96,57 @@ export function parseSubmissionListFilterValues<T extends string>(
   return value.split(",").filter((item): item is T => allowedSet.has(item));
 }
 
+const SORT_COLUMN_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * Serializes sorting to the Hub URL `sort` value (`id:asc,id:desc`).
+ */
+export function serializeSubmissionListSorting(
+  sorting: readonly SubmissionListSortItem[],
+): string | undefined {
+  if (sorting.length === 0) {
+    return undefined;
+  }
+
+  return sorting
+    .map((item) => `${item.id}:${item.desc ? "desc" : "asc"}`)
+    .join(",");
+}
+
+/**
+ * Parses the Hub URL `sort` value into TanStack-compatible sorting.
+ * Invalid segments are dropped.
+ */
+export function parseSubmissionListSorting(
+  value: string | undefined,
+): SubmissionListSortItem[] {
+  if (!value) {
+    return [];
+  }
+
+  const sorting: SubmissionListSortItem[] = [];
+  for (const segment of value.split(",")) {
+    const trimmed = segment.trim();
+    const separatorIndex = trimmed.lastIndexOf(":");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const id = trimmed.slice(0, separatorIndex);
+    const direction = trimmed.slice(separatorIndex + 1);
+    if (!SORT_COLUMN_ID_PATTERN.test(id)) {
+      continue;
+    }
+    if (direction !== "asc" && direction !== "desc") {
+      continue;
+    }
+
+    sorting.push({ id, desc: direction === "desc" });
+  }
+
+  return sorting;
+}
+
 /**
  * Parses the search params from the URL.
  * @param searchParams - The search params to parse.
@@ -149,6 +201,9 @@ export function parseSubmissionListSearchParams(
     submitterEmail:
       firstString(searchParams[searchParamKeys.submitterEmail])?.trim() ||
       undefined,
+    sorting: parseSubmissionListSorting(
+      firstString(searchParams[searchParamKeys.sort]),
+    ),
   };
 }
 
@@ -210,6 +265,7 @@ export type SubmissionListCanonicalDateFields = {
   submitterDisplayId?: string;
   rawSubmitterEmail?: string;
   submitterEmail?: string;
+  rawSort?: string;
 };
 
 /**
@@ -235,9 +291,16 @@ export function isCanonicalSubmissionListUrl(
       ? rawPageSize === undefined
       : rawPageSize === String(parsed.pageSize);
 
+  const serializedSort = serializeSubmissionListSorting(parsed.sorting);
+  const canonicalSort =
+    serializedSort === undefined
+      ? rawDates.rawSort === undefined
+      : rawDates.rawSort === serializedSort;
+
   return (
     canonicalPage &&
     canonicalPageSize &&
+    canonicalSort &&
     rawDates.rawCreatedAtFrom === rawDates.createdAtFrom &&
     rawDates.rawCreatedAtTo === rawDates.createdAtTo &&
     rawDates.rawStartedAtFrom === rawDates.startedAtFrom &&

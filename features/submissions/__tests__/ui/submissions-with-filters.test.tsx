@@ -19,6 +19,7 @@ const navigationMocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/forms/form-1/submissions",
+  useSearchParams: () => new URLSearchParams("page=1&pageSize=10"),
   useRouter: () => ({
     push: navigationMocks.push,
     replace: navigationMocks.replace,
@@ -89,8 +90,25 @@ vi.mock("@/features/submissions/ui/table", () => ({
 }));
 
 vi.mock("@/features/submissions/ui/submissions-table", () => ({
-  default: ({ data }: { data: Submission[] }) => (
-    <div data-testid="submissions-table">Rows: {data.length}</div>
+  default: ({
+    data,
+    onSortingChange,
+  }: {
+    data: Submission[];
+    onSortingChange?: (updater: unknown) => void;
+  }) => (
+    <div data-testid="submissions-table">
+      <span>Rows: {data.length}</span>
+      <button
+        type="button"
+        onClick={() => onSortingChange?.([{ id: "createdAt", desc: true }])}
+      >
+        Sort createdAt desc
+      </button>
+      <button type="button" onClick={() => onSortingChange?.([])}>
+        Clear sorting
+      </button>
+    </div>
   ),
 }));
 
@@ -242,5 +260,52 @@ describe("SubmissionsWithFilters", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("writes sorting to the URL with replace navigation", () => {
+    render(
+      <SubmissionsWithFilters
+        data={[submission]}
+        formId="form-1"
+        hasAnySubmissions
+        initialPage={1}
+        initialPageSize={10}
+        totalRecords={1}
+        totalPages={1}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /sort createdat desc/i }),
+    );
+
+    expect(navigationMocks.push).not.toHaveBeenCalled();
+    expect(navigationMocks.replace).toHaveBeenCalledWith(
+      "/forms/form-1/submissions?sort=createdAt%3Adesc",
+      { scroll: false },
+    );
+  });
+
+  it("preserves existing sorting when resetting filters", () => {
+    render(
+      <SubmissionsWithFilters
+        data={[]}
+        formId="form-1"
+        hasAnySubmissions
+        initialStatus={["new"]}
+        initialSorting={[{ id: "createdAt", desc: true }]}
+        initialPage={1}
+        initialPageSize={10}
+        totalRecords={0}
+        totalPages={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /reset filters/i }));
+
+    expect(navigationMocks.push).toHaveBeenCalledWith(
+      "/forms/form-1/submissions?sort=createdAt%3Adesc",
+      { scroll: false },
+    );
   });
 });

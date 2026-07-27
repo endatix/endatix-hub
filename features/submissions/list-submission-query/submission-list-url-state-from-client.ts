@@ -5,8 +5,10 @@ import {
 import {
   parseSubmissionListCalendarDate,
   parseSubmissionListFilterValues,
+  parseSubmissionListSorting,
+  serializeSubmissionListSorting,
 } from "./parse-submission-list-search-params";
-import type { SubmissionListUrlState } from "./types";
+import type { SubmissionListSortItem, SubmissionListUrlState } from "./types";
 
 function sortedSetToCsv(set: Set<string>): string | undefined {
   const csv = Array.from(set)
@@ -34,6 +36,7 @@ export function submissionListUrlStateFromClientFilters(input: {
   completedAtTo?: string;
   submitterDisplayId?: string;
   submitterEmail?: string;
+  sorting?: readonly SubmissionListSortItem[];
 }): SubmissionListUrlState {
   return {
     page: input.page,
@@ -58,5 +61,8 @@ export function submissionListUrlStateFromClientFilters(input: {
     completedAtTo: parseSubmissionListCalendarDate(input.completedAtTo),
     submitterDisplayId: input.submitterDisplayId?.trim() || undefined,
     submitterEmail: input.submitterEmail?.trim() || undefined,
+    sorting: parseSubmissionListSorting(
+      serializeSubmissionListSorting(input.sorting ?? []),
+    ),
   };
 }

@@ -24,4 +24,5 @@ export const SUBMISSION_LIST_URL_SEARCH_PARAM_KEYS = Object.freeze({
   completedAtTo: "completedAtTo",
   submitterDisplayId: "submitterDisplayId",
   submitterEmail: "submitterEmail",
+  sort: "sort",
 } as const);

@@ -16,7 +16,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/loaders/spinner";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
+import { getSubmissionListReturnPath } from "@/features/submissions/list-submission-query";
 import { Result } from "@/lib/result";
+import type { Route } from "next";
 import { AlertTriangle } from "lucide-react";
 import { deleteSubmissionAction } from "../delete-submission.action";
 import {
@@ -126,7 +128,7 @@ export function DeleteSubmissionDialog({
       handleOpenChange(false);
 
       if (redirectToList) {
-        router.push(`/forms/${formId}/submissions`);
+        router.push(getSubmissionListReturnPath(formId) as Route);
         return;
       }
 
