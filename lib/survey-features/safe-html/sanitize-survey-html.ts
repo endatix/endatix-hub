@@ -53,7 +53,7 @@ export function installSurveyHtmlSanitizer(): void {
     | undefined;
 
   if (typeof originalProcessHtml !== "function") {
-    throw new Error(
+    throw new TypeError(
       "[safe-html] SurveyModel.prototype.processHtml is missing - survey-core changed its HTML rendering path. " +
         "Survey HTML would render unsanitized; update lib/survey-features/safe-html before upgrading.",
     );
