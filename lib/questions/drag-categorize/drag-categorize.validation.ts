@@ -1,6 +1,6 @@
 import { CustomError, SurveyError } from "survey-core";
-import type { DragCategorizePlacement } from "../types";
-import { isItemPlaced } from "../utils";
+import type { DragCategorizePlacement } from "./types";
+import { isItemPlaced } from "./utils";
 
 interface ItemLike {
   value: string;

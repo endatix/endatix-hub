@@ -3,6 +3,9 @@ import { Model, SurveyModel } from "survey-core";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+// Deep import, not the feature barrel: the barrel re-exports the Creator
+// bindings, which would pull survey-creator-core onto the respondent runner.
+import { registerDragCategorizeQuestion } from "@/lib/questions/drag-categorize/drag-categorize.component";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { applyVariablesToModel } from "../application/use-dynamic-variables.hook";
 import { questionLoaderModule } from "@/lib/questions/question-loader-module";
@@ -145,6 +148,10 @@ function initPublicSurveyRuntime(): void {
   }
 
   registerAudioQuestion();
+  // Registered synchronously, not left to the extension loader: SurveyJS
+  // drops elements whose type is unknown at parse time, and the loader
+  // resolves on a later tick than the `new SurveyModel(definition)` below.
+  registerDragCategorizeQuestion();
   addRandomizeGroupFeature();
   isPublicSurveyRuntimeInitialized = true;
 }

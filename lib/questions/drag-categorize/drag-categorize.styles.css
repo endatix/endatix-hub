@@ -33,15 +33,19 @@
   align-self: center;
 }
 
+/* Grid (not wrapping flex) so every zone gets the same width even when
+   they span multiple rows — unequal zone sizes could bias respondents. */
 .sv-categorize__zones {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(var(--sv-categorize-zone-min-width, 180px), 1fr)
+  );
   gap: calc(var(--base-unit, 8px) * 2);
   margin-top: calc(var(--base-unit, 8px) * 2);
 }
 
 .sv-categorize__zone {
-  flex: 1 1 180px;
   min-height: 120px;
   padding: calc(var(--base-unit, 8px) * 1.5);
   border: 2px dashed var(--sjs-border-default, #d6d6d6);
@@ -91,10 +95,13 @@
   left: auto;
 }
 
-/* Chip base — sv-ranking-item theme styles apply on top when present. */
+/* Chip base — sv-ranking-item theme styles apply on top when present.
+   max-width caps the chip at its zone's inner width so long labels wrap
+   instead of overflowing the zone. */
 .sv-categorize__item {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   padding: calc(var(--base-unit, 8px) * 0.75) calc(var(--base-unit, 8px) * 1.5);
   border: 1px solid var(--sjs-border-default, #d6d6d6);
   border-radius: calc(var(--base-unit, 8px) * 0.5);
@@ -133,8 +140,23 @@
   gap: calc(var(--base-unit, 8px) * 0.75);
 }
 
-.sv-categorize__item-text {
+/* Image with a caption: label sits under the image, as in image picker. */
+.sv-categorize__item-content--captioned {
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--base-unit, 8px) * 0.5);
+  text-align: center;
+}
+
+/* The theme's .sv-ranking-item__text forces single-line text
+   (white-space: nowrap + hidden overflow); let chip labels wrap within
+   the zone-capped chip instead. */
+.sv-categorize__item .sv-categorize__item-text {
   color: var(--sjs-general-forecolor, rgba(0, 0, 0, 0.91));
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
 }
 
 /* Floating clone that follows the pointer during a drag. Deliberately

@@ -25,11 +25,16 @@ survey features. Wire through `ExtensionModule` + `core-registry.ts` (or
 
 ## 1. Decide scope
 
-| Kind | `type` | Registry | Example |
-|------|--------|----------|---------|
-| Behavior on existing question types (tagbox, dropdown, …) | `feature` | `core-registry.ts` | blind-search-tagbox |
-| New question type or ComponentCollection | `question` | `user-extensions.ts` or core | hello-world, country |
-| Always-on expression / formatting helper | `feature` + `static` | `core-registry.ts` | expression-formatting |
+| Kind | Where the code lives | `type` | Registry | Example |
+|------|----------------------|--------|----------|---------|
+| Behavior on existing question types (tagbox, dropdown, …) | `lib/survey-features/{feature}/` | `feature` | `core-registry.ts` | blind-search-tagbox |
+| Always-on expression / formatting helper | `lib/survey-features/{feature}/` | `feature` + `static` | `core-registry.ts` | expression-formatting |
+| **Code-owned question type** | **`lib/questions/{question}/`** | `question` | `core-registry.ts` (adapter) | audio-recorder, drag-categorize |
+| Self-hosted / JSON ComponentCollection question | `hub/extensions/questions/` | `question` | `user-extensions.ts` | hello-world, country |
+
+**A new question type is not a survey feature.** `survey-features/` is for behavior
+layered onto question types SurveyJS already ships. A question type you own in code
+is a standalone unit that must render on **every** surface — see §11.
 
 **Not in scope here:** API-persisted custom questions (`createCustomQuestionAction`),
 `hub/customizations/` (deprecated — see h709), or vertical slices under
@@ -244,13 +249,41 @@ The hub has two pre-wired upload paths. **Do not add a new `onUploadFile` / `onU
 
 `form-editor.tsx` calls `registerStorageHandlers(creator)` from `useStorageWithCreator`, which registers `creator.onUploadFile` via `useContentUpload`. This handler intercepts **all** file uploads triggered by the Creator UI — including property-level image pickers.
 
-**What you must do:** Declare image properties with `type: "image"` in `Serializer.addClass` / `Serializer.addProperty`. No other wiring is needed; the existing handler picks them up automatically.
+**What you must do:** Declare image properties with **`type: "file"`** in `Serializer.addClass` / `Serializer.addProperty`. No other wiring is needed; the existing handler picks them up automatically.
 
 ```typescript
 Serializer.addClass("myquestionitem", [
-  { name: "imageUrl", type: "image", displayName: "Image" },
+  { name: "imageUrl", type: "file", displayName: "Image" },
 ], ...);
 ```
+
+> **Use `file`, not `image`.** The Creator picks a property editor by matching
+> the property type: `PropertyGridLinkEditor.fit` accepts `"file"` and `"url"`
+> and renders a `fileedit` control (Select File button + URL field) with
+> `storeDataAsText: false`, which is what routes the upload through
+> `creator.onUploadFile`. This is the type SurveyJS uses for its own image
+> properties — image picker choices are declared `imageLink:file`. An
+> unrecognized type such as `"image"` does not error; the property grid
+> silently falls back to a plain text box with no upload button, so assert the
+> property type in a registry test.
+
+**On a collection item (a `choices`-style array), add `showMode: "form"`:**
+
+```typescript
+Serializer.addClass("myquestionitem", [
+  { name: "imageUrl", type: "file", displayName: "Image", showMode: "form" },
+], ...);
+```
+
+A property-grid **matrix cell cannot host the `fileedit` control**. Left as a
+table column, the property degrades to `cellType: "text"` — the placeholder
+("Select a file or paste a file link…") still renders, so it looks like a file
+input, but there is no Select File button and the only way to set a value is
+pasting a URL. `showMode: "form"` excludes the property from the columns and
+places it in the row's expanded detail panel, where it becomes a real question
+and gets the full editor. Verify with a Creator test that asserts the property
+is absent from `propertyGrid.getQuestionByName("choices").columns` and present
+in the row detail panel with type `fileedit`.
 
 Relevant files:
 - `features/asset-storage/use-cases/upload-content-files/use-content-upload.hook.tsx` — registers `creator.onUploadFile`
@@ -315,3 +348,83 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 - [lib/survey-extensions/README.md](lib/survey-extensions/README.md) — loader, server analyzer, authorized extensions
 - [extensions/README.md](extensions/README.md) — self-hosted custom extensions
 - [h709-extensions-framework-first-class-plan.md](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) — experimental flag removal, customizations sunset, unified designer bootstrap
+
+---
+
+## 11. Code-owned question types (`lib/questions/`)
+
+A question type you implement in code is **not** a survey feature. It lives in
+`lib/questions/{question}/` and owns every surface its answers appear on.
+Canonical example: [lib/questions/drag-categorize](lib/questions/drag-categorize)
+(see also the older [audio-recorder](lib/questions/audio-recorder)).
+
+### Surfaces you must cover
+
+An answer that renders in the runner but nowhere else is an incomplete question.
+Each of these needs an explicit case — the fallbacks print raw JSON:
+
+| Surface | Wire-up |
+|---------|---------|
+| Runner / previews / read-only submission survey | `registerXQuestion()` — model + `ReactQuestionFactory` |
+| Designer | `registerXQuestionUI()` + `bindXToCreator(creator)` |
+| Submission details | component in the question folder + case in `features/submissions/ui/answers/answer-viewer.tsx` |
+| PDF export | model-only registration in `preparePdfModel` + case in `features/pdf-export/submission/pdf-answer-viewer.tsx` |
+| Submission grid | entry in `lib/questions/questions-registry.ts` (`QuestionType` + `supportedInGrid`) |
+| Private-storage images | collect item URLs in `collect-model-storage-assets.ts` |
+
+### Split registration by surface
+
+Keep **model registration free of React**. The PDF pipeline is server-side and
+must be able to register the question without pulling `survey-react-ui` or a
+stylesheet into a server bundle:
+
+```typescript
+// x.registry.ts      — Serializer + QuestionFactory only. Server-safe.
+export function registerXModel(): void { … }
+
+// x.component.tsx    — calls registerXModel(), then ReactQuestionFactory
+export function registerXQuestion(): void { … }
+
+// x.creator.ts       — calls registerXQuestion(), then icon + pehelp
+export function registerXQuestionUI(): void { … }
+export function bindXToCreator(creator: SurveyCreatorModel): void { … }
+```
+
+The `index.ts` barrel re-exports the client entry points only; server callers
+deep-import `x.registry`. State this in the barrel's doc comment.
+
+### Opting into survey features (carry forward, …)
+
+Features in `survey-features/` that attach Serializer metadata to question
+types keep a built-in type list (e.g. `CARRY_FORWARD_QUESTION_TYPES`). **Do not
+add a code-owned question type to that list.** Feature extensions load
+`static`ally while custom-question extensions load `dynamic`ally, so the
+feature always initializes first — and `Serializer.addProperty` against a class
+that is not registered yet is silently discarded and *not* recovered when the
+class appears later.
+
+Instead the feature exposes a per-type opt-in that the question calls from its
+own model registration, right after `Serializer.addClass`:
+
+```typescript
+export function registerXModel(): void {
+  if (!Serializer.findClass(X_TYPE)) { Serializer.addClass(X_TYPE, …); }
+  registerCarryForwardForQuestionType(X_TYPE); // class provably exists here
+  QuestionFactory.Instance.registerQuestion(X_TYPE, …);
+}
+```
+
+Import the opt-in from the feature's module rather than its barrel so a
+server-safe registry stays free of UI code. When adding this capability to a
+new feature, keep its built-in list on its existing code path and have the
+one-time-init guard assert only over that list — an opted-in type must not be
+able to make the guard think metadata went missing.
+
+### Extensions register, they do not own
+
+Question types may still have an `ExtensionModule` in the question folder and an
+entry in `core-registry.ts` — that buys code-splitting and per-form loading. Keep
+the module a thin adapter over the question's own entry points. Surfaces the
+loader cannot reach (server-side PDF export, `submission-survey.tsx`) call the
+question's registration directly, and `ENDATIX_ENABLE_EXTENSIONS` gates only the
+extension-served surfaces.

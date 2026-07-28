@@ -34,6 +34,7 @@ import TagBoxAnswer from "./tagbox-answer";
 import BooleanAnswer from "./boolean-answer";
 import CustomAnswer from "./custom-answer";
 import { AudioPlayer } from "@/lib/questions/audio-recorder/audio-player";
+import { DragCategorizeAnswer } from "@/lib/questions/drag-categorize/drag-categorize.answer";
 import TextAnswer from "./text-answer";
 
 export interface ViewAnswerProps
@@ -158,6 +159,10 @@ const AnswerViewer = ({
     </div>
   );
 
+  const renderDragCategorizeAnswer = () => (
+    <DragCategorizeAnswer question={forQuestion} className={className} />
+  );
+
   const renderUnknownAnswer = () => (
     <UnknownAnswerViewer forQuestion={forQuestion} className={className} />
   );
@@ -198,6 +203,8 @@ const AnswerViewer = ({
       return renderTagBoxAnswer();
     case QuestionType.AudioRecorder:
       return renderAudioRecorderAnswer();
+    case QuestionType.DragCategorize:
+      return renderDragCategorizeAnswer();
     default:
       return renderUnknownAnswer();
   }

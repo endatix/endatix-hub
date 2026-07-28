@@ -27,7 +27,7 @@ import {
 import {
   DRAG_CATEGORIZE_EXTENSION_ID,
   DRAG_CATEGORIZE_TYPE,
-} from "@/lib/survey-features/drag-categorize/constants";
+} from "@/lib/questions/drag-categorize/constants";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
 export {
@@ -116,7 +116,7 @@ export const coreExtensions: ExtensionDefinition[] = [
     shouldLoad: (_, analyzer) =>
       analyzer.usesQuestionType(DRAG_CATEGORIZE_TYPE),
     load: () =>
-      import("@/lib/survey-features/drag-categorize").then(
+      import("@/lib/questions/drag-categorize/drag-categorize.extension").then(
         (module) => module.dragCategorizeExtension,
       ),
     metadata: {

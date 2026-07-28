@@ -3,6 +3,9 @@
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
+// Deep import, not the feature barrel: the barrel re-exports the Creator
+// bindings, which this read-only surface has no use for.
+import { registerDragCategorizeQuestion } from "@/lib/questions/drag-categorize/drag-categorize.component";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
@@ -18,6 +21,9 @@ import { Survey, SurveyModel } from "survey-react-ui";
 import { useSurveyModel } from "./use-survey-model.hook";
 
 registerAudioQuestion();
+// This surface does not run the extension loader, so the question type is
+// registered directly.
+registerDragCategorizeQuestion();
 addRandomizeGroupFeature();
 
 interface SubmissionSurveyProps {

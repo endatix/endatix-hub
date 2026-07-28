@@ -1,5 +1,5 @@
 import { DragDropRankingSelectToRank } from "survey-core";
-import type { DragCategorizeQuestion } from "./drag-categorize-question.model";
+import type { DragCategorizeQuestion } from "./drag-categorize.model";
 
 /**
  * N-zone drag controller. Extends the SurveyJS select-to-rank engine to keep
@@ -33,8 +33,16 @@ export class DragDropCategorize extends DragDropRankingSelectToRank {
       shortcutYOffset?: number;
     };
     shortcut.className = "sv-categorize-shortcut";
-    shortcut.appendChild(draggedElementNode.cloneNode(true));
+    const clone = draggedElementNode.cloneNode(true) as HTMLElement;
     const rect = draggedElementNode.getBoundingClientRect();
+    if (rect.width > 0) {
+      // Pin the clone to the source chip's laid-out width so wrapped text
+      // keeps its line breaks instead of stretching to a single line in the
+      // unconstrained floating container.
+      clone.style.width = `${rect.width}px`;
+      clone.style.boxSizing = "border-box";
+    }
+    shortcut.appendChild(clone);
     shortcut.shortcutXOffset = event.clientX - rect.x;
     shortcut.shortcutYOffset = event.clientY - rect.y;
     return shortcut;

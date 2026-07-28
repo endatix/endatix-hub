@@ -1,14 +1,17 @@
 import React from "react";
+import type { Base } from "survey-core";
 import {
   ReactQuestionFactory,
   SurveyQuestionElementBase,
 } from "survey-react-ui";
-import { DRAG_CATEGORIZE_TYPE, POOL_ZONE_ID } from "../constants";
-import type { DragCategorizeQuestion } from "./drag-categorize-question.model";
+import { DRAG_CATEGORIZE_TYPE, POOL_ZONE_ID } from "./constants";
+import type { DragCategorizeQuestion } from "./drag-categorize.model";
+import { registerDragCategorizeModel } from "./drag-categorize.registry";
+import { getDisplayLabel } from "./utils";
 import type {
   DragCategorizeItemValue,
   DragCategorizeZoneItemValue,
-} from "./item-values";
+} from "./drag-categorize.item-values";
 import "./drag-categorize.styles.css";
 
 /**
@@ -23,6 +26,26 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
     return this.questionBase as unknown as DragCategorizeQuestion;
   }
 
+  /**
+   * Items and zones are ItemValue objects, so editing them in the Creator's
+   * property grid changes no property of the question itself and nothing tells
+   * this component to re-render — an image, a renamed zone or a changed
+   * capacity would only appear once something else redrew the canvas, such as
+   * selecting a different element.
+   *
+   * SurveyJS solves this by giving each choice its own component subscribed to
+   * that item (see SurveyQuestionImagePickerItem.getStateElement). Chips are
+   * rendered inline here, so the question component subscribes to them all.
+   */
+  protected getStateElements(): Base[] {
+    const question = this.question;
+    return [
+      ...super.getStateElements(),
+      ...question.visibleChoices,
+      ...question.zones,
+    ];
+  }
+
   protected renderElement(): React.JSX.Element {
     const question = this.question;
     return (
@@ -33,7 +56,14 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
         }}
       >
         {this.renderPool()}
-        <div className="sv-categorize__zones">
+        <div
+          className="sv-categorize__zones"
+          style={
+            {
+              "--sv-categorize-zone-min-width": `${question.zoneMinWidth}px`,
+            } as React.CSSProperties
+          }
+        >
           {question.zones.map((zone) => this.renderZone(zone))}
         </div>
       </div>
@@ -71,7 +101,9 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
         data-categorize={zoneId}
       >
         <div className="sv-categorize__zone-title">
-          {zone.text || zoneId}
+          {/* Localizable strings live outside the property hash, so they need
+              their own subscribed viewer to stay live while editing. */}
+          {this.renderLocString(zone.locText)}
         </div>
         <div className="sv-categorize__zone-body">
           {question
@@ -90,6 +122,17 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
         )}
       </div>
     );
+  }
+
+  /**
+   * Caption for an image item: the authored label, or "" when the scripter
+   * left it blank or the question has labels turned off.
+   */
+  private getItemCaption(item: DragCategorizeItemValue): string {
+    if (!this.question.showItemLabels) {
+      return "";
+    }
+    return getDisplayLabel(item);
   }
 
   private renderItem(
@@ -135,17 +178,32 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
             : undefined
         }
       >
-        <div className="sv-ranking-item__content sv-categorize__item-content">
+        <div
+          className={`sv-ranking-item__content sv-categorize__item-content${
+            item.imageUrl && this.getItemCaption(item)
+              ? " sv-categorize__item-content--captioned"
+              : ""
+          }`}
+        >
           {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt={item.text}
-              className="sv-categorize__item-img"
-              draggable={false}
-            />
+            <>
+              <img
+                src={item.imageUrl}
+                // Empty alt when no label was authored: the fallback would be
+                // the item's value ("item1"), which is meaningless to read out.
+                alt={getDisplayLabel(item)}
+                className="sv-categorize__item-img"
+                draggable={false}
+              />
+              {this.getItemCaption(item) && (
+                <span className="sv-ranking-item__text sv-categorize__item-text">
+                  {this.renderLocString(item.locText)}
+                </span>
+              )}
+            </>
           ) : (
             <span className="sv-ranking-item__text sv-categorize__item-text">
-              {item.text}
+              {this.renderLocString(item.locText)}
             </span>
           )}
         </div>
@@ -154,7 +212,15 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
   }
 }
 
-export function registerDragCategorizeComponent(): void {
+/**
+ * Registers the question for any DOM surface: respondent runner, form and
+ * template previews, and the read-only submission survey. Registers the
+ * model first, so callers never need both.
+ *
+ * Designer surfaces should call registerDragCategorizeQuestionUI instead.
+ */
+export function registerDragCategorizeQuestion(): void {
+  registerDragCategorizeModel();
   ReactQuestionFactory.Instance.registerQuestion(
     DRAG_CATEGORIZE_TYPE,
     (props) => React.createElement(DragCategorizeComponent, props),

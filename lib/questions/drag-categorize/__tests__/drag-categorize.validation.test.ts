@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateZoneConstraints } from "../use-cases/validate-zones";
+import { validateZoneConstraints } from "../drag-categorize.validation";
 
 const items = [{ value: "item_1" }, { value: "item_2" }];
 const zones = [

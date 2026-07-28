@@ -9,6 +9,12 @@ import {
   CARRY_FORWARD_QUESTION_TYPES,
   CARRY_FORWARD_SOURCES_PROPERTY,
 } from "../constants";
+import {
+  addSupportedCarryForwardQuestionType,
+  getSupportedCarryForwardQuestionTypes,
+  isSupportedCarryForwardQuestionType,
+  resetOptedInCarryForwardQuestionTypesForTests,
+} from "../supported-question-types";
 import type { CarryForwardVisibleQuestion } from "../types";
 
 const CARRY_FORWARD_PROPERTY_NAMES = [
@@ -161,28 +167,33 @@ function patchInlineChoicesVisibility(property: SerializerProperty): void {
   appendDependsOn(property, CARRY_FORWARD_ENABLED_PROPERTY);
 }
 
+/**
+ * Applies the native choice-source mutual exclusion for a single type.
+ * `patchInlineChoicesVisibility` is idempotent per property object, so types
+ * sharing an inherited `choices` property are only wrapped once.
+ */
+function configureNativeChoiceSourceMutualExclusionForType(
+  questionType: string,
+): void {
+  for (const propertyName of NATIVE_CHOICE_SOURCE_PROPERTIES_TO_HIDE) {
+    hideNativeChoiceSourceProperty(questionType, propertyName);
+  }
+
+  const inlineChoicesProperty = Serializer.findProperty(
+    questionType,
+    INLINE_CHOICES_PROPERTY,
+  ) as SerializerProperty | null;
+
+  if (!inlineChoicesProperty) {
+    return;
+  }
+
+  patchInlineChoicesVisibility(inlineChoicesProperty);
+}
+
 function configureNativeChoiceSourceMutualExclusion(): void {
-  const wrappedInlineChoices = new Set<SerializerProperty>();
-
   for (const questionType of CARRY_FORWARD_QUESTION_TYPES) {
-    for (const propertyName of NATIVE_CHOICE_SOURCE_PROPERTIES_TO_HIDE) {
-      hideNativeChoiceSourceProperty(questionType, propertyName);
-    }
-
-    const inlineChoicesProperty = Serializer.findProperty(
-      questionType,
-      INLINE_CHOICES_PROPERTY,
-    ) as SerializerProperty | null;
-
-    if (
-      !inlineChoicesProperty ||
-      wrappedInlineChoices.has(inlineChoicesProperty)
-    ) {
-      continue;
-    }
-
-    wrappedInlineChoices.add(inlineChoicesProperty);
-    patchInlineChoicesVisibility(inlineChoicesProperty);
+    configureNativeChoiceSourceMutualExclusionForType(questionType);
   }
 }
 
@@ -248,8 +259,38 @@ export function registerAdvancedCarryForwardGlobals(): void {
   isAdvancedCarryForwardRegistryInitialized = true;
 }
 
+/**
+ * Opts a single question type into advanced Carry forward.
+ *
+ * For code-owned custom questions (`lib/questions/*`) that are not in the
+ * built-in `CARRY_FORWARD_QUESTION_TYPES` list. Call it from the question's
+ * own model registration, immediately after `Serializer.addClass` — SurveyJS
+ * silently discards `addProperty` calls that target a class it does not know
+ * yet, and registering the class later does not recover them. Ordering by
+ * extension load is not reliable: carry forward loads statically while custom
+ * question extensions load dynamically.
+ */
+export function registerCarryForwardForQuestionType(
+  questionType: string,
+): void {
+  if (!Serializer.findClass(questionType)) {
+    console.warn(
+      `[carry-forward] registerCarryForwardForQuestionType("${questionType}") ran before the class was registered; the properties would be discarded. Call it after Serializer.addClass.`,
+    );
+    return;
+  }
+
+  if (isSupportedCarryForwardQuestionType(questionType)) {
+    return;
+  }
+
+  addSupportedCarryForwardQuestionType(questionType);
+  Serializer.addProperties(questionType, CARRY_FORWARD_PROPERTIES);
+  configureNativeChoiceSourceMutualExclusionForType(questionType);
+}
+
 export function resetAdvancedCarryForwardRegistryForTests(): void {
-  for (const questionType of CARRY_FORWARD_QUESTION_TYPES) {
+  for (const questionType of getSupportedCarryForwardQuestionTypes()) {
     for (const propertyName of CARRY_FORWARD_PROPERTY_NAMES) {
       if (Serializer.findProperty(questionType, propertyName)) {
         Serializer.removeProperty(questionType, propertyName);
@@ -258,5 +299,6 @@ export function resetAdvancedCarryForwardRegistryForTests(): void {
   }
 
   restoreNativeChoiceSourceMutualExclusion();
+  resetOptedInCarryForwardQuestionTypesForTests();
   isAdvancedCarryForwardRegistryInitialized = false;
 }

@@ -27,12 +27,17 @@ vi.mock("@/lib/questions/audio-recorder/audio-question-pdf", () => ({
   registerAudioQuestionModel: vi.fn(),
 }));
 
+vi.mock("@/lib/questions/drag-categorize/drag-categorize.registry", () => ({
+  registerDragCategorizeModel: vi.fn(),
+}));
+
 import { addViewTokensToModelUseCase } from "@/features/asset-storage/server";
 import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
 import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
 import { getSubmissionLocale } from "@/features/submissions/submission-localization";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
+import { registerDragCategorizeModel } from "@/lib/questions/drag-categorize/drag-categorize.registry";
 
 describe("preparePdfModel", () => {
   const mockSubmission: Submission = {
@@ -66,6 +71,7 @@ describe("preparePdfModel", () => {
     vi.mocked(getSubmissionLocale).mockReturnValue("en");
     vi.mocked(initializeCustomQuestions).mockReturnValue(undefined);
     vi.mocked(registerAudioQuestionModel).mockReturnValue(undefined);
+    vi.mocked(registerDragCategorizeModel).mockReturnValue(undefined);
   });
 
   describe("basic model creation", () => {
@@ -97,6 +103,15 @@ describe("preparePdfModel", () => {
       });
 
       expect(registerAudioQuestionModel).toHaveBeenCalledTimes(1);
+    });
+
+    it("should register drag categorize question model", async () => {
+      await preparePdfModel({
+        submission: mockSubmission,
+        customQuestionsJsonData: [],
+      });
+
+      expect(registerDragCategorizeModel).toHaveBeenCalledTimes(1);
     });
 
     it("should hydrate data list labels when definition uses data lists", async () => {

@@ -32,6 +32,7 @@ import PdfMatrixAnswer from "./answers/pdf-matrix-answer";
 import PdfCustomAnswer from "./answers/pdf-custom-answer";
 import PdfRankingAnswer from "./answers/pdf-ranking-answer";
 import PdfSliderAnswer from "./answers/pdf-slider-answer";
+import PdfDragCategorizeAnswer from "@/lib/questions/drag-categorize/drag-categorize.pdf-answer";
 import {
   formatChoiceDisplay,
   resolveChoiceLabelForQuestion,
@@ -231,6 +232,13 @@ const PdfAnswerViewer = ({
     </View>
   );
 
+  const renderDragCategorizeAnswer = () => (
+    <View style={VIEWER_STYLES.answerContainer} break={pageBreak}>
+      {renderTitle()}
+      <PdfDragCategorizeAnswer question={forQuestion} />
+    </View>
+  );
+
   const renderUnknownAnswer = () => {
     if (forQuestion.getType() === "html" || forQuestion.getType() === "image") {
       return <View />;
@@ -287,6 +295,8 @@ const PdfAnswerViewer = ({
       return renderMatrixDropdownAnswer();
     case QuestionType.Checkbox:
       return renderCheckboxAnswer();
+    case QuestionType.DragCategorize:
+      return renderDragCategorizeAnswer();
     default:
       return renderUnknownAnswer();
   }

@@ -1,21 +1,19 @@
 import type { ExtensionModule } from "@/lib/survey-extensions/types";
-import { bindDragCategorizeToCreator } from "./creator-bindings";
-import { registerDragCategorizeComponent } from "./drag-categorize.component";
-import { registerDragCategorizeGlobals } from "./registry";
+import { registerDragCategorizeQuestion } from "./drag-categorize.component";
+import { bindDragCategorizeToCreator } from "./drag-categorize.creator";
 
 /**
- * Survey extension entry point. All install logic lives here — do not wire
- * this feature from form-editor via initGlobals / bindToCreator hooks.
+ * Extension adapter for the drag-categorize question.
  *
- * Lifecycle:
- * - onInit: Serializer + QuestionFactory + ReactQuestionFactory registration
- * - onCreatorReady: toolbox category, icon, property-grid help texts
- * - onModelReady: not needed — validation lives on the question model itself
+ * The extension framework's only job here is registration — it decides
+ * *when* the question loads (code-split, and only for forms that use the
+ * type). All behavior lives in the question module itself, so surfaces the
+ * framework cannot reach (server-side PDF export, the read-only submission
+ * survey) register the question directly instead.
  */
 const dragCategorizeExtension: ExtensionModule = {
   onInit: () => {
-    registerDragCategorizeGlobals();
-    registerDragCategorizeComponent();
+    registerDragCategorizeQuestion();
   },
   onCreatorReady: (creator) => {
     bindDragCategorizeToCreator(creator);

@@ -6,7 +6,7 @@ import {
   IMAGE_URL_PROPERTY,
   MAX_ITEMS_PROPERTY,
   MIN_ITEMS_PROPERTY,
-} from "../constants";
+} from "./constants";
 
 /**
  * Draggable item: standard choice item plus an optional image and the

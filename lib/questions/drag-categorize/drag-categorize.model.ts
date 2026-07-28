@@ -5,26 +5,30 @@ import {
   SurveyError,
 } from "survey-core";
 import {
+  DEFAULT_ZONE_MIN_WIDTH,
   DRAG_CATEGORIZE_ITEM_CLASS,
   DRAG_CATEGORIZE_TYPE,
   POOL_ZONE_ID,
   REQUIRE_ALL_ITEMS_PROPERTY,
+  SHOW_ITEM_LABELS_PROPERTY,
+  ZONE_MIN_WIDTH_PROPERTY,
   ZONES_PROPERTY,
-} from "../constants";
-import type { DragCategorizePlacement } from "../types";
-import { validateZoneConstraints } from "../use-cases/validate-zones";
+} from "./constants";
+import type { DragCategorizePlacement } from "./types";
+import { validateZoneConstraints } from "./drag-categorize.validation";
 import {
   isItemPlaced,
   isPlacementEmpty,
   parsePlacement,
   placeItem,
-  sanitizePlacement,
-} from "../utils";
-import { DragDropCategorize } from "./drag-drop-controller";
+  reconcilePlacement,
+} from "./utils";
+import type { PlacementByItem } from "./utils";
+import { DragDropCategorize } from "./drag-categorize.drag-controller";
 import type {
   DragCategorizeItemValue,
   DragCategorizeZoneItemValue,
-} from "./item-values";
+} from "./drag-categorize.item-values";
 
 const HOVERED_ZONE_PROPERTY = "hoveredZoneId";
 
@@ -52,6 +56,8 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
   private draggedChoiceValue: string | undefined;
   private draggedFromZoneIdValue: string | undefined;
   private draggedTargetNode: HTMLElement | undefined;
+  private invisibleOldPlacementValue: PlacementByItem | undefined;
+  private isChangingValueOnClearIncorrect = false;
 
   // --- Compatibility members touched by the inherited DragDropRankingChoices
   // engine (doBanDropHere / clear / ghostPositionChanged). Rendering reacts to
@@ -86,6 +92,33 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
   }
   public set requireAllItems(val: boolean) {
     this.setPropertyValue(REQUIRE_ALL_ITEMS_PROPERTY, val);
+  }
+
+  /**
+   * Whether items with an image also show their label underneath. Only
+   * applies to items whose label the scripter actually authored — see
+   * hasExplicitLabel. Turn off for purely visual sorting tasks.
+   */
+  public get showItemLabels(): boolean {
+    return this.getPropertyValue(SHOW_ITEM_LABELS_PROPERTY) !== false;
+  }
+  public set showItemLabels(val: boolean) {
+    this.setPropertyValue(SHOW_ITEM_LABELS_PROPERTY, val);
+  }
+
+  /**
+   * Minimum zone width in pixels. Zones share each row equally and wrap
+   * when they would get narrower than this — so it also controls how many
+   * zones fit per row.
+   */
+  public get zoneMinWidth(): number {
+    const value = this.getPropertyValue(ZONE_MIN_WIDTH_PROPERTY);
+    return typeof value === "number" && value > 0
+      ? value
+      : DEFAULT_ZONE_MIN_WIDTH;
+  }
+  public set zoneMinWidth(val: number) {
+    this.setPropertyValue(ZONE_MIN_WIDTH_PROPERTY, val);
   }
 
   /** Zone currently hovered during a drag; drives the drop-target highlight. */
@@ -153,10 +186,12 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
     const itemValue = String(item.value);
     const clone =
       (item as DragCategorizeItemValue).allowMultipleZones === true;
+    // Consumed here, so a later drag can never inherit this one's origin.
     const fromZoneId =
       this.draggedFromZoneIdValue === POOL_ZONE_ID
         ? undefined
         : this.draggedFromZoneIdValue;
+    this.draggedFromZoneIdValue = undefined;
     const toZoneId = targetZoneId === POOL_ZONE_ID ? undefined : targetZoneId;
 
     if (toZoneId && !this.hasZone(toZoneId)) return;
@@ -267,24 +302,193 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
   }
 
   /**
+   * Placements dropped because their item stopped being visible, keyed by
+   * item value. Survives only until the respondent changes the answer
+   * themselves — the same lifecycle survey-core gives checkbox's
+   * invisibleOldValues.
+   */
+  private get invisibleOldPlacement(): PlacementByItem {
+    return (this.invisibleOldPlacementValue ??= {});
+  }
+
+  /**
+   * Zones to put back for stashed items that are visible again. Consumes the
+   * entries it returns, so a restore never happens twice.
+   */
+  private takeRestorablePlacement(): PlacementByItem {
+    const stash = this.invisibleOldPlacementValue;
+    if (!stash) return {};
+    const restore: PlacementByItem = {};
+    for (const item of this.categorizeItems) {
+      const itemValue = String(item.value);
+      const zones = stash[itemValue];
+      if (!zones) continue;
+      restore[itemValue] = zones;
+      delete stash[itemValue];
+    }
+    return restore;
+  }
+
+  /**
    * The inherited select-base implementation treats any object value as
    * "unknown" and clears it wholesale; instead keep known zones/items and
    * drop the rest.
+   *
+   * Items hidden by visibleIf / choicesVisibleIf are dropped from the value
+   * but remembered, so unhiding them restores where they were rather than
+   * silently destroying the answer. This runs on every navigation — SurveyJS
+   * calls it from runItemsCondition the moment a condition flips — so
+   * permanent stripping here loses respondent data mid-form.
    */
   protected clearIncorrectValuesCore(): void {
-    const placement = this.placement;
-    const sanitized = sanitizePlacement(
-      placement,
-      this.zones.map((zone) => String(zone.value)),
-      this.categorizeItems.map((item) => String(item.value)),
-    );
-    if (sanitized === placement) return;
-    const next = compactPlacement(sanitized);
-    if (isPlacementEmpty(next)) {
-      this.clearValue(true);
-    } else {
-      this.value = next;
+    const { placement, removed, changed } = reconcilePlacement({
+      placement: this.placement,
+      zoneIds: this.zones.map((zone) => String(zone.value)),
+      visibleItemValues: this.categorizeItems.map((item) =>
+        String(item.value),
+      ),
+      multiZoneItemValues: this.categorizeItems
+        .filter((item) => item.allowMultipleZones)
+        .map((item) => String(item.value)),
+      restore: this.takeRestorablePlacement(),
+    });
+
+    for (const [itemValue, zones] of Object.entries(removed)) {
+      this.invisibleOldPlacement[itemValue] = zones;
     }
+    if (!changed) return;
+
+    const next = compactPlacement(placement);
+    // Writing the value would normally discard the stash — see setNewValue.
+    this.isChangingValueOnClearIncorrect = true;
+    try {
+      if (isPlacementEmpty(next)) {
+        this.clearValue(true);
+      } else {
+        this.value = next;
+      }
+    } finally {
+      this.isChangingValueOnClearIncorrect = false;
+    }
+  }
+
+  /**
+   * Without this the base bails out as soon as the value is empty, and an
+   * item whose placement was the only answer could never be restored.
+   */
+  protected hasValueToClearIncorrectValues(): boolean {
+    return (
+      super.hasValueToClearIncorrectValues() ||
+      Object.keys(this.invisibleOldPlacementValue ?? {}).length > 0
+    );
+  }
+
+  /** A respondent-driven answer change supersedes anything stashed. */
+  protected setNewValue(newValue: unknown): void {
+    if (!this.isChangingValueOnClearIncorrect) {
+      this.invisibleOldPlacementValue = undefined;
+    }
+    super.setNewValue(newValue);
+  }
+
+  public updateValueFromSurvey(newValue: unknown, clearData: boolean): void {
+    super.updateValueFromSurvey(newValue, clearData);
+    this.invisibleOldPlacementValue = undefined;
+  }
+
+  // --- Display value and plain data ---
+
+  /** The item's authored label, falling back to its value. */
+  private getItemDisplayText(itemValue: string): string {
+    return (
+      ItemValue.getTextOrHtmlByValue(this.visibleChoices, itemValue) ||
+      itemValue
+    );
+  }
+
+  /**
+   * Zones that carry an answer, in definition order — the value's own key
+   * order is an artifact of which zone the respondent filled first.
+   */
+  private getAnsweredZones(
+    placement: DragCategorizePlacement,
+  ): DragCategorizeZoneItemValue[] {
+    return this.zones.filter(
+      (zone) => (placement[String(zone.value)] ?? []).length > 0,
+    );
+  }
+
+  /**
+   * Readable rendering of the placement: "Zone A: Item 1, Item 2; Zone B: …".
+   *
+   * A string rather than the keyed object that Matrix and Multiple Text
+   * return, because piping resolves `{q1}` through this method — those
+   * question types render as "[object Object]" in piped text, and there is no
+   * separate hook to fix that (both the displayValue getter and the text
+   * preprocessor call getDisplayValue(true)). A string also matches our own
+   * base class: QuestionSelectBase joins multi-value answers into text.
+   * Structured consumers get per-zone entries from getPlainData instead.
+   *
+   * keysAsText is ignored: zone ids in place of titles would be unreadable in
+   * every context this feeds.
+   */
+  protected getDisplayValueCore(
+    _keysAsText: boolean,
+    value: unknown,
+  ): string {
+    const placement = parsePlacement(value);
+    return this.getAnsweredZones(placement)
+      .map((zone) => {
+        const zoneId = String(zone.value);
+        const items = placement[zoneId]
+          .map((itemValue) => this.getItemDisplayText(itemValue))
+          .join(", ");
+        return `${zone.text || zoneId}: ${items}`;
+      })
+      .join("; ");
+  }
+
+  /**
+   * One child node per zone, mirroring how Matrix exposes a row per row.
+   *
+   * The inherited select-base implementation wraps the whole placement object
+   * in a single "Choice option" node, which is meaningless for a value that is
+   * not a choice reference.
+   */
+  public getPlainData(
+    options: Parameters<QuestionSelectBase["getPlainData"]>[0] = {
+      includeEmpty: true,
+    },
+  ): ReturnType<QuestionSelectBase["getPlainData"]> {
+    const plainData = super.getPlainData(options);
+    if (!plainData) return plainData;
+
+    const placement = this.placement;
+    const zones = options?.includeEmpty
+      ? this.zones
+      : this.getAnsweredZones(placement);
+
+    plainData.isNode = true;
+    plainData.data = [
+      // Keep the comment node the base class contributes; drop the choice
+      // nodes select-base added on top of it.
+      ...(plainData.data ?? []).filter((item) => item.isComment),
+      ...zones.map((zone) => {
+        const zoneId = String(zone.value);
+        const items = placement[zoneId] ?? [];
+        return {
+          name: zoneId,
+          title: zone.text || zoneId,
+          value: items,
+          displayValue: items.map((itemValue) =>
+            this.getItemDisplayText(itemValue),
+          ),
+          isNode: false,
+          getString: (val: unknown) => this.getValueAsString(val),
+        };
+      }),
+    ];
+    return plainData;
   }
 
   public get rootClass(): string {
