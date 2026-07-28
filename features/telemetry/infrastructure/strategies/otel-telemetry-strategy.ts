@@ -49,7 +49,9 @@ export class OtelTelemetryStrategy implements TelemetryInitStrategy {
       maxExportBatchSize: 512,
     });
 
-    const logProcessor = new BatchLogRecordProcessor(logExporter);
+    const logProcessor = new BatchLogRecordProcessor({
+      exporter: logExporter,
+    });
 
     const sdk = new NodeSDK({
       resource,
