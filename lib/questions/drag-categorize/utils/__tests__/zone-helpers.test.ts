@@ -80,7 +80,7 @@ describe("placeItem", () => {
     expect(placement).toEqual({ zone_a: ["item_1", "item_2"] });
   });
 
-  it("clones an item into a zone keeping the source placement", () => {
+  it("moves a clone item's placed copy between zones", () => {
     // Arrange
     const placement = { zone_a: ["item_1"] };
 
@@ -93,8 +93,8 @@ describe("placeItem", () => {
       clone: true,
     });
 
-    // Assert
-    expect(next).toEqual({ zone_a: ["item_1"], zone_b: ["item_1"] });
+    // Assert — copies come from the pool; dragging a placed one relocates it
+    expect(next).toEqual({ zone_a: [], zone_b: ["item_1"] });
   });
 
   it("does not duplicate an item already in the destination zone", () => {
@@ -122,6 +122,39 @@ describe("placeItem", () => {
 
     // Assert
     expect(next).toEqual({ zone_a: ["item_2"] });
+  });
+});
+
+describe("placeItem with clone items", () => {
+  it("leaves the other copies alone when moving one between zones", () => {
+    // Act — only the zone the dragged copy came out of gives it up
+    const next = placeItem({
+      placement: { zone_a: ["item_1"], zone_b: ["item_1"] },
+      itemValue: "item_1",
+      fromZoneId: "zone_a",
+      toZoneId: "zone_c",
+      clone: true,
+    });
+
+    // Assert
+    expect(next).toEqual({
+      zone_a: [],
+      zone_b: ["item_1"],
+      zone_c: ["item_1"],
+    });
+  });
+
+  it("adds a copy without touching the others when dragged from the pool", () => {
+    // Act — no source zone, so nothing is given up
+    const next = placeItem({
+      placement: { zone_a: ["item_1"] },
+      itemValue: "item_1",
+      toZoneId: "zone_b",
+      clone: true,
+    });
+
+    // Assert
+    expect(next).toEqual({ zone_a: ["item_1"], zone_b: ["item_1"] });
   });
 });
 

@@ -280,6 +280,31 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
   public endLoadingFromJson(): void {
     super.endLoadingFromJson();
     this.setDragDropCategorize();
+    this.warnOnReservedZoneValue();
+  }
+
+  /**
+   * A zone declared as POOL_ZONE_ID is shadowed by the unplaced-items pool:
+   * both reach the drag engine as the same `data-categorize` string, so drops
+   * on that zone return the item to the pool instead.
+   *
+   * Warned about rather than rejected. Preferring one over the other would
+   * just break the opposite case, and the id cannot be validated away without
+   * carrying the pool as a distinct kind of target through the whole drag
+   * path. The Creator names zones zone1..zoneN, so only hand-written JSON can
+   * reach this.
+   */
+  private warnOnReservedZoneValue(): void {
+    if (process.env.NODE_ENV === "production") return;
+    const hasReservedZone = this.zones.some(
+      (zone) => String(zone.value) === POOL_ZONE_ID,
+    );
+    if (!hasReservedZone) return;
+    console.warn(
+      `[dragcategorize] Question "${this.name}" declares a zone with the ` +
+        `reserved value "${POOL_ZONE_ID}". Drops on it return the item to ` +
+        `the pool. Rename the zone.`,
+    );
   }
 
   private setDragDropCategorize(): void {

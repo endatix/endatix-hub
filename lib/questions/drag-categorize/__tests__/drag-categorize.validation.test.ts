@@ -75,11 +75,12 @@ describe("validateZoneConstraints", () => {
   });
 
   it("reports a zone above its maximum", () => {
-    // Arrange
+    // Arrange — a third defined item, so the fixture exceeds the capacity
+    // with real items rather than an unknown placement entry
     const source = {
       requireAllItems: false,
       placement: { zone_b: ["item_1", "item_2", "item_3"] },
-      items,
+      items: [...items, { value: "item_3" }],
       zones,
     };
 
@@ -104,6 +105,7 @@ describe("validateZoneConstraints", () => {
     const errors = validateZoneConstraints(source);
 
     // Assert
+    expect(errors).toHaveLength(1);
     expect(errors[0].getText()).toContain('"zone_x"');
   });
 });

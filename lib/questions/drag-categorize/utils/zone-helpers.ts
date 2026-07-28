@@ -65,8 +65,12 @@ export interface PlaceItemOptions {
  * the item started out in several — which happens when allowMultipleZones is
  * turned off after the item was already placed — so the next drag repairs it.
  *
- * Clone items are the opposite: each copy is independent, so only the zone the
- * copy was dragged out of may lose it.
+ * A clone item gives up only the zone the dragged copy came out of, leaving
+ * its other copies alone. Copies are made by dragging out of the pool, which
+ * keeps offering a clone item however many times it has been placed: there is
+ * no source zone then, so nothing is given up and a new copy appears. Dragging
+ * a copy that is already in a zone moves that copy, matching how every other
+ * chip behaves and keeping "drag out of here, into there" true everywhere.
  */
 export function placeItem({
   placement,
@@ -98,7 +102,7 @@ export function placeItem({
     return next;
   }
 
-  if (!clone) detach();
+  detach();
 
   const zoneItems = next[toZoneId] ?? [];
   if (!zoneItems.includes(itemValue)) {
@@ -154,39 +158,46 @@ export interface ReconcilePlacementResult {
  * so toggling the condition back restores the answer instead of destroying
  * it. See QuestionCheckboxModel.clearIncorrectAndDisabledValues.
  */
-export function reconcilePlacement({
-  placement,
-  zoneIds,
-  visibleItemValues,
-  multiZoneItemValues,
-  restore,
-}: ReconcilePlacementOptions): ReconcilePlacementResult {
-  const knownZones = new Set(zoneIds);
-  const visibleItems = new Set(visibleItemValues);
-  const multiZoneItems = new Set(multiZoneItemValues ?? []);
-
-  let changed = false;
+/** Drops unknown zones and invisible items, reporting where the latter were. */
+function prunePlacement(
+  placement: DragCategorizePlacement,
+  knownZones: Set<string>,
+  visibleItems: Set<string>,
+): { placement: DragCategorizePlacement; removed: PlacementByItem; changed: boolean } {
   const next: DragCategorizePlacement = {};
   const removed: PlacementByItem = {};
+  let changed = false;
 
   for (const [zoneId, items] of Object.entries(placement)) {
     if (!knownZones.has(zoneId)) {
       changed = true;
       continue;
     }
-    const kept: string[] = [];
-    for (const itemValue of items) {
-      if (visibleItems.has(itemValue)) {
-        kept.push(itemValue);
-        continue;
-      }
+    const kept = items.filter((itemValue) => {
+      if (visibleItems.has(itemValue)) return true;
       changed = true;
       removed[itemValue] = [...(removed[itemValue] ?? []), zoneId];
-    }
+      return false;
+    });
     next[zoneId] = kept;
   }
 
-  for (const [itemValue, zones] of Object.entries(restore ?? {})) {
+  return { placement: next, removed, changed };
+}
+
+/** Re-adds stashed items. Mutates `next`; returns true when it changed. */
+function restoreIntoPlacement(
+  next: DragCategorizePlacement,
+  restore: PlacementByItem,
+  knownZones: Set<string>,
+  visibleItems: Set<string>,
+): boolean {
+  let changed = false;
+
+  for (const [itemValue, zones] of Object.entries(restore)) {
+    // The prune pass above would not see these, so an item that is still
+    // hidden must not slip back in through a caller's stale stash.
+    if (!visibleItems.has(itemValue)) continue;
     for (const zoneId of zones) {
       if (!knownZones.has(zoneId)) continue;
       const zoneItems = next[zoneId] ?? [];
@@ -196,10 +207,25 @@ export function reconcilePlacement({
     }
   }
 
-  // An item that lost allowMultipleZones after it was placed can still sit in
-  // several zones. Keep the first in zone-definition order — a stable choice
-  // that does not depend on the value's key order — and drop the rest.
+  return changed;
+}
+
+/**
+ * Holds every item that is not allowed in several zones to one of them.
+ * Mutates `next`; returns true when it changed.
+ *
+ * An item that lost allowMultipleZones after it was placed can still sit in
+ * several zones. Keep the first in zone-definition order — a stable choice
+ * that does not depend on the value's key order — and drop the rest.
+ */
+function enforceSingleZone(
+  next: DragCategorizePlacement,
+  zoneIds: string[],
+  multiZoneItems: Set<string>,
+): boolean {
   const seen = new Set<string>();
+  let changed = false;
+
   for (const zoneId of zoneIds) {
     const items = next[zoneId];
     if (!items) continue;
@@ -215,7 +241,36 @@ export function reconcilePlacement({
     }
   }
 
-  return { placement: next, removed, changed };
+  return changed;
+}
+
+export function reconcilePlacement({
+  placement,
+  zoneIds,
+  visibleItemValues,
+  multiZoneItemValues,
+  restore,
+}: ReconcilePlacementOptions): ReconcilePlacementResult {
+  const knownZones = new Set(zoneIds);
+  const visibleItems = new Set(visibleItemValues);
+  const multiZoneItems = new Set(multiZoneItemValues ?? []);
+
+  const pruned = prunePlacement(placement, knownZones, visibleItems);
+  const next = pruned.placement;
+
+  const restored = restoreIntoPlacement(
+    next,
+    restore ?? {},
+    knownZones,
+    visibleItems,
+  );
+  const deduped = enforceSingleZone(next, zoneIds, multiZoneItems);
+
+  return {
+    placement: next,
+    removed: pruned.removed,
+    changed: pruned.changed || restored || deduped,
+  };
 }
 
 /** true when no zone holds any item. */

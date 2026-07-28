@@ -143,11 +143,22 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
     if (item.isGhost) {
       // Design-mode "newitem" placeholder appended by SurveyJS.
       if (!question.isDesignMode) return null;
+      const addItem = () => question.addItemFromDesigner();
       return (
         <div
           key="newitem"
           className="sv-categorize__item sv-categorize__item--ghost"
-          onClick={() => question.addItemFromDesigner()}
+          // A plain div would leave the only way to add an item on this
+          // surface unreachable without a mouse.
+          role="button"
+          tabIndex={0}
+          onClick={addItem}
+          onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            // Space would otherwise scroll the design surface.
+            event.preventDefault();
+            addItem();
+          }}
         >
           <div className="sv-categorize__item-content">
             <span className="sv-categorize__item-text">+ Add an item</span>
@@ -187,6 +198,7 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
         >
           {item.imageUrl ? (
             <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.imageUrl}
                 // Empty alt when no label was authored: the fallback would be

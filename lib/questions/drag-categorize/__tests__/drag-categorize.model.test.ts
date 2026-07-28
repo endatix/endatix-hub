@@ -1,5 +1,5 @@
 import { Model } from "survey-core";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { DRAG_CATEGORIZE_TYPE, POOL_ZONE_ID } from "../constants";
 import type { DragCategorizeQuestion } from "../drag-categorize.model";
 import { registerDragCategorizeModel } from "../drag-categorize.registry";
@@ -150,6 +150,33 @@ describe("DragCategorizeQuestion", () => {
         zone_b: ["item_3"],
       });
       expect(question.pool.map((i) => i.value)).toContain("item_3");
+    });
+
+    it("moves a placed copy of an allowMultipleZones item between zones", () => {
+      // Arrange — copies are made by dragging out of the pool, so dragging a
+      // copy that is already in a zone relocates it like any other chip
+      const { question } = createQuestion();
+      question.value = { zone_a: ["item_3"] };
+      simulateDragFrom(question, "item_3", "zone_a");
+
+      // Act
+      question.dropItem(getItem(question, "item_3"), "zone_b");
+
+      // Assert
+      expect(question.value).toEqual({ zone_b: ["item_3"] });
+    });
+
+    it("keeps the other copies when moving one of them", () => {
+      // Arrange
+      const { question } = createQuestion();
+      question.value = { zone_a: ["item_3"], zone_b: ["item_3"] };
+      simulateDragFrom(question, "item_3", "zone_a");
+
+      // Act
+      question.dropItem(getItem(question, "item_3"), "zone_b");
+
+      // Assert — zone_a gives up its copy, zone_b already had one
+      expect(question.value).toEqual({ zone_b: ["item_3"] });
     });
 
     it("returns an item to the pool and clears an empty value", () => {
@@ -355,6 +382,47 @@ describe("DragCategorizeQuestion", () => {
         zone_a: ["item_3"],
         zone_b: ["item_3"],
       });
+    });
+  });
+
+  describe("reserved zone value", () => {
+    it("warns when a zone is declared with the pool's reserved id", () => {
+      // Arrange
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      // Act
+      new Model({
+        pages: [
+          {
+            elements: [
+              {
+                type: DRAG_CATEGORIZE_TYPE,
+                name: "q1",
+                choices: [{ value: "item_1" }],
+                zones: [{ value: POOL_ZONE_ID }, { value: "zone_b" }],
+              },
+            ],
+          },
+        ],
+      });
+
+      // Assert — otherwise drops on that zone silently return to the pool
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining(POOL_ZONE_ID),
+      );
+      warn.mockRestore();
+    });
+
+    it("stays quiet for ordinary zone values", () => {
+      // Arrange
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      // Act
+      createQuestion();
+
+      // Assert
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
     });
   });
 
