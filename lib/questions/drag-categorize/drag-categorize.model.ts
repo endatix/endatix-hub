@@ -59,12 +59,26 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
   private invisibleOldPlacementValue: PlacementByItem | undefined;
   private isChangingValueOnClearIncorrect = false;
 
-  // --- Compatibility members touched by the inherited DragDropRankingChoices
-  // engine (doBanDropHere / clear / ghostPositionChanged). Rendering reacts to
-  // value + hoveredZoneId changes instead, so these are inert.
+  // --- Members the inherited drag engine calls back on the question.
+  //
+  // DragDropCategorize extends survey-core's DragDropRankingSelectToRank,
+  // which expects its parentElement to be a QuestionRankingModel. Parts of
+  // that engine we do not override reach into the question directly, so these
+  // exist to satisfy that contract:
+  //
+  //   DragDropRankingChoices.clear()   → dropTargetNodeMove, updateRankingChoices
+  //   DragDropRankingChoices.ghostPositionChanged() → currentDropTarget
+  //
+  // clear() runs at the end of every drag, so dropping updateRankingChoices
+  // throws "updateRankingChoices is not a function" there — the drag-controller
+  // suite covers it. They are inert because ranking uses them to rebuild its
+  // ordered choice arrays, while this question derives the pool and every zone
+  // from the value on each render.
   public dropTargetNodeMove: string | null = null;
   public currentDropTarget: ItemValue | null = null;
-  public updateRankingChoices(_forceUpdate?: boolean): void {}
+  public updateRankingChoices(_forceUpdate?: boolean): void {
+    // Intentionally empty — see above.
+  }
 
   constructor(name: string) {
     super(name);
