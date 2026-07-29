@@ -22,6 +22,20 @@ export function ExportDialogStatusPanel({
   inlineError,
   prepareSuccessSummary,
 }: Readonly<ExportDialogStatusPanelProps>) {
+  let prepareAlertTitle = "Prepare required";
+  if (phase === "error") {
+    prepareAlertTitle = "Export failed";
+  } else if (rebuildMode) {
+    prepareAlertTitle = "Rebuild reporting data";
+  }
+
+  let prepareAlertDescription = SCHEMA_NEEDS_PREPARE_MESSAGE;
+  if (inlineError) {
+    prepareAlertDescription = inlineError;
+  } else if (rebuildMode) {
+    prepareAlertDescription = REBUILD_PREPARE_MESSAGE;
+  }
+
   return (
     <>
       {phase === "checking" ? (
@@ -42,19 +56,8 @@ export function ExportDialogStatusPanel({
 
       {phase === "needsPrepare" || phase === "error" ? (
         <Alert variant={phase === "error" ? "destructive" : "info"}>
-          <AlertTitle>
-            {phase === "error"
-              ? "Export failed"
-              : rebuildMode
-                ? "Rebuild reporting data"
-                : "Prepare required"}
-          </AlertTitle>
-          <AlertDescription>
-            {inlineError ??
-              (rebuildMode
-                ? REBUILD_PREPARE_MESSAGE
-                : SCHEMA_NEEDS_PREPARE_MESSAGE)}
-          </AlertDescription>
+          <AlertTitle>{prepareAlertTitle}</AlertTitle>
+          <AlertDescription>{prepareAlertDescription}</AlertDescription>
         </Alert>
       ) : null}
 
