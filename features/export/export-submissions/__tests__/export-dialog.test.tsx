@@ -627,13 +627,31 @@ describe("ExportSubmissionsDialog", () => {
   });
 
   it("enters rebuild mode from ready and returns without preparing", async () => {
+    mockListFormReportingLocalesAction
+      .mockResolvedValueOnce(
+        Result.error("Form schema has not been compiled for this form."),
+      )
+      .mockResolvedValue(Result.success(["default", "es"]));
+
     render(<ExportSubmissionsDialog {...createProps()} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /prepare for export/i }),
+      ).toBeDefined();
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
     await waitForReady();
+    expect(screen.getByText("Ready to export")).toBeDefined();
 
     fireEvent.click(
       screen.getByRole("button", { name: /rebuild reporting data/i }),
     );
 
+    expect(screen.getByText("Rebuild reporting data")).toBeDefined();
+    expect(screen.queryByText("Prepare required")).toBeNull();
     expect(
       screen.getByRole("button", { name: /prepare for export/i }),
     ).toBeDefined();
@@ -648,7 +666,9 @@ describe("ExportSubmissionsDialog", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
     });
-    expect(mockPrepareReportingExportAction).not.toHaveBeenCalled();
+    expect(screen.getByText("Ready to export")).toBeDefined();
+    // Initial prepare only — rebuild enter/exit must not call prepare again.
+    expect(mockPrepareReportingExportAction).toHaveBeenCalledTimes(1);
   });
 
   it("runs full recompile when rebuild checkbox is checked", async () => {

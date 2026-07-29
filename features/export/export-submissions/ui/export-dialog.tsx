@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -85,6 +86,7 @@ export function ExportSubmissionsDialog({
 
           <ExportDialogStatusPanel
             phase={dialog.phase}
+            rebuildMode={dialog.rebuildMode}
             inlineError={dialog.inlineError}
             prepareSuccessSummary={dialog.prepareSuccessSummary}
           />
@@ -125,14 +127,16 @@ export function ExportSubmissionsDialog({
 
           {dialog.showRebuildEntry ? (
             <div className="flex justify-start">
-              <button
+              <Button
                 type="button"
-                className="text-xs text-muted-foreground underline-offset-4 hover:underline disabled:pointer-events-none disabled:opacity-50"
+                variant="link"
+                size="sm"
+                className="h-auto px-0 text-xs text-muted-foreground"
                 onClick={dialog.enterRebuildMode}
                 disabled={dialog.busy}
               >
                 Rebuild reporting data…
-              </button>
+              </Button>
             </div>
           ) : null}
 

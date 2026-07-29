@@ -6,14 +6,19 @@ import { SCHEMA_NEEDS_PREPARE_MESSAGE } from "../../export-error-message";
 import { CheckCircle2 } from "lucide-react";
 import type { ExportDialogPhase } from "../export-dialog-phase";
 
+const REBUILD_PREPARE_MESSAGE =
+  "Rebuild the reporting schema and flattened submissions, then return to export.";
+
 interface ExportDialogStatusPanelProps {
   phase: ExportDialogPhase;
+  rebuildMode?: boolean;
   inlineError: string | null;
   prepareSuccessSummary: string | null;
 }
 
 export function ExportDialogStatusPanel({
   phase,
+  rebuildMode = false,
   inlineError,
   prepareSuccessSummary,
 }: Readonly<ExportDialogStatusPanelProps>) {
@@ -38,10 +43,17 @@ export function ExportDialogStatusPanel({
       {phase === "needsPrepare" || phase === "error" ? (
         <Alert variant={phase === "error" ? "destructive" : "info"}>
           <AlertTitle>
-            {phase === "needsPrepare" ? "Prepare required" : "Export failed"}
+            {phase === "error"
+              ? "Export failed"
+              : rebuildMode
+                ? "Rebuild reporting data"
+                : "Prepare required"}
           </AlertTitle>
           <AlertDescription>
-            {inlineError ?? SCHEMA_NEEDS_PREPARE_MESSAGE}
+            {inlineError ??
+              (rebuildMode
+                ? REBUILD_PREPARE_MESSAGE
+                : SCHEMA_NEEDS_PREPARE_MESSAGE)}
           </AlertDescription>
         </Alert>
       ) : null}

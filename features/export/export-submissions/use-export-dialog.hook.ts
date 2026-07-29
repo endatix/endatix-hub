@@ -79,6 +79,7 @@ export type UseExportDialogResult = {
   description: string;
   busy: boolean;
   controlsLocked: boolean;
+  rebuildMode: boolean;
   showFiltersForm: boolean;
   showPrepareCta: boolean;
   showPrepareOptions: boolean;
@@ -224,7 +225,6 @@ export function useExportDialog({
   const enterRebuildMode = () => {
     setRebuildMode(true);
     setFullRecompile(false);
-    setPrepareSuccessSummary(null);
     setInlineError(null);
     setPhase("needsPrepare");
   };
@@ -443,6 +443,7 @@ export function useExportDialog({
     description: getPhaseDescription(phase, { rebuildMode }),
     busy,
     controlsLocked,
+    rebuildMode,
     showFiltersForm: showsFiltersForm(phase) && readinessPassed && !rebuildMode,
     showPrepareCta: prepareCtaVisible,
     showPrepareOptions: showsPrepareOptions(phase, rebuildMode),
