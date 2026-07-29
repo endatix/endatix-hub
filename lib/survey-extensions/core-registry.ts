@@ -22,12 +22,10 @@ import {
   CARRY_FORWARD_EXTENSION_ID,
   carryForwardExtension,
 } from "@/lib/survey-features/carry-forward";
-// Constants-only import (not the barrel) so the dynamically loaded
-// drag-categorize bundle stays code-split.
-import {
-  DRAG_CATEGORIZE_EXTENSION_ID,
-  DRAG_CATEGORIZE_TYPE,
-} from "@/lib/questions/drag-categorize/constants";
+import { DRAG_CATEGORIZE_EXTENSION_ID } from "@/lib/questions/drag-categorize/constants";
+// The extension module, not the feature barrel — the barrel re-exports the
+// Creator bindings, which must not reach the respondent graph.
+import { dragCategorizeExtension } from "@/lib/questions/drag-categorize/drag-categorize.extension";
 
 export const DATA_LISTS_RUNTIME_EXTENSION_ID = "data-lists-runtime";
 export {
@@ -110,15 +108,18 @@ export const coreExtensions: ExtensionDefinition[] = [
     },
   },
   {
+    // Static, with no shouldLoad: registering a question type is a Serializer
+    // and ReactQuestionFactory call, cheap next to parsing the form itself.
+    // Gating it cost a regex scan of the whole form JSON plus a chunk
+    // round-trip. `dynamic` + `shouldLoad` is for tenant extensions in
+    // user-extensions.ts whose bundles are genuinely large or rare.
+    //
+    // The Creator bindings stay out of the respondent graph regardless — the
+    // extension module imports them dynamically in onCreatorReady.
     id: DRAG_CATEGORIZE_EXTENSION_ID,
     type: "question",
-    loading: "dynamic",
-    shouldLoad: (_, analyzer) =>
-      analyzer.usesQuestionType(DRAG_CATEGORIZE_TYPE),
-    load: () =>
-      import("@/lib/questions/drag-categorize/drag-categorize.extension").then(
-        (module) => module.dragCategorizeExtension,
-      ),
+    loading: "static",
+    module: dragCategorizeExtension,
     metadata: {
       name: "Drag Categorize",
       description:
