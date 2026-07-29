@@ -33,7 +33,7 @@ The script will:
 
 ## Standalone Asset Copy Script
 
-### `copy-standalone-assets.mjs`
+### `copy-standalone.mjs`
 
 Copies `.next/static` and `public` into `.next/standalone/`, which Next.js deliberately leaves out of the `output: "standalone"` bundle. Runs automatically as part of `pnpm build:standalone`.
 
@@ -42,7 +42,7 @@ Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts t
 **Usage:**
 
 ```bash
-node scripts/copy-standalone-assets.mjs
+node scripts/copy-standalone.mjs
 ```
 
 ## Echo pnpm comments
