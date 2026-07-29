@@ -44,6 +44,7 @@ import {
   isControlsLocked,
   showsFiltersForm,
   showsPrepareCta,
+  showsPrepareOptions,
   showsRebuildEntry,
   type ExportDialogPhase,
 } from "./export-dialog-phase";
@@ -444,7 +445,7 @@ export function useExportDialog({
     controlsLocked,
     showFiltersForm: showsFiltersForm(phase) && readinessPassed && !rebuildMode,
     showPrepareCta: prepareCtaVisible,
-    showPrepareOptions: prepareCtaVisible && phase !== "preparing",
+    showPrepareOptions: showsPrepareOptions(phase, rebuildMode),
     showRebuildEntry: showsRebuildEntry(phase),
     showBackToExport:
       rebuildMode && (phase === "needsPrepare" || phase === "error"),

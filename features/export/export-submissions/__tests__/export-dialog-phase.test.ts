@@ -37,9 +37,12 @@ describe("export-dialog-phase", () => {
     ).toBe(false);
   });
 
-  it("shows prepare options except while preparing", () => {
-    expect(showsPrepareOptions("needsPrepare", null)).toBe(true);
-    expect(showsPrepareOptions("preparing", null)).toBe(false);
+  it("shows prepare options only in rebuild mode", () => {
+    expect(showsPrepareOptions("needsPrepare", false)).toBe(false);
+    expect(showsPrepareOptions("needsPrepare", true)).toBe(true);
+    expect(showsPrepareOptions("error", true)).toBe(true);
+    expect(showsPrepareOptions("preparing", true)).toBe(false);
+    expect(showsPrepareOptions("ready", true)).toBe(false);
   });
 
   it("shows rebuild entry only when ready", () => {

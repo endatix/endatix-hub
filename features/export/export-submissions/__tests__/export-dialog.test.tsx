@@ -503,7 +503,7 @@ describe("ExportSubmissionsDialog", () => {
       ).toBeDefined();
     });
     expect(screen.getByText(/Prepare required|Export failed/i)).toBeDefined();
-    expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
+    expect(screen.queryByLabelText(/Full recompile/i)).toBeNull();
   });
 
   it("shows empty completed error without prepare recovery", async () => {
@@ -704,7 +704,7 @@ describe("ExportSubmissionsDialog", () => {
     });
   });
 
-  it("shows full recompile option when schema is missing on open", async () => {
+  it("hides full recompile option when schema is missing on open", async () => {
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.error(
         "Form schema has not been compiled for this form. Compile the schema first.",
@@ -717,7 +717,7 @@ describe("ExportSubmissionsDialog", () => {
         screen.getByRole("button", { name: /prepare for export/i }),
       ).toBeDefined();
     });
-    expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
+    expect(screen.queryByLabelText(/Full recompile/i)).toBeNull();
     expect(
       screen.queryByRole("button", { name: /rebuild reporting data/i }),
     ).toBeNull();

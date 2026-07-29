@@ -41,9 +41,9 @@ export function showsPrepareCta(
 
 export function showsPrepareOptions(
   phase: ExportDialogPhase,
-  inlineError: string | null,
+  rebuildMode: boolean,
 ): boolean {
-  return showsPrepareCta(phase, inlineError) && phase !== "preparing";
+  return rebuildMode && (phase === "needsPrepare" || phase === "error");
 }
 
 export function showsRebuildEntry(phase: ExportDialogPhase): boolean {
