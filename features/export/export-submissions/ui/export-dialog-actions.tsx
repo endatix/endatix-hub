@@ -12,10 +12,12 @@ interface ExportDialogActionsProps {
   isExporting: boolean;
   showPrepareCta: boolean;
   showExportSubmit: boolean;
+  showBackToExport: boolean;
   canExport: boolean;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   onCancel: () => void;
+  onBackToExport: () => void;
   onPrepare: () => void;
 }
 
@@ -86,10 +88,12 @@ export function ExportDialogActions({
   isExporting,
   showPrepareCta,
   showExportSubmit,
+  showBackToExport,
   canExport,
   exportButtonRef,
   onClose,
   onCancel,
+  onBackToExport,
   onPrepare,
 }: Readonly<ExportDialogActionsProps>) {
   if (phase === "success") {
@@ -104,14 +108,25 @@ export function ExportDialogActions({
 
   return (
     <DialogFooter className="gap-2 sm:gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onCancel}
-        disabled={busy}
-      >
-        Cancel
-      </Button>
+      {showBackToExport ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBackToExport}
+          disabled={busy}
+        >
+          Back to export
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={busy}
+        >
+          Cancel
+        </Button>
+      )}
       <PrimaryActionButton
         phase={phase}
         busy={busy}

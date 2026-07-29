@@ -39,12 +39,28 @@ export function showsPrepareCta(
   );
 }
 
-export function getPhaseDescription(phase: ExportDialogPhase): string {
+export function showsPrepareOptions(
+  phase: ExportDialogPhase,
+  inlineError: string | null,
+): boolean {
+  return showsPrepareCta(phase, inlineError) && phase !== "preparing";
+}
+
+export function showsRebuildEntry(phase: ExportDialogPhase): boolean {
+  return phase === "ready";
+}
+
+export function getPhaseDescription(
+  phase: ExportDialogPhase,
+  options: { rebuildMode?: boolean } = {},
+): string {
   switch (phase) {
     case "checking":
       return "Checking whether this form is ready for reporting export…";
     case "needsPrepare":
-      return "This form needs a one-time prepare step before you can export.";
+      return options.rebuildMode
+        ? "Rebuild the reporting schema and flattened submissions, then return to export."
+        : "This form needs a one-time prepare step before you can export.";
     case "preparing":
       return "Compiling the export schema and backfilling submissions. This can take a moment.";
     case "exporting":

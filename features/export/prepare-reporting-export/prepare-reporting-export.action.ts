@@ -10,11 +10,16 @@ import { Result } from "@/lib/result";
 const DEFAULT_BATCH_SIZE = 100;
 const MAX_BACKFILL_BATCHES = 100;
 
+export type PrepareReportingExportOptions = {
+  fullRecompile?: boolean;
+};
+
 export type PrepareReportingExportResult =
   Result<PrepareReportingExportSummary>;
 
 export async function prepareReportingExportAction(
   formId: string,
+  options: PrepareReportingExportOptions = {},
 ): Promise<PrepareReportingExportResult | never> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
@@ -27,9 +32,12 @@ export async function prepareReportingExportAction(
     );
   }
 
+  const fullRecompile = options.fullRecompile === true;
   const api = new EndatixApi(session?.accessToken);
 
-  const compileResult = await api.reporting.compileSchema(formId);
+  const compileResult = await api.reporting.compileSchema(formId, {
+    replace: fullRecompile,
+  });
   if (!compileResult.success) {
     return Result.error(
       compileResult.error.message || "Failed to compile export schema.",
@@ -46,6 +54,7 @@ export async function prepareReportingExportAction(
     const backfillResult = await api.reporting.backfillSubmissions(formId, {
       batchSize: DEFAULT_BATCH_SIZE,
       afterSubmissionId,
+      force: fullRecompile,
     });
 
     if (!backfillResult.success) {

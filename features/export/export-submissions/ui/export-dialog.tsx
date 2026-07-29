@@ -15,6 +15,7 @@ import {
 import type { TenantExportOptionGroup } from "../map-tenant-export-options";
 import { ExportDialogActions } from "./export-dialog-actions";
 import { ExportDialogFiltersForm } from "./export-dialog-filters-form";
+import { ExportDialogPrepareOptions } from "./export-dialog-prepare-options";
 import { ExportDialogStatusPanel } from "./export-dialog-status-panel";
 
 interface ExportSubmissionsDialogProps {
@@ -88,6 +89,14 @@ export function ExportSubmissionsDialog({
             prepareSuccessSummary={dialog.prepareSuccessSummary}
           />
 
+          {dialog.showPrepareOptions ? (
+            <ExportDialogPrepareOptions
+              fullRecompile={dialog.fullRecompile}
+              onFullRecompileChange={dialog.setFullRecompile}
+              disabled={dialog.busy}
+            />
+          ) : null}
+
           {dialog.showFiltersForm ? (
             <ExportDialogFiltersForm
               groups={groups}
@@ -114,16 +123,31 @@ export function ExportSubmissionsDialog({
             />
           ) : null}
 
+          {dialog.showRebuildEntry ? (
+            <div className="flex justify-start">
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline-offset-4 hover:underline disabled:pointer-events-none disabled:opacity-50"
+                onClick={dialog.enterRebuildMode}
+                disabled={dialog.busy}
+              >
+                Rebuild reporting data…
+              </button>
+            </div>
+          ) : null}
+
           <ExportDialogActions
             phase={dialog.phase}
             busy={dialog.busy}
             isExporting={isExporting}
             showPrepareCta={dialog.showPrepareCta}
             showExportSubmit={dialog.showExportSubmit}
+            showBackToExport={dialog.showBackToExport}
             canExport={Boolean(dialog.selectedOption)}
             exportButtonRef={dialog.exportButtonRef}
             onClose={() => onOpenChange(false)}
             onCancel={() => dialog.handleOpenChange(false)}
+            onBackToExport={dialog.exitRebuildMode}
             onPrepare={() => void dialog.handlePrepare()}
           />
         </form>
@@ -131,3 +155,5 @@ export function ExportSubmissionsDialog({
     </Dialog>
   );
 }
+
+export type { ExportSubmissionsDialogProps };

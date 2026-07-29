@@ -502,9 +502,8 @@ describe("ExportSubmissionsDialog", () => {
         screen.getByRole("button", { name: /prepare for export/i }),
       ).toBeDefined();
     });
-    expect(
-      screen.getByText(/flattened submissions|backfill|read model/i),
-    ).toBeDefined();
+    expect(screen.getByText(/Prepare required|Export failed/i)).toBeDefined();
+    expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
   });
 
   it("shows empty completed error without prepare recovery", async () => {
@@ -603,7 +602,9 @@ describe("ExportSubmissionsDialog", () => {
     );
 
     await waitFor(() => {
-      expect(mockPrepareReportingExportAction).toHaveBeenCalledWith("100");
+      expect(mockPrepareReportingExportAction).toHaveBeenCalledWith("100", {
+        fullRecompile: false,
+      });
     });
     await waitForReady();
     expect(screen.getByText("Ready to export")).toBeDefined();
@@ -613,14 +614,80 @@ describe("ExportSubmissionsDialog", () => {
     ).toBeNull();
   });
 
-  it("does not show prepare in ready when schema is already compiled", async () => {
+  it("does not show prepare CTA in ready when schema is already compiled", async () => {
     render(<ExportSubmissionsDialog {...createProps()} />);
     await waitForReady();
 
     expect(
       screen.queryByRole("button", { name: /prepare for export/i }),
     ).toBeNull();
-    expect(screen.queryByText(/Prepare for export/i)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    ).toBeDefined();
+  });
+
+  it("enters rebuild mode from ready and returns without preparing", async () => {
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+
+    expect(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /back to export/i }),
+    ).toBeDefined();
+    expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
+    expect(screen.queryByText("Export format")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
+    });
+    expect(mockPrepareReportingExportAction).not.toHaveBeenCalled();
+  });
+
+  it("runs full recompile when rebuild checkbox is checked", async () => {
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(screen.getByLabelText(/Full recompile/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+
+    await waitFor(() => {
+      expect(mockPrepareReportingExportAction).toHaveBeenCalledWith("100", {
+        fullRecompile: true,
+      });
+    });
+    await waitForReady();
+  });
+
+  it("shows full recompile option when schema is missing on open", async () => {
+    mockListFormReportingLocalesAction.mockResolvedValue(
+      Result.error(
+        "Form schema has not been compiled for this form. Compile the schema first.",
+      ),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /prepare for export/i }),
+      ).toBeDefined();
+    });
+    expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
+    expect(
+      screen.queryByRole("button", { name: /rebuild reporting data/i }),
+    ).toBeNull();
   });
 
   it("blocks outside interact and escape while exporting", async () => {

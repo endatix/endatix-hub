@@ -43,6 +43,7 @@ export class Reporting {
 
   async compileSchema(
     formId: string,
+    options: { replace?: boolean } = {},
   ): Promise<ApiResult<CompileFormSchemaResponse>> {
     const validateFormIdResult = validateEndatixId(formId, "formId");
     if (Result.isError(validateFormIdResult)) {
@@ -51,7 +52,7 @@ export class Reporting {
 
     return this.endatix.post<CompileFormSchemaResponse>(
       `/forms/${validateFormIdResult.value}/reporting/compile-schema`,
-      {},
+      options.replace === true ? { replace: true } : {},
     );
   }
 
