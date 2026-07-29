@@ -385,6 +385,58 @@ describe("DragCategorizeQuestion", () => {
     });
   });
 
+  describe("zone ids that collide with Object.prototype", () => {
+    function createWithZone(zoneId: string): DragCategorizeQuestion {
+      const model = new Model({
+        pages: [
+          {
+            elements: [
+              {
+                type: DRAG_CATEGORIZE_TYPE,
+                name: "q1",
+                choices: [{ value: "item_1", text: "Item One" }],
+                zones: [{ value: zoneId }, { value: "zone_b" }],
+              },
+            ],
+          },
+        ],
+      });
+      return model.getQuestionByName("q1") as unknown as DragCategorizeQuestion;
+    }
+
+    it("renders a zone named constructor instead of crashing", () => {
+      // Arrange
+      const question = createWithZone("constructor");
+      question.value = { constructor: ["item_1"] };
+
+      // Act & Assert — a plain {} would return Object here and throw on .map
+      expect(() => question.getZoneItems("constructor")).not.toThrow();
+      expect(
+        question.getZoneItems("constructor").map((i) => String(i.value)),
+      ).toEqual(["item_1"]);
+    });
+
+    it("counts capacity for such a zone correctly", () => {
+      // Arrange — Object.length is 1, which would look like one placed item
+      const question = createWithZone("valueOf");
+
+      // Act & Assert
+      expect(question.getZoneItems("valueOf")).toEqual([]);
+      expect(question.hasErrors()).toBe(false);
+    });
+
+    it("drops a repeated value coming from stored data", () => {
+      // Arrange
+      const question = createWithZone("zone_a");
+
+      // Act
+      question.value = { zone_a: ["item_1", "item_1"] };
+
+      // Assert — duplicate React keys, and dragging one chip removes both
+      expect(question.getZoneItems("zone_a")).toHaveLength(1);
+    });
+  });
+
   describe("reserved zone value", () => {
     it("warns when a zone is declared with the pool's reserved id", () => {
       // Arrange

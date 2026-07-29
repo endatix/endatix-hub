@@ -11,11 +11,13 @@ import { isSupportedCarryForwardQuestionType } from "@/lib/survey-features/carry
 import { syncSingleCarryForwardTarget } from "@/lib/survey-features/carry-forward/use-cases/sync-carry-forward-target";
 import { DRAG_CATEGORIZE_TYPE } from "../constants";
 import type { DragCategorizeQuestion } from "../drag-categorize.model";
-import { registerDragCategorizeModel } from "../drag-categorize.registry";
+import { dragCategorizeExtension } from "../drag-categorize.extension";
 
 describe("drag categorize carry forward", () => {
   beforeAll(() => {
-    registerDragCategorizeModel();
+    // Through the extension, not the model registry: the opt-in is gated by
+    // ENDATIX_ENABLE_EXTENSIONS so it matches the built-in types.
+    dragCategorizeExtension.onInit?.();
   });
 
   it("exposes the advanced carry forward properties", () => {
@@ -41,8 +43,8 @@ describe("drag categorize carry forward", () => {
   });
 
   it("registers carry forward without breaking its own properties", () => {
-    // Assert — the opt-in runs inside registerDragCategorizeModel, so this
-    // guards against it clobbering the question's own metadata.
+    // Assert — the opt-in adds properties to the same class, so this guards
+    // against it clobbering the question's own metadata.
     expect(Serializer.findProperty(DRAG_CATEGORIZE_TYPE, "zones")).toBeDefined();
     expect(
       Serializer.findProperty(DRAG_CATEGORIZE_TYPE, "requireAllItems"),

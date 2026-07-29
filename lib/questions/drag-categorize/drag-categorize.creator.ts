@@ -80,7 +80,10 @@ export function bindDragCategorizeToCreator(
     ) {
       return;
     }
-    if ((options.collection?.length ?? 0) <= MIN_ZONES) {
+    // Leave the decision alone when the collection is missing: treating it as
+    // length 0 would satisfy the guard and forbid every delete instead.
+    if (!options.collection) return;
+    if (options.collection.length <= MIN_ZONES) {
       options.allowDelete = false;
     }
   });

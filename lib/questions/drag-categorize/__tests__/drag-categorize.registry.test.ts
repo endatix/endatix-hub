@@ -7,8 +7,24 @@ import {
 } from "../constants";
 import { DragCategorizeQuestion } from "../drag-categorize.model";
 import { registerDragCategorizeModel } from "../drag-categorize.registry";
+import { isSupportedCarryForwardQuestionType } from "@/lib/survey-features/carry-forward/supported-question-types";
 
 describe("registerDragCategorizeModel", () => {
+  it("does not opt the type into carry forward", () => {
+    // Assert — carry forward is an extension-gated feature. Adding its
+    // properties from the model registry would reach the respondent runner,
+    // the read-only submission survey and the server-side PDF pipeline even
+    // with ENDATIX_ENABLE_EXTENSIONS off, leaving a form that declares
+    // edxCarryForwardEnabled looking like an active target nothing ever syncs.
+    // The opt-in belongs in dragCategorizeExtension.onInit.
+    expect(
+      Serializer.findProperty(DRAG_CATEGORIZE_TYPE, "edxCarryForwardEnabled"),
+    ).toBeFalsy();
+    expect(isSupportedCarryForwardQuestionType(DRAG_CATEGORIZE_TYPE)).toBe(
+      false,
+    );
+  });
+
   beforeAll(() => {
     registerDragCategorizeModel();
   });

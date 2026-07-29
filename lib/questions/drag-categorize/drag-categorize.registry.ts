@@ -1,7 +1,4 @@
 import { QuestionFactory, Serializer } from "survey-core";
-// Imported from the module, not the feature barrel, to keep this server-safe
-// path free of UI code.
-import { registerCarryForwardForQuestionType } from "@/lib/survey-features/carry-forward/infrastructure/registry";
 import {
   ALLOW_MULTIPLE_ZONES_PROPERTY,
   DEFAULT_ZONE_MIN_WIDTH,
@@ -148,12 +145,6 @@ export function registerDragCategorizeModel(): void {
       "selectbase",
     );
   }
-
-  // Opt into advanced Carry forward now that the class exists. Must stay
-  // after addClass: SurveyJS discards properties added to an unknown class,
-  // and carry forward (a static extension) initializes before this question's
-  // dynamic extension, so it cannot register us from its own side.
-  registerCarryForwardForQuestionType(DRAG_CATEGORIZE_TYPE);
 
   QuestionFactory.Instance.registerQuestion(
     DRAG_CATEGORIZE_TYPE,

@@ -167,6 +167,10 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
       );
     }
     const isInteractive = !this.isDisplayMode && !question.isReadOnly;
+    // Both walk hasExplicitLabel; hoisted because hoveredZoneId changes
+    // re-render every chip in the pool and every zone on each drop-target move.
+    const label = getDisplayLabel(item);
+    const caption = this.getItemCaption(item);
     return (
       <div
         key={`${zoneId}:${item.value}`}
@@ -191,7 +195,7 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
       >
         <div
           className={`sv-ranking-item__content sv-categorize__item-content${
-            item.imageUrl && this.getItemCaption(item)
+            item.imageUrl && caption
               ? " sv-categorize__item-content--captioned"
               : ""
           }`}
@@ -203,11 +207,11 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
                 src={item.imageUrl}
                 // Empty alt when no label was authored: the fallback would be
                 // the item's value ("item1"), which is meaningless to read out.
-                alt={getDisplayLabel(item)}
+                alt={label}
                 className="sv-categorize__item-img"
                 draggable={false}
               />
-              {this.getItemCaption(item) && (
+              {caption && (
                 <span className="sv-ranking-item__text sv-categorize__item-text">
                   {this.renderLocString(item.locText)}
                 </span>

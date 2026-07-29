@@ -5,6 +5,7 @@ export type {
   AnswerZoneDisplay,
 } from "./answer-display";
 export {
+  createPlacement,
   getItemZones,
   isItemPlaced,
   isPlacementEmpty,

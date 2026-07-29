@@ -1,6 +1,11 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { SurveyModel } from "survey-core";
-import { registerDragCategorizeModel } from "@/lib/questions/drag-categorize/drag-categorize.registry";
+import {
+  ItemValue,
+  JsonObject,
+  QuestionSelectBase,
+  Serializer,
+  SurveyModel,
+} from "survey-core";
 import { copyChoiceItem, copyChoiceItemWithMedia } from "../copy-choice-item";
 
 describe("copyChoiceItemWithMedia", () => {
@@ -33,111 +38,85 @@ describe("copyChoiceItemWithMedia", () => {
     expect(target.choices[0]?.imageLink).toBe("https://example.com/1.png");
   });
 
-  describe("across question types that name the image differently", () => {
+  describe("across item classes that name the image differently", () => {
+    // A stand-in for any choice item that declares its image under another
+    // name. Deliberately local: this shared utility must not know about any
+    // particular question type, so neither should its test.
+    const CUSTOM_ITEM = "copytestitem";
+
     beforeAll(() => {
-      registerDragCategorizeModel();
+      if (!Serializer.findClass(CUSTOM_ITEM)) {
+        Serializer.addClass(
+          CUSTOM_ITEM,
+          [{ name: "imageUrl", type: "file" }],
+          undefined,
+          "itemvalue",
+        );
+      }
     });
 
-    function createSurvey(): SurveyModel {
-      return new SurveyModel({
-        elements: [
-          {
-            type: "imagepicker",
-            name: "picker",
-            choices: [
-              {
-                value: "img1",
-                text: "Image 1",
-                imageLink: "https://example.com/1.png",
-              },
-            ],
-          },
-          {
-            type: "dragcategorize",
-            name: "categorize",
-            choices: [
-              {
-                value: "img2",
-                text: "Image 2",
-                imageUrl: "https://example.com/2.png",
-              },
-            ],
-            zones: [{ value: "zone_a" }, { value: "zone_b" }],
-          },
-          { type: "checkbox", name: "plain", choices: ["a"] },
-        ],
-      });
+    function createItem(type: string, json: Record<string, unknown>): ItemValue {
+      const item = Serializer.createClass(type) as ItemValue;
+      new JsonObject().toObject(json, item);
+      return item;
     }
 
-    it("maps imagepicker imageLink onto a drag-categorize item's imageUrl", () => {
+    /** A target question whose choice items are of the given class. */
+    function targetFor(itemType: string): QuestionSelectBase {
+      const survey = new SurveyModel({
+        elements: [{ type: "imagepicker", name: "target", choices: [] }],
+      });
+      const target = survey.getQuestionByName("target") as QuestionSelectBase;
+      if (itemType !== "imageitemvalue") {
+        (target as unknown as { getItemValueType: () => string }).getItemValueType =
+          () => itemType;
+      }
+      return target;
+    }
+
+    it("translates the image onto the property the target declares", () => {
       // Arrange
-      const survey = createSurvey();
-      const source = survey.getQuestionByName("picker")!;
-      const target = survey.getQuestionByName("categorize")!;
+      const source = createItem("imageitemvalue", {
+        value: "img1",
+        imageLink: "https://example.com/1.png",
+      });
 
       // Act
-      const copied = copyChoiceItemWithMedia(
-        target as never,
-        source.visibleChoices[0],
-      );
+      const copied = copyChoiceItemWithMedia(targetFor(CUSTOM_ITEM), source);
 
-      // Assert — imageLink is not a property of a drag-categorize item, so
-      // without translation the chip would render as text only
-      expect(
-        (copied as unknown as { imageUrl?: string }).imageUrl,
-      ).toBe("https://example.com/1.png");
+      // Assert
+      expect((copied as unknown as { imageUrl?: string }).imageUrl).toBe(
+        "https://example.com/1.png",
+      );
     });
 
-    it("maps a drag-categorize imageUrl onto an imagepicker item's imageLink", () => {
+    it("translates it back the other way", () => {
       // Arrange
-      const survey = createSurvey();
-      const source = survey.getQuestionByName("categorize")!;
-      const target = survey.getQuestionByName("picker")!;
+      const source = createItem(CUSTOM_ITEM, {
+        value: "img2",
+        imageUrl: "https://example.com/2.png",
+      });
 
       // Act
-      const copied = copyChoiceItemWithMedia(
-        target as never,
-        source.visibleChoices[0],
-      );
+      const copied = copyChoiceItemWithMedia(targetFor("imageitemvalue"), source);
 
       // Assert
       expect(copied.imageLink).toBe("https://example.com/2.png");
     });
 
-    it("leaves items alone when the target has no image property", () => {
+    it("leaves the item alone when the target declares no image property", () => {
       // Arrange
-      const survey = createSurvey();
-      const source = survey.getQuestionByName("picker")!;
-      const target = survey.getQuestionByName("plain")!;
+      const source = createItem("imageitemvalue", {
+        value: "img1",
+        imageLink: "https://example.com/1.png",
+      });
 
       // Act
-      const copied = copyChoiceItemWithMedia(
-        target as never,
-        source.visibleChoices[0],
-      );
+      const copied = copyChoiceItemWithMedia(targetFor("itemvalue"), source);
 
       // Assert
       expect(copied.value).toBe("img1");
-      expect(
-        (copied as unknown as { imageUrl?: string }).imageUrl,
-      ).toBeUndefined();
-    });
-
-    it("keeps the image on a same-type copy", () => {
-      // Arrange
-      const survey = createSurvey();
-      const question = survey.getQuestionByName("categorize")!;
-
-      // Act
-      const copied = copyChoiceItemWithMedia(
-        question as never,
-        question.visibleChoices[0],
-      );
-
-      // Assert
-      expect(
-        (copied as unknown as { imageUrl?: string }).imageUrl,
-      ).toBe("https://example.com/2.png");
+      expect((copied as unknown as { imageUrl?: string }).imageUrl).toBeUndefined();
     });
   });
 });

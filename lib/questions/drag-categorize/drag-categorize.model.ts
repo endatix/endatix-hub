@@ -17,6 +17,7 @@ import {
 import type { DragCategorizePlacement } from "./types";
 import { validateZoneConstraints } from "./drag-categorize.validation";
 import {
+  createPlacement,
   isItemPlaced,
   isPlacementEmpty,
   parsePlacement,
@@ -32,6 +33,17 @@ import type {
 
 const HOVERED_ZONE_PROPERTY = "hoveredZoneId";
 
+/**
+ * Drops empty zones and returns a plain object — this is the only shape that
+ * reaches `this.value`.
+ *
+ * Deliberately not `createPlacement()`. survey-core compares values through
+ * `Helpers.checkIfValuesEqual`, which coerces operands to primitives
+ * (`isConvertibleToNumber`, then `x == y`); a null-prototype object has no
+ * `toString`/`valueOf` and throws "Cannot convert object to primitive value".
+ * Null prototypes belong on the read-side records built by parsePlacement,
+ * where author-named zone ids are looked up — not on the stored value.
+ */
 function compactPlacement(
   placement: DragCategorizePlacement,
 ): DragCategorizePlacement {
@@ -357,7 +369,7 @@ export class DragCategorizeQuestion extends QuestionSelectBase {
   private takeRestorablePlacement(): PlacementByItem {
     const stash = this.invisibleOldPlacementValue;
     if (!stash) return {};
-    const restore: PlacementByItem = {};
+    const restore: PlacementByItem = Object.create(null);
     for (const item of this.categorizeItems) {
       const itemValue = String(item.value);
       const zones = stash[itemValue];

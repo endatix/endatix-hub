@@ -1,22 +1,47 @@
 import type { DragCategorizePlacement } from "../types";
 
 /**
+ * An empty placement record with no prototype.
+ *
+ * Zone ids come from the form author, so a zone named `constructor`,
+ * `toString` or `valueOf` would otherwise make `placement[zoneId]` return an
+ * inherited `Object.prototype` member. That is non-nullish, so the `?? []`
+ * fallback every reader uses does not fire: `.map()` on it throws and
+ * `.length` silently reports 1. A null prototype has nothing to inherit, and
+ * it also makes `__proto__` an ordinary key instead of invoking the setter
+ * and dropping the entry.
+ */
+export function createPlacement(): DragCategorizePlacement {
+  return Object.create(null) as DragCategorizePlacement;
+}
+
+/**
  * Normalizes an arbitrary question value into a safe placement record.
- * Drops non-array zone entries and non-scalar item values.
+ * Drops non-array zone entries, non-scalar item values, and values repeated
+ * within a zone — none of which the drag path can produce, but imported,
+ * hand-edited or API-written submission data can.
  */
 export function parsePlacement(raw: unknown): DragCategorizePlacement {
+  const placement = createPlacement();
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return {};
+    return placement;
   }
 
-  const placement: DragCategorizePlacement = {};
   for (const [zoneId, items] of Object.entries(raw)) {
     if (!Array.isArray(items)) continue;
+    const seen = new Set<string>();
     placement[zoneId] = items
       .filter(
         (item) => typeof item === "string" || typeof item === "number",
       )
-      .map((item) => String(item));
+      .map((item) => String(item))
+      // A repeat would render two chips sharing one React key, and dragging
+      // either one out removes both.
+      .filter((item) => {
+        if (seen.has(item)) return false;
+        seen.add(item);
+        return true;
+      });
   }
   return placement;
 }
@@ -79,7 +104,7 @@ export function placeItem({
   toZoneId,
   clone,
 }: PlaceItemOptions): DragCategorizePlacement {
-  const next: DragCategorizePlacement = {};
+  const next = createPlacement();
   for (const [zoneId, items] of Object.entries(placement)) {
     next[zoneId] = [...items];
   }
@@ -148,24 +173,14 @@ export interface ReconcilePlacementResult {
   changed: boolean;
 }
 
-/**
- * Single pass over a placement: drop zones that no longer exist, drop items
- * that are no longer visible (reporting where they were), re-add items coming
- * back from the stash, and hold non-clone items to a single zone.
- *
- * Mirrors how survey-core's checkbox treats choices hidden by
- * `visibleIf` / `choicesVisibleIf` — removed from the value but remembered,
- * so toggling the condition back restores the answer instead of destroying
- * it. See QuestionCheckboxModel.clearIncorrectAndDisabledValues.
- */
 /** Drops unknown zones and invisible items, reporting where the latter were. */
 function prunePlacement(
   placement: DragCategorizePlacement,
   knownZones: Set<string>,
   visibleItems: Set<string>,
 ): { placement: DragCategorizePlacement; removed: PlacementByItem; changed: boolean } {
-  const next: DragCategorizePlacement = {};
-  const removed: PlacementByItem = {};
+  const next = createPlacement();
+  const removed: PlacementByItem = Object.create(null);
   let changed = false;
 
   for (const [zoneId, items] of Object.entries(placement)) {
@@ -244,6 +259,16 @@ function enforceSingleZone(
   return changed;
 }
 
+/**
+ * Single pass over a placement: drop zones that no longer exist, drop items
+ * that are no longer visible (reporting where they were), re-add items coming
+ * back from the stash, and hold non-clone items to a single zone.
+ *
+ * Mirrors how survey-core's checkbox treats choices hidden by
+ * `visibleIf` / `choicesVisibleIf` — removed from the value but remembered,
+ * so toggling the condition back restores the answer instead of destroying
+ * it. See QuestionCheckboxModel.clearIncorrectAndDisabledValues.
+ */
 export function reconcilePlacement({
   placement,
   zoneIds,

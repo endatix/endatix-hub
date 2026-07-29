@@ -125,6 +125,80 @@ describe("placeItem", () => {
   });
 });
 
+describe("zone ids that collide with Object.prototype", () => {
+  // Zone ids are author-supplied, so nothing stops one being named after an
+  // inherited member. On a plain {} the `?? []` fallback every reader uses
+  // would not fire and `.map()` would throw.
+  const inherited = ["constructor", "toString", "valueOf", "hasOwnProperty"];
+
+  it.each(inherited)("reads %s as an absent zone, not an inherited member", (zoneId) => {
+    // Act
+    const placement = parsePlacement({ zone_a: ["item_1"] });
+
+    // Assert
+    expect(placement[zoneId]).toBeUndefined();
+    expect(placement[zoneId] ?? []).toEqual([]);
+    expect(() => (placement[zoneId] ?? []).map((v) => v)).not.toThrow();
+  });
+
+  it("places an item into a zone named constructor", () => {
+    // Act
+    const next = placeItem({
+      placement: parsePlacement({}),
+      itemValue: "item_1",
+      toZoneId: "constructor",
+      clone: false,
+    });
+
+    // Assert
+    expect(next["constructor"]).toEqual(["item_1"]);
+  });
+
+  it("reconciles a zone named constructor without throwing", () => {
+    // Act
+    const result = reconcilePlacement({
+      placement: parsePlacement({ constructor: ["item_1"] }),
+      zoneIds: ["constructor", "zone_b"],
+      visibleItemValues: ["item_1"],
+    });
+
+    // Assert
+    expect(result.placement["constructor"]).toEqual(["item_1"]);
+  });
+
+  it("keeps a zone stored under __proto__ instead of silently dropping it", () => {
+    // Act — a plain {} would invoke the prototype setter and lose the entry
+    const placement = parsePlacement(
+      JSON.parse('{"__proto__": ["item_1"], "zone_b": ["item_2"]}'),
+    );
+
+    // Assert
+    expect(Object.keys(placement).sort()).toEqual(["__proto__", "zone_b"]);
+    expect(placement["__proto__"]).toEqual(["item_1"]);
+  });
+});
+
+describe("parsePlacement deduplication", () => {
+  it("drops a value repeated inside one zone", () => {
+    // Act — two chips sharing a React key, and dragging either removes both
+    const placement = parsePlacement({ zone_a: ["item_1", "item_1", "item_2"] });
+
+    // Assert
+    expect(placement.zone_a).toEqual(["item_1", "item_2"]);
+  });
+
+  it("keeps the same value in different zones", () => {
+    // Act — legitimate for an allowMultipleZones item
+    const placement = parsePlacement({
+      zone_a: ["item_1"],
+      zone_b: ["item_1"],
+    });
+
+    // Assert
+    expect(placement).toEqual({ zone_a: ["item_1"], zone_b: ["item_1"] });
+  });
+});
+
 describe("placeItem with clone items", () => {
   it("leaves the other copies alone when moving one between zones", () => {
     // Act — only the zone the dragged copy came out of gives it up

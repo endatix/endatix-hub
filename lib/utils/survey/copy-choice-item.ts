@@ -1,37 +1,31 @@
 import { ItemValue, QuestionSelectBase, Serializer } from "survey-core";
 
 /**
- * Property names choice items use for their image, in read preference order.
+ * The property an item class uses for its image, asked of the Serializer.
  *
- * SurveyJS's imagepicker calls it `imageLink` on `imageitemvalue`; the
- * drag-categorize item calls it `imageUrl`. Neither class declares the other,
- * so carrying a choice across those types has to translate the name — copying
- * `imageLink` onto a drag-categorize item stores a property nothing reads, and
- * the chip renders as text only.
- */
-const IMAGE_PROPERTIES = ["imageLink", "imageUrl"] as const;
-
-/** The image on a choice item, whichever property its class uses. */
-function readItemImage(choice: ItemValue): string | undefined {
-  const source = choice as unknown as Record<string, unknown>;
-  for (const name of IMAGE_PROPERTIES) {
-    const value = source[name] ?? choice.getPropertyValue?.(name);
-    if (typeof value === "string" && value) {
-      return value;
-    }
-  }
-  return undefined;
-}
-
-/**
- * The image property the item's own class declares, asked of the Serializer
- * rather than inferred from the question type — a custom choice item gets the
- * same treatment for free.
+ * Choice item classes disagree on the name — SurveyJS's imagepicker declares
+ * `imageLink` on `imageitemvalue`, the drag-categorize item declares
+ * `imageUrl` — so carrying a choice between those types has to translate it;
+ * writing `imageLink` onto a drag-categorize item stores something nothing
+ * reads and the chip renders as text only.
+ *
+ * Both are declared `type: "file"`, which is what SurveyJS itself keys image
+ * editors off, so the name is derived rather than listed here. That keeps this
+ * shared utility free of any single question's vocabulary.
  */
 function findImageProperty(item: ItemValue): string | undefined {
-  return IMAGE_PROPERTIES.find((name) =>
-    Boolean(Serializer.findProperty(item.getType(), name)),
-  );
+  return Serializer.getProperties(item.getType()).find(
+    (property) => property.type === "file",
+  )?.name;
+}
+
+/** The image on a choice item, whichever property its class declares. */
+function readItemImage(choice: ItemValue): string | undefined {
+  const name = findImageProperty(choice);
+  if (!name) return undefined;
+  const source = choice as unknown as Record<string, unknown>;
+  const value = source[name] ?? choice.getPropertyValue?.(name);
+  return typeof value === "string" && value ? value : undefined;
 }
 
 /**

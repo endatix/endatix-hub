@@ -13,7 +13,7 @@ description: >-
 Use this skill when adding **platform** SurveyJS behavior (not Endatix business
 features under `features/`). The **extensions framework** is the primary install
 path — see the ongoing consolidation plan:
-[h709-extensions-framework-first-class-plan.md](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md).
+`h709-extensions-framework-first-class-plan.md` (endatix-saas monorepo, `.cursor/plans/`).
 
 **Canonical example:** [lib/survey-features/blind-search-tagbox](lib/survey-features/blind-search-tagbox)
 
@@ -185,7 +185,7 @@ server-side extension manifest from `FormDependency`.
 Extensions without `shouldLoad` are always included when the extension loader runs.
 
 **Future (SSR):** Server-maintained dependency manifest via
-[`FormDependency`](../../../../oss/src/Endatix.Core/Entities/FormDependency.cs) will
+`FormDependency` (endatix-saas monorepo, `oss/src/Endatix.Core/Entities/`) will
 record which extensions a form needs. Hub pages will pass `extensionIdsToLoad` from
 that manifest (whitelist) instead of client-side JSON analysis.
 
@@ -327,7 +327,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 - [ ] No new parse/format helpers in slice without checking `lib/utils` and `lib/utils/survey`
 - [ ] `creator-bindings.ts` and `survey-bindings.ts` separated
 - [ ] Tests for state, registry, and bindings
-- [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until [h709 PR-2](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) lands (extensions off = runtime no-op)
+- [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until h709 PR-2 lands (extensions off = runtime no-op)
 
 ---
 
@@ -347,7 +347,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 
 - [lib/survey-extensions/README.md](lib/survey-extensions/README.md) — loader, server analyzer, authorized extensions
 - [extensions/README.md](extensions/README.md) — self-hosted custom extensions
-- [h709-extensions-framework-first-class-plan.md](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) — experimental flag removal, customizations sunset, unified designer bootstrap
+- `h709-extensions-framework-first-class-plan.md` (endatix-saas monorepo, `.cursor/plans/`) — experimental flag removal, customizations sunset, unified designer bootstrap
 
 ---
 

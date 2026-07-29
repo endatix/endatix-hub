@@ -96,6 +96,59 @@ describe("DragCategorizeComponent", () => {
     expect(pool?.querySelector('[data-categorize-item="item_1"]')).toBeNull();
   });
 
+  describe("the add-item ghost chip is reachable without a mouse", () => {
+    function renderDesigner() {
+      const model = new Model();
+      model.setDesignMode(true);
+      model.fromJSON(surveyJson);
+      const question = model.getQuestionByName(
+        "q1",
+      ) as unknown as DragCategorizeQuestion;
+      const { container } = render(<Survey model={model} />);
+      const ghost = container.querySelector<HTMLElement>(
+        ".sv-categorize__item--ghost",
+      );
+      return { ghost, question };
+    }
+
+    it("exposes it to assistive tech as a focusable button", () => {
+      // Act
+      const { ghost } = renderDesigner();
+
+      // Assert
+      expect(ghost?.getAttribute("role")).toBe("button");
+      expect(ghost?.getAttribute("tabindex")).toBe("0");
+    });
+
+    it.each([["Enter"], [" "]])("adds an item on %s", (key) => {
+      // Arrange
+      const { ghost, question } = renderDesigner();
+      const before = question.choices.length;
+
+      // Act
+      act(() => {
+        fireEvent.keyDown(ghost!, { key });
+      });
+
+      // Assert
+      expect(question.choices.length).toBe(before + 1);
+    });
+
+    it("ignores other keys", () => {
+      // Arrange
+      const { ghost, question } = renderDesigner();
+      const before = question.choices.length;
+
+      // Act
+      act(() => {
+        fireEvent.keyDown(ghost!, { key: "a" });
+      });
+
+      // Assert
+      expect(question.choices.length).toBe(before);
+    });
+  });
+
   it("shows a clickable add-item ghost chip in design mode only", () => {
     // Arrange — design mode must be set before the JSON loads (as the
     // Creator does) for SurveyJS to append the ghost "newitem" placeholder.
