@@ -31,6 +31,20 @@ The script will:
 2. Run `pnpm up` for all survey packages
 
 
+## Standalone Asset Copy Script
+
+### `copy-standalone.mjs`
+
+Copies `.next/static` and `public` into `.next/standalone/`, which Next.js deliberately leaves out of the `output: "standalone"` bundle. Runs automatically as part of `pnpm build:standalone`.
+
+Avoids `cp -r` shell commands, which fail on Windows because pnpm runs scripts through `cmd.exe`. Expects `pnpm build` to have run first and exits non-zero with an actionable message if the source directories are missing.
+
+**Usage:**
+
+```bash
+node scripts/copy-standalone.mjs
+```
+
 ## Echo pnpm comments
 
 ### `echo-pnpm-comments.mjs`
