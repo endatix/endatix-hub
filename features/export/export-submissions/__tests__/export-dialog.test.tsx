@@ -671,6 +671,39 @@ describe("ExportSubmissionsDialog", () => {
     await waitForReady();
   });
 
+  it("keeps rebuild recovery after prepare failure", async () => {
+    mockPrepareReportingExportAction.mockResolvedValue(
+      Result.error("Reporting service unavailable"),
+    );
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Reporting service unavailable")).toBeDefined();
+    });
+    expect(screen.getByText("Export failed")).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /back to export/i }),
+    ).toBeDefined();
+    expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /back to export/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^export$/i })).toBeDefined();
+    });
+  });
+
   it("shows full recompile option when schema is missing on open", async () => {
     mockListFormReportingLocalesAction.mockResolvedValue(
       Result.error(

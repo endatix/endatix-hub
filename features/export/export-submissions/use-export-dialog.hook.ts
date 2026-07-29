@@ -44,7 +44,6 @@ import {
   isControlsLocked,
   showsFiltersForm,
   showsPrepareCta,
-  showsPrepareOptions,
   showsRebuildEntry,
   type ExportDialogPhase,
 } from "./export-dialog-phase";
@@ -433,7 +432,10 @@ export function useExportDialog({
     }
   };
 
-  const prepareCtaVisible = showsPrepareCta(phase, inlineError);
+  // Rebuild prepare can fail with a message that is not a "prepare recovery"
+  // export error; keep retry + Back to export available in that case.
+  const prepareCtaVisible =
+    showsPrepareCta(phase, inlineError) || (rebuildMode && phase === "error");
 
   return {
     phase,
@@ -442,9 +444,10 @@ export function useExportDialog({
     controlsLocked,
     showFiltersForm: showsFiltersForm(phase) && readinessPassed && !rebuildMode,
     showPrepareCta: prepareCtaVisible,
-    showPrepareOptions: showsPrepareOptions(phase, inlineError),
+    showPrepareOptions: prepareCtaVisible && phase !== "preparing",
     showRebuildEntry: showsRebuildEntry(phase),
-    showBackToExport: rebuildMode && phase === "needsPrepare",
+    showBackToExport:
+      rebuildMode && (phase === "needsPrepare" || phase === "error"),
     showExportSubmit: readinessPassed && !prepareCtaVisible && !rebuildMode,
     showGroupLabels: groups.length > 1,
     inlineError,

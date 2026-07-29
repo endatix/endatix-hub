@@ -6,9 +6,11 @@ import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { PrepareReportingExportSummary } from "@/lib/endatix-api/reporting/types";
 import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 
 const DEFAULT_BATCH_SIZE = 100;
 const MAX_BACKFILL_BATCHES = 100;
+const LOGGER_NAME = "export.prepare-reporting-export";
 
 export type PrepareReportingExportOptions = {
   fullRecompile?: boolean;
@@ -39,9 +41,11 @@ export async function prepareReportingExportAction(
     replace: fullRecompile,
   });
   if (!compileResult.success) {
-    return Result.error(
-      compileResult.error.message || "Failed to compile export schema.",
-    );
+    return toResult(compileResult, {
+      fallbackMessage: "Failed to compile export schema.",
+      logMessage: "Failed to compile export schema.",
+      loggerName: LOGGER_NAME,
+    });
   }
 
   let afterSubmissionId: string | undefined;
@@ -58,9 +62,11 @@ export async function prepareReportingExportAction(
     });
 
     if (!backfillResult.success) {
-      return Result.error(
-        backfillResult.error.message || "Failed to backfill submissions.",
-      );
+      return toResult(backfillResult, {
+        fallbackMessage: "Failed to backfill submissions.",
+        logMessage: "Failed to backfill submissions.",
+        loggerName: LOGGER_NAME,
+      });
     }
 
     batches += 1;
