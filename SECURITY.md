@@ -21,7 +21,7 @@ Security fixes are published for the latest supported release line. Customers on
 
 Use GitHub’s private vulnerability reporting so the report stays confidential until a fix is available:
 
-1. Open the repository **Security's** tab, or go directly to [Report a vulnerability](https://github.com/endatix/endatix-hub/security/advisories/new)
+1. Open the repository's **Security** tab, or go directly to [Report a vulnerability](https://github.com/endatix/endatix-hub/security/advisories/new)
 2. Provide as much detail as you can (see below)
 3. Submit the report and wait for our acknowledgment
 
