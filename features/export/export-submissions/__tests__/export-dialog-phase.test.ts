@@ -4,6 +4,8 @@ import {
   isBusyPhase,
   showsFiltersForm,
   showsPrepareCta,
+  showsPrepareOptions,
+  showsRebuildEntry,
 } from "../export-dialog-phase";
 
 describe("export-dialog-phase", () => {
@@ -35,8 +37,25 @@ describe("export-dialog-phase", () => {
     ).toBe(false);
   });
 
+  it("shows prepare options only in rebuild mode", () => {
+    expect(showsPrepareOptions("needsPrepare", false)).toBe(false);
+    expect(showsPrepareOptions("needsPrepare", true)).toBe(true);
+    expect(showsPrepareOptions("error", true)).toBe(true);
+    expect(showsPrepareOptions("preparing", true)).toBe(false);
+    expect(showsPrepareOptions("ready", true)).toBe(false);
+  });
+
+  it("shows rebuild entry only when ready", () => {
+    expect(showsRebuildEntry("ready")).toBe(true);
+    expect(showsRebuildEntry("needsPrepare")).toBe(false);
+    expect(showsRebuildEntry("error")).toBe(false);
+  });
+
   it("returns phase-specific descriptions", () => {
     expect(getPhaseDescription("needsPrepare")).toContain("prepare step");
+    expect(
+      getPhaseDescription("needsPrepare", { rebuildMode: true }),
+    ).toContain("Rebuild");
     expect(getPhaseDescription("ready")).toContain("Choose a format");
   });
 });

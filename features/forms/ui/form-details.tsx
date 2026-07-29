@@ -49,7 +49,6 @@ import { SaveAsTemplateDialog } from "./save-as-template-dialog";
 import { AlertTriangle } from "lucide-react";
 import PageTitle from "@/components/headings/page-title";
 import { WebhookSettings } from "./webhook-settings";
-import { PrepareReportingExportCard } from "@/features/export";
 import { ShareDialog } from "./share-dialog";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
 import { listFoldersAction } from "@/features/folders/server";
@@ -152,7 +151,6 @@ interface FormDetailsProps {
   enableEditing?: boolean;
   showHeader?: boolean;
   enableAnalytics?: boolean;
-  enableReportingExport?: boolean;
   folderLink?: FormFolderLinkProps;
   onFormDeleted?: () => void; // Callback for when form is successfully deleted
   titleSize?: "text-xl" | "text-2xl" | "text-3xl" | "text-4xl";
@@ -164,7 +162,6 @@ const FormDetails = ({
   enableEditing = false,
   showHeader = true,
   enableAnalytics = false,
-  enableReportingExport = false,
   folderLink,
   onFormDeleted,
   titleSize = "text-4xl",
@@ -726,10 +723,6 @@ const FormDetails = ({
         formId={form.id}
         initialSettings={form.webHookSettingsJson}
       />
-
-      {enableReportingExport ? (
-        <PrepareReportingExportCard formId={form.id} />
-      ) : null}
 
       <ShareDialog
         formId={form.id}

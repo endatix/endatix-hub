@@ -35,7 +35,7 @@ vi.mock("../../application/actions/delete-form.action", () => ({
   deleteFormAction: vi.fn(),
 }));
 
-vi.mock('@/features/folders/server', () => ({
+vi.mock("@/features/folders/server", () => ({
   listFoldersAction: vi.fn().mockResolvedValue({ kind: 0, value: [] }),
 }));
 
@@ -51,16 +51,13 @@ vi.mock("../save-as-template-dialog", () => ({
   SaveAsTemplateDialog: () => <div data-testid="save-as-template-dialog" />,
 }));
 
-vi.mock("@/features/export", () => ({
-  PrepareReportingExportCard: () => (
-    <div data-testid="prepare-reporting-export-card" />
-  ),
-}));
-
 describe("FormDetails", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUpdateFormSettingsAction.mockResolvedValue({ kind: 0, value: "form-1" });
+    mockUpdateFormSettingsAction.mockResolvedValue({
+      kind: 0,
+      value: "form-1",
+    });
   });
 
   it("disables limit one per user switch when already enabled", () => {

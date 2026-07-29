@@ -44,6 +44,8 @@ import {
   isControlsLocked,
   showsFiltersForm,
   showsPrepareCta,
+  showsPrepareOptions,
+  showsRebuildEntry,
   type ExportDialogPhase,
 } from "./export-dialog-phase";
 import { listFormReportingLocalesAction } from "./list-form-reporting-locales.action";
@@ -77,12 +79,18 @@ export type UseExportDialogResult = {
   description: string;
   busy: boolean;
   controlsLocked: boolean;
+  rebuildMode: boolean;
   showFiltersForm: boolean;
   showPrepareCta: boolean;
+  showPrepareOptions: boolean;
+  showRebuildEntry: boolean;
+  showBackToExport: boolean;
   showExportSubmit: boolean;
   showGroupLabels: boolean;
   inlineError: string | null;
   prepareSuccessSummary: string | null;
+  fullRecompile: boolean;
+  setFullRecompile: (fullRecompile: boolean) => void;
   exportFormatId: string;
   setExportFormatId: (id: string) => void;
   options: TenantExportOption[];
@@ -96,6 +104,8 @@ export type UseExportDialogResult = {
   localeSelectValue: string;
   exportButtonRef: RefObject<HTMLButtonElement | null>;
   handleOpenChange: (nextOpen: boolean) => void;
+  enterRebuildMode: () => void;
+  exitRebuildMode: () => void;
   handlePrepare: () => Promise<void>;
   handleSubmit: (event: SubmitEvent<HTMLFormElement>) => Promise<void>;
   patchFilterDraft: (patch: Partial<ExportFilterDraft>) => void;
@@ -126,6 +136,8 @@ export function useExportDialog({
   const [prepareSuccessSummary, setPrepareSuccessSummary] = useState<
     string | null
   >(null);
+  const [rebuildMode, setRebuildMode] = useState(false);
+  const [fullRecompile, setFullRecompile] = useState(false);
   const [exportFormatId, setExportFormatId] = useState("");
   const [filterDraft, setFilterDraft] = useState<ExportFilterDraft>(
     createFilterDraftFromListFilters,
@@ -210,12 +222,30 @@ export function useExportDialog({
     return applyReadinessResult(result);
   };
 
+  const enterRebuildMode = () => {
+    setRebuildMode(true);
+    setFullRecompile(false);
+    setInlineError(null);
+    setPhase("needsPrepare");
+  };
+
+  const exitRebuildMode = () => {
+    setRebuildMode(false);
+    setFullRecompile(false);
+    setInlineError(null);
+    if (readinessPassed) {
+      setPhase("ready");
+    }
+  };
+
   const handlePrepare = async () => {
     setPhase("preparing");
     setInlineError(null);
     setPrepareSuccessSummary(null);
 
-    const result = await prepareReportingExportAction(formId);
+    const result = await prepareReportingExportAction(formId, {
+      fullRecompile,
+    });
     if (Result.isError(result)) {
       setInlineError(result.message);
       setPhase("error");
@@ -223,6 +253,8 @@ export function useExportDialog({
     }
 
     const successSummary = formatPrepareSuccessSummary(result.value);
+    setRebuildMode(false);
+    setFullRecompile(false);
     const ready = await refreshReadiness();
     if (ready) {
       setPrepareSuccessSummary(successSummary);
@@ -247,6 +279,8 @@ export function useExportDialog({
     previousExportFormatIdRef.current = null;
     setInlineError(null);
     setPrepareSuccessSummary(null);
+    setRebuildMode(false);
+    setFullRecompile(false);
 
     let cancelled = false;
     void (async () => {
@@ -399,17 +433,29 @@ export function useExportDialog({
     }
   };
 
+  // Rebuild prepare can fail with a message that is not a "prepare recovery"
+  // export error; keep retry + Back to export available in that case.
+  const prepareCtaVisible =
+    showsPrepareCta(phase, inlineError) || (rebuildMode && phase === "error");
+
   return {
     phase,
-    description: getPhaseDescription(phase),
+    description: getPhaseDescription(phase, { rebuildMode }),
     busy,
     controlsLocked,
-    showFiltersForm: showsFiltersForm(phase) && readinessPassed,
-    showPrepareCta: showsPrepareCta(phase, inlineError),
-    showExportSubmit: readinessPassed && !showsPrepareCta(phase, inlineError),
+    rebuildMode,
+    showFiltersForm: showsFiltersForm(phase) && readinessPassed && !rebuildMode,
+    showPrepareCta: prepareCtaVisible,
+    showPrepareOptions: showsPrepareOptions(phase, rebuildMode),
+    showRebuildEntry: showsRebuildEntry(phase),
+    showBackToExport:
+      rebuildMode && (phase === "needsPrepare" || phase === "error"),
+    showExportSubmit: readinessPassed && !prepareCtaVisible && !rebuildMode,
     showGroupLabels: groups.length > 1,
     inlineError,
     prepareSuccessSummary,
+    fullRecompile,
+    setFullRecompile,
     exportFormatId,
     setExportFormatId,
     options,
@@ -423,6 +469,8 @@ export function useExportDialog({
     localeSelectValue,
     exportButtonRef,
     handleOpenChange,
+    enterRebuildMode,
+    exitRebuildMode,
     handlePrepare,
     handleSubmit,
     patchFilterDraft,
