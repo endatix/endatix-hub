@@ -20,6 +20,13 @@ export function useSurveyModel(
   customQuestions?: string[],
   readOnly: boolean = false,
   onModelCreated?: (model: Model) => void,
+  /**
+   * Whether survey extensions have finished initializing. Question types
+   * registered by an extension are unknown to SurveyJS until then, and it
+   * silently drops elements of unknown type while parsing the definition —
+   * which on this surface would make stored answers vanish from the viewer.
+   */
+  extensionsReady: boolean = true,
 ) {
   const cleanUpFuncRef = useRef<(() => void) | null>(null);
   const modelRef = useRef<Model | null>(null);
@@ -42,6 +49,11 @@ export function useSurveyModel(
       }
 
       if (!submission.formDefinition?.jsonData) {
+        return;
+      }
+
+      // Stay in the loading state rather than parsing with types missing.
+      if (!extensionsReady) {
         return;
       }
 
@@ -127,6 +139,7 @@ export function useSurveyModel(
     initAnyAnsweredGlobals,
     initQuestionLoopsGlobals,
     bindQuestionLoops,
+    extensionsReady,
   ]);
 
   useEffect(() => {

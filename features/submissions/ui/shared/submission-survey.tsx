@@ -3,10 +3,8 @@
 import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
-// Deep import, not the feature barrel: the barrel re-exports the Creator
-// bindings, which this read-only surface has no use for.
-import { registerDragCategorizeQuestion } from "@/lib/questions/drag-categorize/drag-categorize.component";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
+import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import type { Model } from "survey-core";
@@ -20,10 +18,9 @@ import "survey-core/survey-core.css";
 import { Survey, SurveyModel } from "survey-react-ui";
 import { useSurveyModel } from "./use-survey-model.hook";
 
+// Audio recorder has no extension yet. Question types that do register through
+// the extension loader below.
 registerAudioQuestion();
-// This surface does not run the extension loader, so the question type is
-// registered directly.
-registerDragCategorizeQuestion();
 addRandomizeGroupFeature();
 
 interface SubmissionSurveyProps {
@@ -47,11 +44,35 @@ function SubmissionSurvey({
   onModelCreated,
   onChange,
 }: Readonly<SubmissionSurveyProps>) {
+  // Extension-registered question types must exist before the definition is
+  // parsed, so the model build waits on isReady.
+  const {
+    isReady: areExtensionsReady,
+    onModelCreated: notifyExtensionsOfModel,
+  } = useSurveyExtensions({
+    formJson: submission.formDefinition?.jsonData,
+    runtimeDeps: {
+      getRuntimeState: () => ({
+        formId: submission.formId,
+        submissionId: submission.id,
+      }),
+    },
+  });
+
+  const handleModelCreated = useCallback(
+    (model: Model) => {
+      notifyExtensionsOfModel(model);
+      onModelCreated?.(model);
+    },
+    [notifyExtensionsOfModel, onModelCreated],
+  );
+
   const { model, isLoading } = useSurveyModel(
     submission,
     customQuestions,
     readOnly,
-    onModelCreated,
+    handleModelCreated,
+    areExtensionsReady,
   );
   const getSubmissionId = useCallback(() => {
     return submission.id;
