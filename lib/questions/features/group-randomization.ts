@@ -18,7 +18,14 @@ function addRandomizeGroupFeature() {
     return;
   }
 
-  Helpers.randomizeArray = function <T>(array: T[]): T[] {
+  /**
+   * `seed` must be forwarded: survey-core derives a stable per-question seed from
+   * `survey.randomSeed`, which keeps the shuffle identical every time
+   * `visibleChoices` is recalculated. Dropping it makes survey-core fall back to
+   * `Date.now()`, so questions whose choices are rebuilt on each value change
+   * (carry forward, data lists) get reshuffled on every interaction.
+   */
+  Helpers.randomizeArray = function <T>(array: T[], seed?: number): T[] {
     if (!array || array.length === 0) {
       return array;
     }
@@ -26,10 +33,10 @@ function addRandomizeGroupFeature() {
     const hasItemsWithGroups = array.some((c) => hasGroup(c));
 
     if (!hasItemsWithGroups) {
-      return originalRandomizeArray.call(this, array) as T[];
+      return originalRandomizeArray.call(this, array, seed) as T[];
     }
 
-    return groupRandomize(array);
+    return groupRandomize(array, seed);
   };
 
   Serializer.addProperties("itemvalue", [
@@ -60,7 +67,7 @@ function addRandomizeGroupFeature() {
   isInitialized = true;
 }
 
-function groupRandomize<T>(array: T[]): T[] {
+function groupRandomize<T>(array: T[], seed?: number): T[] {
   const groups = new Map<string, T[]>();
   array.forEach((c) => {
     const g = hasGroup(c) ? c.group : "__default__";
@@ -79,7 +86,7 @@ function groupRandomize<T>(array: T[]): T[] {
     let items = groups.get(g)!;
     const randomize = hasGroup(items[0]) ? items[0].randomize !== false : true;
     if (randomize) {
-      items = originalRandomizeArray([...items]);
+      items = originalRandomizeArray([...items], seed);
     }
     result.push(...items);
   });

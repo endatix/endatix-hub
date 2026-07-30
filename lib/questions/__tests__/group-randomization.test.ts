@@ -220,6 +220,108 @@ describe("Group Randomization Feature", () => {
     });
   });
 
+  describe("Stable random seed", () => {
+    const NINE_CHOICES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+    const getVisibleOrder = (
+      survey: SurveyModel,
+      questionName: string,
+    ): string =>
+      (survey.getQuestionByName(questionName) as QuestionSelectBase).visibleChoices
+        .map((choice) => String(choice.value))
+        .join(",");
+
+    beforeEach(() => {
+      addRandomizeGroupFeature();
+    });
+
+    it("should keep the same order for the same survey randomSeed", () => {
+      // Arrange
+      const survey = new SurveyModel({
+        elements: [
+          {
+            type: "checkbox",
+            name: "question1",
+            choices: NINE_CHOICES,
+            choicesOrder: "random",
+          },
+        ],
+      });
+
+      // Act
+      survey.randomSeed = 12345;
+      const firstOrder = getVisibleOrder(survey, "question1");
+      survey.randomSeed = 123456;
+      const otherSeedOrder = getVisibleOrder(survey, "question1");
+      survey.randomSeed = 12345;
+      const replayedOrder = getVisibleOrder(survey, "question1");
+
+      // Assert
+      expect(replayedOrder).toEqual(firstOrder);
+      expect(otherSeedOrder).not.toEqual(firstOrder);
+    });
+
+    it("should keep the same order for the same randomSeed when items have groups", () => {
+      // Arrange
+      const groupedChoices = NINE_CHOICES.map((value, index) => ({
+        value,
+        text: `Option ${value}`,
+        group: index % 2 === 0 ? "A" : "B",
+      }));
+      const survey = new SurveyModel({
+        elements: [
+          {
+            type: "checkbox",
+            name: "question1",
+            choices: groupedChoices,
+            choicesOrder: "random",
+          },
+        ],
+      });
+
+      // Act
+      survey.randomSeed = 12345;
+      const firstOrder = getVisibleOrder(survey, "question1");
+      survey.randomSeed = 123456;
+      const otherSeedOrder = getVisibleOrder(survey, "question1");
+      survey.randomSeed = 12345;
+      const replayedOrder = getVisibleOrder(survey, "question1");
+
+      // Assert
+      expect(replayedOrder).toEqual(firstOrder);
+      expect(otherSeedOrder).not.toEqual(firstOrder);
+    });
+
+    it("should not reshuffle carried-forward choices when the target value changes", () => {
+      // Arrange
+      const survey = new SurveyModel({
+        elements: [
+          { type: "checkbox", name: "question1", choices: NINE_CHOICES },
+          {
+            type: "checkbox",
+            name: "question2",
+            choicesFromQuestion: "question1",
+            choicesFromQuestionMode: "selected",
+            choicesOrder: "random",
+          },
+        ],
+      });
+      survey.setValue("question1", ["1", "2", "3", "4", "5"]);
+      const orderAfterSourceSelection = getVisibleOrder(survey, "question2");
+
+      // Act
+      const ordersWhileToggling = [1, 2, 3, 4].map((iteration) => {
+        survey.setValue("question2", iteration % 2 === 0 ? ["2"] : []);
+        return getVisibleOrder(survey, "question2");
+      });
+
+      // Assert
+      expect(new Set(ordersWhileToggling)).toEqual(
+        new Set([orderAfterSourceSelection]),
+      );
+    });
+  });
+
   describe("Integration with Survey JS", () => {
     it("should work with actual SurveyModel", () => {
       // Arrange
