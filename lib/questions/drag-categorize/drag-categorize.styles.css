@@ -1,0 +1,185 @@
+/* Selection is blocked at the root (same approach as .sv-ranking): the
+   browser would otherwise start selecting text during the pre-drag mouse
+   movement, before the drag engine disables selection on <body>. */
+.sv-categorize {
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sv-categorize--readonly {
+  user-select: initial;
+  -webkit-user-select: initial;
+}
+
+/* The pool uses the theme's dim (page) background so the holding area
+   reads differently from the white dashed drop zones below it. */
+.sv-categorize__pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--base-unit, 8px) * 1);
+  padding: calc(var(--base-unit, 8px) * 2);
+  border: 1px solid var(--sjs-border-light, var(--sjs-border-default, #d6d6d6));
+  background: var(--sjs-general-backcolor-dim, #f3f3f3);
+  border-radius: calc(var(--base-unit, 8px) * 0.5);
+  min-height: calc(var(--base-unit, 8px) * 7);
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.sv-categorize__pool-empty {
+  color: var(--sjs-general-forecolor-light, rgba(0, 0, 0, 0.45));
+  font-size: calc(var(--base-unit, 8px) * 1.75);
+  align-self: center;
+}
+
+/* Grid (not wrapping flex) so every zone gets the same width even when
+   they span multiple rows — unequal zone sizes could bias respondents. */
+.sv-categorize__zones {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(var(--sv-categorize-zone-min-width, 180px), 1fr)
+  );
+  gap: calc(var(--base-unit, 8px) * 2);
+  margin-top: calc(var(--base-unit, 8px) * 2);
+}
+
+.sv-categorize__zone {
+  min-height: 120px;
+  padding: calc(var(--base-unit, 8px) * 1.5);
+  border: 2px dashed var(--sjs-border-default, #d6d6d6);
+  border-radius: calc(var(--base-unit, 8px) * 0.5);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  display: flex;
+  flex-direction: column;
+}
+
+.sv-categorize__zone--over {
+  border-color: var(--sjs-primary-backcolor, #19b394);
+  background: color-mix(
+    in srgb,
+    var(--sjs-primary-backcolor, #19b394) 8%,
+    transparent
+  );
+}
+
+.sv-categorize__zone-title {
+  font-weight: 600;
+  margin-bottom: calc(var(--base-unit, 8px) * 1);
+  color: var(--sjs-general-forecolor, rgba(0, 0, 0, 0.91));
+}
+
+.sv-categorize__zone-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--base-unit, 8px) * 1);
+  flex: 1;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.sv-categorize__zone-hint {
+  margin-top: calc(var(--base-unit, 8px) * 1);
+  font-size: calc(var(--base-unit, 8px) * 1.5);
+  color: var(--sjs-general-forecolor-light, rgba(0, 0, 0, 0.45));
+}
+
+/* The framed-card theme shifts ranking rows 24px left to tuck their drag
+   handle into the card gutter (.sd-element--with-frame .sv-ranking-item);
+   categorize chips have no handle gutter, so keep them in flow. Extra
+   class repetition wins that rule's specificity regardless of load order. */
+.sv-categorize .sv-ranking-item.sv-categorize__item {
+  left: auto;
+}
+
+/* Chip base — sv-ranking-item theme styles apply on top when present.
+   max-width caps the chip at its zone's inner width so long labels wrap
+   instead of overflowing the zone. */
+.sv-categorize__item {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: calc(var(--base-unit, 8px) * 0.75) calc(var(--base-unit, 8px) * 1.5);
+  border: 1px solid var(--sjs-border-default, #d6d6d6);
+  border-radius: calc(var(--base-unit, 8px) * 0.5);
+  background: var(--sjs-general-backcolor, #fff);
+  box-shadow: var(--sjs-shadow-small, 0 1px 2px rgba(0, 0, 0, 0.15));
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.sv-categorize--readonly .sv-categorize__item,
+.sv-categorize--design .sv-categorize__item {
+  cursor: default;
+}
+
+/* Design-mode "add an item" placeholder chip. */
+.sv-categorize--design .sv-categorize__item--ghost {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.sv-categorize--design .sv-categorize__item--ghost .sv-categorize__item-text {
+  color: var(--sjs-general-forecolor-light, rgba(0, 0, 0, 0.45));
+}
+
+.sv-categorize--design .sv-categorize__item--ghost:hover {
+  border-color: var(--sjs-primary-backcolor, #19b394);
+}
+
+.sv-categorize__item-content {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--base-unit, 8px) * 0.75);
+}
+
+/* Image with a caption: label sits under the image, as in image picker. */
+.sv-categorize__item-content--captioned {
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--base-unit, 8px) * 0.5);
+  text-align: center;
+}
+
+/* The theme's .sv-ranking-item__text forces single-line text
+   (white-space: nowrap + hidden overflow); let chip labels wrap within
+   the zone-capped chip instead. */
+.sv-categorize__item .sv-categorize__item-text {
+  color: var(--sjs-general-forecolor, rgba(0, 0, 0, 0.91));
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+}
+
+/* Floating clone that follows the pointer during a drag. Deliberately
+   unstyled beyond positioning — the cloned chip inside carries its own
+   background, border, and shadow (unlike .sv-ranking-shortcut, whose
+   pill-shaped themed container shows around the chip). */
+.sv-categorize-shortcut {
+  cursor: grabbing;
+  position: absolute;
+  z-index: 10000;
+}
+
+.sv-categorize-shortcut .sv-categorize__item {
+  cursor: grabbing;
+}
+
+.sv-categorize__item-img {
+  width: 100%;
+  /* Scales with viewport: 48px floor, 96px ceiling. */
+  max-width: clamp(48px, 15vw, 96px);
+  height: auto;
+  max-height: calc(var(--base-unit, 8px) * 10);
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}

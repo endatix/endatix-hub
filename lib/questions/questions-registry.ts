@@ -18,6 +18,7 @@ export enum QuestionType {
   TagBox = "tagbox",
   Custom = "custom",
   AudioRecorder = "audiorecorder",
+  DragCategorize = "dragcategorize",
   Unsupported = "unsupported",
 }
 
@@ -45,5 +46,7 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionMetadata> = {
   [QuestionType.TagBox]: { supportedInGrid: true },
   [QuestionType.Custom]: { supportedInGrid: false },
   [QuestionType.AudioRecorder]: { supportedInGrid: false },
+  // Value is a zone -> items map; there is no single cell representation.
+  [QuestionType.DragCategorize]: { supportedInGrid: false },
   [QuestionType.Unsupported]: { supportedInGrid: false },
 };

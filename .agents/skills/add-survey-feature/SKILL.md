@@ -13,7 +13,7 @@ description: >-
 Use this skill when adding **platform** SurveyJS behavior (not Endatix business
 features under `features/`). The **extensions framework** is the primary install
 path — see the ongoing consolidation plan:
-[h709-extensions-framework-first-class-plan.md](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md).
+`h709-extensions-framework-first-class-plan.md` (endatix-saas monorepo, `.cursor/plans/`).
 
 **Canonical example:** [lib/survey-features/blind-search-tagbox](lib/survey-features/blind-search-tagbox)
 
@@ -25,11 +25,16 @@ survey features. Wire through `ExtensionModule` + `core-registry.ts` (or
 
 ## 1. Decide scope
 
-| Kind | `type` | Registry | Example |
-|------|--------|----------|---------|
-| Behavior on existing question types (tagbox, dropdown, …) | `feature` | `core-registry.ts` | blind-search-tagbox |
-| New question type or ComponentCollection | `question` | `user-extensions.ts` or core | hello-world, country |
-| Always-on expression / formatting helper | `feature` + `static` | `core-registry.ts` | expression-formatting |
+| Kind | Where the code lives | `type` | Registry | Example |
+|------|----------------------|--------|----------|---------|
+| Behavior on existing question types (tagbox, dropdown, …) | `lib/survey-features/{feature}/` | `feature` | `core-registry.ts` | blind-search-tagbox |
+| Always-on expression / formatting helper | `lib/survey-features/{feature}/` | `feature` + `static` | `core-registry.ts` | expression-formatting |
+| **Code-owned question type** | **`lib/questions/{question}/`** | `question` | `core-registry.ts` (adapter) | audio-recorder, drag-categorize |
+| Self-hosted / JSON ComponentCollection question | `hub/extensions/questions/` | `question` | `user-extensions.ts` | hello-world, country |
+
+**A new question type is not a survey feature.** `survey-features/` is for behavior
+layered onto question types SurveyJS already ships. A question type you own in code
+is a standalone unit that must render on **every** surface — see §11.
 
 **Not in scope here:** API-persisted custom questions (`createCustomQuestionAction`),
 `hub/customizations/` (deprecated — see h709), or vertical slices under
@@ -180,7 +185,7 @@ server-side extension manifest from `FormDependency`.
 Extensions without `shouldLoad` are always included when the extension loader runs.
 
 **Future (SSR):** Server-maintained dependency manifest via
-[`FormDependency`](../../../../oss/src/Endatix.Core/Entities/FormDependency.cs) will
+`FormDependency` (endatix-saas monorepo, `oss/src/Endatix.Core/Entities/`) will
 record which extensions a form needs. Hub pages will pass `extensionIdsToLoad` from
 that manifest (whitelist) instead of client-side JSON analysis.
 
@@ -244,13 +249,41 @@ The hub has two pre-wired upload paths. **Do not add a new `onUploadFile` / `onU
 
 `form-editor.tsx` calls `registerStorageHandlers(creator)` from `useStorageWithCreator`, which registers `creator.onUploadFile` via `useContentUpload`. This handler intercepts **all** file uploads triggered by the Creator UI — including property-level image pickers.
 
-**What you must do:** Declare image properties with `type: "image"` in `Serializer.addClass` / `Serializer.addProperty`. No other wiring is needed; the existing handler picks them up automatically.
+**What you must do:** Declare image properties with **`type: "file"`** in `Serializer.addClass` / `Serializer.addProperty`. No other wiring is needed; the existing handler picks them up automatically.
 
 ```typescript
 Serializer.addClass("myquestionitem", [
-  { name: "imageUrl", type: "image", displayName: "Image" },
+  { name: "imageUrl", type: "file", displayName: "Image" },
 ], ...);
 ```
+
+> **Use `file`, not `image`.** The Creator picks a property editor by matching
+> the property type: `PropertyGridLinkEditor.fit` accepts `"file"` and `"url"`
+> and renders a `fileedit` control (Select File button + URL field) with
+> `storeDataAsText: false`, which is what routes the upload through
+> `creator.onUploadFile`. This is the type SurveyJS uses for its own image
+> properties — image picker choices are declared `imageLink:file`. An
+> unrecognized type such as `"image"` does not error; the property grid
+> silently falls back to a plain text box with no upload button, so assert the
+> property type in a registry test.
+
+**On a collection item (a `choices`-style array), add `showMode: "form"`:**
+
+```typescript
+Serializer.addClass("myquestionitem", [
+  { name: "imageUrl", type: "file", displayName: "Image", showMode: "form" },
+], ...);
+```
+
+A property-grid **matrix cell cannot host the `fileedit` control**. Left as a
+table column, the property degrades to `cellType: "text"` — the placeholder
+("Select a file or paste a file link…") still renders, so it looks like a file
+input, but there is no Select File button and the only way to set a value is
+pasting a URL. `showMode: "form"` excludes the property from the columns and
+places it in the row's expanded detail panel, where it becomes a real question
+and gets the full editor. Verify with a Creator test that asserts the property
+is absent from `propertyGrid.getQuestionByName("choices").columns` and present
+in the row detail panel with type `fileedit`.
 
 Relevant files:
 - `features/asset-storage/use-cases/upload-content-files/use-content-upload.hook.tsx` — registers `creator.onUploadFile`
@@ -294,7 +327,7 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 - [ ] No new parse/format helpers in slice without checking `lib/utils` and `lib/utils/survey`
 - [ ] `creator-bindings.ts` and `survey-bindings.ts` separated
 - [ ] Tests for state, registry, and bindings
-- [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until [h709 PR-2](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) lands (extensions off = runtime no-op)
+- [ ] `ENDATIX_ENABLE_EXTENSIONS=true` required until h709 PR-2 lands (extensions off = runtime no-op)
 
 ---
 
@@ -314,4 +347,94 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 
 - [lib/survey-extensions/README.md](lib/survey-extensions/README.md) — loader, server analyzer, authorized extensions
 - [extensions/README.md](extensions/README.md) — self-hosted custom extensions
-- [h709-extensions-framework-first-class-plan.md](../../../../.cursor/plans/h709-extensions-framework-first-class-plan.md) — experimental flag removal, customizations sunset, unified designer bootstrap
+- `h709-extensions-framework-first-class-plan.md` (endatix-saas monorepo, `.cursor/plans/`) — experimental flag removal, customizations sunset, unified designer bootstrap
+
+---
+
+## 11. Code-owned question types (`lib/questions/`)
+
+A question type you implement in code is **not** a survey feature. It lives in
+`lib/questions/{question}/` and owns every surface its answers appear on.
+**Canonical example:** [lib/questions/drag-categorize](lib/questions/drag-categorize).
+
+Do **not** copy [audio-recorder](lib/questions/audio-recorder)'s module-scope
+`registerXQuestion()` on feature surfaces — that pattern predates the
+extensions framework and will be migrated later.
+
+### Registration path (extensions framework)
+
+1. Implement `registerXModel` / `registerXQuestion` / Creator helpers as
+   **internal** entry points in the question folder.
+2. Add a thin `ExtensionModule` (`x.extension.ts`) whose `onInit` calls
+   `registerXQuestion()` (and feature opt-ins such as carry-forward) and whose
+   `onCreatorReady` dynamically imports Creator bindings.
+3. Register in [core-registry.ts](lib/survey-extensions/core-registry.ts) as
+   `type: 'question'`, `loading: 'static'`, **omit `shouldLoad`**.
+4. Every **client** survey surface must call `useSurveyExtensions` and **must
+   not** construct a `Model` / `SurveyCreator` until `isReady` is true.
+5. Require `ENDATIX_ENABLE_EXTENSIONS=true` until h709 removes the experimental
+   gate (extensions off = question type silently missing at parse time).
+
+```typescript
+// x.extension.ts — sole client registration path
+const xExtension: ExtensionModule = {
+  onInit: () => {
+    registerXQuestion();
+    registerCarryForwardForQuestionType(X_TYPE);
+  },
+  onCreatorReady: async (creator) => {
+    const { bindXToCreator } = await import('./x.creator');
+    bindXToCreator(creator);
+  },
+};
+```
+
+### Surfaces you must cover
+
+An answer that renders in the runner but nowhere else is an incomplete question.
+Fallbacks print raw JSON — add an explicit case for each:
+
+| Surface | Wire-up |
+|---------|---------|
+| Runner / previews / submission view-edit / designer | Parent already calls `useSurveyExtensions` + `isReady` (e.g. survey-js-wrapper, view/edit-submission-core); do **not** re-wire inside nested survey components |
+| Submission details | component in the question folder + case in `features/submissions/ui/answers/answer-viewer.tsx` |
+| PDF export | model-only `registerXModel()` in `preparePdfModel` + case in `pdf-answer-viewer.tsx` (sole allowed non-extension register — Node has no React loader) |
+| Submission grid | entry in `lib/questions/questions-registry.ts` (`QuestionType` + `supportedInGrid`) |
+| Private-storage images | collect item URLs in `collect-model-storage-assets.ts` |
+
+### Split modules (internal helpers)
+
+Keep **model registration free of React** so PDF can import without
+`survey-react-ui` / stylesheets:
+
+```typescript
+// x.registry.ts      — Serializer + QuestionFactory only. Server-safe.
+export function registerXModel(): void { … }
+
+// x.component.tsx    — calls registerXModel(), then ReactQuestionFactory
+export function registerXQuestion(): void { … } // called from extension onInit
+
+// x.creator.ts       — icon + pehelp + bindXToCreator
+export function bindXToCreator(creator: SurveyCreatorModel): void { … }
+```
+
+Do not import the question barrel from respondent graphs (it may re-export
+Creator bindings). Deep-import the surface-appropriate module.
+
+### Opting into survey features (carry forward, …)
+
+Features in `survey-features/` keep a built-in type list (e.g.
+`CARRY_FORWARD_QUESTION_TYPES`). **Do not add a code-owned question type to
+that list.** Call the feature's per-type opt-in from the question extension's
+`onInit`, **after** `registerXQuestion()`, so the Serializer class exists and
+the opt-in stays gated by `ENDATIX_ENABLE_EXTENSIONS` like other core features.
+
+### Known gaps (h709 / h742 — do not fix in feature PRs)
+
+| Gap | Today's workaround | Owner |
+|-----|-------------------|-------|
+| `core-registry` entry does not auto-run `onInit` | Every surface calls `useSurveyExtensions` | h709 unified bootstrap |
+| `onInit` runs in `useEffect` (after paint) | Gate `new Model` on `isReady` | h742 sync globals on survey surfaces |
+| Flag defaults off | Document `ENDATIX_ENABLE_EXTENSIONS=true` as required | h709 remove experimental gate |
+| No Node/server extension loader | PDF keeps `registerXModel()` | h709/h742 server-safe bootstrap |
+| Per-surface `isReady` glue duplicates | Accept until bootstrap lands | h709 remove per-surface glue |

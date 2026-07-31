@@ -9,4 +9,5 @@ export {
   CARRY_FORWARD_MAX_CHOICES_PROPERTY,
 } from "./constants";
 export { carryForwardExtension } from "./infrastructure/carry-forward.extension";
+export { registerCarryForwardForQuestionType } from "./infrastructure/registry";
 export type { AdvancedCarryForwardQuestion } from "./types";

@@ -1,3 +1,4 @@
+import { DRAG_CATEGORIZE_TYPE } from "@/lib/questions/drag-categorize/constants";
 import type { IFile } from "@/lib/questions/file/file-type";
 import {
   Model,
@@ -81,6 +82,14 @@ export function collectModelStorageAssets(model: Model): ModelStorageAssets {
         const imgModel = question as QuestionImageModel;
         addAssetRef(refs, imgModel.imageLink, (nextUrl) => {
           imgModel.imageLink = nextUrl;
+        });
+        break;
+      }
+      case DRAG_CATEGORIZE_TYPE: {
+        question.choices?.forEach((choice: { imageUrl?: string }) => {
+          addAssetRef(refs, choice.imageUrl, (nextUrl) => {
+            choice.imageUrl = nextUrl;
+          });
         });
         break;
       }

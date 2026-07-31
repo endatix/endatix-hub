@@ -5,6 +5,8 @@ import { getSubmissionLocale } from "@/features/submissions/submission-localizat
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
+// Model-only: barrel would pull survey-react-ui + stylesheet into this server path.
+import { registerDragCategorizeModel } from "@/lib/questions/drag-categorize/drag-categorize.registry";
 import { Model } from "survey-core";
 
 interface PreparePdfModelOptions {
@@ -27,6 +29,7 @@ export async function preparePdfModel({
   
   // Add custom questions to the model
   registerAudioQuestionModel();
+  registerDragCategorizeModel();
   initializeCustomQuestions(customQuestionsJsonData);
   registerDataListGlobals();
 
