@@ -144,10 +144,6 @@ function initPublicSurveyRuntime(): void {
     return;
   }
 
-  // Audio recorder has no extension yet, so it still registers here. Question
-  // types that do — drag-categorize — register in their extension's onInit,
-  // which the loader runs before survey-js-wrapper lets this hook build the
-  // model (it renders nothing until useSurveyExtensions reports isReady).
   registerAudioQuestion();
   addRandomizeGroupFeature();
   isPublicSurveyRuntimeInitialized = true;

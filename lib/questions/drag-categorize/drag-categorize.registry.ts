@@ -36,14 +36,8 @@ const HIDDEN_SELECT_BASE_PROPERTIES = [
 ];
 
 /**
- * Registers the item/zone sub-types and the question class with the
- * SurveyJS Serializer + QuestionFactory — the model half of the question,
- * with no React or stylesheet dependency.
- *
- * This module is import-safe on the server: the PDF export pipeline calls
- * it directly so a Model can parse `dragcategorize` JSON without pulling
- * survey-react-ui into a server bundle. Client surfaces should call
- * registerDragCategorizeQuestion (which calls this first) instead.
+ * Model-only Serializer + QuestionFactory registration (no React).
+ * Used by PDF export; client registration goes through the extension.
  */
 export function registerDragCategorizeModel(): void {
   if (!Serializer.findClass(DRAG_CATEGORIZE_ITEM_CLASS)) {

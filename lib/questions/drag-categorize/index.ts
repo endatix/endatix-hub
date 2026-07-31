@@ -1,23 +1,9 @@
 /**
- * Drag Categorize — custom question letting respondents drag items into
- * named category zones.
+ * Drag Categorize question. Registration lives in the extensions framework —
+ * see `.agents/skills/add-survey-feature/SKILL.md` §11.
  *
- * Single entry point for client surfaces. Pick the registration that
- * matches the surface:
- *
- * | Surface                             | Call                                 |
- * | ----------------------------------- | ------------------------------------ |
- * | Runner, previews, submission survey | registerDragCategorizeQuestion()     |
- * | Designer globals                    | registerDragCategorizeQuestionUI()   |
- * | Designer, per SurveyCreator         | bindDragCategorizeToCreator(creator) |
- *
- * Only designer surfaces should import this barrel. It re-exports the
- * Creator bindings, so importing it anywhere else drags survey-creator-core
- * along with them. Deep-import the entry for the surface instead:
- *
- * - server-side (PDF export) → `./drag-categorize.registry` (model only, no
- *   survey-react-ui and no stylesheet)
- * - runner / previews / submission survey → `./drag-categorize.component`
+ * Avoid importing this barrel from respondent graphs (re-exports Creator).
+ * PDF: deep-import `./drag-categorize.registry`.
  */
 export {
   DEFAULT_ZONE_MIN_WIDTH,

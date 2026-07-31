@@ -228,13 +228,7 @@ export class DragCategorizeComponent extends SurveyQuestionElementBase {
   }
 }
 
-/**
- * Registers the question for any DOM surface: respondent runner, form and
- * template previews, and the read-only submission survey. Registers the
- * model first, so callers never need both.
- *
- * Designer surfaces should call registerDragCategorizeQuestionUI instead.
- */
+/** Registers model + ReactQuestionFactory. Invoked from the extension / Creator bindings. */
 export function registerDragCategorizeQuestion(): void {
   registerDragCategorizeModel();
   ReactQuestionFactory.Instance.registerQuestion(

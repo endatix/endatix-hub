@@ -12,14 +12,7 @@ import { DRAG_CATEGORIZE_SVG } from "./drag-categorize.icon";
 
 const CREATOR_BOUND_KEY = "__endatixDragCategorizeCreatorBound";
 
-/**
- * Designer registration: everything registerDragCategorizeQuestion does,
- * plus the globals the Creator reads once (toolbox icon, display name,
- * property-grid help texts). Safe to call repeatedly.
- *
- * Per-creator wiring lives in bindDragCategorizeToCreator, which needs the
- * SurveyCreator instance.
- */
+/** Designer globals (icon, display name, pehelp). Called from bindDragCategorizeToCreator. */
 export function registerDragCategorizeQuestionUI(): void {
   registerDragCategorizeQuestion();
   SvgRegistry.registerIcon(DRAG_CATEGORIZE_TYPE, DRAG_CATEGORIZE_SVG);

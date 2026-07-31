@@ -4,7 +4,6 @@ import { useStorageWithSurvey } from "@/features/asset-storage/client";
 import { Submission } from "@/lib/endatix-api";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
-import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { useRichText } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTable } from "@/lib/survey-features/summary-table";
 import type { Model } from "survey-core";
@@ -18,8 +17,6 @@ import "survey-core/survey-core.css";
 import { Survey, SurveyModel } from "survey-react-ui";
 import { useSurveyModel } from "./use-survey-model.hook";
 
-// Audio recorder has no extension yet. Question types that do register through
-// the extension loader below.
 registerAudioQuestion();
 addRandomizeGroupFeature();
 
@@ -44,35 +41,11 @@ function SubmissionSurvey({
   onModelCreated,
   onChange,
 }: Readonly<SubmissionSurveyProps>) {
-  // Extension-registered question types must exist before the definition is
-  // parsed, so the model build waits on isReady.
-  const {
-    isReady: areExtensionsReady,
-    onModelCreated: notifyExtensionsOfModel,
-  } = useSurveyExtensions({
-    formJson: submission.formDefinition?.jsonData,
-    runtimeDeps: {
-      getRuntimeState: () => ({
-        formId: submission.formId,
-        submissionId: submission.id,
-      }),
-    },
-  });
-
-  const handleModelCreated = useCallback(
-    (model: Model) => {
-      notifyExtensionsOfModel(model);
-      onModelCreated?.(model);
-    },
-    [notifyExtensionsOfModel, onModelCreated],
-  );
-
   const { model, isLoading } = useSurveyModel(
     submission,
     customQuestions,
     readOnly,
-    handleModelCreated,
-    areExtensionsReady,
+    onModelCreated,
   );
   const getSubmissionId = useCallback(() => {
     return submission.id;

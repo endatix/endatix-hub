@@ -355,76 +355,86 @@ Run: `pnpm test` from `hub/` (filter by feature path).
 
 A question type you implement in code is **not** a survey feature. It lives in
 `lib/questions/{question}/` and owns every surface its answers appear on.
-Canonical example: [lib/questions/drag-categorize](lib/questions/drag-categorize)
-(see also the older [audio-recorder](lib/questions/audio-recorder)).
+**Canonical example:** [lib/questions/drag-categorize](lib/questions/drag-categorize).
+
+Do **not** copy [audio-recorder](lib/questions/audio-recorder)'s module-scope
+`registerXQuestion()` on feature surfaces — that pattern predates the
+extensions framework and will be migrated later.
+
+### Registration path (extensions framework)
+
+1. Implement `registerXModel` / `registerXQuestion` / Creator helpers as
+   **internal** entry points in the question folder.
+2. Add a thin `ExtensionModule` (`x.extension.ts`) whose `onInit` calls
+   `registerXQuestion()` (and feature opt-ins such as carry-forward) and whose
+   `onCreatorReady` dynamically imports Creator bindings.
+3. Register in [core-registry.ts](lib/survey-extensions/core-registry.ts) as
+   `type: 'question'`, `loading: 'static'`, **omit `shouldLoad`**.
+4. Every **client** survey surface must call `useSurveyExtensions` and **must
+   not** construct a `Model` / `SurveyCreator` until `isReady` is true.
+5. Require `ENDATIX_ENABLE_EXTENSIONS=true` until h709 removes the experimental
+   gate (extensions off = question type silently missing at parse time).
+
+```typescript
+// x.extension.ts — sole client registration path
+const xExtension: ExtensionModule = {
+  onInit: () => {
+    registerXQuestion();
+    registerCarryForwardForQuestionType(X_TYPE);
+  },
+  onCreatorReady: async (creator) => {
+    const { bindXToCreator } = await import('./x.creator');
+    bindXToCreator(creator);
+  },
+};
+```
 
 ### Surfaces you must cover
 
 An answer that renders in the runner but nowhere else is an incomplete question.
-Each of these needs an explicit case — the fallbacks print raw JSON:
+Fallbacks print raw JSON — add an explicit case for each:
 
 | Surface | Wire-up |
 |---------|---------|
-| Runner / previews / read-only submission survey | `registerXQuestion()` — model + `ReactQuestionFactory` |
-| Designer | `registerXQuestionUI()` + `bindXToCreator(creator)` |
+| Runner / previews / submission view-edit / designer | Parent already calls `useSurveyExtensions` + `isReady` (e.g. survey-js-wrapper, view/edit-submission-core); do **not** re-wire inside nested survey components |
 | Submission details | component in the question folder + case in `features/submissions/ui/answers/answer-viewer.tsx` |
-| PDF export | model-only registration in `preparePdfModel` + case in `features/pdf-export/submission/pdf-answer-viewer.tsx` |
+| PDF export | model-only `registerXModel()` in `preparePdfModel` + case in `pdf-answer-viewer.tsx` (sole allowed non-extension register — Node has no React loader) |
 | Submission grid | entry in `lib/questions/questions-registry.ts` (`QuestionType` + `supportedInGrid`) |
 | Private-storage images | collect item URLs in `collect-model-storage-assets.ts` |
 
-### Split registration by surface
+### Split modules (internal helpers)
 
-Keep **model registration free of React**. The PDF pipeline is server-side and
-must be able to register the question without pulling `survey-react-ui` or a
-stylesheet into a server bundle:
+Keep **model registration free of React** so PDF can import without
+`survey-react-ui` / stylesheets:
 
 ```typescript
 // x.registry.ts      — Serializer + QuestionFactory only. Server-safe.
 export function registerXModel(): void { … }
 
 // x.component.tsx    — calls registerXModel(), then ReactQuestionFactory
-export function registerXQuestion(): void { … }
+export function registerXQuestion(): void { … } // called from extension onInit
 
-// x.creator.ts       — calls registerXQuestion(), then icon + pehelp
-export function registerXQuestionUI(): void { … }
+// x.creator.ts       — icon + pehelp + bindXToCreator
 export function bindXToCreator(creator: SurveyCreatorModel): void { … }
 ```
 
-The `index.ts` barrel re-exports the client entry points only; server callers
-deep-import `x.registry`. State this in the barrel's doc comment.
+Do not import the question barrel from respondent graphs (it may re-export
+Creator bindings). Deep-import the surface-appropriate module.
 
 ### Opting into survey features (carry forward, …)
 
-Features in `survey-features/` that attach Serializer metadata to question
-types keep a built-in type list (e.g. `CARRY_FORWARD_QUESTION_TYPES`). **Do not
-add a code-owned question type to that list.** Feature extensions load
-`static`ally while custom-question extensions load `dynamic`ally, so the
-feature always initializes first — and `Serializer.addProperty` against a class
-that is not registered yet is silently discarded and *not* recovered when the
-class appears later.
+Features in `survey-features/` keep a built-in type list (e.g.
+`CARRY_FORWARD_QUESTION_TYPES`). **Do not add a code-owned question type to
+that list.** Call the feature's per-type opt-in from the question extension's
+`onInit`, **after** `registerXQuestion()`, so the Serializer class exists and
+the opt-in stays gated by `ENDATIX_ENABLE_EXTENSIONS` like other core features.
 
-Instead the feature exposes a per-type opt-in that the question calls from its
-own model registration, right after `Serializer.addClass`:
+### Known gaps (h709 / h742 — do not fix in feature PRs)
 
-```typescript
-export function registerXModel(): void {
-  if (!Serializer.findClass(X_TYPE)) { Serializer.addClass(X_TYPE, …); }
-  registerCarryForwardForQuestionType(X_TYPE); // class provably exists here
-  QuestionFactory.Instance.registerQuestion(X_TYPE, …);
-}
-```
-
-Import the opt-in from the feature's module rather than its barrel so a
-server-safe registry stays free of UI code. When adding this capability to a
-new feature, keep its built-in list on its existing code path and have the
-one-time-init guard assert only over that list — an opted-in type must not be
-able to make the guard think metadata went missing.
-
-### Extensions register, they do not own
-
-Question types may still have an `ExtensionModule` in the question folder and an
-entry in `core-registry.ts` — that buys code-splitting and per-form loading. Keep
-the module a thin adapter over the question's own entry points. Surfaces the
-loader cannot reach (server-side PDF export, `submission-survey.tsx`) call the
-question's registration directly, and `ENDATIX_ENABLE_EXTENSIONS` gates only the
-extension-served surfaces.
+| Gap | Today's workaround | Owner |
+|-----|-------------------|-------|
+| `core-registry` entry does not auto-run `onInit` | Every surface calls `useSurveyExtensions` | h709 unified bootstrap |
+| `onInit` runs in `useEffect` (after paint) | Gate `new Model` on `isReady` | h742 sync globals on survey surfaces |
+| Flag defaults off | Document `ENDATIX_ENABLE_EXTENSIONS=true` as required | h709 remove experimental gate |
+| No Node/server extension loader | PDF keeps `registerXModel()` | h709/h742 server-safe bootstrap |
+| Per-surface `isReady` glue duplicates | Accept until bootstrap lands | h709 remove per-surface glue |
