@@ -57,12 +57,11 @@ export function SessionExpiryHoursControl({
       ? formatSessionExpiryHours(organizationDefaultHours)
       : "Never expires";
 
-  const helperText =
-    variant === "organization"
-      ? "Organization default for public form sessions. Forms can override this in Form details. Leave empty for sessions that never expire."
-      : isOverridden
-        ? `Override active. ${orgDefaultLabel}. Applies on the next respondent save.`
-        : `Using ${orgDefaultLabel.toLowerCase()}. Set a value to override for this form. Applies on the next respondent save.`;
+  const helperText = getSessionExpiryHelperText(
+    variant,
+    isOverridden,
+    orgDefaultLabel,
+  );
 
   const showRestore =
     variant === "form" && isOverridden && Boolean(onRestoreDefault);
@@ -117,4 +116,20 @@ export function SessionExpiryHoursControl({
       ) : null}
     </div>
   );
+}
+
+function getSessionExpiryHelperText(
+  variant: "organization" | "form",
+  isOverridden: boolean,
+  orgDefaultLabel: string,
+): string {
+  if (variant === "organization") {
+    return "Organization default for public form sessions. Forms can override this in Form details. Leave empty for sessions that never expire.";
+  }
+
+  if (isOverridden) {
+    return `Override active. ${orgDefaultLabel}. Applies on the next respondent save.`;
+  }
+
+  return `Using ${orgDefaultLabel.toLowerCase()}. Set a value to override for this form. Applies on the next respondent save.`;
 }
