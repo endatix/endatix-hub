@@ -269,5 +269,9 @@ function SubmissionsLoadError({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 function TableLoader({ pageSize }: Readonly<{ pageSize: number }>) {
-  return <SubmissionsTableSkeleton pageSize={pageSize} />;
+  return (
+    <div className="mt-8">
+      <SubmissionsTableSkeleton pageSize={pageSize} />
+    </div>
+  );
 }
