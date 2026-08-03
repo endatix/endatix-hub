@@ -8,11 +8,12 @@
 
 ## Server Actions
 
-- Server action files must use `"use server"` and return `Result<T>` for operation outcomes.
+- Server action files must use `"use server"` and return `Result<T>` for operation outcomes (default). Use `ServerActionState` only for FormData / `useActionState` flows that need Zod field-level errors.
 - Keep actions thin: authenticate, authorize, call the API or use case, revalidate paths when needed, and return a typed result.
-- For Endatix API calls returning `ApiResult<T>`, use `toResult(...)` from `lib/result/map-api-result-to-result` instead of hand-writing `Result.error(...)` from API errors. Existing `mapToResult(...)` usage is equivalent, but prefer `toResult(...)` for new code.
-- Pass `fallbackMessage`, `logMessage`, and `loggerName` when unexpected API failures should be logged. The mapper preserves expected user/action failures without noisy error logs.
-- When API success payload differs from the UI result payload, use the mapper's `mapData` option or keep the success return local and delegate only the failure branch to the mapper.
+- For Endatix API calls returning `ApiResult<T>`, **always** map with `toResult(...)` from `lib/result/map-api-result-to-result`. Do **not** hand-write `if (!apiResult.success) return Result.error(apiResult.error.message)`. Existing `mapToResult(...)` is equivalent; prefer `toResult(...)` for new/touched code.
+- Pass `fallbackMessage`, `logMessage`, and `loggerName` so unexpected failures log via `TelemetryLogger` while expected 403/404/validation stay user-facing without noisy logs.
+- When the action result type differs from the API payload (e.g. `Result<void>` after PATCH that returns settings), use `mapData` (e.g. `mapData: () => undefined`). Alternatively keep success local and map only the failure branch with `toResult`.
+- Call `revalidatePath` / `revalidateTag` only after `Result.isSuccess(result)`.
 
 ## Endatix IDs
 

@@ -157,10 +157,11 @@ export async function deleteItemAction(
 
 Action rules:
 
-- Return `Result<T>` (or `ServerActionState` for multi-field forms) — never swallow failures silently
+- Return `Result<T>` by default (or `ServerActionState` for FormData / Zod multi-field forms) — never swallow failures silently
 - Authenticate and authorize inside the action, or accept a session already validated by the caller
-- Map `ApiResult` failures with `toResult(...)` so expected 403/404/validation errors stay user-facing and unexpected failures are logged through `TelemetryLogger`
-- Revalidate paths only after success
+- Always map Endatix `ApiResult` with `toResult(...)` — do not hand-write `Result.error(apiResult.error.message)`. Pass `fallbackMessage`, `logMessage`, and `loggerName` so expected 403/404/validation stay user-facing and unexpected failures log through `TelemetryLogger`
+- When the UI result type differs from the API body (e.g. `Result<void>`), use `mapData` (e.g. `mapData: () => undefined`)
+- Revalidate paths only after `Result.isSuccess(result)`
 - Surface success and failure in the UI with toast or inline feedback; pair actions with a client handler using `useTransition` when not using `useActionState`
 
 #### List pages and tables

@@ -3,13 +3,15 @@
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
+import type { PatchTenantSettingsRequest } from "@/lib/endatix-api/tenant";
 import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
 
 export type PatchTenantSettingsResult = Result<void>;
 
 export async function patchTenantSettingsAction(
-  requireFolderAssignment: boolean,
+  body: PatchTenantSettingsRequest,
 ): Promise<PatchTenantSettingsResult | never> {
   const session = await auth();
   const { requireHubAccess, requirePermission } = await authorization(session);
@@ -18,15 +20,18 @@ export async function patchTenantSettingsAction(
   await requirePermission(Permissions.Tenant.ManageSettings);
 
   const api = new EndatixApi(session?.accessToken);
-  const patched = await api.tenant.patchSettings({ requireFolderAssignment });
+  const patched = await api.tenant.patchSettings(body);
+  const result = toResult(patched, {
+    fallbackMessage: "Failed to update tenant settings",
+    logMessage: "Failed to update tenant settings",
+    loggerName: "tenant.patchSettings",
+    mapData: (): void => undefined,
+  });
 
-  if (!patched.success) {
-    return Result.error(
-      patched.error.message || "Failed to update tenant settings",
-    );
+  if (Result.isSuccess(result)) {
+    revalidatePath("/(main)/settings");
+    revalidatePath("/(main)/forms");
   }
 
-  revalidatePath("/(main)/settings");
-  revalidatePath("/(main)/forms");
-  return Result.success(undefined);
+  return result;
 }

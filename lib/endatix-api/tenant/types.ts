@@ -21,7 +21,7 @@ export type CustomExportSettings = {
 
 export type TenantSettings = {
   tenantId: string;
-  submissionTokenExpiryHours: number;
+  submissionTokenExpiryHours?: number | null;
   isSubmissionTokenValidAfterCompletion: boolean;
   requireFolderAssignment?: boolean;
   slackSettings?: SlackSettings;
@@ -31,5 +31,7 @@ export type TenantSettings = {
 };
 
 export type PatchTenantSettingsRequest = {
-  requireFolderAssignment: boolean;
+  requireFolderAssignment?: boolean;
+  submissionTokenExpiryHours?: number;
+  clearSubmissionTokenExpiryHours?: boolean;
 };

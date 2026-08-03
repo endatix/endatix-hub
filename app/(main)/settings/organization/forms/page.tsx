@@ -1,7 +1,7 @@
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { RequireFolderAssignmentForm } from "@/features/settings/ui/require-folder-assignment-form";
+import { OrganizationFormsSettingsForm } from "@/features/settings/ui/organization-forms-settings-form";
 import { ApiErrorType, EndatixApi } from "@/lib/endatix-api";
 import Link from "next/link";
 import type { Route } from "next";
@@ -35,6 +35,8 @@ export default async function OrganizationFormsSettingsPage() {
   }
 
   const requireFolder = settingsResult.data.requireFolderAssignment ?? false;
+  const submissionTokenExpiryHours =
+    settingsResult.data.submissionTokenExpiryHours ?? null;
 
   return (
     <div className="space-y-6">
@@ -63,8 +65,9 @@ export default async function OrganizationFormsSettingsPage() {
         </p>
       </section>
 
-      <RequireFolderAssignmentForm
+      <OrganizationFormsSettingsForm
         initialRequireFolderAssignment={requireFolder}
+        initialSubmissionTokenExpiryHours={submissionTokenExpiryHours}
       />
     </div>
   );

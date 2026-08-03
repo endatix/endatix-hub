@@ -10,6 +10,8 @@ export type UpdateFormSettingsResult = Result<string>;
 
 interface UpdateFormSettingsPayload {
   limitOnePerUser?: boolean;
+  submissionTokenExpiryHours?: number | null;
+  clearSubmissionTokenExpiryHours?: boolean;
   metadata?: string | null;
   folderId?: string | null;
   clearFolderId?: boolean;
