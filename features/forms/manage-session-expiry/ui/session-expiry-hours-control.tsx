@@ -86,6 +86,7 @@ export function SessionExpiryHoursControl({
           onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
           className="w-40"
+          aria-label={showLabel ? undefined : label}
         />
         {showCommit && onCommit ? (
           <Button
