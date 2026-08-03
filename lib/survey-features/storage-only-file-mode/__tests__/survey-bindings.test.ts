@@ -2,13 +2,23 @@ import { Model, Question } from "survey-core";
 import { describe, expect, it } from "vitest";
 import { bindStorageOnlyFileModeToSurvey } from "../infrastructure/survey-bindings";
 
-type QuestionWithStoreAsText = Question & { storeDataAsText?: boolean };
+type StorageOnlyFileModeQuestion = Question & {
+  storeDataAsText?: boolean;
+  waitForUpload?: boolean;
+};
 
 describe("bindStorageOnlyFileModeToSurvey", () => {
-  it("forces storeDataAsText to false on an existing file question", () => {
+  it("forces storeDataAsText to false and waitForUpload to true on an existing file question", () => {
     // Arrange
     const model = new Model({
-      elements: [{ type: "file", name: "attachment", storeDataAsText: true }],
+      elements: [
+        {
+          type: "file",
+          name: "attachment",
+          storeDataAsText: true,
+          waitForUpload: false,
+        },
+      ],
     });
 
     // Act
@@ -17,17 +27,19 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
     // Assert
     const question = model.getQuestionByName(
       "attachment",
-    ) as QuestionWithStoreAsText;
+    ) as StorageOnlyFileModeQuestion;
     expect(question.storeDataAsText).toBe(false);
+    expect(question.waitForUpload).toBe(true);
   });
 
-  it("serializes the forced value explicitly, so it survives a save/reload round trip", () => {
-    // Arrange: a question that never had storeDataAsText set at all — this
-    // is the regression case. If the Serializer's declared default were
-    // ever changed to false alongside hiding the property, an explicitly
-    // forced `false` here would match "default" and get dropped from
-    // toJSON(), silently reverting to base64 embedding for a respondent
-    // Model that parses this JSON later.
+  it("serializes both forced values explicitly, so they survive a save/reload round trip", () => {
+    // Arrange: a question that never had either property set — this is the
+    // regression case. storeDataAsText's built-in default is true;
+    // waitForUpload's is false. If either Serializer default were ever
+    // changed to match the forced value, the explicit value here would look
+    // like "default" and get dropped from toJSON(), silently reverting to
+    // base64 embedding / not waiting for uploads for a respondent Model that
+    // parses this JSON later (see registry.ts).
     const model = new Model({
       elements: [{ type: "file", name: "attachment" }],
     });
@@ -37,11 +49,15 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
 
     // Assert
     const question = model.getQuestionByName("attachment") as Question;
-    const json = question.toJSON() as { storeDataAsText?: boolean };
+    const json = question.toJSON() as {
+      storeDataAsText?: boolean;
+      waitForUpload?: boolean;
+    };
     expect(json.storeDataAsText).toBe(false);
+    expect(json.waitForUpload).toBe(true);
   });
 
-  it("forces storeDataAsText to false on an existing signaturepad question", () => {
+  it("forces storeDataAsText to false and waitForUpload to true on an existing signaturepad question", () => {
     // Arrange
     const model = new Model({
       elements: [{ type: "signaturepad", name: "signature" }],
@@ -53,11 +69,12 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
     // Assert
     const question = model.getQuestionByName(
       "signature",
-    ) as QuestionWithStoreAsText;
+    ) as StorageOnlyFileModeQuestion;
     expect(question.storeDataAsText).toBe(false);
+    expect(question.waitForUpload).toBe(true);
   });
 
-  it("forces storeDataAsText to false on a file question nested in a dynamic panel template", () => {
+  it("forces both properties on a file question nested in a dynamic panel template", () => {
     // Arrange
     const model = new Model({
       elements: [
@@ -77,9 +94,10 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
     const nested = model
       .getAllQuestions(false, false, true)
       .find((q) => q.getType() === "file") as
-      | QuestionWithStoreAsText
+      | StorageOnlyFileModeQuestion
       | undefined;
     expect(nested?.storeDataAsText).toBe(false);
+    expect(nested?.waitForUpload).toBe(true);
   });
 
   it("leaves unrelated question types untouched", () => {
@@ -90,11 +108,12 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
     expect(() => bindStorageOnlyFileModeToSurvey(model)).not.toThrow();
     const question = model.getQuestionByName(
       "comment",
-    ) as QuestionWithStoreAsText;
+    ) as StorageOnlyFileModeQuestion;
     expect(question.storeDataAsText).toBeUndefined();
+    expect(question.waitForUpload).toBeUndefined();
   });
 
-  it("forces storeDataAsText to false on a file question added after binding", () => {
+  it("forces both properties on a file question added after binding", () => {
     // Arrange
     const model = new Model({ elements: [] });
     bindStorageOnlyFileModeToSurvey(model);
@@ -105,8 +124,9 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
     // Assert
     const question = model.getQuestionByName(
       "newAttachment",
-    ) as QuestionWithStoreAsText;
+    ) as StorageOnlyFileModeQuestion;
     expect(question.storeDataAsText).toBe(false);
+    expect(question.waitForUpload).toBe(true);
   });
 
   it("stops enforcing after the returned cleanup runs", () => {
@@ -121,7 +141,8 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
     // Assert
     const question = model.getQuestionByName(
       "newAttachment",
-    ) as QuestionWithStoreAsText;
+    ) as StorageOnlyFileModeQuestion;
     expect(question.storeDataAsText).toBe(true);
+    expect(question.waitForUpload).toBe(false);
   });
 });

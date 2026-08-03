@@ -1,6 +1,6 @@
 import { Serializer } from "survey-core";
 import { afterEach, describe, expect, it } from "vitest";
-import { STORE_DATA_AS_TEXT_PROPERTY } from "../constants";
+import { STORE_DATA_AS_TEXT_PROPERTY, WAIT_FOR_UPLOAD_PROPERTY } from "../constants";
 import {
   registerStorageOnlyFileModeGlobals,
   resetStorageOnlyFileModeRegistryForTests,
@@ -12,27 +12,37 @@ describe("registerStorageOnlyFileModeGlobals", () => {
   });
 
   it.each(["file", "signaturepad"])(
-    "hides storeDataAsText for %s",
+    "hides storeDataAsText and waitForUpload for %s",
     (type) => {
       // Act
       registerStorageOnlyFileModeGlobals();
 
       // Assert
-      const prop = Serializer.findProperty(type, STORE_DATA_AS_TEXT_PROPERTY);
-      expect(prop?.visible).toBe(false);
+      expect(
+        Serializer.findProperty(type, STORE_DATA_AS_TEXT_PROPERTY)?.visible,
+      ).toBe(false);
+      expect(
+        Serializer.findProperty(type, WAIT_FOR_UPLOAD_PROPERTY)?.visible,
+      ).toBe(false);
     },
   );
 
   it.each(["file", "signaturepad"])(
-    "leaves the built-in default (true) untouched for %s",
+    "leaves the built-in defaults untouched for %s",
     (type) => {
       // Act
       registerStorageOnlyFileModeGlobals();
 
-      // Assert: an explicit storeDataAsText:false must stay distinguishable
-      // from "unset" so it still serializes on save (see registry.ts).
-      const prop = Serializer.findProperty(type, STORE_DATA_AS_TEXT_PROPERTY);
-      expect(prop?.defaultValue).toBe(true);
+      // Assert: an explicit storeDataAsText:false / waitForUpload:true must
+      // stay distinguishable from "unset" so it still serializes on save
+      // (see registry.ts and bindStorageOnlyFileModeToSurvey).
+      expect(
+        Serializer.findProperty(type, STORE_DATA_AS_TEXT_PROPERTY)
+          ?.defaultValue,
+      ).toBe(true);
+      expect(
+        Serializer.findProperty(type, WAIT_FOR_UPLOAD_PROPERTY)?.defaultValue,
+      ).toBe(false);
     },
   );
 
@@ -42,14 +52,18 @@ describe("registerStorageOnlyFileModeGlobals", () => {
     registerStorageOnlyFileModeGlobals();
 
     // Assert
-    const prop = Serializer.findProperty("file", STORE_DATA_AS_TEXT_PROPERTY);
-    expect(prop?.visible).toBe(false);
+    expect(
+      Serializer.findProperty("file", STORE_DATA_AS_TEXT_PROPERTY)?.visible,
+    ).toBe(false);
+    expect(
+      Serializer.findProperty("file", WAIT_FOR_UPLOAD_PROPERTY)?.visible,
+    ).toBe(false);
   });
 });
 
 describe("resetStorageOnlyFileModeRegistryForTests", () => {
   it.each(["file", "signaturepad"])(
-    "restores storeDataAsText visibility for %s",
+    "restores storeDataAsText and waitForUpload visibility for %s",
     (type) => {
       // Arrange
       registerStorageOnlyFileModeGlobals();
@@ -58,8 +72,12 @@ describe("resetStorageOnlyFileModeRegistryForTests", () => {
       resetStorageOnlyFileModeRegistryForTests();
 
       // Assert
-      const prop = Serializer.findProperty(type, STORE_DATA_AS_TEXT_PROPERTY);
-      expect(prop?.visible).toBe(true);
+      expect(
+        Serializer.findProperty(type, STORE_DATA_AS_TEXT_PROPERTY)?.visible,
+      ).toBe(true);
+      expect(
+        Serializer.findProperty(type, WAIT_FOR_UPLOAD_PROPERTY)?.visible,
+      ).toBe(true);
     },
   );
 });
