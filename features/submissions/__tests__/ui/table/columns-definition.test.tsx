@@ -45,6 +45,7 @@ describe("submission table column definitions", () => {
     const columns = buildSubmissionSystemColumns({
       dateFilters: {
         createdAt: {},
+        modifiedAt: {},
         startedAt: {},
         completedAt: {},
       },
@@ -60,6 +61,43 @@ describe("submission table column definitions", () => {
         accessorKey: "startedAt",
       }),
     );
+  });
+
+  it("includes Last modified with date filter support", () => {
+    const onDateFilterChange = vi.fn();
+    const columns = buildSubmissionSystemColumns({
+      dateFilters: {
+        createdAt: {},
+        modifiedAt: {},
+        startedAt: {},
+        completedAt: {},
+      },
+      onDateFilterChange,
+    });
+    const modifiedAtColumn = columns.find((col) => col.id === "modifiedAt");
+
+    expect(modifiedAtColumn?.meta?.displayName).toBe("Last modified");
+    expect(modifiedAtColumn).toEqual(
+      expect.objectContaining({
+        id: "modifiedAt",
+        accessorKey: "modifiedAt",
+      }),
+    );
+  });
+
+  it("orders system columns for review-first UX", () => {
+    const columns = buildSubmissionSystemColumns();
+    const systemIds = columns.map((col) => col.id);
+
+    expect(systemIds.slice(0, 6)).toEqual([
+      "actions",
+      "complete",
+      "modifiedAt",
+      "startedAt",
+      "completedAt",
+      "createdAt",
+    ]);
+    expect(systemIds.at(-1)).toBe("status");
   });
 
   it("uses shortened system column headers for density", () => {

@@ -66,6 +66,7 @@ vi.mock("@/features/submissions/ui/table", () => ({
   ],
   EMPTY_SUBMISSION_DATE_FILTERS: {
     createdAt: {},
+    modifiedAt: {},
     startedAt: {},
     completedAt: {},
   },

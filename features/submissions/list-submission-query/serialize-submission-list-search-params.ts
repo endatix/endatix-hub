@@ -22,46 +22,56 @@ export function serializeSubmissionListSearchParams(
   if (state.pageSize !== SUBMISSION_LIST_DEFAULT_PAGE_SIZE) {
     params.set(searchParamKeys.pageSize, String(state.pageSize));
   }
-  if (state.isComplete.length > 0) {
-    params.set(searchParamKeys.isComplete, state.isComplete.join(","));
-  }
-  if (state.status.length > 0) {
-    params.set(searchParamKeys.status, state.status.join(","));
-  }
-  if (state.isTestSubmission.length > 0) {
-    params.set(
-      searchParamKeys.isTestSubmission,
-      state.isTestSubmission.join(","),
-    );
-  }
-  if (state.createdAtFrom) {
-    params.set(searchParamKeys.createdAtFrom, state.createdAtFrom);
-  }
-  if (state.createdAtTo) {
-    params.set(searchParamKeys.createdAtTo, state.createdAtTo);
-  }
-  if (state.startedAtFrom) {
-    params.set(searchParamKeys.startedAtFrom, state.startedAtFrom);
-  }
-  if (state.startedAtTo) {
-    params.set(searchParamKeys.startedAtTo, state.startedAtTo);
-  }
-  if (state.completedAtFrom) {
-    params.set(searchParamKeys.completedAtFrom, state.completedAtFrom);
-  }
-  if (state.completedAtTo) {
-    params.set(searchParamKeys.completedAtTo, state.completedAtTo);
-  }
-  if (state.submitterDisplayId) {
-    params.set(searchParamKeys.submitterDisplayId, state.submitterDisplayId);
-  }
-  if (state.submitterEmail) {
-    params.set(searchParamKeys.submitterEmail, state.submitterEmail);
-  }
-  const sort = serializeSubmissionListSorting(state.sorting);
-  if (sort) {
-    params.set(searchParamKeys.sort, sort);
+
+  setJoinedParam(params, searchParamKeys.isComplete, state.isComplete);
+  setJoinedParam(params, searchParamKeys.status, state.status);
+  setJoinedParam(
+    params,
+    searchParamKeys.isTestSubmission,
+    state.isTestSubmission,
+  );
+
+  for (const [key, value] of OPTIONAL_STRING_PARAMS) {
+    setOptionalParam(params, key, state[value]);
   }
 
+  const sort = serializeSubmissionListSorting(state.sorting);
+  setOptionalParam(params, searchParamKeys.sort, sort);
+
   return params;
+}
+
+const OPTIONAL_STRING_PARAMS = [
+  [searchParamKeys.createdAtFrom, "createdAtFrom"],
+  [searchParamKeys.createdAtTo, "createdAtTo"],
+  [searchParamKeys.modifiedAtFrom, "modifiedAtFrom"],
+  [searchParamKeys.modifiedAtTo, "modifiedAtTo"],
+  [searchParamKeys.startedAtFrom, "startedAtFrom"],
+  [searchParamKeys.startedAtTo, "startedAtTo"],
+  [searchParamKeys.completedAtFrom, "completedAtFrom"],
+  [searchParamKeys.completedAtTo, "completedAtTo"],
+  [searchParamKeys.submitterDisplayId, "submitterDisplayId"],
+  [searchParamKeys.submitterEmail, "submitterEmail"],
+] as const satisfies ReadonlyArray<
+  readonly [string, keyof SubmissionListUrlState]
+>;
+
+function setOptionalParam(
+  params: URLSearchParams,
+  key: string,
+  value: string | undefined,
+): void {
+  if (value) {
+    params.set(key, value);
+  }
+}
+
+function setJoinedParam(
+  params: URLSearchParams,
+  key: string,
+  values: readonly string[],
+): void {
+  if (values.length > 0) {
+    params.set(key, values.join(","));
+  }
 }

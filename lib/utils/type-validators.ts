@@ -7,6 +7,14 @@ const NUMERIC_STRING_PATTERN = /^\d+$/;
 const HEX_STRING_PATTERN = /^[0-9A-Fa-f]+$/;
 
 /**
+ * True when `value` is non-empty and contains only ASCII decimal digits (0-9).
+ * Rejects hex (`0x10`), scientific (`1e2`), signs, decimals, and other `Number()` coercions.
+ */
+export function isDecimalDigitString(value: string): boolean {
+  return NUMERIC_STRING_PATTERN.test(value);
+}
+
+/**
  * Validates that the given id is a valid Endatix ID (long) value.
  * @param id - The id to validate.
  * @param paramName - The name of the parameter to validate.
@@ -24,7 +32,7 @@ export function validateEndatixId(
     return Result.validationError(`${paramName} must be a string`);
   }
 
-  if (!NUMERIC_STRING_PATTERN.test(id)) {
+  if (!isDecimalDigitString(id)) {
     return Result.validationError(
       `${paramName} must be a numeric string containing only digits (0-9)`,
     );

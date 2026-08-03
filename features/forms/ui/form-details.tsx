@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Copy,
   Share2,
   List,
   MoreHorizontal,
@@ -51,6 +50,15 @@ import PageTitle from "@/components/headings/page-title";
 import { WebhookSettings } from "./webhook-settings";
 import { ShareDialog } from "./share-dialog";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
+import { getTenantSettingsAction } from "../application/actions/get-tenant-settings.action";
+import {
+  formatOrganizationDefaultLabel,
+  formatSessionExpiryHours,
+  parseSessionExpiryHoursInput,
+  SessionExpiryHoursControl,
+  sessionExpiryHoursToInput,
+  type SessionExpiryHours,
+} from "@/features/forms/manage-session-expiry";
 import { listFoldersAction } from "@/features/folders/server";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import {
@@ -172,6 +180,18 @@ const FormDetails = ({
   const [limitOnePerUser, setLimitOnePerUser] = useState(
     form?.limitOnePerUser ?? false,
   );
+  const [tokenExpiryHoursInput, setTokenExpiryHoursInput] = useState(
+    sessionExpiryHoursToInput(form?.submissionTokenExpiryHours),
+  );
+  const [tokenExpiryInputError, setTokenExpiryInputError] = useState<
+    string | null
+  >(null);
+  const [tokenExpirySyncedFrom, setTokenExpirySyncedFrom] = useState({
+    formId: form.id,
+    committed: sessionExpiryHoursToInput(form.submissionTokenExpiryHours),
+  });
+  const [organizationDefaultHours, setOrganizationDefaultHours] =
+    useState<SessionExpiryHours>(null);
   const [metadata, setMetadata] = useState(form?.metadata ?? "");
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
@@ -190,6 +210,49 @@ const FormDetails = ({
   useEffect(() => {
     setSelectedFolderId(form.folderId ?? "__none__");
   }, [form.id, form.folderId]);
+
+  const committedTokenExpiryInput = sessionExpiryHoursToInput(
+    form.submissionTokenExpiryHours,
+  );
+  if (
+    form.id !== tokenExpirySyncedFrom.formId ||
+    committedTokenExpiryInput !== tokenExpirySyncedFrom.committed
+  ) {
+    setTokenExpirySyncedFrom({
+      formId: form.id,
+      committed: committedTokenExpiryInput,
+    });
+    setTokenExpiryHoursInput(committedTokenExpiryInput);
+    setTokenExpiryInputError(null);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    void getTenantSettingsAction().then((result) => {
+      if (cancelled) {
+        return;
+      }
+
+      if (Result.isError(result)) {
+        toast.error(
+          "Failed to load organization session expiry default. Error: " +
+            result.message,
+        );
+        return;
+      }
+
+      if (!Result.isSuccess(result)) {
+        return;
+      }
+
+      setOrganizationDefaultHours(
+        result.value.submissionTokenExpiryHours ?? null,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!enableEditing) {
@@ -308,6 +371,72 @@ const FormDetails = ({
       }
 
       toast.success(`Form is now ${publicValue ? "public" : "private"}`);
+    });
+  };
+
+  const isTokenExpiryDirty =
+    tokenExpiryHoursInput.trim() !== committedTokenExpiryInput;
+  const isTokenExpiryOverridden = form.submissionTokenExpiryHours != null;
+
+  const updateSubmissionTokenExpiry = () => {
+    const previous = committedTokenExpiryInput;
+    const parsed = parseSessionExpiryHoursInput(tokenExpiryHoursInput);
+    if (!parsed.ok) {
+      setTokenExpiryInputError(parsed.message);
+      return;
+    }
+
+    setTokenExpiryInputError(null);
+
+    startTransition(async () => {
+      const result =
+        parsed.hours == null
+          ? await updateFormSettingsAction(form.id, {
+              clearSubmissionTokenExpiryHours: true,
+            })
+          : await updateFormSettingsAction(form.id, {
+              submissionTokenExpiryHours: parsed.hours,
+            });
+
+      if (result === undefined || Result.isError(result)) {
+        setTokenExpiryHoursInput(previous);
+        toast.error(
+          "Failed to update session expiry. Error: " +
+            (result && Result.isError(result) ? result.message : ""),
+        );
+        return;
+      }
+
+      toast.success(
+        parsed.hours == null
+          ? `Session expiry restored to ${formatOrganizationDefaultLabel(organizationDefaultHours).toLowerCase()}`
+          : `Session expiry set to ${formatSessionExpiryHours(parsed.hours)}`,
+      );
+    });
+  };
+
+  const restoreSubmissionTokenExpiryDefault = () => {
+    const previous = committedTokenExpiryInput;
+    setTokenExpiryInputError(null);
+    setTokenExpiryHoursInput("");
+
+    startTransition(async () => {
+      const result = await updateFormSettingsAction(form.id, {
+        clearSubmissionTokenExpiryHours: true,
+      });
+
+      if (result === undefined || Result.isError(result)) {
+        setTokenExpiryHoursInput(previous);
+        toast.error(
+          "Failed to restore session expiry. Error: " +
+            (result && Result.isError(result) ? result.message : ""),
+        );
+        return;
+      }
+
+      toast.success(
+        `Session expiry restored to ${formatOrganizationDefaultLabel(organizationDefaultHours).toLowerCase()}`,
+      );
     });
   };
 
@@ -668,6 +797,47 @@ const FormDetails = ({
               <span className="text-xs text-muted-foreground">
                 This option is available only for private forms.
               </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 items-center gap-4 py-2">
+          <span className="self-start pt-2 text-right">
+            Session expiry (hours)
+          </span>
+          <div className="col-span-3">
+            {enableEditing ? (
+              <SessionExpiryHoursControl
+                id="form-token-expiry-hours"
+                variant="form"
+                showLabel={false}
+                value={tokenExpiryHoursInput}
+                onChange={(value) => {
+                  setTokenExpiryInputError(null);
+                  setTokenExpiryHoursInput(value);
+                }}
+                organizationDefaultHours={organizationDefaultHours}
+                isOverridden={isTokenExpiryOverridden}
+                onRestoreDefault={restoreSubmissionTokenExpiryDefault}
+                onCommit={updateSubmissionTokenExpiry}
+                showCommit={isTokenExpiryDirty}
+                disabled={pending}
+                error={tokenExpiryInputError}
+              />
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm">
+                  {isTokenExpiryOverridden
+                    ? formatSessionExpiryHours(form.submissionTokenExpiryHours!)
+                    : formatOrganizationDefaultLabel(organizationDefaultHours)}
+                </span>
+                {isTokenExpiryOverridden ? (
+                  <span className="text-xs text-muted-foreground">
+                    Organization default:{" "}
+                    {formatSessionExpiryHours(organizationDefaultHours)}
+                  </span>
+                ) : null}
+              </div>
             )}
           </div>
         </div>

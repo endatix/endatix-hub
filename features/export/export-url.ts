@@ -53,6 +53,8 @@ export interface SubmissionExportListFilters {
   includeTestSubmissions?: boolean;
   createdAtFrom?: string;
   createdAtTo?: string;
+  modifiedAtFrom?: string;
+  modifiedAtTo?: string;
   startedAtFrom?: string;
   startedAtTo?: string;
   completedAtFrom?: string;

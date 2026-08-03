@@ -18,24 +18,28 @@ import type { Metadata, ResolvingMetadata, Route } from "next";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 
+type SubmissionListSearchParams = {
+  page?: string;
+  pageSize?: string;
+  isComplete?: string;
+  status?: string;
+  isTestSubmission?: string;
+  createdAtFrom?: string;
+  createdAtTo?: string;
+  modifiedAtFrom?: string;
+  modifiedAtTo?: string;
+  startedAtFrom?: string;
+  startedAtTo?: string;
+  completedAtFrom?: string;
+  completedAtTo?: string;
+  submitterDisplayId?: string;
+  submitterEmail?: string;
+  sort?: string;
+};
+
 type Params = {
   readonly params: Promise<{ formId: string }>;
-  readonly searchParams: Promise<{
-    page?: string;
-    pageSize?: string;
-    isComplete?: string;
-    status?: string;
-    isTestSubmission?: string;
-    createdAtFrom?: string;
-    createdAtTo?: string;
-    startedAtFrom?: string;
-    startedAtTo?: string;
-    completedAtFrom?: string;
-    completedAtTo?: string;
-    submitterDisplayId?: string;
-    submitterEmail?: string;
-    sort?: string;
-  }>;
+  readonly searchParams: Promise<SubmissionListSearchParams>;
 };
 
 export async function generateMetadata(
@@ -97,22 +101,7 @@ async function SubmissionsTableData({
   searchParams,
 }: {
   readonly formId: string;
-  readonly searchParams: {
-    page?: string;
-    pageSize?: string;
-    isComplete?: string;
-    status?: string;
-    isTestSubmission?: string;
-    createdAtFrom?: string;
-    createdAtTo?: string;
-    startedAtFrom?: string;
-    startedAtTo?: string;
-    completedAtFrom?: string;
-    completedAtTo?: string;
-    submitterDisplayId?: string;
-    submitterEmail?: string;
-    sort?: string;
-  };
+  readonly searchParams: SubmissionListSearchParams;
 }) {
   const listState = parseSubmissionListSearchParams(searchParams);
   const hasActiveFilters =
@@ -122,6 +111,8 @@ async function SubmissionsTableData({
     Boolean(
       listState.createdAtFrom ||
       listState.createdAtTo ||
+      listState.modifiedAtFrom ||
+      listState.modifiedAtTo ||
       listState.startedAtFrom ||
       listState.startedAtTo ||
       listState.completedAtFrom ||
@@ -139,6 +130,8 @@ async function SubmissionsTableData({
       {
         rawCreatedAtFrom: searchParams.createdAtFrom,
         rawCreatedAtTo: searchParams.createdAtTo,
+        rawModifiedAtFrom: searchParams.modifiedAtFrom,
+        rawModifiedAtTo: searchParams.modifiedAtTo,
         rawStartedAtFrom: searchParams.startedAtFrom,
         rawStartedAtTo: searchParams.startedAtTo,
         rawCompletedAtFrom: searchParams.completedAtFrom,
@@ -148,6 +141,8 @@ async function SubmissionsTableData({
         rawSort: searchParams.sort,
         createdAtFrom: listState.createdAtFrom,
         createdAtTo: listState.createdAtTo,
+        modifiedAtFrom: listState.modifiedAtFrom,
+        modifiedAtTo: listState.modifiedAtTo,
         startedAtFrom: listState.startedAtFrom,
         startedAtTo: listState.startedAtTo,
         completedAtFrom: listState.completedAtFrom,
@@ -229,6 +224,8 @@ async function SubmissionsTableData({
       initialIsTestSubmission={listState.isTestSubmission}
       initialCreatedAtFrom={listState.createdAtFrom}
       initialCreatedAtTo={listState.createdAtTo}
+      initialModifiedAtFrom={listState.modifiedAtFrom}
+      initialModifiedAtTo={listState.modifiedAtTo}
       initialStartedAtFrom={listState.startedAtFrom}
       initialStartedAtTo={listState.startedAtTo}
       initialCompletedAtFrom={listState.completedAtFrom}

@@ -189,7 +189,7 @@ describe("submitFormOperation", () => {
     }
   });
 
-  it("should update existing submission when token exists", async () => {
+  it("should slide cookie on incomplete update when token exists", async () => {
     mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
 
     const mockSubmissionData = {
@@ -201,6 +201,7 @@ describe("submitFormOperation", () => {
     const mockUpdateResponse = {
       isComplete: false,
       id: "submission-123",
+      token: "existing-token",
     };
 
     (
@@ -220,8 +221,39 @@ describe("submitFormOperation", () => {
       (globalThis as unknown as GlobalTestMocks).mockEndatixApi.submissions
         .public.updateByToken,
     ).toHaveBeenCalledWith("form-1", "existing-token", mockSubmissionData);
-    expect(mockTokenStore.setToken).not.toHaveBeenCalled();
+    expect(mockTokenStore.setToken).toHaveBeenCalledWith({
+      formId: "form-1",
+      token: "existing-token",
+    });
     expect(mockTokenStore.deleteToken).not.toHaveBeenCalled();
+    expect(ApiResult.isSuccess(result)).toBe(true);
+  });
+
+  it("should slide cookie using request token when update response omits token", async () => {
+    mockTokenStore.getToken.mockReturnValue(Result.success("existing-token"));
+
+    (
+      globalThis as unknown as GlobalTestMocks
+    ).mockEndatixApi.submissions.public.updateByToken.mockResolvedValue(
+      ApiResult.success({
+        isComplete: false,
+        id: "submission-123",
+      }),
+    );
+
+    const result = await submitFormOperation(
+      "form-1",
+      {
+        jsonData: '{"test": true}',
+        isComplete: false,
+      },
+      mockTokenStore as never,
+    );
+
+    expect(mockTokenStore.setToken).toHaveBeenCalledWith({
+      formId: "form-1",
+      token: "existing-token",
+    });
     expect(ApiResult.isSuccess(result)).toBe(true);
   });
 

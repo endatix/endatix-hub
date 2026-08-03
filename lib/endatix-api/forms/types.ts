@@ -17,6 +17,8 @@ export interface UpdateFormRequest {
   isEnabled?: boolean;
   isPublic?: boolean;
   limitOnePerUser?: boolean;
+  submissionTokenExpiryHours?: number | null;
+  clearSubmissionTokenExpiryHours?: boolean;
   metadata?: string | null;
   themeId?: string | null;
   webHookSettingsJson?: string;

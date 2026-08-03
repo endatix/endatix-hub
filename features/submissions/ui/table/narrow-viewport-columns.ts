@@ -1,6 +1,6 @@
 /** Columns soft-hidden under the `md` breakpoint when View prefs are untouched. */
 export const NARROW_VIEWPORT_HIDDEN_COLUMN_IDS = [
-  "startedAt",
+  "createdAt",
   "completedAt",
   "completionTime",
 ] as const;

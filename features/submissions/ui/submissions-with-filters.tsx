@@ -58,6 +58,8 @@ interface SubmissionsWithFiltersProps {
   initialIsTestSubmission?: string[];
   initialCreatedAtFrom?: string;
   initialCreatedAtTo?: string;
+  initialModifiedAtFrom?: string;
+  initialModifiedAtTo?: string;
   initialStartedAtFrom?: string;
   initialStartedAtTo?: string;
   initialCompletedAtFrom?: string;
@@ -162,6 +164,8 @@ function SubmissionsContent({
     () => ({
       createdAtFrom: dateFilters.createdAt.from,
       createdAtTo: dateFilters.createdAt.to,
+      modifiedAtFrom: dateFilters.modifiedAt.from,
+      modifiedAtTo: dateFilters.modifiedAt.to,
       startedAtFrom: dateFilters.startedAt.from,
       startedAtTo: dateFilters.startedAt.to,
       completedAtFrom: dateFilters.completedAt.from,
@@ -170,6 +174,8 @@ function SubmissionsContent({
     [
       dateFilters.createdAt.from,
       dateFilters.createdAt.to,
+      dateFilters.modifiedAt.from,
+      dateFilters.modifiedAt.to,
       dateFilters.startedAt.from,
       dateFilters.startedAt.to,
       dateFilters.completedAt.from,
@@ -306,6 +312,8 @@ function hasDateFilters(dateFilters: SubmissionDateFilters) {
   return Boolean(
     dateFilters.createdAt.from ||
     dateFilters.createdAt.to ||
+    dateFilters.modifiedAt.from ||
+    dateFilters.modifiedAt.to ||
     dateFilters.startedAt.from ||
     dateFilters.startedAt.to ||
     dateFilters.completedAt.from ||
@@ -324,6 +332,8 @@ export function SubmissionsWithFilters({
   initialIsTestSubmission = EMPTY_INITIAL_FILTER_VALUES,
   initialCreatedAtFrom,
   initialCreatedAtTo,
+  initialModifiedAtFrom,
+  initialModifiedAtTo,
   initialStartedAtFrom,
   initialStartedAtTo,
   initialCompletedAtFrom,
@@ -365,6 +375,10 @@ export function SubmissionsWithFilters({
       from: initialCreatedAtFrom,
       to: initialCreatedAtTo,
     },
+    modifiedAt: {
+      from: initialModifiedAtFrom,
+      to: initialModifiedAtTo,
+    },
     startedAt: {
       from: initialStartedAtFrom,
       to: initialStartedAtTo,
@@ -402,6 +416,10 @@ export function SubmissionsWithFilters({
         from: initialCreatedAtFrom,
         to: initialCreatedAtTo,
       },
+      modifiedAt: {
+        from: initialModifiedAtFrom,
+        to: initialModifiedAtTo,
+      },
       startedAt: {
         from: initialStartedAtFrom,
         to: initialStartedAtTo,
@@ -417,6 +435,8 @@ export function SubmissionsWithFilters({
     initialIsTestSubmission,
     initialCreatedAtFrom,
     initialCreatedAtTo,
+    initialModifiedAtFrom,
+    initialModifiedAtTo,
     initialStartedAtFrom,
     initialStartedAtTo,
     initialCompletedAtFrom,
@@ -460,6 +480,8 @@ export function SubmissionsWithFilters({
       submitterEmail,
       createdAtFrom: dates.createdAt.from,
       createdAtTo: dates.createdAt.to,
+      modifiedAtFrom: dates.modifiedAt.from,
+      modifiedAtTo: dates.modifiedAt.to,
       startedAtFrom: dates.startedAt.from,
       startedAtTo: dates.startedAt.to,
       completedAtFrom: dates.completedAt.from,

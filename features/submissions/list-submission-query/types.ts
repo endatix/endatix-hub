@@ -18,6 +18,8 @@ export type SubmissionListSortItem = {
  * @param isTestSubmission - The is test submission.
  * @param createdAtFrom - The created at from.
  * @param createdAtTo - The created at to.
+ * @param modifiedAtFrom - The modified at from.
+ * @param modifiedAtTo - The modified at to.
  * @param startedAtFrom - The started at from.
  * @param startedAtTo - The started at to.
  * @param completedAtFrom - The completed at from.
@@ -34,6 +36,8 @@ export type SubmissionListUrlState = {
   isTestSubmission: BooleanFilterValue[];
   createdAtFrom?: string;
   createdAtTo?: string;
+  modifiedAtFrom?: string;
+  modifiedAtTo?: string;
   startedAtFrom?: string;
   startedAtTo?: string;
   completedAtFrom?: string;

@@ -5,6 +5,7 @@ export type Form = {
   isEnabled: boolean;
   isPublic: boolean;
   limitOnePerUser?: boolean;
+  submissionTokenExpiryHours?: number | null;
   metadata?: string;
   createdAt: Date;
   modifiedAt?: Date;
@@ -79,7 +80,7 @@ export type WebHookSettings = {
 
 export type TenantSettings = {
   tenantId: string;
-  submissionTokenExpiryHours: number;
+  submissionTokenExpiryHours?: number | null;
   isSubmissionTokenValidAfterCompletion: boolean;
   requireFolderAssignment: boolean;
   slackSettings?: SlackSettings;
