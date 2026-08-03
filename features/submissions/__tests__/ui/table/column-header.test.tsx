@@ -131,24 +131,75 @@ describe("ColumnHeader", () => {
     expect(column.toggleSorting).not.toHaveBeenCalled();
   });
 
-  it("uses a column menu button separate from the sort surface", () => {
-    renderColumnHeader();
+  it("uses a column menu button separate from the sort surface when filtering is available", () => {
+    const column = {
+      id: "createdAt",
+      getCanSort: () => true,
+      getIsSorted: () => false as const,
+      toggleSorting: vi.fn(),
+      clearSorting: vi.fn(),
+    };
 
+    render(
+      <ColumnVisibilityProvider
+        formId="form-1"
+        defaultColumns={[{ id: "createdAt" }]}
+      >
+        <ColumnHeader
+          column={column as any}
+          title="Created at"
+          dateFilter={{ value: {}, onChange: vi.fn() }}
+        />
+      </ColumnVisibilityProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /^created at$/i }),
+    ).toBeDefined();
     expect(
       screen.getByRole("button", { name: /created at column menu/i }),
     ).toBeDefined();
   });
 
-  it("forces column menu chrome visible when sorted", () => {
+  it("omits the filter menu for sort-only columns", () => {
+    renderColumnHeader();
+
+    expect(
+      screen.getByRole("button", { name: /^created at$/i }),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole("button", { name: /created at column menu/i }),
+    ).toBeNull();
+  });
+
+  it("forces sort chrome visible when sorted", () => {
     // Arrange & Act
-    renderColumnHeader({ isSorted: "asc" });
-    const menuButton = screen.getByRole("button", {
-      name: /created at column menu/i,
-    });
+    const { container } = render(
+      <ColumnVisibilityProvider
+        formId="form-1"
+        defaultColumns={[{ id: "createdAt" }]}
+      >
+        <ColumnHeader
+          column={
+            {
+              id: "createdAt",
+              getCanSort: () => true,
+              getIsSorted: () => "asc" as const,
+              toggleSorting: vi.fn(),
+              clearSorting: vi.fn(),
+            } as any
+          }
+          title="Created at"
+          isSorted="asc"
+        />
+      </ColumnVisibilityProvider>,
+    );
+
+    const sortChrome = container.querySelector('[aria-hidden="true"]');
 
     // Assert
-    expect(menuButton.className).toContain("opacity-100");
-    expect(menuButton.className).not.toContain("md:opacity-0");
+    expect(sortChrome?.className).toContain("opacity-100");
+    expect(sortChrome?.className).not.toContain("md:opacity-0");
   });
 
   it("crossfades centered title with overlay chrome instead of stacking", () => {
@@ -186,8 +237,8 @@ describe("ColumnHeader", () => {
       screen.getByRole("button", { name: /^sort complete$/i }),
     ).toBeDefined();
     expect(
-      screen.getByRole("button", { name: /complete column menu/i }),
-    ).toBeDefined();
+      screen.queryByRole("button", { name: /complete column menu/i }),
+    ).toBeNull();
     expect(screen.queryByRole("button", { name: /^complete$/i })).toBeNull();
   });
 });
