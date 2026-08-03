@@ -28,14 +28,21 @@ export function parseSessionExpiryHoursInput(
     return { ok: true, hours: null };
   }
 
-  if (!isDecimalDigitString(trimmed) || Number(trimmed) <= 0) {
+  // Digit-only strings can still overflow Number → Infinity / lose precision;
+  // isSafeInteger is the number-domain analogue of Endatix ID BigInt bounds.
+  const hours = Number(trimmed);
+  if (
+    !isDecimalDigitString(trimmed) ||
+    !Number.isSafeInteger(hours) ||
+    hours <= 0
+  ) {
     return {
       ok: false,
       message: "Session expiry must be a positive whole number of hours.",
     };
   }
 
-  return { ok: true, hours: Number(trimmed) };
+  return { ok: true, hours };
 }
 
 export function sessionExpiryHoursToInput(

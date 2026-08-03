@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Copy,
   Share2,
   List,
   MoreHorizontal,
