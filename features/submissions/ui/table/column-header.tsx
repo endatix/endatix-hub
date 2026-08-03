@@ -296,6 +296,7 @@ function CenterAlignedColumnHeader<TData, TValue>({
 }) {
   const handleSortCycle = () => cycleColumnSort(column, isSorted);
   const sizeClassName = isCompact ? "h-7 w-7" : "h-8 w-8";
+  const canFilter = Boolean(dateFilter || textFilter);
 
   return (
     <div
@@ -335,18 +336,20 @@ function CenterAlignedColumnHeader<TData, TValue>({
             <SortIndicator isSorted={isSorted} />
           </button>
         ) : null}
-        <ColumnHeaderMenu
-          column={column}
-          title={title}
-          canSort={canSort}
-          isSorted={isSorted}
-          dateFilter={dateFilter}
-          textFilter={textFilter}
-          hasActiveFilter={hasActiveFilter}
-          isCompact={isCompact}
-          contentAlign="end"
-          onHideColumn={onHideColumn}
-        />
+        {canFilter ? (
+          <ColumnHeaderMenu
+            column={column}
+            title={title}
+            canSort={canSort}
+            isSorted={isSorted}
+            dateFilter={dateFilter}
+            textFilter={textFilter}
+            hasActiveFilter={hasActiveFilter}
+            isCompact={isCompact}
+            contentAlign="end"
+            onHideColumn={onHideColumn}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -379,6 +382,8 @@ function StartAlignedColumnHeader<TData, TValue>({
   readonly chromeClassName: string;
   readonly onHideColumn: () => void;
 }) {
+  const canFilter = Boolean(dateFilter || textFilter);
+
   return (
     <div
       className={cn(
@@ -413,19 +418,21 @@ function StartAlignedColumnHeader<TData, TValue>({
           {titleLabel}
         </div>
       )}
-      <ColumnHeaderMenu
-        column={column}
-        title={title}
-        canSort={canSort}
-        isSorted={isSorted}
-        dateFilter={dateFilter}
-        textFilter={textFilter}
-        hasActiveFilter={hasActiveFilter}
-        isCompact={isCompact}
-        chromeClassName={chromeClassName}
-        contentAlign="start"
-        onHideColumn={onHideColumn}
-      />
+      {canFilter ? (
+        <ColumnHeaderMenu
+          column={column}
+          title={title}
+          canSort={canSort}
+          isSorted={isSorted}
+          dateFilter={dateFilter}
+          textFilter={textFilter}
+          hasActiveFilter={hasActiveFilter}
+          isCompact={isCompact}
+          chromeClassName={chromeClassName}
+          contentAlign="start"
+          onHideColumn={onHideColumn}
+        />
+      ) : null}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
   ColumnVisibilityProvider,
   EMPTY_SUBMISSION_DATE_FILTERS,
   ResetOptionsDropdown,
+  SubmissionsTableSkeleton,
   useColumnOrder,
   useColumnVisibility,
 } from "@/features/submissions/ui/table";
@@ -257,7 +258,7 @@ function SubmissionsContent({
             aria-live="polite"
             className="min-w-[5rem] text-right text-sm text-muted-foreground"
           >
-            {isPending ? "Updating..." : null}
+            {isPending ? "Updating…" : null}
           </div>
           <ColumnViewOptionsDropdown
             columns={columnHeaders}
@@ -289,6 +290,11 @@ function SubmissionsContent({
             onOpenChange={setIsShareDialogOpen}
           />
         </>
+      ) : isPending ? (
+        <SubmissionsTableSkeleton
+          pageSize={pagination.pageSize}
+          loadingLabel="Updating submissions…"
+        />
       ) : (
         <SubmissionsTable
           key={tableKey}
