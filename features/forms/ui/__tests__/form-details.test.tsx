@@ -31,6 +31,13 @@ vi.mock("../../application/actions/update-form-settings.action", () => ({
     mockUpdateFormSettingsAction(...args),
 }));
 
+vi.mock("../../application/actions/get-tenant-settings.action", () => ({
+  getTenantSettingsAction: vi.fn().mockResolvedValue({
+    kind: 0,
+    value: { submissionTokenExpiryHours: null },
+  }),
+}));
+
 vi.mock("../../application/actions/delete-form.action", () => ({
   deleteFormAction: vi.fn(),
 }));

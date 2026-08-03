@@ -52,7 +52,7 @@ describe("ColumnVisibilityProvider", () => {
     );
   });
 
-  it("soft-hides Started on narrow viewports when prefs are unset", () => {
+  it("soft-hides Created (not Started) on narrow viewports when prefs are unset", () => {
     mockMatchMedia(true);
     const columns: ColumnDef<any>[] = [
       { id: "createdAt" },
@@ -67,11 +67,11 @@ describe("ColumnVisibilityProvider", () => {
       </ColumnVisibilityProvider>,
     );
 
-    expect(screen.getByText("startedAt: false").textContent).toBe(
-      "startedAt: false",
+    expect(screen.getByText("createdAt: false").textContent).toBe(
+      "createdAt: false",
     );
-    expect(screen.getByText("createdAt: true").textContent).toBe(
-      "createdAt: true",
+    expect(screen.getByText("startedAt: true").textContent).toBe(
+      "startedAt: true",
     );
   });
 });
