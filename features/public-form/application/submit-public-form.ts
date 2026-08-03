@@ -1,6 +1,7 @@
 import type { SubmissionData } from "@/features/submissions/types";
 import { ApiResult } from "@/lib/endatix-api";
 import { mapResponseToApiError } from "@/lib/endatix-api/shared/http-error-mapper";
+import { withBasePath } from "@/lib/hosting";
 import type {
   SubmissionOperation,
   SubmissionOperationResult,
@@ -18,7 +19,9 @@ export async function submitPublicForm(
   submissionData: SubmissionData,
   urlToken?: string,
 ): Promise<SubmissionOperationResult> {
-  const endpoint = `/api/public/v0/forms/${encodeURIComponent(formId)}/submissions`;
+  const endpoint = withBasePath(
+    `/api/public/v0/forms/${encodeURIComponent(formId)}/submissions`,
+  );
   const method = "POST";
   const details = { endpoint, method };
 

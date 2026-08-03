@@ -1,17 +1,27 @@
+import { withBasePath } from "@/lib/hosting";
+
 /** Storage API policy: public or hub. */
 export type StorageApiPolicy = "public" | "hub";
 
 /** Hub POST route: batch-resolve storage object URLs to presigned GET URLs. */
-export const HUB_STORAGE_READ_URLS_PATH = "/api/hub/v0/storage/read-urls";
+export const HUB_STORAGE_READ_URLS_PATH = withBasePath(
+  "/api/hub/v0/storage/read-urls",
+);
 
 /** Public POST route: batch-resolve storage object URLs to presigned GET URLs. */
-export const PUBLIC_STORAGE_READ_URLS_PATH = "/api/public/v0/storage/read-urls";
+export const PUBLIC_STORAGE_READ_URLS_PATH = withBasePath(
+  "/api/public/v0/storage/read-urls",
+);
 
 /** Public DELETE route: token/cookie-gated submission file removal. */
-export const PUBLIC_STORAGE_DELETE_PATH = "/api/public/v0/storage/delete";
+export const PUBLIC_STORAGE_DELETE_PATH = withBasePath(
+  "/api/public/v0/storage/delete",
+);
 
 /** Hub DELETE route: authenticated hub session file removal. */
-export const HUB_STORAGE_DELETE_PATH = "/api/hub/v0/storage/delete";
+export const HUB_STORAGE_DELETE_PATH = withBasePath(
+  "/api/hub/v0/storage/delete",
+);
 
 const POLICY_PATHS = {
   public: {
