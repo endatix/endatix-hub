@@ -10,8 +10,8 @@ import {
   SUBMISSION_LIST_DEFAULT_PAGE,
   submissionListUrlStateToListRequest,
 } from "@/features/submissions/list-submission-query";
-import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table";
-import { SubmissionsWithFilters } from "@/features/submissions/ui";
+import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
+import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Metadata, ResolvingMetadata, Route } from "next";

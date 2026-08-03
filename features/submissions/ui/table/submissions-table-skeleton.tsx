@@ -33,7 +33,11 @@ interface SubmissionsTableSkeletonProps {
   loadingLabel?: string;
 }
 
-function SkeletonCellContent({ kind }: { kind: SkeletonCellKind }) {
+interface SkeletonCellContentProps {
+  kind: SkeletonCellKind;
+}
+
+function SkeletonCellContent({ kind }: Readonly<SkeletonCellContentProps>) {
   switch (kind) {
     case "actions":
       return (
