@@ -26,8 +26,16 @@ export function parseSessionExpiryHoursInput(
     return { ok: true, hours: null };
   }
 
+  // Decimal digits only — reject hex/scientific/`Number` coercions like "0x10" / "1e2".
+  if (!/^\d+$/.test(trimmed)) {
+    return {
+      ok: false,
+      message: "Session expiry must be a positive whole number of hours.",
+    };
+  }
+
   const hours = Number(trimmed);
-  if (!Number.isInteger(hours) || hours <= 0) {
+  if (hours <= 0) {
     return {
       ok: false,
       message: "Session expiry must be a positive whole number of hours.",

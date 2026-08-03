@@ -27,6 +27,10 @@ describe("session-expiry-hours", () => {
     });
     expect(parseSessionExpiryHoursInput("0").ok).toBe(false);
     expect(parseSessionExpiryHoursInput("1.5").ok).toBe(false);
+    expect(parseSessionExpiryHoursInput("abc").ok).toBe(false);
+    expect(parseSessionExpiryHoursInput("-5").ok).toBe(false);
+    expect(parseSessionExpiryHoursInput("0x10").ok).toBe(false);
+    expect(parseSessionExpiryHoursInput("1e2").ok).toBe(false);
   });
 
   it("round-trips input values", () => {
