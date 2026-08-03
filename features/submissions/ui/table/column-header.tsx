@@ -297,7 +297,6 @@ function CenterAlignedColumnHeader<TData, TValue>({
   const handleSortCycle = () => cycleColumnSort(column, isSorted);
   const sizeClassName = isCompact ? "h-7 w-7" : "h-8 w-8";
   const canFilter = Boolean(dateFilter || textFilter);
-  const showColumnMenu = canSort || canFilter;
 
   return (
     <div
@@ -337,7 +336,7 @@ function CenterAlignedColumnHeader<TData, TValue>({
             <SortIndicator isSorted={isSorted} />
           </button>
         ) : null}
-        {showColumnMenu ? (
+        {canFilter ? (
           <ColumnHeaderMenu
             column={column}
             title={title}
@@ -384,7 +383,6 @@ function StartAlignedColumnHeader<TData, TValue>({
   readonly onHideColumn: () => void;
 }) {
   const canFilter = Boolean(dateFilter || textFilter);
-  const showColumnMenu = canSort || canFilter;
 
   return (
     <div
@@ -420,7 +418,7 @@ function StartAlignedColumnHeader<TData, TValue>({
           {titleLabel}
         </div>
       )}
-      {showColumnMenu ? (
+      {canFilter ? (
         <ColumnHeaderMenu
           column={column}
           title={title}
