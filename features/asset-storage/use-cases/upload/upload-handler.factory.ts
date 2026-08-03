@@ -1,6 +1,7 @@
 import type { SurveyModel, UploadFilesEvent } from "survey-core";
 import type { UploadFileEvent } from "survey-creator-core";
 import { Result, type ResultType } from "@/lib/result";
+import { withBasePath } from "@/lib/hosting";
 import type { ContentItemType } from "../../types";
 import type { UploadUrlDescriptor } from "../../infrastructure/core";
 import type { StorageReadRuntime } from "../../infrastructure/storage-read-runtime";
@@ -14,8 +15,8 @@ import {
   type UploadUrlsData,
 } from "./upload.utils";
 
-const USER_UPLOAD_URLS = "/api/public/v0/storage/upload-urls";
-const USER_RESIZE_URL = "/api/public/v0/storage/resize-image";
+const USER_UPLOAD_URLS = withBasePath("/api/public/v0/storage/upload-urls");
+const USER_RESIZE_URL = withBasePath("/api/public/v0/storage/resize-image");
 
 function buildPerFileMaps(prepared: PreparedUploadBytes[]): {
   fileTypes: Record<string, string>;
@@ -144,8 +145,10 @@ export function createUserUpload(config: UserUploadConfig) {
 
 // ─── Content (creator) upload ─────────────────────────────────────────────
 
-const CONTENT_UPLOAD_URLS = "/api/hub/v0/storage/content/upload-urls";
-const CONTENT_RESIZE_URL = "/api/hub/v0/storage/resize-image";
+const CONTENT_UPLOAD_URLS = withBasePath(
+  "/api/hub/v0/storage/content/upload-urls",
+);
+const CONTENT_RESIZE_URL = withBasePath("/api/hub/v0/storage/resize-image");
 
 export interface ContentUploadConfig {
   itemId: string;
