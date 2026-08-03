@@ -141,6 +141,8 @@ export interface ListSubmissionsRequest {
   isTestSubmission?: BooleanFilterValue[];
   createdAtFrom?: string;
   createdAtTo?: string;
+  modifiedAtFrom?: string;
+  modifiedAtTo?: string;
   startedAtFrom?: string;
   startedAtTo?: string;
   completedAtFrom?: string;

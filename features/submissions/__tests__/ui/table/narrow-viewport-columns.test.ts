@@ -8,6 +8,7 @@ describe("withNarrowViewportDefaults", () => {
   const visibility = {
     createdAt: true,
     complete: true,
+    modifiedAt: true,
     startedAt: true,
     completedAt: true,
     submitterDisplayId: true,
@@ -26,7 +27,7 @@ describe("withNarrowViewportDefaults", () => {
     expect(result).not.toBe(visibility);
   });
 
-  it("soft-hides Started, Completed, and Time on narrow viewports", () => {
+  it("soft-hides Created, Completed, and Time on narrow viewports", () => {
     // Arrange & Act
     const result = withNarrowViewportDefaults(visibility, {
       isNarrow: true,
@@ -36,7 +37,8 @@ describe("withNarrowViewportDefaults", () => {
     for (const columnId of NARROW_VIEWPORT_HIDDEN_COLUMN_IDS) {
       expect(result[columnId]).toBe(false);
     }
-    expect(result.createdAt).toBe(true);
+    expect(result.modifiedAt).toBe(true);
+    expect(result.startedAt).toBe(true);
     expect(result.complete).toBe(true);
     expect(result.submitterDisplayId).toBe(true);
     expect(result.status).toBe(true);
@@ -44,7 +46,7 @@ describe("withNarrowViewportDefaults", () => {
 
   it("does not invent columns that are absent from the input map", () => {
     // Arrange
-    const partial = { createdAt: true, status: true };
+    const partial = { modifiedAt: true, status: true };
 
     // Act
     const result = withNarrowViewportDefaults(partial, {
@@ -53,6 +55,6 @@ describe("withNarrowViewportDefaults", () => {
 
     // Assert
     expect(result).toEqual(partial);
-    expect(result).not.toHaveProperty("startedAt");
+    expect(result).not.toHaveProperty("createdAt");
   });
 });

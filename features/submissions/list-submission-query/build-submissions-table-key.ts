@@ -40,6 +40,8 @@ export function buildSubmissionsTableKey(options: {
     sortedSetJoin(testSubmissionFilter),
     dateFilters.createdAt.from ?? "",
     dateFilters.createdAt.to ?? "",
+    dateFilters.modifiedAt.from ?? "",
+    dateFilters.modifiedAt.to ?? "",
     dateFilters.startedAt.from ?? "",
     dateFilters.startedAt.to ?? "",
     dateFilters.completedAt.from ?? "",

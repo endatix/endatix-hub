@@ -66,32 +66,6 @@ export function buildSubmissionSystemColumns({
       cell: ({ row }) => <RowActions row={row} />,
     },
     {
-      id: "createdAt",
-      accessorKey: "createdAt",
-      meta: {
-        displayName: "Created",
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
-      },
-      header: ({ column }) => (
-        <ColumnHeader
-          column={column}
-          isSorted={column.getIsSorted()}
-          density="compact"
-          dateFilter={
-            dateFilters && onDateFilterChange
-              ? {
-                  value: dateFilters.createdAt,
-                  onChange: (value) => onDateFilterChange("createdAt", value),
-                }
-              : undefined
-          }
-          title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
-        />
-      ),
-      cell: ({ row }) => <CellDate date={row.original.createdAt} />,
-    },
-    {
       id: "complete",
       accessorKey: "isComplete",
       meta: {
@@ -117,6 +91,32 @@ export function buildSubmissionSystemColumns({
       cell: ({ row }) => (
         <CellCompleteStatus isComplete={row.original.isComplete} />
       ),
+    },
+    {
+      id: "modifiedAt",
+      accessorKey: "modifiedAt",
+      meta: {
+        displayName: "Last modified",
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
+      },
+      header: ({ column }) => (
+        <ColumnHeader
+          column={column}
+          isSorted={column.getIsSorted()}
+          density="compact"
+          dateFilter={
+            dateFilters && onDateFilterChange
+              ? {
+                  value: dateFilters.modifiedAt,
+                  onChange: (value) => onDateFilterChange("modifiedAt", value),
+                }
+              : undefined
+          }
+          title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
+        />
+      ),
+      cell: ({ row }) => <CellDate date={row.original.modifiedAt} />,
     },
     {
       id: "startedAt",
@@ -168,9 +168,33 @@ export function buildSubmissionSystemColumns({
           title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
         />
       ),
-      cell: ({ row }) => (
-        <CellDate date={row.original.completedAt} />
+      cell: ({ row }) => <CellDate date={row.original.completedAt} />,
+    },
+    {
+      id: "createdAt",
+      accessorKey: "createdAt",
+      meta: {
+        displayName: "Created",
+        headerClassName: SHRINK_WRAP,
+        cellClassName: SHRINK_WRAP,
+      },
+      header: ({ column }) => (
+        <ColumnHeader
+          column={column}
+          isSorted={column.getIsSorted()}
+          density="compact"
+          dateFilter={
+            dateFilters && onDateFilterChange
+              ? {
+                  value: dateFilters.createdAt,
+                  onChange: (value) => onDateFilterChange("createdAt", value),
+                }
+              : undefined
+          }
+          title={column.columnDef.meta?.displayName ?? (column.id || "Column")}
+        />
       ),
+      cell: ({ row }) => <CellDate date={row.original.createdAt} />,
     },
     {
       id: "submitterDisplayId",

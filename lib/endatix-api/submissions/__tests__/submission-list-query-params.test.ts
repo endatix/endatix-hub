@@ -46,6 +46,8 @@ describe("appendSubmissionListFilters", () => {
       isTestSubmission: ["false"],
       createdAtFrom: "2024-01-10",
       createdAtTo: "2024-01-12",
+      modifiedAtFrom: "2024-01-15",
+      modifiedAtTo: "2024-01-16",
       completedAtFrom: "2024-02-01",
       completedAtTo: "2024-02-02",
     });
@@ -59,6 +61,12 @@ describe("appendSubmissionListFilters", () => {
     );
     expect(filters).toContain(
       `${F.createdAt}<${utcCalendarNextDayStartIso("2024-01-12")}`,
+    );
+    expect(filters).toContain(
+      `${F.modifiedAt}>:${utcCalendarDayStartIso("2024-01-15")}`,
+    );
+    expect(filters).toContain(
+      `${F.modifiedAt}<${utcCalendarNextDayStartIso("2024-01-16")}`,
     );
     expect(filters).toContain(
       `${F.completedAt}>:${utcCalendarDayStartIso("2024-02-01")}`,

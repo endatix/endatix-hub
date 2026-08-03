@@ -18,6 +18,8 @@ export const SUBMISSION_LIST_URL_SEARCH_PARAM_KEYS = Object.freeze({
   isTestSubmission: "isTestSubmission",
   createdAtFrom: "createdAtFrom",
   createdAtTo: "createdAtTo",
+  modifiedAtFrom: "modifiedAtFrom",
+  modifiedAtTo: "modifiedAtTo",
   startedAtFrom: "startedAtFrom",
   startedAtTo: "startedAtTo",
   completedAtFrom: "completedAtFrom",
