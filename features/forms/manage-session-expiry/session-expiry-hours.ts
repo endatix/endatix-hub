@@ -1,3 +1,5 @@
+import { isDecimalDigitString } from "@/lib/utils/type-validators";
+
 /** Hours until session tokens expire. `null` means never expire. */
 export type SessionExpiryHours = number | null;
 
@@ -26,23 +28,14 @@ export function parseSessionExpiryHoursInput(
     return { ok: true, hours: null };
   }
 
-  // Decimal digits only — reject hex/scientific/`Number` coercions like "0x10" / "1e2".
-  if (!/^\d+$/.test(trimmed)) {
+  if (!isDecimalDigitString(trimmed) || Number(trimmed) <= 0) {
     return {
       ok: false,
       message: "Session expiry must be a positive whole number of hours.",
     };
   }
 
-  const hours = Number(trimmed);
-  if (hours <= 0) {
-    return {
-      ok: false,
-      message: "Session expiry must be a positive whole number of hours.",
-    };
-  }
-
-  return { ok: true, hours };
+  return { ok: true, hours: Number(trimmed) };
 }
 
 export function sessionExpiryHoursToInput(

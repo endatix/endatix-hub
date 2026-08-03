@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
   createEndatixIdSchema,
+  isDecimalDigitString,
   validateEndatixId,
   validateHexToken,
   hasProperty,
 } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
+
+describe("isDecimalDigitString", () => {
+  it("accepts decimal digit strings and rejects Number coercions", () => {
+    expect(isDecimalDigitString("168")).toBe(true);
+    expect(isDecimalDigitString("0")).toBe(true);
+    expect(isDecimalDigitString("")).toBe(false);
+    expect(isDecimalDigitString("1.5")).toBe(false);
+    expect(isDecimalDigitString("-5")).toBe(false);
+    expect(isDecimalDigitString("abc")).toBe(false);
+    expect(isDecimalDigitString("0x10")).toBe(false);
+    expect(isDecimalDigitString("1e2")).toBe(false);
+  });
+});
 
 describe("validateEndatixId", () => {
   describe("valid inputs", () => {
@@ -846,7 +860,7 @@ describe("hasProperty", () => {
           ],
         };
 
-        const { SurveyModel } = await import ("survey-core");
+        const { SurveyModel } = await import("survey-core");
         const survey = new SurveyModel(surveyJson);
         const questions = survey.getAllQuestions();
 
