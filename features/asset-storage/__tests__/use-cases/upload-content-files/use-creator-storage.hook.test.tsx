@@ -12,6 +12,11 @@ const mockRegisterUploadHandlers = vi.fn();
 const mockPrefetchPrivateReadUrlsForModel = vi
   .fn()
   .mockResolvedValue(undefined);
+const { mockRegisterStorageOnlyFileModeGlobals, mockBindStorageOnlyFileModeToCreator } =
+  vi.hoisted(() => ({
+    mockRegisterStorageOnlyFileModeGlobals: vi.fn(),
+    mockBindStorageOnlyFileModeToCreator: vi.fn(),
+  }));
 
 vi.mock(
   "@/features/asset-storage/use-cases/upload-content-files/use-content-upload.hook",
@@ -31,6 +36,11 @@ vi.mock(
   }),
 );
 
+vi.mock("@/lib/survey-features/storage-only-file-mode", () => ({
+  registerStorageOnlyFileModeGlobals: mockRegisterStorageOnlyFileModeGlobals,
+  bindStorageOnlyFileModeToCreator: mockBindStorageOnlyFileModeToCreator,
+}));
+
 const createMockSurveyModel = () =>
   ({
     render: vi.fn(),
@@ -49,6 +59,7 @@ describe("useStorageWithCreator", () => {
     vi.clearAllMocks();
     mockRegisterUploadHandlers.mockReturnValue(() => {});
     mockPrefetchPrivateReadUrlsForModel.mockResolvedValue(undefined);
+    mockBindStorageOnlyFileModeToCreator.mockReturnValue(vi.fn());
   });
 
   const wrapper = (config: ClientStorageConfig | null) => {
@@ -114,6 +125,8 @@ describe("useStorageWithCreator", () => {
       unregister = result!.current.registerStorageHandlers(creator);
     });
     expect(mockRegisterUploadHandlers).not.toHaveBeenCalled();
+    expect(mockRegisterStorageOnlyFileModeGlobals).not.toHaveBeenCalled();
+    expect(mockBindStorageOnlyFileModeToCreator).not.toHaveBeenCalled();
     unregister();
   });
 
@@ -145,7 +158,13 @@ describe("useStorageWithCreator", () => {
       unregister = result!.current.registerStorageHandlers(creator);
     });
     expect(mockRegisterUploadHandlers).toHaveBeenCalledWith(creator);
+    expect(mockRegisterStorageOnlyFileModeGlobals).toHaveBeenCalledTimes(1);
+    expect(mockBindStorageOnlyFileModeToCreator).toHaveBeenCalledWith(creator);
+
+    const unbindStorageOnlyFileMode =
+      mockBindStorageOnlyFileModeToCreator.mock.results[0]?.value;
     unregister();
+    expect(unbindStorageOnlyFileMode).toHaveBeenCalledTimes(1);
   });
 
   it("should register upload handlers when private", async () => {

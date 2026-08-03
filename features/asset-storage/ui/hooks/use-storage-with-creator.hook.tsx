@@ -3,6 +3,10 @@
 import { useCallback, useRef, useState } from "react";
 import { SurveyCreatorModel } from "survey-creator-core";
 import type { SurveyModel } from "survey-core";
+import {
+  bindStorageOnlyFileModeToCreator,
+  registerStorageOnlyFileModeGlobals,
+} from "@/lib/survey-features/storage-only-file-mode";
 import { useContentUpload } from "../../use-cases/upload-content-files/use-content-upload.hook";
 import { useStorageView } from "../../use-cases/view-protected-files/use-storage-view.hook";
 import { useAssetStorage } from "../asset-storage.context";
@@ -61,6 +65,9 @@ export function useStorageWithCreator({
       }
 
       const unregisterUpload = registerUploadHandlers(creator);
+      registerStorageOnlyFileModeGlobals();
+      const unregisterStorageOnlyFileMode =
+        bindStorageOnlyFileModeToCreator(creator);
       attachSurveyViewHandlers(creator.survey);
 
       const onActiveTabChanged = () => {
@@ -86,6 +93,7 @@ export function useStorageWithCreator({
         creator.onActiveTabChanged?.remove(onActiveTabChanged);
         creator.onSurveyInstanceCreated?.remove(onSurveyInstanceCreated);
         unregisterUpload?.();
+        unregisterStorageOnlyFileMode();
       };
     },
     [
