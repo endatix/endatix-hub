@@ -184,6 +184,13 @@ const FormDetails = ({
   const [tokenExpiryHoursInput, setTokenExpiryHoursInput] = useState(
     sessionExpiryHoursToInput(form?.submissionTokenExpiryHours),
   );
+  const [tokenExpiryInputError, setTokenExpiryInputError] = useState<
+    string | null
+  >(null);
+  const [tokenExpirySyncedFrom, setTokenExpirySyncedFrom] = useState({
+    formId: form.id,
+    committed: sessionExpiryHoursToInput(form.submissionTokenExpiryHours),
+  });
   const [organizationDefaultHours, setOrganizationDefaultHours] =
     useState<SessionExpiryHours>(null);
   const [metadata, setMetadata] = useState(form?.metadata ?? "");
@@ -205,18 +212,40 @@ const FormDetails = ({
     setSelectedFolderId(form.folderId ?? "__none__");
   }, [form.id, form.folderId]);
 
-  useEffect(() => {
-    setTokenExpiryHoursInput(
-      sessionExpiryHoursToInput(form.submissionTokenExpiryHours),
-    );
-  }, [form.id, form.submissionTokenExpiryHours]);
+  const committedTokenExpiryInput = sessionExpiryHoursToInput(
+    form.submissionTokenExpiryHours,
+  );
+  if (
+    form.id !== tokenExpirySyncedFrom.formId ||
+    committedTokenExpiryInput !== tokenExpirySyncedFrom.committed
+  ) {
+    setTokenExpirySyncedFrom({
+      formId: form.id,
+      committed: committedTokenExpiryInput,
+    });
+    setTokenExpiryHoursInput(committedTokenExpiryInput);
+    setTokenExpiryInputError(null);
+  }
 
   useEffect(() => {
     let cancelled = false;
     void getTenantSettingsAction().then((result) => {
-      if (cancelled || !Result.isSuccess(result)) {
+      if (cancelled) {
         return;
       }
+
+      if (Result.isError(result)) {
+        toast.error(
+          "Failed to load organization session expiry default. Error: " +
+            result.message,
+        );
+        return;
+      }
+
+      if (!Result.isSuccess(result)) {
+        return;
+      }
+
       setOrganizationDefaultHours(
         result.value.submissionTokenExpiryHours ?? null,
       );
@@ -346,9 +375,6 @@ const FormDetails = ({
     });
   };
 
-  const committedTokenExpiryInput = sessionExpiryHoursToInput(
-    form.submissionTokenExpiryHours,
-  );
   const isTokenExpiryDirty =
     tokenExpiryHoursInput.trim() !== committedTokenExpiryInput;
   const isTokenExpiryOverridden = form.submissionTokenExpiryHours != null;
@@ -357,10 +383,11 @@ const FormDetails = ({
     const previous = committedTokenExpiryInput;
     const parsed = parseSessionExpiryHoursInput(tokenExpiryHoursInput);
     if (!parsed.ok) {
-      toast.error(parsed.message);
-      setTokenExpiryHoursInput(previous);
+      setTokenExpiryInputError(parsed.message);
       return;
     }
+
+    setTokenExpiryInputError(null);
 
     startTransition(async () => {
       const result =
@@ -391,6 +418,7 @@ const FormDetails = ({
 
   const restoreSubmissionTokenExpiryDefault = () => {
     const previous = committedTokenExpiryInput;
+    setTokenExpiryInputError(null);
     setTokenExpiryHoursInput("");
 
     startTransition(async () => {
@@ -785,13 +813,17 @@ const FormDetails = ({
                 variant="form"
                 showLabel={false}
                 value={tokenExpiryHoursInput}
-                onChange={setTokenExpiryHoursInput}
+                onChange={(value) => {
+                  setTokenExpiryInputError(null);
+                  setTokenExpiryHoursInput(value);
+                }}
                 organizationDefaultHours={organizationDefaultHours}
                 isOverridden={isTokenExpiryOverridden}
                 onRestoreDefault={restoreSubmissionTokenExpiryDefault}
                 onCommit={updateSubmissionTokenExpiry}
                 showCommit={isTokenExpiryDirty}
                 disabled={pending}
+                error={tokenExpiryInputError}
               />
             ) : (
               <div className="flex flex-col gap-1">

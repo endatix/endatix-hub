@@ -66,6 +66,7 @@ export default async function OrganizationFormsSettingsPage() {
       </section>
 
       <OrganizationFormsSettingsForm
+        key={`${requireFolder}:${submissionTokenExpiryHours ?? "null"}`}
         initialRequireFolderAssignment={requireFolder}
         initialSubmissionTokenExpiryHours={submissionTokenExpiryHours}
       />

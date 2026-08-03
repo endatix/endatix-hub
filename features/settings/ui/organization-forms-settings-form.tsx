@@ -12,7 +12,7 @@ import {
 import { patchTenantSettingsAction } from "@/features/tenant/application/patch-tenant-settings.action";
 import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 type OrganizationFormsSettingsFormProps = {
   initialRequireFolderAssignment: boolean;
@@ -30,23 +30,21 @@ export function OrganizationFormsSettingsForm({
   const [tokenExpiryHoursInput, setTokenExpiryHoursInput] = useState(
     sessionExpiryHoursToInput(initialSubmissionTokenExpiryHours),
   );
+  const [tokenExpiryInputError, setTokenExpiryInputError] = useState<
+    string | null
+  >(null);
   const [pending, startTransition] = useTransition();
-
-  useEffect(() => {
-    setRequireFolder(initialRequireFolderAssignment);
-    setTokenExpiryHoursInput(
-      sessionExpiryHoursToInput(initialSubmissionTokenExpiryHours),
-    );
-  }, [initialRequireFolderAssignment, initialSubmissionTokenExpiryHours]);
 
   const save = () => {
     const parsed = parseSessionExpiryHoursInput(tokenExpiryHoursInput);
     if (!parsed.ok) {
-      toast.error(
+      setTokenExpiryInputError(
         `${parsed.message} Leave empty for sessions that never expire.`,
       );
       return;
     }
+
+    setTokenExpiryInputError(null);
 
     startTransition(async () => {
       const result = await patchTenantSettingsAction({
@@ -89,9 +87,13 @@ export function OrganizationFormsSettingsForm({
           id="org-token-expiry-hours"
           variant="organization"
           value={tokenExpiryHoursInput}
-          onChange={setTokenExpiryHoursInput}
+          onChange={(value) => {
+            setTokenExpiryInputError(null);
+            setTokenExpiryHoursInput(value);
+          }}
           organizationDefaultHours={initialSubmissionTokenExpiryHours}
           disabled={pending}
+          error={tokenExpiryInputError}
         />
       </div>
 

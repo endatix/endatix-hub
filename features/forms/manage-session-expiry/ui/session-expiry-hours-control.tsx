@@ -31,6 +31,7 @@ type SessionExpiryHoursControlProps = {
   /** When false, render without the outer label (e.g. form-details grid). */
   showLabel?: boolean;
   label?: string;
+  error?: string | null;
 };
 
 export function SessionExpiryHoursControl({
@@ -48,6 +49,7 @@ export function SessionExpiryHoursControl({
   label = variant === "organization"
     ? "Default session expiry (hours)"
     : "Session expiry (hours)",
+  error = null,
 }: Readonly<SessionExpiryHoursControlProps>) {
   const orgDefaultLabel = formatOrganizationDefaultLabel(
     organizationDefaultHours,
@@ -87,6 +89,8 @@ export function SessionExpiryHoursControl({
           disabled={disabled}
           className="w-40"
           aria-label={showLabel ? undefined : label}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
         />
         {showCommit && onCommit ? (
           <Button
@@ -111,6 +115,12 @@ export function SessionExpiryHoursControl({
           </Button>
         ) : null}
       </div>
+
+      {error ? (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
 
       {!showLabel ? (
         <p className="text-xs text-muted-foreground">{helperText}</p>

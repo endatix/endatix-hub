@@ -57,11 +57,11 @@ Use `features/folders` as the canonical implementation of this pattern:
 
 Reporting export is a dedicated feature (not nested under `forms/` or `submissions/`). Slices map to API capabilities and UI surfaces:
 
-| Slice | Scope | Responsibility |
-|-------|--------|----------------|
-| `prepare-reporting-export` | Action-only | Server action: compile `FormSchema` + backfill flattened submissions (`fullRecompile` → replace + force). No standalone form-details UI. |
-| `export-submissions` | Submissions list | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off). Owns the Export dialog: readiness check, auto prepare when schema missing, optional **Rebuild reporting data…** (manual prepare + full recompile), format + capability-aware filters. |
-| `manage-export-formats` | Tenant settings (E10b) | CRUD UI for tenant export formats + tenant default mapping picker (alias, key separator, include-test) |
+| Slice                      | Scope                  | Responsibility                                                                                                                                                                                                                                                                         |
+| -------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepare-reporting-export` | Action-only            | Server action: compile `FormSchema` + backfill flattened submissions (`fullRecompile` → replace + force). No standalone form-details UI.                                                                                                                                               |
+| `export-submissions`       | Submissions list       | Tenant-configured export download via `exportFormatId` (+ legacy `CustomExports` when flag off). Owns the Export dialog: readiness check, auto prepare when schema missing, optional **Rebuild reporting data…** (manual prepare + full recompile), format + capability-aware filters. |
+| `manage-export-formats`    | Tenant settings (E10b) | CRUD UI for tenant export formats + tenant default mapping picker (alias, key separator, include-test)                                                                                                                                                                                 |
 
 Shared feature root: `types.ts`, `export-url.ts`, `export-error-message.ts`. Export route `app/api/forms/[formId]/export/route.ts` stays thin and delegates parsing to `export-submissions/parse-export-query.ts`.
 
@@ -157,7 +157,7 @@ export async function deleteItemAction(
 
 Action rules:
 
-- Return `Result<T>` by default (or `ServerActionState` for FormData / Zod multi-field forms) — never swallow failures silently
+- Return `Result<T>` by default — never swallow failures silently. Use `ServerActionState` only for FormData / `useActionState` flows that need Zod field-level errors (not for arbitrary Zod multi-field forms)
 - Authenticate and authorize inside the action, or accept a session already validated by the caller
 - Always map Endatix `ApiResult` with `toResult(...)` — do not hand-write `Result.error(apiResult.error.message)`. Pass `fallbackMessage`, `logMessage`, and `loggerName` so expected 403/404/validation stay user-facing and unexpected failures log through `TelemetryLogger`
 - When the UI result type differs from the API body (e.g. `Result<void>`), use `mapData` (e.g. `mapData: () => undefined`)
@@ -176,12 +176,12 @@ Action rules:
 
 Root `/forms` supports three URL-driven modes (shareable, bookmarkable):
 
-| Mode | URL | API scope | Folder shortcuts | Info alert |
-|------|-----|-----------|------------------|------------|
-| Unassigned browse (default) | `/forms` | `unassignedOnly` | Show | No |
-| All forms browse | `/forms?browse=all` | tenant-wide | Show | No |
-| Global search/filter | `?search=…` or `status=…` or `visibility=…` | tenant-wide | Hide | Yes (`Alert variant="info"`) |
-| Folder browse | `/forms/folders/[slug]` | `folderId` | N/A | No |
+| Mode                        | URL                                         | API scope        | Folder shortcuts | Info alert                   |
+| --------------------------- | ------------------------------------------- | ---------------- | ---------------- | ---------------------------- |
+| Unassigned browse (default) | `/forms`                                    | `unassignedOnly` | Show             | No                           |
+| All forms browse            | `/forms?browse=all`                         | tenant-wide      | Show             | No                           |
+| Global search/filter        | `?search=…` or `status=…` or `visibility=…` | tenant-wide      | Hide             | Yes (`Alert variant="info"`) |
+| Folder browse               | `/forms/folders/[slug]`                     | `folderId`       | N/A              | No                           |
 
 Parsing and helpers live in `features/forms/list-forms/utils.ts` (`parseFormsListParams`, `resolveRootFormsViewMode`, `shouldHideFolderShortcuts`, `isTenantWideFormsList`). Breadcrumb dropdown options (Unassigned / All forms / folders) are built in `features/folders/view-forms-header/build-forms-breadcrumb-model.server.ts` with `browse` from header `searchParams`.
 
