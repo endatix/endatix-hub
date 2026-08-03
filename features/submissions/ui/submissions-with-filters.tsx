@@ -18,6 +18,7 @@ import {
   ColumnVisibilityProvider,
   EMPTY_SUBMISSION_DATE_FILTERS,
   ResetOptionsDropdown,
+  SubmissionsTableSkeleton,
   useColumnOrder,
   useColumnVisibility,
 } from "@/features/submissions/ui/table";
@@ -38,6 +39,7 @@ import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Dispatch,
+  type ReactNode,
   SetStateAction,
   useEffect,
   useMemo,
@@ -233,6 +235,45 @@ function SubmissionsContent({
     if (hasActiveFilters) onResetFilters();
   };
 
+  let tableRegion: ReactNode;
+  if (isTrueEmptyState) {
+    tableRegion = (
+      <>
+        <NoSubmissionsEmptyState
+          onShareForm={() => setIsShareDialogOpen(true)}
+        />
+        <ShareDialog
+          formId={formId}
+          open={isShareDialogOpen}
+          onOpenChange={setIsShareDialogOpen}
+        />
+      </>
+    );
+  } else if (isPending) {
+    tableRegion = (
+      <SubmissionsTableSkeleton
+        pageSize={pagination.pageSize}
+        loadingLabel="Updating submissions…"
+      />
+    );
+  } else {
+    tableRegion = (
+      <SubmissionsTable
+        key={tableKey}
+        data={data}
+        formId={formId}
+        columns={allColumns}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
+        pagination={pagination}
+        onPaginationChange={onPaginationChange}
+        totalRecords={totalRecords}
+        totalPages={totalPages}
+        onFilteredEmptyClear={onResetFilters}
+      />
+    );
+  }
+
   return (
     <>
       <div className="mt-8 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -257,7 +298,7 @@ function SubmissionsContent({
             aria-live="polite"
             className="min-w-[5rem] text-right text-sm text-muted-foreground"
           >
-            {isPending ? "Updating..." : null}
+            {isPending ? "Updating…" : null}
           </div>
           <ColumnViewOptionsDropdown
             columns={columnHeaders}
@@ -278,32 +319,7 @@ function SubmissionsContent({
           />
         </div>
       </div>
-      {isTrueEmptyState ? (
-        <>
-          <NoSubmissionsEmptyState
-            onShareForm={() => setIsShareDialogOpen(true)}
-          />
-          <ShareDialog
-            formId={formId}
-            open={isShareDialogOpen}
-            onOpenChange={setIsShareDialogOpen}
-          />
-        </>
-      ) : (
-        <SubmissionsTable
-          key={tableKey}
-          data={data}
-          formId={formId}
-          columns={allColumns}
-          sorting={sorting}
-          onSortingChange={onSortingChange}
-          pagination={pagination}
-          onPaginationChange={onPaginationChange}
-          totalRecords={totalRecords}
-          totalPages={totalPages}
-          onFilteredEmptyClear={onResetFilters}
-        />
-      )}
+      {tableRegion}
     </>
   );
 }

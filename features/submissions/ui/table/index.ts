@@ -25,6 +25,7 @@ export {
   withNarrowViewportDefaults,
 } from "./narrow-viewport-columns";
 export { DataTable } from "./data-table";
+export { SubmissionsTableSkeleton } from "./submissions-table-skeleton";
 export {
   EMPTY_SUBMISSION_DATE_FILTERS,
   type DateFilterChangeHandler,

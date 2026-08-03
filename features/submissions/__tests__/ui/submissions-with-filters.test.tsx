@@ -7,6 +7,7 @@ import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-wi
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
+  isPending: false,
   systemColumnOptions: {
     current: undefined as
       | {
@@ -16,6 +17,19 @@ const navigationMocks = vi.hoisted(() => ({
       | undefined,
   },
 }));
+
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    useTransition: () => [
+      navigationMocks.isPending,
+      (callback: () => void) => {
+        callback();
+      },
+    ],
+  };
+});
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/forms/form-1/submissions",
@@ -80,6 +94,9 @@ vi.mock("@/features/submissions/ui/table", () => ({
     <button disabled={disabled}>View</button>
   ),
   ResetOptionsDropdown: () => null,
+  SubmissionsTableSkeleton: ({ pageSize }: { pageSize?: number }) => (
+    <div data-testid="submissions-table-skeleton">Skeleton rows: {pageSize}</div>
+  ),
   useColumnOrder: () => ({
     resetToDefault: vi.fn(),
     hasCustomOrder: false,
@@ -132,6 +149,7 @@ describe("SubmissionsWithFilters", () => {
   beforeEach(() => {
     navigationMocks.push.mockClear();
     navigationMocks.replace.mockClear();
+    navigationMocks.isPending = false;
     navigationMocks.systemColumnOptions.current = undefined;
     localStorage.clear();
   });
@@ -218,6 +236,28 @@ describe("SubmissionsWithFilters", () => {
     expect(
       screen.queryByText("No submissions match current filters"),
     ).toBeNull();
+  });
+
+  it("shows the table skeleton instead of stale rows while URL navigation is pending", () => {
+    navigationMocks.isPending = true;
+
+    render(
+      <SubmissionsWithFilters
+        data={[submission]}
+        formId="form-1"
+        hasAnySubmissions
+        initialPage={1}
+        initialPageSize={10}
+        totalRecords={1}
+        totalPages={1}
+      />,
+    );
+
+    expect(screen.getByTestId("submissions-table-skeleton").textContent).toBe(
+      "Skeleton rows: 10",
+    );
+    expect(screen.queryByTestId("submissions-table")).toBeNull();
+    expect(screen.getByText("Updating…")).not.toBeNull();
   });
 
   it("debounces submitter text filters and replaces the URL", () => {

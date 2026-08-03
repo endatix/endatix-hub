@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import PageTitle from "@/components/headings/page-title";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getSession } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import {
@@ -11,6 +10,7 @@ import {
   SUBMISSION_LIST_DEFAULT_PAGE,
   submissionListUrlStateToListRequest,
 } from "@/features/submissions/list-submission-query";
+import { SubmissionsTableSkeleton } from "@/features/submissions/ui/table/submissions-table-skeleton";
 import { SubmissionsWithFilters } from "@/features/submissions/ui/submissions-with-filters";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -269,16 +269,9 @@ function SubmissionsLoadError({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 function TableLoader({ pageSize }: Readonly<{ pageSize: number }>) {
-  const pageSizeNumber = pageSize;
-  const rowHeight = 60;
-  const rows = Array.from({ length: pageSizeNumber }, (_, i) => i + 1);
   return (
-    <div className="relative flex w-full flex-col space-y-3 overflow-auto">
-      <Skeleton className={`h-[${rowHeight}px] w-full bg-gray-200 p-4`} />
-      {rows.map((row) => (
-        <Skeleton key={row} className={`h-[${rowHeight}px] w-full p-4`} />
-      ))}
-      <Skeleton className={`h-[${rowHeight}px] w-full bg-gray-200 p-4`} />
+    <div className="mt-8">
+      <SubmissionsTableSkeleton pageSize={pageSize} />
     </div>
   );
 }
