@@ -1,27 +1,23 @@
-import type { Model, Question, QuestionAddedEvent } from "survey-core";
+import type {
+  Model,
+  Question,
+  QuestionAddedEvent,
+  QuestionFileModelBase,
+} from "survey-core";
 import {
   STORAGE_ONLY_FILE_MODE_QUESTION_TYPES,
-  STORE_DATA_AS_TEXT_PROPERTY,
-  WAIT_FOR_UPLOAD_PROPERTY,
   type StorageOnlyFileModeQuestionType,
 } from "../constants";
 
-type StorageOnlyFileModeQuestion = Question & {
-  [STORE_DATA_AS_TEXT_PROPERTY]?: boolean;
-  [WAIT_FOR_UPLOAD_PROPERTY]?: boolean;
-};
-
-function isStorageOnlyFileModeQuestion(
+function isFileStorageQuestion(
   question: Question,
-): question is StorageOnlyFileModeQuestion {
+): question is QuestionFileModelBase {
   return (STORAGE_ONLY_FILE_MODE_QUESTION_TYPES as readonly string[]).includes(
     question.getType() as StorageOnlyFileModeQuestionType,
   );
 }
 
-function enforceStorageOnlyFileMode(
-  question: StorageOnlyFileModeQuestion,
-): void {
+function enforceStorageOnlyFileMode(question: QuestionFileModelBase): void {
   if (question.storeDataAsText !== false) {
     question.storeDataAsText = false;
   }
@@ -35,7 +31,7 @@ function enforceStorageOnlyFileMode(
 }
 
 function handleQuestionAdded(_: Model, options: QuestionAddedEvent): void {
-  if (isStorageOnlyFileModeQuestion(options.question)) {
+  if (isFileStorageQuestion(options.question)) {
     enforceStorageOnlyFileMode(options.question);
   }
 }
@@ -50,7 +46,7 @@ function handleQuestionAdded(_: Model, options: QuestionAddedEvent): void {
 export function bindStorageOnlyFileModeToSurvey(survey: Model): () => void {
   survey
     .getAllQuestions(false, false, true)
-    .filter(isStorageOnlyFileModeQuestion)
+    .filter(isFileStorageQuestion)
     .forEach(enforceStorageOnlyFileMode);
 
   survey.onQuestionAdded.add(handleQuestionAdded);
