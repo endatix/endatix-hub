@@ -12,10 +12,19 @@ function isStoreDataAsTextHidden(type: string): boolean {
 }
 
 /**
- * Hides `storeDataAsText` from the Creator property grid and flips its
- * default to `false` for file/signaturepad questions. Call only when a
- * storage provider is enabled — without one, files must stay embedded as
- * base64 text since there's nowhere to upload them to.
+ * Hides `storeDataAsText` from the Creator property grid for file/signaturepad
+ * questions. Call only when a storage provider is enabled — without one,
+ * files must stay embedded as base64 text since there's nowhere to upload
+ * them to.
+ *
+ * Deliberately leaves the Serializer's `defaultValue` (`true`) untouched.
+ * Flipping the default here would make an explicit `storeDataAsText: false`
+ * equal to "default" and get dropped from the saved JSON — then a
+ * respondent's Model (a separate session that never runs this registry)
+ * would fall back to the built-in default of `true` and silently re-embed
+ * files as base64. bindStorageOnlyFileModeToSurvey sets the value explicitly
+ * per question instead, so it always differs from the default and always
+ * serializes.
  */
 export function registerStorageOnlyFileModeGlobals(): void {
   if (
@@ -31,7 +40,6 @@ export function registerStorageOnlyFileModeGlobals(): void {
       return;
     }
     prop.visible = false;
-    prop.defaultValue = false;
   });
 
   isStorageOnlyFileModeRegistryInitialized = true;
@@ -44,7 +52,6 @@ export function resetStorageOnlyFileModeRegistryForTests(): void {
       return;
     }
     prop.visible = true;
-    prop.defaultValue = true;
   });
 
   isStorageOnlyFileModeRegistryInitialized = false;

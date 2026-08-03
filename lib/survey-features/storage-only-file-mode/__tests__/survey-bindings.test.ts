@@ -21,6 +21,26 @@ describe("bindStorageOnlyFileModeToSurvey", () => {
     expect(question.storeDataAsText).toBe(false);
   });
 
+  it("serializes the forced value explicitly, so it survives a save/reload round trip", () => {
+    // Arrange: a question that never had storeDataAsText set at all — this
+    // is the regression case. If the Serializer's declared default were
+    // ever changed to false alongside hiding the property, an explicitly
+    // forced `false` here would match "default" and get dropped from
+    // toJSON(), silently reverting to base64 embedding for a respondent
+    // Model that parses this JSON later.
+    const model = new Model({
+      elements: [{ type: "file", name: "attachment" }],
+    });
+
+    // Act
+    bindStorageOnlyFileModeToSurvey(model);
+
+    // Assert
+    const question = model.getQuestionByName("attachment") as Question;
+    const json = question.toJSON() as { storeDataAsText?: boolean };
+    expect(json.storeDataAsText).toBe(false);
+  });
+
   it("forces storeDataAsText to false on an existing signaturepad question", () => {
     // Arrange
     const model = new Model({
