@@ -165,12 +165,15 @@ async function updateExistingSubmissionViaToken(
       );
 
   if (ApiResult.isSuccess(updateResult)) {
+    const resumeToken = updateResult.data.token
+      ?? (isAccessToken(token) ? undefined : token);
     syncSubmissionCookie(
       formId,
       submissionData,
       tokenStore,
       updateResult.data,
       syncCookies,
+      resumeToken,
     );
 
     return ApiResult.success(toSubmissionOperation(updateResult.data));
