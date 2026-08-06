@@ -14,6 +14,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog";
 import { getSubmissionListReturnPath } from "@/features/submissions/list-submission-query";
+import { withBasePath } from "@/lib/hosting";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -72,7 +73,9 @@ export function SubmissionDetailsHeader({
         params.set("defaultLocale", "true");
       }
       const query = params.toString() ? `?${params.toString()}` : "";
-      const url = `/api/public/v0/forms/${formId}/submissions/${submissionId}/export-pdf${query}`;
+      const url = withBasePath(
+        `/api/public/v0/forms/${formId}/submissions/${submissionId}/export-pdf${query}`,
+      );
       const pdfFileName = `submission-${submissionId}.pdf`;
       const fileResponse = await fetch(url);
       if (fileResponse.ok) {

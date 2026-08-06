@@ -2,6 +2,7 @@ import {
   utcCalendarDayStartIso,
   utcCalendarNextDayStartIso,
 } from "@/lib/endatix-api/submissions/submission-list-query-params";
+import { withBasePath } from "@/lib/hosting";
 
 /**
  * SurveyJS / FormSchema default locale key (SurveyJS uses "default" when no
@@ -287,7 +288,7 @@ export function buildReportingExportUrl(
     );
   }
 
-  return `/api/forms/${options.formId}/export?${params.toString()}`;
+  return withBasePath(`/api/forms/${options.formId}/export?${params.toString()}`);
 }
 
 export function buildLegacyExportUrl(
@@ -295,8 +296,10 @@ export function buildLegacyExportUrl(
   exportId?: string,
 ): string {
   if (exportId) {
-    return `/api/forms/${formId}/export?exportId=${encodeURIComponent(exportId)}`;
+    return withBasePath(
+      `/api/forms/${formId}/export?exportId=${encodeURIComponent(exportId)}`,
+    );
   }
 
-  return `/api/forms/${formId}/export`;
+  return withBasePath(`/api/forms/${formId}/export`);
 }

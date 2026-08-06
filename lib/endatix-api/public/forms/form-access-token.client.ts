@@ -1,5 +1,6 @@
 "use client";
 
+import { withBasePath } from "@/lib/hosting";
 import { Result } from "@/lib/result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { ApiResult } from "../../shared/api-result";
@@ -22,7 +23,7 @@ export async function createFormAccessToken(
     return ApiResult.validationError(idCheck.message);
   }
 
-  const url = `/api/public/v0/forms/${formId}/access-tokens`;
+  const url = withBasePath(`/api/public/v0/forms/${formId}/access-tokens`);
 
   try {
     const response = await fetch(url, {

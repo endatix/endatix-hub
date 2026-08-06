@@ -1,4 +1,5 @@
 import { toast } from "@/components/ui/toast";
+import { withBasePath } from "@/lib/hosting";
 import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
@@ -21,7 +22,7 @@ export async function downloadSubmissionFilesUseCase({
   });
   try {
     const response = await fetch(
-      `/api/forms/${formId}/submissions/${submissionId}/files`,
+      withBasePath(`/api/forms/${formId}/submissions/${submissionId}/files`),
     );
 
     if (!response.ok) {

@@ -3,6 +3,7 @@ import {
   type FileViewSize,
 } from "@/features/submissions/ui/answers/file-viewer";
 import { FileViewMeta } from "./file-view-meta";
+import { withBasePath } from "@/lib/hosting";
 import Link from "next/link";
 import type { UserFileViewData } from "../get-use-file.use-case";
 import { UrlObject } from "node:url";
@@ -31,7 +32,9 @@ export function SubmissionFileView({
     pathname: `/forms/${formId}/submissions/${submissionId}/files`,
     query: {},
   };
-  const downloadApiUrl = `/api/hub/v0/storage/submission-files/${formId}/${submissionId}/${encodeURIComponent(file.displayName)}/download-url`;
+  const downloadApiUrl = withBasePath(
+    `/api/hub/v0/storage/submission-files/${formId}/${submissionId}/${encodeURIComponent(file.displayName)}/download-url`,
+  );
 
   return (
     <div className="space-y-4">

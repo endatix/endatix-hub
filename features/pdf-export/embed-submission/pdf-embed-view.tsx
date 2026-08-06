@@ -1,5 +1,7 @@
 "use server";
 
+import { withBasePath } from "@/lib/hosting";
+
 interface PdfEmbedViewProps {
   formId: string;
   submissionId: string;
@@ -9,7 +11,9 @@ export async function PdfEmbedView({
   formId,
   submissionId,
 }: PdfEmbedViewProps) {
-  const pdfUrl = `/api/public/v0/forms/${formId}/submissions/${submissionId}/export-pdf?inline=true`;
+  const pdfUrl = withBasePath(
+    `/api/public/v0/forms/${formId}/submissions/${submissionId}/export-pdf?inline=true`,
+  );
 
   return (
     <div className="flex justify-center items-center h-screen">
