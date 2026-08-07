@@ -48,6 +48,12 @@ export class PublicDataListsClient {
     if (request.query) {
       query.set("query", request.query);
     }
+    if (request.matchMode) {
+      query.set("matchMode", request.matchMode);
+    }
+    if (request.locale) {
+      query.set("locale", request.locale);
+    }
 
     const endpoint = `/public/forms/${request.formId}/data-lists/${request.dataListId}/search?${query.toString()}`;
     return this.get<DataListPublicSearchResult>(endpoint, bearerToken);
