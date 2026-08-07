@@ -21,7 +21,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "20mb",
     },
     globalNotFound: true,
-    turbopackFileSystemCacheForDev: true, // faster development
+    turbopackFileSystemCacheForDev: true,
+    turbopackFileSystemCacheForBuild: true,
   },
   images: {
     remotePatterns: [],
