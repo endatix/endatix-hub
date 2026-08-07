@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "next-env.d.ts",
+    "env.d.ts",
+    "e2e/**/*.ts",
+    "e2e/**/*.tsx",
+    "playwright.config.ts"
+  ],
+  "exclude": ["node_modules", ".next", "docs", "examples"]
+}

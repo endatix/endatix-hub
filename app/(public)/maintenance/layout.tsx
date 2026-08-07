@@ -5,6 +5,7 @@ import { getPublicAssetPath } from "@/lib/hosting";
 import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { headers } from "next/headers";
+import { getMetadataBase } from "@/lib/seo";
 
 const appOptions = {
   enableTheme: true,
@@ -15,6 +16,7 @@ const appOptions = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "Endatix",
   description: "Customizable form management platform",
 };

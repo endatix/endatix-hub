@@ -1,9 +1,11 @@
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import "@/components/error-handling/not-found/not-found-styles-standalone.css";
 import { getPublicAssetPath } from "@/lib/hosting";
+import { getMetadataBase } from "@/lib/seo";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "404 - Page Not Found",
   description: "The page you are looking for does not exist.",
   generator: "Endatix",

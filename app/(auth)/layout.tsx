@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Instrument_Sans } from "next/font/google";
 import { Metadata } from "next";
+import { getMetadataBase } from "@/lib/seo";
 
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
@@ -25,6 +26,7 @@ interface AuthLayoutProps {
 }
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "Endatix Hub",
   description: "Login to your Endatix Hub account",
   applicationName: "Endatix Hub",

@@ -42,5 +42,5 @@
     "**/*.mts",
     "env.d.ts"
   ],
-  "exclude": ["node_modules", "docs", "examples"]
+  "exclude": ["node_modules", "docs", "examples", "coverage", ".coverage"]
 }

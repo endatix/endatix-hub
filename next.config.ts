@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   reactStrictMode: true,
   reactCompiler: true,
+  typescript: {
+    // App/build typecheck excludes tests; root tsconfig.json keeps @/ working in the IDE
+    tsconfigPath: "tsconfig.next.json",
+  },
   turbopack: {
     resolveAlias: {
       "@": __dirname,
@@ -21,8 +25,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "20mb",
     },
     globalNotFound: true,
-    turbopackFileSystemCacheForDev: true,
-    turbopackFileSystemCacheForBuild: true,
+    // Native Turbopack React Compiler (Babel plugin kept as --webpack fallback)
+    turbopackRustReactCompiler: true,
   },
   images: {
     remotePatterns: [],

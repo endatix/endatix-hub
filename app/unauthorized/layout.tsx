@@ -4,9 +4,10 @@ import { AppProvider } from "@/components/providers";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
-import { ROBOTS } from "@/lib/seo";
+import { getMetadataBase } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "Endatix Hub - Error",
   description: "An error occurred while loading the page.",
   generator: "Endatix",
@@ -19,7 +20,6 @@ export const metadata: Metadata = {
   ],
   applicationName: "Endatix Hub",
   publisher: "Endatix Ltd.",
-  robots: ROBOTS.hiddenPage,
 };
 
 interface UnauthorizedLayoutProps {

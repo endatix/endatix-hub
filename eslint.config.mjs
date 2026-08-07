@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const project = resolve(__dirname, "tsconfig.json");
+const e2eProject = resolve(__dirname, "tsconfig.e2e.json");
 
 const tempRuleOverrides = {
   "no-console": "off",
@@ -118,7 +118,7 @@ const eslintConfig = defineConfig([
   {
     files: ["e2e/**/*.ts", "e2e/**/*.tsx"],
     languageOptions: {
-      parserOptions: { project },
+      parserOptions: { project: e2eProject },
     },
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
