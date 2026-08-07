@@ -9,7 +9,7 @@ export type SurveySearchMode = "contains" | "startsWith";
  * SurveyJS has no Exact mode — only contains / startsWith.
  */
 export function mapSurveySearchModeToMatchMode(
-  searchMode: SurveySearchMode | string | undefined | null,
+  searchMode: SurveySearchMode | null | undefined,
 ): DataListSearchMatchMode {
   return searchMode === "startsWith" ? "StartsWith" : "Contains";
 }

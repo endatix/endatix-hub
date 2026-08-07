@@ -14,7 +14,6 @@ describe("mapSurveySearchModeToMatchMode", () => {
     expect(mapSurveySearchModeToMatchMode("contains")).toBe("Contains");
     expect(mapSurveySearchModeToMatchMode(undefined)).toBe("Contains");
     expect(mapSurveySearchModeToMatchMode(null)).toBe("Contains");
-    expect(mapSurveySearchModeToMatchMode("exact")).toBe("Contains");
   });
 });
 
