@@ -5,6 +5,10 @@ export type DataListChoiceItem = { value: string; text: string };
 
 export type DataListChoicePageParams = {
   filter?: string;
+  /** SurveyJS searchMode on the bound dropdown/tagbox. */
+  searchMode?: "contains" | "startsWith";
+  /** Survey locale used to select Labels.default vs a catalog key (e.g. es). */
+  locale?: string;
   skip: number;
   take: number;
 };

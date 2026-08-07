@@ -10,7 +10,10 @@ import {
   notifyChoicesLazyLoadCompleted,
   shouldSuppressChoicesLazyLoad,
 } from "@/lib/survey-features/infrastructure/choices-lazy-load-guards";
-import { searchDataListChoices } from "../use-cases/search-data-list-choices";
+import {
+  getQuestionSearchMode,
+  searchDataListChoices,
+} from "../use-cases/search-data-lists";
 import { resolveDataListDisplayValues } from "../use-cases/resolve-data-list-display-values";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
 import {
@@ -108,6 +111,8 @@ export function bindDataListsToSurvey(
 
     const response = await searchDataListChoices(deps, dataListId, {
       filter: options.filter,
+      searchMode: getQuestionSearchMode(options.question),
+      locale: options.question.getLocale() || undefined,
       skip: options.skip,
       take: options.take,
     });
