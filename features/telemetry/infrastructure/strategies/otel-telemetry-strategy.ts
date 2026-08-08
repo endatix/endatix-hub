@@ -6,6 +6,7 @@ import { TelemetryInitStrategy } from "./telemetry-init-strategy.interface";
 import { Resource } from "@opentelemetry/resources";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
+import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { AlwaysOnSampler } from "@opentelemetry/sdk-trace-base";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
@@ -60,7 +61,17 @@ export class OtelTelemetryStrategy implements TelemetryInitStrategy {
       logRecordProcessors: [logProcessor],
       contextManager: new AsyncLocalStorageContextManager(),
       sampler: new AlwaysOnSampler(),
-      instrumentations: [new HttpInstrumentation(), new FetchInstrumentation()],
+      // UndiciInstrumentation is what makes Hub -> API calls join one trace. Node 18+ global
+      // fetch is undici, which bypasses node:http entirely, so HttpInstrumentation never sees
+      // it; FetchInstrumentation is the *browser* instrumentation and does nothing here. Next.js
+      // still traced these calls through its own fetch instrumentation, which produces a client
+      // span but injects no traceparent header -- so the API started a fresh trace on every
+      // request and no trace ever spanned both services.
+      instrumentations: [
+        new HttpInstrumentation(),
+        new UndiciInstrumentation(),
+        new FetchInstrumentation(),
+      ],
     });
 
     console.log("OpenTelemetry SDK configured successfully");

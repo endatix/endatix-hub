@@ -32,6 +32,28 @@ describe("OtelTelemetryStrategy", () => {
     expect(strategy.name).toBe("OTel");
   });
 
+  it("should register undici instrumentation so traceparent reaches the API", () => {
+    // Arrange — Node 18+ global fetch is undici and bypasses node:http, so without this
+    // instrumentation no traceparent is injected and Hub -> API calls land in separate traces.
+    // Verified against a live Aspire dashboard: form submissions produced a Hub-only trace
+    // ("Resources 1") until this was added.
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4317";
+    const strategy = new OtelTelemetryStrategy();
+
+    // Act
+    const sdk = strategy.initialize(resource);
+
+    // Assert
+    const registered = (
+      sdk as unknown as { _instrumentations?: unknown[] }
+    )._instrumentations;
+    const names = (registered ?? []).map(
+      (i) => (i as { instrumentationName?: string }).instrumentationName,
+    );
+
+    expect(names).toContain("@opentelemetry/instrumentation-undici");
+  });
+
   it("should throw an error if the endpoint is not configured", () => {
     // Arrange
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT = undefined;
