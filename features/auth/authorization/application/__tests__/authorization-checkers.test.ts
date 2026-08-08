@@ -13,23 +13,15 @@ import {
   AuthorizationResult,
 } from "../../domain/authorization-result";
 import { createTestAuthorizationData } from "./helpers";
-
-const telemetryLoggerMock = vi.hoisted(() => ({
-  error: vi.fn(),
-}));
-
-vi.mock("@/features/telemetry", () => ({
-  TelemetryLogger: {
-    error: telemetryLoggerMock.error,
-  },
-}));
+import { TelemetryLogger } from "@/features/telemetry";
 
 const unauthenticatedResult = AuthorizationResult.unauthenticated();
 const serverErrorResult = AuthorizationResult.error();
 
 describe("authorization-checkers", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.spyOn(TelemetryLogger, "error").mockImplementation(() => undefined);
   });
 
   const baseAuthData = createTestAuthorizationData();
@@ -97,7 +89,7 @@ describe("authorization-checkers", () => {
       expect(AuthorizationResult.getErrorType(result)).toBe(
         AuthorizationErrorType.ServerError,
       );
-      expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+      expect(TelemetryLogger.error).toHaveBeenCalledWith(
         "Unexpected error during permission check",
         expect.any(Error),
         { permission: "forms.read" },
@@ -184,7 +176,7 @@ describe("authorization-checkers", () => {
       expect(AuthorizationResult.getErrorType(result)).toBe(
         AuthorizationErrorType.ServerError,
       );
-      expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+      expect(TelemetryLogger.error).toHaveBeenCalledWith(
         "Unexpected error during all-permissions check",
         expect.any(Error),
         { permissionsCount: 1 },
@@ -260,7 +252,7 @@ describe("authorization-checkers", () => {
       expect(AuthorizationResult.getErrorType(result)).toBe(
         AuthorizationErrorType.ServerError,
       );
-      expect(telemetryLoggerMock.error).toHaveBeenCalledWith(
+      expect(TelemetryLogger.error).toHaveBeenCalledWith(
         "Unexpected error during permissions evaluation",
         expect.any(Error),
         { permissionsCount: 2 },

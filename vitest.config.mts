@@ -7,7 +7,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [tsconfigPaths({ projects: ["./tsconfig.vitest.json"] }), react()],
   resolve: {
     alias: {
       "server-only": path.resolve(__dirname, "test/mocks/server-only.ts"),

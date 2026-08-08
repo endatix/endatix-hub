@@ -6,8 +6,10 @@ import { getPublicAssetPath } from "@/lib/hosting";
 import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
+import { getMetadataBase } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "Endatix Hub",
   description: "Customizable form management platform",
   generator: "Endatix",

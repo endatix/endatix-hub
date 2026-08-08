@@ -3,9 +3,10 @@ import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
-import { ROBOTS } from "@/lib/seo";
+import { ROBOTS, getMetadataBase } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "Edit Submission - Endatix",
   description: "Edit your submission",
   generator: "Endatix",
