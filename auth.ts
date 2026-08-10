@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { authRegistry } from "./features/auth/infrastructure/auth-provider-registry";
 import { createAuthConfig } from "./features/auth/infrastructure/config-factory";
 import { AuthPresentation } from "./features/auth/infrastructure";
+import { authTelemetryLogger } from "./features/auth/infrastructure/auth-telemetry-logger";
 
 // Example auth provider registration (uncomment to use)
 // import {
@@ -19,6 +20,10 @@ export const authPresentation: AuthPresentation[] = authConfig.authPresentation;
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ...authConfig,
+  // After the spread, so this is authoritative. No provider config sets a logger today; if one
+  // ever needs to, it should compose with this rather than replace it, or auth failures stop
+  // reaching telemetry again.
+  logger: authTelemetryLogger,
 });
 
 export type SessionError =
