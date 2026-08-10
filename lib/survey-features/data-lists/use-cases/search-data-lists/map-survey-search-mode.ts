@@ -1,17 +1,19 @@
 import type { Question } from "survey-core";
 import type { DataListSearchMatchMode } from "@/lib/endatix-api/public/data-lists/types";
+import type { SurveySearchMode } from "../../types";
 
-/** SurveyJS dropdown/tagbox searchMode values. */
-export type SurveySearchMode = "contains" | "startsWith";
+export type { SurveySearchMode };
 
 /**
- * Maps SurveyJS {@link SurveySearchMode} to the public DataList search API matchMode.
+ * Maps SurveyJS {@link SurveySearchMode} to the public DataList API matchMode.
+ * Returns undefined for contains / omitted so the client omits matchMode
+ * (API default is Contains — quieter URLs / logs).
  * SurveyJS has no Exact mode — only contains / startsWith.
  */
 export function mapSurveySearchModeToMatchMode(
   searchMode: SurveySearchMode | null | undefined,
-): DataListSearchMatchMode {
-  return searchMode === "startsWith" ? "StartsWith" : "Contains";
+): DataListSearchMatchMode | undefined {
+  return searchMode === "startsWith" ? "StartsWith" : undefined;
 }
 
 /**

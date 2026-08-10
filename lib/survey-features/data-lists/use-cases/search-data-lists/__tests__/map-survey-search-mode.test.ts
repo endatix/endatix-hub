@@ -10,10 +10,10 @@ describe("mapSurveySearchModeToMatchMode", () => {
     expect(mapSurveySearchModeToMatchMode("startsWith")).toBe("StartsWith");
   });
 
-  it("maps contains and unknown values to Contains", () => {
-    expect(mapSurveySearchModeToMatchMode("contains")).toBe("Contains");
-    expect(mapSurveySearchModeToMatchMode(undefined)).toBe("Contains");
-    expect(mapSurveySearchModeToMatchMode(null)).toBe("Contains");
+  it("omits contains and unknown values so the API default applies", () => {
+    expect(mapSurveySearchModeToMatchMode("contains")).toBeUndefined();
+    expect(mapSurveySearchModeToMatchMode(undefined)).toBeUndefined();
+    expect(mapSurveySearchModeToMatchMode(null)).toBeUndefined();
   });
 });
 
