@@ -39,52 +39,55 @@ describe("bindDataListsToSurvey onChoicesLazyLoad", () => {
     registerDataListGlobals();
   });
 
-  it("passes StartsWith and locale es from the question to the public search request", async () => {
-    const model = new Model({
-      pages: [
-        {
-          elements: [
-            {
-              type: "dropdown",
-              name: "fruit",
-              choicesLazyLoadEnabled: true,
-            },
-          ],
-        },
-      ],
-    });
-    model.locale = "es";
-
-    const question = model.getQuestionByName("fruit") as QuestionDropdownModel;
-    question.setPropertyValue(DATA_LIST_PROPERTY_NAME, "42");
-    question.searchMode = "startsWith";
-
-    bindDataListsToSurvey(model, {
-      deps: {
-        getRuntimeState: () => ({ formId: "101" }),
-      },
-    });
-
-    await new Promise<void>((resolve) => {
-      model.onChoicesLazyLoad.fire(model, {
-        question,
-        filter: "Manz",
-        skip: 0,
-        take: 25,
-        setItems: () => resolve(),
+  it.each(["dropdown", "tagbox"] as const)(
+    "passes StartsWith and locale es from %s to the public search request",
+    async (questionType) => {
+      const model = new Model({
+        pages: [
+          {
+            elements: [
+              {
+                type: questionType,
+                name: "fruit",
+                choicesLazyLoadEnabled: true,
+              },
+            ],
+          },
+        ],
       });
-    });
+      model.locale = "es";
 
-    expect(searchMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        formId: "101",
-        dataListId: "42",
-        query: "Manz",
-        matchMode: "StartsWith",
-        locale: "es",
-        skip: 0,
-        take: 25,
-      }),
-    );
-  });
+      const question = model.getQuestionByName("fruit") as QuestionDropdownModel;
+      question.setPropertyValue(DATA_LIST_PROPERTY_NAME, "42");
+      question.searchMode = "startsWith";
+
+      bindDataListsToSurvey(model, {
+        deps: {
+          getRuntimeState: () => ({ formId: "101" }),
+        },
+      });
+
+      await new Promise<void>((resolve) => {
+        model.onChoicesLazyLoad.fire(model, {
+          question,
+          filter: "Manz",
+          skip: 0,
+          take: 25,
+          setItems: () => resolve(),
+        });
+      });
+
+      expect(searchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          formId: "101",
+          dataListId: "42",
+          query: "Manz",
+          matchMode: "StartsWith",
+          locale: "es",
+          skip: 0,
+          take: 25,
+        }),
+      );
+    },
+  );
 });
