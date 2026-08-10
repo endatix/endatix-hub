@@ -1,7 +1,7 @@
 import { normalizeChoiceKey } from "@/lib/utils/survey";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import type { DataListSourceRef, PropertyGridChoice } from "../types";
-import { searchDataListChoices } from "./search-data-list-choices";
+import { searchDataListChoices } from "./search-data-lists/search-data-list-choices";
 
 type DataListSearchResult = Awaited<ReturnType<typeof searchDataListChoices>>;
 

@@ -3,8 +3,15 @@ import type { Model, SurveyModel } from "survey-core";
 
 export type DataListChoiceItem = { value: string; text: string };
 
+/** SurveyJS dropdown/tagbox searchMode values. */
+export type SurveySearchMode = "contains" | "startsWith";
+
 export type DataListChoicePageParams = {
   filter?: string;
+  /** SurveyJS searchMode on the bound dropdown/tagbox. */
+  searchMode?: SurveySearchMode;
+  /** Survey locale used to select Labels.default vs a catalog key (e.g. es). */
+  locale?: string;
   skip: number;
   take: number;
 };

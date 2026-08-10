@@ -46,6 +46,40 @@ describe("PublicDataListsClient", () => {
     );
   });
 
+  it("sends matchMode and locale on search when provided", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          page: 1,
+          pageSize: 25,
+          totalRecords: 0,
+          totalPages: 0,
+          items: [],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createPublicDataListsClient({
+      baseUrl: "https://api.example.com",
+    });
+    const result = await client.search({
+      formId: "101",
+      dataListId: "12",
+      query: "App",
+      matchMode: "StartsWith",
+      locale: "es",
+      formAccessJwt: "form-access-jwt",
+    });
+
+    expect(result.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/public/forms/101/data-lists/12/search?skip=0&take=25&query=App&matchMode=StartsWith&locale=es",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("builds display-values request with repeated values and Bearer JWT", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

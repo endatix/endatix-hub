@@ -13,6 +13,7 @@ export {
 export type {
   DataListChoiceItem,
   DataListPublicSearchResult,
+  DataListSearchMatchMode,
   PublicDataListSearchRequest,
   PublicDataListDisplayValuesRequest,
 } from "./data-lists/types";

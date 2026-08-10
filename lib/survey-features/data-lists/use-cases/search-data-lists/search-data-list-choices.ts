@@ -2,8 +2,9 @@ import { createEndatixPublicApi } from "@/lib/endatix-api/public";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
-import type { DataListChoiceItem, DataListChoicePageParams } from "../types";
-import { withFormAccessJwtRetry } from "../utils/with-form-access-jwt-retry";
+import type { DataListChoiceItem, DataListChoicePageParams } from "../../types";
+import { withFormAccessJwtRetry } from "../../utils/with-form-access-jwt-retry";
+import { mapSurveySearchModeToMatchMode } from "./map-survey-search-mode";
 
 export async function searchDataListChoices(
   deps: ExtensionRuntimeDeps,
@@ -22,6 +23,8 @@ export async function searchDataListChoices(
       dataListId,
       formAccessJwt: jwt,
       query: params.filter,
+      matchMode: mapSurveySearchModeToMatchMode(params.searchMode),
+      locale: params.locale,
       skip: params.skip,
       take: params.take,
     }),

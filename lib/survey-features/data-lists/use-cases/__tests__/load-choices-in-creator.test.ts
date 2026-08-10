@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import { loadChoicesInCreator } from "../load-choices-in-creator";
-import { searchDataListChoices } from "../search-data-list-choices";
+import { searchDataListChoices } from "../search-data-lists/search-data-list-choices";
 
-vi.mock("../search-data-list-choices", () => ({
+vi.mock("../search-data-lists/search-data-list-choices", () => ({
   searchDataListChoices: vi.fn(),
 }));
 
