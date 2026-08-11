@@ -330,6 +330,7 @@ export function CreateDataListDialog({
         open={isConfirmOpen}
         onOpenChange={setIsConfirmOpen}
         title="Confirm locales for new list"
+        mode="create"
         discovery={pendingDiscovery}
         catalogLocaleCount={0}
         isPending={isPending}

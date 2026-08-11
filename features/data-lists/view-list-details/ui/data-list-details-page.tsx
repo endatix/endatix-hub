@@ -42,41 +42,63 @@ export function DataListDetailsPage({
   const [details, setDetails] = useState(initialDetails);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] =
     useState(openReplaceOnLoad);
+  const [openedReplaceFromLoad, setOpenedReplaceFromLoad] =
+    useState(openReplaceOnLoad);
   const [replaceInitialFormat, setReplaceInitialFormat] =
     useState<DataListSourceFormat>("json");
   const [isDownloadPending, startDownloadTransition] = useTransition();
   const router = useRouter();
+  const dataListIdResult = validateEndatixId(String(details.id), "dataListId");
 
   useEffect(() => {
-    if (openReplaceOnLoad) {
-      setIsReplaceDialogOpen(true);
+    if (!openReplaceOnLoad) {
+      return;
     }
-  }, [openReplaceOnLoad]);
+
+    const idResult = validateEndatixId(String(details.id), "dataListId");
+    if (Result.isError(idResult)) {
+      toast.error(idResult.message);
+      return;
+    }
+
+    setOpenedReplaceFromLoad(true);
+    setIsReplaceDialogOpen(true);
+  }, [openReplaceOnLoad, details.id]);
 
   const handleOpenCloseReplaceDialog = (open: boolean): void => {
     setIsReplaceDialogOpen(open);
     if (!open) {
       setReplaceInitialFormat("json");
-      const validationResult = validateEndatixId(details.id, "dataListId");
-      const routerAction = (): void =>
-        Result.isError(validationResult)
-          ? router.back()
-          : router.push(`/data-lists/${validationResult.value}`);
-
-      routerAction();
+      if (openedReplaceFromLoad) {
+        setOpenedReplaceFromLoad(false);
+        router.back();
+      }
     }
   };
 
   const openReplace = (format: DataListSourceFormat = "json"): void => {
+    if (Result.isError(dataListIdResult)) {
+      toast.error(dataListIdResult.message);
+      return;
+    }
+
+    setOpenedReplaceFromLoad(false);
     setReplaceInitialFormat(format);
     setIsReplaceDialogOpen(true);
   };
 
   const handleDownloadCsv = (): void => {
+    if (Result.isError(dataListIdResult)) {
+      toast.error(dataListIdResult.message);
+      return;
+    }
+
+    const dataListId = dataListIdResult.value;
+
     startDownloadTransition(async () => {
       try {
         const response = await fetch(
-          withBasePath(`/api/data-lists/${details.id}/export?format=csv`),
+          withBasePath(`/api/data-lists/${dataListId}/export?format=csv`),
         );
 
         if (!response.ok) {
@@ -105,7 +127,7 @@ export function DataListDetailsPage({
         const blob = await response.blob();
         const fileName = getFilenameFromContentDisposition(
           response.headers,
-          `data-list-${details.id}-translations.csv`,
+          `data-list-${dataListId}-translations.csv`,
         );
         initiateFileDownload(blob, fileName);
         toast.success("CSV downloaded");
@@ -216,7 +238,9 @@ export function DataListDetailsPage({
         key={`${details.id}-${replaceInitialFormat}-${isReplaceDialogOpen}`}
         open={isReplaceDialogOpen}
         onOpenChange={handleOpenCloseReplaceDialog}
-        dataListId={String(details.id)}
+        dataListId={
+          Result.isSuccess(dataListIdResult) ? dataListIdResult.value : ""
+        }
         title={details.name}
         availableLocales={availableLocales}
         defaultLocale={details.defaultLocale}

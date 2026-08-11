@@ -128,6 +128,7 @@ export function discoverLocalesFromKeys(
   const existing = new Set<string>();
   const discoveredNew = new Set<string>();
   const invalid: string[] = [];
+  const seenCanonicalKeys = new Set<string>();
 
   for (const raw of keys) {
     const trimmed = raw.trim();
@@ -152,7 +153,22 @@ export function discoverLocalesFromKeys(
       continue;
     }
 
-    if (isCatalogDefaultLocaleKey(normalized, options.defaultLocale)) {
+    const canonicalKey = isCatalogDefaultLocaleKey(
+      normalized,
+      options.defaultLocale,
+    )
+      ? DEFAULT_CATALOG_LOCALE
+      : normalized;
+
+    if (seenCanonicalKeys.has(canonicalKey)) {
+      columns.push({ raw: trimmed, key: "", kind: "invalid" });
+      invalid.push(trimmed);
+      continue;
+    }
+
+    seenCanonicalKeys.add(canonicalKey);
+
+    if (canonicalKey === DEFAULT_CATALOG_LOCALE) {
       columns.push({
         raw: trimmed,
         key: DEFAULT_CATALOG_LOCALE,

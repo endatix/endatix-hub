@@ -3,6 +3,7 @@
 import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import { X } from "lucide-react";
 import { useTransition } from "react";
 import {
@@ -22,11 +23,17 @@ export function LocaleCatalogPanel({
 }: Readonly<LocaleCatalogPanelProps>) {
   const [isPending, startTransition] = useTransition();
   const availableLocales = details.availableLocales ?? [];
+  const dataListIdResult = validateEndatixId(String(details.id), "dataListId");
 
   const handleRemove = (locale: string): void => {
+    if (Result.isError(dataListIdResult)) {
+      toast.error(dataListIdResult.message);
+      return;
+    }
+
     startTransition(async () => {
       const result = await removeDataListLocaleAction(
-        String(details.id),
+        dataListIdResult.value,
         locale,
       );
       if (Result.isError(result)) {
@@ -40,9 +47,14 @@ export function LocaleCatalogPanel({
   };
 
   const handleSetDefault = (locale: string): void => {
+    if (Result.isError(dataListIdResult)) {
+      toast.error(dataListIdResult.message);
+      return;
+    }
+
     startTransition(async () => {
       const result = await setDataListDefaultLocaleAction(
-        String(details.id),
+        dataListIdResult.value,
         locale,
       );
       if (Result.isError(result)) {

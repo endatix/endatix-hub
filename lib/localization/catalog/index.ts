@@ -12,5 +12,9 @@ export {
   isCatalogDefaultLocaleKey,
   isValidCultureCode,
   normalizeCultureCode,
+  normalizeCultureCodes,
   normalizeOptionalCultureTag,
+  resolveCatalogDefaultLabelText,
+  tryNormalizeCultureCode,
 } from "./culture-code";
+export type { NormalizeCultureCodesResult } from "./culture-code";

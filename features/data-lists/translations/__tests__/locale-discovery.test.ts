@@ -67,6 +67,42 @@ describe("locale discovery", () => {
     expect(discovery.canProceed).toBe(false);
   });
 
+  it("rejects case-only duplicate locale columns", () => {
+    const discovery = discoverLocalesFromTranslationsCsv(
+      "value,default,es,ES\r\napple,Apple,Manzana,MANZANA\r\n",
+      { availableLocales: [], defaultLocale: "en" },
+    );
+
+    expect(discovery.canProceed).toBe(false);
+    expect(discovery.invalidLocales).toContain("ES");
+    expect(discovery.newLocales).toEqual(["es"]);
+    expect(
+      discovery.columns.filter((column) => column.key === "es"),
+    ).toHaveLength(1);
+
+    const filtered = filterTranslationsCsv(
+      "value,default,es,ES\r\napple,Apple,Manzana,MANZANA\r\n",
+      ["default", "es"],
+      "en",
+    );
+    expect(filtered).toBe("value,default,es\r\napple,Apple,Manzana\r\n");
+  });
+
+  it("rejects duplicate columns that alias to the default locale", () => {
+    const discovery = discoverLocalesFromKeys(
+      ["default", "en", "es"],
+      { availableLocales: [], defaultLocale: "en" },
+      1,
+    );
+
+    expect(discovery.canProceed).toBe(false);
+    expect(discovery.invalidLocales).toContain("en");
+    expect(
+      discovery.columns.filter((column) => column.kind === "default"),
+    ).toHaveLength(1);
+    expect(discovery.newLocales).toEqual(["es"]);
+  });
+
   it("accepts multilingual json items", () => {
     const result = validateJsonInput(
       JSON.stringify([

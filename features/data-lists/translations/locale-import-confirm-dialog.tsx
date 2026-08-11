@@ -28,6 +28,8 @@ export type LocaleImportConfirmDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
+  /** Create flow avoids “replace existing” copy; replace keeps current wording. */
+  mode?: "create" | "replace";
   discovery: LocaleImportDiscovery | null;
   catalogLocaleCount: number;
   isPending?: boolean;
@@ -38,6 +40,7 @@ export function LocaleImportConfirmDialog({
   open,
   onOpenChange,
   title = "Confirm import",
+  mode = "replace",
   discovery,
   catalogLocaleCount,
   isPending = false,
@@ -88,17 +91,17 @@ export function LocaleImportConfirmDialog({
     return columns;
   }, [discovery]);
 
+  const description =
+    mode === "create"
+      ? "Review locale columns to import. New locales can still be turned off before the list is created."
+      : "Review locale columns to import. Existing catalog locales stay selected for now (removing them during upload can leave empty labels). New locales can still be turned off. This replaces the entire list.";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Review locale columns to import. Existing catalog locales stay
-            selected for now (removing them during upload can leave empty
-            labels). New locales can still be turned off. This replaces the
-            entire list.
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         {discovery ? (
@@ -121,7 +124,10 @@ export function LocaleImportConfirmDialog({
 
             <p>
               <span className="font-medium">{discovery.rowCount}</span> row
-              {discovery.rowCount === 1 ? "" : "s"} will replace existing items.
+              {discovery.rowCount === 1 ? "" : "s"}{" "}
+              {mode === "create"
+                ? "will become the items in the new list."
+                : "will replace existing items."}
             </p>
 
             {discovery.structuralErrors.length > 0 ? (

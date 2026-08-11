@@ -6,11 +6,15 @@ export {
   isDefaultCatalogLocale,
   isValidCultureCode,
   normalizeCultureCode,
+  normalizeCultureCodes,
   normalizeOptionalCultureTag,
+  resolveCatalogDefaultLabelText,
   surveyJsDefaultLocaleCode,
   toCatalogLocales,
   toSurveyModelLocale,
+  tryNormalizeCultureCode,
 } from "./catalog";
+export type { NormalizeCultureCodesResult } from "./catalog";
 
 export {
   getLanguageDisplayName,

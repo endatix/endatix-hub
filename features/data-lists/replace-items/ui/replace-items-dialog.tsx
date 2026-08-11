@@ -301,6 +301,7 @@ export function ReplaceItemsDialog({
         open={isConfirmOpen}
         onOpenChange={setIsConfirmOpen}
         title={format === "csv" ? "Confirm CSV import" : "Confirm JSON import"}
+        mode="replace"
         discovery={pendingDiscovery}
         catalogLocaleCount={availableLocales.length}
         isPending={isPending}

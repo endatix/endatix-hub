@@ -45,6 +45,40 @@ export function normalizeCultureCode(code: string): string {
 }
 
 /**
+ * Returns the normalized culture code, or `null` when the input is invalid.
+ */
+export function tryNormalizeCultureCode(code: string): string | null {
+  if (!isValidCultureCode(code)) {
+    return null;
+  }
+
+  return normalizeCultureCode(code);
+}
+
+export type NormalizeCultureCodesResult =
+  | { ok: true; value: string[] }
+  | { ok: false; invalid: string };
+
+/**
+ * Normalizes every culture code in `codes`. Fails on the first invalid entry
+ * (returns `{ ok: false, invalid }`); does not silently drop invalids.
+ */
+export function normalizeCultureCodes(
+  codes: readonly string[],
+): NormalizeCultureCodesResult {
+  const value: string[] = [];
+  for (const code of codes) {
+    const normalized = tryNormalizeCultureCode(code);
+    if (normalized === null) {
+      return { ok: false, invalid: code.trim() || code };
+    }
+    value.push(normalized);
+  }
+
+  return { ok: true, value };
+}
+
+/**
  * True when `key` is the catalog default label (`default`) or equals the
  * configured default culture (e.g. data-list `defaultLocale: "en"` → `en`
  * maps to `labels.default`).
@@ -62,4 +96,43 @@ export function isCatalogDefaultLocaleKey(
 
   const defaultCulture = normalizeOptionalCultureTag(defaultLocale);
   return defaultCulture != null && key === defaultCulture;
+}
+
+/**
+ * Reads the catalog-default label text from a labels map.
+ * Prefers `labels.default`, then a culture key that aliases to the configured
+ * default locale (e.g. `labels.en` when `defaultLocale` is `en`).
+ * Returns `null` when no default label entry is present.
+ */
+export function resolveCatalogDefaultLabelText(
+  labels: Record<string, unknown> | undefined | null,
+  defaultLocale?: string | null,
+): string | null {
+  if (!labels) {
+    return null;
+  }
+
+  const direct = labels[DEFAULT_CATALOG_LOCALE];
+  if (typeof direct === "string") {
+    return direct.trim();
+  }
+
+  for (const [rawKey, text] of Object.entries(labels)) {
+    if (typeof text !== "string") {
+      continue;
+    }
+
+    let normalized: string;
+    try {
+      normalized = normalizeCultureCode(rawKey);
+    } catch {
+      continue;
+    }
+
+    if (isCatalogDefaultLocaleKey(normalized, defaultLocale)) {
+      return text.trim();
+    }
+  }
+
+  return null;
 }

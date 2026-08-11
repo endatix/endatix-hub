@@ -81,8 +81,8 @@ export function useDataListSource(
     if (format !== "json" || !jsonInput.trim()) {
       return null;
     }
-    return validateJsonInput(jsonInput);
-  }, [format, jsonInput]);
+    return validateJsonInput(jsonInput, { defaultLocale });
+  }, [defaultLocale, format, jsonInput]);
 
   const availableLocalesKey = (
     options.availableLocales ?? EMPTY_AVAILABLE_LOCALES

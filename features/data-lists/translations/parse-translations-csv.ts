@@ -116,6 +116,7 @@ export function filterTranslationsCsv(
   const defaultCulture = normalizeOptionalCultureTag(defaultLocale);
   const header = records[0];
   const keepIndexes: number[] = [0];
+  const seenCanonicalKeys = new Set<string>();
 
   for (let i = 1; i < header.length; i++) {
     const raw = header[i].trim();
@@ -126,12 +127,22 @@ export function filterTranslationsCsv(
       continue;
     }
 
-    if (isCatalogDefaultLocaleKey(key, defaultCulture)) {
+    const canonicalKey = isCatalogDefaultLocaleKey(key, defaultCulture)
+      ? DEFAULT_CATALOG_LOCALE
+      : key;
+
+    if (seenCanonicalKeys.has(canonicalKey)) {
+      continue;
+    }
+
+    if (canonicalKey === DEFAULT_CATALOG_LOCALE) {
+      seenCanonicalKeys.add(DEFAULT_CATALOG_LOCALE);
       keepIndexes.push(i);
       continue;
     }
 
     if (included.has(key)) {
+      seenCanonicalKeys.add(key);
       keepIndexes.push(i);
     }
   }
@@ -246,6 +257,9 @@ function appendOutsideQuotes(
       completeRecord();
       break;
     default:
+      if (state.fieldWasQuoted) {
+        throw new Error("Unexpected text after a quoted CSV field.");
+      }
       state.field += current;
       break;
   }

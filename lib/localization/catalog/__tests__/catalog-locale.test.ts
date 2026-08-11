@@ -10,7 +10,10 @@ import {
   isCatalogDefaultLocaleKey,
   isValidCultureCode,
   normalizeCultureCode,
+  normalizeCultureCodes,
   normalizeOptionalCultureTag,
+  resolveCatalogDefaultLabelText,
+  tryNormalizeCultureCode,
 } from "../culture-code";
 
 describe("catalog-locale", () => {
@@ -55,5 +58,29 @@ describe("culture-code", () => {
     expect(isCatalogDefaultLocaleKey("en", " EN ")).toBe(true);
     expect(isCatalogDefaultLocaleKey("bg", "en")).toBe(false);
     expect(isCatalogDefaultLocaleKey("en")).toBe(false);
+  });
+
+  it("resolves catalog default label text from default or culture alias", () => {
+    expect(resolveCatalogDefaultLabelText({ default: " Apple " }, "en")).toBe(
+      "Apple",
+    );
+    expect(
+      resolveCatalogDefaultLabelText({ en: "Apple", es: "Manzana" }, "en"),
+    ).toBe("Apple");
+    expect(resolveCatalogDefaultLabelText({ es: "Manzana" }, "en")).toBeNull();
+  });
+
+  it("normalizes culture code lists and reports the first invalid entry", () => {
+    expect(tryNormalizeCultureCode("EN-US")).toBe("en-us");
+    expect(tryNormalizeCultureCode("!!!")).toBeNull();
+
+    expect(normalizeCultureCodes(["ES", "en-US"])).toEqual({
+      ok: true,
+      value: ["es", "en-us"],
+    });
+    expect(normalizeCultureCodes(["es", "!!!"])).toEqual({
+      ok: false,
+      invalid: "!!!",
+    });
   });
 });

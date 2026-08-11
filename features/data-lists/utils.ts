@@ -1,12 +1,15 @@
 import { DataListChoiceItem } from "@/lib/endatix-api";
-import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
-import { DATA_LIST_ITEM_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
 import {
-  discoverLocalesFromKeys,
+  DEFAULT_CATALOG_LOCALE,
   isCatalogDefaultLocaleKey,
   isValidCultureCode,
   normalizeCultureCode,
   normalizeOptionalCultureTag,
+  resolveCatalogDefaultLabelText,
+} from "@/lib/localization";
+import { DATA_LIST_ITEM_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
+import {
+  discoverLocalesFromKeys,
   type LocaleDiscoveryOptions,
   type LocaleImportDiscovery,
 } from "./translations/locale-discovery";
@@ -54,9 +57,13 @@ type ParsedChoice = {
   labels?: Record<string, string>;
 };
 
-function resolveDefaultLabel(item: ParsedChoice): string {
-  if (item.labels && typeof item.labels[DEFAULT_CATALOG_LOCALE] === "string") {
-    return item.labels[DEFAULT_CATALOG_LOCALE].trim();
+function resolveDefaultLabel(
+  item: ParsedChoice,
+  defaultLocale?: string,
+): string {
+  const fromLabels = resolveCatalogDefaultLabelText(item.labels, defaultLocale);
+  if (fromLabels !== null) {
+    return fromLabels;
   }
 
   return typeof item.label === "string" ? item.label.trim() : "";
@@ -106,10 +113,7 @@ function collectChoiceFieldErrors(
   }
 
   for (const [key, text] of Object.entries(labels)) {
-    if (
-      !isValidCultureCode(key) &&
-      key.toLowerCase() !== DEFAULT_CATALOG_LOCALE
-    ) {
+    if (!isValidCultureCode(key)) {
       errors.push(`${prefix}: locale '${key}' is not a valid culture code.`);
     }
     if (text.length > DATA_LIST_ITEM_MAX_LENGTH) {
@@ -143,8 +147,19 @@ function toNormalizedChoiceItem(
   valueField: string,
   defaultLabel: string,
   labels: Record<string, string> | undefined,
+  defaultLocale?: string,
 ): DataListChoiceItem {
-  const merged: Record<string, string> = { ...labels };
+  const merged: Record<string, string> = {};
+  if (labels) {
+    for (const [rawKey, text] of Object.entries(labels)) {
+      const key = normalizeCultureCode(rawKey);
+      if (isCatalogDefaultLocaleKey(key, defaultLocale)) {
+        merged[DEFAULT_CATALOG_LOCALE] = text;
+        continue;
+      }
+      merged[key] = text;
+    }
+  }
   if (!merged[DEFAULT_CATALOG_LOCALE]) {
     merged[DEFAULT_CATALOG_LOCALE] = defaultLabel;
   }
@@ -155,6 +170,7 @@ function validateChoiceItem(
   item: unknown,
   index: number,
   seenValues: Set<string>,
+  defaultLocale?: string,
 ): { errors: string[]; item?: DataListChoiceItem } {
   const itemNumber = index + 1;
 
@@ -169,7 +185,7 @@ function validateChoiceItem(
   const itemObj = item as ParsedChoice;
   const valueField =
     typeof itemObj.value === "string" ? itemObj.value.trim() : "";
-  const defaultLabel = resolveDefaultLabel(itemObj);
+  const defaultLabel = resolveDefaultLabel(itemObj, defaultLocale);
   const labels = parseTrimmedLabels(itemObj.labels);
 
   const errors = collectChoiceFieldErrors(
@@ -187,18 +203,30 @@ function validateChoiceItem(
   if (valueField && defaultLabel && errors.length === 0) {
     return {
       errors,
-      item: toNormalizedChoiceItem(valueField, defaultLabel, labels),
+      item: toNormalizedChoiceItem(
+        valueField,
+        defaultLabel,
+        labels,
+        defaultLocale,
+      ),
     };
   }
 
   return { errors };
 }
 
+export type ValidateJsonInputOptions = {
+  defaultLocale?: string;
+};
+
 /**
  * Validates a JSON string containing data list items.
  * Accepts `{ label, value }` or `{ value, labels: { default, … } }` and normalizes to `{ value, labels }`.
  */
-export function validateJsonInput(value: string): ParsedValidation {
+export function validateJsonInput(
+  value: string,
+  options: ValidateJsonInputOptions = {},
+): ParsedValidation {
   const trimmed = value.trim();
 
   if (!trimmed) {
@@ -227,7 +255,12 @@ export function validateJsonInput(value: string): ParsedValidation {
 
   parsed.forEach((item, index) => {
     const row = findItemLineNumber(value, item, index);
-    const result = validateChoiceItem(item, index, seenValues);
+    const result = validateChoiceItem(
+      item,
+      index,
+      seenValues,
+      options.defaultLocale,
+    );
 
     for (const err of result.errors) {
       errors.push(err);
