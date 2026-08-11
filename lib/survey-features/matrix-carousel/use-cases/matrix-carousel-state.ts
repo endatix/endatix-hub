@@ -19,11 +19,14 @@ export function isCarouselDisplayMode(
 }
 
 /**
- * True only for a carousel-mode matrix question with row-sourcing turned
- * on. Deliberately its own gate, not the shared isAdvancedCarryForwardEnabled
- * — matrix is never a valid carry-forward target (it isn't a
- * QuestionSelectBase), so registerCarryForwardForQuestionType is never
- * called for it (see registry.ts / sync-rows-from-source.ts).
+ * True only for a carousel-mode matrix question with row-sourcing (carry
+ * forward) turned on. Deliberately its own gate, not the shared
+ * isAdvancedCarryForwardEnabled from carry-forward/utils — that one's type
+ * predicate narrows to AdvancedCarryForwardQuestion, which requires
+ * QuestionSelectBase, and a matrix question genuinely isn't one (it has
+ * `rows`, not `choices`). The underlying sync pipeline is still the real
+ * carry-forward logic (see sync-rows-from-source.ts); only the eligibility
+ * check and the write-target differ per matrix's shape.
  */
 export function isMatrixCarouselRowSourceEnabled(
   question: Question,
@@ -32,5 +35,5 @@ export function isMatrixCarouselRowSourceEnabled(
     return false;
   }
 
-  return question.edxRowsSourceEnabled === true;
+  return question.edxCarryForwardEnabled === true;
 }

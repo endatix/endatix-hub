@@ -208,16 +208,17 @@ describe("MatrixCarouselRenderer", () => {
     expect(queryByText("1 of 3")).toBeNull();
   });
 
-  it("renders the buttons via a real SurveyActionBar, not plain <button> markup", () => {
+  it("renders the buttons via a real SurveyActionBar styled with the survey's own theme action-bar classes", () => {
     // Arrange
     const model = new Model(carouselSurveyJson());
 
     // Act
     const { container } = render(<Survey model={model} />);
 
-    // Assert
-    expect(container.querySelector(".sv-action-bar")).not.toBeNull();
-    expect(container.querySelector(".sv-action-bar-item[title='Next']")).not.toBeNull();
+    // Assert — sd-action-bar/sd-action, not the unstyled sv- fallback,
+    // confirms actionsContainer.cssClasses was set from survey.getCss().actionBar
+    expect(container.querySelector(".sd-action-bar")).not.toBeNull();
+    expect(container.querySelector(".sd-action[title='Next']")).not.toBeNull();
   });
 
   it("lays out progress bar above the content and Back/Next below it, matching PanelDynamic's carousel ordering", () => {
@@ -248,7 +249,7 @@ describe("MatrixCarouselRenderer", () => {
     expect(childClasses).toEqual([
       "sv-matrixcarousel__progress",
       "sv-matrixcarousel__strip",
-      "sv-matrixcarousel__footer",
+      "sv-matrixcarousel__footer sd-paneldynamic__footer",
     ]);
   });
 

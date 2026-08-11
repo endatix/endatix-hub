@@ -1,6 +1,7 @@
 import { getLocaleStrings } from "survey-creator-core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { DISPLAY_MODE_PROPERTY, EDX_ROWS_SOURCE_ENABLED_PROPERTY } from "../constants";
+import { CARRY_FORWARD_ENABLED_PROPERTY } from "@/lib/survey-features/carry-forward/constants";
+import { DISPLAY_MODE_PROPERTY } from "../constants";
 import {
   registerMatrixCarouselCreatorHelp,
   resetMatrixCarouselCreatorHelpForTests,
@@ -11,13 +12,20 @@ describe("registerMatrixCarouselCreatorHelp", () => {
     registerMatrixCarouselCreatorHelp();
   });
 
-  it("registers pehelp text for the carousel and row-source properties", () => {
+  it("registers pehelp text for the carousel-specific properties", () => {
     // Act
     const translations = getLocaleStrings("en");
 
     // Assert
     expect(translations.pehelp[DISPLAY_MODE_PROPERTY]).toContain("Carousel");
-    expect(translations.pehelp[EDX_ROWS_SOURCE_ENABLED_PROPERTY]).toContain("overwrites");
+  });
+
+  it("does not set its own pehelp for edxCarryForwardEnabled — that key is shared, global, and owned by carry-forward's own help text", () => {
+    // Act
+    const translations = getLocaleStrings("en");
+
+    // Assert
+    expect(translations.pehelp[CARRY_FORWARD_ENABLED_PROPERTY]).toBeUndefined();
   });
 
   it("is idempotent", () => {

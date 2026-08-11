@@ -4,9 +4,6 @@ import { bindSurveyToCreatorAreas } from "@/lib/survey-features/infrastructure/c
 import {
   ALLOW_SWIPE_NAVIGATION_PROPERTY,
   DISPLAY_MODE_PROPERTY,
-  EDX_ROWS_SOURCE_ENABLED_PROPERTY,
-  EDX_ROWS_SOURCE_QUESTION_PROPERTY,
-  EDX_ROWS_SOURCE_SELECTION_MODE_PROPERTY,
   IMAGE_URL_PROPERTY,
   MATRIX_CAROUSEL_CREATOR_BOUND_KEY,
   PROGRESS_INDICATOR_TYPE_PROPERTY,
@@ -18,9 +15,15 @@ import { bindMatrixCarouselRowSourceToSurvey, bindMatrixCarouselToSurvey } from 
 let isCreatorHelpRegistered = false;
 
 /**
- * Property-grid help text for the carousel/row-source properties. Mirrors
+ * Property-grid help text for the carousel-specific properties. Mirrors
  * carry-forward's own registerAdvancedCarryForwardCreatorHelp (same
- * getLocaleStrings("en").pehelp mechanism).
+ * getLocaleStrings("en").pehelp mechanism) — but deliberately does NOT set
+ * pehelp for edxCarryForward* here: `pehelp` is a single flat dictionary
+ * keyed by property name, not scoped per question type, so overriding it
+ * here would clobber (or be clobbered by, depending on extension load
+ * order) carry-forward's own help text for checkbox/radiogroup/dropdown/etc,
+ * which share these exact property names by design (see registry.ts).
+ * Row-sourcing's help text is carry-forward's help text, unmodified.
  */
 export function registerMatrixCarouselCreatorHelp(): void {
   if (isCreatorHelpRegistered) {
@@ -44,15 +47,6 @@ export function registerMatrixCarouselCreatorHelp(): void {
   translations.pehelp[ALLOW_SWIPE_NAVIGATION_PROPERTY] =
     "Lets respondents swipe between statements on touch devices. Turn off for kiosk or kept-to-buttons flows.";
 
-  translations.pehelp[EDX_ROWS_SOURCE_ENABLED_PROPERTY] =
-    "Builds this question's statements from another question's choices instead of the manually-authored list below. Enabling this overwrites the Rows you've entered.";
-
-  translations.pehelp[EDX_ROWS_SOURCE_QUESTION_PROPERTY] =
-    "The question to pull statements from. Only single/multi-select-type questions appear here.";
-
-  translations.pehelp[EDX_ROWS_SOURCE_SELECTION_MODE_PROPERTY] =
-    'Choose "All" for every choice, "Selected" to only include choices the respondent picked, or "Unselected" for the ones they did not.';
-
   translations.pehelp[IMAGE_URL_PROPERTY] =
     "Optional image shown above the statement instead of, or alongside, its text.";
 
@@ -67,9 +61,6 @@ export function resetMatrixCarouselCreatorHelpForTests(): void {
   delete translations.pehelp[PROGRESS_INDICATOR_TYPE_PROPERTY];
   delete translations.pehelp[SHOW_NAVIGATION_BUTTONS_PROPERTY];
   delete translations.pehelp[ALLOW_SWIPE_NAVIGATION_PROPERTY];
-  delete translations.pehelp[EDX_ROWS_SOURCE_ENABLED_PROPERTY];
-  delete translations.pehelp[EDX_ROWS_SOURCE_QUESTION_PROPERTY];
-  delete translations.pehelp[EDX_ROWS_SOURCE_SELECTION_MODE_PROPERTY];
   delete translations.pehelp[IMAGE_URL_PROPERTY];
 
   isCreatorHelpRegistered = false;

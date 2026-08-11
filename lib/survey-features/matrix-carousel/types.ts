@@ -1,18 +1,26 @@
 import type { ItemValue, QuestionMatrixModel } from "survey-core";
+import type { AdvancedCarryForwardModeInput } from "@/lib/survey-features/carry-forward/carry-forward-mode-values";
 
 export type DisplayMode = "grid" | "carousel";
 export type ProgressIndicatorType = "text" | "bar";
-export type RowsSourceSelectionMode = "all" | "selectedOnly" | "unselectedOnly";
 
+/**
+ * Row-sourcing reuses carry-forward's actual property names/settings shape
+ * (edxCarryForward*, the same "advanced carry forward" feature checkbox/
+ * radiogroup/etc. use) rather than a bespoke edxRowsSource* set, so scripters
+ * see one consistent mental model — see sync-rows-from-source.ts.
+ */
 export interface MatrixCarouselQuestion extends QuestionMatrixModel {
   edxDisplayMode?: DisplayMode;
   showProgressIndicator?: boolean;
   progressIndicatorType?: ProgressIndicatorType;
   showNavigationButtons?: boolean;
   allowSwipeNavigation?: boolean;
-  edxRowsSourceEnabled?: boolean;
-  edxRowsSourceQuestion?: string;
-  edxRowsSourceSelectionMode?: RowsSourceSelectionMode;
+  edxCarryForwardEnabled?: boolean;
+  edxCarryForwardSources?: string[];
+  edxCarryForwardMode?: AdvancedCarryForwardModeInput;
+  edxCarryForwardPriorityItems?: string[];
+  edxCarryForwardMaxChoices?: number;
 }
 
 /**

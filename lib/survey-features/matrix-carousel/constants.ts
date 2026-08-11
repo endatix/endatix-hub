@@ -18,20 +18,11 @@ export const PROGRESS_INDICATOR_TYPE_PROPERTY = "progressIndicatorType";
 export const SHOW_NAVIGATION_BUTTONS_PROPERTY = "showNavigationButtons";
 export const ALLOW_SWIPE_NAVIGATION_PROPERTY = "allowSwipeNavigation";
 
-export const EDX_ROWS_SOURCE_ENABLED_PROPERTY = "edxRowsSourceEnabled";
-export const EDX_ROWS_SOURCE_QUESTION_PROPERTY = "edxRowsSourceQuestion";
-export const EDX_ROWS_SOURCE_SELECTION_MODE_PROPERTY =
-  "edxRowsSourceSelectionMode";
-
 export const DISPLAY_MODE_GRID = "grid";
 export const DISPLAY_MODE_CAROUSEL = "carousel";
 
 export const PROGRESS_INDICATOR_TEXT = "text";
 export const PROGRESS_INDICATOR_BAR = "bar";
-
-export const ROWS_SOURCE_SELECTION_ALL = "all";
-export const ROWS_SOURCE_SELECTION_SELECTED_ONLY = "selectedOnly";
-export const ROWS_SOURCE_SELECTION_UNSELECTED_ONLY = "unselectedOnly";
 
 /** Properties only meaningful for the grid table layout — hidden (not removed) in the property grid while displayMode is "carousel". */
 export const GRID_ONLY_PROPERTIES = [

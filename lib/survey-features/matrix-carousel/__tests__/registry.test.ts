@@ -1,9 +1,15 @@
 import { Model, Serializer } from "survey-core";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
+  CARRY_FORWARD_ENABLED_PROPERTY,
+  CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+  CARRY_FORWARD_MODE_PROPERTY,
+  CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+  CARRY_FORWARD_SOURCES_PROPERTY,
+} from "@/lib/survey-features/carry-forward/constants";
+import { isSupportedCarryForwardQuestionType } from "@/lib/survey-features/carry-forward/supported-question-types";
+import {
   DISPLAY_MODE_PROPERTY,
-  EDX_ROWS_SOURCE_ENABLED_PROPERTY,
-  EDX_ROWS_SOURCE_QUESTION_PROPERTY,
   IMAGE_URL_PROPERTY,
   ITEM_VALUE_CLASS,
   MATRIX_TYPE,
@@ -27,6 +33,20 @@ describe("registerMatrixCarouselSchema", () => {
     expect(ownProperty?.choices).toEqual(["grid", "carousel"]);
     expect(ownProperty?.defaultValue).toBe("grid");
     expect(builtInProperty?.choices).toEqual(["auto", "table", "list"]);
+  });
+
+  it("registers the carousel-mode properties in the general category, not a bespoke carousel section", () => {
+    // Act
+    const properties = [
+      DISPLAY_MODE_PROPERTY,
+      SHOW_PROGRESS_INDICATOR_PROPERTY,
+      PROGRESS_INDICATOR_TYPE_PROPERTY,
+    ].map((name) => Serializer.findProperty(MATRIX_TYPE, name));
+
+    // Assert
+    properties.forEach((property) => {
+      expect(property?.category).toBe("general");
+    });
   });
 
   it("gates carousel-only properties behind edxDisplayMode === carousel", () => {
@@ -58,34 +78,39 @@ describe("registerMatrixCarouselSchema", () => {
     ).toBe(false);
   });
 
-  it("gates the row-source question picker behind edxRowsSourceEnabled", () => {
+  it("registers row-sourcing using carry-forward's actual property names, in the rows category", () => {
     // Act
-    const property = Serializer.findProperty(
-      MATRIX_TYPE,
-      EDX_ROWS_SOURCE_QUESTION_PROPERTY,
-    );
+    const properties = [
+      CARRY_FORWARD_ENABLED_PROPERTY,
+      CARRY_FORWARD_SOURCES_PROPERTY,
+      CARRY_FORWARD_MODE_PROPERTY,
+      CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY,
+      CARRY_FORWARD_MAX_CHOICES_PROPERTY,
+    ].map((name) => Serializer.findProperty(MATRIX_TYPE, name));
+
+    // Assert
+    properties.forEach((property) => {
+      expect(property).toBeDefined();
+      expect(property?.category).toBe("rows");
+    });
+  });
+
+  it("gates row-sourcing's dependent properties behind edxCarryForwardEnabled", () => {
+    // Act
+    const property = Serializer.findProperty(MATRIX_TYPE, CARRY_FORWARD_SOURCES_PROPERTY);
 
     // Assert
     expect(
-      property?.visibleIf?.({ edxDisplayMode: "carousel", edxRowsSourceEnabled: true }),
+      property?.visibleIf?.({ edxDisplayMode: "carousel", edxCarryForwardEnabled: true }),
     ).toBe(true);
     expect(
-      property?.visibleIf?.({ edxDisplayMode: "carousel", edxRowsSourceEnabled: false }),
+      property?.visibleIf?.({ edxDisplayMode: "carousel", edxCarryForwardEnabled: false }),
     ).toBe(false);
   });
 
-  it("does not register the carry-forward opt-in on matrix", () => {
-    // Act
-    const carryForwardProperty = Serializer.findProperty(
-      MATRIX_TYPE,
-      "edxCarryForwardEnabled",
-    );
-
+  it("does not add matrix to carry-forward's own opted-in question types — row-sourcing runs through its own sync entry point, not carry-forward's choices-based one", () => {
     // Assert
-    expect(carryForwardProperty).toBeUndefined();
-    expect(
-      Serializer.findProperty(MATRIX_TYPE, EDX_ROWS_SOURCE_ENABLED_PROPERTY),
-    ).toBeDefined();
+    expect(isSupportedCarryForwardQuestionType(MATRIX_TYPE)).toBe(false);
   });
 
   it("hides grid-only properties in the carousel property grid without removing them from serialization", () => {

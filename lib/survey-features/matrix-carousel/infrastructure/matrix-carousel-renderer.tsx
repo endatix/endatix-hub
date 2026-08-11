@@ -1,6 +1,6 @@
 import * as React from "react";
-import type { Question } from "survey-core";
-import { Action, ActionContainer, surveyLocalization } from "survey-core";
+import type { LocalizableString, Question, SurveyModel } from "survey-core";
+import { Action, ActionContainer } from "survey-core";
 import { ReactQuestionFactory, SurveyActionBar, SurveyQuestion, SurveyQuestionMatrix } from "survey-react-ui";
 import { MATRIX_TYPE } from "../constants";
 import type { MatrixCarouselQuestion, MatrixRowItemValue } from "../types";
@@ -22,17 +22,35 @@ const PROGRAMMATIC_SCROLL_RESET_MS = 400;
 const FOCUSABLE_ROW_CONTROL_SELECTOR =
   'input, [role="radio"], [role="checkbox"], [role="radiogroup"], [role="group"]';
 
-/** Same locale keys PanelDynamic's own prevPanelText/nextPanelText default to (question_paneldynamic.ts), so labels match the rest of the survey's navigation in whatever locale is active — not hardcoded English. */
-function getLocalizedNavText(question: Question): { prev: string; next: string } {
-  const locale = question.locale || surveyLocalization.defaultLocale;
-  const strings = surveyLocalization.getLocaleStrings(locale) as {
-    pagePrevText?: string;
-    pageNextText?: string;
-  };
-  return {
-    prev: strings.pagePrevText ?? "Previous",
-    next: strings.pageNextText ?? "Next",
-  };
+/**
+ * The survey's own page-navigation LocalizableStrings ("Previous"/"Next") —
+ * the same keys PanelDynamic's prevPanelText/nextPanelText default to
+ * (question_paneldynamic.ts declares `localizable: { defaultStr:
+ * "pagePrevText" }` / `"pageNextText"`), so labels match the rest of the
+ * survey's navigation. Returning the LocalizableString itself (passed to
+ * Action as `locTitle`, not `title`) rather than a resolved string is
+ * deliberate: PanelDynamic itself only snapshots a plain string for its own
+ * Prev/Next buttons, which is why changing survey.locale at runtime doesn't
+ * update its captions either — confirmed by reading question_paneldynamic.ts's
+ * initFooterToolbar() — so that pattern isn't one to copy. survey.ts's own
+ * page-navigation buttons use the live-binding form
+ * (createNavigationActions(): `locTitle: this.locPagePrevText`); this mirrors
+ * that instead. `locPagePrevText`/`locPageNextText` aren't listed in
+ * survey-core's public .d.ts (a gap in the generated typings for this
+ * decorator-created companion getter) but exist at runtime — confirmed in
+ * both the installed bundle and the survey-library checkout.
+ */
+function getSurveyNavLocStrings(question: Question): {
+  locPrev?: LocalizableString;
+  locNext?: LocalizableString;
+} {
+  const survey = question.survey as
+    | (SurveyModel & {
+        locPagePrevText?: LocalizableString;
+        locPageNextText?: LocalizableString;
+      })
+    | undefined;
+  return { locPrev: survey?.locPagePrevText, locNext: survey?.locPageNextText };
 }
 
 /**
@@ -65,10 +83,12 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   private prevAction = new Action({
     id: "sv-matrixcarousel-prev",
+    locTitle: getSurveyNavLocStrings(this.question as unknown as Question).locPrev,
     action: () => this.handlePrev(),
   });
   private nextAction = new Action({
     id: "sv-matrixcarousel-next",
+    locTitle: getSurveyNavLocStrings(this.question as unknown as Question).locNext,
     action: () => this.handleNext(),
   });
   // Plain ActionContainer (not AdaptiveActionContainer) — deliberately: with
@@ -78,9 +98,24 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
   // resolves (fine in a real browser, permanent in jsdom). Plain
   // ActionContainer has neither concern — but see syncActions() below for
   // the one thing it does still need: an explicit flushUpdates() call.
+  //
+  // cssClasses is assigned explicitly to the survey's own theme actionBar
+  // classes (sd-action-bar/sd-action/...) — the same one-liner
+  // SurveyElement.createActionContainer() uses internally
+  // (`actionContainer.cssClasses = this.survey.getCss().actionBar`,
+  // confirmed in the installed survey-core bundle at the call sites for both
+  // PanelDynamic's own footer toolbar and the generic base). Without this,
+  // ActionContainer falls back to actionBarCss.ts's bare sv- names, which
+  // exist but carry none of the current theme's button styling (pill shape,
+  // primary-teal text, spacing) — this is what makes Prev/Next actually look
+  // like PanelDynamic's Back/Next rather than unstyled default buttons.
   private actionsContainer = (() => {
     const container = new ActionContainer<Action>();
     container.setItems([this.prevAction, this.nextAction]);
+    const survey = this.carouselQuestion.survey;
+    if (survey && survey.getCss().actionBar) {
+      container.cssClasses = survey.getCss().actionBar;
+    }
     return container;
   })();
 
@@ -257,13 +292,16 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     return (
       <div className="sv-matrixcarousel__progress" aria-live="polite">
         <div
-          className="sv-matrixcarousel__progress-bar-track"
+          className="sv-matrixcarousel__progress-bar-track sd-progress"
           role="progressbar"
           aria-valuemin={1}
           aria-valuemax={total}
           aria-valuenow={currentIndex + 1}
         >
-          <div className="sv-matrixcarousel__progress-bar-fill" style={{ width: `${percent}%` }} />
+          <div
+            className="sv-matrixcarousel__progress-bar-fill sd-progress__bar"
+            style={{ width: `${percent}%` }}
+          />
         </div>
       </div>
     );
@@ -299,9 +337,6 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     const showNav = question.showNavigationButtons !== false;
     this.prevAction.visible = showNav && !isFirstRow(question);
     this.nextAction.visible = showNav && !isLastRow(question);
-    const navText = getLocalizedNavText(question);
-    this.prevAction.title = navText.prev;
-    this.nextAction.title = navText.next;
     this.actionsContainer.flushUpdates();
   }
 
@@ -328,19 +363,18 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     }
 
     return (
-      <div className="sv-matrixcarousel__footer">
-        <hr className="sv-matrixcarousel__separator" />
-        <div className="sv-matrixcarousel__footer-row">
+      <div className="sv-matrixcarousel__footer sd-paneldynamic__footer">
+        <hr className="sv-matrixcarousel__separator sd-paneldynamic__separator" />
+        <div className="sv-matrixcarousel__footer-row sd-paneldynamic__buttons-container">
           {showText && (
-            <div className="sv-matrixcarousel__progress-text" aria-live="polite">
+            <div
+              className="sv-matrixcarousel__progress-text sd-paneldynamic__progress-text"
+              aria-live="polite"
+            >
               {currentIndex + 1} of {total}
             </div>
           )}
-          {showNav && (
-            <div className="sv-matrixcarousel__actions">
-              <SurveyActionBar model={this.actionsContainer} />
-            </div>
-          )}
+          {showNav && <SurveyActionBar model={this.actionsContainer} />}
         </div>
       </div>
     );

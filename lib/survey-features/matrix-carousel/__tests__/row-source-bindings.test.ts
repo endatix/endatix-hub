@@ -23,9 +23,9 @@ function buildModel() {
             type: "matrix",
             name: "q1",
             edxDisplayMode: "carousel",
-            edxRowsSourceEnabled: true,
-            edxRowsSourceQuestion: "source",
-            edxRowsSourceSelectionMode: "selectedOnly",
+            edxCarryForwardEnabled: true,
+            edxCarryForwardSources: ["source"],
+            edxCarryForwardMode: "selected",
             columns: ["1", "2"],
             rows: [],
           },
@@ -73,7 +73,7 @@ describe("bindMatrixCarouselRowSourceToSurvey", () => {
     expect(target?.rows.map((r: { value: string }) => r.value)).toEqual(["a", "b"]);
   });
 
-  it("re-syncs when the target's source question is switched to a different question", () => {
+  it("re-syncs when the target's sources are switched to a different question", () => {
     // Arrange
     const model = new Model({
       pages: [
@@ -85,8 +85,8 @@ describe("bindMatrixCarouselRowSourceToSurvey", () => {
               type: "matrix",
               name: "q1",
               edxDisplayMode: "carousel",
-              edxRowsSourceEnabled: true,
-              edxRowsSourceQuestion: "sourceA",
+              edxCarryForwardEnabled: true,
+              edxCarryForwardSources: ["sourceA"],
               columns: ["1", "2"],
               rows: [],
             },
@@ -99,7 +99,9 @@ describe("bindMatrixCarouselRowSourceToSurvey", () => {
     expect(target?.rows.map((r: { value: string }) => r.value)).toEqual(["a"]);
 
     // Act
-    (target as unknown as { edxRowsSourceQuestion: string }).edxRowsSourceQuestion = "sourceB";
+    (target as unknown as { edxCarryForwardSources: string[] }).edxCarryForwardSources = [
+      "sourceB",
+    ];
 
     // Assert
     expect(target?.rows.map((r: { value: string }) => r.value)).toEqual(["b"]);
@@ -115,7 +117,7 @@ describe("bindMatrixCarouselRowSourceToSurvey", () => {
     expect(target?.rows).toHaveLength(1);
 
     // Act
-    (target as unknown as { edxRowsSourceEnabled: boolean }).edxRowsSourceEnabled = false;
+    (target as unknown as { edxCarryForwardEnabled: boolean }).edxCarryForwardEnabled = false;
     source!.value = ["a", "b"];
 
     // Assert — no further sync after disabling
@@ -132,7 +134,7 @@ describe("bindMatrixCarouselRowSourceToSurvey", () => {
               type: "matrix",
               name: "q1",
               edxDisplayMode: "carousel",
-              edxRowsSourceEnabled: true,
+              edxCarryForwardEnabled: true,
               columns: ["1", "2"],
               rows: ["r1"],
             },

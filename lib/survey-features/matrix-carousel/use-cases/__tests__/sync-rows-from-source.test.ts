@@ -21,9 +21,9 @@ function buildModel(overrides: Record<string, unknown> = {}) {
             type: "matrix",
             name: "q1",
             edxDisplayMode: "carousel",
-            edxRowsSourceEnabled: true,
-            edxRowsSourceQuestion: "source",
-            edxRowsSourceSelectionMode: "all",
+            edxCarryForwardEnabled: true,
+            edxCarryForwardSources: ["source"],
+            edxCarryForwardMode: "all",
             columns: ["1", "2"],
             rows: [],
             ...overrides,
@@ -54,7 +54,7 @@ describe("syncMatrixCarouselRowsFromSource", () => {
 
   it("does nothing when row-sourcing is disabled", () => {
     // Arrange
-    const model = buildModel({ edxRowsSourceEnabled: false });
+    const model = buildModel({ edxCarryForwardEnabled: false });
     const target = model.getQuestionByName("q1") as QuestionMatrixModel;
 
     // Act
@@ -78,7 +78,7 @@ describe("syncMatrixCarouselRowsFromSource", () => {
 
   it("does nothing when the source question does not exist", () => {
     // Arrange
-    const model = buildModel({ edxRowsSourceQuestion: "missing" });
+    const model = buildModel({ edxCarryForwardSources: ["missing"] });
     const target = model.getQuestionByName("q1") as QuestionMatrixModel;
 
     // Act
@@ -88,9 +88,40 @@ describe("syncMatrixCarouselRowsFromSource", () => {
     expect(target.rows).toHaveLength(0);
   });
 
-  it("respects selectedOnly selection mode", () => {
+  it("aggregates and deduplicates rows from multiple sources", () => {
+    // Arrange — same aggregation pipeline carry-forward's choices sync uses
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            { type: "checkbox", name: "brands", choices: ["A", "B"] },
+            { type: "radiogroup", name: "colors", choices: ["B", "Red"] },
+            {
+              type: "matrix",
+              name: "q1",
+              edxDisplayMode: "carousel",
+              edxCarryForwardEnabled: true,
+              edxCarryForwardSources: ["brands", "colors"],
+              edxCarryForwardMode: "all",
+              columns: ["1", "2"],
+              rows: [],
+            },
+          ],
+        },
+      ],
+    });
+    const target = model.getQuestionByName("q1") as QuestionMatrixModel;
+
+    // Act
+    syncMatrixCarouselRowsFromSource(model, target);
+
+    // Assert
+    expect(target.rows.map((r) => r.value)).toEqual(["A", "B", "Red"]);
+  });
+
+  it("respects selected mode", () => {
     // Arrange
-    const model = buildModel({ edxRowsSourceSelectionMode: "selectedOnly" });
+    const model = buildModel({ edxCarryForwardMode: "selected" });
     const source = model.getQuestionByName("source");
     source!.value = ["a", "c"];
     const target = model.getQuestionByName("q1") as QuestionMatrixModel;
@@ -102,9 +133,9 @@ describe("syncMatrixCarouselRowsFromSource", () => {
     expect(target.rows.map((r) => r.value)).toEqual(["a", "c"]);
   });
 
-  it("respects unselectedOnly selection mode", () => {
+  it("respects unselected mode", () => {
     // Arrange
-    const model = buildModel({ edxRowsSourceSelectionMode: "unselectedOnly" });
+    const model = buildModel({ edxCarryForwardMode: "unselected" });
     const source = model.getQuestionByName("source");
     source!.value = ["a"];
     const target = model.getQuestionByName("q1") as QuestionMatrixModel;
@@ -114,6 +145,33 @@ describe("syncMatrixCarouselRowsFromSource", () => {
 
     // Assert
     expect(target.rows.map((r) => r.value)).toEqual(["b", "c"]);
+  });
+
+  it("places priority rows first", () => {
+    // Arrange
+    const model = buildModel({ edxCarryForwardPriorityItems: ["c", "a"] });
+    const target = model.getQuestionByName("q1") as QuestionMatrixModel;
+
+    // Act
+    syncMatrixCarouselRowsFromSource(model, target);
+
+    // Assert
+    expect(target.rows.map((r) => r.value)).toEqual(["c", "a", "b"]);
+  });
+
+  it("limits rows when max choices is set", () => {
+    // Arrange
+    const model = buildModel({
+      edxCarryForwardPriorityItems: ["c"],
+      edxCarryForwardMaxChoices: 2,
+    });
+    const target = model.getQuestionByName("q1") as QuestionMatrixModel;
+
+    // Act
+    syncMatrixCarouselRowsFromSource(model, target);
+
+    // Assert
+    expect(target.rows.map((r) => r.value)).toEqual(["c", "a"]);
   });
 
   it("translates the source's image property (imagepicker imageLink) onto row imageUrl", () => {
@@ -131,8 +189,8 @@ describe("syncMatrixCarouselRowsFromSource", () => {
               type: "matrix",
               name: "q1",
               edxDisplayMode: "carousel",
-              edxRowsSourceEnabled: true,
-              edxRowsSourceQuestion: "source",
+              edxCarryForwardEnabled: true,
+              edxCarryForwardSources: ["source"],
               columns: ["1", "2"],
               rows: [],
             },
@@ -168,8 +226,8 @@ describe("syncMatrixCarouselRowsFromSource", () => {
               type: "matrix",
               name: "q1",
               edxDisplayMode: "carousel",
-              edxRowsSourceEnabled: true,
-              edxRowsSourceQuestion: "source",
+              edxCarryForwardEnabled: true,
+              edxCarryForwardSources: ["source"],
               columns: ["1", "2"],
               rows: [],
             },
@@ -200,8 +258,7 @@ describe("syncMatrixCarouselRowsFromSource", () => {
     // Act — narrow the source so a row (and its stale answer) disappears
     const source = model.getQuestionByName("source");
     source!.value = ["a"];
-    (target as unknown as { edxRowsSourceSelectionMode: string }).edxRowsSourceSelectionMode =
-      "selectedOnly";
+    (target as unknown as { edxCarryForwardMode: string }).edxCarryForwardMode = "selected";
     syncMatrixCarouselRowsFromSource(model, target);
 
     // Assert

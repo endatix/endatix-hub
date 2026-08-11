@@ -1,8 +1,12 @@
 import type { Model, Question, QuestionAddedEvent, QuestionMatrixModel } from "survey-core";
+import type { AdvancedCarryForwardQuestion } from "@/lib/survey-features/carry-forward/types";
+import { CARRY_FORWARD_CONTROL_PROPS } from "@/lib/survey-features/carry-forward/infrastructure/carry-forward-sync";
 import {
-  EDX_ROWS_SOURCE_ENABLED_PROPERTY,
-  EDX_ROWS_SOURCE_QUESTION_PROPERTY,
-  EDX_ROWS_SOURCE_SELECTION_MODE_PROPERTY,
+  installCarryForwardTargetSyncWrapper,
+  registerCarryForwardDependencies,
+  unregisterCarryForwardDependencies,
+} from "@/lib/survey-features/carry-forward/infrastructure/carry-forward-dependencies";
+import {
   MATRIX_CAROUSEL_HANDLERS_ATTACHED_KEY,
   MATRIX_CAROUSEL_ROW_SOURCE_ATTACHED_KEY,
   ROWS_PROPERTY_NAME,
@@ -11,21 +15,28 @@ import type { MatrixCarouselQuestion } from "../types";
 import { isMatrixCarouselRowSourceEnabled, isMatrixQuestion } from "../use-cases/matrix-carousel-state";
 import { reclampCurrentRowIndex } from "../utils/carousel-state";
 import { getDecomposedRowQuestions } from "../use-cases/navigate-carousel";
-import { getRowSourceQuestion, syncMatrixCarouselRowsFromSource } from "../use-cases/sync-rows-from-source";
-import {
-  installRowSourceSyncWrapper,
-  registerRowSourceDependency,
-  unregisterRowSourceDependency,
-} from "./row-source-dependencies";
+import { syncMatrixCarouselRowsFromSource } from "../use-cases/sync-rows-from-source";
 
 const boundModelsForTests = new Set<Model>();
 const rowSourceBoundModelsForTests = new Set<Model>();
 
-const ROW_SOURCE_CONFIG_PROPERTIES = new Set([
-  EDX_ROWS_SOURCE_ENABLED_PROPERTY,
-  EDX_ROWS_SOURCE_QUESTION_PROPERTY,
-  EDX_ROWS_SOURCE_SELECTION_MODE_PROPERTY,
-]);
+/**
+ * carry-forward-dependencies.ts's functions are typed against
+ * AdvancedCarryForwardQuestion (QuestionSelectBase-based) since that's
+ * carry-forward's own target shape — but at runtime they only ever touch
+ * addDependedQuestion/removeDependedQuestion/updateDependedQuestion, which
+ * are declared generically on the base Question class with a working no-op
+ * default (confirmed in survey.core.js: Question.prototype.addDependedQuestion
+ * / .updateDependedQuestion exist for every question; QuestionSelectBase only
+ * overrides updateDependedQuestion's *behavior*, not whether the hook
+ * exists). A matrix question already has real, working versions of all three
+ * via that same base-class default, so this cast is safe: nothing
+ * carry-forward-dependencies.ts does here depends on a QuestionSelectBase-only
+ * member like `.choices`.
+ */
+function asCarryForwardTarget(question: MatrixCarouselQuestion): AdvancedCarryForwardQuestion {
+  return question as unknown as AdvancedCarryForwardQuestion;
+}
 
 /**
  * Keeps the decomposed-row cache and our own currentRowIndex aligned when
@@ -104,21 +115,21 @@ export function clearMatrixCarouselBindingsForTests(): void {
 }
 
 /**
- * Row-source dependency wiring: re-syncs a matrix's rows when its source
- * question's value/choices change (via row-source-dependencies.ts's
+ * Row-source dependency wiring: re-syncs a matrix's rows when its carry-
+ * forward source question's value/choices change (via carry-forward's own
  * addDependedQuestion/updateDependedQuestion wrapper), and re-registers the
- * dependency when the target's own edxRowsSource* config changes — e.g. a
+ * dependency when the target's own edxCarryForward* config changes — e.g. a
  * scripter picking a different source question. Kept separate from
  * bindMatrixCarouselToSurvey so the two concerns (cache/index bookkeeping vs.
  * row-sourcing) stay independently testable, per a dedicated bound-flag.
  */
 function reconcileRowSource(model: Model, question: MatrixCarouselQuestion): void {
+  const target = asCarryForwardTarget(question);
   if (isMatrixCarouselRowSourceEnabled(question)) {
-    const source = getRowSourceQuestion(model, question);
-    registerRowSourceDependency(question, source);
+    registerCarryForwardDependencies(model, target);
     syncMatrixCarouselRowsFromSource(model, question);
   } else {
-    unregisterRowSourceDependency(question);
+    unregisterCarryForwardDependencies(model, target);
   }
 }
 
@@ -132,12 +143,12 @@ function attachRowSourceToQuestion(
   }
 
   const matrixQuestion = question as MatrixCarouselQuestion;
-  installRowSourceSyncWrapper(matrixQuestion, (target) =>
-    syncMatrixCarouselRowsFromSource(model, target),
+  installCarryForwardTargetSyncWrapper(model, asCarryForwardTarget(matrixQuestion), (target) =>
+    syncMatrixCarouselRowsFromSource(model, target as unknown as QuestionMatrixModel),
   );
 
   const handler = (_: unknown, options: { name: string }) => {
-    if (ROW_SOURCE_CONFIG_PROPERTIES.has(options.name)) {
+    if (CARRY_FORWARD_CONTROL_PROPS.has(options.name)) {
       reconcileRowSource(model, matrixQuestion);
     }
   };
@@ -173,7 +184,7 @@ export function bindMatrixCarouselRowSourceToSurvey(model: Model): () => void {
   return () => {
     handlersByQuestion.forEach((handler, question) => {
       question.onPropertyChanged.remove(handler);
-      unregisterRowSourceDependency(question as MatrixCarouselQuestion);
+      unregisterCarryForwardDependencies(model, asCarryForwardTarget(question as MatrixCarouselQuestion));
     });
     handlersByQuestion.clear();
     model.onQuestionAdded.remove(handleQuestionAdded);
