@@ -173,13 +173,15 @@ export function readCsvRecords(csv: string): string[][] {
     state.fieldWasQuoted = false;
   };
 
-  for (let i = 0; i < content.length; i++) {
+  let index = 0;
+  while (index < content.length) {
     if (state.inQuotes) {
-      i = appendInsideQuotes(state, content, i);
+      index = appendInsideQuotes(state, content, index);
       continue;
     }
 
-    appendOutsideQuotes(state, content[i], completeRecord);
+    appendOutsideQuotes(state, content[index], completeRecord);
+    index++;
   }
 
   if (state.inQuotes) {
@@ -206,16 +208,16 @@ function appendInsideQuotes(
   const current = content[index];
   if (current !== '"') {
     state.field += current;
-    return index;
+    return index + 1;
   }
 
   if (index + 1 < content.length && content[index + 1] === '"') {
     state.field += '"';
-    return index + 1;
+    return index + 2;
   }
 
   state.inQuotes = false;
-  return index;
+  return index + 1;
 }
 
 function appendOutsideQuotes(
