@@ -39,7 +39,7 @@ export async function resolveDataListDisplayValues(
 
   const distinctValues = [
     ...new Set(
-      values.map((value) => String(value)).filter((value) => value.length > 0),
+      values.map(String).filter((value) => value.length > 0),
     ),
   ];
 

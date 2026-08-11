@@ -43,7 +43,15 @@ function stampSelectedItemLocaleMaps(
   labelsByValue: Map<string, Record<string, string>>,
 ): void {
   const selected = (question as SelectBaseQuestion).selectedItemValues;
-  const items = Array.isArray(selected) ? selected : selected ? [selected] : [];
+  let items: Array<{
+    value?: unknown;
+    locText?: { setJson?: (json: unknown) => void };
+  }> = [];
+  if (Array.isArray(selected)) {
+    items = selected;
+  } else if (selected) {
+    items = [selected];
+  }
 
   for (const item of items) {
     if (item?.value == null || typeof item.locText?.setJson !== "function") {
