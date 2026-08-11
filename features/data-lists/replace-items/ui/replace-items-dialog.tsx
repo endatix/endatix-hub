@@ -216,7 +216,7 @@ export function ReplaceItemsDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange} modal={!isConfirmOpen}>
         <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
           <DialogHeader className="border-b px-6 py-4">
             <DialogTitle>Replace Items</DialogTitle>
