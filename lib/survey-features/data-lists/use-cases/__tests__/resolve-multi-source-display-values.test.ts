@@ -54,7 +54,11 @@ describe("resolveMultiSourceDisplayValues", () => {
         }
 
         return ApiResult.success(
-          new Map(values.map((value) => [value, `Label ${value}`] as const)),
+          new Map(
+            values.map(
+              (value) => [value, { default: `Label ${value}` }] as const,
+            ),
+          ),
         );
       },
     );
@@ -86,7 +90,9 @@ describe("resolveMultiSourceDisplayValues", () => {
           return ApiResult.authError("Unavailable");
         }
 
-        return ApiResult.success(new Map([["brand-1", "Brand One"]]));
+        return ApiResult.success(
+          new Map([["brand-1", { default: "Brand One" }]]),
+        );
       },
     );
 

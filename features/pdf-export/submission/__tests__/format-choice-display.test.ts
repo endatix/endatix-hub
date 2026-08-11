@@ -82,10 +82,9 @@ describe("resolveChoiceLabelForQuestion", () => {
     });
     mockGetDisplayValues.mockResolvedValue({
       success: true,
-      data: [{ value: "18", label: "Option Eighteen" }],
+      data: [{ value: "18", labels: { default: "Option Eighteen" } }],
     });
   });
-
   it("uses display values after primeDataListDisplayValues", async () => {
     const model = new Model({
       elements: [
