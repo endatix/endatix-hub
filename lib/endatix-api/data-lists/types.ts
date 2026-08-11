@@ -32,21 +32,24 @@ export interface CreateDataListRequest {
 
 export type DataListExportFormat = "csv" | "json";
 
-export interface ImportDataListRequest {
-  format: DataListExportFormat;
-  items?: DataListChoiceItem[];
-  csv?: string;
-  ensureLocales?: string[];
-}
+export type ImportDataListRequest =
+  | {
+      format: "json";
+      items: DataListChoiceItem[];
+      csv?: never;
+      ensureLocales?: string[];
+    }
+  | {
+      format: "csv";
+      csv: string;
+      items?: never;
+      ensureLocales?: string[];
+    };
 
 export interface DataListExportResult {
   body: string;
   fileName: string;
   contentType: string;
-}
-
-export interface ReplaceDataListItemsRequest {
-  items: DataListChoiceItem[];
 }
 
 export interface FormDependencySummary {

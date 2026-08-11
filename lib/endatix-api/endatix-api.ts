@@ -43,6 +43,19 @@ const DEFAULT_HEADERS = {};
 type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 type RequestHeaders = Record<string, string>;
 
+/** Removes Content-Type when it is application/json (any casing / charset). */
+function omitJsonContentType(headers: RequestHeaders): void {
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() !== "content-type") {
+      continue;
+    }
+    const mediaType = headers[key]?.split(";")[0]?.trim().toLowerCase();
+    if (mediaType === "application/json") {
+      delete headers[key];
+    }
+  }
+}
+
 export interface EndatixApiOptions {
   baseUrl?: string;
   defaultHeaders?: RequestHeaders;
@@ -413,7 +426,7 @@ export class EndatixApi {
       headerBuilder.withAuth(this.session);
     }
 
-    if (body && method !== "GET" && !rawBody) {
+    if (body != null && method !== "GET" && !rawBody) {
       headerBuilder.provideJson();
     }
 
@@ -426,9 +439,14 @@ export class EndatixApi {
       requestBody = rawBody ? (body as BodyInit) : JSON.stringify(body);
     }
 
+    const headers = { ...headerBuilder.build(), ...allHeaders };
+    if (rawBody) {
+      omitJsonContentType(headers);
+    }
+
     const requestInit: RequestInit = {
       method,
-      headers: { ...headerBuilder.build(), ...allHeaders },
+      headers,
       body: requestBody,
     };
 
