@@ -12,7 +12,12 @@
      page — without these, a swipe can leak into page scroll or trigger
      browser back/forward navigation on some devices. */
   overscroll-behavior-x: contain;
-  touch-action: pan-y;
+  /* pan-x is required for native horizontal swipe to work at all — pan-y
+     alone tells the browser only vertical panning is a gesture it should
+     handle here, so a horizontal swipe wouldn't scroll on real touch
+     hardware. Both axes are listed because pan-y still has to stay
+     available for the page's normal vertical scroll to pass through. */
+  touch-action: pan-x pan-y;
   scrollbar-width: none;
 }
 

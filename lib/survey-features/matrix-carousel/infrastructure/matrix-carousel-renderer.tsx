@@ -1,7 +1,8 @@
 import * as React from "react";
-import type { LocalizableString, Question, SurveyModel } from "survey-core";
+import type { LocalizableString, Question, QuestionMatrixModel, SurveyModel } from "survey-core";
 import { Action, ActionContainer } from "survey-core";
 import { ReactQuestionFactory, SurveyActionBar, SurveyQuestion, SurveyQuestionMatrix } from "survey-react-ui";
+import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 import { MATRIX_TYPE } from "../constants";
 import type { MatrixCarouselQuestion, MatrixRowItemValue } from "../types";
 import { isCarouselDisplayMode } from "../use-cases/matrix-carousel-state";
@@ -14,6 +15,7 @@ import {
   goToRow,
 } from "../use-cases/navigate-carousel";
 import { getCurrentRowIndex } from "../utils/carousel-state";
+import { resyncMatrixCarouselDecomposition } from "./survey-bindings";
 import "./matrix-carousel.styles.css";
 
 const SCROLL_EPSILON_PX = 4;
@@ -95,6 +97,12 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
   private isProgrammaticScroll = false;
   private programmaticScrollTimeout?: ReturnType<typeof setTimeout>;
   private intersectionObserver?: IntersectionObserver;
+  // Set by the visibleRowsChangedCallback wrapper (componentDidMount) when
+  // rows change for any reason (reassignment or a visibleIf cascade),
+  // consumed by componentDidUpdate to refresh the IntersectionObserver —
+  // see its own comment for why a fresh observer is needed here, not just
+  // one that already exists.
+  private pendingObserverRefresh = false;
 
   private prevAction = new Action({
     id: "sv-matrixcarousel-prev",
@@ -136,7 +144,27 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   componentDidMount(): void {
     super.componentDidMount();
-    this.carouselQuestion.onPropertyChanged.add(this.handleQuestionPropertyChanged);
+    const question = this.carouselQuestion;
+    // super.componentDidMount() (SurveyQuestionMatrix, survey-react-ui) just
+    // assigned question.visibleRowsChangedCallback to its own handler (a
+    // setState() that re-renders the grid/carousel content) — capture it and
+    // wrap, don't overwrite: it's a single-slot callback, not a multi-
+    // subscriber event, and losing it would break the base class's own
+    // re-render-on-rows-change behavior. QuestionMatrixModel.onRowsChanged()
+    // (confirmed in survey.core.js) fires this callback unconditionally,
+    // covering both rows being reassigned *and* a row's visibleIf flipping
+    // via the condition cascade — the second of which onPropertyChanged
+    // never fires for (see resyncMatrixCarouselDecomposition's comment).
+    // Firing resyncMatrixCarouselDecomposition() here, before the base
+    // callback's setState/re-render, keeps getDecomposedRowQuestions()
+    // aligned with visibleRows for whatever render that setState triggers.
+    const baseVisibleRowsChangedCallback = question.visibleRowsChangedCallback;
+    question.visibleRowsChangedCallback = () => {
+      resyncMatrixCarouselDecomposition(question as unknown as QuestionMatrixModel);
+      this.pendingObserverRefresh = true;
+      baseVisibleRowsChangedCallback?.();
+    };
+    question.onPropertyChanged.add(this.handleQuestionPropertyChanged);
     if (this.isCarousel) {
       this.setupObserver();
       this.syncActions();
@@ -146,14 +174,22 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
   componentDidUpdate(prevProps: unknown, prevState: unknown): void {
     super.componentDidUpdate(prevProps, prevState);
 
-    if (this.isCarousel && !this.intersectionObserver) {
-      this.setupObserver();
-    } else if (!this.isCarousel && this.intersectionObserver) {
-      this.teardownObserver();
-    }
-
     if (this.isCarousel) {
+      // Refresh on pendingObserverRefresh too, not just "doesn't exist yet"
+      // — an existing observer keeps watching whatever DOM nodes it
+      // .observe()'d at setup time. If rows changed since then, React may
+      // have replaced slide nodes (new/removed row keys), leaving the
+      // observer watching detached elements and never seeing the new ones —
+      // swipe would still scroll visually, but handleIntersection would stop
+      // updating currentRowIndex/progress/Back-Next.
+      if (!this.intersectionObserver || this.pendingObserverRefresh) {
+        this.teardownObserver();
+        this.setupObserver();
+        this.pendingObserverRefresh = false;
+      }
       this.reconcileScrollPosition();
+    } else if (this.intersectionObserver) {
+      this.teardownObserver();
     }
   }
 
@@ -389,6 +425,12 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
    * `progressText.visible = !isRenderModeList && !isMobile` — isMobile is a
    * real property on the shared Question base (container-width-driven, not
    * literal device detection), not something PanelDynamic-specific.
+   *
+   * The text itself is localized via getLocalizationFormatString (a public
+   * Base method, reads the survey's current locale each call) with the
+   * "panelDynamicProgressText" key ("{0} of {1}") — the same key
+   * question_paneldynamic.ts's own progressText getter uses, so this reads
+   * correctly in any locale SurveyJS ships rather than a hardcoded " of ".
    */
   private renderFooter(currentIndex: number, total: number): React.JSX.Element | null {
     const question = this.carouselQuestion;
@@ -407,7 +449,11 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
               className="sv-matrixcarousel__progress-text sd-paneldynamic__progress-text"
               aria-live="polite"
             >
-              {currentIndex + 1} of {total}
+              {question.getLocalizationFormatString(
+                "panelDynamicProgressText",
+                currentIndex + 1,
+                total,
+              )}
             </div>
           )}
           <SurveyActionBar model={this.actionsContainer} />
@@ -430,17 +476,41 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
           className="sv-matrixcarousel__strip"
           ref={this.stripRef}
           onKeyDown={this.handleKeyDown}
-          tabIndex={-1}
+          // tabIndex 0 (not -1) so the strip is reachable via Tab — without
+          // it, arrow-key navigation is only reachable by clicking dead
+          // space on the slide chrome, effectively undiscoverable for a
+          // keyboard-only user. aria-label announces what the keys do, since
+          // there's no visual affordance otherwise.
+          tabIndex={0}
+          aria-label="Use arrow keys to move between questions"
         >
           {rows.map((row, i) => {
             const item = row.item as MatrixRowItemValue;
+            // hasText (not a truthy check on .text) — ItemValue.text always
+            // falls back to String(value) when no text was authored, so
+            // `item.text || fallback` would never actually reach the
+            // fallback; hasText reflects whether text was genuinely
+            // authored. Matches matrix-answer.tsx/pdf-matrix-answer.tsx's
+            // own convention for the same image-only-row case, so
+            // submission views and the live carousel describe an unlabeled
+            // row the same way.
+            const imageAlt = item.hasText ? item.text : `Row ${i + 1}`;
             return (
               <div key={row.uniqueId} className="sv-matrixcarousel__slide" data-index={i}>
                 {item.imageUrl && (
-                  <img
+                  // StoragePresignedImage (not a plain <img>) — matches how
+                  // imagepicker/logo/signature-pad already handle images in
+                  // this app: resolves a presigned GET URL for private-
+                  // storage deployments instead of assigning an unsigned
+                  // blob URL to src, which would 403. Safe to use
+                  // unconditionally — it passes the URL through unchanged,
+                  // synchronously, when storage isn't private or the URL
+                  // isn't a storage object URL at all (confirmed in
+                  // usePrivateStorageDisplayUrl).
+                  <StoragePresignedImage
                     className="sv-matrixcarousel__slide-image"
                     src={item.imageUrl}
-                    alt={item.text ?? ""}
+                    alt={imageAlt}
                   />
                 )}
                 <SurveyQuestion element={decomposed[i]} creator={this.creator} css={cssClasses} />

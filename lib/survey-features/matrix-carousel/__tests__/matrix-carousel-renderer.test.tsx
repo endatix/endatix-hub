@@ -7,10 +7,29 @@ import { registerMatrixCarouselSchema } from "../infrastructure/registry";
 import { registerMatrixCarouselRenderer } from "../infrastructure/matrix-carousel-renderer";
 import { bindMatrixCarouselToSurvey } from "../infrastructure/survey-bindings";
 
+// StoragePresignedImage internally calls useAssetStorage(), which throws
+// without an <AssetStorageContext.Provider> ancestor. None of this file's
+// tests are about asset-storage resolution — mocked the same way
+// protected-image.test.tsx mocks it, forwarding the props this file's own
+// assertions (className/src/alt) rely on, so tests stay decoupled from
+// asset-storage's own render behavior.
+vi.mock("@/features/asset-storage/ui/storage-presigned-image", () => ({
+  StoragePresignedImage: (props: { src: string; alt?: string; className?: string }) => (
+    <img src={props.src} alt={props.alt} className={props.className} />
+  ),
+}));
+
+const observeSpy = vi.fn();
+const disconnectSpy = vi.fn();
+
 class IntersectionObserverStub {
-  observe(): void {}
+  observe(target: Element): void {
+    observeSpy(target);
+  }
   unobserve(): void {}
-  disconnect(): void {}
+  disconnect(): void {
+    disconnectSpy();
+  }
 }
 
 // survey-react-ui's own internal Scroll component needs ResizeObserver
@@ -89,6 +108,8 @@ describe("MatrixCarouselRenderer", () => {
 
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    observeSpy.mockClear();
+    disconnectSpy.mockClear();
   });
 
   afterEach(() => {
@@ -362,5 +383,115 @@ describe("MatrixCarouselRenderer", () => {
 
     // Assert — 3 slides x 2 columns each
     expect(radios).toHaveLength(6);
+  });
+
+  it("falls back to a positional label for an image-only row with no text", () => {
+    // Arrange
+    const model = new Model(
+      carouselSurveyJson([
+        { value: "r1", text: "I like coffee" },
+        { value: "r2", imageUrl: "https://example.com/img.png" },
+      ]),
+    );
+
+    // Act
+    const { container } = render(<Survey model={model} />);
+    const image = container.querySelector(".sv-matrixcarousel__slide-image");
+
+    // Assert
+    expect(image?.getAttribute("alt")).toBe("Row 2");
+  });
+
+  it("the strip is keyboard-focusable and describes arrow-key navigation via aria-label", () => {
+    // Arrange
+    const model = new Model(carouselSurveyJson());
+
+    // Act
+    const { container } = render(<Survey model={model} />);
+    const strip = container.querySelector(".sv-matrixcarousel__strip");
+
+    // Assert
+    expect(strip?.getAttribute("tabindex")).toBe("0");
+    expect(strip?.getAttribute("aria-label")).toBe(
+      "Use arrow keys to move between questions",
+    );
+  });
+
+  it("keeps the slide-to-question mapping in sync when a row's visibleIf flips via the survey's condition cascade, not just when rows are reassigned", () => {
+    // Arrange — r2 is conditionally visible on a checkbox elsewhere on the
+    // page, starting unchecked (hidden). This exercises the survey-wide
+    // condition cascade (runItemsCondition -> onRowsChanged()), which never
+    // fires question.onPropertyChanged("rows") — only the renderer's own
+    // wrapped visibleRowsChangedCallback (installed unconditionally in
+    // componentDidMount) catches this trigger, so bindMatrixCarouselToSurvey
+    // is deliberately NOT used here to isolate that path.
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            { type: "checkbox", name: "toggle", choices: ["show"] },
+            {
+              type: "matrix",
+              name: "q1",
+              edxDisplayMode: "carousel",
+              columns: [
+                { value: "1", text: "Disagree" },
+                { value: "2", text: "Agree" },
+              ],
+              rows: [
+                { value: "r1", text: "Row 1" },
+                { value: "r2", text: "Row 2", visibleIf: "{toggle} contains 'show'" },
+                { value: "r3", text: "Row 3" },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const { container } = render(<Survey model={model} />);
+    expect(container.querySelectorAll(".sv-matrixcarousel__slide")).toHaveLength(2);
+
+    // Act
+    act(() => {
+      model.setValue("toggle", ["show"]);
+    });
+
+    // Assert — a third slide appears, backed by a freshly-decomposed row
+    // question rather than a stale 2-row mapping (which would either throw
+    // or silently render the wrong row's question in the new slide).
+    const slides = container.querySelectorAll(".sv-matrixcarousel__slide");
+    expect(slides).toHaveLength(3);
+    const radios = container.querySelectorAll(
+      '.sv-matrixcarousel__slide input[type="radio"]',
+    );
+    expect(radios).toHaveLength(6);
+  });
+
+  it("refreshes the IntersectionObserver after rows change, so swipe reconciliation doesn't keep watching stale/detached slide nodes", () => {
+    // Arrange
+    const model = new Model(
+      carouselSurveyJson([
+        { value: "r1", text: "I like coffee" },
+        { value: "r2", text: "I like tea" },
+      ]),
+    );
+    render(<Survey model={model} />);
+    expect(observeSpy).toHaveBeenCalledTimes(2);
+    observeSpy.mockClear();
+    disconnectSpy.mockClear();
+
+    // Act — mirrors row-sourcing repopulating rows at runtime
+    const question = model.getQuestionByName("q1");
+    act(() => {
+      question.rows = [
+        { value: "r1", text: "I like coffee" },
+        { value: "r2", text: "I like tea" },
+        { value: "r3", text: "I like juice" },
+      ];
+    });
+
+    // Assert — old observer torn down, a fresh one observing all 3 new slides
+    expect(disconnectSpy).toHaveBeenCalled();
+    expect(observeSpy).toHaveBeenCalledTimes(3);
   });
 });

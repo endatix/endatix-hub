@@ -8,7 +8,9 @@ describe("MatrixAnswer", () => {
     const question = {
       title: "q1",
       columns: [{ value: 1, text: "Agree" }],
-      rows: [{ value: "r1", text: "I like coffee", getType: () => "itemvalue" }] as never,
+      rows: [
+        { value: "r1", text: "I like coffee", hasText: true, getType: () => "itemvalue" },
+      ] as never,
       value: { r1: 1 },
     };
 
@@ -26,7 +28,13 @@ describe("MatrixAnswer", () => {
       title: "q1",
       columns: [{ value: 1, text: "Agree" }],
       rows: [
-        { value: "r1", text: "", imageUrl: "https://example.com/a.png", getType: () => "itemvalue" },
+        {
+          value: "r1",
+          text: "",
+          hasText: false,
+          imageUrl: "https://example.com/a.png",
+          getType: () => "itemvalue",
+        },
       ] as never,
       value: { r1: 1 },
     };

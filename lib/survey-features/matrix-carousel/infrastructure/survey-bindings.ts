@@ -95,29 +95,48 @@ function handleErrorCustomText(_sender: unknown, options: ErrorCustomTextEvent):
 }
 
 /**
- * Keeps the decomposed-row cache and our own currentRowIndex aligned when
- * rows change at runtime (e.g. a visibleIf hides/shows a row). Mirrors
- * QuestionMatrixModel.onRowsChanged()'s own cache-busting, reachable here
- * only via the public resetSingleInput() (not the protected onRowsChanged
- * override a subclass would use) plus our own state's reclamp.
- *
+ * Busts the decomposed-row cache and reclamps our own currentRowIndex.
+ * Mirrors QuestionMatrixModel.onRowsChanged()'s own cache-busting, reachable
+ * here only via the public resetSingleInput() (not the protected
+ * onRowsChanged override a subclass would use) plus our own state's
+ * reclamp. Exported so matrix-carousel-renderer.tsx can call the exact same
+ * logic from its own visibleRowsChangedCallback wrapper — that catches a
+ * case this module's onPropertyChanged("rows") listener (below) cannot:
+ * a row's visibleIf flipping as part of the survey-wide condition cascade
+ * calls QuestionMatrixModel.onRowsChanged() directly (confirmed in
+ * survey.core.js's runItemsCondition), never propertyValueChanged("rows"),
+ * so onPropertyChanged never fires for that trigger — only rows being
+ * reassigned wholesale (e.g. row-sourcing) does. Both paths call
+ * onRowsChanged() though, which is exactly what the component's
+ * visibleRowsChangedCallback wrapper hooks into.
+ */
+export function resyncMatrixCarouselDecomposition(question: QuestionMatrixModel): void {
+  question.resetSingleInput();
+  const rows = getDecomposedRowQuestions(question);
+  reclampCurrentRowIndex(question, rows.length);
+}
+
+/**
  * Deliberately not gated on carousel mode being active: attaching only to
  * already-carousel questions would miss the normal Creator flow of adding a
  * plain matrix question and enabling carousel mode afterward via the
  * property grid (edxDisplayMode changing doesn't re-run attachment).
- * resetSingleInput()/reclamp are cheap no-ops for a grid-mode question — the
- * cache they touch is only ever read by carousel code — so it's simpler and
- * safer to just always keep it current for every matrix question.
+ * resyncMatrixCarouselDecomposition() is a cheap no-op for a grid-mode
+ * question — the cache it touches is only ever read by carousel code — so
+ * it's simpler and safer to just always keep it current for every matrix
+ * question.
+ *
+ * Only catches `rows` being reassigned wholesale (row-sourcing, JSON edits) —
+ * see resyncMatrixCarouselDecomposition's own comment for the conditional-
+ * visibleIf-cascade case this deliberately doesn't cover; the renderer picks
+ * that up instead, while mounted.
  */
 function handlePropertyChanged(question: Question, options: { name: string }): void {
   if (options.name !== ROWS_PROPERTY_NAME || !isMatrixQuestion(question)) {
     return;
   }
 
-  const matrixQuestion = question as QuestionMatrixModel;
-  matrixQuestion.resetSingleInput();
-  const rows = getDecomposedRowQuestions(matrixQuestion);
-  reclampCurrentRowIndex(matrixQuestion, rows.length);
+  resyncMatrixCarouselDecomposition(question as QuestionMatrixModel);
 }
 
 function attachToQuestion(
