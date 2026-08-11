@@ -158,6 +158,26 @@ describe("bindMatrixCarouselRowSourceToSurvey", () => {
     }).not.toThrow();
   });
 
+  it("double-binding installs no duplicate sync handlers, and disposing the second (no-op) binding leaves the first fully active", () => {
+    // Arrange
+    const model = buildModel();
+    const source = model.getQuestionByName("source");
+    const target = model.getQuestionByName("q1");
+    const cleanup1 = bindMatrixCarouselRowSourceToSurvey(model);
+    const cleanup2 = bindMatrixCarouselRowSourceToSurvey(model);
+
+    // Act — dispose only the SECOND binding. If it had installed its own
+    // duplicate sync handler/dependency registration, this cleanup would
+    // remove real wiring (the thing actually doing the sync), not a no-op.
+    cleanup2();
+    source!.value = ["a"];
+
+    // Assert — the first binding still syncs, proving it's undisturbed
+    expect(target?.rows.map((r: { value: string }) => r.value)).toEqual(["a"]);
+
+    cleanup1();
+  });
+
   it("cleanup stops future re-syncs", () => {
     // Arrange
     const model = buildModel();

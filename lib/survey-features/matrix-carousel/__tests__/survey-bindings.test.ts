@@ -89,6 +89,28 @@ describe("bindMatrixCarouselToSurvey", () => {
     }).not.toThrow();
   });
 
+  it("double-binding installs no duplicate handlers, and disposing the second (no-op) binding leaves the first fully active", () => {
+    // Arrange
+    const model = buildModel();
+    const question = model.getQuestionByName("q1") as unknown as { rows: unknown[] };
+    const cleanup1 = bindMatrixCarouselToSurvey(model);
+    const cleanup2 = bindMatrixCarouselToSurvey(model);
+    const matrixQuestion = model.getQuestionByName("q1");
+    setCurrentRowIndex(matrixQuestion as never, 2, 3);
+
+    // Act — dispose only the SECOND binding. If the second call had
+    // installed its own duplicate handlers, this cleanup would remove real
+    // handlers (the ones actually doing the work), not a no-op set.
+    cleanup2();
+    question.rows = [{ value: "r1", text: "Row 1" }];
+
+    // Assert — the first binding's handler still reclamped the index, proving
+    // it's still attached and undisturbed by disposing the second binding.
+    expect(getCurrentRowIndex(matrixQuestion as never)).toBe(0);
+
+    cleanup1();
+  });
+
   it("attaches handlers to a matrix question added after initial bind, even before carousel mode is enabled on it", () => {
     // Arrange — reproduces the real Creator flow: add a plain matrix question,
     // then enable carousel mode afterward via the property grid. edxDisplayMode

@@ -21,11 +21,23 @@ describe("registerMatrixCarouselCreatorHelp", () => {
   });
 
   it("does not set its own pehelp for edxCarryForwardEnabled — that key is shared, global, and owned by carry-forward's own help text", () => {
-    // Act
+    // Arrange — capture whatever this shared key currently holds (carry-
+    // forward's own help text if that registration already ran in this
+    // process, or undefined if it hasn't) rather than assuming undefined:
+    // pehelp is a single flat dictionary keyed by property name, not scoped
+    // per question type, so a specific expected value here would be coupled
+    // to whichever other suite happens to run first.
     const translations = getLocaleStrings("en");
+    const before = translations.pehelp[CARRY_FORWARD_ENABLED_PROPERTY];
 
-    // Assert
-    expect(translations.pehelp[CARRY_FORWARD_ENABLED_PROPERTY]).toBeUndefined();
+    // Act — re-registering (idempotent) is what would clobber the shared key
+    // if this function's own guard against doing so were broken.
+    registerMatrixCarouselCreatorHelp();
+
+    // Assert — unchanged across our own call is what actually verifies we
+    // don't clobber it, regardless of what carry-forward's own registration
+    // left there.
+    expect(translations.pehelp[CARRY_FORWARD_ENABLED_PROPERTY]).toBe(before);
   });
 
   it("is idempotent", () => {

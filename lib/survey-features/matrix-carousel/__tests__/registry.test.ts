@@ -65,7 +65,7 @@ describe("registerMatrixCarouselSchema", () => {
     expect(property?.visibleIf?.({})).toBe(false);
   });
 
-  it("further gates progressIndicatorType behind showProgressIndicator", () => {
+  it("further gates edxProgressIndicatorType behind edxShowProgressIndicator", () => {
     // Act
     const property = Serializer.findProperty(
       MATRIX_TYPE,
@@ -74,10 +74,10 @@ describe("registerMatrixCarouselSchema", () => {
 
     // Assert
     expect(
-      property?.visibleIf?.({ edxDisplayMode: "carousel", showProgressIndicator: true }),
+      property?.visibleIf?.({ edxDisplayMode: "carousel", edxShowProgressIndicator: true }),
     ).toBe(true);
     expect(
-      property?.visibleIf?.({ edxDisplayMode: "carousel", showProgressIndicator: false }),
+      property?.visibleIf?.({ edxDisplayMode: "carousel", edxShowProgressIndicator: false }),
     ).toBe(false);
   });
 
@@ -153,9 +153,18 @@ describe("registerMatrixCarouselSchema", () => {
     ).toBe(false);
   });
 
-  it("is idempotent", () => {
+  it("is idempotent — re-registration does not throw or replace an existing property", () => {
+    // Arrange
+    const before = Serializer.findProperty(MATRIX_TYPE, SHOW_PROGRESS_INDICATOR_PROPERTY);
+    const visibleIfBefore = before?.visibleIf;
+
     // Act & Assert
     expect(() => registerMatrixCarouselSchema()).not.toThrow();
+
+    // Assert — same property object, same visibleIf, not silently rebuilt
+    const after = Serializer.findProperty(MATRIX_TYPE, SHOW_PROGRESS_INDICATOR_PROPERTY);
+    expect(after).toBe(before);
+    expect(after?.visibleIf).toBe(visibleIfBefore);
   });
 
   it("keeps existing grid-mode matrix JSON parsing and serializing unchanged, including showHeader and SurveyJS's own displayMode", () => {

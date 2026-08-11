@@ -12,8 +12,8 @@ export type ProgressIndicatorType = "text" | "bar";
  */
 export interface MatrixCarouselQuestion extends QuestionMatrixModel {
   edxDisplayMode?: DisplayMode;
-  showProgressIndicator?: boolean;
-  progressIndicatorType?: ProgressIndicatorType;
+  edxShowProgressIndicator?: boolean;
+  edxProgressIndicatorType?: ProgressIndicatorType;
   edxCarryForwardEnabled?: boolean;
   edxCarryForwardSources?: string[];
   edxCarryForwardMode?: AdvancedCarryForwardModeInput;

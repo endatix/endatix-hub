@@ -13,8 +13,17 @@ export const IMAGE_URL_PROPERTY = "imageUrl";
 // its choices/default, so registration finds the property "already there"
 // and no-ops the entire property block.
 export const DISPLAY_MODE_PROPERTY = "edxDisplayMode";
-export const SHOW_PROGRESS_INDICATOR_PROPERTY = "showProgressIndicator";
-export const PROGRESS_INDICATOR_TYPE_PROPERTY = "progressIndicatorType";
+// edx-prefixed like every other custom property this feature adds to the
+// existing matrix type (edxDisplayMode, edxCarryForward*) — not because
+// these two specific names currently collide with a SurveyJS built-in (they
+// don't, checked against the installed survey-core bundle), but because
+// edxDisplayMode already got burned once by an unprefixed name silently
+// colliding with a future/existing built-in (see its own comment above), and
+// every other survey-feature that extends an existing type (carry-forward,
+// blind-search-tagbox) follows this prefix unconditionally rather than
+// checking case-by-case.
+export const SHOW_PROGRESS_INDICATOR_PROPERTY = "edxShowProgressIndicator";
+export const PROGRESS_INDICATOR_TYPE_PROPERTY = "edxProgressIndicatorType";
 
 export const DISPLAY_MODE_GRID = "grid";
 export const DISPLAY_MODE_CAROUSEL = "carousel";

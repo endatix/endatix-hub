@@ -1,4 +1,4 @@
-import type { Question, SurveyModel } from "survey-core";
+import type { SurveyModel } from "survey-core";
 import { Serializer } from "survey-core";
 import { getAllSelectBasedQuestions } from "@/lib/survey-features/question-loops/loop-utils";
 import { getCarryForwardSourceQuestions } from "@/lib/survey-features/carry-forward/utils/carry-forward-target-query";
@@ -125,8 +125,8 @@ export function registerMatrixCarouselSchema(): void {
         { value: PROGRESS_INDICATOR_BAR, text: "Bar" },
       ],
       default: PROGRESS_INDICATOR_TEXT,
-      visibleIf: (obj: { edxDisplayMode?: string; showProgressIndicator?: boolean }) =>
-        isCarouselMode(obj) && obj.showProgressIndicator !== false,
+      visibleIf: (obj: { edxDisplayMode?: string; edxShowProgressIndicator?: boolean }) =>
+        isCarouselMode(obj) && obj.edxShowProgressIndicator !== false,
     });
 
     // Back/Next and swipe navigation are always both on — not configurable.

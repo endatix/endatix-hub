@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { LocalizableString, Question, QuestionMatrixModel, SurveyModel } from "survey-core";
-import { Action, ActionContainer } from "survey-core";
+import { Action, ActionContainer, getLocaleString } from "survey-core";
 import { ReactQuestionFactory, SurveyActionBar, SurveyQuestion, SurveyQuestionMatrix } from "survey-react-ui";
 import { StoragePresignedImage } from "@/features/asset-storage/ui/storage-presigned-image";
 import { MATRIX_TYPE } from "../constants";
@@ -357,22 +357,56 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
     );
   }
 
-  /** Progress bar — rendered above the content, matching PanelDynamic's renderRange() placement. Only for progressIndicatorType "bar"; "text" renders in the footer instead, see renderFooter. */
+  /**
+   * Progress bar — rendered above the content, matching PanelDynamic's
+   * renderRange() placement. Only for edxProgressIndicatorType "bar"; "text"
+   * renders in the footer instead, see renderFooter.
+   *
+   * ARIA: no aria-live on the wrapper — aria-live regions watch for
+   * text/node changes by default (aria-relevant="additions text"), not
+   * attribute mutations on a descendant, so a wrapper around a progressbar
+   * whose aria-valuenow changes wouldn't reliably announce anything anyway.
+   * role="progressbar" is one of the roles assistive tech is expected to
+   * monitor for value changes on its own. aria-label reuses SurveyJS's own
+   * "progressbar" locale string via getLocaleString — the same one
+   * PanelDynamic's own renderRange() uses for its progressBarAriaLabel — so
+   * this is localized for free, consistent with matching PanelDynamic
+   * elsewhere in this renderer. aria-valuetext supplies "N of M" (the same
+   * localized panelDynamicProgressText the footer's text mode already uses)
+   * so a screen reader announces a meaningful position instead of a bare
+   * percentage. aria-valuemin is 0 (not 1) specifically so that a screen
+   * reader falling back to computing its own percentage from
+   * valuemin/valuemax/valuenow — i.e. one that ignores aria-valuetext —
+   * lands on (currentIndex+1)/total, the exact same fraction the CSS fill
+   * width below uses; a valuemin of 1 would make that fallback computation
+   * diverge from what's visually shown.
+   */
   private renderProgressBar(currentIndex: number, total: number): React.JSX.Element | null {
     const question = this.carouselQuestion;
-    if (question.showProgressIndicator === false || question.progressIndicatorType !== "bar" || total === 0) {
+    if (
+      question.edxShowProgressIndicator === false ||
+      question.edxProgressIndicatorType !== "bar" ||
+      total === 0
+    ) {
       return null;
     }
 
     const percent = ((currentIndex + 1) / total) * 100;
+    const positionText = question.getLocalizationFormatString(
+      "panelDynamicProgressText",
+      currentIndex + 1,
+      total,
+    );
     return (
-      <div className="sv-matrixcarousel__progress" aria-live="polite">
+      <div className="sv-matrixcarousel__progress">
         <div
           className="sv-matrixcarousel__progress-bar-track sd-progress"
           role="progressbar"
-          aria-valuemin={1}
+          aria-label={getLocaleString("progressbar", question.survey?.getLocale())}
+          aria-valuemin={0}
           aria-valuemax={total}
           aria-valuenow={currentIndex + 1}
+          aria-valuetext={positionText}
         >
           <div
             className="sv-matrixcarousel__progress-bar-fill sd-progress__bar"
@@ -418,7 +452,7 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
   }
 
   /**
-   * Footer: separator, "N of M" text (if progressIndicatorType is "text"),
+   * Footer: separator, "N of M" text (if edxProgressIndicatorType is "text"),
    * then Back/Next — same row, same order as PanelDynamic's
    * renderNavigatorV2(). The text is hidden once question.isMobile is true,
    * mirroring question_paneldynamic.ts's own
@@ -435,8 +469,8 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
   private renderFooter(currentIndex: number, total: number): React.JSX.Element | null {
     const question = this.carouselQuestion;
     const showText =
-      question.showProgressIndicator !== false &&
-      question.progressIndicatorType !== "bar" &&
+      question.edxShowProgressIndicator !== false &&
+      question.edxProgressIndicatorType !== "bar" &&
       total > 0 &&
       !question.isMobile;
 
@@ -476,11 +510,15 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
           className="sv-matrixcarousel__strip"
           ref={this.stripRef}
           onKeyDown={this.handleKeyDown}
-          // tabIndex 0 (not -1) so the strip is reachable via Tab — without
-          // it, arrow-key navigation is only reachable by clicking dead
-          // space on the slide chrome, effectively undiscoverable for a
-          // keyboard-only user. aria-label announces what the keys do, since
-          // there's no visual affordance otherwise.
+          // role="group" so aria-label is actually exposed as an accessible
+          // name — a bare, roleless <div> defaults to role="generic", which
+          // per the accessible-name-computation spec does not pick up
+          // aria-label at all, so screen readers could silently ignore it
+          // without an explicit naming-capable role here. tabIndex 0 (not
+          // -1) so the strip is reachable via Tab — without it, arrow-key
+          // navigation is only reachable by clicking dead space on the slide
+          // chrome, effectively undiscoverable for a keyboard-only user.
+          role="group"
           tabIndex={0}
           aria-label="Use arrow keys to move between questions"
         >

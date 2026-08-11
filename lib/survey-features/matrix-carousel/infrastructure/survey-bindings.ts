@@ -27,8 +27,15 @@ import { reclampCurrentRowIndex } from "../utils/carousel-state";
 import { getDecomposedRowQuestions } from "../use-cases/navigate-carousel";
 import { syncMatrixCarouselRowsFromSource } from "../use-cases/sync-rows-from-source";
 
-const boundModelsForTests = new Set<Model>();
-const rowSourceBoundModelsForTests = new Set<Model>();
+// Maps (not Sets) so clearMatrixCarouselBindingsForTests /
+// clearMatrixCarouselRowSourceBindingsForTests can call each still-bound
+// model's *real* cleanup (removing its handlers and resetting its attached
+// flag) instead of only forgetting our own bookkeeping of which models were
+// bound — the latter would leave a model's ATTACHED_KEY stuck true with its
+// handlers still live, silently no-opping any later re-bind attempt in the
+// same test.
+const boundModelsForTests = new Map<Model, () => void>();
+const rowSourceBoundModelsForTests = new Map<Model, () => void>();
 
 /**
  * carry-forward-dependencies.ts's functions are typed against
@@ -169,7 +176,6 @@ export function bindMatrixCarouselToSurvey(model: Model): () => void {
     return () => {};
   }
   modelWithFlags[MATRIX_CAROUSEL_HANDLERS_ATTACHED_KEY] = true;
-  boundModelsForTests.add(model);
 
   const handlersByQuestion = new Map<
     Question,
@@ -184,7 +190,7 @@ export function bindMatrixCarouselToSurvey(model: Model): () => void {
   model.onQuestionAdded.add(handleQuestionAdded);
   model.onErrorCustomText.add(handleErrorCustomText);
 
-  return () => {
+  const cleanup = () => {
     handlersByQuestion.forEach((handler, question) => {
       question.onPropertyChanged.remove(handler);
     });
@@ -194,10 +200,19 @@ export function bindMatrixCarouselToSurvey(model: Model): () => void {
     boundModelsForTests.delete(model);
     modelWithFlags[MATRIX_CAROUSEL_HANDLERS_ATTACHED_KEY] = false;
   };
+  boundModelsForTests.set(model, cleanup);
+
+  return cleanup;
 }
 
+/**
+ * Fully tears down every still-active binding created during a test run —
+ * not just this module's own bookkeeping of which models were bound.
+ * Iterates a snapshot array rather than the live Map, since each stored
+ * cleanup deletes its own entry from boundModelsForTests as a side effect.
+ */
 export function clearMatrixCarouselBindingsForTests(): void {
-  boundModelsForTests.clear();
+  Array.from(boundModelsForTests.values()).forEach((cleanup) => cleanup());
 }
 
 /**
@@ -251,7 +266,6 @@ export function bindMatrixCarouselRowSourceToSurvey(model: Model): () => void {
     return () => {};
   }
   modelWithFlags[MATRIX_CAROUSEL_ROW_SOURCE_ATTACHED_KEY] = true;
-  rowSourceBoundModelsForTests.add(model);
 
   const handlersByQuestion = new Map<
     Question,
@@ -267,7 +281,7 @@ export function bindMatrixCarouselRowSourceToSurvey(model: Model): () => void {
   };
   model.onQuestionAdded.add(handleQuestionAdded);
 
-  return () => {
+  const cleanup = () => {
     handlersByQuestion.forEach((handler, question) => {
       question.onPropertyChanged.remove(handler);
       unregisterCarryForwardDependencies(model, asCarryForwardTarget(question as MatrixCarouselQuestion));
@@ -277,8 +291,17 @@ export function bindMatrixCarouselRowSourceToSurvey(model: Model): () => void {
     rowSourceBoundModelsForTests.delete(model);
     modelWithFlags[MATRIX_CAROUSEL_ROW_SOURCE_ATTACHED_KEY] = false;
   };
+  rowSourceBoundModelsForTests.set(model, cleanup);
+
+  return cleanup;
 }
 
+/**
+ * Fully tears down every still-active row-source binding created during a
+ * test run — see clearMatrixCarouselBindingsForTests's own comment for why
+ * this needs each binding's real cleanup, not just clearing the bookkeeping
+ * collection.
+ */
 export function clearMatrixCarouselRowSourceBindingsForTests(): void {
-  rowSourceBoundModelsForTests.clear();
+  Array.from(rowSourceBoundModelsForTests.values()).forEach((cleanup) => cleanup());
 }

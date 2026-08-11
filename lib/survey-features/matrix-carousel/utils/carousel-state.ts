@@ -1,8 +1,9 @@
 import type { QuestionMatrixModel } from "survey-core";
+import type { CarouselRuntimeState } from "../types";
 
-const stateByQuestion = new WeakMap<QuestionMatrixModel, { currentRowIndex: number }>();
+const stateByQuestion = new WeakMap<QuestionMatrixModel, CarouselRuntimeState>();
 
-function getOrCreateState(question: QuestionMatrixModel): { currentRowIndex: number } {
+function getOrCreateState(question: QuestionMatrixModel): CarouselRuntimeState {
   let state = stateByQuestion.get(question);
   if (!state) {
     state = { currentRowIndex: 0 };

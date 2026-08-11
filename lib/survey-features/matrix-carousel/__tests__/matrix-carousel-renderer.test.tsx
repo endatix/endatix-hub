@@ -2,7 +2,7 @@ import { act, fireEvent, render } from "@testing-library/react";
 import React from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerMatrixCarouselSchema } from "../infrastructure/registry";
 import { registerMatrixCarouselRenderer } from "../infrastructure/matrix-carousel-renderer";
 import { bindMatrixCarouselToSurvey } from "../infrastructure/survey-bindings";
@@ -88,11 +88,21 @@ function carouselSurveyJson(rows: unknown[] = [
 }
 
 describe("MatrixCarouselRenderer", () => {
+  let previousIntersectionObserver: typeof IntersectionObserver | undefined;
+  let previousResizeObserver: typeof ResizeObserver | undefined;
+
   beforeAll(() => {
-    globalThis.IntersectionObserver ??=
+    // Unconditional assignment (not ??=), with the previous value saved and
+    // restored in afterAll below: ??= would silently skip installing our
+    // spy-tracking stubs if jsdom (or some other module loaded earlier in
+    // this process) already defined a global IntersectionObserver/
+    // ResizeObserver, which would make observeSpy/disconnectSpy — and every
+    // test asserting on them — silently exercise nothing.
+    previousIntersectionObserver = globalThis.IntersectionObserver;
+    previousResizeObserver = globalThis.ResizeObserver;
+    globalThis.IntersectionObserver =
       IntersectionObserverStub as unknown as typeof IntersectionObserver;
-    globalThis.ResizeObserver ??=
-      ResizeObserverStub as unknown as typeof ResizeObserver;
+    globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
     // jsdom doesn't implement CSS.escape; SurveyJS's focus-first-error path
     // (validate(true, true), triggered when Next is blocked) uses it to
     // build a selector when scrolling/focusing the erroring question — a
@@ -102,6 +112,11 @@ describe("MatrixCarouselRenderer", () => {
       (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
     registerMatrixCarouselSchema();
     registerMatrixCarouselRenderer();
+  });
+
+  afterAll(() => {
+    globalThis.IntersectionObserver = previousIntersectionObserver as typeof IntersectionObserver;
+    globalThis.ResizeObserver = previousResizeObserver as typeof ResizeObserver;
   });
 
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -288,7 +303,7 @@ describe("MatrixCarouselRenderer", () => {
               type: "matrix",
               name: "q1",
               edxDisplayMode: "carousel",
-              progressIndicatorType: "bar",
+              edxProgressIndicatorType: "bar",
               columns: ["1", "2"],
               rows: ["r1", "r2"],
             },
@@ -320,7 +335,7 @@ describe("MatrixCarouselRenderer", () => {
               type: "matrix",
               name: "q1",
               edxDisplayMode: "carousel",
-              progressIndicatorType: "bar",
+              edxProgressIndicatorType: "bar",
               columns: ["1", "2"],
               rows: ["r1", "r2"],
             },

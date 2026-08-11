@@ -9,8 +9,8 @@ All new properties live on the `matrix` type. Everything matrix already had — 
 | Property | Type | Default | Notes |
 |---|---|---|---|
 | `edxDisplayMode` | `"grid"` \| `"carousel"` | `"grid"` | The only property required to turn a matrix into a carousel. Not the same as SurveyJS's own built-in `displayMode` (`"auto"`/`"table"`/`"list"`) — that property is untouched and keeps its own meaning. |
-| `showProgressIndicator` | boolean | `true` | Carousel mode only. |
-| `progressIndicatorType` | `"text"` \| `"bar"` | `"text"` | Carousel mode only, and only relevant while `showProgressIndicator` is `true`. |
+| `edxShowProgressIndicator` | boolean | `true` | Carousel mode only. |
+| `edxProgressIndicatorType` | `"text"` \| `"bar"` | `"text"` | Carousel mode only, and only relevant while `edxShowProgressIndicator` is `true`. |
 | `edxCarryForwardEnabled` | boolean | `false` | Sources `rows` from one or more other questions' choices instead of the manually-authored list. **Overwrites `rows` when enabled** — not additive. Carousel mode only. Same property the platform's carry-forward feature uses on checkbox/radiogroup/dropdown/etc. — see [Sourcing rows from another question](#sourcing-rows-from-another-question). |
 | `edxCarryForwardSources` | string[] | — | Names of the source questions. Only single/multi-select-type questions (checkbox, radiogroup, dropdown, tagbox, ranking, imagepicker, …) are valid sources. Requires `edxCarryForwardEnabled`. |
 | `edxCarryForwardMode` | `"all"` \| `"selected"` \| `"unselected"` | `"all"` | Which of the source questions' choices become rows. Requires `edxCarryForwardEnabled`. |
@@ -33,8 +33,8 @@ All new properties live on the `matrix` type. Everything matrix already had — 
   "name": "satisfaction",
   "title": "How much do you agree with each statement?",
   "edxDisplayMode": "carousel",
-  "showProgressIndicator": true,
-  "progressIndicatorType": "text",
+  "edxShowProgressIndicator": true,
+  "edxProgressIndicatorType": "text",
   "columns": [
     { "value": 1, "text": "Strongly disagree" },
     { "value": 2, "text": "Disagree" },
