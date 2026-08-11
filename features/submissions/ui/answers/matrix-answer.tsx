@@ -28,16 +28,18 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
     }
 
     const answers: Array<IMatrixAnswer> = [];
-    question.rows.forEach((row: ItemValue) => {
+    question.rows.forEach((row: ItemValue, index: number) => {
       if (!question?.value || !question?.columns) {
         return;
       }
-      const rowText = row.text;
+      // Image-only rows (matrix carousel) have no text — fall back to a
+      // positional label instead of dropping the row from the table.
+      const rowText = row.text || `Row ${index + 1}`;
       const answer = question.value[row.value]; // Using row.value which is standard
       const answerText =
         question.columns.find((c: ItemValue) => c.value === answer)?.text ?? "";
 
-      if (answerText && rowText) {
+      if (answerText) {
         answers.push({
           question: rowText,
           answer: answerText,

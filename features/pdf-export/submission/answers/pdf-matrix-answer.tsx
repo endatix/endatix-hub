@@ -23,17 +23,19 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
       return [];
     }
     const answers: IMatrixAnswer[] = [];
-    question.rows.forEach((row: ItemValue) => {
+    question.rows.forEach((row: ItemValue, index: number) => {
       if (!question?.value || !question?.columns) {
         return;
       }
-      const rowText = row.text;
+      // Image-only rows (matrix carousel) have no text — fall back to a
+      // positional label instead of dropping the row from the export.
+      const rowText = row.text || `Row ${index + 1}`;
       const answer = question.value[row.value];
       const answerText = formatChoiceDisplay(
         answer,
         resolveMatrixColumnLabel(question, answer),
       );
-      if (answerText && rowText) {
+      if (answerText) {
         answers.push({
           question: rowText,
           answer: answerText,
