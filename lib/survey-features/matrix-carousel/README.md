@@ -1,6 +1,6 @@
 # Matrix Carousel
 
-Presents an existing SurveyJS `matrix` question one statement per screen instead of a grid table — swipeable on touch devices, with Back/Next buttons, a progress indicator, and the same shared scale on every statement. It's a mode of the existing `matrix` type, not a separate question type: any `matrix` JSON becomes a carousel by adding `edxDisplayMode: "carousel"`, and reverts to a normal grid by removing it (or setting it to `"grid"`, the default).
+Presents an existing SurveyJS `matrix` question one statement per screen instead of a grid table — swipeable on touch devices, always paired with Back/Next buttons, a progress indicator, and the same shared scale on every statement. It's a mode of the existing `matrix` type, not a separate question type: any `matrix` JSON becomes a carousel by adding `edxDisplayMode: "carousel"`, and reverts to a normal grid by removing it (or setting it to `"grid"`, the default). Both swipe and Back/Next are always active in carousel mode — neither is configurable. (Swipe can't enforce required-row validation the way Back/Next can — see `navigate-carousel.ts`'s `nextRow()`/`goToRow()` split — but since SurveyJS's matrix type has no per-row required flag either way, there was no scenario left where disabling swipe actually protected anything.)
 
 ## Properties
 
@@ -11,8 +11,6 @@ All new properties live on the `matrix` type. Everything matrix already had — 
 | `edxDisplayMode` | `"grid"` \| `"carousel"` | `"grid"` | The only property required to turn a matrix into a carousel. Not the same as SurveyJS's own built-in `displayMode` (`"auto"`/`"table"`/`"list"`) — that property is untouched and keeps its own meaning. |
 | `showProgressIndicator` | boolean | `true` | Carousel mode only. |
 | `progressIndicatorType` | `"text"` \| `"bar"` | `"text"` | Carousel mode only, and only relevant while `showProgressIndicator` is `true`. |
-| `showNavigationButtons` | boolean | `true` | Back/Next buttons — the non-swipe alternative. Carousel mode only. |
-| `allowSwipeNavigation` | boolean | `true` | Carousel mode only. |
 | `edxCarryForwardEnabled` | boolean | `false` | Sources `rows` from one or more other questions' choices instead of the manually-authored list. **Overwrites `rows` when enabled** — not additive. Carousel mode only. Same property the platform's carry-forward feature uses on checkbox/radiogroup/dropdown/etc. — see [Sourcing rows from another question](#sourcing-rows-from-another-question). |
 | `edxCarryForwardSources` | string[] | — | Names of the source questions. Only single/multi-select-type questions (checkbox, radiogroup, dropdown, tagbox, ranking, imagepicker, …) are valid sources. Requires `edxCarryForwardEnabled`. |
 | `edxCarryForwardMode` | `"all"` \| `"selected"` \| `"unselected"` | `"all"` | Which of the source questions' choices become rows. Requires `edxCarryForwardEnabled`. |

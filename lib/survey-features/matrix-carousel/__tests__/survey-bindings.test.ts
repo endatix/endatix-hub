@@ -114,6 +114,102 @@ describe("bindMatrixCarouselToSurvey", () => {
     expect(getCurrentRowIndex(newQuestion as never)).toBe(0);
   });
 
+  it("uses carousel-appropriate wording for the eachRowRequired validation error on a carousel-mode matrix", () => {
+    // Arrange — no answers, so completion validation fails on both rows
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            {
+              type: "matrix",
+              name: "q1",
+              edxDisplayMode: "carousel",
+              eachRowRequired: true,
+              columns: ["1", "2"],
+              rows: ["r1", "r2"],
+            },
+          ],
+        },
+      ],
+    });
+    bindMatrixCarouselToSurvey(model);
+
+    // Act
+    model.validate();
+    const question = model.getQuestionByName("q1") as unknown as {
+      errors: { getText: () => string }[];
+    };
+
+    // Assert
+    const errorTexts = question.errors.map((e) => e.getText());
+    expect(errorTexts).toContain(
+      "Response required: answer every question before continuing.",
+    );
+    expect(errorTexts.join(" ")).not.toContain("answer questions in all rows");
+  });
+
+  it("leaves the native eachRowRequired wording unchanged for a grid-mode matrix", () => {
+    // Arrange — same setup, but no edxDisplayMode (grid, the default)
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            {
+              type: "matrix",
+              name: "q1",
+              eachRowRequired: true,
+              columns: ["1", "2"],
+              rows: ["r1", "r2"],
+            },
+          ],
+        },
+      ],
+    });
+    bindMatrixCarouselToSurvey(model);
+
+    // Act
+    model.validate();
+    const question = model.getQuestionByName("q1") as unknown as {
+      errors: { getText: () => string }[];
+    };
+
+    // Assert — untouched, native SurveyJS wording
+    const errorTexts = question.errors.map((e) => e.getText());
+    expect(errorTexts.join(" ")).toContain("answer questions in all rows");
+  });
+
+  it("stops customizing the validation error text once the binding is cleaned up", () => {
+    // Arrange
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            {
+              type: "matrix",
+              name: "q1",
+              edxDisplayMode: "carousel",
+              eachRowRequired: true,
+              columns: ["1", "2"],
+              rows: ["r1", "r2"],
+            },
+          ],
+        },
+      ],
+    });
+    const cleanup = bindMatrixCarouselToSurvey(model);
+    cleanup();
+
+    // Act
+    model.validate();
+    const question = model.getQuestionByName("q1") as unknown as {
+      errors: { getText: () => string }[];
+    };
+
+    // Assert
+    const errorTexts = question.errors.map((e) => e.getText());
+    expect(errorTexts.join(" ")).toContain("answer questions in all rows");
+  });
+
   it("cleanup removes handlers so later row changes stop being tracked", () => {
     // Arrange
     const model = buildModel();

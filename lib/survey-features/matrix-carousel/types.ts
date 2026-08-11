@@ -14,8 +14,6 @@ export interface MatrixCarouselQuestion extends QuestionMatrixModel {
   edxDisplayMode?: DisplayMode;
   showProgressIndicator?: boolean;
   progressIndicatorType?: ProgressIndicatorType;
-  showNavigationButtons?: boolean;
-  allowSwipeNavigation?: boolean;
   edxCarryForwardEnabled?: boolean;
   edxCarryForwardSources?: string[];
   edxCarryForwardMode?: AdvancedCarryForwardModeInput;

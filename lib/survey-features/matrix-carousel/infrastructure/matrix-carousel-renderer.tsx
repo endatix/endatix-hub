@@ -23,6 +23,21 @@ const FOCUSABLE_ROW_CONTROL_SELECTOR =
   'input, [role="radio"], [role="checkbox"], [role="radiogroup"], [role="group"]';
 
 /**
+ * Property names syncActions() depends on — isFirstRow/isLastRow read row
+ * count via `rows`; edxDisplayMode gates whether the carousel (and its
+ * Back/Next) is active at all. Any of these changing outside a Next/
+ * Previous click or swipe (e.g. row-sourcing repopulating `rows` when its
+ * source question's value changes while the survey is already running)
+ * must still re-sync the Back/Next Actions, or their visible/title state
+ * goes stale. Concretely: with 0 rows, both isFirstRow and isLastRow are
+ * true (0 === 0, and 0 >= 0 - 1), so componentDidMount's initial
+ * syncActions() hides both buttons — if rows are populated later by row-
+ * sourcing and nothing re-syncs, they silently never reappear even though
+ * there's now real content to navigate.
+ */
+const ACTION_RELEVANT_PROPERTIES = new Set(["rows", "edxDisplayMode"]);
+
+/**
  * The survey's own page-navigation LocalizableStrings ("Previous"/"Next") —
  * the same keys PanelDynamic's prevPanelText/nextPanelText default to
  * (question_paneldynamic.ts declares `localizable: { defaultStr:
@@ -121,6 +136,7 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   componentDidMount(): void {
     super.componentDidMount();
+    this.carouselQuestion.onPropertyChanged.add(this.handleQuestionPropertyChanged);
     if (this.isCarousel) {
       this.setupObserver();
       this.syncActions();
@@ -143,6 +159,7 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   componentWillUnmount(): void {
     super.componentWillUnmount();
+    this.carouselQuestion.onPropertyChanged.remove(this.handleQuestionPropertyChanged);
     this.teardownObserver();
     if (this.programmaticScrollTimeout) {
       clearTimeout(this.programmaticScrollTimeout);
@@ -182,6 +199,29 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
 
   private handleNext = (): void => {
     nextRow(this.carouselQuestion);
+    this.syncActions();
+    this.forceUpdate();
+  };
+
+  /**
+   * Re-syncs Back/Next whenever a property syncActions() depends on changes
+   * for a reason other than this component's own Next/Previous/swipe
+   * handlers — chiefly row-sourcing (carry-forward) repopulating `rows` in
+   * response to its source question's value changing while the survey is
+   * already running. Safe to call flushUpdates()-triggering syncActions()
+   * from here for the same reason it's safe from handlePrev/handleNext: this
+   * fires as a SurveyJS model event (question.onPropertyChanged), not from a
+   * React lifecycle method — see syncActions()'s own comment for why that
+   * distinction matters.
+   */
+  private handleQuestionPropertyChanged = (
+    _sender: unknown,
+    options: { name: string },
+  ): void => {
+    if (!this.isCarousel || !ACTION_RELEVANT_PROPERTIES.has(options.name)) {
+      return;
+    }
+
     this.syncActions();
     this.forceUpdate();
   };
@@ -316,8 +356,10 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
    * SurveyActionBar reacts to that by calling its own setState.
    *
    * Called from the same event handlers that change currentRowIndex
-   * (handlePrev/handleNext/handleIntersection), right before forceUpdate —
-   * not from a React lifecycle method reacting afterward. This mirrors
+   * (handlePrev/handleNext/handleIntersection), right before forceUpdate,
+   * plus handleQuestionPropertyChanged (rows changing for a reason other
+   * than this component's own navigation, chiefly row-sourcing) — not from
+   * a React lifecycle method reacting afterward. This mirrors
    * PanelDynamic's own pattern exactly: question_paneldynamic.ts's
    * `this.footerToolbar.flushUpdates()` runs inside goToNextPanel() etc. —
    * i.e. as part of the *event handling* that changes state, not from
@@ -334,9 +376,8 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
    */
   private syncActions(): void {
     const question = this.carouselQuestion;
-    const showNav = question.showNavigationButtons !== false;
-    this.prevAction.visible = showNav && !isFirstRow(question);
-    this.nextAction.visible = showNav && !isLastRow(question);
+    this.prevAction.visible = !isFirstRow(question);
+    this.nextAction.visible = !isLastRow(question);
     this.actionsContainer.flushUpdates();
   }
 
@@ -351,16 +392,11 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
    */
   private renderFooter(currentIndex: number, total: number): React.JSX.Element | null {
     const question = this.carouselQuestion;
-    const showNav = question.showNavigationButtons !== false;
     const showText =
       question.showProgressIndicator !== false &&
       question.progressIndicatorType !== "bar" &&
       total > 0 &&
       !question.isMobile;
-
-    if (!showNav && !showText) {
-      return null;
-    }
 
     return (
       <div className="sv-matrixcarousel__footer sd-paneldynamic__footer">
@@ -374,7 +410,7 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
               {currentIndex + 1} of {total}
             </div>
           )}
-          {showNav && <SurveyActionBar model={this.actionsContainer} />}
+          <SurveyActionBar model={this.actionsContainer} />
         </div>
       </div>
     );

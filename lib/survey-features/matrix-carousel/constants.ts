@@ -15,8 +15,6 @@ export const IMAGE_URL_PROPERTY = "imageUrl";
 export const DISPLAY_MODE_PROPERTY = "edxDisplayMode";
 export const SHOW_PROGRESS_INDICATOR_PROPERTY = "showProgressIndicator";
 export const PROGRESS_INDICATOR_TYPE_PROPERTY = "progressIndicatorType";
-export const SHOW_NAVIGATION_BUTTONS_PROPERTY = "showNavigationButtons";
-export const ALLOW_SWIPE_NAVIGATION_PROPERTY = "allowSwipeNavigation";
 
 export const DISPLAY_MODE_GRID = "grid";
 export const DISPLAY_MODE_CAROUSEL = "carousel";

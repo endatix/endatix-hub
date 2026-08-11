@@ -1,10 +1,11 @@
-import { fireEvent, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import React from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerMatrixCarouselSchema } from "../infrastructure/registry";
 import { registerMatrixCarouselRenderer } from "../infrastructure/matrix-carousel-renderer";
+import { bindMatrixCarouselToSurvey } from "../infrastructure/survey-bindings";
 
 class IntersectionObserverStub {
   observe(): void {}
@@ -154,6 +155,41 @@ describe("MatrixCarouselRenderer", () => {
 
     // Assert
     expect(queryByText("Previous")).not.toBeNull();
+  });
+
+  it("shows Next once rows are populated after mount by something other than Next/Previous/swipe (e.g. row-sourcing), not just permanently hidden from the initial 0-row mount", () => {
+    // Arrange — starts with zero rows, matching a carry-forward-enabled
+    // carousel before its source question has any value: with rows.length
+    // === 0, isFirstRow and isLastRow are BOTH true, so the initial
+    // componentDidMount sync hides both buttons. Regression test for that
+    // exact bug — Next/Previous never reappearing once rows are populated
+    // by an external onPropertyChanged("rows"), the same mechanism
+    // syncMatrixCarouselRowsFromSource uses. bindMatrixCarouselToSurvey is
+    // required here (not just the renderer/schema registration the rest of
+    // this file uses) — its own "rows" handler is what busts
+    // getMatrixSingleInputQuestions' internal cache via resetSingleInput(),
+    // exactly as production wiring does via onModelReady, before this
+    // component's own render ever runs.
+    const model = new Model(carouselSurveyJson([]));
+    const cleanupBindings = bindMatrixCarouselToSurvey(model);
+    const { queryByText } = render(<Survey model={model} />);
+    expect(queryByText("Next")).toBeNull();
+
+    // Act — mirrors target.rows = newRows in sync-rows-from-source.ts.
+    // act() wraps this because it's a raw model mutation outside
+    // fireEvent's own auto-wrapping — without it, forceUpdate()'s
+    // re-render isn't guaranteed to be flushed before the assertion below.
+    const question = model.getQuestionByName("q1");
+    act(() => {
+      question.rows = [
+        { value: "r1", text: "I like coffee" },
+        { value: "r2", text: "I like tea" },
+      ];
+    });
+
+    // Assert
+    expect(queryByText("Next")).not.toBeNull();
+    cleanupBindings();
   });
 
   it("Next advances the progress indicator when the current row is not required", () => {

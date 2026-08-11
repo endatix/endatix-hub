@@ -30,7 +30,10 @@ describe("registerMatrixCarouselSchema", () => {
 
     // Assert
     expect(ownProperty).toBeDefined();
-    expect(ownProperty?.choices).toEqual(["grid", "carousel"]);
+    expect(ownProperty?.choices).toEqual([
+      { value: "grid", text: "Grid" },
+      { value: "carousel", text: "Carousel" },
+    ]);
     expect(ownProperty?.defaultValue).toBe("grid");
     expect(builtInProperty?.choices).toEqual(["auto", "table", "list"]);
   });

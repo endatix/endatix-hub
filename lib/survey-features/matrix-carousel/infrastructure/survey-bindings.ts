@@ -1,4 +1,10 @@
-import type { Model, Question, QuestionAddedEvent, QuestionMatrixModel } from "survey-core";
+import type {
+  ErrorCustomTextEvent,
+  Model,
+  Question,
+  QuestionAddedEvent,
+  QuestionMatrixModel,
+} from "survey-core";
 import type { AdvancedCarryForwardQuestion } from "@/lib/survey-features/carry-forward/types";
 import { CARRY_FORWARD_CONTROL_PROPS } from "@/lib/survey-features/carry-forward/infrastructure/carry-forward-sync";
 import {
@@ -12,7 +18,11 @@ import {
   ROWS_PROPERTY_NAME,
 } from "../constants";
 import type { MatrixCarouselQuestion } from "../types";
-import { isMatrixCarouselRowSourceEnabled, isMatrixQuestion } from "../use-cases/matrix-carousel-state";
+import {
+  isCarouselDisplayMode,
+  isMatrixCarouselRowSourceEnabled,
+  isMatrixQuestion,
+} from "../use-cases/matrix-carousel-state";
 import { reclampCurrentRowIndex } from "../utils/carousel-state";
 import { getDecomposedRowQuestions } from "../use-cases/navigate-carousel";
 import { syncMatrixCarouselRowsFromSource } from "../use-cases/sync-rows-from-source";
@@ -36,6 +46,52 @@ const rowSourceBoundModelsForTests = new Set<Model>();
  */
 function asCarryForwardTarget(question: MatrixCarouselQuestion): AdvancedCarryForwardQuestion {
   return question as unknown as AdvancedCarryForwardQuestion;
+}
+
+/**
+ * The error `name` SurveyJS's own RequiredInAllRowsError reports itself as
+ * (question.ts's getErrorType(), confirmed in the installed bundle) —
+ * fired for a matrix question whose eachRowRequired validation fails on
+ * survey completion. Documented in onErrorCustomText's own options.name
+ * union in survey-events-api.d.ts, so this is the real, stable identifier,
+ * not something inferred from the message text.
+ */
+const REQUIRED_IN_ALL_ROWS_ERROR_TYPE = "requiredinallrowserror";
+
+/**
+ * SurveyJS's own default text ("Response required: answer questions in all
+ * rows.") talks about "rows" — accurate for grid mode, where the respondent
+ * sees the whole table at once, but confusing in carousel mode, where each
+ * row renders as its own standalone <SurveyQuestion> one per screen (see
+ * renderCarousel() in matrix-carousel-renderer.tsx) and they have no reason
+ * to think of it as "rows." "question" is the accurate term for what they're
+ * actually looking at, not an analogy — each row genuinely is decomposed
+ * into a real Question instance (getMatrixSingleInputQuestions()).
+ * onErrorCustomText is the public, documented mechanism for this (see
+ * ErrorCustomTextEvent in survey-events-api.d.ts) — no subclassing or
+ * touching the validation logic itself, just the displayed message for this
+ * one error type, and only when the erroring question is a carousel-mode
+ * matrix.
+ *
+ * English-only for now — SurveyJS ships this string translated across many
+ * locales (see requiredInAllRowsError in each locale file); matching that
+ * coverage for a carousel-specific variant would need a translation per
+ * locale, which is out of scope here.
+ */
+const CAROUSEL_REQUIRED_ERROR_TEXT =
+  "Response required: answer every question before continuing.";
+
+function handleErrorCustomText(_sender: unknown, options: ErrorCustomTextEvent): void {
+  const obj = options.obj as Question;
+  if (
+    options.name !== REQUIRED_IN_ALL_ROWS_ERROR_TYPE ||
+    !isMatrixQuestion(obj) ||
+    !isCarouselDisplayMode(obj)
+  ) {
+    return;
+  }
+
+  options.text = CAROUSEL_REQUIRED_ERROR_TEXT;
 }
 
 /**
@@ -79,6 +135,15 @@ function attachToQuestion(
   handlersByQuestion.set(question, handler);
 }
 
+/**
+ * General matrix-carousel plumbing for a survey model — not row-source-
+ * specific (see bindMatrixCarouselRowSourceToSurvey for that): keeps the
+ * decomposed-row cache/index current (handlePropertyChanged, above) and
+ * swaps in carousel-appropriate wording for the eachRowRequired validation
+ * error (handleErrorCustomText, above). Both react per-question at fire
+ * time rather than being gated at bind time, for the same reason —
+ * edxDisplayMode can change after this already ran.
+ */
 export function bindMatrixCarouselToSurvey(model: Model): () => void {
   const modelWithFlags = model as Model & Record<string, unknown>;
   if (modelWithFlags[MATRIX_CAROUSEL_HANDLERS_ATTACHED_KEY]) {
@@ -98,6 +163,7 @@ export function bindMatrixCarouselToSurvey(model: Model): () => void {
     attachToQuestion(options.question, handlersByQuestion);
   };
   model.onQuestionAdded.add(handleQuestionAdded);
+  model.onErrorCustomText.add(handleErrorCustomText);
 
   return () => {
     handlersByQuestion.forEach((handler, question) => {
@@ -105,6 +171,7 @@ export function bindMatrixCarouselToSurvey(model: Model): () => void {
     });
     handlersByQuestion.clear();
     model.onQuestionAdded.remove(handleQuestionAdded);
+    model.onErrorCustomText.remove(handleErrorCustomText);
     boundModelsForTests.delete(model);
     modelWithFlags[MATRIX_CAROUSEL_HANDLERS_ATTACHED_KEY] = false;
   };

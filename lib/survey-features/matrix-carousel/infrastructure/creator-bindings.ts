@@ -2,12 +2,10 @@ import { getLocaleStrings } from "survey-creator-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import { bindSurveyToCreatorAreas } from "@/lib/survey-features/infrastructure/creator-survey-bindings";
 import {
-  ALLOW_SWIPE_NAVIGATION_PROPERTY,
   DISPLAY_MODE_PROPERTY,
   IMAGE_URL_PROPERTY,
   MATRIX_CAROUSEL_CREATOR_BOUND_KEY,
   PROGRESS_INDICATOR_TYPE_PROPERTY,
-  SHOW_NAVIGATION_BUTTONS_PROPERTY,
   SHOW_PROGRESS_INDICATOR_PROPERTY,
 } from "../constants";
 import { bindMatrixCarouselRowSourceToSurvey, bindMatrixCarouselToSurvey } from "./survey-bindings";
@@ -41,12 +39,6 @@ export function registerMatrixCarouselCreatorHelp(): void {
   translations.pehelp[PROGRESS_INDICATOR_TYPE_PROPERTY] =
     "Choose plain text (\"1 of N\") or a filled progress bar.";
 
-  translations.pehelp[SHOW_NAVIGATION_BUTTONS_PROPERTY] =
-    "Back/Next buttons as a non-swipe alternative — recommended for desktop and accessibility.";
-
-  translations.pehelp[ALLOW_SWIPE_NAVIGATION_PROPERTY] =
-    "Lets respondents swipe between statements on touch devices. Turn off for kiosk or kept-to-buttons flows.";
-
   translations.pehelp[IMAGE_URL_PROPERTY] =
     "Optional image shown above the statement instead of, or alongside, its text.";
 
@@ -59,8 +51,6 @@ export function resetMatrixCarouselCreatorHelpForTests(): void {
   delete translations.pehelp[DISPLAY_MODE_PROPERTY];
   delete translations.pehelp[SHOW_PROGRESS_INDICATOR_PROPERTY];
   delete translations.pehelp[PROGRESS_INDICATOR_TYPE_PROPERTY];
-  delete translations.pehelp[SHOW_NAVIGATION_BUTTONS_PROPERTY];
-  delete translations.pehelp[ALLOW_SWIPE_NAVIGATION_PROPERTY];
   delete translations.pehelp[IMAGE_URL_PROPERTY];
 
   isCreatorHelpRegistered = false;

@@ -19,7 +19,6 @@ import {
   hasDataListSource,
 } from "@/lib/survey-features/data-lists/utils/property-grid-source-choices";
 import {
-  ALLOW_SWIPE_NAVIGATION_PROPERTY,
   DISPLAY_MODE_CAROUSEL,
   DISPLAY_MODE_GRID,
   DISPLAY_MODE_PROPERTY,
@@ -31,7 +30,6 @@ import {
   PROGRESS_INDICATOR_TEXT,
   PROGRESS_INDICATOR_TYPE_PROPERTY,
   ROWS_PROPERTY_NAME,
-  SHOW_NAVIGATION_BUTTONS_PROPERTY,
   SHOW_PROGRESS_INDICATOR_PROPERTY,
 } from "../constants";
 
@@ -95,7 +93,16 @@ export function registerMatrixCarouselSchema(): void {
       displayName: "Presentation",
       category: "general",
       type: "string",
-      choices: [DISPLAY_MODE_GRID, DISPLAY_MODE_CAROUSEL],
+      // {value, text} pairs, not a plain string array — a plain array
+      // relies on the property grid falling back to the raw value as its
+      // own label, which isn't consistently capitalized ("carousel"
+      // happens to pick up a capitalized label from elsewhere in Creator's
+      // string tables; "grid" doesn't, and renders lowercase). Explicit
+      // labels here keep both consistent regardless of that lookup.
+      choices: [
+        { value: DISPLAY_MODE_GRID, text: "Grid" },
+        { value: DISPLAY_MODE_CAROUSEL, text: "Carousel" },
+      ],
       default: DISPLAY_MODE_GRID,
     });
 
@@ -113,29 +120,24 @@ export function registerMatrixCarouselSchema(): void {
       displayName: "Progress indicator type",
       category: "general",
       type: "string",
-      choices: [PROGRESS_INDICATOR_TEXT, PROGRESS_INDICATOR_BAR],
+      choices: [
+        { value: PROGRESS_INDICATOR_TEXT, text: "Text" },
+        { value: PROGRESS_INDICATOR_BAR, text: "Bar" },
+      ],
       default: PROGRESS_INDICATOR_TEXT,
       visibleIf: (obj: { edxDisplayMode?: string; showProgressIndicator?: boolean }) =>
         isCarouselMode(obj) && obj.showProgressIndicator !== false,
     });
 
-    Serializer.addProperty(MATRIX_TYPE, {
-      name: SHOW_NAVIGATION_BUTTONS_PROPERTY,
-      displayName: "Show Back/Next buttons",
-      category: "general",
-      type: "boolean",
-      default: true,
-      visibleIf: isCarouselMode,
-    });
-
-    Serializer.addProperty(MATRIX_TYPE, {
-      name: ALLOW_SWIPE_NAVIGATION_PROPERTY,
-      displayName: "Allow swipe navigation",
-      category: "general",
-      type: "boolean",
-      default: true,
-      visibleIf: isCarouselMode,
-    });
+    // Back/Next and swipe navigation are always both on — not configurable.
+    // (Previously exposed as showNavigationButtons/allowSwipeNavigation;
+    // removed once per-row required turned out to be unsupported by
+    // SurveyJS's matrix type, which was the actual reason to ever disable
+    // swipe — see navigate-carousel.ts's nextRow()/goToRow() split for why
+    // swipe can't enforce validation the way Back/Next can. allowSwipeNavigation
+    // was, in retrospect, never actually wired into setupObserver()/
+    // handleIntersection() either — swipe ran unconditionally regardless of
+    // its value, so removing it changes no runtime behavior.)
 
     // Row-sourcing reuses carry-forward's actual property names, mode
     // values, and choices-picker logic (the same feature checkbox/
@@ -273,8 +275,6 @@ export function resetMatrixCarouselRegistryForTests(): void {
     DISPLAY_MODE_PROPERTY,
     SHOW_PROGRESS_INDICATOR_PROPERTY,
     PROGRESS_INDICATOR_TYPE_PROPERTY,
-    SHOW_NAVIGATION_BUTTONS_PROPERTY,
-    ALLOW_SWIPE_NAVIGATION_PROPERTY,
     CARRY_FORWARD_ENABLED_PROPERTY,
     CARRY_FORWARD_SOURCES_PROPERTY,
     CARRY_FORWARD_MODE_PROPERTY,
