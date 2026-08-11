@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { CustomQuestion } from "@/services/api";
 import { useEffect, useState, type ReactNode } from "react";
-import { getSubmissionLocale } from "../../submission-localization";
+import { getSubmissionLocale } from "@/lib/localization";
 import CalculatedValuesList from "./calculated-values-list";
 import DynamicVariablesList from "./dynamic-variables-list";
 import { QuestionFinder } from "./question-finder";

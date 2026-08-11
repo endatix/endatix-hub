@@ -1,8 +1,14 @@
 import { Submission } from "@/lib/endatix-api";
 import { tryParseJson } from "@/lib/utils/type-parsers";
-import { Metadata, MetadataSchema } from "../public-form/types";
+import { Metadata, MetadataSchema } from "@/features/public-form/types";
 import { Result } from "@/lib/result";
 import { SurveyModel } from "survey-core";
+import {
+  DEFAULT_CATALOG_LOCALE,
+  fromSurveyModelLocale,
+  toCatalogLocales,
+  toSurveyModelLocale,
+} from "@/lib/localization/catalog";
 
 /**
  * Get the Submission locale according to the view preference
@@ -37,16 +43,17 @@ function isLocaleValid(
   locale: string | undefined,
   surveyModel: SurveyModel,
 ): boolean {
-  if (!locale || !surveyModel) {
+  if (locale == null || !surveyModel) {
     return false;
   }
 
-  if (typeof locale !== "string" || locale.length === 0) {
+  if (typeof locale !== "string") {
     return false;
   }
 
-  const usedLocales = surveyModel.getUsedLocales() || [];
-  return usedLocales.includes(locale);
+  const catalogLocale = fromSurveyModelLocale(locale);
+  const usedLocales = toCatalogLocales(surveyModel.getUsedLocales() || []);
+  return usedLocales.includes(catalogLocale);
 }
 
 /**
@@ -67,4 +74,28 @@ function getLanguageDisplayName(locale: string | undefined) {
   }
 }
 
-export { getSubmissionLocale, isLocaleValid, getLanguageDisplayName };
+/**
+ * SurveyJS `model.locale` for a submission view: preferred metadata language
+ * when enabled and valid, otherwise the catalog default (`""`).
+ */
+function resolveSurveyModelLocaleForSubmission(
+  submission: Submission,
+  surveyModel: SurveyModel,
+  useSubmissionLanguage: boolean,
+): string {
+  if (useSubmissionLanguage) {
+    const submissionLocale = getSubmissionLocale(submission);
+    if (isLocaleValid(submissionLocale, surveyModel)) {
+      return toSurveyModelLocale(submissionLocale!);
+    }
+  }
+
+  return toSurveyModelLocale(DEFAULT_CATALOG_LOCALE);
+}
+
+export {
+  getSubmissionLocale,
+  isLocaleValid,
+  getLanguageDisplayName,
+  resolveSurveyModelLocaleForSubmission,
+};

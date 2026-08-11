@@ -12,11 +12,8 @@ import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-exten
 import { CustomQuestion } from "@/services/api";
 import { EyeOff } from "lucide-react";
 import { useCallback, useEffect } from "react";
-import { Question, surveyLocalization } from "survey-core";
-import {
-  getSubmissionLocale,
-  isLocaleValid,
-} from "../../submission-localization";
+import { Question } from "survey-core";
+import { resolveSurveyModelLocaleForSubmission } from "@/lib/localization";
 import { getQuestionNumber } from "../../submission-utils";
 import AnswerViewer from "../answers/answer-viewer";
 import {
@@ -77,15 +74,11 @@ export function SubmissionAnswers({
       return;
     }
 
-    const submissionLocale = getSubmissionLocale(submission);
-    if (
-      viewOptions.useSubmissionLanguage &&
-      isLocaleValid(submissionLocale, surveyModel)
-    ) {
-      surveyModel.locale = submissionLocale!;
-    } else {
-      surveyModel.locale = surveyLocalization.defaultLocale;
-    }
+    surveyModel.locale = resolveSurveyModelLocaleForSubmission(
+      submission,
+      surveyModel,
+      viewOptions.useSubmissionLanguage === true,
+    );
 
     surveyModel.showQuestionNumbers = true;
   }, [surveyModel, viewOptions.useSubmissionLanguage, submission]);

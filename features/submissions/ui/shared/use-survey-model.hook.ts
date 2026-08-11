@@ -10,10 +10,7 @@ import { useAnyAnswered } from "@/lib/survey-features/any-answered";
 import { useEndatixSurveyTheme } from "@/lib/themes/use-endatix-themes";
 import { useEffect, useRef, useState } from "react";
 import { Model } from "survey-core";
-import {
-  getSubmissionLocale,
-  isLocaleValid,
-} from "../../submission-localization";
+import { getSubmissionLocale, isLocaleValid } from "@/lib/localization";
 
 export function useSurveyModel(
   submission: Submission,
