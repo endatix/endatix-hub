@@ -70,7 +70,7 @@ describe("convertChoicesToDataListAction", () => {
       isActive: true,
       createdAt: new Date(),
       itemsCount: 1,
-      items: [{ id: "i1", label: "A", value: "a" }],
+      items: [{ id: "i1", labels: { default: "A" }, value: "a" }],
     };
     mockCreate.mockResolvedValue(Result.success(details));
     mockReplace.mockResolvedValue(Result.success(details));

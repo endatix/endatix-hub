@@ -1,0 +1,212 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import type { JsonFileHandlerState, ParsedValidation } from "../types";
+import {
+  FILE_SIZE_ERROR,
+  MAX_FILE_SIZE_BYTES,
+  READ_ERROR,
+  validateJsonInput,
+} from "../utils";
+import { discoverLocalesFromTranslationsCsv } from "../translations/parse-translations-csv";
+import type {
+  LocaleDiscoveryOptions,
+  LocaleImportDiscovery,
+} from "../translations/locale-discovery";
+import type { DataListSourceFormat } from "./data-list-items-input";
+
+interface ErrorPointer {
+  row: number;
+  column: number;
+}
+
+export interface UseDataListSourceOptions extends Omit<
+  LocaleDiscoveryOptions,
+  "availableLocales"
+> {
+  availableLocales?: string[];
+  maxFileSizeBytes?: number;
+  initialFormat?: DataListSourceFormat;
+}
+
+export interface UseDataListSourceReturn extends JsonFileHandlerState {
+  format: DataListSourceFormat;
+  setFormat: (format: DataListSourceFormat) => void;
+  csvInput: string;
+  setCsvInput: (value: string) => void;
+  validation: ParsedValidation | null;
+  csvDiscovery: LocaleImportDiscovery | null;
+  /** True when the active format has a payload ready for locale confirm. */
+  canConfirm: boolean;
+  hasSourceContent: boolean;
+  activeError: ErrorPointer | null;
+  setJsonInput: (value: string) => void;
+  setValidationError: (error: string | null) => void;
+  handleFileSelected: (file: File | null) => void;
+  handleErrorClick: (error: ErrorPointer) => void;
+  reset: () => void;
+}
+
+const initialState: JsonFileHandlerState = {
+  jsonInput: "",
+  validationError: null,
+  selectedFileName: null,
+};
+
+const EMPTY_AVAILABLE_LOCALES: string[] = [];
+
+/**
+ * Shared Create/Replace source state for JSON and CSV upload.
+ */
+export function useDataListSource(
+  options: UseDataListSourceOptions = {},
+): UseDataListSourceReturn {
+  const maxFileSize = options.maxFileSizeBytes ?? MAX_FILE_SIZE_BYTES;
+  const defaultLocale = options.defaultLocale;
+
+  const [format, setFormatState] = useState<DataListSourceFormat>(
+    options.initialFormat ?? "json",
+  );
+  const [jsonInput, setJsonInput] = useState<string>(initialState.jsonInput);
+  const [csvInput, setCsvInputState] = useState<string>("");
+  const [validationError, setValidationError] = useState<string | null>(
+    initialState.validationError,
+  );
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(
+    initialState.selectedFileName,
+  );
+  const [activeError, setActiveError] = useState<ErrorPointer | null>(null);
+
+  const validation = useMemo(() => {
+    if (format !== "json" || !jsonInput.trim()) {
+      return null;
+    }
+    return validateJsonInput(jsonInput);
+  }, [format, jsonInput]);
+
+  const csvDiscovery = useMemo(() => {
+    if (format !== "csv" || !csvInput.trim()) {
+      return null;
+    }
+    return discoverLocalesFromTranslationsCsv(csvInput, {
+      availableLocales: options.availableLocales ?? EMPTY_AVAILABLE_LOCALES,
+      defaultLocale,
+    });
+  }, [csvInput, defaultLocale, format, options.availableLocales]);
+
+  const canConfirm = useMemo(() => {
+    if (format === "json") {
+      return (
+        validation !== null &&
+        validation.validItems.length > 0 &&
+        validation.errors.length === 0
+      );
+    }
+
+    return (
+      csvDiscovery !== null &&
+      csvDiscovery.canProceed &&
+      csvDiscovery.rowCount > 0
+    );
+  }, [csvDiscovery, format, validation]);
+
+  const hasSourceContent = useMemo(() => {
+    if (format === "csv") {
+      return csvInput.trim().length > 0;
+    }
+    return jsonInput.trim().length > 0;
+  }, [csvInput, format, jsonInput]);
+
+  const setJsonInputInternal = useCallback((value: string) => {
+    setJsonInput(value);
+    setActiveError(null);
+  }, []);
+
+  const setCsvInput = useCallback((value: string) => {
+    setCsvInputState(value);
+    setActiveError(null);
+  }, []);
+
+  const setFormat = useCallback((next: DataListSourceFormat) => {
+    setFormatState(next);
+    setSelectedFileName(null);
+    setValidationError(null);
+    setActiveError(null);
+  }, []);
+
+  const reset = useCallback(() => {
+    setFormatState(options.initialFormat ?? "json");
+    setJsonInput(initialState.jsonInput);
+    setCsvInputState("");
+    setValidationError(initialState.validationError);
+    setSelectedFileName(initialState.selectedFileName);
+    setActiveError(null);
+  }, [options.initialFormat]);
+
+  const handleErrorClick = useCallback((error: ErrorPointer) => {
+    setActiveError(error);
+  }, []);
+
+  const handleFileSelected = useCallback(
+    async (file: File | null) => {
+      if (!file) {
+        return;
+      }
+
+      if (file.size > maxFileSize) {
+        setJsonInput(initialState.jsonInput);
+        setCsvInputState("");
+        setValidationError(FILE_SIZE_ERROR);
+        setSelectedFileName(file.name);
+        return;
+      }
+
+      try {
+        const content = await file.text();
+        setSelectedFileName(file.name);
+        setValidationError(null);
+        setActiveError(null);
+
+        const lowerName = file.name.toLowerCase();
+        const inferredCsv =
+          lowerName.endsWith(".csv") ||
+          file.type === "text/csv" ||
+          file.type === "application/vnd.ms-excel";
+
+        if (inferredCsv || format === "csv") {
+          setFormatState("csv");
+          setCsvInputState(content);
+          setJsonInput("");
+          return;
+        }
+
+        setFormatState("json");
+        setJsonInput(content);
+        setCsvInputState("");
+      } catch {
+        setValidationError(READ_ERROR);
+      }
+    },
+    [format, maxFileSize],
+  );
+
+  return {
+    format,
+    setFormat,
+    jsonInput,
+    csvInput,
+    setCsvInput,
+    validation,
+    csvDiscovery,
+    canConfirm,
+    hasSourceContent,
+    validationError,
+    selectedFileName,
+    activeError,
+    setJsonInput: setJsonInputInternal,
+    setValidationError,
+    handleFileSelected,
+    handleErrorClick,
+    reset,
+  };
+}

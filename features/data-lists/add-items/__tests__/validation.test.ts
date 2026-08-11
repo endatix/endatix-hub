@@ -61,7 +61,7 @@ describe("validateJsonInput", () => {
   });
 
   it("validates field length constraints", () => {
-    const longLabel = "x".repeat(256);
+    const longLabel = "x".repeat(101);
     const result = validateJsonInput(
       `[{"label": "${longLabel}", "value": "a"}]`,
     );

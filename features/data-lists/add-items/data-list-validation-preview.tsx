@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MAX_PREVIEW_ERRORS } from "../utils";
 import type { ParsedValidation, JsonErrorAnnotation } from "../types";
@@ -68,20 +69,27 @@ export function DataListValidationPreview({
         {validation.errors.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs font-medium text-destructive">
-              Following items will be skipped. Click on the errors to fix them.
+              Following items will be skipped. Fix the source file and upload
+              again.
             </p>
             <ul className="list-disc space-y-0 pl-4 text-xs text-destructive">
               {validation.annotations
                 .slice(0, MAX_PREVIEW_ERRORS)
                 .map((annotation, index) => (
                   <li key={`${annotation.row}-${annotation.column}-${index}`}>
-                    <button
-                      type="button"
-                      className="cursor-pointer text-left hover:underline"
-                      onClick={() => handleErrorClick(annotation)}
-                    >
-                      {annotation.text}
-                    </button>
+                    {onErrorClick ? (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="xs"
+                        className="h-auto p-0 text-left text-xs text-destructive"
+                        onClick={() => handleErrorClick(annotation)}
+                      >
+                        {annotation.text}
+                      </Button>
+                    ) : (
+                      annotation.text
+                    )}
                   </li>
                 ))}
             </ul>

@@ -26,6 +26,17 @@ vi.mock("@/lib/form-runtime/form-access-jwt-orchestrator", () => ({
   invalidateRuntimeFormAccessJwt: vi.fn(),
 }));
 
+type SelectedChoiceItem = {
+  text: string;
+  value?: unknown;
+  locText: { getJson: () => Record<string, string> };
+};
+
+/** SurveyJS keeps `selectedItemValues` protected; tests need the same access path as production. */
+type SelectBaseQuestion = QuestionDropdownModel & {
+  selectedItemValues: SelectedChoiceItem[];
+};
+
 describe("bindDataListsToSurvey", () => {
   beforeEach(() => {
     clearChoicesLazyLoadGuardsForTests();
@@ -126,7 +137,7 @@ describe("bindDataListsToSurvey", () => {
     model.locale = "bg";
     vi.spyOn(model, "getUsedLocales").mockReturnValue(["bg", "en"]);
 
-    const question = model.getQuestionByName("cities") as QuestionDropdownModel;
+    const question = model.getQuestionByName("cities") as SelectBaseQuestion;
     question.setPropertyValue(DATA_LIST_PROPERTY_NAME, "42");
 
     bindDataListsToSurvey(model, {
@@ -143,7 +154,7 @@ describe("bindDataListsToSurvey", () => {
           // Mirror SurveyJS: create selected ItemValues from flat display strings.
           question.selectedItemValues = items.map((text, index) =>
             question.createItemValue(["728193"][index], text),
-          );
+          ) as SelectedChoiceItem[];
           resolve();
         },
       });
@@ -156,10 +167,7 @@ describe("bindDataListsToSurvey", () => {
       }),
     );
 
-    const selected = question.selectedItemValues as Array<{
-      text: string;
-      locText: { getJson: () => Record<string, string> };
-    }>;
+    const selected = question.selectedItemValues;
     expect(selected[0].locText.getJson()).toEqual({
       default: "Plovdiv",
       bg: "Пловдив",

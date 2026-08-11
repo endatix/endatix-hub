@@ -1,4 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DATA_TABLE_SURFACE_CLASS_NAME } from "@/components/ui/data-table-surface";
 import {
   Sheet,
   SheetContent,
@@ -236,7 +237,7 @@ export function DataTable<TData extends Submission>({
     return (
       <div
         data-slot="submission-data-table"
-        className="rounded-xl border border-border/40 bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
+        className={DATA_TABLE_SURFACE_CLASS_NAME}
       >
         {isFilteredEmpty ? (
           <NoMatchingSubmissionsEmptyState
@@ -258,7 +259,7 @@ export function DataTable<TData extends Submission>({
     <>
       <div
         data-slot="submission-data-table"
-        className="rounded-xl border border-border/40 bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,52,94,0.04)] backdrop-blur-xl dark:shadow-none"
+        className={DATA_TABLE_SURFACE_CLASS_NAME}
       >
         <DndContext
           id={dndContextId}
