@@ -52,9 +52,8 @@ describe("bindDataListsToSurvey", () => {
     registerDataListGlobals();
   });
 
-<<<<<<< Updated upstream
   it.each(["dropdown", "tagbox"] as const)(
-    "passes StartsWith and locale es from %s to the public search request",
+    "passes StartsWith, locale es, and includeLocales from %s to the public search request",
     async (questionType) => {
       const model = new Model({
         pages: [
@@ -68,48 +67,13 @@ describe("bindDataListsToSurvey", () => {
             ],
           },
         ],
-=======
-  it("passes StartsWith and all survey locales from the question to the public search request", async () => {
-    const model = new Model({
-      locale: "es",
-      pages: [
-        {
-          elements: [
-            {
-              type: "dropdown",
-              name: "fruit",
-              choicesLazyLoadEnabled: true,
-            },
-          ],
-        },
-      ],
-    });
-    model.locale = "es";
-    vi.spyOn(model, "getUsedLocales").mockReturnValue(["es", "fr"]);
-
-    const question = model.getQuestionByName("fruit") as QuestionDropdownModel;
-    question.setPropertyValue(DATA_LIST_PROPERTY_NAME, "42");
-    question.searchMode = "startsWith";
-
-    bindDataListsToSurvey(model, {
-      deps: {
-        getRuntimeState: () => ({ formId: "101" }),
-      },
-    });
-
-    await new Promise<void>((resolve) => {
-      model.onChoicesLazyLoad.fire(model, {
-        question,
-        filter: "Manz",
-        skip: 0,
-        take: 25,
-        setItems: () => resolve(),
->>>>>>> Stashed changes
       });
       model.locale = "es";
+      vi.spyOn(model, "getUsedLocales").mockReturnValue(["es", "fr"]);
 
-<<<<<<< Updated upstream
-      const question = model.getQuestionByName("fruit") as QuestionDropdownModel;
+      const question = model.getQuestionByName(
+        "fruit",
+      ) as QuestionDropdownModel;
       question.setPropertyValue(DATA_LIST_PROPERTY_NAME, "42");
       question.searchMode = "startsWith";
 
@@ -136,26 +100,13 @@ describe("bindDataListsToSurvey", () => {
           query: "Manz",
           matchMode: "StartsWith",
           locale: "es",
+          includeLocales: ["default", "es", "fr"],
           skip: 0,
           take: 25,
         }),
       );
     },
   );
-=======
-    expect(searchMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        formId: "101",
-        dataListId: "42",
-        query: "Manz",
-        matchMode: "StartsWith",
-        locale: "es",
-        includeLocales: ["default", "es", "fr"],
-        skip: 0,
-        take: 25,
-      }),
-    );
-  });
 
   it("stamps full locale maps on selectedItemValues so locale switches stay labeled", async () => {
     const model = new Model({
@@ -221,5 +172,4 @@ describe("bindDataListsToSurvey", () => {
     model.locale = "bg";
     expect(selected[0].text).toBe("Пловдив");
   });
->>>>>>> Stashed changes
 });

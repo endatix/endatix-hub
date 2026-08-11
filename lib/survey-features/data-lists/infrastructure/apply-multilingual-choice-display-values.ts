@@ -1,4 +1,5 @@
 import type { Question } from "survey-core";
+import { parseScalarString } from "@/lib/utils/type-parsers";
 import { resolvePublicChoiceLabel } from "../use-cases/search-data-lists/map-public-choice";
 
 type SelectBaseQuestion = Question & {
@@ -54,11 +55,12 @@ function stampSelectedItemLocaleMaps(
   }
 
   for (const item of items) {
-    if (item?.value == null || typeof item.locText?.setJson !== "function") {
+    const valueKey = parseScalarString(item?.value);
+    if (valueKey == null || typeof item.locText?.setJson !== "function") {
       continue;
     }
 
-    const labels = labelsByValue.get(String(item.value));
+    const labels = labelsByValue.get(valueKey);
     if (!labels) {
       continue;
     }
