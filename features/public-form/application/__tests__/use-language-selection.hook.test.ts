@@ -59,6 +59,7 @@ describe("useLanguageSelection", () => {
       );
 
       expect(result.current.currentLocale).toBe("default");
+      expect(result.current.isDefaultLocale).toBe(true);
       expect(result.current.hasMultipleLocales).toBe(true);
     });
 
@@ -72,10 +73,7 @@ describe("useLanguageSelection", () => {
       );
 
       expect(result.current.currentLocale).toBe("sv");
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        "form-lang-preference",
-        "sv",
-      );
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
       expect(mockSurveyModel.locale).toBe("sv");
     });
 
@@ -90,6 +88,7 @@ describe("useLanguageSelection", () => {
       );
 
       expect(result.current.currentLocale).toBe("sv");
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
 
     it("migrates legacy localStorage en to catalog default", () => {
@@ -104,10 +103,7 @@ describe("useLanguageSelection", () => {
 
       expect(result.current.currentLocale).toBe("default");
       expect(mockSurveyModel.locale).toBe("");
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        "form-lang-preference",
-        "default",
-      );
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
 
     it("uses survey model locale when no saved preference", () => {
@@ -121,9 +117,10 @@ describe("useLanguageSelection", () => {
       );
 
       expect(result.current.currentLocale).toBe("es");
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
 
-    it("falls back to catalog default when survey locale is unavailable", () => {
+    it("falls back via browser detection when survey locale is unavailable", () => {
       mockSurveyModel.locale = "fr";
       languagesSpy.mockReturnValue(["fr-FR"]);
       languageSpy.mockReturnValue("fr-FR");
@@ -136,6 +133,23 @@ describe("useLanguageSelection", () => {
       );
 
       expect(result.current.currentLocale).toBe("default");
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the first catalog locale when the default is unavailable", () => {
+      mockSurveyModel.locale = "";
+      languagesSpy.mockReturnValue(["fr-FR"]);
+      languageSpy.mockReturnValue("fr-FR");
+
+      const { result } = renderHook(() =>
+        useLanguageSelection({
+          availableLocales: ["sv", "bg"],
+          surveyModel: mockSurveyModel,
+        }),
+      );
+
+      expect(result.current.currentLocale).toBe("sv");
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
@@ -243,7 +257,11 @@ describe("useLanguageSelection", () => {
       });
 
       expect(result.current.currentLocale).toBe(initialLocale);
-      expect(mockSurveyModel.locale).not.toBe("fr");
+      expect(mockSurveyModel.locale).toBe("");
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
+        "form-lang-preference",
+        "fr",
+      );
     });
   });
 
@@ -310,6 +328,20 @@ describe("useLanguageSelection", () => {
       );
 
       expect(result.current.hasMultipleLocales).toBe(false);
+    });
+
+    it("reports no multiple locales and no current option for an empty catalog", () => {
+      const { result } = renderHook(() =>
+        useLanguageSelection({
+          availableLocales: [],
+          surveyModel: mockSurveyModel,
+        }),
+      );
+
+      expect(result.current.currentLocale).toBe("default");
+      expect(result.current.hasMultipleLocales).toBe(false);
+      expect(result.current.languageOptions).toEqual([]);
+      expect(result.current.currentOption).toBeUndefined();
     });
   });
 });

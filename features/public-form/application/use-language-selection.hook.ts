@@ -45,11 +45,10 @@ export function useLanguageSelection({
   const [currentLocale, setCurrentLocale] = useState<string>(
     DEFAULT_CATALOG_LOCALE,
   );
-  const didInitializeRef = useRef(false);
   const initializedForModelRef = useRef<SurveyModel | null>(null);
 
-  const changeLocale = useCallback(
-    (newLocale: string) => {
+  const applyCatalogLocale = useCallback(
+    (newLocale: string, persist: boolean) => {
       const catalogLocale = fromSurveyModelLocale(newLocale);
       if (!surveyModel || !catalogLocales.includes(catalogLocale)) {
         return;
@@ -57,9 +56,18 @@ export function useLanguageSelection({
 
       setCurrentLocale(catalogLocale);
       surveyModel.locale = toSurveyModelLocale(catalogLocale);
-      localStorage.setItem(STORAGE_KEY, catalogLocale);
+      if (persist) {
+        localStorage.setItem(STORAGE_KEY, catalogLocale);
+      }
     },
     [surveyModel, catalogLocales],
+  );
+
+  const changeLocale = useCallback(
+    (newLocale: string) => {
+      applyCatalogLocale(newLocale, true);
+    },
+    [applyCatalogLocale],
   );
 
   useEffect(() => {
@@ -67,15 +75,10 @@ export function useLanguageSelection({
       return;
     }
 
-    if (initializedForModelRef.current !== surveyModel) {
-      initializedForModelRef.current = surveyModel;
-      didInitializeRef.current = false;
-    }
-
-    if (didInitializeRef.current) {
+    if (initializedForModelRef.current === surveyModel) {
       return;
     }
-    didInitializeRef.current = true;
+    initializedForModelRef.current = surveyModel;
 
     const localeToSelect = resolveInitialCatalogLocale(catalogLocales, {
       preselectedLocale,
@@ -83,8 +86,8 @@ export function useLanguageSelection({
       surveyLocale: surveyModel.locale,
     });
 
-    changeLocale(localeToSelect);
-  }, [surveyModel, catalogLocales, preselectedLocale, changeLocale]);
+    applyCatalogLocale(localeToSelect, false);
+  }, [surveyModel, catalogLocales, preselectedLocale, applyCatalogLocale]);
 
   const languageOptions = useMemo(
     () =>
@@ -114,7 +117,7 @@ function pickAvailableCatalogLocale(
   candidate: string | null | undefined,
   catalogLocales: readonly string[],
 ): string | undefined {
-  if (!candidate) {
+  if (candidate == null) {
     return undefined;
   }
 
@@ -167,7 +170,9 @@ function getBrowserPreferredLocale(catalogLocales: string[]): string {
     return DEFAULT_CATALOG_LOCALE;
   }
 
-  const browserLanguages = navigator.languages || [navigator.language] || [];
+  const browserLanguages = (navigator.languages ?? [navigator.language]).filter(
+    (tag): tag is string => Boolean(tag),
+  );
 
   for (const browserLang of browserLanguages) {
     const catalog = fromSurveyModelLocale(browserLang);
@@ -175,7 +180,7 @@ function getBrowserPreferredLocale(catalogLocales: string[]): string {
       return catalog;
     }
 
-    const languageCode = browserLang?.split("-")[0];
+    const languageCode = browserLang.split("-")[0];
     if (languageCode) {
       const catalogLang = fromSurveyModelLocale(languageCode);
       if (catalogLocales.includes(catalogLang)) {

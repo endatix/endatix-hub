@@ -13,7 +13,6 @@ import { CustomQuestion } from "@/services/api";
 import { EyeOff } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { Question } from "survey-core";
-import { resolveSurveyModelLocaleForSubmission } from "@/lib/localization";
 import { getQuestionNumber } from "../../submission-utils";
 import AnswerViewer from "../answers/answer-viewer";
 import {
@@ -43,17 +42,18 @@ export function SubmissionAnswers({
       getRuntimeState,
     },
   });
+  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { surveyModel, error } = useSurveyModel({
     formId,
     definition: formDefinition,
     submission,
     customQuestions: customQuestions.map((q: CustomQuestion) => q.jsonData),
     onModelCreated,
+    useSubmissionLanguage: viewOptions.useSubmissionLanguage === true,
   });
 
   const getReadRuntime = useStorageReadRuntime({ formId });
   const { setSurveyModel } = useSubmissionDetails();
-  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { prefetchPrivateReadUrlsForModel } = useStorageView({
     getReadRuntime,
   });
@@ -74,14 +74,8 @@ export function SubmissionAnswers({
       return;
     }
 
-    surveyModel.locale = resolveSurveyModelLocaleForSubmission(
-      submission,
-      surveyModel,
-      viewOptions.useSubmissionLanguage === true,
-    );
-
     surveyModel.showQuestionNumbers = true;
-  }, [surveyModel, viewOptions.useSubmissionLanguage, submission]);
+  }, [surveyModel]);
 
   if (!isExtensionsReady) {
     return <div>Loading...</div>;
