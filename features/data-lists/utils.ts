@@ -1,17 +1,18 @@
 import { DataListChoiceItem } from "@/lib/endatix-api";
+import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import { DATA_LIST_ITEM_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
 import {
-  DATA_LIST_MAX_JSON_FILE_BYTES,
-  DEFAULT_LABEL_KEY,
   discoverLocalesFromKeys,
+  isCatalogDefaultLocaleKey,
   isValidCultureCode,
   normalizeCultureCode,
+  normalizeOptionalCultureTag,
   type LocaleDiscoveryOptions,
   type LocaleImportDiscovery,
 } from "./translations/locale-discovery";
 import { JsonErrorAnnotation, ParsedValidation } from "./types";
 
-export const MAX_FILE_SIZE_BYTES = DATA_LIST_MAX_JSON_FILE_BYTES;
+export { DATA_LIST_MAX_JSON_FILE_BYTES as MAX_FILE_SIZE_BYTES } from "./translations/locale-discovery";
 export const MAX_PREVIEW_ERRORS = 20;
 
 export const FILE_SIZE_ERROR = "File is too large. Max file size is 5MB.";
@@ -54,11 +55,143 @@ type ParsedChoice = {
 };
 
 function resolveDefaultLabel(item: ParsedChoice): string {
-  if (item.labels && typeof item.labels[DEFAULT_LABEL_KEY] === "string") {
-    return item.labels[DEFAULT_LABEL_KEY].trim();
+  if (item.labels && typeof item.labels[DEFAULT_CATALOG_LOCALE] === "string") {
+    return item.labels[DEFAULT_CATALOG_LOCALE].trim();
   }
 
   return typeof item.label === "string" ? item.label.trim() : "";
+}
+
+function parseTrimmedLabels(
+  labels: unknown,
+): Record<string, string> | undefined {
+  if (!labels || typeof labels !== "object") {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(labels as Record<string, unknown>)
+      .filter(([, text]) => typeof text === "string")
+      .map(([key, text]) => [key, (text as string).trim()]),
+  );
+}
+
+function collectChoiceFieldErrors(
+  itemNumber: number,
+  valueField: string,
+  defaultLabel: string,
+  labels: Record<string, string> | undefined,
+): string[] {
+  const prefix = `Choice item ${itemNumber}`;
+  const errors: string[] = [];
+
+  if (!valueField) {
+    errors.push(`${prefix}: value is required.`);
+  } else if (valueField.length > DATA_LIST_ITEM_MAX_LENGTH) {
+    errors.push(
+      `${prefix}: value exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`,
+    );
+  }
+
+  if (!defaultLabel) {
+    errors.push(`${prefix}: label is required (or labels.default).`);
+  } else if (defaultLabel.length > DATA_LIST_ITEM_MAX_LENGTH) {
+    errors.push(
+      `${prefix}: label exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`,
+    );
+  }
+
+  if (!labels) {
+    return errors;
+  }
+
+  for (const [key, text] of Object.entries(labels)) {
+    if (
+      !isValidCultureCode(key) &&
+      key.toLowerCase() !== DEFAULT_CATALOG_LOCALE
+    ) {
+      errors.push(`${prefix}: locale '${key}' is not a valid culture code.`);
+    }
+    if (text.length > DATA_LIST_ITEM_MAX_LENGTH) {
+      errors.push(
+        `${prefix}: labels.${key} exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+function trackUniqueValue(
+  valueField: string,
+  seenValues: Set<string>,
+  itemNumber: number,
+): string | undefined {
+  if (!valueField) {
+    return undefined;
+  }
+
+  if (seenValues.has(valueField)) {
+    return `Choice item ${itemNumber}: value must be unique.`;
+  }
+
+  seenValues.add(valueField);
+  return undefined;
+}
+
+function toNormalizedChoiceItem(
+  valueField: string,
+  defaultLabel: string,
+  labels: Record<string, string> | undefined,
+): DataListChoiceItem {
+  const merged: Record<string, string> = { ...labels };
+  if (!merged[DEFAULT_CATALOG_LOCALE]) {
+    merged[DEFAULT_CATALOG_LOCALE] = defaultLabel;
+  }
+  return { value: valueField, labels: merged };
+}
+
+function validateChoiceItem(
+  item: unknown,
+  index: number,
+  seenValues: Set<string>,
+): { errors: string[]; item?: DataListChoiceItem } {
+  const itemNumber = index + 1;
+
+  if (item === null) {
+    return { errors: [`Choice item ${itemNumber}: item cannot be null.`] };
+  }
+
+  if (typeof item !== "object") {
+    return { errors: [`Choice item ${itemNumber}: item must be an object.`] };
+  }
+
+  const itemObj = item as ParsedChoice;
+  const valueField =
+    typeof itemObj.value === "string" ? itemObj.value.trim() : "";
+  const defaultLabel = resolveDefaultLabel(itemObj);
+  const labels = parseTrimmedLabels(itemObj.labels);
+
+  const errors = collectChoiceFieldErrors(
+    itemNumber,
+    valueField,
+    defaultLabel,
+    labels,
+  );
+
+  const uniqueError = trackUniqueValue(valueField, seenValues, itemNumber);
+  if (uniqueError) {
+    errors.push(uniqueError);
+  }
+
+  if (valueField && defaultLabel && errors.length === 0) {
+    return {
+      errors,
+      item: toNormalizedChoiceItem(valueField, defaultLabel, labels),
+    };
+  }
+
+  return { errors };
 }
 
 /**
@@ -94,91 +227,15 @@ export function validateJsonInput(value: string): ParsedValidation {
 
   parsed.forEach((item, index) => {
     const row = findItemLineNumber(value, item, index);
+    const result = validateChoiceItem(item, index, seenValues);
 
-    if (item === null) {
-      const err = `Choice item ${index + 1}: item cannot be null.`;
-      errors.push(err);
-      annotations.push(createAnnotation(err, row));
-      return;
-    }
-
-    if (typeof item !== "object") {
-      const err = `Choice item ${index + 1}: item must be an object.`;
-      errors.push(err);
-      annotations.push(createAnnotation(err, row));
-      return;
-    }
-
-    const itemObj = item as ParsedChoice;
-    const valueField =
-      typeof itemObj.value === "string" ? itemObj.value.trim() : "";
-    const defaultLabel = resolveDefaultLabel(itemObj);
-    const labels =
-      itemObj.labels && typeof itemObj.labels === "object"
-        ? Object.fromEntries(
-            Object.entries(itemObj.labels)
-              .filter(([, text]) => typeof text === "string")
-              .map(([key, text]) => [key, (text as string).trim()]),
-          )
-        : undefined;
-
-    if (!valueField) {
-      const err = `Choice item ${index + 1}: value is required.`;
-      errors.push(err);
-      annotations.push(createAnnotation(err, row));
-    } else if (valueField.length > DATA_LIST_ITEM_MAX_LENGTH) {
-      const err = `Choice item ${index + 1}: value exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`;
+    for (const err of result.errors) {
       errors.push(err);
       annotations.push(createAnnotation(err, row));
     }
 
-    if (!defaultLabel) {
-      const err = `Choice item ${index + 1}: label is required (or labels.default).`;
-      errors.push(err);
-      annotations.push(createAnnotation(err, row));
-    } else if (defaultLabel.length > DATA_LIST_ITEM_MAX_LENGTH) {
-      const err = `Choice item ${index + 1}: label exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`;
-      errors.push(err);
-      annotations.push(createAnnotation(err, row));
-    }
-
-    if (labels) {
-      for (const [key, text] of Object.entries(labels)) {
-        if (
-          !isValidCultureCode(key) &&
-          key.toLowerCase() !== DEFAULT_LABEL_KEY
-        ) {
-          const err = `Choice item ${index + 1}: locale '${key}' is not a valid culture code.`;
-          errors.push(err);
-          annotations.push(createAnnotation(err, row));
-        }
-        if (text.length > DATA_LIST_ITEM_MAX_LENGTH) {
-          const err = `Choice item ${index + 1}: labels.${key} exceeds ${DATA_LIST_ITEM_MAX_LENGTH} characters.`;
-          errors.push(err);
-          annotations.push(createAnnotation(err, row));
-        }
-      }
-    }
-
-    if (valueField) {
-      if (seenValues.has(valueField)) {
-        const err = `Choice item ${index + 1}: value must be unique.`;
-        errors.push(err);
-        annotations.push(createAnnotation(err, row));
-      } else {
-        seenValues.add(valueField);
-      }
-    }
-
-    const itemErrors = errors.filter((e) =>
-      e.includes(`Choice item ${index + 1}`),
-    );
-    if (valueField && defaultLabel && itemErrors.length === 0) {
-      const merged: Record<string, string> = { ...(labels ?? {}) };
-      if (!merged[DEFAULT_LABEL_KEY]) {
-        merged[DEFAULT_LABEL_KEY] = defaultLabel;
-      }
-      validItems.push({ value: valueField, labels: merged });
+    if (result.item) {
+      validItems.push(result.item);
     }
   });
 
@@ -189,7 +246,7 @@ export function discoverLocalesFromJsonItems(
   items: DataListChoiceItem[],
   options: LocaleDiscoveryOptions,
 ): LocaleImportDiscovery {
-  const keys = new Set<string>([DEFAULT_LABEL_KEY]);
+  const keys = new Set<string>([DEFAULT_CATALOG_LOCALE]);
   for (const item of items) {
     if (item.labels) {
       for (const key of Object.keys(item.labels)) {
@@ -226,9 +283,9 @@ export function filterJsonItemsByLocales(
   const included = new Set(
     includedLocales.map((locale) => locale.trim().toLowerCase()),
   );
-  included.add(DEFAULT_LABEL_KEY);
+  included.add(DEFAULT_CATALOG_LOCALE);
 
-  const defaultCulture = defaultLocale?.trim().toLowerCase();
+  const defaultCulture = normalizeOptionalCultureTag(defaultLocale);
 
   return items.map((item) => {
     const labels: Record<string, string> = {};
@@ -240,11 +297,8 @@ export function filterJsonItemsByLocales(
         continue;
       }
 
-      if (
-        key === DEFAULT_LABEL_KEY ||
-        (defaultCulture && key === defaultCulture)
-      ) {
-        labels[DEFAULT_LABEL_KEY] = text;
+      if (isCatalogDefaultLocaleKey(key, defaultCulture)) {
+        labels[DEFAULT_CATALOG_LOCALE] = text;
         continue;
       }
 

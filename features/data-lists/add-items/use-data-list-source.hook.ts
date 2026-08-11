@@ -42,7 +42,7 @@ export interface UseDataListSourceReturn extends JsonFileHandlerState {
   activeError: ErrorPointer | null;
   setJsonInput: (value: string) => void;
   setValidationError: (error: string | null) => void;
-  handleFileSelected: (file: File | null) => void;
+  handleFileSelected: (file: File | null) => Promise<void>;
   handleErrorClick: (error: ErrorPointer) => void;
   reset: () => void;
 }
@@ -64,11 +64,11 @@ export function useDataListSource(
   const maxFileSize = options.maxFileSizeBytes ?? MAX_FILE_SIZE_BYTES;
   const defaultLocale = options.defaultLocale;
 
-  const [format, setFormatState] = useState<DataListSourceFormat>(
+  const [format, setFormat] = useState<DataListSourceFormat>(
     options.initialFormat ?? "json",
   );
   const [jsonInput, setJsonInput] = useState<string>(initialState.jsonInput);
-  const [csvInput, setCsvInputState] = useState<string>("");
+  const [csvInput, setCsvInput] = useState<string>("");
   const [validationError, setValidationError] = useState<string | null>(
     initialState.validationError,
   );
@@ -117,27 +117,27 @@ export function useDataListSource(
     return jsonInput.trim().length > 0;
   }, [csvInput, format, jsonInput]);
 
-  const setJsonInputInternal = useCallback((value: string) => {
+  const applyJsonInput = useCallback((value: string) => {
     setJsonInput(value);
     setActiveError(null);
   }, []);
 
-  const setCsvInput = useCallback((value: string) => {
-    setCsvInputState(value);
+  const applyCsvInput = useCallback((value: string) => {
+    setCsvInput(value);
     setActiveError(null);
   }, []);
 
-  const setFormat = useCallback((next: DataListSourceFormat) => {
-    setFormatState(next);
+  const applyFormat = useCallback((next: DataListSourceFormat) => {
+    setFormat(next);
     setSelectedFileName(null);
     setValidationError(null);
     setActiveError(null);
   }, []);
 
   const reset = useCallback(() => {
-    setFormatState(options.initialFormat ?? "json");
+    setFormat(options.initialFormat ?? "json");
     setJsonInput(initialState.jsonInput);
-    setCsvInputState("");
+    setCsvInput("");
     setValidationError(initialState.validationError);
     setSelectedFileName(initialState.selectedFileName);
     setActiveError(null);
@@ -155,7 +155,7 @@ export function useDataListSource(
 
       if (file.size > maxFileSize) {
         setJsonInput(initialState.jsonInput);
-        setCsvInputState("");
+        setCsvInput("");
         setValidationError(FILE_SIZE_ERROR);
         setSelectedFileName(file.name);
         return;
@@ -174,15 +174,15 @@ export function useDataListSource(
           file.type === "application/vnd.ms-excel";
 
         if (inferredCsv || format === "csv") {
-          setFormatState("csv");
-          setCsvInputState(content);
+          setFormat("csv");
+          setCsvInput(content);
           setJsonInput("");
           return;
         }
 
-        setFormatState("json");
+        setFormat("json");
         setJsonInput(content);
-        setCsvInputState("");
+        setCsvInput("");
       } catch {
         setValidationError(READ_ERROR);
       }
@@ -192,10 +192,10 @@ export function useDataListSource(
 
   return {
     format,
-    setFormat,
+    setFormat: applyFormat,
     jsonInput,
     csvInput,
-    setCsvInput,
+    setCsvInput: applyCsvInput,
     validation,
     csvDiscovery,
     canConfirm,
@@ -203,7 +203,7 @@ export function useDataListSource(
     validationError,
     selectedFileName,
     activeError,
-    setJsonInput: setJsonInputInternal,
+    setJsonInput: applyJsonInput,
     setValidationError,
     handleFileSelected,
     handleErrorClick,

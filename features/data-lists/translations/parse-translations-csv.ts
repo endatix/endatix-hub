@@ -1,9 +1,11 @@
+import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import {
-  DEFAULT_LABEL_KEY,
   DATA_LIST_MAX_CSV_CHARS,
   DATA_LIST_MAX_ITEMS,
   discoverLocalesFromKeys,
+  isCatalogDefaultLocaleKey,
   normalizeCultureCode,
+  normalizeOptionalCultureTag,
   type LocaleDiscoveryOptions,
   type LocaleImportDiscovery,
 } from "./locale-discovery";
@@ -53,7 +55,7 @@ export function discoverLocalesFromTranslationsCsv(
   const localeColumns = header.slice(1);
   if (
     !localeColumns.some(
-      (column) => column.toLowerCase() === DEFAULT_LABEL_KEY,
+      (column) => column.toLowerCase() === DEFAULT_CATALOG_LOCALE,
     ) &&
     !(
       options.defaultLocale &&
@@ -63,7 +65,7 @@ export function discoverLocalesFromTranslationsCsv(
       )
     )
   ) {
-    structuralErrors.push(`A '${DEFAULT_LABEL_KEY}' column is required.`);
+    structuralErrors.push(`A '${DEFAULT_CATALOG_LOCALE}' column is required.`);
   }
 
   const dataRows = records
@@ -109,8 +111,9 @@ export function filterTranslationsCsv(
   const included = new Set(
     includedLocales.map((locale) => locale.trim().toLowerCase()),
   );
-  included.add(DEFAULT_LABEL_KEY);
+  included.add(DEFAULT_CATALOG_LOCALE);
 
+  const defaultCulture = normalizeOptionalCultureTag(defaultLocale);
   const header = records[0];
   const keepIndexes: number[] = [0];
 
@@ -123,12 +126,7 @@ export function filterTranslationsCsv(
       continue;
     }
 
-    if (
-      key === DEFAULT_LABEL_KEY ||
-      (defaultLocale &&
-        key === defaultLocale.trim().toLowerCase() &&
-        included.has(DEFAULT_LABEL_KEY))
-    ) {
+    if (isCatalogDefaultLocaleKey(key, defaultCulture)) {
       keepIndexes.push(i);
       continue;
     }
@@ -152,76 +150,103 @@ export function readCsvRecords(csv: string): string[][] {
   }
 
   const content = csv.replace(/^\uFEFF/, "");
-  let fields: string[] = [];
-  let field = "";
-  let inQuotes = false;
-  let fieldWasQuoted = false;
+  const state: CsvParseState = {
+    fields: [],
+    field: "",
+    inQuotes: false,
+    fieldWasQuoted: false,
+  };
 
   const completeRecord = (): void => {
     const isBlank =
-      fields.length === 0 && field.length === 0 && !fieldWasQuoted;
+      state.fields.length === 0 &&
+      state.field.length === 0 &&
+      !state.fieldWasQuoted;
     if (isBlank) {
       return;
     }
 
-    fields.push(field);
-    field = "";
-    records.push(fields);
-    fields = [];
-    fieldWasQuoted = false;
+    state.fields.push(state.field);
+    state.field = "";
+    records.push(state.fields);
+    state.fields = [];
+    state.fieldWasQuoted = false;
   };
 
   for (let i = 0; i < content.length; i++) {
-    const current = content[i];
-
-    if (inQuotes) {
-      if (current !== '"') {
-        field += current;
-        continue;
-      }
-
-      if (i + 1 < content.length && content[i + 1] === '"') {
-        field += '"';
-        i++;
-        continue;
-      }
-
-      inQuotes = false;
+    if (state.inQuotes) {
+      i = appendInsideQuotes(state, content, i);
       continue;
     }
 
-    switch (current) {
-      case '"':
-        if (field.length > 0) {
-          throw new Error(
-            "A quoted CSV field cannot start after unquoted content.",
-          );
-        }
-        inQuotes = true;
-        fieldWasQuoted = true;
-        break;
-      case ",":
-        fields.push(field);
-        field = "";
-        fieldWasQuoted = false;
-        break;
-      case "\r":
-        break;
-      case "\n":
-        completeRecord();
-        break;
-      default:
-        field += current;
-        break;
-    }
+    appendOutsideQuotes(state, content[i], completeRecord);
   }
 
-  if (inQuotes) {
+  if (state.inQuotes) {
     throw new Error("The CSV ends inside a quoted field.");
   }
 
   completeRecord();
   return records;
+}
+
+type CsvParseState = {
+  fields: string[];
+  field: string;
+  inQuotes: boolean;
+  fieldWasQuoted: boolean;
+};
+
+/** Handles one character while inside a quoted field; returns the next index. */
+function appendInsideQuotes(
+  state: CsvParseState,
+  content: string,
+  index: number,
+): number {
+  const current = content[index];
+  if (current !== '"') {
+    state.field += current;
+    return index;
+  }
+
+  if (index + 1 < content.length && content[index + 1] === '"') {
+    state.field += '"';
+    return index + 1;
+  }
+
+  state.inQuotes = false;
+  return index;
+}
+
+function appendOutsideQuotes(
+  state: CsvParseState,
+  current: string,
+  completeRecord: () => void,
+): void {
+  switch (current) {
+    case '"':
+      if (state.field.length > 0) {
+        throw new Error(
+          "A quoted CSV field cannot start after unquoted content.",
+        );
+      }
+      state.inQuotes = true;
+      state.fieldWasQuoted = true;
+      break;
+    case ",":
+      state.fields.push(state.field);
+      state.field = "";
+      state.fieldWasQuoted = false;
+      break;
+    case "\r":
+      break;
+    case "\n":
+      completeRecord();
+      break;
+    default:
+      state.field += current;
+      break;
+  }
 }
 
 function escapeCsvField(field: string): string {

@@ -380,7 +380,7 @@ Use `lib/localization` for **cross-feature multi-lingual infrastructure**, organ
 
 | Slice | Responsibility |
 | --- | --- |
-| `catalog/` | SurveyJS ↔ owned catalog vocabulary (`default` ↔ `""` / runtime default code), `toCatalogLocales`, display names |
+| `catalog/` | SurveyJS ↔ owned catalog vocabulary (`default` ↔ `""` / runtime default code), culture-code normalize/validate, `toCatalogLocales`, display names |
 | `submission-locale/` | Submission metadata language helpers shared by submissions UI and pdf-export |
 | `routing/` (future) | Locale-prefixed Hub routes / middleware |
 | `messages/` (future) | Hub UI copy catalogs (e.g. next-intl) |

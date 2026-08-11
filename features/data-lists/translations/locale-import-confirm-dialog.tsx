@@ -11,12 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import { useEffect, useMemo, useState } from "react";
 import {
   DATA_LIST_MAX_ITEMS,
   DATA_LIST_MAX_LABEL_LENGTH,
   DATA_LIST_MAX_LOCALES,
-  DEFAULT_LABEL_KEY,
   buildDefaultLocaleSelection,
   formatLocaleLabel,
   resolveLocaleImportSelection,
@@ -69,7 +69,7 @@ export function LocaleImportConfirmDialog({
     discovery.invalidLocales.length === 0 &&
     discovery.structuralErrors.length === 0 &&
     selectionErrors.length === 0 &&
-    selection.includedLocales.includes(DEFAULT_LABEL_KEY);
+    selection.includedLocales.includes(DEFAULT_CATALOG_LOCALE);
 
   const selectableColumns = useMemo(() => {
     if (!discovery) {
@@ -187,7 +187,7 @@ export function LocaleImportConfirmDialog({
                         />
                         <div className="space-y-0.5">
                           <Label htmlFor={`locale-column-${column.key}`}>
-                            {column.key === DEFAULT_LABEL_KEY
+                            {column.key === DEFAULT_CATALOG_LOCALE
                               ? "default"
                               : formatLocaleLabel(column.key)}
                           </Label>

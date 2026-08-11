@@ -1,10 +1,19 @@
 import "survey-core/i18n";
 import { surveyLocalization } from "survey-core";
+import {
+  DEFAULT_CATALOG_LOCALE,
+  isCatalogDefaultLocaleKey,
+  isValidCultureCode,
+  normalizeCultureCode,
+  normalizeOptionalCultureTag,
+} from "@/lib/localization";
 
-export const DEFAULT_LABEL_KEY = "default";
-
-/** Matches Endatix.Core TranslationCultureNormalizer (lowercase BCP-47-shaped). */
-const CULTURE_CODE_PATTERN = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/;
+export {
+  isValidCultureCode,
+  normalizeCultureCode,
+  normalizeOptionalCultureTag,
+  isCatalogDefaultLocaleKey,
+} from "@/lib/localization";
 
 export const DATA_LIST_MAX_ITEMS = 5_000;
 export const DATA_LIST_MAX_LOCALES = 20;
@@ -48,39 +57,12 @@ export type LocaleImportSelection = {
   includedLocales: string[];
 };
 
-export function isValidCultureCode(code: string): boolean {
-  const trimmed = code.trim();
-  if (!trimmed) {
-    return false;
-  }
-
-  if (trimmed.toLowerCase() === DEFAULT_LABEL_KEY) {
-    return true;
-  }
-
-  return CULTURE_CODE_PATTERN.test(trimmed.toLowerCase());
-}
-
-export function normalizeCultureCode(code: string): string {
-  const trimmed = code.trim();
-  if (trimmed.toLowerCase() === DEFAULT_LABEL_KEY) {
-    return DEFAULT_LABEL_KEY;
-  }
-
-  const normalized = trimmed.toLowerCase();
-  if (!CULTURE_CODE_PATTERN.test(normalized)) {
-    throw new Error(`'${code}' is not a valid culture code.`);
-  }
-
-  return normalized;
-}
-
 /**
  * Friendly label for UI via SurveyJS `surveyLocalization`.
  * Validation/normalize stay API-aligned; this is display-only.
  */
 export function formatLocaleLabel(key: string): string {
-  if (key === DEFAULT_LABEL_KEY) {
+  if (key === DEFAULT_CATALOG_LOCALE) {
     return "default";
   }
 
@@ -123,20 +105,17 @@ function isCatalogLocale(
   key: string,
   options: LocaleDiscoveryOptions,
 ): boolean {
-  if (key === DEFAULT_LABEL_KEY) {
+  if (isCatalogDefaultLocaleKey(key, options.defaultLocale)) {
     return true;
   }
 
-  if (
-    options.defaultLocale &&
-    key === options.defaultLocale.trim().toLowerCase()
-  ) {
-    return true;
-  }
-
-  return options.availableLocales.some(
-    (locale) => locale.trim().toLowerCase() === key,
+  const available = new Set(
+    options.availableLocales
+      .map((locale) => normalizeOptionalCultureTag(locale))
+      .filter((locale): locale is string => locale != null),
   );
+
+  return available.has(key);
 }
 
 export function discoverLocalesFromKeys(
@@ -173,14 +152,13 @@ export function discoverLocalesFromKeys(
       continue;
     }
 
-    const mapsToDefault =
-      normalized === DEFAULT_LABEL_KEY ||
-      (options.defaultLocale != null &&
-        normalized === options.defaultLocale.trim().toLowerCase());
-
-    if (mapsToDefault) {
-      columns.push({ raw: trimmed, key: DEFAULT_LABEL_KEY, kind: "default" });
-      existing.add(DEFAULT_LABEL_KEY);
+    if (isCatalogDefaultLocaleKey(normalized, options.defaultLocale)) {
+      columns.push({
+        raw: trimmed,
+        key: DEFAULT_CATALOG_LOCALE,
+        kind: "default",
+      });
+      existing.add(DEFAULT_CATALOG_LOCALE);
       continue;
     }
 
@@ -233,7 +211,7 @@ export function resolveLocaleImportSelection(
     }
 
     if (column.kind === "default") {
-      included.add(DEFAULT_LABEL_KEY);
+      included.add(DEFAULT_CATALOG_LOCALE);
       continue;
     }
 
@@ -242,7 +220,7 @@ export function resolveLocaleImportSelection(
     }
   }
 
-  if (!included.has(DEFAULT_LABEL_KEY)) {
+  if (!included.has(DEFAULT_CATALOG_LOCALE)) {
     errors.push("The default locale column is required.");
   }
 

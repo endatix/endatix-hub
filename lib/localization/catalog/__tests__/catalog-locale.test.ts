@@ -6,6 +6,12 @@ import {
   toCatalogLocales,
   toSurveyModelLocale,
 } from "../catalog-locale";
+import {
+  isCatalogDefaultLocaleKey,
+  isValidCultureCode,
+  normalizeCultureCode,
+  normalizeOptionalCultureTag,
+} from "../culture-code";
 
 describe("catalog-locale", () => {
   it("maps catalog default to empty survey model locale and back", () => {
@@ -26,5 +32,28 @@ describe("catalog-locale", () => {
   it("normalizes getUsedLocales-style lists to catalog codes", () => {
     expect(toCatalogLocales(["en", "bg", "en"])).toEqual(["default", "bg"]);
     expect(toCatalogLocales(["bg", "default"])).toEqual(["bg", "default"]);
+  });
+});
+
+describe("culture-code", () => {
+  it("normalizes optional culture tags", () => {
+    expect(normalizeOptionalCultureTag(undefined)).toBeUndefined();
+    expect(normalizeOptionalCultureTag("  ")).toBeUndefined();
+    expect(normalizeOptionalCultureTag(" EN-US ")).toBe("en-us");
+  });
+
+  it("validates and normalizes culture codes", () => {
+    expect(isValidCultureCode("en-US")).toBe(true);
+    expect(isValidCultureCode("!!!")).toBe(false);
+    expect(normalizeCultureCode("en-US")).toBe("en-us");
+    expect(normalizeCultureCode("default")).toBe(DEFAULT_CATALOG_LOCALE);
+  });
+
+  it("maps default label and catalog default culture to default key", () => {
+    expect(isCatalogDefaultLocaleKey("default")).toBe(true);
+    expect(isCatalogDefaultLocaleKey("en", "en")).toBe(true);
+    expect(isCatalogDefaultLocaleKey("en", " EN ")).toBe(true);
+    expect(isCatalogDefaultLocaleKey("bg", "en")).toBe(false);
+    expect(isCatalogDefaultLocaleKey("en")).toBe(false);
   });
 });

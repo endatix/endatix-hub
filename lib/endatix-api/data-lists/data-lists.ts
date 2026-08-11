@@ -22,7 +22,7 @@ export type DataListsPage = NormalizedPagedResponse<DataList>;
 
 const DATA_LISTS_BASE = "/data-lists";
 const DATA_LIST_ID_PARAM = "dataListId";
-const CONTENT_DISPOSITION_FILENAME = /filename=\"?([^\";]+)\"?/i;
+const CONTENT_DISPOSITION_FILENAME = /filename="?([^";]+)"?/i;
 
 function dataListCollectionPath(query?: string): string {
   return query ? `${DATA_LISTS_BASE}?${query}` : DATA_LISTS_BASE;
