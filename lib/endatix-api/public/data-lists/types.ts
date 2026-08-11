@@ -1,6 +1,7 @@
 export interface DataListChoiceItem {
-  label: string;
   value: string;
+  /** Localized labels map (always includes `default`). Mapped to SurveyJS `text` in Hub. */
+  labels: Record<string, string>;
 }
 
 export interface DataListPublicSearchResult {
@@ -24,15 +25,19 @@ export interface PublicDataListSearchRequest {
   formAccessJwt?: string;
   query?: string;
   /**
-   * Comparison used for query against the resolved label key (not Value).
+   * Comparison used for query against Value and label keys.
    * Omit for API default (Contains).
    */
   matchMode?: DataListSearchMatchMode;
   /**
-   * Optional locale for which label key to search.
-   * Omitted / default / list default culture → Labels.default; catalog locale (e.g. es) → that key.
+   * Optional locale for which single label key to prefer when includeLocales is omitted.
    */
   locale?: string;
+  /**
+   * Locales to include in labels projection and multi-key search.
+   * Sent as repeated includeLocales query params.
+   */
+  includeLocales?: string[];
   skip?: number;
   take?: number;
 }
@@ -46,4 +51,7 @@ export interface PublicDataListDisplayValuesRequest {
   formAccessJwt?: string;
   /** The values to get display values for. */
   values: string[];
+  /** Optional locales for labels projection on display-values. */
+  includeLocales?: string[];
+  locale?: string;
 }

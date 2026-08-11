@@ -5,6 +5,7 @@ import {
   formatChoiceDisplay,
   resolveChoiceLabelForQuestion,
 } from "@/features/pdf-export/submission/format-choice-display";
+import { clearDataListDisplayValuesCacheForTests } from "../../use-cases/resolve-data-list-display-values";
 
 const { mockAuth, mockCreateFormAccessToken } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
@@ -45,6 +46,7 @@ import { primeDataListDisplayValues } from "../prime-data-list-display-values";
 describe("primeDataListDisplayValues", () => {
   beforeEach(() => {
     registerDataListGlobals();
+    clearDataListDisplayValuesCacheForTests();
     vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "hub-token" });
     mockCreateFormAccessToken.mockResolvedValue({
@@ -53,7 +55,7 @@ describe("primeDataListDisplayValues", () => {
     });
     mockGetDisplayValues.mockResolvedValue({
       success: true,
-      data: [{ value: "us", label: "United States" }],
+      data: [{ value: "us", labels: { default: "United States" } }],
     });
   });
 
@@ -84,6 +86,7 @@ describe("primeDataListDisplayValues", () => {
       dataListId: "42",
       formAccessJwt: "form-jwt",
       values: ["us"],
+      includeLocales: ["default"],
     });
     expect(question.choicesLazyLoadEnabled).toBe(false);
     expect(resolveChoiceLabelForQuestion(question)).toBe("United States");
@@ -98,7 +101,7 @@ describe("primeDataListDisplayValues", () => {
   it("resolves lazy-load dropdown with numeric stored values", async () => {
     mockGetDisplayValues.mockResolvedValue({
       success: true,
-      data: [{ value: "18", label: "Option Eighteen" }],
+      data: [{ value: "18", labels: { default: "Option Eighteen" } }],
     });
 
     const model = new Model({

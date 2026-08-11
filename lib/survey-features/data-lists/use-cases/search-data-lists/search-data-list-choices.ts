@@ -4,6 +4,7 @@ import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import type { DataListChoiceItem, DataListChoicePageParams } from "../../types";
 import { withFormAccessJwtRetry } from "../../utils/with-form-access-jwt-retry";
+import { mapPublicChoiceToSurveyItem } from "./map-public-choice";
 import { mapSurveySearchModeToMatchMode } from "./map-survey-search-mode";
 
 export async function searchDataListChoices(
@@ -25,6 +26,7 @@ export async function searchDataListChoices(
       query: params.filter,
       matchMode: mapSurveySearchModeToMatchMode(params.searchMode),
       locale: params.locale,
+      includeLocales: params.includeLocales,
       skip: params.skip,
       take: params.take,
     }),
@@ -35,10 +37,7 @@ export async function searchDataListChoices(
   }
 
   return ApiResult.success({
-    items: response.data.items.map((item) => ({
-      value: item.value,
-      text: item.label,
-    })),
+    items: response.data.items.map(mapPublicChoiceToSurveyItem),
     total: response.data.totalRecords,
   });
 }

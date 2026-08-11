@@ -1,7 +1,11 @@
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
 import type { Model, SurveyModel } from "survey-core";
 
-export type DataListChoiceItem = { value: string; text: string };
+export type DataListChoiceItem = {
+  value: string;
+  /** Plain string or SurveyJS nested locale map. */
+  text: string | Record<string, string>;
+};
 
 /** SurveyJS dropdown/tagbox searchMode values. */
 export type SurveySearchMode = "contains" | "startsWith";
@@ -12,6 +16,8 @@ export type DataListChoicePageParams = {
   searchMode?: SurveySearchMode;
   /** Survey locale used to select Labels.default vs a catalog key (e.g. es). */
   locale?: string;
+  /** Locales to request for labels projection / multi-key search. */
+  includeLocales?: string[];
   skip: number;
   take: number;
 };

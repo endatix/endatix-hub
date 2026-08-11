@@ -39,7 +39,10 @@ describe("validateJsonInput", () => {
     );
 
     expect(result.validItems).toHaveLength(1);
-    expect(result.validItems[0]).toEqual({ label: "Option 1", value: "opt1" });
+    expect(result.validItems[0]).toEqual({
+      value: "opt1",
+      labels: { default: "Option 1" },
+    });
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("label is required");
 
@@ -63,8 +66,8 @@ describe("validateJsonInput", () => {
       `[{"label": "${longLabel}", "value": "a"}]`,
     );
 
-    expect(result.errors.some((e) => e.includes("exceeds 255"))).toBe(true);
-    expect(result.annotations.some((a) => a.text.includes("exceeds 255"))).toBe(
+    expect(result.errors.some((e) => e.includes("exceeds 100"))).toBe(true);
+    expect(result.annotations.some((a) => a.text.includes("exceeds 100"))).toBe(
       true,
     );
   });
@@ -163,13 +166,17 @@ describe("validateJsonInput", () => {
     );
 
     expect(result.validItems).toHaveLength(2);
-    expect(result.validItems[0].label).toBe("foo");
-    expect(result.validItems[1].label).toBe("bar");
+    expect(result.validItems[0].labels.default).toBe("foo");
+    expect(result.validItems[1].labels.default).toBe("bar");
 
     expect(result.errors).toHaveLength(6);
     expect(result.errors.some((e) => e.includes("cannot be null"))).toBe(true);
-    expect(result.errors.some((e) => e.includes("label is required"))).toBe(true);
-    expect(result.errors.some((e) => e.includes("value is required"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("label is required"))).toBe(
+      true,
+    );
+    expect(result.errors.some((e) => e.includes("value is required"))).toBe(
+      true,
+    );
     expect(result.errors.some((e) => e.includes("must be unique"))).toBe(true);
   });
 });

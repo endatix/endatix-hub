@@ -80,12 +80,76 @@ describe("PublicDataListsClient", () => {
     );
   });
 
+  it("sends includeLocales as repeated query params", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          page: 1,
+          pageSize: 25,
+          totalRecords: 0,
+          totalPages: 0,
+          items: [],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createPublicDataListsClient({
+      baseUrl: "https://api.example.com",
+    });
+    const result = await client.search({
+      formId: "101",
+      dataListId: "12",
+      includeLocales: ["default", "es"],
+      formAccessJwt: "form-access-jwt",
+    });
+
+    expect(result.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/public/forms/101/data-lists/12/search?skip=0&take=25&includeLocales=default&includeLocales=es",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("sends includeLocales on display-values", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            value: "apple",
+            labels: { default: "Apple", es: "Manzana" },
+          },
+        ]),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createPublicDataListsClient({
+      baseUrl: "https://api.example.com",
+    });
+    const result = await client.getDisplayValues({
+      formId: "101",
+      dataListId: "12",
+      values: ["apple"],
+      includeLocales: ["default", "es"],
+      formAccessJwt: "jwt-1",
+    });
+
+    expect(result.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/public/forms/101/data-lists/12/display-values?values=apple&includeLocales=default&includeLocales=es",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("builds display-values request with repeated values and Bearer JWT", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify([
-          { label: "Bulgaria", value: "BG" },
-          { label: "United States", value: "US" },
+          { value: "BG", labels: { default: "Bulgaria" } },
+          { value: "US", labels: { default: "United States" } },
         ]),
         { status: 200, headers: { "content-type": "application/json" } },
       ),

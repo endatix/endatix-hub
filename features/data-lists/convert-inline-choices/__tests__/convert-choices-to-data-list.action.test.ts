@@ -31,7 +31,7 @@ describe("convertChoicesToDataListAction", () => {
 
     const result = await convertChoicesToDataListAction({
       name: "List",
-      items: [{ label: "A", value: "a" }],
+      items: [{ value: "a", labels: { default: "A" } }],
     });
 
     expect(Result.isError(result)).toBe(true);
@@ -55,7 +55,7 @@ describe("convertChoicesToDataListAction", () => {
 
     const result = await convertChoicesToDataListAction({
       name: "List",
-      items: [{ label: "A", value: "a" }],
+      items: [{ value: "a", labels: { default: "A" } }],
     });
 
     expect(Result.isError(result)).toBe(true);
@@ -77,7 +77,7 @@ describe("convertChoicesToDataListAction", () => {
 
     const result = await convertChoicesToDataListAction({
       name: "List",
-      items: [{ label: "A", value: "a" }],
+      items: [{ value: "a", labels: { default: "A" } }],
     });
 
     expect(Result.isSuccess(result)).toBe(true);
@@ -85,7 +85,7 @@ describe("convertChoicesToDataListAction", () => {
       expect(result.value.dataList.id).toBe("dl-1");
     }
     expect(mockReplace).toHaveBeenCalledWith("dl-1", [
-      { label: "A", value: "a" },
+      { value: "a", labels: { default: "A" } },
     ]);
     expect(mockDelete).not.toHaveBeenCalled();
   });
