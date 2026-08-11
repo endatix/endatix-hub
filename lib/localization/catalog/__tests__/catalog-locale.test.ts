@@ -13,6 +13,7 @@ import {
   normalizeCultureCodes,
   normalizeOptionalCultureTag,
   resolveCatalogDefaultLabelText,
+  toCatalogLocaleKey,
   tryNormalizeCultureCode,
 } from "../culture-code";
 
@@ -58,6 +59,8 @@ describe("culture-code", () => {
     expect(isCatalogDefaultLocaleKey("en", " EN ")).toBe(true);
     expect(isCatalogDefaultLocaleKey("bg", "en")).toBe(false);
     expect(isCatalogDefaultLocaleKey("en")).toBe(false);
+    expect(toCatalogLocaleKey("en", "en")).toBe(DEFAULT_CATALOG_LOCALE);
+    expect(toCatalogLocaleKey("es", "en")).toBe("es");
   });
 
   it("resolves catalog default label text from default or culture alias", () => {

@@ -10,6 +10,7 @@ export {
   normalizeOptionalCultureTag,
   resolveCatalogDefaultLabelText,
   surveyJsDefaultLocaleCode,
+  toCatalogLocaleKey,
   toCatalogLocales,
   toSurveyModelLocale,
   tryNormalizeCultureCode,

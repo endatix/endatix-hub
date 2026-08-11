@@ -1,11 +1,12 @@
 import { DataListChoiceItem } from "@/lib/endatix-api";
 import {
   DEFAULT_CATALOG_LOCALE,
-  isCatalogDefaultLocaleKey,
   isValidCultureCode,
   normalizeCultureCode,
   normalizeOptionalCultureTag,
   resolveCatalogDefaultLabelText,
+  toCatalogLocaleKey,
+  tryNormalizeCultureCode,
 } from "@/lib/localization";
 import { DATA_LIST_ITEM_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
 import {
@@ -152,11 +153,10 @@ function toNormalizedChoiceItem(
   const merged: Record<string, string> = {};
   if (labels) {
     for (const [rawKey, text] of Object.entries(labels)) {
-      const key = normalizeCultureCode(rawKey);
-      if (isCatalogDefaultLocaleKey(key, defaultLocale)) {
-        merged[DEFAULT_CATALOG_LOCALE] = text;
-        continue;
-      }
+      const key = toCatalogLocaleKey(
+        normalizeCultureCode(rawKey),
+        defaultLocale,
+      );
       merged[key] = text;
     }
   }
@@ -323,14 +323,13 @@ export function filterJsonItemsByLocales(
   return items.map((item) => {
     const labels: Record<string, string> = {};
     for (const [rawKey, text] of Object.entries(item.labels)) {
-      let key: string;
-      try {
-        key = normalizeCultureCode(rawKey);
-      } catch {
+      const key = tryNormalizeCultureCode(rawKey);
+      if (key === null) {
         continue;
       }
 
-      if (isCatalogDefaultLocaleKey(key, defaultCulture)) {
+      const catalogKey = toCatalogLocaleKey(key, defaultCulture);
+      if (catalogKey === DEFAULT_CATALOG_LOCALE) {
         labels[DEFAULT_CATALOG_LOCALE] = text;
         continue;
       }

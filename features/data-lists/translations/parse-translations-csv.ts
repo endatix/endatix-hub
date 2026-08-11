@@ -3,9 +3,9 @@ import {
   DATA_LIST_MAX_CSV_CHARS,
   DATA_LIST_MAX_ITEMS,
   discoverLocalesFromKeys,
-  isCatalogDefaultLocaleKey,
-  normalizeCultureCode,
   normalizeOptionalCultureTag,
+  toCatalogLocaleKey,
+  tryNormalizeCultureCode,
   type LocaleDiscoveryOptions,
   type LocaleImportDiscovery,
 } from "./locale-discovery";
@@ -120,17 +120,12 @@ export function filterTranslationsCsv(
 
   for (let i = 1; i < header.length; i++) {
     const raw = header[i].trim();
-    let key: string;
-    try {
-      key = normalizeCultureCode(raw);
-    } catch {
+    const key = tryNormalizeCultureCode(raw);
+    if (key === null) {
       continue;
     }
 
-    const canonicalKey = isCatalogDefaultLocaleKey(key, defaultCulture)
-      ? DEFAULT_CATALOG_LOCALE
-      : key;
-
+    const canonicalKey = toCatalogLocaleKey(key, defaultCulture);
     if (seenCanonicalKeys.has(canonicalKey)) {
       continue;
     }

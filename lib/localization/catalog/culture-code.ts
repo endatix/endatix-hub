@@ -99,6 +99,19 @@ export function isCatalogDefaultLocaleKey(
 }
 
 /**
+ * Maps a normalized culture code to the owned catalog key (`default` when it
+ * aliases the configured default locale; otherwise the culture code itself).
+ */
+export function toCatalogLocaleKey(
+  normalizedCulture: string,
+  defaultLocale?: string | null,
+): string {
+  return isCatalogDefaultLocaleKey(normalizedCulture, defaultLocale)
+    ? DEFAULT_CATALOG_LOCALE
+    : normalizedCulture;
+}
+
+/**
  * Reads the catalog-default label text from a labels map.
  * Prefers `labels.default`, then a culture key that aliases to the configured
  * default locale (e.g. `labels.en` when `defaultLocale` is `en`).

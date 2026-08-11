@@ -20,6 +20,8 @@ import {
   buildDefaultLocaleSelection,
   formatLocaleLabel,
   resolveLocaleImportSelection,
+  type LocaleColumnDiscovery,
+  type LocaleColumnKind,
   type LocaleImportDiscovery,
   type LocaleImportSelection,
 } from "./locale-discovery";
@@ -36,6 +38,44 @@ export type LocaleImportConfirmDialogProps = {
   onConfirm: (selection: LocaleImportSelection) => void;
 };
 
+const MODE_COPY = {
+  create: {
+    description:
+      "Review locale columns to import. New locales can still be turned off before the list is created.",
+    rowOutcome: "will become the items in the new list.",
+  },
+  replace: {
+    description:
+      "Review locale columns to import. Existing catalog locales stay selected for now (removing them during upload can leave empty labels). New locales can still be turned off. This replaces the entire list.",
+    rowOutcome: "will replace existing items.",
+  },
+} as const;
+
+const COLUMN_KIND_HINT: Record<LocaleColumnKind, string> = {
+  default: "required",
+  existing: "already in catalog (required for now)",
+  new: "will be added to catalog",
+  invalid: "",
+};
+
+const EMPTY_SELECTION = {
+  selection: { ensureLocales: [], includedLocales: [] as string[] },
+  errors: [] as string[],
+};
+
+function uniqueSelectableColumns(
+  columns: LocaleColumnDiscovery[],
+): LocaleColumnDiscovery[] {
+  const seen = new Set<string>();
+  return columns.filter((column) => {
+    if (!column.key || column.kind === "invalid" || seen.has(column.key)) {
+      return false;
+    }
+    seen.add(column.key);
+    return true;
+  });
+}
+
 export function LocaleImportConfirmDialog({
   open,
   onOpenChange,
@@ -47,6 +87,7 @@ export function LocaleImportConfirmDialog({
   onConfirm,
 }: Readonly<LocaleImportConfirmDialogProps>) {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const copy = MODE_COPY[mode];
 
   useEffect(() => {
     setSelected(discovery ? buildDefaultLocaleSelection(discovery) : {});
@@ -54,10 +95,7 @@ export function LocaleImportConfirmDialog({
 
   const { selection, errors: selectionErrors } = useMemo(() => {
     if (!discovery) {
-      return {
-        selection: { ensureLocales: [], includedLocales: [] },
-        errors: [] as string[],
-      };
+      return EMPTY_SELECTION;
     }
 
     return resolveLocaleImportSelection(
@@ -74,34 +112,17 @@ export function LocaleImportConfirmDialog({
     selectionErrors.length === 0 &&
     selection.includedLocales.includes(DEFAULT_CATALOG_LOCALE);
 
-  const selectableColumns = useMemo(() => {
-    if (!discovery) {
-      return [];
-    }
-
-    const seen = new Set<string>();
-    const columns = [];
-    for (const column of discovery.columns) {
-      if (!column.key || column.kind === "invalid" || seen.has(column.key)) {
-        continue;
-      }
-      seen.add(column.key);
-      columns.push(column);
-    }
-    return columns;
-  }, [discovery]);
-
-  const description =
-    mode === "create"
-      ? "Review locale columns to import. New locales can still be turned off before the list is created."
-      : "Review locale columns to import. Existing catalog locales stay selected for now (removing them during upload can leave empty labels). New locales can still be turned off. This replaces the entire list.";
+  const selectableColumns = useMemo(
+    () => (discovery ? uniqueSelectableColumns(discovery.columns) : []),
+    [discovery],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
 
         {discovery ? (
@@ -124,10 +145,7 @@ export function LocaleImportConfirmDialog({
 
             <p>
               <span className="font-medium">{discovery.rowCount}</span> row
-              {discovery.rowCount === 1 ? "" : "s"}{" "}
-              {mode === "create"
-                ? "will become the items in the new list."
-                : "will replace existing items."}
+              {discovery.rowCount === 1 ? "" : "s"} {copy.rowOutcome}
             </p>
 
             {discovery.structuralErrors.length > 0 ? (
@@ -168,12 +186,6 @@ export function LocaleImportConfirmDialog({
                     const locked =
                       column.kind === "default" || column.kind === "existing";
                     const checked = locked || selected[column.key] !== false;
-                    let hint = "already in catalog (required for now)";
-                    if (column.kind === "default") {
-                      hint = "required";
-                    } else if (column.kind === "new") {
-                      hint = "will be added to catalog";
-                    }
 
                     return (
                       <li key={column.key} className="flex items-start gap-2">
@@ -182,9 +194,6 @@ export function LocaleImportConfirmDialog({
                           checked={checked}
                           disabled={isPending || locked}
                           onCheckedChange={(value) => {
-                            if (locked) {
-                              return;
-                            }
                             setSelected((prev) => ({
                               ...prev,
                               [column.key]: value === true,
@@ -198,7 +207,7 @@ export function LocaleImportConfirmDialog({
                               : formatLocaleLabel(column.key)}
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            {hint}
+                            {COLUMN_KIND_HINT[column.kind]}
                           </p>
                         </div>
                       </li>

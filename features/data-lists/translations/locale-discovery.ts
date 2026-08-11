@@ -2,10 +2,9 @@ import "survey-core/i18n";
 import { surveyLocalization } from "survey-core";
 import {
   DEFAULT_CATALOG_LOCALE,
-  isCatalogDefaultLocaleKey,
-  isValidCultureCode,
-  normalizeCultureCode,
   normalizeOptionalCultureTag,
+  toCatalogLocaleKey,
+  tryNormalizeCultureCode,
 } from "@/lib/localization";
 
 export {
@@ -13,6 +12,8 @@ export {
   normalizeCultureCode,
   normalizeOptionalCultureTag,
   isCatalogDefaultLocaleKey,
+  toCatalogLocaleKey,
+  tryNormalizeCultureCode,
 } from "@/lib/localization";
 
 export const DATA_LIST_MAX_ITEMS = 5_000;
@@ -101,21 +102,51 @@ function resolveSurveyLocaleDisplayName(key: string): string | undefined {
   return undefined;
 }
 
-function isCatalogLocale(
-  key: string,
-  options: LocaleDiscoveryOptions,
-): boolean {
-  if (isCatalogDefaultLocaleKey(key, options.defaultLocale)) {
-    return true;
-  }
-
-  const available = new Set(
-    options.availableLocales
+function buildAvailableLocaleSet(
+  availableLocales: readonly string[],
+): Set<string> {
+  return new Set(
+    availableLocales
       .map((locale) => normalizeOptionalCultureTag(locale))
       .filter((locale): locale is string => locale != null),
   );
+}
 
-  return available.has(key);
+/**
+ * Classifies one raw locale key for import discovery (normalize, default-alias,
+ * duplicate detection, catalog membership).
+ */
+function classifyLocaleColumn(
+  raw: string,
+  options: LocaleDiscoveryOptions,
+  availableLocales: ReadonlySet<string>,
+  seenCanonicalKeys: Set<string>,
+): LocaleColumnDiscovery {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { raw, key: "", kind: "invalid" };
+  }
+
+  const normalized = tryNormalizeCultureCode(trimmed);
+  if (normalized === null) {
+    return { raw: trimmed, key: "", kind: "invalid" };
+  }
+
+  const key = toCatalogLocaleKey(normalized, options.defaultLocale);
+  if (seenCanonicalKeys.has(key)) {
+    return { raw: trimmed, key: "", kind: "invalid" };
+  }
+  seenCanonicalKeys.add(key);
+
+  if (key === DEFAULT_CATALOG_LOCALE) {
+    return { raw: trimmed, key: DEFAULT_CATALOG_LOCALE, kind: "default" };
+  }
+
+  if (availableLocales.has(key)) {
+    return { raw: trimmed, key, kind: "existing" };
+  }
+
+  return { raw: trimmed, key, kind: "new" };
 }
 
 export function discoverLocalesFromKeys(
@@ -129,63 +160,28 @@ export function discoverLocalesFromKeys(
   const discoveredNew = new Set<string>();
   const invalid: string[] = [];
   const seenCanonicalKeys = new Set<string>();
+  const availableLocales = buildAvailableLocaleSet(options.availableLocales);
 
   for (const raw of keys) {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      columns.push({ raw, key: "", kind: "invalid" });
-      invalid.push(raw);
+    const column = classifyLocaleColumn(
+      raw,
+      options,
+      availableLocales,
+      seenCanonicalKeys,
+    );
+    columns.push(column);
+
+    if (column.kind === "invalid") {
+      invalid.push(column.raw);
       continue;
     }
 
-    if (!isValidCultureCode(trimmed)) {
-      columns.push({ raw: trimmed, key: "", kind: "invalid" });
-      invalid.push(trimmed);
+    if (column.kind === "default" || column.kind === "existing") {
+      existing.add(column.key);
       continue;
     }
 
-    let normalized: string;
-    try {
-      normalized = normalizeCultureCode(trimmed);
-    } catch {
-      columns.push({ raw: trimmed, key: "", kind: "invalid" });
-      invalid.push(trimmed);
-      continue;
-    }
-
-    const canonicalKey = isCatalogDefaultLocaleKey(
-      normalized,
-      options.defaultLocale,
-    )
-      ? DEFAULT_CATALOG_LOCALE
-      : normalized;
-
-    if (seenCanonicalKeys.has(canonicalKey)) {
-      columns.push({ raw: trimmed, key: "", kind: "invalid" });
-      invalid.push(trimmed);
-      continue;
-    }
-
-    seenCanonicalKeys.add(canonicalKey);
-
-    if (canonicalKey === DEFAULT_CATALOG_LOCALE) {
-      columns.push({
-        raw: trimmed,
-        key: DEFAULT_CATALOG_LOCALE,
-        kind: "default",
-      });
-      existing.add(DEFAULT_CATALOG_LOCALE);
-      continue;
-    }
-
-    if (isCatalogLocale(normalized, options)) {
-      columns.push({ raw: trimmed, key: normalized, kind: "existing" });
-      existing.add(normalized);
-      continue;
-    }
-
-    columns.push({ raw: trimmed, key: normalized, kind: "new" });
-    discoveredNew.add(normalized);
+    discoveredNew.add(column.key);
   }
 
   const structuralOk = structuralErrors.length === 0;
