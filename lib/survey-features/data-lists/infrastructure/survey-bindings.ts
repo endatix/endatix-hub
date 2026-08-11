@@ -16,12 +16,14 @@ import {
 } from "../use-cases/search-data-lists";
 import { resolveDataListDisplayValues } from "../use-cases/resolve-data-list-display-values";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
+import { applyMultilingualChoiceDisplayValues } from "./apply-multilingual-choice-display-values";
 import {
   dispatchPropertyGridChoiceDisplayValues,
   dispatchPropertyGridChoicesLazyLoad,
   type PropertyGridLazyChoiceContext,
 } from "./property-grid-lazy-choice-registry";
 import { registerDataListGlobals } from "./registry";
+import { resolveSurveyLocalesForDataList } from "./resolve-survey-locales-for-data-list";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
 
@@ -109,10 +111,16 @@ export function bindDataListsToSurvey(
       return;
     }
 
+    const { locale, includeLocales } = resolveSurveyLocalesForDataList(
+      model,
+      options.question,
+    );
+
     const response = await searchDataListChoices(deps, dataListId, {
       filter: options.filter,
       searchMode: getQuestionSearchMode(options.question),
-      locale: options.question.getLocale() || undefined,
+      locale,
+      includeLocales,
       skip: options.skip,
       take: options.take,
     });
@@ -124,7 +132,11 @@ export function bindDataListsToSurvey(
       return;
     }
 
-    options.setItems(response.data.items, response.data.total);
+    // SurveyJS accepts nested locale maps on text at runtime; typings only allow string.
+    options.setItems(
+      response.data.items as Array<{ value: string; text?: string }>,
+      response.data.total,
+    );
     notifyChoicesLazyLoadCompleted(
       options.question,
       filter,
@@ -158,10 +170,20 @@ export function bindDataListsToSurvey(
       return;
     }
 
+    const values = options.values.map(String);
+    const { locale, includeLocales } = resolveSurveyLocalesForDataList(
+      model,
+      options.question,
+    );
+
     const response = await resolveDataListDisplayValues(
       deps,
       dataListId,
-      options.values.map(String),
+      values,
+      {
+        locale,
+        includeLocales,
+      },
     );
 
     if (!response.success) {
@@ -170,14 +192,16 @@ export function bindDataListsToSurvey(
         message: response.error.message,
         errorCode: response.error.errorCode,
       });
-      options.setItems(options.values.map(String));
+      options.setItems(values);
       return;
     }
 
-    options.setItems(
-      options.values.map(
-        (value) => response.data.get(String(value)) ?? String(value),
-      ),
+    applyMultilingualChoiceDisplayValues(
+      options.question,
+      values,
+      response.data,
+      options.setItems,
+      locale,
     );
   };
 

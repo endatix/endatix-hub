@@ -9,6 +9,8 @@ import {
   PublicDataListSearchRequest,
 } from "./types";
 
+const INCLUDE_LOCALES_QUERY_PARAM = "includeLocales";
+
 export interface PublicDataListsClientOptions {
   baseUrl?: string;
   /** Optional default bearer token used for all requests unless overridden per call. */
@@ -54,6 +56,12 @@ export class PublicDataListsClient {
     if (request.locale) {
       query.set("locale", request.locale);
     }
+    for (const locale of request.includeLocales ?? []) {
+      const trimmed = locale.trim();
+      if (trimmed.length > 0) {
+        query.append(INCLUDE_LOCALES_QUERY_PARAM, trimmed);
+      }
+    }
 
     const endpoint = `/public/forms/${request.formId}/data-lists/${request.dataListId}/search?${query.toString()}`;
     return this.get<DataListPublicSearchResult>(endpoint, bearerToken);
@@ -83,6 +91,15 @@ export class PublicDataListsClient {
 
     const query = new URLSearchParams();
     request.values.forEach((value) => query.append("values", value));
+    if (request.locale) {
+      query.set("locale", request.locale);
+    }
+    for (const locale of request.includeLocales ?? []) {
+      const trimmed = locale.trim();
+      if (trimmed.length > 0) {
+        query.append(INCLUDE_LOCALES_QUERY_PARAM, trimmed);
+      }
+    }
 
     const endpoint = `/public/forms/${request.formId}/data-lists/${request.dataListId}/display-values?${query.toString()}`;
     return this.get<DataListChoiceItem[]>(endpoint, bearerToken);

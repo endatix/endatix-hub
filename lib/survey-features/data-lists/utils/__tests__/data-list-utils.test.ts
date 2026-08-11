@@ -32,8 +32,8 @@ describe("data-list utils", () => {
       expect(r.ok).toBe(true);
       if (r.ok) {
         expect(r.items).toEqual([
-          { label: "a", value: "a" },
-          { label: "b", value: "b" },
+          { value: "a", labels: { default: "a" } },
+          { value: "b", labels: { default: "b" } },
         ]);
       }
     });
@@ -46,8 +46,8 @@ describe("data-list utils", () => {
       expect(r.ok).toBe(true);
       if (r.ok) {
         expect(r.items).toEqual([
-          { label: "One", value: "v1" },
-          { label: "Two", value: "v2" },
+          { value: "v1", labels: { default: "One" } },
+          { value: "v2", labels: { default: "Two" } },
         ]);
       }
     });
@@ -58,15 +58,21 @@ describe("data-list utils", () => {
       ]);
       expect(r.ok).toBe(true);
       if (r.ok) {
-        expect(r.items).toEqual([{ label: "Bulgaria", value: "bg" }]);
+        expect(r.items).toEqual([
+          { value: "bg", labels: { default: "Bulgaria" } },
+        ]);
       }
     });
 
     it("coerces numeric choice values to strings", () => {
-      const r = normalizeChoicesToDataListItems([{ value: 42, text: "Forty-two" }]);
+      const r = normalizeChoicesToDataListItems([
+        { value: 42, text: "Forty-two" },
+      ]);
       expect(r.ok).toBe(true);
       if (r.ok) {
-        expect(r.items).toEqual([{ label: "Forty-two", value: "42" }]);
+        expect(r.items).toEqual([
+          { value: "42", labels: { default: "Forty-two" } },
+        ]);
       }
     });
 
@@ -76,7 +82,9 @@ describe("data-list utils", () => {
       ]);
       expect(r.ok).toBe(true);
       if (r.ok) {
-        expect(r.items).toEqual([{ label: "Bulgaria", value: "bg" }]);
+        expect(r.items).toEqual([
+          { value: "bg", labels: { default: "Bulgaria" } },
+        ]);
       }
     });
 
@@ -86,7 +94,9 @@ describe("data-list utils", () => {
       ]);
       expect(r.ok).toBe(true);
       if (r.ok) {
-        expect(r.items).toEqual([{ label: "Label only", value: "Label only" }]);
+        expect(r.items).toEqual([
+          { value: "Label only", labels: { default: "Label only" } },
+        ]);
       }
     });
 
@@ -237,8 +247,8 @@ describe("data-list utils", () => {
       expect(r.ok).toBe(true);
       if (r.ok) {
         expect(r.items).toEqual([
-          { label: "One", value: "v1" },
-          { label: "Two", value: "v2" },
+          { value: "v1", labels: { default: "One" } },
+          { value: "v2", labels: { default: "Two" } },
         ]);
       }
       m.dispose?.();

@@ -1,6 +1,10 @@
 import { normalizeChoiceKey } from "@/lib/utils/survey";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
-import type { DataListSourceRef, PropertyGridChoice } from "../types";
+import type {
+  DataListChoiceItem,
+  DataListSourceRef,
+  PropertyGridChoice,
+} from "../types";
 import { searchDataListChoices } from "./search-data-lists/search-data-list-choices";
 
 type DataListSearchResult = Awaited<ReturnType<typeof searchDataListChoices>>;
@@ -202,7 +206,7 @@ function logDataListSourceError(
 function appendUniqueChoices(
   merged: PropertyGridChoice[],
   seen: Set<string>,
-  items: Array<{ value: string; text: string }>,
+  items: DataListChoiceItem[],
   sourceName: string,
   formatLabel: (sourceName: string, value: string, text: string) => string,
   takeTarget: number,
@@ -218,9 +222,11 @@ function appendUniqueChoices(
     }
 
     seen.add(value);
+    const plainText =
+      typeof item.text === "string" ? item.text : (item.text.default ?? value);
     merged.push({
       value,
-      text: formatLabel(sourceName, value, item.text),
+      text: formatLabel(sourceName, value, plainText),
     });
   }
 }
