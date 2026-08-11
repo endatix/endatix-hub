@@ -7,6 +7,7 @@ import {
   getStaticChoicesFromSources,
 } from "../utils/property-grid-source-choices";
 import { resolveDataListDisplayValues } from "./resolve-data-list-display-values";
+import { resolvePublicChoiceLabel } from "./search-data-lists/map-public-choice";
 
 /**
  * Resolves display labels for values selected from aggregated survey sources
@@ -64,10 +65,16 @@ export async function resolveMultiSourceDisplayValues(
     }
 
     for (const value of unresolved) {
-      const label = response.data.get(value);
-      if (label) {
-        labels.set(value, formatSourceChoiceLabel(sourceName, value, label));
+      const labelsByLocale = response.data.get(value);
+      if (!labelsByLocale) {
+        continue;
       }
+
+      const flatLabel = resolvePublicChoiceLabel({
+        value,
+        labels: labelsByLocale,
+      });
+      labels.set(value, formatSourceChoiceLabel(sourceName, value, flatLabel));
     }
   }
 

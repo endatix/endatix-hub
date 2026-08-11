@@ -116,7 +116,7 @@ export function normalizeChoicesToDataListItems(
       };
     }
     seenValues.add(value);
-    items.push({ value, labels: { default: label } });
+    items.push({ value, label });
   }
 
   return { ok: true, items };
