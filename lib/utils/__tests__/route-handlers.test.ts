@@ -1,294 +1,89 @@
-import { fail } from "assert";
-import { ApiErrorType, ApiResult, ERROR_CODE } from "../../endatix-api";
-import {
-  apiResponses,
-  parseJsonBody,
-  parseOptionalJsonBody,
-  setResponseCachingHeaders,
-  toApiResponse,
-} from "../route-handlers";
-import { NextResponse } from "next/server";
 import { describe, expect, it } from "vitest";
+import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { toUpstreamFileResponse } from "../route-handlers";
 
-describe("route-handlers", () => {
-  describe("toApiResponse", () => {
-    it("returns successful ApiResult data as response body", async () => {
-      // Arrange
-      const result = ApiResult.success({ id: "submission-1" });
-
-      // Act
-      const response = toApiResponse(result);
-
-      // Assert
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ id: "submission-1" });
-    });
-
-    it("returns validation errors as problem details", async () => {
-      // Arrange
-      const result = ApiResult.validationError(
-        "Submission data is required",
-        ERROR_CODE.VALIDATION_ERROR,
-        undefined,
-        { submissionData: ["Required"] },
-      );
-
-      // Act
-      const response = toApiResponse(result);
-
-      // Assert
-      expect(response.status).toBe(400);
-      expect(await response.json()).toEqual({
-        type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
-        title: "Bad Request",
-        detail: "Submission data is required",
-        status: 400,
-        errorCode: ERROR_CODE.VALIDATION_ERROR,
-        fields: { submissionData: ["Required"] },
-      });
-    });
-
-    it("returns conflict errors as 409 problem details with the API message", async () => {
-      const result = ApiResult.conflictError(
-        "A submission already exists for this user and form.",
-        { statusCode: 409 },
-      );
-
-      const response = toApiResponse(result);
-      const body = await response.json();
-
-      expect(response.status).toBe(409);
-      expect(body).toEqual({
-        type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8",
-        title: "Conflict",
-        detail: "A submission already exists for this user and form.",
-        status: 409,
-        errorCode: ERROR_CODE.CONFLICT,
-      });
-    });
-
-    it("prefers an explicit message over a canned unknown_error code message", async () => {
-      const result = ApiResult.unknownError(
-        "Next error(s) occurred:* A submission already exists for this user and form.",
-        { statusCode: 409 },
-      );
-
-      const response = toApiResponse(result);
-      const body = await response.json();
-
-      expect(response.status).toBe(409);
-      expect(body.detail).toContain(
-        "A submission already exists for this user and form.",
-      );
-    });
-
-    it.each([
-      [ApiResult.authError("Missing auth"), 401, "Unauthorized"],
-      [ApiResult.forbiddenError("Not allowed"), 403, "Forbidden"],
-      [ApiResult.notFoundError("Missing form"), 404, "Not Found"],
-      [ApiResult.rateLimitError("Slow down"), 429, "Too Many Requests"],
-      [
-        ApiResult.serverError("Unexpected failure"),
-        500,
-        "Internal Server Error",
-      ],
-    ])(
-      "maps ApiResult error type to HTTP problem details",
-      async (result, expectedStatus, expectedTitle) => {
-        // Act
-        const response = toApiResponse(result);
-        const body = await response.json();
-
-        // Assert
-        expect(response.status).toBe(expectedStatus);
-        expect(body.status).toBe(expectedStatus);
-        expect(body.title).toBe(expectedTitle);
-        if (!ApiResult.isError(result)) {
-          fail("Expected ApiResult to be an error");
-        }
-        expect(body.errorCode).toBe(result.error.errorCode);
+describe("toUpstreamFileResponse", () => {
+  it("proxies upstream body and download headers on success", async () => {
+    // Arrange
+    const upstream = new Response("col1,col2\nv1,v2", {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="list.csv"',
       },
+    });
+
+    // Act
+    const response = toUpstreamFileResponse(ApiResult.success(upstream));
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe(
+      "text/csv; charset=utf-8",
     );
+    expect(response.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="list.csv"',
+    );
+    await expect(response.text()).resolves.toBe("col1,col2\nv1,v2");
+  });
 
-    it("uses explicit ApiResult status details when present", async () => {
-      // Arrange
-      const result = ApiResult.unknownError("Bad gateway", {
-        statusCode: 502,
-      });
+  it("applies fallback headers when upstream omits them", () => {
+    // Arrange — Uint8Array body so fetch does not invent a Content-Type
+    const upstream = new Response(new Uint8Array([1, 2, 3]), { status: 200 });
 
-      // Act
-      const response = toApiResponse(result);
-      const body = await response.json();
+    // Act
+    const response = toUpstreamFileResponse(ApiResult.success(upstream), {
+      fallbackContentType: "application/json",
+      fallbackContentDisposition: 'attachment; filename="fallback.json"',
+    });
 
-      // Assert
-      expect(response.status).toBe(502);
-      expect(body.status).toBe(502);
-      expect(body.title).toBe("502 Error");
-      expect(body.type).toBe("https://httpstatuses.com/502");
+    // Assert
+    expect(response.headers.get("Content-Type")).toBe("application/json");
+    expect(response.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="fallback.json"',
+    );
+  });
+
+  it("defaults to octet-stream and attachment when no headers exist", () => {
+    // Arrange
+    const upstream = new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+
+    // Act
+    const response = toUpstreamFileResponse(ApiResult.success(upstream));
+
+    // Assert
+    expect(response.headers.get("Content-Type")).toBe(
+      "application/octet-stream",
+    );
+    expect(response.headers.get("Content-Disposition")).toBe("attachment");
+  });
+
+  it("returns JSON error payload with upstream status when ApiResult fails", async () => {
+    // Arrange
+    const result = ApiResult.notFoundError<Response>("Data list not found", {
+      statusCode: 404,
+    });
+
+    // Act
+    const response = toUpstreamFileResponse(result);
+
+    // Assert
+    expect(response.status).toBe(404);
+    expect(response.headers.get("Content-Type")).toBe("application/json");
+    await expect(response.json()).resolves.toEqual({
+      error: "Data list not found",
     });
   });
 
-  describe("apiResponses", () => {
-    it("creates bad request problem details with caller provided fields", async () => {
-      // Act
-      const response = apiResponses.badRequest({
-        detail: "Invalid JSON body",
-        fields: { body: ["Malformed"] },
-      });
+  it("defaults error status to 500 when ApiResult has no statusCode", async () => {
+    // Arrange
+    const result = ApiResult.unknownError<Response>("Boom");
 
-      // Assert
-      expect(response.status).toBe(400);
-      expect(await response.json()).toEqual({
-        type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
-        title: "Bad Request",
-        detail: "Invalid JSON body",
-        status: 400,
-        fields: { body: ["Malformed"] },
-      });
-    });
+    // Act
+    const response = toUpstreamFileResponse(result);
 
-    it("falls back to the default problem detail when caller detail is empty", async () => {
-      // Act
-      const response = apiResponses.notFound({ detail: "" });
-
-      // Assert
-      expect(response.status).toBe(404);
-      expect(await response.json()).toMatchObject({
-        title: "Not Found",
-        detail: "Not Found",
-        status: 404,
-      });
-    });
-  });
-
-  describe("parseJsonBody", () => {
-    it("returns parsed JSON body", async () => {
-      // Arrange
-      const request = new Request("http://localhost/test", {
-        method: "POST",
-        body: JSON.stringify({ formId: "form-1" }),
-      });
-
-      // Act
-      const result = await parseJsonBody<{ formId: string }>(request);
-
-      // Assert
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.value).toEqual({ formId: "form-1" });
-      }
-    });
-
-    it("returns bad request response for invalid JSON", async () => {
-      // Arrange
-      const request = new Request("http://localhost/test", {
-        method: "POST",
-        body: "{",
-      });
-
-      // Act
-      const result = await parseJsonBody(request);
-
-      // Assert
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error.status).toBe(400);
-        expect(await result.error.json()).toMatchObject({
-          title: "Bad Request",
-          detail: "Invalid JSON body",
-          status: 400,
-        });
-      }
-    });
-
-    it("supports custom invalid JSON detail", async () => {
-      // Arrange
-      const request = new Request("http://localhost/test", {
-        method: "POST",
-        body: "{",
-      });
-
-      // Act
-      const result = await parseJsonBody(request, {
-        invalidDetail: "Body must be valid JSON",
-      });
-
-      // Assert
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(await result.error.json()).toMatchObject({
-          detail: "Body must be valid JSON",
-        });
-      }
-    });
-  });
-
-  describe("parseOptionalJsonBody", () => {
-    it("returns default value for an empty body", async () => {
-      // Arrange
-      const request = new Request("http://localhost/test", {
-        method: "POST",
-      });
-
-      // Act
-      const result = await parseOptionalJsonBody(request, { token: undefined });
-
-      // Assert
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.value).toEqual({ token: undefined });
-      }
-    });
-
-    it("returns parsed JSON when body is present", async () => {
-      // Arrange
-      const request = new Request("http://localhost/test", {
-        method: "POST",
-        body: JSON.stringify({ token: "abc" }),
-      });
-
-      // Act
-      const result = await parseOptionalJsonBody(request, {});
-
-      // Assert
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.value).toEqual({ token: "abc" });
-      }
-    });
-  });
-
-  describe("setResponseCachingHeaders", () => {
-    it("sets browser-only cache headers by default", () => {
-      // Arrange
-      const response = NextResponse.json({});
-
-      // Act
-      setResponseCachingHeaders(response, {});
-
-      // Assert
-      expect(response.headers.get("Cache-Control")).toBe(
-        "private, max-age=0, must-revalidate",
-      );
-      expect(response.headers.get("Pragma")).toBe("no-cache");
-      expect(response.headers.get("Vary")).toBe("Cookie");
-    });
-
-    it("sets no-store cache headers and etag when requested", () => {
-      // Arrange
-      const response = NextResponse.json({});
-
-      // Act
-      setResponseCachingHeaders(response, {
-        storeMode: "noStore",
-        etag: "etag-1",
-      });
-
-      // Assert
-      expect(response.headers.get("Cache-Control")).toBe(
-        "no-store, no-cache, must-revalidate",
-      );
-      expect(response.headers.get("ETag")).toBe('"etag-1"');
-    });
+    // Assert
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: "Boom" });
   });
 });

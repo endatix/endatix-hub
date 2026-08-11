@@ -236,3 +236,42 @@ export function setResponseCachingHeaders(
     response.headers.set("ETag", `"${options.etag}"`);
   }
 }
+
+export type UpstreamFileResponseOptions = {
+  fallbackContentType?: string;
+  fallbackContentDisposition?: string;
+};
+
+/**
+ * Proxies an upstream file/stream `Response` to the Hub client without buffering
+ * the body. On API failure, returns a JSON `{ error }` payload matching existing
+ * export route handlers.
+ */
+export function toUpstreamFileResponse(
+  result: ApiResult<Response>,
+  options: UpstreamFileResponseOptions = {},
+): Response {
+  if (ApiResult.isError(result)) {
+    return new Response(JSON.stringify({ error: result.error.message }), {
+      status: result.error.details?.statusCode ?? 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const upstream = result.data;
+  const contentType =
+    upstream.headers.get("Content-Type") ??
+    options.fallbackContentType ??
+    "application/octet-stream";
+  const contentDisposition =
+    upstream.headers.get("Content-Disposition") ??
+    options.fallbackContentDisposition ??
+    "attachment";
+
+  return new Response(upstream.body, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": contentDisposition,
+    },
+  });
+}

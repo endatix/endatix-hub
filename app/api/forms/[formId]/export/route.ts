@@ -1,9 +1,5 @@
 import { NextRequest } from "next/server";
-import {
-  ApiResult,
-  EndatixApi,
-  ExportSubmissionsRequest,
-} from "@/lib/endatix-api";
+import { EndatixApi, ExportSubmissionsRequest } from "@/lib/endatix-api";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
@@ -18,6 +14,7 @@ import {
 } from "@/features/export/export-submissions";
 import { isCodebookFormatKey } from "@/features/export/export-url";
 import { Result } from "@/lib/result";
+import { toUpstreamFileResponse } from "@/lib/utils/route-handlers";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 
 function badRequest(error: string): Response {
@@ -126,40 +123,5 @@ export async function GET(
 
   const endatix = new EndatixApi(session?.accessToken);
   const exportResult = await endatix.submissions.export(exportOptions);
-  if (ApiResult.isError(exportResult)) {
-    return new Response(
-      JSON.stringify({
-        error: exportResult.error.message,
-      }),
-      {
-        status: exportResult.error.details?.statusCode ?? 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  }
-
-  const response = exportResult.data;
-  const contentType =
-    response.headers.get("Content-Type") ?? "application/octet-stream";
-  const contentDisposition =
-    response.headers.get("Content-Disposition") ?? "attachment";
-
-  if (!contentType || !contentDisposition) {
-    return new Response(
-      JSON.stringify({
-        error: "Content type or content disposition not found",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  }
-
-  return new Response(exportResult.data.body, {
-    headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": contentDisposition,
-    },
-  });
+  return toUpstreamFileResponse(exportResult);
 }

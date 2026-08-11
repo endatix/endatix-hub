@@ -9,7 +9,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
+import { TelemetryLogger } from "@/features/telemetry";
+import { withBasePath } from "@/lib/hosting";
 import { getFormattedDate } from "@/lib/utils";
+import {
+  getFilenameFromContentDisposition,
+  initiateFileDownload,
+} from "@/lib/utils/files-download";
 import { ArrowLeft, ChevronDown, Download, Upload } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
@@ -17,11 +23,12 @@ import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog"
 import { useRouter } from "next/navigation";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
-import { downloadTranslationsCsvAction } from "../../translations/translations-csv.action";
 import type { DataListSourceFormat } from "../../add-items/data-list-items-input";
 import { serializeDataListItemsJson } from "../../utils";
 import { DataListItemsTable } from "./data-list-items-table";
 import { LocaleCatalogPanel } from "./locale-catalog-panel";
+
+const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
 
 interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
@@ -67,22 +74,44 @@ export function DataListDetailsPage({
 
   const handleDownloadCsv = (): void => {
     startDownloadTransition(async () => {
-      const result = await downloadTranslationsCsvAction(String(details.id));
-      if (Result.isError(result)) {
-        toast.error(result.message);
-        return;
-      }
+      try {
+        const response = await fetch(
+          withBasePath(`/api/data-lists/${details.id}/export?format=csv`),
+        );
 
-      const blob = new Blob([result.value.csv], {
-        type: "text/csv;charset=utf-8",
-      });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = result.value.fileName;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      toast.success("CSV downloaded");
+        if (!response.ok) {
+          let message = "Failed to download translations CSV";
+          try {
+            const payload = (await response.json()) as { error?: string };
+            if (payload.error) {
+              message = payload.error;
+            }
+          } catch (error) {
+            TelemetryLogger.error(
+              "Failed to parse data list CSV export error response",
+              error,
+              {
+                "http.status_code": response.status,
+                "error.type":
+                  error instanceof Error ? error.name : typeof error,
+              },
+              CSV_EXPORT_LOGGER,
+            );
+          }
+          toast.error(message);
+          return;
+        }
+
+        const blob = await response.blob();
+        const fileName = getFilenameFromContentDisposition(
+          response.headers,
+          `data-list-${details.id}-translations.csv`,
+        );
+        initiateFileDownload(blob, fileName);
+        toast.success("CSV downloaded");
+      } catch {
+        toast.error("Failed to download translations CSV");
+      }
     });
   };
 

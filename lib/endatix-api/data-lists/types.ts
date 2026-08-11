@@ -46,12 +46,6 @@ export type ImportDataListRequest =
       ensureLocales?: string[];
     };
 
-export interface DataListExportResult {
-  body: string;
-  fileName: string;
-  contentType: string;
-}
-
 export interface FormDependencySummary {
   id: string;
   name?: string | null;

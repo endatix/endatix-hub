@@ -13,7 +13,6 @@ import {
   DataListChoiceItem,
   DataListDetails,
   DataListExportFormat,
-  DataListExportResult,
   FormDependencySummary,
   ImportDataListRequest,
 } from "./types";
@@ -22,7 +21,6 @@ export type DataListsPage = NormalizedPagedResponse<DataList>;
 
 const DATA_LISTS_BASE = "/data-lists";
 const DATA_LIST_ID_PARAM = "dataListId";
-const CONTENT_DISPOSITION_FILENAME = /filename="?([^";]+)"?/i;
 
 function dataListCollectionPath(query?: string): string {
   return query ? `${DATA_LISTS_BASE}?${query}` : DATA_LISTS_BASE;
@@ -40,23 +38,6 @@ function normalizeEnsureLocales(locales?: readonly string[]): string[] {
   return (locales ?? [])
     .map((locale) => locale.trim())
     .filter((locale) => locale.length > 0);
-}
-
-function parseContentDispositionFileName(
-  disposition: string,
-): string | undefined {
-  return CONTENT_DISPOSITION_FILENAME.exec(disposition)?.[1];
-}
-
-function defaultExportFileName(
-  dataListId: string,
-  format: DataListExportFormat,
-): string {
-  if (format === "json") {
-    return `data-list-${dataListId}.json`;
-  }
-
-  return `data-list-${dataListId}-translations.csv`;
 }
 
 export class DataLists {
@@ -193,41 +174,14 @@ export class DataLists {
   async export(
     dataListId: string,
     format: DataListExportFormat = "csv",
-  ): Promise<ApiResult<DataListExportResult>> {
+  ): Promise<ApiResult<Response>> {
     const idResult = this.requireDataListId(dataListId);
     if (!idResult.success) {
       return idResult;
     }
 
-    const response = await this.endatix.postStream(
-      dataListPath(idResult.data, "export"),
-      { format },
-    );
-    if (!response.success) {
-      return response;
-    }
-
-    const body = await response.data.text();
-    const contentType = response.data.headers.get("Content-Type") ?? "";
-    const disposition = response.data.headers.get("Content-Disposition") ?? "";
-    const fileName =
-      parseContentDispositionFileName(disposition) ??
-      defaultExportFileName(idResult.data, format);
-
-    return ApiResult.success({ body, fileName, contentType });
-  }
-
-  async downloadTranslationsCsv(
-    dataListId: string,
-  ): Promise<ApiResult<{ csv: string; fileName: string }>> {
-    const response = await this.export(dataListId, "csv");
-    if (!response.success) {
-      return response;
-    }
-
-    return ApiResult.success({
-      csv: response.data.body,
-      fileName: response.data.fileName,
+    return this.endatix.postStream(dataListPath(idResult.data, "export"), {
+      format,
     });
   }
 

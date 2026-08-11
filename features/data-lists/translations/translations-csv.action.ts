@@ -8,29 +8,9 @@ import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
 
-export type DownloadTranslationsCsvResult = Result<{
-  csv: string;
-  fileName: string;
-}>;
-
 export type UploadTranslationsCsvResult = Result<DataListDetails>;
 
 export type DataListLocaleMutationResult = Result<DataListDetails>;
-
-export async function downloadTranslationsCsvAction(
-  dataListId: string,
-): Promise<DownloadTranslationsCsvResult> {
-  const session = await auth();
-  const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
-
-  const api = new EndatixApi(session?.accessToken);
-  return toResult(await api.dataLists.downloadTranslationsCsv(dataListId), {
-    fallbackMessage: "Failed to download translations CSV",
-    logMessage: "Failed to download translations CSV",
-    loggerName: "data-lists.translationsCsv",
-  });
-}
 
 export type UploadTranslationsCsvInput = {
   dataListId: string;
