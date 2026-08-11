@@ -124,79 +124,81 @@ export function DataListItemsTable({
       data-slot="data-list-items-table"
       className={DATA_TABLE_SURFACE_CLASS_NAME}
     >
-      <Table className="border-separate border-spacing-0">
-        <TableHeader className="bg-surface-container-low">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow
-              key={headerGroup.id}
-              className="border-0 hover:bg-transparent"
-            >
-              {headerGroup.headers.map((header) => {
-                const isPinned = header.column.getIsPinned();
-                return (
-                  <TableHead
-                    key={header.id}
-                    colSpan={header.colSpan}
-                    className={cn(
-                      "sticky top-0 h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
-                      isPinned === "left" ? "left-0 z-30" : "z-10",
-                      header.column.columnDef.meta?.headerClassName,
-                    )}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {rows.map((row, rowIndex) => {
-            const isEvenRow = rowIndex % 2 === 1;
-            return (
+      <div className="w-full overflow-x-auto">
+        <Table className="border-separate border-spacing-0">
+          <TableHeader className="bg-surface-container-low">
+            {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
-                key={row.id}
-                className={cn(
-                  "group border-0",
-                  isEvenRow
-                    ? "bg-surface-container-low hover:bg-surface-container"
-                    : "bg-surface-container-lowest hover:bg-surface-container",
-                )}
+                key={headerGroup.id}
+                className="border-0 hover:bg-transparent"
               >
-                {row.getVisibleCells().map((cell) => {
-                  const isPinned = cell.column.getIsPinned();
+                {headerGroup.headers.map((header) => {
+                  const isPinned = header.column.getIsPinned();
                   return (
-                    <TableCell
-                      key={cell.id}
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
                       className={cn(
-                        "px-2 py-2",
-                        isPinned &&
-                          "sticky z-20 transition-colors duration-150",
-                        isPinned &&
-                          (isEvenRow
-                            ? "bg-surface-container-low group-hover:bg-surface-container"
-                            : "bg-surface-container-lowest group-hover:bg-surface-container"),
-                        isPinned === "left" && "left-0",
-                        cell.column.columnDef.meta?.cellClassName,
+                        "sticky top-0 h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
+                        isPinned === "left" ? "left-0 z-30" : "z-10",
+                        header.column.columnDef.meta?.headerClassName,
                       )}
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
                   );
                 })}
               </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {rows.map((row, rowIndex) => {
+              const isEvenRow = rowIndex % 2 === 1;
+              return (
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    "group border-0",
+                    isEvenRow
+                      ? "bg-surface-container-low hover:bg-surface-container"
+                      : "bg-surface-container-lowest hover:bg-surface-container",
+                  )}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const isPinned = cell.column.getIsPinned();
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          "px-2 py-2",
+                          isPinned &&
+                            "sticky z-20 transition-colors duration-150",
+                          isPinned &&
+                            (isEvenRow
+                              ? "bg-surface-container-low group-hover:bg-surface-container"
+                              : "bg-surface-container-lowest group-hover:bg-surface-container"),
+                          isPinned === "left" && "left-0",
+                          cell.column.columnDef.meta?.cellClassName,
+                        )}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
