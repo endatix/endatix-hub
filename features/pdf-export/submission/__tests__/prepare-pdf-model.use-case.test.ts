@@ -15,7 +15,7 @@ vi.mock(
   }),
 );
 
-vi.mock("@/features/submissions/submission-localization", () => ({
+vi.mock("@/lib/localization", () => ({
   getSubmissionLocale: vi.fn(),
 }));
 
@@ -34,7 +34,7 @@ vi.mock("@/lib/questions/drag-categorize/drag-categorize.registry", () => ({
 import { addViewTokensToModelUseCase } from "@/features/asset-storage/server";
 import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
 import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/constants";
-import { getSubmissionLocale } from "@/features/submissions/submission-localization";
+import { getSubmissionLocale } from "@/lib/localization";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
 import { registerDragCategorizeModel } from "@/lib/questions/drag-categorize/drag-categorize.registry";

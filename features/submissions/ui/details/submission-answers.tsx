@@ -12,11 +12,7 @@ import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-exten
 import { CustomQuestion } from "@/services/api";
 import { EyeOff } from "lucide-react";
 import { useCallback, useEffect } from "react";
-import { Question, surveyLocalization } from "survey-core";
-import {
-  getSubmissionLocale,
-  isLocaleValid,
-} from "../../submission-localization";
+import { Question } from "survey-core";
 import { getQuestionNumber } from "../../submission-utils";
 import AnswerViewer from "../answers/answer-viewer";
 import {
@@ -46,17 +42,18 @@ export function SubmissionAnswers({
       getRuntimeState,
     },
   });
+  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { surveyModel, error } = useSurveyModel({
     formId,
     definition: formDefinition,
     submission,
     customQuestions: customQuestions.map((q: CustomQuestion) => q.jsonData),
     onModelCreated,
+    useSubmissionLanguage: viewOptions.useSubmissionLanguage === true,
   });
 
   const getReadRuntime = useStorageReadRuntime({ formId });
   const { setSurveyModel } = useSubmissionDetails();
-  const { viewOptions } = useSubmissionDetailsViewOptions();
   const { prefetchPrivateReadUrlsForModel } = useStorageView({
     getReadRuntime,
   });
@@ -77,18 +74,8 @@ export function SubmissionAnswers({
       return;
     }
 
-    const submissionLocale = getSubmissionLocale(submission);
-    if (
-      viewOptions.useSubmissionLanguage &&
-      isLocaleValid(submissionLocale, surveyModel)
-    ) {
-      surveyModel.locale = submissionLocale!;
-    } else {
-      surveyModel.locale = surveyLocalization.defaultLocale;
-    }
-
     surveyModel.showQuestionNumbers = true;
-  }, [surveyModel, viewOptions.useSubmissionLanguage, submission]);
+  }, [surveyModel]);
 
   if (!isExtensionsReady) {
     return <div>Loading...</div>;

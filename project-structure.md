@@ -365,6 +365,7 @@ app/
 hub/
 ├── lib/                    # Internal utilities
 │   ├── endatix-api/       # API client (internal)
+│   ├── localization/      # Multi-lingual domain (catalog, submission locale, future i18n)
 │   └── utils/             # Shared utilities
 ├── features/              # App-specific features
 │   ├── config/            # App configuration
@@ -372,6 +373,21 @@ hub/
 │   └── forms/             # Form management
 └── packages/              # Future workspace packages
 ```
+
+### `lib/localization` domain
+
+Use `lib/localization` for **cross-feature multi-lingual infrastructure**, organized as slices:
+
+| Slice | Responsibility |
+| --- | --- |
+| `catalog/` | SurveyJS ↔ owned catalog vocabulary (`default` ↔ `""` / runtime default code), `toCatalogLocales`, display names |
+| `submission-locale/` | Submission metadata language helpers shared by submissions UI and pdf-export |
+| `routing/` (future) | Locale-prefixed Hub routes / middleware |
+| `messages/` (future) | Hub UI copy catalogs (e.g. next-intl) |
+
+Keep **selection policy** in the owning feature (e.g. public-form language picker priority: preselected → localStorage → survey model → browser). Do not move feature-specific preference storage or init order into `lib/`.
+
+Import from `@/lib/localization` (root barrel) or a slice path such as `@/lib/localization/catalog`.
 
 ### Target Monorepo Structure
 

@@ -1,7 +1,7 @@
 import { addViewTokensToModelUseCase } from "@/features/asset-storage/server";
 import { primeDataListDisplayValues } from "@/lib/survey-features/data-lists/infrastructure/prime-data-list-display-values";
 import { registerDataListGlobals } from "@/lib/survey-features/data-lists/infrastructure/registry";
-import { getSubmissionLocale } from "@/features/submissions/submission-localization";
+import { getSubmissionLocale } from "@/lib/localization";
 import { Submission } from "@/lib/endatix-api";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestionModel } from "@/lib/questions/audio-recorder/audio-question-pdf";
@@ -18,7 +18,7 @@ interface PreparePdfModelOptions {
 /**
  * Orchestrates the creation and authorization of a SurveyJS Model for PDF export.
  * This centralizes logic to avoid duplication across different export routes.
- * 
+ *
  * @returns A fully prepared and authorized SurveyJS Model
  */
 export async function preparePdfModel({
@@ -26,7 +26,6 @@ export async function preparePdfModel({
   customQuestionsJsonData,
   useDefaultLocale = false,
 }: PreparePdfModelOptions): Promise<Model> {
-  
   // Add custom questions to the model
   registerAudioQuestionModel();
   registerDragCategorizeModel();

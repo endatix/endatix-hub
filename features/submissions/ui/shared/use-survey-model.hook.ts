@@ -13,7 +13,8 @@ import { Model } from "survey-core";
 import {
   getSubmissionLocale,
   isLocaleValid,
-} from "../../submission-localization";
+  toSurveyModelLocale,
+} from "@/lib/localization";
 
 export function useSurveyModel(
   submission: Submission,
@@ -79,7 +80,7 @@ export function useSurveyModel(
 
         const submissionLocale = getSubmissionLocale(submission);
         if (submissionLocale && isLocaleValid(submissionLocale, model)) {
-          model.locale = submissionLocale;
+          model.locale = toSurveyModelLocale(submissionLocale);
         }
 
         model.showCompletedPage = false;

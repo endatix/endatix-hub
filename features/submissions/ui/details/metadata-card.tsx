@@ -17,7 +17,7 @@ import { useMemo, type ReactNode } from "react";
 import {
   getLanguageDisplayName,
   getSubmissionLocale,
-} from "../../submission-localization";
+} from "@/lib/localization";
 import { CellStatusDropdown } from "../table/cell-status-dropdown";
 import {
   useSubmissionDetails,

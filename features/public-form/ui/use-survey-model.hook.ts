@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Model, SurveyModel } from "survey-core";
 import { Submission } from "@/lib/endatix-api";
+import { resolveSurveyModelLocaleForSubmission } from "@/lib/localization";
 import { initializeCustomQuestions } from "@/lib/questions";
 import { registerAudioQuestion } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
@@ -21,6 +22,11 @@ interface UseSurveyModelProps {
   customQuestions?: string[];
   onModelCreated?: (model: Model) => void;
   formRuntime?: FormRuntimeContextValue;
+  /**
+   * When set (submission details), drives `model.locale` from submission
+   * metadata vs catalog default. Omit on public-form runtime.
+   */
+  useSubmissionLanguage?: boolean;
 }
 
 export function useSurveyModel({
@@ -30,6 +36,7 @@ export function useSurveyModel({
   submission,
   onModelCreated,
   formRuntime,
+  useSubmissionLanguage,
 }: UseSurveyModelProps) {
   const [error, setError] = useState<string | null>(null);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
@@ -43,6 +50,8 @@ export function useSurveyModel({
   const isInitializedRef = useRef(false);
   const identityRef = useRef<string | null>(null);
   const submissionRef = useInitOnly(submission);
+  const useSubmissionLanguageRef = useRef(useSubmissionLanguage);
+  useSubmissionLanguageRef.current = useSubmissionLanguage;
 
   useEffect(() => {
     const loadCustomQuestions = async () => {
@@ -99,6 +108,14 @@ export function useSurveyModel({
       });
       model.currentPageNo = initialSubmission.currentPage ?? 0;
       applyVariablesToModel(model, initialSubmission.metadata);
+
+      if (useSubmissionLanguageRef.current !== undefined) {
+        model.locale = resolveSurveyModelLocaleForSubmission(
+          initialSubmission,
+          model,
+          useSubmissionLanguageRef.current === true,
+        );
+      }
     }
 
     const unbindQuestionLoops = bindQuestionLoops(model);
@@ -130,6 +147,19 @@ export function useSurveyModel({
     bindQuestionLoops,
     formRuntime,
   ]);
+
+  // Keep locale in sync when View → submission language is toggled after construction.
+  useEffect(() => {
+    if (!surveyModel || !submission || useSubmissionLanguage === undefined) {
+      return;
+    }
+
+    surveyModel.locale = resolveSurveyModelLocaleForSubmission(
+      submission,
+      surveyModel,
+      useSubmissionLanguage === true,
+    );
+  }, [surveyModel, submission, useSubmissionLanguage]);
 
   return {
     error,
