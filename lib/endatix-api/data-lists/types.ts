@@ -13,8 +13,8 @@ export interface DataListDetails extends DataList {
 }
 
 export interface DataListChoiceItem {
-  label: string;
   value: string;
+  labels: Record<string, string>;
 }
 
 export interface DataListItem {

@@ -16,6 +16,23 @@ function cacheKey(formId: string, dataListId: string, value: string): string {
   return `${formId}|${dataListId}|${value}`;
 }
 
+/**
+ * True when cache has no entry, or when any requested includeLocale is absent
+ * from the stored label map (partial coverage must re-fetch and merge).
+ */
+function needsDisplayValuesFetch(
+  labels: Record<string, string> | undefined,
+  includeLocales: string[] | undefined,
+): boolean {
+  if (!labels) {
+    return true;
+  }
+  if (!includeLocales || includeLocales.length === 0) {
+    return false;
+  }
+  return includeLocales.some((locale) => !(locale in labels));
+}
+
 /** Test-only: clears the display-values labels cache. */
 export function clearDataListDisplayValuesCacheForTests(): void {
   labelsByValueCache.clear();
@@ -38,14 +55,14 @@ export async function resolveDataListDisplayValues(
   }
 
   const distinctValues = [
-    ...new Set(
-      values.map(String).filter((value) => value.length > 0),
-    ),
+    ...new Set(values.map(String).filter((value) => value.length > 0)),
   ];
 
-  const missingValues = distinctValues.filter(
-    (value) =>
-      !labelsByValueCache.has(cacheKey(runtime.formId, dataListId, value)),
+  const missingValues = distinctValues.filter((value) =>
+    needsDisplayValuesFetch(
+      labelsByValueCache.get(cacheKey(runtime.formId, dataListId, value)),
+      options.includeLocales,
+    ),
   );
 
   if (missingValues.length > 0) {

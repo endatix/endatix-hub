@@ -141,7 +141,7 @@ export function validateJsonInput(value: string): ParsedValidation {
 
     // Add valid item if no errors for this item
     if (label && valueField && !hasError(`Choice item ${index + 1}`)) {
-      validItems.push({ label, value: valueField });
+      validItems.push({ value: valueField, labels: { default: label } });
     }
   });
 

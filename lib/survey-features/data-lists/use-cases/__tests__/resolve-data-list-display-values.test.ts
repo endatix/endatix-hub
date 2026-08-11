@@ -84,4 +84,53 @@ describe("resolveDataListDisplayValues", () => {
       });
     }
   });
+
+  it("re-fetches when cached labels miss a requested locale", async () => {
+    getDisplayValuesMock
+      .mockResolvedValueOnce(
+        ApiResult.success([
+          {
+            value: "728193",
+            labels: { default: "Plovdiv" },
+          },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        ApiResult.success([
+          {
+            value: "728193",
+            labels: { default: "Plovdiv", bg: "Пловдив" },
+          },
+        ]),
+      );
+
+    await resolveDataListDisplayValues(
+      { getRuntimeState: () => ({ formId: "101" }) },
+      "42",
+      ["728193"],
+      { includeLocales: ["default"] },
+    );
+
+    const second = await resolveDataListDisplayValues(
+      { getRuntimeState: () => ({ formId: "101" }) },
+      "42",
+      ["728193"],
+      { includeLocales: ["default", "bg"] },
+    );
+
+    expect(getDisplayValuesMock).toHaveBeenCalledTimes(2);
+    expect(getDisplayValuesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        includeLocales: ["default", "bg"],
+        values: ["728193"],
+      }),
+    );
+    expect(second.success).toBe(true);
+    if (second.success) {
+      expect(second.data.get("728193")).toEqual({
+        default: "Plovdiv",
+        bg: "Пловдив",
+      });
+    }
+  });
 });
