@@ -63,9 +63,7 @@ export function DataListItemsInput({
         className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center transition hover:bg-muted/40"
       >
         <FileUp className="mb-2 h-5 w-5 text-muted-foreground" />
-        <span className="text-sm font-medium">
-          Drag and drop or browse {formatLabel} file
-        </span>
+        <span className="text-sm font-medium">Browse {formatLabel} file</span>
         <span className="text-xs text-muted-foreground">
           Max file size: 5MB
         </span>

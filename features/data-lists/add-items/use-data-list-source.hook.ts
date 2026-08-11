@@ -84,15 +84,21 @@ export function useDataListSource(
     return validateJsonInput(jsonInput);
   }, [format, jsonInput]);
 
+  const availableLocalesKey = (
+    options.availableLocales ?? EMPTY_AVAILABLE_LOCALES
+  ).join(",");
+
   const csvDiscovery = useMemo(() => {
     if (format !== "csv" || !csvInput.trim()) {
       return null;
     }
     return discoverLocalesFromTranslationsCsv(csvInput, {
-      availableLocales: options.availableLocales ?? EMPTY_AVAILABLE_LOCALES,
+      availableLocales: availableLocalesKey
+        ? availableLocalesKey.split(",")
+        : EMPTY_AVAILABLE_LOCALES,
       defaultLocale,
     });
-  }, [csvInput, defaultLocale, format, options.availableLocales]);
+  }, [availableLocalesKey, csvInput, defaultLocale, format]);
 
   const canConfirm = useMemo(() => {
     if (format === "json") {

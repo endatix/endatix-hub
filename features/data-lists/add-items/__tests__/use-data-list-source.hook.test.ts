@@ -1,17 +1,9 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useDataListSource } from "../use-data-list-source.hook";
 import { FILE_SIZE_ERROR, MAX_FILE_SIZE_BYTES } from "../../utils";
 
 describe("useDataListSource", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it("starts on json and can switch to csv", () => {
     const { result } = renderHook(() => useDataListSource());
 
@@ -71,5 +63,29 @@ describe("useDataListSource", () => {
     expect(result.current.format).toBe("csv");
     expect(result.current.csvInput).toContain("value,default");
     expect(result.current.canConfirm).toBe(true);
+  });
+
+  it("keeps csvDiscovery stable when availableLocales is a new equal array", () => {
+    // Arrange
+    const csv = "value,default,es\r\napple,Apple,Manzana\r\n";
+    const { result, rerender } = renderHook(
+      ({ locales }) =>
+        useDataListSource({
+          initialFormat: "csv",
+          availableLocales: locales,
+        }),
+      { initialProps: { locales: ["es"] } },
+    );
+
+    act(() => {
+      result.current.setCsvInput(csv);
+    });
+    const firstDiscovery = result.current.csvDiscovery;
+
+    // Act — new array reference, same contents
+    rerender({ locales: ["es"] });
+
+    // Assert
+    expect(result.current.csvDiscovery).toBe(firstDiscovery);
   });
 });

@@ -18,9 +18,15 @@ export function DataListCsvPreview({
   name,
   description,
 }: Readonly<DataListCsvPreviewProps>) {
-  const localeKeys = discovery.columns
-    .filter((column) => column.key.length > 0 && column.kind !== "invalid")
-    .map((column) => column.key);
+  const localeKeys: string[] = [];
+  const seen = new Set<string>();
+  for (const column of discovery.columns) {
+    if (!column.key || column.kind === "invalid" || seen.has(column.key)) {
+      continue;
+    }
+    seen.add(column.key);
+    localeKeys.push(column.key);
+  }
 
   return (
     <Card className="gap-0">
