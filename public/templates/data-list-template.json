@@ -1,10 +1,16 @@
 [
   {
-    "label": "Option A",
-    "value": "option-a"
+    "value": "apple",
+    "labels": {
+      "default": "Apple",
+      "es": "Manzana",
+      "fr": "Pomme"
+    }
   },
   {
-    "label": "Option B",
-    "value": "option-b"
+    "value": "banana",
+    "labels": {
+      "default": "Banana"
+    }
   }
 ]

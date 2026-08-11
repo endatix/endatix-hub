@@ -6,6 +6,8 @@ export interface DataList {
   createdAt: Date;
   modifiedAt?: Date;
   itemsCount: number;
+  defaultLocale?: string;
+  availableLocales?: string[];
 }
 
 export interface DataListDetails extends DataList {
@@ -19,7 +21,7 @@ export interface DataListChoiceItem {
 
 export interface DataListItem {
   id: string;
-  label: string;
+  labels: Record<string, string>;
   value: string;
 }
 
@@ -28,9 +30,21 @@ export interface CreateDataListRequest {
   description?: string;
 }
 
-export interface ReplaceDataListItemsRequest {
-  items: DataListChoiceItem[];
-}
+export type DataListExportFormat = "csv" | "json";
+
+export type ImportDataListRequest =
+  | {
+      format: "json";
+      items: DataListChoiceItem[];
+      csv?: never;
+      ensureLocales?: string[];
+    }
+  | {
+      format: "csv";
+      csv: string;
+      items?: never;
+      ensureLocales?: string[];
+    };
 
 export interface FormDependencySummary {
   id: string;
@@ -38,17 +52,4 @@ export interface FormDependencySummary {
   description?: string | null;
   isEnabled: boolean;
   isPublic: boolean;
-}
-
-export interface DataListPublicChoiceItem {
-  label: string;
-  value: string;
-}
-
-export interface DataListPublicSearchResult {
-  page: number;
-  pageSize: number;
-  totalRecords: number;
-  totalPages: number;
-  items: DataListPublicChoiceItem[];
 }

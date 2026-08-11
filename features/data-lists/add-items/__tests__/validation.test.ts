@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateJsonInput } from "../../utils";
+import { filterJsonItemsByLocales, validateJsonInput } from "../../utils";
 
 describe("validateJsonInput", () => {
   it("returns error for empty input", () => {
@@ -61,7 +61,7 @@ describe("validateJsonInput", () => {
   });
 
   it("validates field length constraints", () => {
-    const longLabel = "x".repeat(256);
+    const longLabel = "x".repeat(101);
     const result = validateJsonInput(
       `[{"label": "${longLabel}", "value": "a"}]`,
     );
@@ -178,5 +178,54 @@ describe("validateJsonInput", () => {
       true,
     );
     expect(result.errors.some((e) => e.includes("must be unique"))).toBe(true);
+  });
+
+  it("normalizes locale keys in labels with normalizeCultureCode", () => {
+    const result = validateJsonInput(
+      JSON.stringify([
+        {
+          value: "apple",
+          labels: { default: "Apple", ES: "Manzana", "en-US": "Apple US" },
+        },
+      ]),
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.validItems).toHaveLength(1);
+    expect(result.validItems[0].labels).toEqual({
+      default: "Apple",
+      es: "Manzana",
+      "en-us": "Apple US",
+    });
+  });
+
+  it("round-trips culture-coded default label through validation and filter", () => {
+    const json = JSON.stringify([
+      {
+        value: "apple",
+        labels: { en: "Apple", es: "Manzana" },
+      },
+    ]);
+
+    const validated = validateJsonInput(json, { defaultLocale: "en" });
+    expect(validated.errors).toEqual([]);
+    expect(validated.validItems).toEqual([
+      {
+        value: "apple",
+        labels: { default: "Apple", es: "Manzana" },
+      },
+    ]);
+
+    const filtered = filterJsonItemsByLocales(
+      validated.validItems,
+      ["default", "es"],
+      "en",
+    );
+    expect(filtered).toEqual([
+      {
+        value: "apple",
+        labels: { default: "Apple", es: "Manzana" },
+      },
+    ]);
   });
 });

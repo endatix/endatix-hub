@@ -43,6 +43,19 @@ const DEFAULT_HEADERS = {};
 type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 type RequestHeaders = Record<string, string>;
 
+/** Removes Content-Type when it is application/json (any casing / charset). */
+function omitJsonContentType(headers: RequestHeaders): void {
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() !== "content-type") {
+      continue;
+    }
+    const mediaType = headers[key]?.split(";")[0]?.trim().toLowerCase();
+    if (mediaType === "application/json") {
+      delete headers[key];
+    }
+  }
+}
+
 export interface EndatixApiOptions {
   baseUrl?: string;
   defaultHeaders?: RequestHeaders;
@@ -52,6 +65,11 @@ export interface RequestOptions {
   method?: RequestMethod;
   requireAuth?: boolean;
   body?: unknown;
+  /**
+   * When true, send `body` as-is (string/Blob/FormData) without JSON.stringify,
+   * and do not force `Content-Type: application/json`.
+   */
+  rawBody?: boolean;
   headers?: RequestHeaders;
 }
 
@@ -379,6 +397,7 @@ export class EndatixApi {
       method = "GET",
       requireAuth = true,
       body,
+      rawBody = false,
       headers: customHeaders = {},
     } = requestOptions;
 
@@ -407,7 +426,7 @@ export class EndatixApi {
       headerBuilder.withAuth(this.session);
     }
 
-    if (body && method !== "GET") {
+    if (body != null && method !== "GET" && !rawBody) {
       headerBuilder.provideJson();
     }
 
@@ -415,10 +434,20 @@ export class EndatixApi {
       headerActions(headerBuilder);
     }
 
+    let requestBody: BodyInit | undefined;
+    if (body != null && method !== "GET") {
+      requestBody = rawBody ? (body as BodyInit) : JSON.stringify(body);
+    }
+
+    const headers = { ...headerBuilder.build(), ...allHeaders };
+    if (rawBody) {
+      omitJsonContentType(headers);
+    }
+
     const requestInit: RequestInit = {
       method,
-      headers: { ...headerBuilder.build(), ...allHeaders },
-      body: body ? JSON.stringify(body) : undefined,
+      headers,
+      body: requestBody,
     };
 
     return ApiResult.success(requestInit);
