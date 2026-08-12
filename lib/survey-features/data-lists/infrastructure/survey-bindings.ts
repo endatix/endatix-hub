@@ -25,6 +25,7 @@ import {
 } from "./property-grid-lazy-choice-registry";
 import { registerDataListGlobals } from "./registry";
 import { resolveSurveyLocalesForDataList } from "./resolve-survey-locales-for-data-list";
+import { Result, toResult } from "@/lib/result";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
 const LOGGER_NAME = "data-lists.surveyBindings";
@@ -45,24 +46,10 @@ function identityLabelMap(
   return new Map(values.map((value) => [value, { default: value }] as const));
 }
 
-function logDisplayValueError(
-  message: string,
-  error: { type: string; errorCode?: string },
-): void {
-  TelemetryLogger.error(
-    message,
-    undefined,
-    {
-      type: error.type,
-      errorCode: error.errorCode,
-    },
-    LOGGER_NAME,
-  );
-}
-
 /**
  * Resolves labels for a batch of choice values. On API failure, falls back to
  * identity labels so lazy-load display completion can still finish.
+ * Telemetry for unexpected failures is handled by {@link toResult}.
  */
 async function fetchDataListLabelsOrIdentity(
   deps: ExtensionRuntimeDeps,
@@ -72,21 +59,22 @@ async function fetchDataListLabelsOrIdentity(
   failureMessage: string,
 ): Promise<Map<string, Record<string, string>>> {
   try {
-    const response = await resolveDataListDisplayValues(
-      deps,
-      dataListId,
-      values,
-      locales,
+    const result = toResult(
+      await resolveDataListDisplayValues(deps, dataListId, values, locales),
+      {
+        fallbackMessage: failureMessage,
+        logMessage: failureMessage,
+        loggerName: LOGGER_NAME,
+      },
     );
 
-    if (!response.success) {
-      logDisplayValueError(failureMessage, response.error);
+    if (Result.isError(result)) {
       return identityLabelMap(values);
     }
 
-    return response.data;
-  } catch {
-    logDisplayValueError(failureMessage, { type: "UnexpectedError" });
+    return result.value;
+  } catch (error) {
+    TelemetryLogger.error(failureMessage, error, {}, LOGGER_NAME);
     return identityLabelMap(values);
   }
 }
@@ -232,18 +220,16 @@ export function bindDataListsToSurvey(
     const values = options.values.map(String);
     const locales = resolveSurveyLocalesForDataList(model, options.question);
 
-    const response = await resolveDataListDisplayValues(
-      deps,
-      dataListId,
-      values,
-      locales,
+    const result = toResult(
+      await resolveDataListDisplayValues(deps, dataListId, values, locales),
+      {
+        fallbackMessage: "Failed to resolve data list display values.",
+        logMessage: "Failed to resolve data list display values.",
+        loggerName: LOGGER_NAME,
+      },
     );
 
-    if (!response.success) {
-      logDisplayValueError(
-        "Failed to resolve data list display values.",
-        response.error,
-      );
+    if (Result.isError(result)) {
       options.setItems(values);
       return;
     }
@@ -251,7 +237,7 @@ export function bindDataListsToSurvey(
     await completeLazyLoadChoiceDisplayValues({
       question: options.question,
       requestedValues: values,
-      labelsByValue: response.data,
+      labelsByValue: result.value,
       setItems: options.setItems,
       activeLocale: locales.locale,
       fetchLabels: (missingValues) =>
