@@ -22,13 +22,15 @@ export function choiceDisplayFingerprint(item: ItemValue): string {
   const value = normalizeChoiceKey(item.value);
   const locJson = item.locText?.getJson?.();
 
-  if (locJson != null && locJson !== "") {
-    const locPart =
-      typeof locJson === "string" ? locJson : JSON.stringify(locJson);
-    return `${value}:${locPart}`;
+  if (locJson == null || locJson === "") {
+    return `${value}:${String(item.text ?? "")}`;
   }
 
-  return `${value}:${String(item.text ?? "")}`;
+  if (typeof locJson === "string") {
+    return `${value}:${locJson}`;
+  }
+
+  return `${value}:${JSON.stringify(locJson)}`;
 }
 
 export function haveCarryForwardChoicesChanged(
@@ -54,6 +56,7 @@ export function haveCarryForwardChoicesChanged(
 /**
  * Prefer an already-resolved label on the target over an incoming ID-only
  * fallback. Prevents a late lazy-load sync from wiping labels back to numbers.
+ * Mutates `incoming` only (the freshly copied target choice).
  */
 export function preferResolvedChoiceLabel(
   incoming: ItemValue,

@@ -136,6 +136,9 @@ describe("completeLazyLoadChoiceDisplayValues", () => {
     // Simulate SurveyJS race: request started with one value, selection grew.
     question.value = ["2510911", "3117735", "2520493"];
 
+    const updateChoicesDependedQuestions = vi.fn();
+    question.updateChoicesDependedQuestions = updateChoicesDependedQuestions;
+
     const setItems = vi.fn((displayValues: string[]) => {
       question.selectedItemValues = displayValues.map((text, index) =>
         question.createItemValue(["2510911"][index], text),
@@ -163,6 +166,8 @@ describe("completeLazyLoadChoiceDisplayValues", () => {
 
     expect(fetchLabels).toHaveBeenCalledTimes(1);
     expect(setItems).toHaveBeenCalledWith(["Sevilla"]);
+    // Notify once after reconcile — not after the partial setItems apply.
+    expect(updateChoicesDependedQuestions).toHaveBeenCalledTimes(1);
 
     const selected = question.selectedItemValues as SelectedChoiceItem[];
     expect(
@@ -172,6 +177,69 @@ describe("completeLazyLoadChoiceDisplayValues", () => {
       { value: "3117735", text: "A Coruña" },
       { value: "2520493", text: "'s-Hertogenbosch" },
     ]);
+  });
+
+  it("ignores a superseded in-flight completion after a newer one starts", async () => {
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            {
+              type: "tagbox",
+              name: "cities",
+              choicesLazyLoadEnabled: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    const question = model.getQuestionByName("cities") as SelectBaseQuestion;
+    // Force the older completion into an awaited fetch pass.
+    question.value = ["2510911", "999"];
+
+    let releaseFetch: (() => void) | undefined;
+    const fetchGate = new Promise<void>((resolve) => {
+      releaseFetch = resolve;
+    });
+
+    const setItemsOlder = vi.fn((displayValues: string[]) => {
+      question.selectedItemValues = displayValues.map((text, index) =>
+        question.createItemValue(["2510911"][index], text),
+      ) as SelectedChoiceItem[];
+    });
+    const setItemsNewer = vi.fn((displayValues: string[]) => {
+      question.selectedItemValues = displayValues.map((text, index) =>
+        question.createItemValue(["3117735"][index], text),
+      ) as SelectedChoiceItem[];
+    });
+
+    const older = completeLazyLoadChoiceDisplayValues({
+      question,
+      requestedValues: ["2510911"],
+      labelsByValue: new Map([["2510911", { default: "Sevilla" }]]),
+      setItems: setItemsOlder,
+      fetchLabels: async () => {
+        await fetchGate;
+        return new Map([["999", { default: "stale-extra" }]]);
+      },
+    });
+
+    question.value = ["3117735"];
+    const newer = completeLazyLoadChoiceDisplayValues({
+      question,
+      requestedValues: ["3117735"],
+      labelsByValue: new Map([["3117735", { default: "Madrid" }]]),
+      setItems: setItemsNewer,
+      fetchLabels: async () => new Map(),
+    });
+
+    await newer;
+    releaseFetch?.();
+    await older;
+
+    const selected = question.selectedItemValues as SelectedChoiceItem[];
+    expect(selected.map((item) => item.text)).toEqual(["Madrid"]);
   });
 
   it.each([

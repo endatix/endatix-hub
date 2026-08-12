@@ -70,6 +70,8 @@ export function getChoicesFromSourceQuestion(
 /**
  * Selected Only + lazy load: keep off-page selections and prefer labeled
  * `selectedItemValues` over ID-only visibleChoices / synthesize fallbacks.
+ * Clones preferred items so carry-forward aggregation does not share live
+ * `selectedItemValues` references with the source question.
  */
 function enrichLazyLoadSelectedChoices(
   source: QuestionSelectBase,
@@ -95,13 +97,17 @@ function enrichLazyLoadSelectedChoices(
 
     const preferred = selectedByKey.get(key);
     if (preferred) {
-      res[i] = preferred;
+      res[i] = cloneChoiceItem(source, preferred);
     }
   }
 
-  const presentKeys = new Set(
-    res.map((item) => normalizeChoiceKey(item.value)).filter(Boolean),
-  );
+  const presentKeys = new Set<string>();
+  for (const item of res) {
+    const key = normalizeChoiceKey(item.value);
+    if (key) {
+      presentKeys.add(key);
+    }
+  }
 
   for (const value of getSelectedValues(source)) {
     const key = normalizeChoiceKey(value);
@@ -114,9 +120,25 @@ function enrichLazyLoadSelectedChoices(
     }
 
     const preferred = selectedByKey.get(key);
-    res.push(preferred ?? source.createItemValue(value));
+    res.push(
+      preferred
+        ? cloneChoiceItem(source, preferred)
+        : source.createItemValue(value),
+    );
     presentKeys.add(key);
   }
+}
+
+function cloneChoiceItem(
+  source: QuestionSelectBase,
+  preferred: ItemValue,
+): ItemValue {
+  const clone = source.createItemValue(preferred.value, preferred.text);
+  const locJson = preferred.locText?.getJson?.();
+  if (locJson != null && locJson !== "") {
+    clone.locText?.setJson?.(locJson);
+  }
+  return clone;
 }
 
 function indexSelectedItemValues(

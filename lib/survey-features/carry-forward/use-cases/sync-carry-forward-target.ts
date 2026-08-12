@@ -47,10 +47,15 @@ export function syncSingleCarryForwardTarget(
   const { priority, rest } = computeCarryForwardAggregatedItems(survey, target);
   const shouldRandomize = target.choicesOrder === "random";
   const existingByValue = indexChoicesByValue(target.choices);
-  const newChoices = [
+
+  const newChoices: ItemValue[] = [
     ...markPriorityChoices(target, priority, shouldRandomize),
     ...rest.map((choice) => copyChoiceItemWithMedia(target, choice)),
-  ].map((choice) => preferResolvedChoiceLabel(choice, existingByValue));
+  ];
+
+  for (let i = 0; i < newChoices.length; i++) {
+    newChoices[i] = preferResolvedChoiceLabel(newChoices[i]!, existingByValue);
+  }
 
   if (haveCarryForwardChoicesChanged(target.choices, newChoices)) {
     target.choices = newChoices;

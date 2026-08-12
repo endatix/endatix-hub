@@ -13,6 +13,33 @@ export type FetchChoiceLabels = (
   values: string[],
 ) => Promise<Map<string, Record<string, string>>>;
 
+/** Caps follow-up fetches for SurveyJS partial-request / mid-select races. */
+const MAX_MISSING_LABEL_FETCH_PASSES = 2;
+
+/**
+ * Monotonic generation per question so an older in-flight completion cannot
+ * overwrite a newer one after `await fetchLabels`.
+ */
+const displayCompletionGenerations = new WeakMap<Question, number>();
+
+function beginDisplayCompletion(question: Question): number {
+  const next = (displayCompletionGenerations.get(question) ?? 0) + 1;
+  displayCompletionGenerations.set(question, next);
+  return next;
+}
+
+function isCurrentDisplayCompletion(
+  question: Question,
+  generation: number,
+): boolean {
+  return displayCompletionGenerations.get(question) === generation;
+}
+
+export type ApplyMultilingualChoiceDisplayOptions = {
+  /** When false, skips SurveyJS depended-question notification (default true). */
+  notifyDependents?: boolean;
+};
+
 /**
  * Applies multilingual choice labels to SurveyJS selected items.
  *
@@ -21,9 +48,9 @@ export type FetchChoiceLabels = (
  * onto `locText` so SurveyJS switches languages natively — same shape as
  * lazy-load choice `text` maps (`default` + cultures).
  *
- * Then notify SurveyJS depended questions (e.g. carry-forward targets). Value
- * change sync often runs before display values resolve, so dependents would
- * otherwise keep ID-only fallback choices.
+ * Then optionally notify SurveyJS depended questions (e.g. carry-forward
+ * targets). Value-change sync often runs before display values resolve, so
+ * dependents would otherwise keep ID-only fallback choices.
  */
 export function applyMultilingualChoiceDisplayValues(
   question: Question,
@@ -31,6 +58,7 @@ export function applyMultilingualChoiceDisplayValues(
   labelsByValue: Map<string, Record<string, string>>,
   setItems: (displayValues: string[]) => void,
   activeLocale?: string,
+  options?: ApplyMultilingualChoiceDisplayOptions,
 ): void {
   const flatLabels = values.map((value) =>
     resolvePublicChoiceLabel(
@@ -41,7 +69,10 @@ export function applyMultilingualChoiceDisplayValues(
 
   setItems(flatLabels);
   writeSelectedItemLocaleMaps(question, values, labelsByValue);
-  notifyChoicesDependedQuestions(question);
+
+  if (options?.notifyDependents !== false) {
+    notifyChoicesDependedQuestions(question);
+  }
 }
 
 /**
@@ -51,7 +82,7 @@ export function applyMultilingualChoiceDisplayValues(
  * and ignores later calls while waiting. Fast multi-select therefore often
  * applies labels for a partial value array. This reconciles against
  * `question.value` after setItems, fetches any still-missing labels, writes a
- * full `selectedItemValues` set, and re-notifies depended questions.
+ * full `selectedItemValues` set, and notifies depended questions once.
  */
 export async function completeLazyLoadChoiceDisplayValues(options: {
   question: Question;
@@ -64,40 +95,33 @@ export async function completeLazyLoadChoiceDisplayValues(options: {
   const { question, requestedValues, setItems, activeLocale, fetchLabels } =
     options;
 
+  const generation = beginDisplayCompletion(question);
   const labelsByValue = new Map(options.labelsByValue);
 
+  // Partial apply without notifying — dependents should see the reconciled set.
   applyMultilingualChoiceDisplayValues(
     question,
     requestedValues,
     labelsByValue,
     setItems,
     activeLocale,
+    { notifyDependents: false },
   );
 
-  // SurveyJS may still be mid-select; pull labels for anything not yet covered.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const currentValues = getSelectedValueStrings(question);
-    const missingValues = currentValues.filter(
-      (value) => !labelsByValue.has(value),
-    );
-    if (missingValues.length === 0) {
-      writeCompleteSelectedItemValues(
-        question,
-        currentValues,
-        labelsByValue,
-        activeLocale,
-      );
-      notifyChoicesDependedQuestions(question);
-      return;
-    }
+  const currentValues = await reconcileMissingLabels({
+    question,
+    labelsByValue,
+    fetchLabels,
+    generation,
+  });
 
-    const fetched = await fetchLabels(missingValues);
-    for (const [value, labels] of fetched) {
-      labelsByValue.set(value, labels);
-    }
+  if (
+    currentValues === null ||
+    !isCurrentDisplayCompletion(question, generation)
+  ) {
+    return;
   }
 
-  const currentValues = getSelectedValueStrings(question);
   writeCompleteSelectedItemValues(
     question,
     currentValues,
@@ -105,6 +129,39 @@ export async function completeLazyLoadChoiceDisplayValues(options: {
     activeLocale,
   );
   notifyChoicesDependedQuestions(question);
+}
+
+async function reconcileMissingLabels(options: {
+  question: Question;
+  labelsByValue: Map<string, Record<string, string>>;
+  fetchLabels: FetchChoiceLabels;
+  generation: number;
+}): Promise<string[] | null> {
+  const { question, labelsByValue, fetchLabels, generation } = options;
+
+  let currentValues = getSelectedValueStrings(question);
+
+  for (let pass = 0; pass < MAX_MISSING_LABEL_FETCH_PASSES; pass++) {
+    const missingValues = currentValues.filter(
+      (value) => !labelsByValue.has(value),
+    );
+    if (missingValues.length === 0) {
+      return currentValues;
+    }
+
+    const fetched = await fetchLabels(missingValues);
+    if (!isCurrentDisplayCompletion(question, generation)) {
+      return null;
+    }
+
+    for (const [value, labels] of fetched) {
+      labelsByValue.set(value, labels);
+    }
+
+    currentValues = getSelectedValueStrings(question);
+  }
+
+  return currentValues;
 }
 
 function notifyChoicesDependedQuestions(question: Question): void {
@@ -174,13 +231,15 @@ function writeSelectedItemLocaleMaps(
     items = [selected];
   }
 
+  const valueFilter = values.length > 0 ? new Set(values) : null;
+
   for (const item of items) {
     const valueKey = parseScalarString(item?.value);
     if (valueKey == null || typeof item.locText?.setJson !== "function") {
       continue;
     }
 
-    if (values.length > 0 && !values.includes(valueKey)) {
+    if (valueFilter && !valueFilter.has(valueKey)) {
       continue;
     }
 
