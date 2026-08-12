@@ -32,7 +32,7 @@ export const MAX_PREVIEW_ERRORS = 20;
 export const FILE_SIZE_ERROR = `File is too large. Max file size is ${
   DATA_LIST_MAX_JSON_FILE_BYTES / (1024 * 1024)
 }MB.`;
-export const CSV_FILE_SIZE_ERROR = `File is too large. Max CSV size is ${DATA_LIST_MAX_CSV_CHARS.toLocaleString()} characters.`;
+export const CSV_FILE_SIZE_ERROR = `File is too large. Max CSV size is ${DATA_LIST_MAX_CSV_CHARS.toLocaleString("en-US")} characters.`;
 export const READ_ERROR = "Failed to read the selected file.";
 export const JSON_REQUIRED_ERROR = "JSON content is required.";
 export const INVALID_JSON_ERROR = "Invalid JSON format.";

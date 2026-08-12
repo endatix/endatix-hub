@@ -98,7 +98,7 @@ describe("replaceDataListItemsAction", () => {
       return;
     }
     expect(result.message).toContain("At least one item");
-    expect(mockGetById).toHaveBeenCalledWith("42");
+    expect(mockGetById).not.toHaveBeenCalled();
     expect(mockReplaceItems).not.toHaveBeenCalled();
   });
 

@@ -16,7 +16,8 @@ import { readCsvRecords } from "./translations/parse-translations-csv";
 
 export type GuardImportPayloadInput = {
   ensureLocales?: readonly string[];
-  catalogLocaleCount?: number;
+  /** Locales already on the catalog; overlapping `ensureLocales` are not counted as new. */
+  existingCatalogLocales?: readonly string[];
 } & (
   | { format: "csv"; csv: string; items?: never }
   | { format: "json"; items: DataListChoiceItem[]; csv?: never }
@@ -72,14 +73,41 @@ export function guardJsonImportItems(
   return Result.success(undefined);
 }
 
+function countNewEnsureLocales(
+  ensureLocales: readonly string[],
+  existingCatalogLocales: readonly string[],
+): number {
+  const existing = new Set(
+    existingCatalogLocales.map((locale) => locale.trim().toLowerCase()),
+  );
+  const seenNew = new Set<string>();
+
+  for (const locale of ensureLocales) {
+    const key = locale.trim().toLowerCase();
+    if (!key || existing.has(key) || seenNew.has(key)) {
+      continue;
+    }
+    seenNew.add(key);
+  }
+
+  return seenNew.size;
+}
+
 /**
- * Guard to ensure the number of locales selected does not exceed the catalog limit.
+ * Guard to ensure adding `ensureLocales` would not exceed the catalog limit.
+ * Locales already present in the catalog (and duplicates within `ensureLocales`)
+ * are not counted as new.
  */
 export function guardEnsureLocalesCount(
   ensureLocales: readonly string[],
-  catalogLocaleCount: number,
+  existingCatalogLocales: readonly string[] = [],
 ): Result<void> {
-  if (catalogLocaleCount + ensureLocales.length > DATA_LIST_MAX_LOCALES) {
+  const newLocaleCount = countNewEnsureLocales(
+    ensureLocales,
+    existingCatalogLocales,
+  );
+
+  if (existingCatalogLocales.length + newLocaleCount > DATA_LIST_MAX_LOCALES) {
     return Result.error(IMPORT_LOCALES_CATALOG_LIMIT_ERROR);
   }
 
@@ -94,7 +122,7 @@ export function guardImportPayload(
 ): Result<void> {
   const localesGuard = guardEnsureLocalesCount(
     input.ensureLocales ?? [],
-    input.catalogLocaleCount ?? 0,
+    input.existingCatalogLocales ?? [],
   );
   if (Result.isError(localesGuard)) {
     return localesGuard;

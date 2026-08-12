@@ -40,7 +40,7 @@ describe("guardTranslationsCsvPayload", () => {
   it("rejects oversized csv payloads", () => {
     expectErrorMessage(
       guardTranslationsCsvPayload("x".repeat(DATA_LIST_MAX_CSV_CHARS + 1)),
-      DATA_LIST_MAX_CSV_CHARS.toLocaleString(),
+      DATA_LIST_MAX_CSV_CHARS.toLocaleString("en-US"),
     );
   });
 
@@ -140,23 +140,51 @@ describe("guardEnsureLocalesCount", () => {
       (_, index) => `l${index}`,
     );
     expectErrorMessage(
-      guardEnsureLocalesCount(ensure, 1),
+      guardEnsureLocalesCount(ensure, ["already-there"]),
       String(DATA_LIST_MAX_LOCALES),
     );
   });
 
   it("accepts ensureLocales that land exactly on the catalog cap", () => {
     const ensure = Array.from({ length: 2 }, (_, index) => `l${index}`);
+    const existing = Array.from(
+      { length: DATA_LIST_MAX_LOCALES - ensure.length },
+      (_, index) => `existing-${index}`,
+    );
+    const result = guardEnsureLocalesCount(ensure, existing);
+
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
+  it("does not double-count ensureLocales already present in the catalog", () => {
+    const existing = Array.from(
+      { length: DATA_LIST_MAX_LOCALES },
+      (_, index) => `l${index}`,
+    );
     const result = guardEnsureLocalesCount(
-      ensure,
-      DATA_LIST_MAX_LOCALES - ensure.length,
+      [existing[0], existing[1]],
+      existing,
     );
 
     expect(Result.isSuccess(result)).toBe(true);
   });
 
+  it("dedupes ensureLocales before comparing against the catalog cap", () => {
+    const existing = Array.from(
+      { length: DATA_LIST_MAX_LOCALES - 1 },
+      (_, index) => `existing-${index}`,
+    );
+    const result = guardEnsureLocalesCount(["fr", "FR", " fr "], existing);
+
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
   it("accepts an empty ensureLocales list", () => {
-    const result = guardEnsureLocalesCount([], DATA_LIST_MAX_LOCALES);
+    const existing = Array.from(
+      { length: DATA_LIST_MAX_LOCALES },
+      (_, index) => `l${index}`,
+    );
+    const result = guardEnsureLocalesCount([], existing);
 
     expect(Result.isSuccess(result)).toBe(true);
   });
@@ -169,7 +197,7 @@ describe("guardImportPayload", () => {
         format: "csv",
         csv: "value,default\r\n",
         ensureLocales: [],
-        catalogLocaleCount: 0,
+        existingCatalogLocales: [],
       }),
       "At least one data row",
     );
@@ -181,7 +209,7 @@ describe("guardImportPayload", () => {
         format: "json",
         items: [],
         ensureLocales: [],
-        catalogLocaleCount: 0,
+        existingCatalogLocales: [],
       }),
       "At least one item",
     );
@@ -197,7 +225,7 @@ describe("guardImportPayload", () => {
         format: "json",
         items: buildItems(1),
         ensureLocales: ensure,
-        catalogLocaleCount: 1,
+        existingCatalogLocales: ["already-there"],
       }),
       String(DATA_LIST_MAX_LOCALES),
     );
@@ -208,7 +236,7 @@ describe("guardImportPayload", () => {
       format: "csv",
       csv: "value,default\r\napple,Apple\r\n",
       ensureLocales: ["fr-FR"],
-      catalogLocaleCount: 1,
+      existingCatalogLocales: ["en"],
     });
 
     expect(Result.isSuccess(result)).toBe(true);

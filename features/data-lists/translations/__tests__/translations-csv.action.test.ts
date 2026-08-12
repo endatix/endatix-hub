@@ -119,7 +119,7 @@ describe("uploadTranslationsCsvAction", () => {
       return;
     }
     expect(result.message).toContain("At least one data row");
-    expect(mockGetById).toHaveBeenCalledWith("42");
+    expect(mockGetById).not.toHaveBeenCalled();
     expect(mockUploadTranslationsCsv).not.toHaveBeenCalled();
   });
 

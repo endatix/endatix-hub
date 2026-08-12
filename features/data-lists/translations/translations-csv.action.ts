@@ -2,7 +2,10 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { guardImportPayload } from "@/features/data-lists/import-payload-guards";
+import {
+  guardEnsureLocalesCount,
+  guardTranslationsCsvPayload,
+} from "@/features/data-lists/import-payload-guards";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import {
@@ -53,6 +56,18 @@ export async function uploadTranslationsCsvAction(
     );
   }
 
+  // Validate CSV shape before the details fetch so empty/oversized imports
+  // fail fast without a getById round-trip.
+  const csvGuard = guardTranslationsCsvPayload(input.csv);
+  if (Result.isError(csvGuard)) {
+    return csvGuard;
+  }
+
+  const earlyLocalesGuard = guardEnsureLocalesCount(localesResult.value, []);
+  if (Result.isError(earlyLocalesGuard)) {
+    return earlyLocalesGuard;
+  }
+
   const api = new EndatixApi(session?.accessToken);
   const detailsResult = toResult(await api.dataLists.getById(idResult.value), {
     fallbackMessage: "Failed to load data list",
@@ -63,15 +78,12 @@ export async function uploadTranslationsCsvAction(
     return detailsResult;
   }
 
-  const catalogLocaleCount = detailsResult.value.availableLocales?.length ?? 0;
-  const payloadGuard = guardImportPayload({
-    format: "csv",
-    csv: input.csv,
-    ensureLocales: localesResult.value,
-    catalogLocaleCount,
-  });
-  if (Result.isError(payloadGuard)) {
-    return payloadGuard;
+  const localesGuard = guardEnsureLocalesCount(
+    localesResult.value,
+    detailsResult.value.availableLocales ?? [],
+  );
+  if (Result.isError(localesGuard)) {
+    return localesGuard;
   }
 
   const result = toResult(

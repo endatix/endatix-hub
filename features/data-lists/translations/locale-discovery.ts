@@ -45,6 +45,8 @@ export type LocaleColumnDiscovery = {
   /** Normalized key (`default` or lowercase culture). Empty when invalid. */
   key: string;
   kind: LocaleColumnKind;
+  /** True when this column duplicates an earlier canonical locale key. */
+  isDuplicate?: boolean;
 };
 
 export type LocaleImportDiscovery = {
@@ -144,7 +146,7 @@ function classifyLocaleColumn(
 
   const key = toCatalogLocaleKey(normalized, options.defaultLocale);
   if (seenCanonicalKeys.has(key)) {
-    return { raw: trimmed, key: "", kind: "invalid" };
+    return { raw: trimmed, key: "", kind: "invalid", isDuplicate: true };
   }
   seenCanonicalKeys.add(key);
 
@@ -171,6 +173,7 @@ export function discoverLocalesFromKeys(
   const invalid: string[] = [];
   const seenCanonicalKeys = new Set<string>();
   const availableLocales = buildAvailableLocaleSet(options.availableLocales);
+  const errors = [...structuralErrors];
 
   for (const raw of keys) {
     const column = classifyLocaleColumn(
@@ -183,6 +186,11 @@ export function discoverLocalesFromKeys(
 
     if (column.kind === "invalid") {
       invalid.push(column.raw);
+      if (column.isDuplicate) {
+        errors.push(
+          `Duplicate locale column '${column.raw}' — only the first column for this locale is kept.`,
+        );
+      }
       continue;
     }
 
@@ -194,7 +202,7 @@ export function discoverLocalesFromKeys(
     discoveredNew.add(column.key);
   }
 
-  const structuralOk = structuralErrors.length === 0;
+  const structuralOk = errors.length === 0;
   return {
     columns,
     existingLocales: [...existing],
@@ -202,7 +210,7 @@ export function discoverLocalesFromKeys(
     invalidLocales: invalid,
     rowCount,
     canProceed: structuralOk && invalid.length === 0,
-    structuralErrors,
+    structuralErrors: errors,
   };
 }
 

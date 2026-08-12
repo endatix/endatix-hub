@@ -2,9 +2,9 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { TelemetryLogger } from "@/features/telemetry";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
+import { toResult } from "@/lib/result/map-api-result-to-result";
 import { revalidatePath } from "next/cache";
 
 const LOGGER_NAME = "data-lists";
@@ -19,18 +19,15 @@ export async function deleteDataListAction(
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.dataLists.delete(dataListId);
-
-  if (!result.success) {
-    TelemetryLogger.error(
-      result.error.message || "Error during deleting data list",
-      result?.error,
-      {},
-      LOGGER_NAME,
-    );
-    return Result.error(result.error.message || "Failed to delete data list");
+  const result = toResult(await api.dataLists.delete(dataListId), {
+    fallbackMessage: "Failed to delete data list",
+    logMessage: "Failed to delete data list",
+    loggerName: LOGGER_NAME,
+  });
+  
+  if (Result.isSuccess(result)) {
+    revalidatePath("/(main)/data-lists");
   }
 
-  revalidatePath("/(main)/data-lists");
-  return Result.success(result.data);
+  return result;
 }

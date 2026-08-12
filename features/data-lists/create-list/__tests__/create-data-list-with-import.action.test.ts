@@ -244,7 +244,9 @@ describe("createDataListWithImportAction", () => {
     if (!Result.isError(result)) {
       return;
     }
-    expect(result.message).toBe("replace failed");
+    expect(result.message).toContain("replace failed");
+    expect(result.message).toContain("could not be removed automatically");
+    expect(result.message).toContain("id: 99");
     expect(mockDelete).toHaveBeenCalledWith("99");
     expect(mockTelemetryError).toHaveBeenCalledWith(
       "Failed to roll back data list creation after import failure",
@@ -257,7 +259,9 @@ describe("createDataListWithImportAction", () => {
   it("returns the import error and logs when rollback delete returns Result.error", async () => {
     mockCreate.mockResolvedValue(Result.success(emptyDetails));
     mockReplace.mockResolvedValue(Result.error("replace failed"));
-    mockDelete.mockResolvedValue(Result.error("delete rejected"));
+    mockDelete.mockResolvedValue(
+      Result.error("delete rejected", undefined, "DELETE_FAILED"),
+    );
 
     const result = await createDataListWithImportAction({
       name: "Fruits",
@@ -269,12 +273,14 @@ describe("createDataListWithImportAction", () => {
     if (!Result.isError(result)) {
       return;
     }
-    expect(result.message).toBe("replace failed");
+    expect(result.message).toContain("replace failed");
+    expect(result.message).toContain("could not be removed automatically");
+    expect(result.message).toContain("id: 99");
     expect(mockDelete).toHaveBeenCalledWith("99");
     expect(mockTelemetryError).toHaveBeenCalledWith(
       "Failed to roll back data list creation after import failure",
-      expect.any(Error),
-      { dataListId: "99" },
+      undefined,
+      { dataListId: "99", errorCode: "DELETE_FAILED" },
       "data-lists.createWithImport",
     );
   });

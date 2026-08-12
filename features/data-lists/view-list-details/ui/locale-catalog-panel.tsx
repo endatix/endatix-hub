@@ -27,7 +27,11 @@ export function LocaleCatalogPanel({
   const availableLocales = details.availableLocales ?? [];
   const dataListIdResult = validateEndatixId(String(details.id), "dataListId");
   const hasValidDataListId = Result.isSuccess(dataListIdResult);
-  const controlsDisabled = isPending || isRemovePending || !hasValidDataListId;
+  const controlsDisabled =
+    isPending ||
+    isRemovePending ||
+    localePendingRemoval !== null ||
+    !hasValidDataListId;
 
   const requireDataListId = (): string | null => {
     if (Result.isError(dataListIdResult)) {

@@ -75,6 +75,11 @@ describe("locale discovery", () => {
 
     expect(discovery.canProceed).toBe(false);
     expect(discovery.invalidLocales).toContain("ES");
+    expect(
+      discovery.structuralErrors.some((error) =>
+        error.includes("Duplicate locale column 'ES'"),
+      ),
+    ).toBe(true);
     expect(discovery.newLocales).toEqual(["es"]);
     expect(
       discovery.columns.filter((column) => column.key === "es"),
@@ -97,6 +102,11 @@ describe("locale discovery", () => {
 
     expect(discovery.canProceed).toBe(false);
     expect(discovery.invalidLocales).toContain("en");
+    expect(
+      discovery.structuralErrors.some((error) =>
+        error.includes("Duplicate locale column 'en'"),
+      ),
+    ).toBe(true);
     expect(
       discovery.columns.filter((column) => column.kind === "default"),
     ).toHaveLength(1);

@@ -2,7 +2,10 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { guardImportPayload } from "@/features/data-lists/import-payload-guards";
+import {
+  guardEnsureLocalesCount,
+  guardJsonImportItems,
+} from "@/features/data-lists/import-payload-guards";
 import { EndatixApi } from "@/lib/endatix-api";
 import type {
   DataListChoiceItem,
@@ -37,6 +40,18 @@ export async function replaceDataListItemsAction(
     );
   }
 
+  // Validate payload shape before the details fetch so empty/oversized imports
+  // fail fast without a getById round-trip.
+  const itemsGuard = guardJsonImportItems(items);
+  if (Result.isError(itemsGuard)) {
+    return itemsGuard;
+  }
+
+  const earlyLocalesGuard = guardEnsureLocalesCount(localesResult.value, []);
+  if (Result.isError(earlyLocalesGuard)) {
+    return earlyLocalesGuard;
+  }
+
   const api = new EndatixApi(session?.accessToken);
   const detailsResult = toResult(await api.dataLists.getById(idResult.value), {
     fallbackMessage: "Failed to load data list",
@@ -47,15 +62,12 @@ export async function replaceDataListItemsAction(
     return detailsResult;
   }
 
-  const catalogLocaleCount = detailsResult.value.availableLocales?.length ?? 0;
-  const payloadGuard = guardImportPayload({
-    format: "json",
-    items,
-    ensureLocales: localesResult.value,
-    catalogLocaleCount,
-  });
-  if (Result.isError(payloadGuard)) {
-    return payloadGuard;
+  const localesGuard = guardEnsureLocalesCount(
+    localesResult.value,
+    detailsResult.value.availableLocales ?? [],
+  );
+  if (Result.isError(localesGuard)) {
+    return localesGuard;
   }
 
   const result = toResult(

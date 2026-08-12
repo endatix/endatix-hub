@@ -4,6 +4,7 @@ import { deleteDataListAction } from "@/features/data-lists/delete-list/delete-d
 import { replaceDataListItemsAction } from "@/features/data-lists/replace-items/replace-data-list-items.action";
 import { uploadTranslationsCsvAction } from "@/features/data-lists/translations/translations-csv.action";
 import { guardImportPayload } from "@/features/data-lists/import-payload-guards";
+import { IMPORT_ROLLBACK_FAILED_SUFFIX } from "@/features/data-lists/import-validation-messages";
 import { TelemetryLogger } from "@/features/telemetry";
 import type {
   DataListChoiceItem,
@@ -25,17 +26,28 @@ export type CreateDataListWithImportInput = {
   | { format: "json"; items: DataListChoiceItem[]; csv?: never }
 );
 
-async function rollBackCreatedList(dataListId: string): Promise<void> {
+/**
+ * Compensating delete after a failed import. Child actions already map
+ * `ApiResult` via `toResult` (including API telemetry). This layer only logs
+ * the workflow failure with safe scalars and returns a Result for the caller.
+ */
+async function rollBackCreatedList(dataListId: string): Promise<Result<void>> {
   try {
     const deleted = await deleteDataListAction(dataListId);
     if (Result.isError(deleted)) {
       TelemetryLogger.error(
         "Failed to roll back data list creation after import failure",
-        new Error("deleteDataListAction returned an error result"),
-        { dataListId },
+        undefined,
+        {
+          dataListId,
+          errorCode: deleted.errorCode,
+        },
         LOGGER_NAME,
       );
+      return Result.error(deleted.message, deleted.details, deleted.errorCode);
     }
+
+    return Result.success(undefined);
   } catch (error) {
     TelemetryLogger.error(
       "Failed to roll back data list creation after import failure",
@@ -43,7 +55,21 @@ async function rollBackCreatedList(dataListId: string): Promise<void> {
       { dataListId },
       LOGGER_NAME,
     );
+    return Result.error("Failed to delete the newly created data list.");
   }
+}
+
+function importErrorWithFailedRollback(
+  importMessage: string,
+  dataListId: string,
+  details?: string,
+  errorCode?: string,
+): Result<DataListDetails> {
+  return Result.error(
+    `${importMessage} ${IMPORT_ROLLBACK_FAILED_SUFFIX} (id: ${dataListId}).`,
+    details,
+    errorCode,
+  );
 }
 
 /**
@@ -61,13 +87,13 @@ export async function createDataListWithImportAction(
           format: "csv",
           csv: input.csv,
           ensureLocales,
-          catalogLocaleCount: 0,
+          existingCatalogLocales: [],
         }
       : {
           format: "json",
           items: input.items,
           ensureLocales,
-          catalogLocaleCount: 0,
+          existingCatalogLocales: [],
         },
   );
   if (Result.isError(payloadGuard)) {
@@ -99,7 +125,15 @@ export async function createDataListWithImportAction(
         );
 
   if (Result.isError(imported)) {
-    await rollBackCreatedList(dataListId);
+    const rollback = await rollBackCreatedList(dataListId);
+    if (Result.isError(rollback)) {
+      return importErrorWithFailedRollback(
+        imported.message,
+        dataListId,
+        imported.details,
+        imported.errorCode,
+      );
+    }
   }
 
   return imported;
