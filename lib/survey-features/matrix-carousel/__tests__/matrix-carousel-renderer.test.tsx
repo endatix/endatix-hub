@@ -3,9 +3,23 @@ import React from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { registerMatrixCarouselSchema } from "../infrastructure/registry";
 import { registerMatrixCarouselRenderer } from "../infrastructure/matrix-carousel-renderer";
 import { bindMatrixCarouselToSurvey } from "../infrastructure/survey-bindings";
+
+// Read as a plain file, not a module import — Vitest's asset pipeline
+// doesn't reliably expose external-stylesheet content as a string import in
+// this project's config, and reading the raw source directly sidesteps that
+// entirely. process.cwd() is the hub package root Vitest always runs from.
+const footerCssSource = readFileSync(
+  path.join(
+    process.cwd(),
+    "lib/survey-features/matrix-carousel/infrastructure/matrix-carousel.styles.css",
+  ),
+  "utf-8",
+);
 
 // StoragePresignedImage internally calls useAssetStorage(), which throws
 // without an <AssetStorageContext.Provider> ancestor. None of this file's
@@ -531,6 +545,54 @@ describe("MatrixCarouselRenderer", () => {
     // Assert — old observer torn down, a fresh one observing all 3 new slides
     expect(disconnectSpy).toHaveBeenCalled();
     expect(observeSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("computes the Next-scroll target from getBoundingClientRect deltas, not target.offsetLeft, so it isn't thrown off by whichever ancestor happens to be offsetLeft's positioned reference", () => {
+    // Arrange — jsdom has no real layout engine (getBoundingClientRect is
+    // {0,0,0,0} by default), so this stubs both APIs to reproduce the exact
+    // real-browser bug confirmed via a live scratch-preview render: a
+    // slide's offsetLeft resolves relative to its offsetParent — the
+    // nearest ancestor with a non-static position, which turned out to be
+    // the surrounding .sd-question wrapper (SurveyJS's own theme gives it
+    // position:relative), NOT .sv-matrixcarousel__strip (which sets no
+    // position at all) — so offsetLeft included that wrapper's own title/
+    // padding above the strip, a confirmed ~40px overshoot that scrolled
+    // past the slide's true boundary and clipped its left edge from view.
+    // getBoundingClientRect is always relative to the viewport, immune to
+    // that ambiguity — this test locks in that the fix actually uses it.
+    const model = new Model(carouselSurveyJson());
+    const { container, getByText } = render(<Survey model={model} />);
+    const strip = container.querySelector(".sv-matrixcarousel__strip") as HTMLElement;
+    const slide1 = strip.children[1] as HTMLElement;
+
+    vi.spyOn(strip, "getBoundingClientRect").mockReturnValue({ left: 100 } as DOMRect);
+    vi.spyOn(slide1, "getBoundingClientRect").mockReturnValue({ left: 500 } as DOMRect);
+    Object.defineProperty(slide1, "offsetLeft", { value: 999, configurable: true });
+    // jsdom doesn't implement Element.prototype.scrollTo at all (there's
+    // nothing to spy on until one exists) — a plain assignment on the
+    // instance stands in for it.
+    const scrollToSpy = vi.fn();
+    strip.scrollTo = scrollToSpy;
+
+    // Act
+    fireEvent.click(getByText("Next"));
+
+    // Assert — 500 - 100 + scrollLeft(0) = 400 (the rect-based delta), not
+    // offsetLeft's 999.
+    expect(scrollToSpy).toHaveBeenCalledWith(expect.objectContaining({ left: 400 }));
+  });
+
+  it("resets the theme's edge-alignment negative margin on the footer's action bar and provides its own gap, so Previous/Next and the progress text aren't flush against each other", () => {
+    // jsdom's CSS engine doesn't reliably compute cascaded flexbox gap/
+    // margin from an external stylesheet the way a real browser does — this
+    // was verified visually in a real browser instead (gaps went from 0px/
+    // 0px to 36px/8px after this rule was added). This test only guards
+    // against the rule being silently deleted or renamed later, not against
+    // a specific pixel value.
+    expect(footerCssSource).toMatch(/\.sv-matrixcarousel__footer-row\s*\{[^}]*gap:/);
+    expect(footerCssSource).toMatch(
+      /\.sv-matrixcarousel__footer-row \.sd-action-bar\s*\{[^}]*margin:\s*0[^}]*gap:/,
+    );
   });
 
   it("clears the model's visibleRowsChangedCallback on unmount, so no detached-component closure lingers", () => {

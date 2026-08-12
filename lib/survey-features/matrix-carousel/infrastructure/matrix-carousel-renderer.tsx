@@ -344,12 +344,32 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
       return;
     }
 
-    if (Math.abs(strip.scrollLeft - target.offsetLeft) <= SCROLL_EPSILON_PX) {
+    // getBoundingClientRect-based delta, not target.offsetLeft. offsetLeft is
+    // relative to target.offsetParent — the nearest ANCESTOR with a non-
+    // static position — which is NOT necessarily the strip: neither
+    // .sv-matrixcarousel nor .sv-matrixcarousel__strip sets position:
+    // relative, so the search continues past them. Confirmed in a real
+    // render: offsetParent for a slide resolves to the surrounding
+    // .sd-question wrapper (SurveyJS's own theme gives it position:
+    // relative), so offsetLeft included that wrapper's own title/padding
+    // above the strip — a constant ~40px overshoot in testing, scrolling
+    // past the true slide boundary and clipping its left edge from view.
+    // Measuring both rects in viewport coordinates and taking the
+    // difference sidesteps offsetParent entirely: it's always relative to
+    // the strip's own scrollable viewport, regardless of which ancestor
+    // elsewhere on the page happens to be positioned (which is also why
+    // this only surfaced on the live respondent runner, not Creator's
+    // Preview tab — different surrounding DOM changes what offsetLeft
+    // resolves to, but never changes this computation).
+    const targetLeft =
+      target.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+
+    if (Math.abs(strip.scrollLeft - targetLeft) <= SCROLL_EPSILON_PX) {
       return;
     }
 
     this.isProgrammaticScroll = true;
-    strip.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
+    strip.scrollTo({ left: targetLeft, behavior: "smooth" });
     strip.addEventListener("scrollend", this.clearProgrammaticScrollFlag, { once: true });
     this.programmaticScrollTimeout = setTimeout(
       this.clearProgrammaticScrollFlag,
