@@ -61,16 +61,16 @@ export function RemoveLocaleConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove locale?</AlertDialogTitle>
+          <AlertDialogTitle>Remove translation?</AlertDialogTitle>
           {locale ? (
             <p className="text-base font-medium text-foreground">
               {formatLocaleLabel(locale)}
             </p>
           ) : null}
           <AlertDialogDescription>
-            This removes the locale from the catalog and deletes its labels from
-            every item in this list. This cannot be undone from Hub without
-            re-importing translations.
+            This removes the language from the data datalog and deletes each
+            label translation from every item in this list. This cannot be
+            undone from Hub without re-importing translations.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

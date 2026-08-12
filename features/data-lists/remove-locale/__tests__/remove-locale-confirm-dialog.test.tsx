@@ -41,7 +41,10 @@ describe("RemoveLocaleConfirmDialog", () => {
     );
 
     // Assert
-    expect(screen.getByRole("button", { name: "Remove" }).disabled).toBe(true);
+    expect(
+      (screen.getByRole("button", { name: "Remove" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
     expect(screen.queryByText(/· Test/)).toBeNull();
   });
 

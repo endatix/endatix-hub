@@ -11,20 +11,28 @@ import {
 import { DATA_LIST_ITEM_MAX_LENGTH } from "@/lib/survey-features/data-lists/constants";
 import {
   discoverLocalesFromKeys,
+  DATA_LIST_MAX_CSV_CHARS,
+  DATA_LIST_MAX_ITEMS,
+  DATA_LIST_MAX_JSON_FILE_BYTES,
   type LocaleDiscoveryOptions,
   type LocaleImportDiscovery,
 } from "./translations/locale-discovery";
 import { JsonErrorAnnotation, ParsedValidation } from "./types";
 
 export { DATA_LIST_MAX_JSON_FILE_BYTES as MAX_FILE_SIZE_BYTES } from "./translations/locale-discovery";
+export { DATA_LIST_MAX_CSV_CHARS } from "./translations/locale-discovery";
 export const MAX_PREVIEW_ERRORS = 20;
 
-export const FILE_SIZE_ERROR = "File is too large. Max file size is 5MB.";
+export const FILE_SIZE_ERROR = `File is too large. Max file size is ${
+  DATA_LIST_MAX_JSON_FILE_BYTES / (1024 * 1024)
+}MB.`;
+export const CSV_FILE_SIZE_ERROR = `File is too large. Max CSV size is ${DATA_LIST_MAX_CSV_CHARS.toLocaleString()} characters.`;
 export const READ_ERROR = "Failed to read the selected file.";
 export const JSON_REQUIRED_ERROR = "JSON content is required.";
 export const INVALID_JSON_ERROR = "Invalid JSON format.";
 export const ARRAY_REQUIRED_ERROR = "JSON root must be an array of objects.";
 export const AT_LEAST_ONE_ERROR = "At least one item is required.";
+export const TOO_MANY_ITEMS_ERROR = `A data list cannot have more than ${DATA_LIST_MAX_ITEMS.toLocaleString()} items.`;
 
 const createErrorResponse = (error: string, row = 0): ParsedValidation => ({
   validItems: [],
@@ -246,6 +254,10 @@ export function validateJsonInput(
 
   if (parsed.length === 0) {
     return createErrorResponse(AT_LEAST_ONE_ERROR);
+  }
+
+  if (parsed.length > DATA_LIST_MAX_ITEMS) {
+    return createErrorResponse(TOO_MANY_ITEMS_ERROR);
   }
 
   const errors: string[] = [];
