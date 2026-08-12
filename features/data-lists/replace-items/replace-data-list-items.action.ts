@@ -2,6 +2,10 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import {
+  guardEnsureLocalesCount,
+  guardJsonImportItems,
+} from "@/features/data-lists/import-payload-guards";
 import { EndatixApi } from "@/lib/endatix-api";
 import type {
   DataListChoiceItem,
@@ -10,6 +14,7 @@ import type {
 import { normalizeCultureCodes } from "@/lib/localization";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import { revalidatePath } from "next/cache";
 
 export type ReplaceDataListItemsResult = Result<DataListDetails>;
@@ -23,6 +28,11 @@ export async function replaceDataListItemsAction(
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
+  const idResult = validateEndatixId(dataListId, "dataListId");
+  if (Result.isError(idResult)) {
+    return idResult;
+  }
+
   const localesResult = normalizeCultureCodes(ensureLocales);
   if (!localesResult.ok) {
     return Result.error(
@@ -30,9 +40,38 @@ export async function replaceDataListItemsAction(
     );
   }
 
+  // Validate payload shape before the details fetch so empty/oversized imports
+  // fail fast without a getById round-trip.
+  const itemsGuard = guardJsonImportItems(items);
+  if (Result.isError(itemsGuard)) {
+    return itemsGuard;
+  }
+
+  const earlyLocalesGuard = guardEnsureLocalesCount(localesResult.value, []);
+  if (Result.isError(earlyLocalesGuard)) {
+    return earlyLocalesGuard;
+  }
+
   const api = new EndatixApi(session?.accessToken);
+  const detailsResult = toResult(await api.dataLists.getById(idResult.value), {
+    fallbackMessage: "Failed to load data list",
+    logMessage: "Failed to load data list before replace",
+    loggerName: "data-lists.replaceItems",
+  });
+  if (Result.isError(detailsResult)) {
+    return detailsResult;
+  }
+
+  const localesGuard = guardEnsureLocalesCount(
+    localesResult.value,
+    detailsResult.value.availableLocales ?? [],
+  );
+  if (Result.isError(localesGuard)) {
+    return localesGuard;
+  }
+
   const result = toResult(
-    await api.dataLists.replaceItems(dataListId, items, {
+    await api.dataLists.replaceItems(idResult.value, items, {
       ensureLocales: localesResult.value,
     }),
     {
@@ -43,7 +82,7 @@ export async function replaceDataListItemsAction(
   );
 
   if (Result.isSuccess(result)) {
-    revalidatePath(`/data-lists/${dataListId}`);
+    revalidatePath(`/data-lists/${idResult.value}`);
   }
 
   return result;

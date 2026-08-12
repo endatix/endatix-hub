@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useDataListSource } from "../use-data-list-source.hook";
-import { FILE_SIZE_ERROR, MAX_FILE_SIZE_BYTES } from "../../utils";
+import {
+  CSV_FILE_SIZE_ERROR,
+  FILE_SIZE_ERROR,
+  MAX_FILE_SIZE_BYTES,
+} from "../../utils";
+import {
+  DATA_LIST_MAX_CSV_CHARS,
+  DATA_LIST_MAX_ITEMS,
+} from "../../import-limits";
 
 describe("useDataListSource", () => {
   it("starts on json and can switch to csv", () => {
@@ -31,10 +39,10 @@ describe("useDataListSource", () => {
     expect(result.current.hasSourceContent).toBe(true);
   });
 
-  it("rejects oversized files", () => {
+  it("rejects oversized json files", () => {
     const { result } = renderHook(() => useDataListSource());
 
-    const largeFile = new File([""], "big.csv", { type: "text/csv" });
+    const largeFile = new File([""], "big.json", { type: "application/json" });
     Object.defineProperty(largeFile, "size", {
       value: MAX_FILE_SIZE_BYTES + 1,
     });
@@ -44,7 +52,70 @@ describe("useDataListSource", () => {
     });
 
     expect(result.current.validationError).toBe(FILE_SIZE_ERROR);
+    expect(result.current.selectedFileName).toBe("big.json");
+  });
+
+  it("rejects csv files above the csv character cap", async () => {
+    const { result } = renderHook(() => useDataListSource());
+
+    const content = "é".repeat(DATA_LIST_MAX_CSV_CHARS + 1);
+    const largeFile = new File([content], "big.csv", { type: "text/csv" });
+
+    await act(async () => {
+      await result.current.handleFileSelected(largeFile);
+    });
+
+    expect(result.current.validationError).toBe(CSV_FILE_SIZE_ERROR);
     expect(result.current.selectedFileName).toBe("big.csv");
+  });
+
+  it("exposes sourceError for oversize csv row counts", () => {
+    const { result } = renderHook(() =>
+      useDataListSource({ initialFormat: "csv" }),
+    );
+
+    const rows = Array.from(
+      { length: DATA_LIST_MAX_ITEMS + 1 },
+      (_, index) => `v${index},Label ${index}`,
+    ).join("\r\n");
+
+    act(() => {
+      result.current.setCsvInput(`value,default\r\n${rows}\r\n`);
+    });
+
+    expect(result.current.canConfirm).toBe(false);
+    expect(result.current.sourceError).toContain(
+      DATA_LIST_MAX_ITEMS.toLocaleString("en-US"),
+    );
+  });
+
+  it("exposes a non-blocking sourceWarning for duplicate locale columns", () => {
+    const { result } = renderHook(() =>
+      useDataListSource({ initialFormat: "csv" }),
+    );
+
+    act(() => {
+      result.current.setCsvInput(
+        "value,default,it,IT\r\napple,Apple,Mela1,Mela2\r\n",
+      );
+    });
+
+    expect(result.current.canConfirm).toBe(true);
+    expect(result.current.sourceError).toBeNull();
+    expect(result.current.sourceWarning).toContain(
+      "Duplicate locale column 'IT'",
+    );
+  });
+
+  it("exposes sourceError for json validation failures", () => {
+    const { result } = renderHook(() => useDataListSource());
+
+    act(() => {
+      result.current.setJsonInput("[]");
+    });
+
+    expect(result.current.canConfirm).toBe(false);
+    expect(result.current.sourceError).toContain("At least one item");
   });
 
   it("infers csv from file extension", async () => {

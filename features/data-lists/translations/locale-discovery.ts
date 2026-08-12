@@ -6,6 +6,14 @@ import {
   toCatalogLocaleKey,
   tryNormalizeCultureCode,
 } from "@/lib/localization";
+import {
+  DATA_LIST_MAX_ITEMS,
+  DATA_LIST_MAX_LOCALES,
+} from "@/features/data-lists/import-limits";
+import {
+  IMPORT_LOCALES_CATALOG_LIMIT_ERROR,
+  IMPORT_TOO_MANY_ITEMS_ERROR,
+} from "@/features/data-lists/import-validation-messages";
 
 export {
   isValidCultureCode,
@@ -16,11 +24,13 @@ export {
   tryNormalizeCultureCode,
 } from "@/lib/localization";
 
-export const DATA_LIST_MAX_ITEMS = 5_000;
-export const DATA_LIST_MAX_LOCALES = 20;
-export const DATA_LIST_MAX_LABEL_LENGTH = 100;
-export const DATA_LIST_MAX_CSV_CHARS = 2_000_000;
-export const DATA_LIST_MAX_JSON_FILE_BYTES = 5 * 1024 * 1024;
+export {
+  DATA_LIST_MAX_CSV_CHARS,
+  DATA_LIST_MAX_ITEMS,
+  DATA_LIST_MAX_JSON_FILE_BYTES,
+  DATA_LIST_MAX_LABEL_LENGTH,
+  DATA_LIST_MAX_LOCALES,
+} from "@/features/data-lists/import-limits";
 
 export type LocaleDiscoveryOptions = {
   availableLocales: string[];
@@ -35,6 +45,8 @@ export type LocaleColumnDiscovery = {
   /** Normalized key (`default` or lowercase culture). Empty when invalid. */
   key: string;
   kind: LocaleColumnKind;
+  /** True when this column duplicates an earlier canonical locale key. */
+  isDuplicate?: boolean;
 };
 
 export type LocaleImportDiscovery = {
@@ -48,7 +60,10 @@ export type LocaleImportDiscovery = {
   rowCount: number;
   /** True when the payload is structurally usable aside from locale selection. */
   canProceed: boolean;
+  /** Blocking structural problems (empty CSV, bad header, etc.). */
   structuralErrors: string[];
+  /** Non-blocking notices (e.g. duplicate locale columns; first wins). */
+  warnings: string[];
 };
 
 export type LocaleImportSelection = {
@@ -134,7 +149,7 @@ function classifyLocaleColumn(
 
   const key = toCatalogLocaleKey(normalized, options.defaultLocale);
   if (seenCanonicalKeys.has(key)) {
-    return { raw: trimmed, key: "", kind: "invalid" };
+    return { raw: trimmed, key: "", kind: "invalid", isDuplicate: true };
   }
   seenCanonicalKeys.add(key);
 
@@ -159,6 +174,7 @@ export function discoverLocalesFromKeys(
   const existing = new Set<string>();
   const discoveredNew = new Set<string>();
   const invalid: string[] = [];
+  const warnings: string[] = [];
   const seenCanonicalKeys = new Set<string>();
   const availableLocales = buildAvailableLocaleSet(options.availableLocales);
 
@@ -172,6 +188,14 @@ export function discoverLocalesFromKeys(
     columns.push(column);
 
     if (column.kind === "invalid") {
+      // Duplicate canonical keys: keep the first column and warn — do not block import.
+      if (column.isDuplicate) {
+        warnings.push(
+          `Duplicate locale column '${column.raw}' — only the first column for this locale is kept.`,
+        );
+        continue;
+      }
+
       invalid.push(column.raw);
       continue;
     }
@@ -184,15 +208,15 @@ export function discoverLocalesFromKeys(
     discoveredNew.add(column.key);
   }
 
-  const structuralOk = structuralErrors.length === 0;
   return {
     columns,
     existingLocales: [...existing],
     newLocales: [...discoveredNew].sort((a, b) => a.localeCompare(b)),
     invalidLocales: invalid,
     rowCount,
-    canProceed: structuralOk && invalid.length === 0,
+    canProceed: structuralErrors.length === 0 && invalid.length === 0,
     structuralErrors,
+    warnings,
   };
 }
 
@@ -242,15 +266,11 @@ export function resolveLocaleImportSelection(
 
   const catalogAfterEnsure = catalogLocaleCount + ensureLocales.length;
   if (catalogAfterEnsure > DATA_LIST_MAX_LOCALES) {
-    errors.push(
-      `Selecting these locales would exceed the catalog limit of ${DATA_LIST_MAX_LOCALES}.`,
-    );
+    errors.push(IMPORT_LOCALES_CATALOG_LIMIT_ERROR);
   }
 
   if (discovery.rowCount > DATA_LIST_MAX_ITEMS) {
-    errors.push(
-      `A data list cannot have more than ${DATA_LIST_MAX_ITEMS.toLocaleString()} items.`,
-    );
+    errors.push(IMPORT_TOO_MANY_ITEMS_ERROR);
   }
 
   return {

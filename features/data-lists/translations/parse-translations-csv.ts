@@ -1,3 +1,7 @@
+import {
+  IMPORT_CSV_TOO_LARGE_ERROR,
+  IMPORT_TOO_MANY_ITEMS_ERROR,
+} from "@/features/data-lists/import-validation-messages";
 import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import {
   DATA_LIST_MAX_CSV_CHARS,
@@ -24,7 +28,7 @@ export function discoverLocalesFromTranslationsCsv(
 
   if (csv.length > DATA_LIST_MAX_CSV_CHARS) {
     return discoverLocalesFromKeys([], options, 0, [
-      `CSV exceeds the maximum size of ${DATA_LIST_MAX_CSV_CHARS.toLocaleString()} characters.`,
+      IMPORT_CSV_TOO_LARGE_ERROR,
     ]);
   }
 
@@ -82,9 +86,7 @@ export function discoverLocalesFromTranslationsCsv(
   }
 
   if (dataRows.length > DATA_LIST_MAX_ITEMS) {
-    structuralErrors.push(
-      `A translations CSV cannot have more than ${DATA_LIST_MAX_ITEMS.toLocaleString()} rows.`,
-    );
+    structuralErrors.push(IMPORT_TOO_MANY_ITEMS_ERROR);
   }
 
   return discoverLocalesFromKeys(
@@ -97,6 +99,8 @@ export function discoverLocalesFromTranslationsCsv(
 
 /**
  * Keeps `value` plus selected locale columns (by normalized key). Drops deselected columns.
+ * When the header has duplicate canonical locale keys, only the first column is kept.
+ * Discovery surfaces that as a non-blocking warning so import can proceed.
  */
 export function filterTranslationsCsv(
   csv: string,

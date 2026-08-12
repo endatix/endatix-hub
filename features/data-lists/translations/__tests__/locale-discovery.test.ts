@@ -67,14 +67,20 @@ describe("locale discovery", () => {
     expect(discovery.canProceed).toBe(false);
   });
 
-  it("rejects case-only duplicate locale columns", () => {
+  it("warns on case-only duplicate locale columns without blocking import", () => {
     const discovery = discoverLocalesFromTranslationsCsv(
       "value,default,es,ES\r\napple,Apple,Manzana,MANZANA\r\n",
       { availableLocales: [], defaultLocale: "en" },
     );
 
-    expect(discovery.canProceed).toBe(false);
-    expect(discovery.invalidLocales).toContain("ES");
+    expect(discovery.canProceed).toBe(true);
+    expect(discovery.invalidLocales).not.toContain("ES");
+    expect(discovery.structuralErrors).toEqual([]);
+    expect(
+      discovery.warnings.some((warning) =>
+        warning.includes("Duplicate locale column 'ES'"),
+      ),
+    ).toBe(true);
     expect(discovery.newLocales).toEqual(["es"]);
     expect(
       discovery.columns.filter((column) => column.key === "es"),
@@ -88,15 +94,20 @@ describe("locale discovery", () => {
     expect(filtered).toBe("value,default,es\r\napple,Apple,Manzana\r\n");
   });
 
-  it("rejects duplicate columns that alias to the default locale", () => {
+  it("warns on duplicate columns that alias to the default locale without blocking", () => {
     const discovery = discoverLocalesFromKeys(
       ["default", "en", "es"],
       { availableLocales: [], defaultLocale: "en" },
       1,
     );
 
-    expect(discovery.canProceed).toBe(false);
-    expect(discovery.invalidLocales).toContain("en");
+    expect(discovery.canProceed).toBe(true);
+    expect(discovery.invalidLocales).not.toContain("en");
+    expect(
+      discovery.warnings.some((warning) =>
+        warning.includes("Duplicate locale column 'en'"),
+      ),
+    ).toBe(true);
     expect(
       discovery.columns.filter((column) => column.kind === "default"),
     ).toHaveLength(1);

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DATA_LIST_MAX_ITEMS } from "../../import-limits";
 import { filterJsonItemsByLocales, validateJsonInput } from "../../utils";
 
 describe("validateJsonInput", () => {
@@ -197,6 +198,21 @@ describe("validateJsonInput", () => {
       es: "Manzana",
       "en-us": "Apple US",
     });
+  });
+
+  it("returns error when item count exceeds the catalog limit", () => {
+    const items = Array.from(
+      { length: DATA_LIST_MAX_ITEMS + 1 },
+      (_, index) => ({
+        label: `Item ${index}`,
+        value: `v${index}`,
+      }),
+    );
+
+    const result = validateJsonInput(JSON.stringify(items));
+
+    expect(result.validItems).toEqual([]);
+    expect(result.errors[0]).toContain(DATA_LIST_MAX_ITEMS.toLocaleString());
   });
 
   it("round-trips culture-coded default label through validation and filter", () => {

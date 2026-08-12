@@ -34,7 +34,47 @@
 - Preserve API-provided user-facing messages, validation errors, and error codes through the shared result mappers.
 - Use `parseZodError()` or `ServerActionState.fromZodError()` for Zod validation failures in form actions.
 - Do not log expected user/action failures such as validation, authentication, or authorization failures as application errors.
-- Use `TelemetryLogger` for unexpected operational failures. Only log safe scalar attributes; never log tokens, cookies, raw request bodies, field values, or raw API detail strings.
+- Use `TelemetryLogger` for unexpected operational failures. Only log safe scalar attributes (`errorCode`, ids already shown in UI, status/method/endpoint from `mapApiErrorToTelemetryAttributes`); never log tokens, cookies, raw request bodies, field values, or raw API detail/message strings.
+- **Composing actions** (workflows that call other actions returning `Result<T>`): do **not** call `toResult` again. Check `Result.isError`, return/combine user-facing messages, and if you must log the workflow failure use safe scalars only. API telemetry belongs in the leaf action that received `ApiResult`.
+
+### Example: API leaf action (`toResult`)
+
+```typescript
+const result = toResult(await api.dataLists.delete(dataListId), {
+  fallbackMessage: "Failed to delete data list",
+  logMessage: "Failed to delete data list",
+  loggerName: "data-lists",
+});
+
+if (Result.isSuccess(result)) {
+  revalidatePath("/(main)/data-lists");
+}
+
+return result;
+```
+
+### Example: composing action (rollback / multi-step)
+
+```typescript
+const imported = await replaceDataListItemsAction(...);
+if (Result.isError(imported)) {
+  const rollback = await deleteDataListAction(dataListId);
+  if (Result.isError(rollback)) {
+    TelemetryLogger.error(
+      "Failed to roll back data list creation after import failure",
+      undefined,
+      { dataListId, errorCode: rollback.errorCode },
+      "data-lists.createWithImport",
+    );
+    return Result.error(
+      `${imported.message} Cleanup failed (id: ${dataListId}).`,
+      imported.details,
+      imported.errorCode,
+    );
+  }
+}
+return imported;
+```
 
 ## UI Feedback
 
@@ -52,6 +92,7 @@ When the Endatix API exposes a catalog for options, labels, or descriptions (cap
 - Prefer displaying `capability.label` / `format.label` / naming-convention `label` over concatenating Hub-authored strings.
 
 **Status (reporting export):**
+
 - Done: Hub derives create-form options + type labels from `GET /settings/export-capabilities` and column naming from `GET /settings/export-naming-conventions` (`lib/endatix-api/reporting/export-format-types.ts` projects only; no Hub label catalog).
 - Not yet: target group headings still use raw wire enum names; no i18n for API-sourced copy; no codegen of wire unions/labels from .NET into TypeScript.
 

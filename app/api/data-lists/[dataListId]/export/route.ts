@@ -3,7 +3,9 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { DataListExportFormat } from "@/lib/endatix-api/data-lists/types";
+import { Result } from "@/lib/result";
 import { toUpstreamFileResponse } from "@/lib/utils/route-handlers";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 
 function parseExportFormat(value: string | null): DataListExportFormat {
   return value === "json" ? "json" : "csv";
@@ -13,12 +15,21 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ dataListId: string }> },
 ) {
-  const { dataListId } = await params;
+  const { dataListId: rawDataListId } = await params;
   const session = await auth();
 
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
+  const dataListIdResult = validateEndatixId(rawDataListId, "dataListId");
+  if (Result.isError(dataListIdResult)) {
+    return new Response(JSON.stringify({ error: dataListIdResult.message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const dataListId = dataListIdResult.value;
   const format = parseExportFormat(request.nextUrl.searchParams.get("format"));
   const api = new EndatixApi(session?.accessToken);
   const exportResult = await api.dataLists.export(dataListId, format);

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
+import { resolveCatalogDefaultLabelText } from "@/lib/localization";
 import { cn } from "@/lib/utils";
 import {
   flexRender,
@@ -55,7 +56,10 @@ function buildColumns(
       cell: ({ row }: { row: { original: DataListItemRow } }) => {
         const text =
           column === "default"
-            ? row.original.labels.default
+            ? resolveCatalogDefaultLabelText(
+                row.original.labels,
+                defaultLocale,
+              )
             : row.original.labels[column];
         return text?.trim() ? text : "—";
       },
