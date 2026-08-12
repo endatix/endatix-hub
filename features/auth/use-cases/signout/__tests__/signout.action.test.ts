@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SIGNIN_PATH } from "../../../infrastructure/auth-constants";
+import { logoutAction } from "../signout.action";
 
 const mockRedirect = vi.fn();
 const mockSignOut = vi.fn();
@@ -35,9 +36,11 @@ describe("logoutAction", () => {
     mockResolveFederatedLogoutUrl.mockReturnValue(null);
   });
 
-  it("should redirect to signin without manually prefixing basePath", async () => {
-    const { logoutAction } = await import("../signout.action");
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
 
+  it("should redirect to signin without manually prefixing basePath", async () => {
     await expect(logoutAction()).rejects.toThrow(`Redirect to ${SIGNIN_PATH}`);
 
     expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
@@ -45,11 +48,29 @@ describe("logoutAction", () => {
     expect(mockRedirect).not.toHaveBeenCalledWith("/app/signin");
   });
 
+  it("should pass the auth token to resolveFederatedLogoutUrl", async () => {
+    const token = { provider: "keycloak", access_token: "token" };
+    mockGetAuthJwtFromRequest.mockResolvedValue(token);
+
+    await expect(logoutAction()).rejects.toThrow(`Redirect to ${SIGNIN_PATH}`);
+
+    expect(mockResolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
+  });
+
+  it("should redirect to signin when federated logout resolution throws", async () => {
+    mockResolveFederatedLogoutUrl.mockImplementation(() => {
+      throw new Error("resolver failed");
+    });
+
+    await expect(logoutAction()).rejects.toThrow(`Redirect to ${SIGNIN_PATH}`);
+
+    expect(mockRedirect).toHaveBeenCalledWith(SIGNIN_PATH);
+    expect(mockRedirect).not.toHaveBeenCalledWith("/app/signin");
+  });
+
   it("should redirect to federated logout URL when available", async () => {
     const federatedLogoutUrl = "https://idp.example.com/logout";
     mockResolveFederatedLogoutUrl.mockReturnValue(federatedLogoutUrl);
-
-    const { logoutAction } = await import("../signout.action");
 
     await expect(logoutAction()).rejects.toThrow(
       `Redirect to ${federatedLogoutUrl}`,
