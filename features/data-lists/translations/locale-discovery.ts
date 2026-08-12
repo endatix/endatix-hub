@@ -6,6 +6,14 @@ import {
   toCatalogLocaleKey,
   tryNormalizeCultureCode,
 } from "@/lib/localization";
+import {
+  DATA_LIST_MAX_ITEMS,
+  DATA_LIST_MAX_LOCALES,
+} from "@/features/data-lists/import-limits";
+import {
+  IMPORT_LOCALES_CATALOG_LIMIT_ERROR,
+  IMPORT_TOO_MANY_ITEMS_ERROR,
+} from "@/features/data-lists/import-validation-messages";
 
 export {
   isValidCultureCode,
@@ -16,11 +24,13 @@ export {
   tryNormalizeCultureCode,
 } from "@/lib/localization";
 
-export const DATA_LIST_MAX_ITEMS = 5_000;
-export const DATA_LIST_MAX_LOCALES = 20;
-export const DATA_LIST_MAX_LABEL_LENGTH = 100;
-export const DATA_LIST_MAX_CSV_CHARS = 2_000_000;
-export const DATA_LIST_MAX_JSON_FILE_BYTES = 5 * 1024 * 1024;
+export {
+  DATA_LIST_MAX_CSV_CHARS,
+  DATA_LIST_MAX_ITEMS,
+  DATA_LIST_MAX_JSON_FILE_BYTES,
+  DATA_LIST_MAX_LABEL_LENGTH,
+  DATA_LIST_MAX_LOCALES,
+} from "@/features/data-lists/import-limits";
 
 export type LocaleDiscoveryOptions = {
   availableLocales: string[];
@@ -242,15 +252,11 @@ export function resolveLocaleImportSelection(
 
   const catalogAfterEnsure = catalogLocaleCount + ensureLocales.length;
   if (catalogAfterEnsure > DATA_LIST_MAX_LOCALES) {
-    errors.push(
-      `Selecting these locales would exceed the catalog limit of ${DATA_LIST_MAX_LOCALES}.`,
-    );
+    errors.push(IMPORT_LOCALES_CATALOG_LIMIT_ERROR);
   }
 
   if (discovery.rowCount > DATA_LIST_MAX_ITEMS) {
-    errors.push(
-      `A data list cannot have more than ${DATA_LIST_MAX_ITEMS.toLocaleString()} items.`,
-    );
+    errors.push(IMPORT_TOO_MANY_ITEMS_ERROR);
   }
 
   return {

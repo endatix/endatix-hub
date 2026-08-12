@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import {
   guardEnsureLocalesCount,
+  guardImportPayload,
   guardJsonImportItems,
   guardTranslationsCsvPayload,
 } from "../import-payload-guards";
@@ -93,9 +94,8 @@ describe("guardTranslationsCsvPayload", () => {
       },
     }));
 
-    const { guardTranslationsCsvPayload: guarded } = await import(
-      "../import-payload-guards"
-    );
+    const { guardTranslationsCsvPayload: guarded } =
+      await import("../import-payload-guards");
 
     // Act
     const result = guarded("value,default\r\na,A\r\n");
@@ -145,10 +145,7 @@ describe("guardEnsureLocalesCount", () => {
   });
 
   it("accepts ensureLocales that land exactly on the catalog cap", () => {
-    const ensure = Array.from(
-      { length: 2 },
-      (_, index) => `l${index}`,
-    );
+    const ensure = Array.from({ length: 2 }, (_, index) => `l${index}`);
     const result = guardEnsureLocalesCount(
       ensure,
       DATA_LIST_MAX_LOCALES - ensure.length,
@@ -159,6 +156,59 @@ describe("guardEnsureLocalesCount", () => {
 
   it("accepts an empty ensureLocales list", () => {
     const result = guardEnsureLocalesCount([], DATA_LIST_MAX_LOCALES);
+
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+});
+
+describe("guardImportPayload", () => {
+  it("rejects csv payloads via the combined entry point", () => {
+    expectErrorMessage(
+      guardImportPayload({
+        format: "csv",
+        csv: "value,default\r\n",
+        ensureLocales: [],
+        catalogLocaleCount: 0,
+      }),
+      "At least one data row",
+    );
+  });
+
+  it("rejects json payloads via the combined entry point", () => {
+    expectErrorMessage(
+      guardImportPayload({
+        format: "json",
+        items: [],
+        ensureLocales: [],
+        catalogLocaleCount: 0,
+      }),
+      "At least one item",
+    );
+  });
+
+  it("rejects ensureLocales before checking payload shape", () => {
+    const ensure = Array.from(
+      { length: DATA_LIST_MAX_LOCALES },
+      (_, index) => `l${index}`,
+    );
+    expectErrorMessage(
+      guardImportPayload({
+        format: "json",
+        items: buildItems(1),
+        ensureLocales: ensure,
+        catalogLocaleCount: 1,
+      }),
+      String(DATA_LIST_MAX_LOCALES),
+    );
+  });
+
+  it("accepts a valid csv payload with room for new locales", () => {
+    const result = guardImportPayload({
+      format: "csv",
+      csv: "value,default\r\napple,Apple\r\n",
+      ensureLocales: ["fr-FR"],
+      catalogLocaleCount: 1,
+    });
 
     expect(Result.isSuccess(result)).toBe(true);
   });

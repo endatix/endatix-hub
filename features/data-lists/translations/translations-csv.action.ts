@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
+import { guardImportPayload } from "@/features/data-lists/import-payload-guards";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/lib/localization";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import { revalidatePath } from "next/cache";
 
 export type UploadTranslationsCsvResult = Result<DataListDetails>;
@@ -20,6 +22,7 @@ export type UploadTranslationsCsvInput = {
   dataListId: string;
   csv: string;
   ensureLocales?: string[];
+  catalogLocaleCount?: number;
 };
 
 function normalizeLocaleInput(locale: string): Result<string> {
@@ -39,6 +42,11 @@ export async function uploadTranslationsCsvAction(
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
+  const idResult = validateEndatixId(input.dataListId, "dataListId");
+  if (Result.isError(idResult)) {
+    return idResult;
+  }
+
   const localesResult = normalizeCultureCodes(input.ensureLocales ?? []);
   if (!localesResult.ok) {
     return Result.error(
@@ -46,9 +54,19 @@ export async function uploadTranslationsCsvAction(
     );
   }
 
+  const payloadGuard = guardImportPayload({
+    format: "csv",
+    csv: input.csv,
+    ensureLocales: localesResult.value,
+    catalogLocaleCount: input.catalogLocaleCount ?? 0,
+  });
+  if (Result.isError(payloadGuard)) {
+    return payloadGuard;
+  }
+
   const api = new EndatixApi(session?.accessToken);
   const result = toResult(
-    await api.dataLists.uploadTranslationsCsv(input.dataListId, input.csv, {
+    await api.dataLists.uploadTranslationsCsv(idResult.value, input.csv, {
       ensureLocales: localesResult.value,
     }),
     {
@@ -59,7 +77,7 @@ export async function uploadTranslationsCsvAction(
   );
 
   if (Result.isSuccess(result)) {
-    revalidatePath(`/data-lists/${input.dataListId}`);
+    revalidatePath(`/data-lists/${idResult.value}`);
   }
 
   return result;
@@ -73,6 +91,11 @@ export async function addDataListLocaleAction(
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
+  const idResult = validateEndatixId(dataListId, "dataListId");
+  if (Result.isError(idResult)) {
+    return idResult;
+  }
+
   const localeResult = normalizeLocaleInput(locale);
   if (Result.isError(localeResult)) {
     return localeResult;
@@ -80,7 +103,7 @@ export async function addDataListLocaleAction(
 
   const api = new EndatixApi(session?.accessToken);
   const result = toResult(
-    await api.dataLists.addLocale(dataListId, localeResult.value),
+    await api.dataLists.addLocale(idResult.value, localeResult.value),
     {
       fallbackMessage: "Failed to add locale",
       logMessage: "Failed to add locale",
@@ -89,37 +112,7 @@ export async function addDataListLocaleAction(
   );
 
   if (Result.isSuccess(result)) {
-    revalidatePath(`/data-lists/${dataListId}`);
-  }
-
-  return result;
-}
-
-export async function removeDataListLocaleAction(
-  dataListId: string,
-  locale: string,
-): Promise<DataListLocaleMutationResult> {
-  const session = await auth();
-  const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
-
-  const localeResult = normalizeLocaleInput(locale);
-  if (Result.isError(localeResult)) {
-    return localeResult;
-  }
-
-  const api = new EndatixApi(session?.accessToken);
-  const result = toResult(
-    await api.dataLists.removeLocale(dataListId, localeResult.value),
-    {
-      fallbackMessage: "Failed to remove locale",
-      logMessage: "Failed to remove locale",
-      loggerName: "data-lists.locales",
-    },
-  );
-
-  if (Result.isSuccess(result)) {
-    revalidatePath(`/data-lists/${dataListId}`);
+    revalidatePath(`/data-lists/${idResult.value}`);
   }
 
   return result;
@@ -133,6 +126,11 @@ export async function setDataListDefaultLocaleAction(
   const { requireHubAccess } = await authorization(session);
   await requireHubAccess();
 
+  const idResult = validateEndatixId(dataListId, "dataListId");
+  if (Result.isError(idResult)) {
+    return idResult;
+  }
+
   const localeResult = normalizeLocaleInput(defaultLocale);
   if (Result.isError(localeResult)) {
     return localeResult;
@@ -140,7 +138,7 @@ export async function setDataListDefaultLocaleAction(
 
   const api = new EndatixApi(session?.accessToken);
   const result = toResult(
-    await api.dataLists.setDefaultLocale(dataListId, localeResult.value),
+    await api.dataLists.setDefaultLocale(idResult.value, localeResult.value),
     {
       fallbackMessage: "Failed to set default locale",
       logMessage: "Failed to set default locale",
@@ -149,7 +147,7 @@ export async function setDataListDefaultLocaleAction(
   );
 
   if (Result.isSuccess(result)) {
-    revalidatePath(`/data-lists/${dataListId}`);
+    revalidatePath(`/data-lists/${idResult.value}`);
   }
 
   return result;

@@ -18,6 +18,12 @@ import {
   type LocaleImportDiscovery,
 } from "./translations/locale-discovery";
 import { JsonErrorAnnotation, ParsedValidation } from "./types";
+import {
+  IMPORT_AT_LEAST_ONE_ITEM_ERROR as AT_LEAST_ONE_ERROR,
+  IMPORT_TOO_MANY_ITEMS_ERROR as TOO_MANY_ITEMS_ERROR,
+} from "./import-validation-messages";
+
+export { AT_LEAST_ONE_ERROR, TOO_MANY_ITEMS_ERROR };
 
 export { DATA_LIST_MAX_JSON_FILE_BYTES as MAX_FILE_SIZE_BYTES } from "./translations/locale-discovery";
 export { DATA_LIST_MAX_CSV_CHARS } from "./translations/locale-discovery";
@@ -31,8 +37,6 @@ export const READ_ERROR = "Failed to read the selected file.";
 export const JSON_REQUIRED_ERROR = "JSON content is required.";
 export const INVALID_JSON_ERROR = "Invalid JSON format.";
 export const ARRAY_REQUIRED_ERROR = "JSON root must be an array of objects.";
-export const AT_LEAST_ONE_ERROR = "At least one item is required.";
-export const TOO_MANY_ITEMS_ERROR = `A data list cannot have more than ${DATA_LIST_MAX_ITEMS.toLocaleString()} items.`;
 
 const createErrorResponse = (error: string, row = 0): ParsedValidation => ({
   validItems: [],

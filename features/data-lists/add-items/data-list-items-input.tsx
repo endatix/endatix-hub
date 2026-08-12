@@ -3,6 +3,10 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DataListExportFormat } from "@/lib/endatix-api/data-lists/types";
 import { Download, FileBraces, FileSpreadsheet, FileUp } from "lucide-react";
+import {
+  DATA_LIST_MAX_CSV_CHARS,
+  DATA_LIST_MAX_JSON_FILE_BYTES,
+} from "../translations/locale-discovery";
 
 export type DataListSourceFormat = DataListExportFormat;
 
@@ -34,6 +38,9 @@ export function DataListItemsInput({
   const templateHref = isCsv ? CSV_TEMPLATE_HREF : JSON_TEMPLATE_HREF;
   const accept = isCsv ? ".csv,text/csv" : "application/json,.json";
   const formatLabel = isCsv ? "CSV" : "JSON";
+  const maxSizeHint = isCsv
+    ? `Max size: ${DATA_LIST_MAX_CSV_CHARS.toLocaleString()} characters`
+    : `Max file size: ${DATA_LIST_MAX_JSON_FILE_BYTES / (1024 * 1024)}MB`;
 
   return (
     <div className="space-y-4">
@@ -64,9 +71,7 @@ export function DataListItemsInput({
       >
         <FileUp className="mb-2 h-5 w-5 text-muted-foreground" />
         <span className="text-sm font-medium">Browse {formatLabel} file</span>
-        <span className="text-xs text-muted-foreground">
-          Max file size: 5MB
-        </span>
+        <span className="text-xs text-muted-foreground">{maxSizeHint}</span>
       </label>
 
       <input

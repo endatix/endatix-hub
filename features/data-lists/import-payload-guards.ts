@@ -4,8 +4,23 @@ import {
   DATA_LIST_MAX_CSV_CHARS,
   DATA_LIST_MAX_ITEMS,
   DATA_LIST_MAX_LOCALES,
-} from "./translations/locale-discovery";
+} from "./import-limits";
+import {
+  IMPORT_AT_LEAST_ONE_CSV_ROW_ERROR,
+  IMPORT_AT_LEAST_ONE_ITEM_ERROR,
+  IMPORT_CSV_TOO_LARGE_ERROR,
+  IMPORT_LOCALES_CATALOG_LIMIT_ERROR,
+  IMPORT_TOO_MANY_ITEMS_ERROR,
+} from "./import-validation-messages";
 import { readCsvRecords } from "./translations/parse-translations-csv";
+
+export type GuardImportPayloadInput = {
+  ensureLocales?: readonly string[];
+  catalogLocaleCount?: number;
+} & (
+  | { format: "csv"; csv: string; items?: never }
+  | { format: "json"; items: DataListChoiceItem[]; csv?: never }
+);
 
 /**
  * Shared Hub-side guards for data-list import payloads (CSV / JSON items).
@@ -13,9 +28,7 @@ import { readCsvRecords } from "./translations/parse-translations-csv";
  */
 export function guardTranslationsCsvPayload(csv: string): Result<void> {
   if (csv.length > DATA_LIST_MAX_CSV_CHARS) {
-    return Result.error(
-      `CSV exceeds the maximum size of ${DATA_LIST_MAX_CSV_CHARS.toLocaleString()} characters.`,
-    );
+    return Result.error(IMPORT_CSV_TOO_LARGE_ERROR);
   }
 
   let records: string[][];
@@ -32,13 +45,11 @@ export function guardTranslationsCsvPayload(csv: string): Result<void> {
     .filter((row) => row.some((cell) => cell.trim().length > 0));
 
   if (dataRows.length === 0) {
-    return Result.error("At least one data row is required.");
+    return Result.error(IMPORT_AT_LEAST_ONE_CSV_ROW_ERROR);
   }
 
   if (dataRows.length > DATA_LIST_MAX_ITEMS) {
-    return Result.error(
-      `A data list cannot have more than ${DATA_LIST_MAX_ITEMS.toLocaleString()} items.`,
-    );
+    return Result.error(IMPORT_TOO_MANY_ITEMS_ERROR);
   }
 
   return Result.success(undefined);
@@ -51,13 +62,11 @@ export function guardJsonImportItems(
   items: DataListChoiceItem[],
 ): Result<void> {
   if (items.length === 0) {
-    return Result.error("At least one item is required.");
+    return Result.error(IMPORT_AT_LEAST_ONE_ITEM_ERROR);
   }
 
   if (items.length > DATA_LIST_MAX_ITEMS) {
-    return Result.error(
-      `A data list cannot have more than ${DATA_LIST_MAX_ITEMS.toLocaleString()} items.`,
-    );
+    return Result.error(IMPORT_TOO_MANY_ITEMS_ERROR);
   }
 
   return Result.success(undefined);
@@ -71,10 +80,30 @@ export function guardEnsureLocalesCount(
   catalogLocaleCount: number,
 ): Result<void> {
   if (catalogLocaleCount + ensureLocales.length > DATA_LIST_MAX_LOCALES) {
-    return Result.error(
-      `Selecting these locales would exceed the catalog limit of ${DATA_LIST_MAX_LOCALES}.`,
-    );
+    return Result.error(IMPORT_LOCALES_CATALOG_LIMIT_ERROR);
   }
 
   return Result.success(undefined);
+}
+
+/**
+ * Single entry for create/upload/replace server actions: locales cap + format payload.
+ */
+export function guardImportPayload(
+  input: GuardImportPayloadInput,
+): Result<void> {
+  const localesGuard = guardEnsureLocalesCount(
+    input.ensureLocales ?? [],
+    input.catalogLocaleCount ?? 0,
+  );
+  if (Result.isError(localesGuard)) {
+    return localesGuard;
+  }
+
+  switch (input.format) {
+    case "csv":
+      return guardTranslationsCsvPayload(input.csv);
+    case "json":
+      return guardJsonImportItems(input.items);
+  }
 }

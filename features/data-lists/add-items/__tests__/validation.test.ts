@@ -199,6 +199,30 @@ describe("validateJsonInput", () => {
     });
   });
 
+  it("returns error when item count exceeds the catalog limit", () => {
+    const items = Array.from({ length: 5_001 }, (_, index) => ({
+      label: `Item ${index}`,
+      value: `v${index}`,
+    }));
+
+    const result = validateJsonInput(JSON.stringify(items));
+
+    expect(result.validItems).toEqual([]);
+    expect(result.errors[0]).toContain("5,000");
+  });
+
+  it("returns error when item count exceeds the catalog limit", () => {
+    const items = Array.from({ length: 5_001 }, (_, index) => ({
+      label: `Item ${index}`,
+      value: `v${index}`,
+    }));
+
+    const result = validateJsonInput(JSON.stringify(items));
+
+    expect(result.validItems).toEqual([]);
+    expect(result.errors[0]).toContain("5,000");
+  });
+
   it("round-trips culture-coded default label through validation and filter", () => {
     const json = JSON.stringify([
       {

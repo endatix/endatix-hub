@@ -16,18 +16,16 @@ import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { createDataListAction } from "../create-data-list.action";
+import { createDataListWithImportAction } from "../create-data-list-with-import.action";
 import { DataListItemsInput } from "../../add-items/data-list-items-input";
 import { DataListValidationPreview } from "../../add-items/data-list-validation-preview";
 import { DataListCsvPreview } from "../../add-items/data-list-csv-preview";
 import { useDataListSource } from "../../add-items/use-data-list-source.hook";
-import { replaceDataListItemsAction } from "../../replace-items/replace-data-list-items.action";
 import {
   discoverLocalesFromJsonItems,
   filterJsonItemsByLocales,
 } from "../../utils";
-import { LocaleImportConfirmDialog } from "../../translations/locale-import-confirm-dialog";
-import { uploadTranslationsCsvAction } from "../../translations/translations-csv.action";
+import { LocaleImportConfirmPanel } from "../../translations/locale-import-confirm-dialog";
 import { filterTranslationsCsv } from "../../translations/parse-translations-csv";
 import type {
   LocaleImportDiscovery,
@@ -40,11 +38,11 @@ interface CreateDataListDialogProps {
   onCreated?: (details: DataListDetails) => void;
 }
 
-type CreateStep = 1 | 2;
+type CreateStep = 1 | 2 | 3;
 
 /**
  * Create a new data list from CSV or JSON upload.
- * Step 1: details + source · Step 2: preview · then locale confirm.
+ * Step 1: details + source · Step 2: preview · Step 3: locale confirm.
  */
 export function CreateDataListDialog({
   open,
@@ -55,7 +53,6 @@ export function CreateDataListDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPending, startTransition] = useTransition();
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingDiscovery, setPendingDiscovery] =
     useState<LocaleImportDiscovery | null>(null);
   const advanceAfterUploadRef = useRef(false);
@@ -68,6 +65,7 @@ export function CreateDataListDialog({
     csvDiscovery,
     canConfirm,
     hasSourceContent,
+    sourceError,
     validationError: fileValidationError,
     selectedFileName,
     setValidationError,
@@ -75,12 +73,12 @@ export function CreateDataListDialog({
     reset: resetFileHandler,
   } = useDataListSource();
 
+  const displayError = fileValidationError ?? sourceError;
   useEffect(() => {
     if (!open) {
       setStep(1);
       setName("");
       setDescription("");
-      setIsConfirmOpen(false);
       setPendingDiscovery(null);
       advanceAfterUploadRef.current = false;
       resetFileHandler();
@@ -124,11 +122,11 @@ export function CreateDataListDialog({
 
   const handleContinue = () => {
     if (!canProceedToReview) {
-      setValidationError(
-        format === "csv"
-          ? "Please provide a valid translations CSV."
-          : "Please provide valid JSON items.",
-      );
+      let fallbackError = "Please provide valid JSON items.";
+      if (format === "csv") {
+        fallbackError = "Please provide a valid translations CSV.";
+      }
+      setValidationError(sourceError ?? fallbackError);
       return;
     }
 
@@ -136,7 +134,7 @@ export function CreateDataListDialog({
     setStep(2);
   };
 
-  const handleCreate = () => {
+  const handleReviewLocales = () => {
     if (!canConfirm) {
       return;
     }
@@ -147,13 +145,13 @@ export function CreateDataListDialog({
           availableLocales: [],
         }),
       );
-      setIsConfirmOpen(true);
+      setStep(3);
       return;
     }
 
     if (format === "csv" && csvDiscovery) {
       setPendingDiscovery(csvDiscovery);
-      setIsConfirmOpen(true);
+      setStep(3);
     }
   };
 
@@ -162,130 +160,121 @@ export function CreateDataListDialog({
       return;
     }
 
-    startTransition(async () => {
-      const createResult = await createDataListAction({
-        name: name.trim(),
-        description: description.trim(),
-      });
+    if (format === "json" && !validation) {
+      toast.error("JSON validation is missing. Please re-upload the file.");
+      return;
+    }
 
-      if (Result.isError(createResult)) {
-        toast.error(createResult.message || "Failed to create data list");
+    startTransition(async () => {
+      const importResult =
+        format === "csv"
+          ? await createDataListWithImportAction({
+              name: name.trim(),
+              description: description.trim(),
+              format: "csv",
+              csv: filterTranslationsCsv(csvInput, selection.includedLocales),
+              ensureLocales: selection.ensureLocales,
+            })
+          : await createDataListWithImportAction({
+              name: name.trim(),
+              description: description.trim(),
+              format: "json",
+              items: filterJsonItemsByLocales(
+                validation!.validItems,
+                selection.includedLocales,
+              ),
+              ensureLocales: selection.ensureLocales,
+            });
+
+      if (Result.isError(importResult)) {
+        toast.error(importResult.message || "Failed to create data list");
         return;
       }
 
-      const createdList = createResult.value;
-      const dataListId = String(createdList.id);
-
-      if (format === "csv") {
-        const csv = filterTranslationsCsv(csvInput, selection.includedLocales);
-        const uploadResult = await uploadTranslationsCsvAction({
-          dataListId,
-          csv,
-          ensureLocales: selection.ensureLocales,
-        });
-
-        if (Result.isError(uploadResult)) {
-          toast.error(
-            uploadResult.message ||
-              "List created but failed to import CSV items",
-          );
-          return;
-        }
-
-        onCreated?.(uploadResult.value);
-      } else {
-        if (!validation) {
-          return;
-        }
-
-        const items = filterJsonItemsByLocales(
-          validation.validItems,
-          selection.includedLocales,
-        );
-        const replaceResult = await replaceDataListItemsAction(
-          dataListId,
-          items,
-          selection.ensureLocales,
-        );
-
-        if (Result.isError(replaceResult)) {
-          toast.error(
-            replaceResult.message || "List created but failed to import items",
-          );
-          return;
-        }
-
-        onCreated?.(replaceResult.value);
-      }
-
+      onCreated?.(importResult.value);
       toast.success("Data list created successfully");
-      setIsConfirmOpen(false);
       onOpenChange(false);
     });
   };
 
+  let stepDescription =
+    "Define your new curated dataset and upload CSV or JSON.";
+  if (step === 2) {
+    stepDescription = "Review validation before creating the list.";
+  } else if (step === 3) {
+    stepDescription = "Choose which locales to import.";
+  }
+
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange} modal={!isConfirmOpen}>
-        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>Create Data List</DialogTitle>
-            <DialogDescription>
-              {step === 1
-                ? "Define your new curated dataset and upload CSV or JSON."
-                : "Review validation before creating the list."}
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
+        <DialogHeader className="border-b px-6 py-4">
+          <DialogTitle>Create Data List</DialogTitle>
+          <DialogDescription>{stepDescription}</DialogDescription>
+        </DialogHeader>
 
-          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-            {step === 1 ? (
-              <>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Friendly Name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                  />
-                  <Input
-                    placeholder="Description (optional)"
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                  />
-                </div>
-
-                <DataListItemsInput
-                  format={format}
-                  onFormatChange={setFormat}
-                  onFileSelected={handleFileSelectedWithAdvance}
-                  selectedFileName={selectedFileName}
-                  fileInputId="create-data-list-file-upload"
+        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
+          {step === 1 ? (
+            <>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Friendly Name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
                 />
+                <Input
+                  placeholder="Description (optional)"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </div>
 
-                {fileValidationError ? (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                    {fileValidationError}
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-
-            {step === 2 && format === "json" && validation ? (
-              <DataListValidationPreview
-                validation={validation}
-                name={name}
-                description={description}
+              <DataListItemsInput
+                format={format}
+                onFormatChange={setFormat}
+                onFileSelected={handleFileSelectedWithAdvance}
+                selectedFileName={selectedFileName}
+                fileInputId="create-data-list-file-upload"
               />
-            ) : null}
 
-            {step === 2 && format === "csv" && csvDiscovery ? (
-              <DataListCsvPreview
-                discovery={csvDiscovery}
-                name={name}
-                description={description}
-              />
-            ) : null}
-          </div>
+              {displayError ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  {displayError}
+                </div>
+              ) : null}
+            </>
+          ) : null}
 
+          {step === 2 && format === "json" && validation ? (
+            <DataListValidationPreview
+              validation={validation}
+              name={name}
+              description={description}
+            />
+          ) : null}
+
+          {step === 2 && format === "csv" && csvDiscovery ? (
+            <DataListCsvPreview
+              discovery={csvDiscovery}
+              name={name}
+              description={description}
+            />
+          ) : null}
+
+          {step === 3 ? (
+            <LocaleImportConfirmPanel
+              title="Confirm locales for new list"
+              mode="create"
+              discovery={pendingDiscovery}
+              catalogLocaleCount={0}
+              isPending={isPending}
+              onCancel={() => setStep(2)}
+              onConfirm={handleConfirmCreate}
+            />
+          ) : null}
+        </div>
+
+        {step !== 3 ? (
           <DialogFooter className="border-t px-6 py-4">
             {step === 2 ? (
               <Button variant="outline" onClick={() => setStep(1)}>
@@ -306,7 +295,7 @@ export function CreateDataListDialog({
               </Button>
             ) : (
               <Button
-                onClick={handleCreate}
+                onClick={handleReviewLocales}
                 disabled={!canConfirm || isPending}
               >
                 {isPending ? (
@@ -323,19 +312,8 @@ export function CreateDataListDialog({
               </Button>
             )}
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <LocaleImportConfirmDialog
-        open={isConfirmOpen}
-        onOpenChange={setIsConfirmOpen}
-        title="Confirm locales for new list"
-        mode="create"
-        discovery={pendingDiscovery}
-        catalogLocaleCount={0}
-        isPending={isPending}
-        onConfirm={handleConfirmCreate}
-      />
-    </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -3,15 +3,17 @@
 import { useCallback, useMemo, useState } from "react";
 import type { JsonFileHandlerState, ParsedValidation } from "../types";
 import {
+  CSV_FILE_SIZE_ERROR,
   FILE_SIZE_ERROR,
   MAX_FILE_SIZE_BYTES,
   READ_ERROR,
   validateJsonInput,
 } from "../utils";
 import { discoverLocalesFromTranslationsCsv } from "../translations/parse-translations-csv";
-import type {
-  LocaleDiscoveryOptions,
-  LocaleImportDiscovery,
+import {
+  DATA_LIST_MAX_CSV_CHARS,
+  type LocaleDiscoveryOptions,
+  type LocaleImportDiscovery,
 } from "../translations/locale-discovery";
 import type { DataListSourceFormat } from "./data-list-items-input";
 
@@ -39,6 +41,7 @@ export interface UseDataListSourceReturn extends JsonFileHandlerState {
   /** True when the active format has a payload ready for locale confirm. */
   canConfirm: boolean;
   hasSourceContent: boolean;
+  sourceError: string | null;
   activeError: ErrorPointer | null;
   setJsonInput: (value: string) => void;
   setValidationError: (error: string | null) => void;
@@ -54,6 +57,47 @@ const initialState: JsonFileHandlerState = {
 };
 
 const EMPTY_AVAILABLE_LOCALES: string[] = [];
+
+function resolveCsvSourceError(
+  discovery: LocaleImportDiscovery | null,
+): string | null {
+  if (!discovery) {
+    return null;
+  }
+
+  if (discovery.structuralErrors.length > 0) {
+    return discovery.structuralErrors[0];
+  }
+
+  if (discovery.invalidLocales.length > 0) {
+    return `Invalid locale columns: ${discovery.invalidLocales.join(", ")}.`;
+  }
+
+  return null;
+}
+
+function resolveJsonSourceError(
+  validation: ParsedValidation | null,
+): string | null {
+  if (!validation || validation.errors.length === 0) {
+    return null;
+  }
+
+  return validation.errors[0];
+}
+
+function resolveSourceError(
+  format: DataListSourceFormat,
+  discovery: LocaleImportDiscovery | null,
+  validation: ParsedValidation | null,
+): string | null {
+  switch (format) {
+    case "csv":
+      return resolveCsvSourceError(discovery);
+    case "json":
+      return resolveJsonSourceError(validation);
+  }
+}
 
 /**
  * Shared Create/Replace source state for JSON and CSV upload.
@@ -116,6 +160,11 @@ export function useDataListSource(
     );
   }, [csvDiscovery, format, validation]);
 
+  const sourceError = useMemo(
+    () => resolveSourceError(format, csvDiscovery, validation),
+    [csvDiscovery, format, validation],
+  );
+
   const hasSourceContent = useMemo(() => {
     if (format === "csv") {
       return csvInput.trim().length > 0;
@@ -159,10 +208,18 @@ export function useDataListSource(
         return;
       }
 
-      if (file.size > maxFileSize) {
+      const lowerName = file.name.toLowerCase();
+      const inferredCsv =
+        lowerName.endsWith(".csv") ||
+        file.type === "text/csv" ||
+        file.type === "application/vnd.ms-excel";
+      const treatAsCsv = inferredCsv || format === "csv";
+      const maxBytes = treatAsCsv ? DATA_LIST_MAX_CSV_CHARS : maxFileSize;
+
+      if (file.size > maxBytes) {
         setJsonInput(initialState.jsonInput);
         setCsvInput("");
-        setValidationError(FILE_SIZE_ERROR);
+        setValidationError(treatAsCsv ? CSV_FILE_SIZE_ERROR : FILE_SIZE_ERROR);
         setSelectedFileName(file.name);
         return;
       }
@@ -173,13 +230,14 @@ export function useDataListSource(
         setValidationError(null);
         setActiveError(null);
 
-        const lowerName = file.name.toLowerCase();
-        const inferredCsv =
-          lowerName.endsWith(".csv") ||
-          file.type === "text/csv" ||
-          file.type === "application/vnd.ms-excel";
+        if (treatAsCsv) {
+          if (content.length > DATA_LIST_MAX_CSV_CHARS) {
+            setCsvInput("");
+            setJsonInput("");
+            setValidationError(CSV_FILE_SIZE_ERROR);
+            return;
+          }
 
-        if (inferredCsv || format === "csv") {
           setFormat("csv");
           setCsvInput(content);
           setJsonInput("");
@@ -206,6 +264,7 @@ export function useDataListSource(
     csvDiscovery,
     canConfirm,
     hasSourceContent,
+    sourceError,
     validationError,
     selectedFileName,
     activeError,

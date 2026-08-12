@@ -14,7 +14,13 @@ import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { replaceDataListItemsAction } from "../replace-data-list-items.action";
 import {
   DataListItemsInput,
@@ -23,7 +29,7 @@ import {
 import { DataListValidationPreview } from "../../add-items/data-list-validation-preview";
 import { DataListCsvPreview } from "../../add-items/data-list-csv-preview";
 import { useDataListSource } from "../../add-items/use-data-list-source.hook";
-import { LocaleImportConfirmDialog } from "../../translations/locale-import-confirm-dialog";
+import { LocaleImportConfirmPanel } from "../../translations/locale-import-confirm-dialog";
 import {
   discoverLocalesFromJsonItems,
   filterJsonItemsByLocales,
@@ -46,11 +52,11 @@ interface ReplaceItemsDialogProps {
   onReplaced?: (details: DataListDetails) => void;
 }
 
-type ReplaceStep = 1 | 2;
+type ReplaceStep = 1 | 2 | 3;
 
 /**
  * Replace all items via CSV or JSON upload.
- * Step 1: source · Step 2: preview · then locale confirm.
+ * Step 1: source · Step 2: preview · Step 3: locale confirm.
  */
 export function ReplaceItemsDialog({
   open,
@@ -64,7 +70,6 @@ export function ReplaceItemsDialog({
 }: Readonly<ReplaceItemsDialogProps>) {
   const [step, setStep] = useState<ReplaceStep>(1);
   const [isPending, startTransition] = useTransition();
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingDiscovery, setPendingDiscovery] =
     useState<LocaleImportDiscovery | null>(null);
   const advanceAfterUploadRef = useRef(false);
@@ -77,6 +82,7 @@ export function ReplaceItemsDialog({
     csvDiscovery,
     canConfirm,
     hasSourceContent,
+    sourceError,
     validationError: fileValidationError,
     selectedFileName,
     setValidationError,
@@ -88,6 +94,7 @@ export function ReplaceItemsDialog({
     initialFormat,
   });
 
+  const displayError = fileValidationError ?? sourceError;
   const handleFileSelectedWithAdvance = async (
     file: File | null,
   ): Promise<void> => {
@@ -99,7 +106,6 @@ export function ReplaceItemsDialog({
     if (!open) {
       resetFileHandler();
       setStep(1);
-      setIsConfirmOpen(false);
       setPendingDiscovery(null);
       advanceAfterUploadRef.current = false;
     }
@@ -126,11 +132,11 @@ export function ReplaceItemsDialog({
 
   const handleContinue = (): void => {
     if (!canConfirm) {
-      setValidationError(
-        format === "csv"
-          ? "Please provide a valid translations CSV."
-          : "Please fix validation errors before continuing.",
-      );
+      let fallbackError = "Please fix validation errors before continuing.";
+      if (format === "csv") {
+        fallbackError = "Please provide a valid translations CSV.";
+      }
+      setValidationError(sourceError ?? fallbackError);
       return;
     }
 
@@ -150,13 +156,13 @@ export function ReplaceItemsDialog({
           defaultLocale,
         }),
       );
-      setIsConfirmOpen(true);
+      setStep(3);
       return;
     }
 
     if (format === "csv" && csvDiscovery) {
       setPendingDiscovery(csvDiscovery);
-      setIsConfirmOpen(true);
+      setStep(3);
     }
   };
 
@@ -176,6 +182,7 @@ export function ReplaceItemsDialog({
           dataListId,
           csv,
           ensureLocales: selection.ensureLocales,
+          catalogLocaleCount: availableLocales.length,
         });
 
         if (Result.isError(uploadResult)) {
@@ -186,6 +193,7 @@ export function ReplaceItemsDialog({
         onReplaced?.(uploadResult.value);
       } else {
         if (!validation) {
+          toast.error("JSON validation is missing. Please re-upload the file.");
           return;
         }
 
@@ -198,6 +206,7 @@ export function ReplaceItemsDialog({
           dataListId,
           items,
           selection.ensureLocales,
+          availableLocales.length,
         );
 
         if (Result.isError(replaceResult)) {
@@ -208,58 +217,73 @@ export function ReplaceItemsDialog({
         onReplaced?.(replaceResult.value);
       }
 
-      toast.success("Items replaced successfully");
-      setIsConfirmOpen(false);
       onOpenChange(false);
     });
   };
 
-  return (
+  let stepDescription: ReactNode = (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange} modal={!isConfirmOpen}>
-        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>Replace Items</DialogTitle>
-            <DialogDescription>
-              {step === 1 ? (
-                <>
-                  Upload CSV or JSON to replace all items in{" "}
-                  <span className="font-medium">{title}</span>.
-                </>
-              ) : (
-                "Review the import preview before choosing locales."
-              )}
-            </DialogDescription>
-          </DialogHeader>
+      Upload CSV or JSON to replace all items in{" "}
+      <span className="font-medium">{title}</span>.
+    </>
+  );
+  if (step === 2) {
+    stepDescription = "Review the import preview before choosing locales.";
+  } else if (step === 3) {
+    stepDescription = "Choose which locales to import.";
+  }
 
-          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-            {step === 1 ? (
-              <>
-                <DataListItemsInput
-                  format={format}
-                  onFormatChange={setFormat}
-                  onFileSelected={handleFileSelectedWithAdvance}
-                  selectedFileName={selectedFileName}
-                  fileInputId="replace-data-list-file-upload"
-                />
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
+        <DialogHeader className="border-b px-6 py-4">
+          <DialogTitle>Replace Items</DialogTitle>
+          <DialogDescription>{stepDescription}</DialogDescription>
+        </DialogHeader>
 
-                {fileValidationError ? (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                    {fileValidationError}
-                  </div>
-                ) : null}
-              </>
-            ) : null}
+        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
+          {step === 1 ? (
+            <>
+              <DataListItemsInput
+                format={format}
+                onFormatChange={setFormat}
+                onFileSelected={handleFileSelectedWithAdvance}
+                selectedFileName={selectedFileName}
+                fileInputId="replace-data-list-file-upload"
+              />
 
-            {step === 2 && format === "json" && validation ? (
-              <DataListValidationPreview validation={validation} />
-            ) : null}
+              {displayError ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  {displayError}
+                </div>
+              ) : null}
+            </>
+          ) : null}
 
-            {step === 2 && format === "csv" && csvDiscovery ? (
-              <DataListCsvPreview discovery={csvDiscovery} />
-            ) : null}
-          </div>
+          {step === 2 && format === "json" && validation ? (
+            <DataListValidationPreview validation={validation} />
+          ) : null}
 
+          {step === 2 && format === "csv" && csvDiscovery ? (
+            <DataListCsvPreview discovery={csvDiscovery} />
+          ) : null}
+
+          {step === 3 ? (
+            <LocaleImportConfirmPanel
+              title={
+                format === "csv" ? "Confirm CSV import" : "Confirm JSON import"
+              }
+              mode="replace"
+              discovery={pendingDiscovery}
+              catalogLocaleCount={availableLocales.length}
+              isPending={isPending}
+              onCancel={() => setStep(2)}
+              onConfirm={handleConfirmReplace}
+            />
+          ) : null}
+        </div>
+
+        {step !== 3 ? (
           <DialogFooter className="border-t px-6 py-4">
             {step === 2 ? (
               <Button variant="outline" onClick={() => setStep(1)}>
@@ -294,19 +318,8 @@ export function ReplaceItemsDialog({
               </Button>
             )}
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <LocaleImportConfirmDialog
-        open={isConfirmOpen}
-        onOpenChange={setIsConfirmOpen}
-        title={format === "csv" ? "Confirm CSV import" : "Confirm JSON import"}
-        mode="replace"
-        discovery={pendingDiscovery}
-        catalogLocaleCount={availableLocales.length}
-        isPending={isPending}
-        onConfirm={handleConfirmReplace}
-      />
-    </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
