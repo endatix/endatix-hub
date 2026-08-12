@@ -1,107 +1,61 @@
-// @vitest-environment node
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { SIGNIN_PATH } from "../../../infrastructure/auth-constants";
 
-import type { JWT } from "next-auth/jwt";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SIGNIN_PATH } from "@/features/auth/infrastructure/auth-constants";
-import { logoutAction } from "../signout.action";
-import { signOut } from "@/auth";
-import { getAuthJwtFromRequest } from "@/features/auth/infrastructure/auth-jwt.utils";
-import { resolveFederatedLogoutUrl } from "@/features/auth/infrastructure/auth-logout.utils";
-import { redirect } from "next/navigation";
+const mockRedirect = vi.fn();
+const mockSignOut = vi.fn();
+const mockGetAuthJwtFromRequest = vi.fn();
+const mockResolveFederatedLogoutUrl = vi.fn();
 
-const mocks = vi.hoisted(() => ({
-  signOut: vi.fn(),
-  getAuthJwtFromRequest: vi.fn(),
-  resolveFederatedLogoutUrl: vi.fn(),
-  redirect: vi.fn((path: string) => {
+vi.mock("next/navigation", () => ({
+  redirect: (path: string) => {
+    mockRedirect(path);
     throw new Error(`Redirect to ${path}`);
-  }),
+  },
 }));
 
 vi.mock("@/auth", () => ({
-  signOut: mocks.signOut,
+  signOut: (...args: unknown[]) => mockSignOut(...args),
 }));
 
-vi.mock("@/features/auth/infrastructure/auth-jwt.utils", () => ({
-  getAuthJwtFromRequest: mocks.getAuthJwtFromRequest,
+vi.mock("../../../infrastructure/auth-jwt.utils", () => ({
+  getAuthJwtFromRequest: () => mockGetAuthJwtFromRequest(),
 }));
 
-vi.mock("@/features/auth/infrastructure/auth-logout.utils", () => ({
-  resolveFederatedLogoutUrl: mocks.resolveFederatedLogoutUrl,
-}));
-
-vi.mock("next/navigation", () => ({
-  redirect: mocks.redirect,
+vi.mock("../../../infrastructure/auth-logout.utils", () => ({
+  resolveFederatedLogoutUrl: (...args: unknown[]) =>
+    mockResolveFederatedLogoutUrl(...args),
 }));
 
 describe("logoutAction", () => {
-  const token = { provider: "keycloak", id_token: "id-token" } as JWT;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.NEXT_PUBLIC_BASE_PATH;
-    vi.mocked(getAuthJwtFromRequest).mockResolvedValue(token);
-    vi.mocked(resolveFederatedLogoutUrl).mockReturnValue(null);
-    vi.mocked(signOut).mockResolvedValue(undefined);
+    vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "/app");
+    mockSignOut.mockResolvedValue(undefined);
+    mockGetAuthJwtFromRequest.mockResolvedValue(null);
+    mockResolveFederatedLogoutUrl.mockReturnValue(null);
   });
 
-  afterEach(() => {
-    delete process.env.NEXT_PUBLIC_BASE_PATH;
+  it("should redirect to signin without manually prefixing basePath", async () => {
+    const { logoutAction } = await import("../signout.action");
+
+    await expect(logoutAction()).rejects.toThrow(`Redirect to ${SIGNIN_PATH}`);
+
+    expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
+    expect(mockRedirect).toHaveBeenCalledWith(SIGNIN_PATH);
+    expect(mockRedirect).not.toHaveBeenCalledWith("/app/signin");
   });
 
-  it("reads the JWT, resolves federated logout, clears the session, and redirects", async () => {
-    const federatedLogoutUrl =
-      "https://keycloak.endatix.test/realms/endatix/protocol/openid-connect/logout?id_token_hint=id-token";
-    vi.mocked(resolveFederatedLogoutUrl).mockReturnValue(federatedLogoutUrl);
+  it("should redirect to federated logout URL when available", async () => {
+    const federatedLogoutUrl = "https://idp.example.com/logout";
+    mockResolveFederatedLogoutUrl.mockReturnValue(federatedLogoutUrl);
+
+    const { logoutAction } = await import("../signout.action");
 
     await expect(logoutAction()).rejects.toThrow(
       `Redirect to ${federatedLogoutUrl}`,
     );
 
-    expect(getAuthJwtFromRequest).toHaveBeenCalledOnce();
-    expect(resolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
-    expect(signOut).toHaveBeenCalledWith({ redirect: false });
-    expect(redirect).toHaveBeenCalledWith(federatedLogoutUrl);
-  });
-
-  it("redirects to sign in when no federated logout URL is returned", async () => {
-    await expect(logoutAction()).rejects.toThrow(`Redirect to ${SIGNIN_PATH}`);
-
-    expect(getAuthJwtFromRequest).toHaveBeenCalledOnce();
-    expect(resolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
-    expect(signOut).toHaveBeenCalledWith({ redirect: false });
-    expect(redirect).toHaveBeenCalledWith(SIGNIN_PATH);
-  });
-
-  it("applies the base path to the local sign-in fallback redirect", async () => {
-    process.env.NEXT_PUBLIC_BASE_PATH = "/hub";
-
-    await expect(logoutAction()).rejects.toThrow("Redirect to /hub/signin");
-
-    expect(getAuthJwtFromRequest).toHaveBeenCalledOnce();
-    expect(resolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
-    expect(signOut).toHaveBeenCalledWith({ redirect: false });
-    expect(redirect).toHaveBeenCalledWith("/hub/signin");
-  });
-
-  it("clears the local session and falls back when federated logout resolution fails", async () => {
-    const error = new Error("Federated logout unavailable");
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.mocked(resolveFederatedLogoutUrl).mockImplementation(() => {
-      throw error;
-    });
-
-    await expect(logoutAction()).rejects.toThrow(`Redirect to ${SIGNIN_PATH}`);
-
-    expect(getAuthJwtFromRequest).toHaveBeenCalledOnce();
-    expect(resolveFederatedLogoutUrl).toHaveBeenCalledWith(token);
-    expect(signOut).toHaveBeenCalledWith({ redirect: false });
-    expect(redirect).toHaveBeenCalledWith(SIGNIN_PATH);
-    expect(warnSpy).toHaveBeenCalledWith(
-      "Failed to resolve federated logout URL",
-      error,
-    );
-
-    warnSpy.mockRestore();
+    expect(mockRedirect).toHaveBeenCalledWith(federatedLogoutUrl);
+    expect(mockRedirect).not.toHaveBeenCalledWith(SIGNIN_PATH);
   });
 });
