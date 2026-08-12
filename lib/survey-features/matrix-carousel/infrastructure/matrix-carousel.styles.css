@@ -64,32 +64,18 @@
   padding: 0.5rem;
 }
 
-/* PanelDynamic's own theme puts its progress text in a separate
-   .sd-paneldynamic__progress-container sibling next to the action bar, with
-   spacing coming from that container's own margin-left:auto. Our layout is
-   simpler — progress text sits directly beside the action bar in one row —
-   so that structural difference matters here: gap provides the text-to-
-   button spacing directly, since the theme's progress-text margin-right
-   isn't reliably visible in this shape (see below). */
+/* PanelDynamic puts progress text in a separate sibling container with its
+   own margin-left:auto; our simpler single-row layout needs its own gap. */
 .sv-matrixcarousel__footer-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-/* .sd-paneldynamic__buttons-container .sd-action-bar (theme CSS) stretches
-   the action bar past its container via a negative left/right margin, to
-   align each button's own hit-padding with the row's outer edge — a trick
-   that assumes the action bar is the row's only content. In our row the
-   progress text sits directly before it, so that negative left margin was
-   silently cancelling the gap above (and the negative right margin let the
-   bar overflow the container on the other side). Resetting margin/width
-   here — scoped to our own footer-row, not the shared sd-action-bar class
-   used app-wide — lets the action bar size to its own content instead.
-   gap between Previous/Next themselves: sd-action-bar has none of its own
-   (confirmed against the installed theme CSS — no gap, no per-button
-   margin outside PanelDynamic's own icon-rotated prev/next classes, which
-   don't apply to our text-labeled buttons). */
+/* Undoes the theme's sd-action-bar negative margin (designed for
+   PanelDynamic's own layout, where it's the row's only content) — here it
+   was cancelling the gap above. Scoped to our footer-row, not the shared
+   class. sd-action-bar has no gap of its own between buttons either. */
 .sv-matrixcarousel__footer-row .sd-action-bar {
   margin: 0;
   width: auto;
