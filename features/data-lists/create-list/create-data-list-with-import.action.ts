@@ -31,7 +31,7 @@ async function rollBackCreatedList(dataListId: string): Promise<void> {
     if (Result.isError(deleted)) {
       TelemetryLogger.error(
         "Failed to roll back data list creation after import failure",
-        deleted.message,
+        new Error("deleteDataListAction returned an error result"),
         { dataListId },
         LOGGER_NAME,
       );

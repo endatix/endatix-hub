@@ -273,7 +273,7 @@ describe("createDataListWithImportAction", () => {
     expect(mockDelete).toHaveBeenCalledWith("99");
     expect(mockTelemetryError).toHaveBeenCalledWith(
       "Failed to roll back data list creation after import failure",
-      "delete rejected",
+      expect.any(Error),
       { dataListId: "99" },
       "data-lists.createWithImport",
     );
