@@ -151,7 +151,7 @@ function reportReplaceImportResult(
   onOpenChange(false);
 }
 
-function ReplaceItemsDialogBody(props: {
+interface ReplaceItemsDialogBodyProps {
   step: ReplaceStep;
   format: DataListSourceFormat;
   validation: ParsedValidation | null;
@@ -165,7 +165,11 @@ function ReplaceItemsDialogBody(props: {
   onFileSelected: (file: File | null) => Promise<void>;
   setStep: (step: ReplaceStep) => void;
   onConfirmReplace: (selection: LocaleImportSelection) => void;
-}): ReactNode {
+}
+
+function ReplaceItemsDialogBody(
+  props: Readonly<ReplaceItemsDialogBodyProps>,
+): ReactNode {
   const {
     step,
     format,
@@ -227,7 +231,7 @@ function ReplaceItemsDialogBody(props: {
   return null;
 }
 
-function ReplaceItemsDialogFooter(props: {
+interface ReplaceItemsDialogFooterProps {
   step: ReplaceStep;
   hasSourceContent: boolean;
   canConfirm: boolean;
@@ -235,7 +239,11 @@ function ReplaceItemsDialogFooter(props: {
   onContinue: () => void;
   onReviewLocales: () => void;
   setStep: (step: ReplaceStep) => void;
-}): ReactNode {
+}
+
+function ReplaceItemsDialogFooter(
+  props: Readonly<ReplaceItemsDialogFooterProps>,
+): ReactNode {
   const {
     step,
     hasSourceContent,

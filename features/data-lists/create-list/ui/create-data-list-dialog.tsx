@@ -132,7 +132,7 @@ function resolvePendingDiscovery(args: {
   return null;
 }
 
-function CreateDataListDialogBody(props: {
+interface CreateDataListDialogBodyProps {
   step: CreateStep;
   name: string;
   description: string;
@@ -149,7 +149,11 @@ function CreateDataListDialogBody(props: {
   onFileSelected: (file: File | null) => Promise<void>;
   setStep: (step: CreateStep) => void;
   onConfirmCreate: (selection: LocaleImportSelection) => void;
-}): ReactNode {
+}
+
+function CreateDataListDialogBody(
+  props: Readonly<CreateDataListDialogBodyProps>,
+): ReactNode {
   const {
     step,
     name,
@@ -239,7 +243,7 @@ function CreateDataListDialogBody(props: {
   return null;
 }
 
-function CreateDataListDialogFooter(props: {
+interface CreateDataListDialogFooterProps {
   step: CreateStep;
   name: string;
   hasSourceContent: boolean;
@@ -248,7 +252,11 @@ function CreateDataListDialogFooter(props: {
   onContinue: () => void;
   onReviewLocales: () => void;
   setStep: (step: CreateStep) => void;
-}): ReactNode {
+}
+
+function CreateDataListDialogFooter(
+  props: Readonly<CreateDataListDialogFooterProps>,
+): ReactNode {
   const {
     step,
     name,
@@ -425,9 +433,7 @@ export function CreateDataListDialog({
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4">
           <DialogTitle>Create Data List</DialogTitle>
-          <DialogDescription>
-            {CREATE_STEP_DESCRIPTION[step]}
-          </DialogDescription>
+          <DialogDescription>{CREATE_STEP_DESCRIPTION[step]}</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
