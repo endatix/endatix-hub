@@ -510,15 +510,31 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
           className="sv-matrixcarousel__strip"
           ref={this.stripRef}
           onKeyDown={this.handleKeyDown}
-          // role="group" so aria-label is actually exposed as an accessible
-          // name — a bare, roleless <div> defaults to role="generic", which
-          // per the accessible-name-computation spec does not pick up
-          // aria-label at all, so screen readers could silently ignore it
-          // without an explicit naming-capable role here. tabIndex 0 (not
-          // -1) so the strip is reachable via Tab — without it, arrow-key
-          // navigation is only reachable by clicking dead space on the slide
-          // chrome, effectively undiscoverable for a keyboard-only user.
-          role="group"
+          // No role here — deliberately not role="group". Two reasons: (1)
+          // SonarQube/jsx-a11y correctly flags an explicit non-interactive
+          // structural role (group) carrying tabIndex + a keydown listener,
+          // since "group" signals a passive container, not something
+          // operable in its own right — no ARIA widget role actually fits
+          // "custom scrollable region with a supplementary arrow-key
+          // shortcut" either (role="application" would fit better but
+          // switches the whole subtree out of the screen reader's native
+          // reading mode, a much worse trade for one shortcut). (2) it was
+          // also an active bug: FOCUSABLE_ROW_CONTROL_SELECTOR below
+          // includes [role="group"] to detect focus inside a decomposed
+          // checkbox row's own options wrapper — with role="group" on the
+          // strip too, target.closest(FOCUSABLE_ROW_CONTROL_SELECTOR) on a
+          // keydown fired directly on the strip matched the strip itself,
+          // so ArrowLeft/ArrowRight silently did nothing in exactly the one
+          // case they're meant to work (confirmed empirically: fired
+          // ArrowRight on the strip element, progress text never changed).
+          // tabIndex 0 (not -1) and the keydown handler both stay — this is
+          // still the only focusable point within the strip from which
+          // arrow keys aren't already claimed by a row's own native
+          // radio/checkbox semantics, so removing it would make the shortcut
+          // unreachable, not just less discoverable. aria-label is kept for
+          // the AT that do announce it on a focusable generic div despite
+          // the strict spec technicality; Back/Next remain the fully
+          // spec-compliant primary keyboard path regardless.
           tabIndex={0}
           aria-label="Use arrow keys to move between questions"
         >

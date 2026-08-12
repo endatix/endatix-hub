@@ -432,6 +432,29 @@ describe("MatrixCarouselRenderer", () => {
     );
   });
 
+  it("ArrowRight fired directly on the strip (not inside a row's own control) advances — regression test for role=group self-matching its own row-control exclusion selector", () => {
+    // Arrange — the strip has no role, deliberately: it previously carried
+    // role="group", which FOCUSABLE_ROW_CONTROL_SELECTOR also matches (that
+    // selector exists to detect focus inside a decomposed checkbox row's own
+    // options wrapper, not the strip itself). With role="group" on the strip,
+    // target.closest(FOCUSABLE_ROW_CONTROL_SELECTOR) on a keydown fired
+    // directly on the strip matched the strip itself, so the handler always
+    // bailed out — arrow keys silently did nothing in exactly the one case
+    // they're meant to work, since a row's own control focus suppresses the
+    // handler for an unrelated, legitimate reason (not stealing that
+    // control's native arrow-key semantics).
+    const model = new Model(carouselSurveyJson());
+    const { container } = render(<Survey model={model} />);
+    const strip = container.querySelector(".sv-matrixcarousel__strip") as HTMLElement;
+    expect(strip.getAttribute("role")).toBeNull();
+
+    // Act
+    fireEvent.keyDown(strip, { key: "ArrowRight", target: strip });
+
+    // Assert
+    expect(container.textContent).toContain("2 of 3");
+  });
+
   it("keeps the slide-to-question mapping in sync when a row's visibleIf flips via the survey's condition cascade, not just when rows are reassigned", () => {
     // Arrange — r2 is conditionally visible on a checkbox elsewhere on the
     // page, starting unchecked (hidden). This exercises the survey-wide
