@@ -4,6 +4,7 @@ import { toast } from "@/components/ui/toast";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useThemeManagement } from "@/features/public-form/application/use-theme-management.hook";
+import { useDesignerRuntime } from "@/lib/designer-runtime";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
 import addRandomizeGroupFeature from "@/lib/questions/features/group-randomization";
 import {
@@ -14,24 +15,24 @@ import { questionLoaderModule } from "@/lib/questions/question-loader-module";
 import { Result } from "@/lib/result";
 import { useSurveyExtensions } from "@/lib/survey-extensions/ui/use-survey-extensions";
 import { useAnyAnswered } from "@/lib/survey-features/any-answered";
-import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
-import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
-import {
-  JsonEditorState,
-  useJsonEditor,
-} from "@/lib/survey-features/json-editor/use-json-editor.hook";
-import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
-import { useQuestionLoops } from "@/lib/survey-features/question-loops";
-import { useRichTextEditing } from "@/lib/survey-features/rich-text";
-import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
-import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
-import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import {
   ConvertInlineChoicesDialog,
   useConvertInlineChoicesUi,
   useDataLists,
   useDataListsLoader,
 } from "@/lib/survey-features/data-lists";
+import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
+import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
+import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
+import {
+  JsonEditorState,
+  useJsonEditor,
+} from "@/lib/survey-features/json-editor/use-json-editor.hook";
+import { useQuestionLoops } from "@/lib/survey-features/question-loops";
+import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
+import { resolveCreatorThemeCssVariables } from "@/lib/themes/resolve-creator-theme-css-variables";
+import { useEndatixCreatorTheme } from "@/lib/themes/use-endatix-themes";
 import { CreateCustomQuestionRequest } from "@/services/api";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-searchbox";
@@ -61,14 +62,13 @@ import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
+import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
+import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
+import { StoredTheme } from "../../domain/models/theme";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
 } from "./survey-creator-custom-questions";
-import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
-import { updateFormThemeAction } from "../../application/actions/update-form-theme.action";
-import { StoredTheme } from "../../domain/models/theme";
-import { useDesignerRuntime } from "@/lib/designer-runtime";
 
 Serializer.addProperty("theme", {
   name: "id",
@@ -104,7 +104,16 @@ translations.pehelp.fileNamesPrefix =
   "<b>Note:</b> The expression is evaluated for each submission prior to donwloading the files provided by the respondent. The unique question's name, for which the file was uploaded is always added to the filename.<br/><br/>" +
   "For more information on how to write expression, see <a target='_blank' class='hover:underline' href='https://surveyjs.io/survey-creator/documentation/end-user-guide/expression-syntax'>Expression Syntax</a>.";
 
-const downloadSettingsIcon = `<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round}</style></defs><path class="st0" d="M20 20c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-7.9c-.7 0-1.3-.3-1.7-.9l-.8-1.2c-.4-.6-1-.9-1.7-.9H4c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2zm-8-10v6"/><path class="st0" d="m15 13-3 3-3-3"/></svg>`;
+// Drawn as solid-fill paths (SurveyJS's own "icon-pg-*-24x24" property-grid
+// tab icons are fill-based outlines, not strokes — a stroked path renders
+// visibly bolder next to them at the same nominal width, especially at
+// corners). Folder outline uses the hole trick (outer subpath + reversed
+// inner subpath), with its 5 convex corners given a 1-unit radius fillet —
+// the inner subpath's arcs use the opposite sweep flag from the outer's
+// since it's traced in reverse for the fill-rule hole. The step where the
+// tab meets the body is a concave corner and stays sharp. The arrow reuses
+// the same solid stem+triangle shape as DRAG_CATEGORIZE_SVG.
+const downloadSettingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 21A1 1 0 0 1 2 20L2 4A1 1 0 0 1 3 3L8 3A1 1 0 0 1 9 4L9 5L21 5A1 1 0 0 1 22 6L22 20A1 1 0 0 1 21 21ZM3.5 18.5A1 1 0 0 0 4.5 19.5L19.5 19.5A1 1 0 0 0 20.5 18.5L20.5 7.5A1 1 0 0 0 19.5 6.5L7.5 6.5L7.5 5.5A1 1 0 0 0 6.5 4.5L4.5 4.5A1 1 0 0 0 3.5 5.5Z"></path><path d="M13 9V12H15L12 16L9 12H11V9H13Z"></path></svg>`;
 SvgRegistry.registerIcon("icon-download-settings", downloadSettingsIcon);
 const questionLoopsIcon =
   '<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 32 32"><defs><style>.st0{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px}</style></defs><path class="st0" d="M3.3 18.3V28h25.4V9.7H9.6"/><path class="st0" d="M14.4 15.5 8.6 9.7 14.7 4"/></svg>';
@@ -715,3 +724,4 @@ function FormEditor({
 }
 export default FormEditor;
 export type { FormEditorProps };
+
