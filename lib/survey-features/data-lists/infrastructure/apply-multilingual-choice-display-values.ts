@@ -108,12 +108,21 @@ export async function completeLazyLoadChoiceDisplayValues(options: {
     { notifyDependents: false },
   );
 
-  const currentValues = await reconcileMissingLabels({
-    question,
-    labelsByValue,
-    fetchLabels,
-    generation,
-  });
+  let currentValues: string[] | null;
+  try {
+    currentValues = await reconcileMissingLabels({
+      question,
+      labelsByValue,
+      fetchLabels,
+      generation,
+    });
+  } catch {
+    if (!isCurrentDisplayCompletion(question, generation)) {
+      return;
+    }
+    // Keep labels resolved so far and finish against the current selection.
+    currentValues = getSelectedValueStrings(question);
+  }
 
   if (
     currentValues === null ||

@@ -41,6 +41,8 @@ describe("carry-forward-choice-display", () => {
     const existing = new ItemValue("2510911", "Sevilla");
     existing.locText.setJson({ default: "Seville", es: "Sevilla" });
     const incoming = new ItemValue("2510911");
+    incoming.group = "priority";
+    incoming.randomize = false;
 
     const merged = preferResolvedChoiceLabel(
       incoming,
@@ -52,5 +54,21 @@ describe("carry-forward-choice-display", () => {
       default: "Seville",
       es: "Sevilla",
     });
+    // Label copy must not wipe grouping / randomization from the incoming copy.
+    expect(merged.group).toBe("priority");
+    expect(merged.randomize).toBe(false);
+  });
+
+  it("detects grouping and media field changes", () => {
+    const current = [new ItemValue("A", "Alpha")];
+    const next = [new ItemValue("A", "Alpha")];
+    next[0]!.group = "priority";
+    next[0]!.randomize = false;
+
+    expect(haveCarryForwardChoicesChanged(current, next)).toBe(true);
+
+    const withImage = [new ItemValue("A", "Alpha")];
+    (withImage[0] as ItemValue & { imageLink?: string }).imageLink = "/a.png";
+    expect(haveCarryForwardChoicesChanged(current, withImage)).toBe(true);
   });
 });

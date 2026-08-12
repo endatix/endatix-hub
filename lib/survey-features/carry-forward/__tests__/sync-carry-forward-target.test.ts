@@ -6,6 +6,25 @@ import { registerAdvancedCarryForwardGlobals } from "../infrastructure/registry"
 import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-target";
 import type { AdvancedCarryForwardQuestion } from "../types";
 
+type LazyTagbox = {
+  createItemValue: (
+    value: string,
+    text?: string,
+  ) => {
+    value: string;
+    text: string;
+    locText?: { setJson: (json: unknown) => void };
+  };
+  selectedItemValues:
+    | Array<{
+        value: string;
+        text: string;
+        locText?: { setJson: (json: unknown) => void };
+      }>
+    | null
+    | undefined;
+};
+
 beforeAll(() => {
   registerAdvancedCarryForwardGlobals();
   registerDataListGlobals();
@@ -231,13 +250,16 @@ describe("syncSingleCarryForwardTarget", () => {
       "target",
     ) as AdvancedCarryForwardQuestion;
     syncSingleCarryForwardTarget(survey, target);
-    const choicesAfterFirstSync = target.choices;
+    const choiceItemsAfterFirstSync = [...target.choices];
 
     // Act
     syncSingleCarryForwardTarget(survey, target);
 
-    // Assert — same array instance means we skipped the write
-    expect(target.choices).toBe(choicesAfterFirstSync);
+    // Assert — setter may reuse the array; unchanged sync must keep item instances
+    expect(target.choices).toHaveLength(choiceItemsAfterFirstSync.length);
+    for (let i = 0; i < choiceItemsAfterFirstSync.length; i++) {
+      expect(target.choices[i]).toBe(choiceItemsAfterFirstSync[i]);
+    }
   });
 
   it("prunes invalid selected values when choices shrink", () => {
@@ -498,16 +520,6 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    type LazyTagbox = {
-      createItemValue: (
-        value: string,
-        text?: string,
-      ) => {
-        value: string;
-        text: string;
-      };
-      selectedItemValues: Array<{ value: string; text: string }>;
-    };
     const cities = survey.getQuestionByName("cities") as LazyTagbox;
     survey.setValue("cities", ["3247449", "1279186"]);
     cities.selectedItemValues = [
@@ -548,16 +560,6 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    type LazyTagbox = {
-      createItemValue: (
-        value: string,
-        text?: string,
-      ) => {
-        value: string;
-        text: string;
-      };
-      selectedItemValues: Array<{ value: string; text: string }>;
-    };
     const cities = survey.getQuestionByName("cities") as LazyTagbox;
     survey.setValue("cities", ["2510911"]);
     cities.selectedItemValues = [cities.createItemValue("2510911", "Sevilla")];
@@ -592,21 +594,6 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    type LazyTagbox = {
-      createItemValue: (
-        value: string,
-        text?: string,
-      ) => {
-        value: string;
-        text: string;
-        locText?: { setJson: (json: unknown) => void };
-      };
-      selectedItemValues: Array<{
-        value: string;
-        text: string;
-        locText?: { setJson: (json: unknown) => void };
-      }>;
-    };
     const cities = survey.getQuestionByName("cities") as LazyTagbox;
     const target = survey.getQuestionByName(
       "target",
@@ -652,16 +639,6 @@ describe("syncSingleCarryForwardTarget", () => {
         },
       ],
     });
-    type LazyTagbox = {
-      createItemValue: (
-        value: string,
-        text?: string,
-      ) => {
-        value: string;
-        text: string;
-      };
-      selectedItemValues: Array<{ value: string; text: string }> | undefined;
-    };
     const cities = survey.getQuestionByName("cities") as LazyTagbox;
     const target = survey.getQuestionByName(
       "target",

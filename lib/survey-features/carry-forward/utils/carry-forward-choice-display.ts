@@ -14,23 +14,43 @@ export function isUnresolvedChoiceLabel(item: ItemValue): boolean {
   return normalizeChoiceKey(text) === normalizeChoiceKey(item.value);
 }
 
+type ChoiceMediaFields = {
+  group?: string;
+  randomize?: boolean;
+  imageLink?: string;
+  imageHeight?: number | string;
+  imageWidth?: number | string;
+};
+
+function choiceMediaFingerprint(item: ItemValue): string {
+  const media = item as ItemValue & ChoiceMediaFields;
+  return [
+    media.group ?? "",
+    media.randomize === false ? "0" : media.randomize === true ? "1" : "",
+    media.imageLink ?? "",
+    media.imageHeight ?? "",
+    media.imageWidth ?? "",
+  ].join("|");
+}
+
 /**
- * Fingerprint of value + display label / locale map so label-only upgrades
- * (ID → "Sevilla", or richer locText) count as a change.
+ * Fingerprint of value + display label / locale map + grouping/media fields so
+ * label-only upgrades and priority/media changes count as a change.
  */
 export function choiceDisplayFingerprint(item: ItemValue): string {
   const value = normalizeChoiceKey(item.value);
+  const mediaPart = choiceMediaFingerprint(item);
   const locJson = item.locText?.getJson?.();
 
   if (locJson == null || locJson === "") {
-    return `${value}:${String(item.text ?? "")}`;
+    return `${value}:${String(item.text ?? "")}:${mediaPart}`;
   }
 
   if (typeof locJson === "string") {
-    return `${value}:${locJson}`;
+    return `${value}:${locJson}:${mediaPart}`;
   }
 
-  return `${value}:${JSON.stringify(locJson)}`;
+  return `${value}:${JSON.stringify(locJson)}:${mediaPart}`;
 }
 
 export function haveCarryForwardChoicesChanged(
@@ -55,8 +75,8 @@ export function haveCarryForwardChoicesChanged(
 
 /**
  * Prefer an already-resolved label on the target over an incoming ID-only
- * fallback. Prevents a late lazy-load sync from wiping labels back to numbers.
- * Mutates `incoming` only (the freshly copied target choice).
+ * fallback. Copies only display text / locText so grouping and media on the
+ * freshly copied incoming choice are preserved.
  */
 export function preferResolvedChoiceLabel(
   incoming: ItemValue,
@@ -72,7 +92,13 @@ export function preferResolvedChoiceLabel(
     return incoming;
   }
 
-  incoming.setData(existing);
+  const locJson = existing.locText?.getJson?.();
+  if (locJson != null && locJson !== "") {
+    incoming.locText?.setJson?.(locJson);
+  } else if (existing.text) {
+    incoming.text = existing.text;
+  }
+
   return incoming;
 }
 

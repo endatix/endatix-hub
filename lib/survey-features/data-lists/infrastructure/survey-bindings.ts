@@ -1,5 +1,6 @@
 import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
+import { TelemetryLogger } from "@/features/telemetry";
 import {
   ChoicesLazyLoadEvent,
   GetChoiceDisplayValueEvent,
@@ -26,6 +27,7 @@ import { registerDataListGlobals } from "./registry";
 import { resolveSurveyLocalesForDataList } from "./resolve-survey-locales-for-data-list";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
+const LOGGER_NAME = "data-lists.surveyBindings";
 
 export type BindDataListsToSurveyOptions = {
   deps: ExtensionRuntimeDeps;
@@ -45,13 +47,17 @@ function identityLabelMap(
 
 function logDisplayValueError(
   message: string,
-  error: { type: string; message: string; errorCode?: string },
+  error: { type: string; errorCode?: string },
 ): void {
-  console.error(message, {
-    type: error.type,
-    message: error.message,
-    errorCode: error.errorCode,
-  });
+  TelemetryLogger.error(
+    message,
+    undefined,
+    {
+      type: error.type,
+      errorCode: error.errorCode,
+    },
+    LOGGER_NAME,
+  );
 }
 
 /**
@@ -65,19 +71,24 @@ async function fetchDataListLabelsOrIdentity(
   locales: DataListLocaleQuery,
   failureMessage: string,
 ): Promise<Map<string, Record<string, string>>> {
-  const response = await resolveDataListDisplayValues(
-    deps,
-    dataListId,
-    values,
-    locales,
-  );
+  try {
+    const response = await resolveDataListDisplayValues(
+      deps,
+      dataListId,
+      values,
+      locales,
+    );
 
-  if (!response.success) {
-    logDisplayValueError(failureMessage, response.error);
+    if (!response.success) {
+      logDisplayValueError(failureMessage, response.error);
+      return identityLabelMap(values);
+    }
+
+    return response.data;
+  } catch {
+    logDisplayValueError(failureMessage, { type: "UnexpectedError" });
     return identityLabelMap(values);
   }
-
-  return response.data;
 }
 
 function resolveBindOptions(

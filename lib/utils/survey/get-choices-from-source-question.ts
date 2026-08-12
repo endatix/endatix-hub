@@ -88,7 +88,21 @@ function enrichLazyLoadSelectedChoices(
   }
 
   const selectedByKey = indexSelectedItemValues(lazySource);
+  replaceResultsWithPreferredSelectedItems(source, res, selectedByKey);
+  const presentKeys = collectPresentNormalizedKeys(res);
+  appendMissingNonBuiltInSelectedValues(
+    source,
+    res,
+    selectedByKey,
+    presentKeys,
+  );
+}
 
+function replaceResultsWithPreferredSelectedItems(
+  source: QuestionSelectBase,
+  res: ItemValue[],
+  selectedByKey: Map<string, ItemValue>,
+): void {
   for (let i = 0; i < res.length; i++) {
     const key = normalizeChoiceKey(res[i]!.value);
     if (!key) {
@@ -100,7 +114,9 @@ function enrichLazyLoadSelectedChoices(
       res[i] = cloneChoiceItem(source, preferred);
     }
   }
+}
 
+function collectPresentNormalizedKeys(res: ItemValue[]): Set<string> {
   const presentKeys = new Set<string>();
   for (const item of res) {
     const key = normalizeChoiceKey(item.value);
@@ -108,7 +124,15 @@ function enrichLazyLoadSelectedChoices(
       presentKeys.add(key);
     }
   }
+  return presentKeys;
+}
 
+function appendMissingNonBuiltInSelectedValues(
+  source: QuestionSelectBase,
+  res: ItemValue[],
+  selectedByKey: Map<string, ItemValue>,
+  presentKeys: Set<string>,
+): void {
   for (const value of getSelectedValues(source)) {
     const key = normalizeChoiceKey(value);
     if (!key || presentKeys.has(key)) {
