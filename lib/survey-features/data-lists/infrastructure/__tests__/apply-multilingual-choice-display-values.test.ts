@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { Model, QuestionDropdownModel } from "survey-core";
-import { applyMultilingualChoiceDisplayValues } from "../apply-multilingual-choice-display-values";
+import {
+  applyMultilingualChoiceDisplayValues,
+  completeLazyLoadChoiceDisplayValues,
+} from "../apply-multilingual-choice-display-values";
 
 type SelectedChoiceItem = {
   text: string;
@@ -10,7 +13,8 @@ type SelectedChoiceItem = {
 
 /** SurveyJS keeps `selectedItemValues` protected; tests need the same access path as production. */
 type SelectBaseQuestion = QuestionDropdownModel & {
-  selectedItemValues: SelectedChoiceItem[];
+  selectedItemValues: SelectedChoiceItem[] | SelectedChoiceItem;
+  updateChoicesDependedQuestions?: () => void;
 };
 
 describe("applyMultilingualChoiceDisplayValues", () => {
@@ -51,7 +55,7 @@ describe("applyMultilingualChoiceDisplayValues", () => {
 
     expect(setItems).toHaveBeenCalledWith(["Пловдив", "София"]);
 
-    const selected = question.selectedItemValues;
+    const selected = question.selectedItemValues as SelectedChoiceItem[];
 
     expect(selected[0].locText.getJson()).toEqual({
       default: "Plovdiv",
@@ -74,4 +78,177 @@ describe("applyMultilingualChoiceDisplayValues", () => {
       "София",
     ]);
   });
+
+  it("notifies SurveyJS depended questions after stamping labels", () => {
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            {
+              type: "tagbox",
+              name: "cities",
+              choicesLazyLoadEnabled: true,
+            },
+          ],
+        },
+      ],
+    });
+    const question = model.getQuestionByName("cities") as SelectBaseQuestion;
+    const updateChoicesDependedQuestions = vi.fn();
+    question.updateChoicesDependedQuestions = updateChoicesDependedQuestions;
+
+    const setItems = vi.fn((displayValues: string[]) => {
+      question.selectedItemValues = displayValues.map((text, index) =>
+        question.createItemValue(["728193"][index], text),
+      ) as SelectedChoiceItem[];
+    });
+
+    applyMultilingualChoiceDisplayValues(
+      question,
+      ["728193"],
+      new Map([["728193", { default: "Plovdiv", bg: "Пловдив" }]]),
+      setItems,
+      "bg",
+    );
+
+    expect(updateChoicesDependedQuestions).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("completeLazyLoadChoiceDisplayValues", () => {
+  it("fetches labels for selection values missing from the in-flight request", async () => {
+    const model = new Model({
+      pages: [
+        {
+          elements: [
+            {
+              type: "tagbox",
+              name: "cities",
+              choicesLazyLoadEnabled: true,
+            },
+          ],
+        },
+      ],
+    });
+    model.locale = "es";
+
+    const question = model.getQuestionByName("cities") as SelectBaseQuestion;
+    // Simulate SurveyJS race: request started with one value, selection grew.
+    question.value = ["2510911", "3117735", "2520493"];
+
+    const setItems = vi.fn((displayValues: string[]) => {
+      question.selectedItemValues = displayValues.map((text, index) =>
+        question.createItemValue(["2510911"][index], text),
+      ) as SelectedChoiceItem[];
+    });
+
+    const fetchLabels = vi.fn(async (missing: string[]) => {
+      expect(missing).toEqual(["3117735", "2520493"]);
+      return new Map([
+        ["3117735", { default: "A Coruña", es: "A Coruña" }],
+        ["2520493", { default: "'s-Hertogenbosch", es: "'s-Hertogenbosch" }],
+      ]);
+    });
+
+    await completeLazyLoadChoiceDisplayValues({
+      question,
+      requestedValues: ["2510911"],
+      labelsByValue: new Map([
+        ["2510911", { default: "Sevilla", es: "Sevilla" }],
+      ]),
+      setItems,
+      activeLocale: "es",
+      fetchLabels,
+    });
+
+    expect(fetchLabels).toHaveBeenCalledTimes(1);
+    expect(setItems).toHaveBeenCalledWith(["Sevilla"]);
+
+    const selected = question.selectedItemValues as SelectedChoiceItem[];
+    expect(
+      selected.map((item) => ({ value: item.value, text: item.text })),
+    ).toEqual([
+      { value: "2510911", text: "Sevilla" },
+      { value: "3117735", text: "A Coruña" },
+      { value: "2520493", text: "'s-Hertogenbosch" },
+    ]);
+  });
+
+  it.each([
+    {
+      name: "single-language form + single-language data list",
+      formLocale: "",
+      labels: { default: "Sevilla" },
+      expectedText: "Sevilla",
+      expectedLocaleJson: undefined as Record<string, string> | undefined,
+    },
+    {
+      name: "multilingual form + single-language data list falls back to default",
+      formLocale: "fr",
+      labels: { default: "Sevilla" },
+      expectedText: "Sevilla",
+      expectedLocaleJson: undefined as Record<string, string> | undefined,
+    },
+    {
+      name: "form locale missing from data list falls back to default",
+      formLocale: "de",
+      labels: { default: "Sevilla", es: "Sevilla ES" },
+      expectedText: "Sevilla",
+      expectedLocaleJson: { default: "Sevilla", es: "Sevilla ES" },
+    },
+    {
+      name: "matching multilingual form and data list locale",
+      formLocale: "es",
+      labels: { default: "Seville", es: "Sevilla" },
+      expectedText: "Sevilla",
+      expectedLocaleJson: { default: "Seville", es: "Sevilla" },
+    },
+  ])(
+    "$name",
+    async ({ formLocale, labels, expectedText, expectedLocaleJson }) => {
+      const model = new Model({
+        pages: [
+          {
+            elements: [
+              {
+                type: "tagbox",
+                name: "cities",
+                choicesLazyLoadEnabled: true,
+              },
+            ],
+          },
+        ],
+      });
+      model.locale = formLocale;
+
+      const question = model.getQuestionByName("cities") as SelectBaseQuestion;
+      question.value = ["2510911"];
+
+      const setItems = vi.fn((displayValues: string[]) => {
+        question.selectedItemValues = displayValues.map((text, index) =>
+          question.createItemValue(["2510911"][index], text),
+        ) as SelectedChoiceItem[];
+      });
+
+      await completeLazyLoadChoiceDisplayValues({
+        question,
+        requestedValues: ["2510911"],
+        labelsByValue: new Map([["2510911", labels]]),
+        setItems,
+        activeLocale: formLocale || undefined,
+        fetchLabels: async () => new Map(),
+      });
+
+      const selected = question.selectedItemValues as SelectedChoiceItem[];
+      expect(selected[0]?.text).toBe(expectedText);
+
+      const localeJson = selected[0]?.locText.getJson();
+      if (expectedLocaleJson) {
+        expect(localeJson).toEqual(expectedLocaleJson);
+      } else {
+        // SurveyJS stores a plain string when only `default` is present.
+        expect(localeJson).toBe(labels.default);
+      }
+    },
+  );
 });

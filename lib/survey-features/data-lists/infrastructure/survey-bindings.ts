@@ -16,7 +16,7 @@ import {
 } from "../use-cases/search-data-lists";
 import { resolveDataListDisplayValues } from "../use-cases/resolve-data-list-display-values";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
-import { applyMultilingualChoiceDisplayValues } from "./apply-multilingual-choice-display-values";
+import { completeLazyLoadChoiceDisplayValues } from "./apply-multilingual-choice-display-values";
 import {
   dispatchPropertyGridChoiceDisplayValues,
   dispatchPropertyGridChoicesLazyLoad,
@@ -31,6 +31,54 @@ export type BindDataListsToSurveyOptions = {
   deps: ExtensionRuntimeDeps;
   getDesignerSurvey?: () => SurveyModel | null;
 };
+
+type DataListLocaleQuery = {
+  locale?: string;
+  includeLocales?: string[];
+};
+
+function identityLabelMap(
+  values: string[],
+): Map<string, Record<string, string>> {
+  return new Map(values.map((value) => [value, { default: value }] as const));
+}
+
+function logDisplayValueError(
+  message: string,
+  error: { type: string; message: string; errorCode?: string },
+): void {
+  console.error(message, {
+    type: error.type,
+    message: error.message,
+    errorCode: error.errorCode,
+  });
+}
+
+/**
+ * Resolves labels for a batch of choice values. On API failure, falls back to
+ * identity labels so lazy-load display completion can still finish.
+ */
+async function fetchDataListLabelsOrIdentity(
+  deps: ExtensionRuntimeDeps,
+  dataListId: string,
+  values: string[],
+  locales: DataListLocaleQuery,
+  failureMessage: string,
+): Promise<Map<string, Record<string, string>>> {
+  const response = await resolveDataListDisplayValues(
+    deps,
+    dataListId,
+    values,
+    locales,
+  );
+
+  if (!response.success) {
+    logDisplayValueError(failureMessage, response.error);
+    return identityLabelMap(values);
+  }
+
+  return response.data;
+}
 
 function resolveBindOptions(
   depsOrOptions: ExtensionRuntimeDeps | BindDataListsToSurveyOptions,
@@ -171,38 +219,39 @@ export function bindDataListsToSurvey(
     }
 
     const values = options.values.map(String);
-    const { locale, includeLocales } = resolveSurveyLocalesForDataList(
-      model,
-      options.question,
-    );
+    const locales = resolveSurveyLocalesForDataList(model, options.question);
 
     const response = await resolveDataListDisplayValues(
       deps,
       dataListId,
       values,
-      {
-        locale,
-        includeLocales,
-      },
+      locales,
     );
 
     if (!response.success) {
-      console.error("Failed to resolve data list display values.", {
-        type: response.error.type,
-        message: response.error.message,
-        errorCode: response.error.errorCode,
-      });
+      logDisplayValueError(
+        "Failed to resolve data list display values.",
+        response.error,
+      );
       options.setItems(values);
       return;
     }
 
-    applyMultilingualChoiceDisplayValues(
-      options.question,
-      values,
-      response.data,
-      options.setItems,
-      locale,
-    );
+    await completeLazyLoadChoiceDisplayValues({
+      question: options.question,
+      requestedValues: values,
+      labelsByValue: response.data,
+      setItems: options.setItems,
+      activeLocale: locales.locale,
+      fetchLabels: (missingValues) =>
+        fetchDataListLabelsOrIdentity(
+          deps,
+          dataListId,
+          missingValues,
+          locales,
+          "Failed to resolve remaining data list display values.",
+        ),
+    });
   };
 
   model.onChoicesLazyLoad.add(onChoicesLazyLoad);

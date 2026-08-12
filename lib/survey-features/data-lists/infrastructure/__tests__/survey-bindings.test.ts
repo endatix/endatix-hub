@@ -160,6 +160,14 @@ describe("bindDataListsToSurvey", () => {
       });
     });
 
+    // completeLazyLoad may overwrite selectedItemValues after setItems
+    await vi.waitFor(() => {
+      expect(question.selectedItemValues[0]?.locText.getJson()).toEqual({
+        default: "Plovdiv",
+        bg: "Пловдив",
+      });
+    });
+
     expect(getDisplayValuesMock).toHaveBeenCalledWith(
       expect.objectContaining({
         includeLocales: ["default", "bg"],
@@ -168,10 +176,6 @@ describe("bindDataListsToSurvey", () => {
     );
 
     const selected = question.selectedItemValues;
-    expect(selected[0].locText.getJson()).toEqual({
-      default: "Plovdiv",
-      bg: "Пловдив",
-    });
     expect(selected[0].text).toBe("Пловдив");
 
     model.locale = "";
@@ -179,5 +183,84 @@ describe("bindDataListsToSurvey", () => {
 
     model.locale = "bg";
     expect(selected[0].text).toBe("Пловдив");
+  });
+
+  it("resolves the full current selection when SurveyJS requested a partial value list", async () => {
+    getDisplayValuesMock.mockImplementation(
+      async (request: { values: string[] }) => {
+        const catalog: Record<string, { default: string; es?: string }> = {
+          "2510911": { default: "Sevilla", es: "Sevilla" },
+          "3117735": { default: "A Coruña", es: "A Coruña" },
+          "2520493": {
+            default: "'s-Hertogenbosch",
+            es: "'s-Hertogenbosch",
+          },
+        };
+        return ApiResult.success(
+          request.values.map((value) => ({
+            value,
+            labels: catalog[value] ?? { default: value },
+          })),
+        );
+      },
+    );
+
+    const model = new Model({
+      locale: "es",
+      pages: [
+        {
+          elements: [
+            {
+              type: "tagbox",
+              name: "cities",
+              choicesLazyLoadEnabled: true,
+            },
+          ],
+        },
+      ],
+    });
+    model.locale = "es";
+
+    const question = model.getQuestionByName("cities") as SelectBaseQuestion;
+    question.setPropertyValue(DATA_LIST_PROPERTY_NAME, "42");
+    // Selection already grew beyond the in-flight request snapshot.
+    question.value = ["2510911", "3117735", "2520493"];
+
+    bindDataListsToSurvey(model, {
+      deps: {
+        getRuntimeState: () => ({ formId: "101" }),
+      },
+    });
+
+    await new Promise<void>((resolve) => {
+      void model.onGetChoiceDisplayValue.fire(model, {
+        question,
+        values: ["2510911"],
+        setItems: (items: string[]) => {
+          question.selectedItemValues = items.map((text, index) =>
+            question.createItemValue(["2510911"][index], text),
+          ) as SelectedChoiceItem[];
+          resolve();
+        },
+      });
+    });
+
+    await vi.waitFor(() => {
+      expect(
+        (question.selectedItemValues as SelectedChoiceItem[]).map(
+          (item) => item.text,
+        ),
+      ).toEqual(["Sevilla", "A Coruña", "'s-Hertogenbosch"]);
+    });
+
+    expect(getDisplayValuesMock).toHaveBeenCalledTimes(2);
+    expect(getDisplayValuesMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ values: ["2510911"] }),
+    );
+    expect(getDisplayValuesMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ values: ["3117735", "2520493"] }),
+    );
   });
 });
