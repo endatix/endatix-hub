@@ -24,9 +24,16 @@ type ChoiceMediaFields = {
 
 function choiceMediaFingerprint(item: ItemValue): string {
   const media = item as ItemValue & ChoiceMediaFields;
+  let randomizePart = "";
+  if (media.randomize === false) {
+    randomizePart = "0";
+  } else if (media.randomize === true) {
+    randomizePart = "1";
+  }
+
   return [
     media.group ?? "",
-    media.randomize === false ? "0" : media.randomize === true ? "1" : "",
+    randomizePart,
     media.imageLink ?? "",
     media.imageHeight ?? "",
     media.imageWidth ?? "",
