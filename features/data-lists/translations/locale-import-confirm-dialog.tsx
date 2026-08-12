@@ -25,6 +25,7 @@ export type LocaleImportConfirmPanelProps = {
   discovery: LocaleImportDiscovery | null;
   catalogLocaleCount: number;
   isPending?: boolean;
+  cancelLabel?: string;
   onCancel: () => void;
   onConfirm: (selection: LocaleImportSelection) => void;
 };
@@ -76,6 +77,7 @@ export function LocaleImportConfirmPanel({
   discovery,
   catalogLocaleCount,
   isPending = false,
+  cancelLabel = "Back",
   onCancel,
   onConfirm,
 }: Readonly<LocaleImportConfirmPanelProps>) {
@@ -218,7 +220,7 @@ export function LocaleImportConfirmPanel({
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button variant="outline" disabled={isPending} onClick={onCancel}>
-          Back
+          {cancelLabel}
         </Button>
         <Button
           disabled={!canConfirm || isPending}
