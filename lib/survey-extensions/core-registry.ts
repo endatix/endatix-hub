@@ -22,6 +22,10 @@ import {
   CARRY_FORWARD_EXTENSION_ID,
   carryForwardExtension,
 } from "@/lib/survey-features/carry-forward";
+import {
+  MATRIX_CAROUSEL_EXTENSION_ID,
+  matrixCarouselExtension,
+} from "@/lib/survey-features/matrix-carousel";
 import { DRAG_CATEGORIZE_EXTENSION_ID } from "@/lib/questions/drag-categorize/constants";
 // The extension module, not the feature barrel — the barrel re-exports the
 // Creator bindings, which must not reach the respondent graph.
@@ -33,6 +37,7 @@ export {
   BLIND_SEARCH_TAGBOX_EXTENSION_ID,
   REGEX_MATCH_EXTENSION_ID,
   DRAG_CATEGORIZE_EXTENSION_ID,
+  MATRIX_CAROUSEL_EXTENSION_ID,
 };
 
 /**
@@ -105,6 +110,17 @@ export const coreExtensions: ExtensionDefinition[] = [
       name: "Carry forward",
       description:
         "Aggregates choices from multiple source questions with deduplication, priority ordering, and max-selection controls.",
+    },
+  },
+  {
+    id: MATRIX_CAROUSEL_EXTENSION_ID,
+    type: "feature",
+    loading: "static",
+    module: matrixCarouselExtension,
+    metadata: {
+      name: "Matrix Carousel",
+      description:
+        "Adds a swipeable, one-statement-per-screen carousel presentation to the Matrix question type.",
     },
   },
   {

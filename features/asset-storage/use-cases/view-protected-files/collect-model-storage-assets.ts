@@ -93,6 +93,16 @@ export function collectModelStorageAssets(model: Model): ModelStorageAssets {
         });
         break;
       }
+      case "matrix": {
+        // matrix-carousel rows: imageUrl lives on .rows, not .choices — the
+        // only code-owned-image case keyed off that property.
+        question.rows?.forEach((row: { imageUrl?: string }) => {
+          addAssetRef(refs, row.imageUrl, (nextUrl) => {
+            row.imageUrl = nextUrl;
+          });
+        });
+        break;
+      }
       default:
         break;
     }

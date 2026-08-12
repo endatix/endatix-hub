@@ -1,21 +1,8 @@
 import { Helpers, ItemValue, SurveyModel } from "survey-core";
-import {
-  copyChoiceItemWithMedia,
-  extractUniqueChoicesBy,
-  getChoicesFromSourceQuestion,
-} from "@/lib/utils/survey";
-import {
-  limitCarryForwardChoices,
-  parseCarryForwardMaxChoices,
-} from "../utils/limit-carry-forward-choices";
-import { resolveCarryForwardSelectionMode } from "../utils/map-carry-forward-mode";
-import { splitByPriority } from "../utils/split-by-priority";
-import { SourceSelectionModes } from "@/lib/survey-features/question-loops/types";
+import { copyChoiceItemWithMedia } from "@/lib/utils/survey";
 import type { AdvancedCarryForwardQuestion } from "../types";
-import {
-  getCarryForwardSourceQuestions,
-  isAdvancedCarryForwardEnabled,
-} from "../utils";
+import { isAdvancedCarryForwardEnabled } from "../utils";
+import { computeCarryForwardAggregatedItems } from "./compute-carry-forward-items";
 
 const PRIORITY_GROUP = "priority";
 
@@ -44,31 +31,11 @@ export function syncSingleCarryForwardTarget(
     return;
   }
 
-  const sourceQuestions = getCarryForwardSourceQuestions(survey, target);
-  const selectionMode = resolveCarryForwardSelectionMode(
-    target.edxCarryForwardMode,
-  );
-  const aggregatedChoices = extractUniqueChoicesBy(sourceQuestions, (source) =>
-    getChoicesFromSourceQuestion(source, selectionMode),
-  );
-  const { priority, rest } = splitByPriority(
-    aggregatedChoices,
-    target.edxCarryForwardPriorityItems,
-  );
-  const maxChoiceLimit = parseCarryForwardMaxChoices(
-    target.edxCarryForwardMaxChoices,
-  );
-  const limitedChoices = limitCarryForwardChoices(
-    priority,
-    rest,
-    maxChoiceLimit,
-  );
+  const { priority, rest } = computeCarryForwardAggregatedItems(survey, target);
   const shouldRandomize = target.choicesOrder === "random";
   const newChoices = [
-    ...markPriorityChoices(target, limitedChoices.priority, shouldRandomize),
-    ...limitedChoices.rest.map((choice) =>
-      copyChoiceItemWithMedia(target, choice),
-    ),
+    ...markPriorityChoices(target, priority, shouldRandomize),
+    ...rest.map((choice) => copyChoiceItemWithMedia(target, choice)),
   ];
 
   const choicesHaveChanged = !Helpers.isArraysEqual(

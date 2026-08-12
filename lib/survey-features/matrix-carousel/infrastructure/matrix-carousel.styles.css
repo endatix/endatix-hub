@@ -1,0 +1,65 @@
+.sv-matrixcarousel {
+  display: flex;
+  flex-direction: column;
+}
+
+.sv-matrixcarousel__strip {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* This is a horizontal gesture living inside a normally vertically-scrolling
+     page — without these, a swipe can leak into page scroll or trigger
+     browser back/forward navigation on some devices. */
+  overscroll-behavior-x: contain;
+  /* pan-x is required for native horizontal swipe to work at all — pan-y
+     alone tells the browser only vertical panning is a gesture it should
+     handle here, so a horizontal swipe wouldn't scroll on real touch
+     hardware. Both axes are listed because pan-y still has to stay
+     available for the page's normal vertical scroll to pass through. */
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+}
+
+.sv-matrixcarousel__strip::-webkit-scrollbar {
+  display: none;
+}
+
+.sv-matrixcarousel__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  min-width: 0;
+  padding: 0.5rem;
+}
+
+.sv-matrixcarousel__slide-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 0.75rem;
+  border-radius: 0.375rem;
+}
+
+/* Progress bar — above the content, matching PanelDynamic's own carousel
+   layout (question_paneldynamic.ts renderRange()/renderElement()).
+   .sv-matrixcarousel__progress-bar-track/-fill also carry the theme's own
+   sd-progress/sd-progress__bar classes (see matrix-carousel-renderer.tsx),
+   which supply the actual track/fill color and height — this wrapper only
+   adds the spacing PanelDynamic doesn't need here, since it doesn't nest an
+   extra wrapper at this level. */
+.sv-matrixcarousel__progress {
+  padding: 0 0.5rem 0.5rem;
+}
+
+/* Footer — separator, then a row of "N of M" text + Back/Next — below the
+   content, matching PanelDynamic's renderNavigatorV2(). The separator,
+   footer-row (~ PanelDynamic's buttons-container), and progress-text also
+   carry the theme's sd-paneldynamic__* classes, which supply color/spacing;
+   only the outer footer's flex-column stacking has no theme equivalent to
+   inherit, since PanelDynamic's own footer never nests a bar-mode sibling
+   above it the way ours optionally does. */
+.sv-matrixcarousel__footer {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+}

@@ -17,6 +17,7 @@ interface MatrixAnswerProps {
 }
 
 interface IMatrixAnswer {
+  rowKey: string;
   question: string;
   answer: string;
 }
@@ -28,17 +29,26 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
     }
 
     const answers: Array<IMatrixAnswer> = [];
-    question.rows.forEach((row: ItemValue) => {
+    question.rows.forEach((row: ItemValue, index: number) => {
       if (!question?.value || !question?.columns) {
         return;
       }
-      const rowText = row.text;
+      // Image-only rows (matrix carousel) have no authored text — fall back
+      // to a positional label instead of dropping the row from the table.
+      // hasText (not a truthy check on .text): ItemValue.text always falls
+      // back to String(value) when no text was authored, so `row.text ||
+      // fallback` would never actually reach the fallback.
+      const rowText = row.hasText ? row.text : `Row ${index + 1}`;
       const answer = question.value[row.value]; // Using row.value which is standard
       const answerText =
         question.columns.find((c: ItemValue) => c.value === answer)?.text ?? "";
 
-      if (answerText && rowText) {
+      if (answerText) {
         answers.push({
+          // row.value (not rowText) — SurveyJS enforces uniqueness on row
+          // value (uniqueProperty: "value"), but two rows can share display
+          // text, which would collide as a React key.
+          rowKey: String(row.value),
           question: rowText,
           answer: answerText,
         });
@@ -74,7 +84,7 @@ const MatrixAnswer = ({ question, className }: MatrixAnswerProps) => {
         </TableHeader>
         <TableBody>
           {matrixAnswers.map((answer) => (
-            <TableRow key={answer.question}>
+            <TableRow key={answer.rowKey}>
               <TableCell className="font-medium break-words whitespace-normal">
                 {answer.question}
               </TableCell>

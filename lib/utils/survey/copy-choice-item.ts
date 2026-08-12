@@ -12,15 +12,31 @@ import { ItemValue, QuestionSelectBase, Serializer } from "survey-core";
  * Both are declared `type: "file"`, which is what SurveyJS itself keys image
  * editors off, so the name is derived rather than listed here. That keeps this
  * shared utility free of any single question's vocabulary.
+ *
+ * Checks the class's own declared properties (Serializer.findClass(...).
+ * properties) before falling back to the full inherited list
+ * (Serializer.getProperties, which includes ancestors). Required once
+ * matrix-carousel registered its own `imageUrl:file` on the shared
+ * `itemvalue` base: without preferring the more specific declaration,
+ * looking this up for an imagepicker item would find inherited `imageUrl`
+ * before imagepicker's own `imageLink`, since both are `type:"file"` and
+ * `getProperties` doesn't distinguish "declared here" from "inherited."
  */
-function findImageProperty(item: ItemValue): string | undefined {
+export function findImageProperty(item: ItemValue): string | undefined {
+  const ownProperty = Serializer.findClass(item.getType())?.properties.find(
+    (property) => property.type === "file",
+  );
+  if (ownProperty) {
+    return ownProperty.name;
+  }
+
   return Serializer.getProperties(item.getType()).find(
     (property) => property.type === "file",
   )?.name;
 }
 
 /** The image on a choice item, whichever property its class declares. */
-function readItemImage(choice: ItemValue): string | undefined {
+export function readItemImage(choice: ItemValue): string | undefined {
   const name = findImageProperty(choice);
   if (!name) return undefined;
   const source = choice as unknown as Record<string, unknown>;
