@@ -6,11 +6,13 @@ import { revalidatePath } from "next/cache";
 import { DATA_LIST_MAX_LOCALES } from "@/features/data-lists/import-limits";
 import { replaceDataListItemsAction } from "../replace-data-list-items.action";
 
-const { mockReplaceItems, mockRequireHubAccess, mockAuth } = vi.hoisted(() => ({
-  mockReplaceItems: vi.fn(),
-  mockRequireHubAccess: vi.fn(),
-  mockAuth: vi.fn(),
-}));
+const { mockReplaceItems, mockGetById, mockRequireHubAccess, mockAuth } =
+  vi.hoisted(() => ({
+    mockReplaceItems: vi.fn(),
+    mockGetById: vi.fn(),
+    mockRequireHubAccess: vi.fn(),
+    mockAuth: vi.fn(),
+  }));
 
 vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
@@ -33,6 +35,7 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => {
     EndatixApi: vi.fn().mockImplementation(function () {
       return {
         dataLists: {
+          getById: mockGetById,
           replaceItems: mockReplaceItems,
         },
       };
@@ -59,6 +62,7 @@ describe("replaceDataListItemsAction", () => {
     vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
+    mockGetById.mockResolvedValue(ApiResult.success(details));
   });
 
   it("returns validation error for an invalid data list id", async () => {
@@ -69,6 +73,7 @@ describe("replaceDataListItemsAction", () => {
       return;
     }
     expect(result.message).toContain("dataListId");
+    expect(mockGetById).not.toHaveBeenCalled();
     expect(mockReplaceItems).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -81,10 +86,11 @@ describe("replaceDataListItemsAction", () => {
       return;
     }
     expect(result.message).toContain("valid culture code");
+    expect(mockGetById).not.toHaveBeenCalled();
     expect(mockReplaceItems).not.toHaveBeenCalled();
   });
 
-  it("rejects empty items via import payload guards before calling the API", async () => {
+  it("rejects empty items via import payload guards before calling replace", async () => {
     const result = await replaceDataListItemsAction("42", []);
 
     expect(Result.isError(result)).toBe(true);
@@ -92,10 +98,11 @@ describe("replaceDataListItemsAction", () => {
       return;
     }
     expect(result.message).toContain("At least one item");
+    expect(mockGetById).toHaveBeenCalledWith("42");
     expect(mockReplaceItems).not.toHaveBeenCalled();
   });
 
-  it("rejects ensureLocales that would exceed the catalog locale cap", async () => {
+  it("rejects ensureLocales that would exceed the server catalog locale cap", async () => {
     const ensureLocales = [
       "fr",
       "de",
@@ -124,7 +131,6 @@ describe("replaceDataListItemsAction", () => {
       "42",
       validItems,
       ensureLocales,
-      1,
     );
 
     expect(Result.isError(result)).toBe(true);
@@ -138,12 +144,10 @@ describe("replaceDataListItemsAction", () => {
   it("normalizes locales, replaces items, and revalidates on success", async () => {
     mockReplaceItems.mockResolvedValue(ApiResult.success(details));
 
-    const result = await replaceDataListItemsAction(
-      "42",
-      validItems,
-      [" FR ", "de"],
-      1,
-    );
+    const result = await replaceDataListItemsAction("42", validItems, [
+      " FR ",
+      "de",
+    ]);
 
     expect(mockReplaceItems).toHaveBeenCalledWith("42", validItems, {
       ensureLocales: ["fr", "de"],
@@ -180,9 +184,9 @@ describe("replaceDataListItemsAction", () => {
   it("propagates requireHubAccess failures", async () => {
     mockRequireHubAccess.mockRejectedValue(new Error("NEXT_REDIRECT"));
 
-    await expect(
-      replaceDataListItemsAction("42", validItems),
-    ).rejects.toThrow("NEXT_REDIRECT");
+    await expect(replaceDataListItemsAction("42", validItems)).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
     expect(mockReplaceItems).not.toHaveBeenCalled();
   });
 });

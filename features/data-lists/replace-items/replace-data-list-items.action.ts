@@ -20,7 +20,6 @@ export async function replaceDataListItemsAction(
   dataListId: string,
   items: DataListChoiceItem[],
   ensureLocales: string[] = [],
-  catalogLocaleCount = 0,
 ): Promise<ReplaceDataListItemsResult> {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
@@ -38,6 +37,17 @@ export async function replaceDataListItemsAction(
     );
   }
 
+  const api = new EndatixApi(session?.accessToken);
+  const detailsResult = toResult(await api.dataLists.getById(idResult.value), {
+    fallbackMessage: "Failed to load data list",
+    logMessage: "Failed to load data list before replace",
+    loggerName: "data-lists.replaceItems",
+  });
+  if (Result.isError(detailsResult)) {
+    return detailsResult;
+  }
+
+  const catalogLocaleCount = detailsResult.value.availableLocales?.length ?? 0;
   const payloadGuard = guardImportPayload({
     format: "json",
     items,
@@ -48,7 +58,6 @@ export async function replaceDataListItemsAction(
     return payloadGuard;
   }
 
-  const api = new EndatixApi(session?.accessToken);
   const result = toResult(
     await api.dataLists.replaceItems(idResult.value, items, {
       ensureLocales: localesResult.value,

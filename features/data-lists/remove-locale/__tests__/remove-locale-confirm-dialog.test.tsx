@@ -23,13 +23,13 @@ vi.mock("@/features/data-lists/translations/locale-discovery", () => ({
 describe("RemoveLocaleConfirmDialog", () => {
   const onOpenChange = vi.fn();
   const onRemoved = vi.fn();
+  const onPendingChange = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("highlights the locale and keeps Remove disabled when locale is null", () => {
-    // Arrange / Act
     render(
       <RemoveLocaleConfirmDialog
         open
@@ -40,7 +40,6 @@ describe("RemoveLocaleConfirmDialog", () => {
       />,
     );
 
-    // Assert
     expect(
       (screen.getByRole("button", { name: "Remove" }) as HTMLButtonElement)
         .disabled,
@@ -48,8 +47,7 @@ describe("RemoveLocaleConfirmDialog", () => {
     expect(screen.queryByText(/· Test/)).toBeNull();
   });
 
-  it("shows the locale subtitle when a locale is selected", () => {
-    // Arrange / Act
+  it("shows the locale subtitle and catalog warning copy", () => {
     render(
       <RemoveLocaleConfirmDialog
         open
@@ -60,15 +58,15 @@ describe("RemoveLocaleConfirmDialog", () => {
       />,
     );
 
-    // Assert
     expect(screen.getByText("fr · Test")).not.toBeNull();
     expect(
-      screen.getByText(/deletes its labels from every item/i),
+      screen.getByText(
+        /This removes the language from the data catalog and deletes each label translation from every item/,
+      ),
     ).not.toBeNull();
   });
 
-  it("calls removeLocaleAction and notifies parent on confirm", async () => {
-    // Arrange
+  it("keeps the dialog open until remove succeeds, then closes", async () => {
     const details = {
       id: "42",
       name: "Countries",
@@ -78,7 +76,13 @@ describe("RemoveLocaleConfirmDialog", () => {
       availableLocales: [],
       items: [],
     };
-    vi.mocked(removeLocaleAction).mockResolvedValue(Result.success(details));
+    let resolveRemove: ((value: Result<typeof details>) => void) | undefined;
+    vi.mocked(removeLocaleAction).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRemove = resolve;
+        }),
+    );
 
     render(
       <RemoveLocaleConfirmDialog
@@ -87,23 +91,29 @@ describe("RemoveLocaleConfirmDialog", () => {
         dataListId="42"
         locale="fr"
         onRemoved={onRemoved}
+        onPendingChange={onPendingChange}
       />,
     );
 
-    // Act
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
 
-    // Assert
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() => {
+      expect(onPendingChange).toHaveBeenCalledWith(true);
+    });
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+
+    resolveRemove?.(Result.success(details));
+
     await waitFor(() => {
       expect(removeLocaleAction).toHaveBeenCalledWith("42", "fr");
       expect(onRemoved).toHaveBeenCalledWith(details);
       expect(toast.success).toHaveBeenCalledWith("Removed locale fr");
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      expect(onPendingChange).toHaveBeenCalledWith(false);
     });
   });
 
-  it("shows an error toast when removeLocaleAction fails", async () => {
-    // Arrange
+  it("shows an error toast and keeps the dialog open when remove fails", async () => {
     vi.mocked(removeLocaleAction).mockResolvedValue(
       Result.error("Locale is still in use"),
     );
@@ -118,13 +128,12 @@ describe("RemoveLocaleConfirmDialog", () => {
       />,
     );
 
-    // Act
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
 
-    // Assert
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("Locale is still in use");
     });
     expect(onRemoved).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });

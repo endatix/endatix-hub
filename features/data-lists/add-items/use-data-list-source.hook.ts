@@ -214,7 +214,8 @@ export function useDataListSource(
         file.type === "text/csv" ||
         file.type === "application/vnd.ms-excel";
       const treatAsCsv = inferredCsv || format === "csv";
-      const maxBytes = treatAsCsv ? DATA_LIST_MAX_CSV_CHARS : maxFileSize;
+      // UTF-8 worst-case: 4 bytes per code unit; char cap is enforced after decode.
+      const maxBytes = treatAsCsv ? DATA_LIST_MAX_CSV_CHARS * 4 : maxFileSize;
 
       if (file.size > maxBytes) {
         setJsonInput(initialState.jsonInput);

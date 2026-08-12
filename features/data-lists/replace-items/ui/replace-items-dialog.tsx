@@ -1,6 +1,5 @@
 "use client";
 
-import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -182,7 +181,6 @@ export function ReplaceItemsDialog({
           dataListId,
           csv,
           ensureLocales: selection.ensureLocales,
-          catalogLocaleCount: availableLocales.length,
         });
 
         if (Result.isError(uploadResult)) {
@@ -206,7 +204,6 @@ export function ReplaceItemsDialog({
           dataListId,
           items,
           selection.ensureLocales,
-          availableLocales.length,
         );
 
         if (Result.isError(replaceResult)) {
@@ -300,21 +297,9 @@ export function ReplaceItemsDialog({
                 Continue
               </Button>
             ) : (
-              <Button
-                onClick={handleReviewLocales}
-                disabled={!canConfirm || isPending}
-              >
-                {isPending ? (
-                  <>
-                    <Spinner className="mr-1 h-4 w-4" />
-                    Replacing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    Review locales
-                  </>
-                )}
+              <Button onClick={handleReviewLocales} disabled={!canConfirm}>
+                <Upload className="h-4 w-4" />
+                Review locales
               </Button>
             )}
           </DialogFooter>

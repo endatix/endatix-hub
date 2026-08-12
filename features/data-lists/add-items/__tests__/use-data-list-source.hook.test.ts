@@ -6,7 +6,10 @@ import {
   FILE_SIZE_ERROR,
   MAX_FILE_SIZE_BYTES,
 } from "../../utils";
-import { DATA_LIST_MAX_CSV_CHARS } from "../../translations/locale-discovery";
+import {
+  DATA_LIST_MAX_CSV_CHARS,
+  DATA_LIST_MAX_ITEMS,
+} from "../../import-limits";
 
 describe("useDataListSource", () => {
   it("starts on json and can switch to csv", () => {
@@ -52,16 +55,14 @@ describe("useDataListSource", () => {
     expect(result.current.selectedFileName).toBe("big.json");
   });
 
-  it("rejects csv files above the csv character cap", () => {
+  it("rejects csv files above the csv character cap", async () => {
     const { result } = renderHook(() => useDataListSource());
 
-    const largeFile = new File([""], "big.csv", { type: "text/csv" });
-    Object.defineProperty(largeFile, "size", {
-      value: DATA_LIST_MAX_CSV_CHARS + 1,
-    });
+    const content = "é".repeat(DATA_LIST_MAX_CSV_CHARS + 1);
+    const largeFile = new File([content], "big.csv", { type: "text/csv" });
 
-    act(() => {
-      void result.current.handleFileSelected(largeFile);
+    await act(async () => {
+      await result.current.handleFileSelected(largeFile);
     });
 
     expect(result.current.validationError).toBe(CSV_FILE_SIZE_ERROR);
@@ -74,7 +75,7 @@ describe("useDataListSource", () => {
     );
 
     const rows = Array.from(
-      { length: 5_001 },
+      { length: DATA_LIST_MAX_ITEMS + 1 },
       (_, index) => `v${index},Label ${index}`,
     ).join("\r\n");
 
@@ -83,7 +84,9 @@ describe("useDataListSource", () => {
     });
 
     expect(result.current.canConfirm).toBe(false);
-    expect(result.current.sourceError).toContain("5,000");
+    expect(result.current.sourceError).toContain(
+      DATA_LIST_MAX_ITEMS.toLocaleString(),
+    );
   });
 
   it("exposes sourceError for json validation failures", () => {

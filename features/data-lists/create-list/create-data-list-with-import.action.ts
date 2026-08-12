@@ -27,7 +27,15 @@ export type CreateDataListWithImportInput = {
 
 async function rollBackCreatedList(dataListId: string): Promise<void> {
   try {
-    await deleteDataListAction(dataListId);
+    const deleted = await deleteDataListAction(dataListId);
+    if (Result.isError(deleted)) {
+      TelemetryLogger.error(
+        "Failed to roll back data list creation after import failure",
+        deleted.message,
+        { dataListId },
+        LOGGER_NAME,
+      );
+    }
   } catch (error) {
     TelemetryLogger.error(
       "Failed to roll back data list creation after import failure",
@@ -92,7 +100,6 @@ export async function createDataListWithImportAction(
 
   if (Result.isError(imported)) {
     await rollBackCreatedList(dataListId);
-    return imported;
   }
 
   return imported;

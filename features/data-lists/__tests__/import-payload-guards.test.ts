@@ -7,9 +7,10 @@ import {
   guardTranslationsCsvPayload,
 } from "../import-payload-guards";
 import {
+  DATA_LIST_MAX_CSV_CHARS,
   DATA_LIST_MAX_ITEMS,
   DATA_LIST_MAX_LOCALES,
-} from "../translations/locale-discovery";
+} from "../import-limits";
 import type { DataListChoiceItem } from "@/lib/endatix-api/data-lists/types";
 
 function expectErrorMessage(result: Result<unknown>, fragment: string): void {
@@ -38,8 +39,8 @@ function buildItems(count: number): DataListChoiceItem[] {
 describe("guardTranslationsCsvPayload", () => {
   it("rejects oversized csv payloads", () => {
     expectErrorMessage(
-      guardTranslationsCsvPayload("x".repeat(2_000_001)),
-      "2,000,000",
+      guardTranslationsCsvPayload("x".repeat(DATA_LIST_MAX_CSV_CHARS + 1)),
+      DATA_LIST_MAX_CSV_CHARS.toLocaleString(),
     );
   });
 

@@ -22,7 +22,6 @@ export type UploadTranslationsCsvInput = {
   dataListId: string;
   csv: string;
   ensureLocales?: string[];
-  catalogLocaleCount?: number;
 };
 
 function normalizeLocaleInput(locale: string): Result<string> {
@@ -54,17 +53,27 @@ export async function uploadTranslationsCsvAction(
     );
   }
 
+  const api = new EndatixApi(session?.accessToken);
+  const detailsResult = toResult(await api.dataLists.getById(idResult.value), {
+    fallbackMessage: "Failed to load data list",
+    logMessage: "Failed to load data list before translations CSV upload",
+    loggerName: "data-lists.translationsCsv",
+  });
+  if (Result.isError(detailsResult)) {
+    return detailsResult;
+  }
+
+  const catalogLocaleCount = detailsResult.value.availableLocales?.length ?? 0;
   const payloadGuard = guardImportPayload({
     format: "csv",
     csv: input.csv,
     ensureLocales: localesResult.value,
-    catalogLocaleCount: input.catalogLocaleCount ?? 0,
+    catalogLocaleCount,
   });
   if (Result.isError(payloadGuard)) {
     return payloadGuard;
   }
 
-  const api = new EndatixApi(session?.accessToken);
   const result = toResult(
     await api.dataLists.uploadTranslationsCsv(idResult.value, input.csv, {
       ensureLocales: localesResult.value,

@@ -1,6 +1,5 @@
 "use client";
 
-import { Spinner } from "@/components/loaders/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -160,31 +159,42 @@ export function CreateDataListDialog({
       return;
     }
 
-    if (format === "json" && !validation) {
+    if (format === "csv") {
+      startTransition(async () => {
+        const importResult = await createDataListWithImportAction({
+          name: name.trim(),
+          description: description.trim(),
+          format: "csv",
+          csv: filterTranslationsCsv(csvInput, selection.includedLocales),
+          ensureLocales: selection.ensureLocales,
+        });
+
+        if (Result.isError(importResult)) {
+          toast.error(importResult.message || "Failed to create data list");
+          return;
+        }
+
+        onCreated?.(importResult.value);
+        toast.success("Data list created successfully");
+        onOpenChange(false);
+      });
+      return;
+    }
+
+    if (!validation) {
       toast.error("JSON validation is missing. Please re-upload the file.");
       return;
     }
 
+    const jsonItems = validation.validItems;
     startTransition(async () => {
-      const importResult =
-        format === "csv"
-          ? await createDataListWithImportAction({
-              name: name.trim(),
-              description: description.trim(),
-              format: "csv",
-              csv: filterTranslationsCsv(csvInput, selection.includedLocales),
-              ensureLocales: selection.ensureLocales,
-            })
-          : await createDataListWithImportAction({
-              name: name.trim(),
-              description: description.trim(),
-              format: "json",
-              items: filterJsonItemsByLocales(
-                validation!.validItems,
-                selection.includedLocales,
-              ),
-              ensureLocales: selection.ensureLocales,
-            });
+      const importResult = await createDataListWithImportAction({
+        name: name.trim(),
+        description: description.trim(),
+        format: "json",
+        items: filterJsonItemsByLocales(jsonItems, selection.includedLocales),
+        ensureLocales: selection.ensureLocales,
+      });
 
       if (Result.isError(importResult)) {
         toast.error(importResult.message || "Failed to create data list");
@@ -294,21 +304,9 @@ export function CreateDataListDialog({
                 Continue
               </Button>
             ) : (
-              <Button
-                onClick={handleReviewLocales}
-                disabled={!canConfirm || isPending}
-              >
-                {isPending ? (
-                  <>
-                    <Spinner className="mr-1 h-4 w-4" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    Review locales
-                  </>
-                )}
+              <Button onClick={handleReviewLocales} disabled={!canConfirm}>
+                <Upload className="h-4 w-4" />
+                Review locales
               </Button>
             )}
           </DialogFooter>

@@ -11,12 +11,14 @@ import {
 
 const {
   mockUploadTranslationsCsv,
+  mockGetById,
   mockAddLocale,
   mockSetDefaultLocale,
   mockRequireHubAccess,
   mockAuth,
 } = vi.hoisted(() => ({
   mockUploadTranslationsCsv: vi.fn(),
+  mockGetById: vi.fn(),
   mockAddLocale: vi.fn(),
   mockSetDefaultLocale: vi.fn(),
   mockRequireHubAccess: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock("@/lib/endatix-api", async (importOriginal) => {
     EndatixApi: vi.fn().mockImplementation(function () {
       return {
         dataLists: {
+          getById: mockGetById,
           uploadTranslationsCsv: mockUploadTranslationsCsv,
           addLocale: mockAddLocale,
           setDefaultLocale: mockSetDefaultLocale,
@@ -70,6 +73,7 @@ describe("uploadTranslationsCsvAction", () => {
     vi.clearAllMocks();
     mockAuth.mockResolvedValue({ accessToken: "token", isLoggedIn: true });
     mockRequireHubAccess.mockResolvedValue(undefined);
+    mockGetById.mockResolvedValue(ApiResult.success(details));
   });
 
   it("returns validation error for an invalid data list id", async () => {
@@ -83,6 +87,7 @@ describe("uploadTranslationsCsvAction", () => {
       return;
     }
     expect(result.message).toContain("dataListId");
+    expect(mockGetById).not.toHaveBeenCalled();
     expect(mockUploadTranslationsCsv).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -99,6 +104,7 @@ describe("uploadTranslationsCsvAction", () => {
       return;
     }
     expect(result.message).toContain("valid culture code");
+    expect(mockGetById).not.toHaveBeenCalled();
     expect(mockUploadTranslationsCsv).not.toHaveBeenCalled();
   });
 
@@ -113,10 +119,11 @@ describe("uploadTranslationsCsvAction", () => {
       return;
     }
     expect(result.message).toContain("At least one data row");
+    expect(mockGetById).toHaveBeenCalledWith("42");
     expect(mockUploadTranslationsCsv).not.toHaveBeenCalled();
   });
 
-  it("rejects ensureLocales that would exceed the catalog locale cap", async () => {
+  it("rejects ensureLocales that would exceed the server catalog locale cap", async () => {
     const ensureLocales = [
       "fr",
       "de",
@@ -145,7 +152,6 @@ describe("uploadTranslationsCsvAction", () => {
       dataListId: "42",
       csv: validCsv,
       ensureLocales,
-      catalogLocaleCount: 1,
     });
 
     expect(Result.isError(result)).toBe(true);
@@ -163,7 +169,6 @@ describe("uploadTranslationsCsvAction", () => {
       dataListId: "42",
       csv: validCsv,
       ensureLocales: [" FR ", "de"],
-      catalogLocaleCount: 1,
     });
 
     expect(mockUploadTranslationsCsv).toHaveBeenCalledWith("42", validCsv, {

@@ -13,7 +13,7 @@ import {
 import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
-import { useTransition } from "react";
+import { useEffect, useTransition, type MouseEvent } from "react";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import { removeLocaleAction } from "../remove-locale.action";
 
@@ -23,6 +23,7 @@ export type RemoveLocaleConfirmDialogProps = {
   dataListId: string;
   locale: string | null;
   onRemoved: (details: DataListDetails) => void;
+  onPendingChange?: (isPending: boolean) => void;
 };
 
 /**
@@ -34,16 +35,22 @@ export function RemoveLocaleConfirmDialog({
   dataListId,
   locale,
   onRemoved,
+  onPendingChange,
 }: Readonly<RemoveLocaleConfirmDialogProps>) {
   const [isPending, startTransition] = useTransition();
 
-  const handleConfirm = (): void => {
-    if (locale === null) {
+  useEffect(() => {
+    onPendingChange?.(isPending);
+  }, [isPending, onPendingChange]);
+
+  const handleConfirm = (event: MouseEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+
+    if (locale === null || isPending) {
       return;
     }
 
     const localeToRemove = locale;
-    onOpenChange(false);
 
     startTransition(async () => {
       const result = await removeLocaleAction(dataListId, localeToRemove);
@@ -54,6 +61,7 @@ export function RemoveLocaleConfirmDialog({
 
       onRemoved(result.value);
       toast.success(`Removed locale ${localeToRemove}`);
+      onOpenChange(false);
     });
   };
 
@@ -68,7 +76,7 @@ export function RemoveLocaleConfirmDialog({
             </p>
           ) : null}
           <AlertDialogDescription>
-            This removes the language from the data datalog and deletes each
+            This removes the language from the data catalog and deletes each
             label translation from every item in this list. This cannot be
             undone from Hub without re-importing translations.
           </AlertDialogDescription>

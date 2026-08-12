@@ -29,12 +29,9 @@ vi.mock(
   }),
 );
 
-vi.mock(
-  "@/features/data-lists/translations/translations-csv.action",
-  () => ({
-    uploadTranslationsCsvAction: (...args: unknown[]) => mockUploadCsv(...args),
-  }),
-);
+vi.mock("@/features/data-lists/translations/translations-csv.action", () => ({
+  uploadTranslationsCsvAction: (...args: unknown[]) => mockUploadCsv(...args),
+}));
 
 vi.mock("@/features/data-lists/delete-list/delete-data-list.action", () => ({
   deleteDataListAction: (...args: unknown[]) => mockDelete(...args),
@@ -252,6 +249,31 @@ describe("createDataListWithImportAction", () => {
     expect(mockTelemetryError).toHaveBeenCalledWith(
       "Failed to roll back data list creation after import failure",
       expect.any(Error),
+      { dataListId: "99" },
+      "data-lists.createWithImport",
+    );
+  });
+
+  it("returns the import error and logs when rollback delete returns Result.error", async () => {
+    mockCreate.mockResolvedValue(Result.success(emptyDetails));
+    mockReplace.mockResolvedValue(Result.error("replace failed"));
+    mockDelete.mockResolvedValue(Result.error("delete rejected"));
+
+    const result = await createDataListWithImportAction({
+      name: "Fruits",
+      format: "json",
+      items: validItems,
+    });
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) {
+      return;
+    }
+    expect(result.message).toBe("replace failed");
+    expect(mockDelete).toHaveBeenCalledWith("99");
+    expect(mockTelemetryError).toHaveBeenCalledWith(
+      "Failed to roll back data list creation after import failure",
+      "delete rejected",
       { dataListId: "99" },
       "data-lists.createWithImport",
     );

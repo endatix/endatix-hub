@@ -2,13 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_CATALOG_LOCALE } from "@/lib/localization";
 import { useEffect, useMemo, useState } from "react";
@@ -120,7 +113,7 @@ export function LocaleImportConfirmPanel({
   return (
     <div className="space-y-4 text-sm">
       <div className="space-y-1">
-        <p className="text-base font-semibold leading-none">{title}</p>
+        <p className="text-base leading-none font-semibold">{title}</p>
         <p className="text-sm text-muted-foreground">{copy.description}</p>
       </div>
 
@@ -139,11 +132,16 @@ export function LocaleImportConfirmPanel({
               )}{" "}
               / {DATA_LIST_MAX_LOCALES}
             </p>
-            <p>Label max length: {DATA_LIST_MAX_LABEL_LENGTH}</p>
+            <p>
+              Label max length: {DATA_LIST_MAX_LABEL_LENGTH.toLocaleString()}
+            </p>
           </div>
 
           <p>
-            <span className="font-medium">{discovery.rowCount}</span> row
+            <span className="font-medium">
+              {discovery.rowCount.toLocaleString()}
+            </span>{" "}
+            row
             {discovery.rowCount === 1 ? "" : "s"} {copy.rowOutcome}
           </p>
 
@@ -230,50 +228,5 @@ export function LocaleImportConfirmPanel({
         </Button>
       </div>
     </div>
-  );
-}
-
-export type LocaleImportConfirmDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title?: string;
-  mode?: "create" | "replace";
-  discovery: LocaleImportDiscovery | null;
-  catalogLocaleCount: number;
-  isPending?: boolean;
-  onConfirm: (selection: LocaleImportSelection) => void;
-};
-
-/** Dialog shell around {@link LocaleImportConfirmPanel} (standalone use). */
-export function LocaleImportConfirmDialog({
-  open,
-  onOpenChange,
-  title = "Confirm import",
-  mode = "replace",
-  discovery,
-  catalogLocaleCount,
-  isPending = false,
-  onConfirm,
-}: Readonly<LocaleImportConfirmDialogProps>) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader className="sr-only">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Review locale columns before importing.
-          </DialogDescription>
-        </DialogHeader>
-        <LocaleImportConfirmPanel
-          title={title}
-          mode={mode}
-          discovery={discovery}
-          catalogLocaleCount={catalogLocaleCount}
-          isPending={isPending}
-          onCancel={() => onOpenChange(false)}
-          onConfirm={onConfirm}
-        />
-      </DialogContent>
-    </Dialog>
   );
 }

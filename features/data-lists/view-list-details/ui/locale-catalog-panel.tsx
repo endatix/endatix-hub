@@ -20,12 +20,14 @@ export function LocaleCatalogPanel({
   onUpdated,
 }: Readonly<LocaleCatalogPanelProps>) {
   const [isPending, startTransition] = useTransition();
+  const [isRemovePending, setIsRemovePending] = useState(false);
   const [localePendingRemoval, setLocalePendingRemoval] = useState<
     string | null
   >(null);
   const availableLocales = details.availableLocales ?? [];
   const dataListIdResult = validateEndatixId(String(details.id), "dataListId");
   const hasValidDataListId = Result.isSuccess(dataListIdResult);
+  const controlsDisabled = isPending || isRemovePending || !hasValidDataListId;
 
   const requireDataListId = (): string | null => {
     if (Result.isError(dataListIdResult)) {
@@ -55,7 +57,7 @@ export function LocaleCatalogPanel({
   };
 
   const handleRequestRemove = (locale: string): void => {
-    if (requireDataListId() === null) {
+    if (requireDataListId() === null || controlsDisabled) {
       return;
     }
 
@@ -92,7 +94,7 @@ export function LocaleCatalogPanel({
                 <button
                   type="button"
                   className="hover:underline"
-                  disabled={isPending || !hasValidDataListId}
+                  disabled={controlsDisabled}
                   title="Set as default"
                   onClick={() => handleSetDefault(locale)}
                 >
@@ -101,7 +103,7 @@ export function LocaleCatalogPanel({
                 <button
                   type="button"
                   className="text-muted-foreground hover:text-destructive"
-                  disabled={isPending || !hasValidDataListId}
+                  disabled={controlsDisabled}
                   aria-label={`Remove ${locale}`}
                   onClick={() => handleRequestRemove(locale)}
                 >
@@ -124,6 +126,7 @@ export function LocaleCatalogPanel({
           dataListId={dataListIdResult.value}
           locale={localePendingRemoval}
           onRemoved={onUpdated}
+          onPendingChange={setIsRemovePending}
         />
       ) : null}
     </>
