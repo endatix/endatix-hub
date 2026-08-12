@@ -51,6 +51,29 @@ const baseInput = {
   loggerName: "data-lists.prepareImport.test",
 };
 
+const VALID_LOCALES_AT_CAP = [
+  "fr",
+  "de",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "pl",
+  "sv",
+  "da",
+  "fi",
+  "cs",
+  "hu",
+  "ro",
+  "bg",
+  "el",
+  "tr",
+  "ja",
+  "ko",
+  "zh",
+  "ar",
+] as const;
+
 describe("prepareDataListImport", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -109,10 +132,7 @@ describe("prepareDataListImport", () => {
 
   it("rejects ensureLocales that alone exceed the catalog cap before getById", async () => {
     // Arrange
-    const ensureLocales = Array.from(
-      { length: DATA_LIST_MAX_LOCALES + 1 },
-      (_, index) => `l${index}`,
-    );
+    const ensureLocales = [...VALID_LOCALES_AT_CAP, "he"];
 
     // Act
     const result = await prepareDataListImport({
@@ -131,15 +151,12 @@ describe("prepareDataListImport", () => {
 
   it("rejects ensureLocales that would exceed the server catalog locale cap", async () => {
     // Arrange
-    const ensureLocales = Array.from(
-      { length: DATA_LIST_MAX_LOCALES },
-      (_, index) => `l${index}`,
-    );
+    expect(VALID_LOCALES_AT_CAP).toHaveLength(DATA_LIST_MAX_LOCALES);
 
     // Act
     const result = await prepareDataListImport({
       ...baseInput,
-      ensureLocales,
+      ensureLocales: [...VALID_LOCALES_AT_CAP],
     });
 
     // Assert
@@ -156,17 +173,14 @@ describe("prepareDataListImport", () => {
     mockGetById.mockResolvedValue(
       ApiResult.success({
         ...details,
-        availableLocales: Array.from(
-          { length: DATA_LIST_MAX_LOCALES },
-          (_, index) => `l${index}`,
-        ),
+        availableLocales: [...VALID_LOCALES_AT_CAP],
       }),
     );
 
     // Act
     const result = await prepareDataListImport({
       ...baseInput,
-      ensureLocales: ["l0", "L1"],
+      ensureLocales: [" FR ", "DE"],
     });
 
     // Assert
@@ -175,7 +189,7 @@ describe("prepareDataListImport", () => {
       return;
     }
     expect(result.value.dataListId).toBe("42");
-    expect(result.value.ensureLocales).toEqual(["l0", "l1"]);
+    expect(result.value.ensureLocales).toEqual(["fr", "de"]);
     expect(result.value.api).toBeDefined();
   });
 
