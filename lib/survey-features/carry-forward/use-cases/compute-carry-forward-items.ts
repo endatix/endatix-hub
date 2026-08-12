@@ -2,6 +2,7 @@ import type { Question, ItemValue } from "survey-core";
 import { extractUniqueChoicesBy, getChoicesFromSourceQuestion } from "@/lib/utils/survey";
 import { limitCarryForwardChoices, parseCarryForwardMaxChoices } from "../utils/limit-carry-forward-choices";
 import { resolveCarryForwardSelectionMode } from "../utils/map-carry-forward-mode";
+import { resolveEffectiveCarryForwardModeForSource } from "../utils/resolve-effective-carry-forward-mode";
 import { splitByPriority } from "../utils/split-by-priority";
 import { getCarryForwardSourceQuestions } from "../utils/carry-forward-target-query";
 import type { AdvancedCarryForwardModeInput } from "../carry-forward-mode-values";
@@ -38,7 +39,10 @@ export function computeCarryForwardAggregatedItems(
   const sourceQuestions = getCarryForwardSourceQuestions(survey, target);
   const selectionMode = resolveCarryForwardSelectionMode(target.edxCarryForwardMode);
   const aggregatedChoices = extractUniqueChoicesBy(sourceQuestions, (source) =>
-    getChoicesFromSourceQuestion(source, selectionMode),
+    getChoicesFromSourceQuestion(
+      source,
+      resolveEffectiveCarryForwardModeForSource(source, selectionMode),
+    ),
   );
   const { priority, rest } = splitByPriority(
     aggregatedChoices,

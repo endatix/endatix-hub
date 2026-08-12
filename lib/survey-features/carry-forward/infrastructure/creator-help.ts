@@ -20,11 +20,15 @@ export function registerAdvancedCarryForwardCreatorHelp(): void {
     "Enable this option if you need to build this question's choice list from one or more earlier questions while prioritizing specific choices or limiting their number.";
 
   translations.pehelp[CARRY_FORWARD_SOURCES_PROPERTY] =
-    "Select one or more earlier choice questions to copy options from. Only select-based questions appear here, and the current question is excluded.";
+    "Select one or more earlier choice questions to copy options from. Only select-based questions appear here, and the current question is excluded. " +
+    "Sources that load choices on demand (for example, Choices from data list) always contribute only the respondent's selected options, even when the destination mode is All or Unselected.";
 
   translations.pehelp[CARRY_FORWARD_MODE_PROPERTY] =
     'Choose from: "All" - copies all choice options from the selected questions; "Selected" - dynamically copies only selected choice options; "Unselected" - dynamically copies only unselected choice options. ' +
-    "For ranking source questions, Selected and Unselected follow the ranking value (often the full ranked list), not a partial checkbox-style selection.";
+    "For ranking source questions, Selected and Unselected follow the ranking value (often the full ranked list), not a partial checkbox-style selection.<br/><br/>" +
+    "<b>Note:</b> Lazy-loaded sources (such as large data lists) cannot load the full catalog in the browser. " +
+    "Those sources always contribute <em>Selected</em> options only — including selections that are not on the currently loaded page — even if this setting is All or Unselected. " +
+    "Inline (fully loaded) sources still honor All and Unselected.";
 
   translations.pehelp[CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY] =
     "Pins these choices to the top of the destination list in the order shown. " +

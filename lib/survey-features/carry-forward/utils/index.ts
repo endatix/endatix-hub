@@ -10,6 +10,10 @@ export {
 } from "./carry-forward-graph";
 export { resolveCarryForwardSelectionMode } from "./map-carry-forward-mode";
 export {
+  isLazyLoadedChoiceSource,
+  resolveEffectiveCarryForwardModeForSource,
+} from "./resolve-effective-carry-forward-mode";
+export {
   limitCarryForwardChoices,
   parseCarryForwardMaxChoices,
 } from "./limit-carry-forward-choices";

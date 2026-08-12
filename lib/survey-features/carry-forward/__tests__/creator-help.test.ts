@@ -28,8 +28,14 @@ describe("registerAdvancedCarryForwardCreatorHelp", () => {
     expect(
       translations.pehelp[CARRY_FORWARD_SOURCES_PROPERTY],
     ).toContain("earlier choice questions");
+    expect(
+      translations.pehelp[CARRY_FORWARD_SOURCES_PROPERTY],
+    ).toContain("data list");
     expect(translations.pehelp[CARRY_FORWARD_MODE_PROPERTY]).toContain(
       "Selected",
+    );
+    expect(translations.pehelp[CARRY_FORWARD_MODE_PROPERTY]).toContain(
+      "Lazy-loaded sources",
     );
     expect(
       translations.pehelp[CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY],
