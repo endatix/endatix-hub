@@ -141,6 +141,7 @@ interface CreateDataListDialogBodyProps {
   csvDiscovery: LocaleImportDiscovery | null;
   pendingDiscovery: LocaleImportDiscovery | null;
   displayError: string | null;
+  displayWarning: string | null;
   selectedFileName: string | null;
   isPending: boolean;
   setName: (value: string) => void;
@@ -163,6 +164,7 @@ function CreateDataListDialogBody(
     csvDiscovery,
     pendingDiscovery,
     displayError,
+    displayWarning,
     selectedFileName,
     isPending,
     setName,
@@ -200,6 +202,12 @@ function CreateDataListDialogBody(
         {displayError ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             {displayError}
+          </div>
+        ) : null}
+
+        {!displayError && displayWarning ? (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-300">
+            {displayWarning}
           </div>
         ) : null}
       </>
@@ -327,6 +335,7 @@ export function CreateDataListDialog({
     canConfirm,
     hasSourceContent,
     sourceError,
+    sourceWarning,
     validationError: fileValidationError,
     selectedFileName,
     setValidationError,
@@ -335,6 +344,7 @@ export function CreateDataListDialog({
   } = useDataListSource();
 
   const displayError = fileValidationError ?? sourceError;
+  const displayWarning = displayError ? null : sourceWarning;
   useEffect(() => {
     if (!open) {
       setStep(1);
@@ -446,6 +456,7 @@ export function CreateDataListDialog({
             csvDiscovery={csvDiscovery}
             pendingDiscovery={pendingDiscovery}
             displayError={displayError}
+            displayWarning={displayWarning}
             selectedFileName={selectedFileName}
             isPending={isPending}
             setName={setName}

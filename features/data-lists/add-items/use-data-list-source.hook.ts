@@ -42,6 +42,8 @@ export interface UseDataListSourceReturn extends JsonFileHandlerState {
   canConfirm: boolean;
   hasSourceContent: boolean;
   sourceError: string | null;
+  /** Non-blocking CSV discovery notices (e.g. duplicate locale columns). */
+  sourceWarning: string | null;
   activeError: ErrorPointer | null;
   setJsonInput: (value: string) => void;
   setValidationError: (error: string | null) => void;
@@ -76,6 +78,16 @@ function resolveCsvSourceError(
   return null;
 }
 
+function resolveCsvSourceWarning(
+  discovery: LocaleImportDiscovery | null,
+): string | null {
+  if (!discovery || discovery.warnings.length === 0) {
+    return null;
+  }
+
+  return discovery.warnings[0];
+}
+
 function resolveJsonSourceError(
   validation: ParsedValidation | null,
 ): string | null {
@@ -97,6 +109,13 @@ function resolveSourceError(
     case "json":
       return resolveJsonSourceError(validation);
   }
+}
+
+function resolveSourceWarning(
+  format: DataListSourceFormat,
+  discovery: LocaleImportDiscovery | null,
+): string | null {
+  return format === "csv" ? resolveCsvSourceWarning(discovery) : null;
 }
 
 /**
@@ -163,6 +182,11 @@ export function useDataListSource(
   const sourceError = useMemo(
     () => resolveSourceError(format, csvDiscovery, validation),
     [csvDiscovery, format, validation],
+  );
+
+  const sourceWarning = useMemo(
+    () => resolveSourceWarning(format, csvDiscovery),
+    [csvDiscovery, format],
   );
 
   const hasSourceContent = useMemo(() => {
@@ -266,6 +290,7 @@ export function useDataListSource(
     canConfirm,
     hasSourceContent,
     sourceError,
+    sourceWarning,
     validationError,
     selectedFileName,
     activeError,

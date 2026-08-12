@@ -158,6 +158,7 @@ interface ReplaceItemsDialogBodyProps {
   csvDiscovery: LocaleImportDiscovery | null;
   pendingDiscovery: LocaleImportDiscovery | null;
   displayError: string | null;
+  displayWarning: string | null;
   selectedFileName: string | null;
   availableLocalesCount: number;
   isPending: boolean;
@@ -177,6 +178,7 @@ function ReplaceItemsDialogBody(
     csvDiscovery,
     pendingDiscovery,
     displayError,
+    displayWarning,
     selectedFileName,
     availableLocalesCount,
     isPending,
@@ -200,6 +202,12 @@ function ReplaceItemsDialogBody(
         {displayError ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             {displayError}
+          </div>
+        ) : null}
+
+        {!displayError && displayWarning ? (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-300">
+            {displayWarning}
           </div>
         ) : null}
       </>
@@ -313,6 +321,7 @@ export function ReplaceItemsDialog({
     canConfirm,
     hasSourceContent,
     sourceError,
+    sourceWarning,
     validationError: fileValidationError,
     selectedFileName,
     setValidationError,
@@ -325,6 +334,7 @@ export function ReplaceItemsDialog({
   });
 
   const displayError = fileValidationError ?? sourceError;
+  const displayWarning = displayError ? null : sourceWarning;
 
   const handleFileSelectedWithAdvance = async (
     file: File | null,
@@ -438,6 +448,7 @@ export function ReplaceItemsDialog({
             csvDiscovery={csvDiscovery}
             pendingDiscovery={pendingDiscovery}
             displayError={displayError}
+            displayWarning={displayWarning}
             selectedFileName={selectedFileName}
             availableLocalesCount={availableLocales.length}
             isPending={isPending}

@@ -78,6 +78,14 @@ export function DataListCsvPreview({
             Invalid locales: {discovery.invalidLocales.join(", ")}
           </p>
         ) : null}
+
+        {discovery.warnings.length > 0 ? (
+          <ul className="list-disc space-y-1 pl-5 text-amber-700 dark:text-amber-400">
+            {discovery.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        ) : null}
       </CardContent>
     </Card>
   );

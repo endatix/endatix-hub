@@ -99,8 +99,8 @@ export function discoverLocalesFromTranslationsCsv(
 
 /**
  * Keeps `value` plus selected locale columns (by normalized key). Drops deselected columns.
- * When the header has duplicate canonical locale keys, only the first column is kept
- * (discovery already blocks import with a structural error for duplicates).
+ * When the header has duplicate canonical locale keys, only the first column is kept.
+ * Discovery surfaces that as a non-blocking warning so import can proceed.
  */
 export function filterTranslationsCsv(
   csv: string,

@@ -60,7 +60,10 @@ export type LocaleImportDiscovery = {
   rowCount: number;
   /** True when the payload is structurally usable aside from locale selection. */
   canProceed: boolean;
+  /** Blocking structural problems (empty CSV, bad header, etc.). */
   structuralErrors: string[];
+  /** Non-blocking notices (e.g. duplicate locale columns; first wins). */
+  warnings: string[];
 };
 
 export type LocaleImportSelection = {
@@ -171,9 +174,9 @@ export function discoverLocalesFromKeys(
   const existing = new Set<string>();
   const discoveredNew = new Set<string>();
   const invalid: string[] = [];
+  const warnings: string[] = [];
   const seenCanonicalKeys = new Set<string>();
   const availableLocales = buildAvailableLocaleSet(options.availableLocales);
-  const errors = [...structuralErrors];
 
   for (const raw of keys) {
     const column = classifyLocaleColumn(
@@ -185,12 +188,15 @@ export function discoverLocalesFromKeys(
     columns.push(column);
 
     if (column.kind === "invalid") {
-      invalid.push(column.raw);
+      // Duplicate canonical keys: keep the first column and warn — do not block import.
       if (column.isDuplicate) {
-        errors.push(
+        warnings.push(
           `Duplicate locale column '${column.raw}' — only the first column for this locale is kept.`,
         );
+        continue;
       }
+
+      invalid.push(column.raw);
       continue;
     }
 
@@ -202,15 +208,15 @@ export function discoverLocalesFromKeys(
     discoveredNew.add(column.key);
   }
 
-  const structuralOk = errors.length === 0;
   return {
     columns,
     existingLocales: [...existing],
     newLocales: [...discoveredNew].sort((a, b) => a.localeCompare(b)),
     invalidLocales: invalid,
     rowCount,
-    canProceed: structuralOk && invalid.length === 0,
-    structuralErrors: errors,
+    canProceed: structuralErrors.length === 0 && invalid.length === 0,
+    structuralErrors,
+    warnings,
   };
 }
 

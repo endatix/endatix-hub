@@ -85,7 +85,25 @@ describe("useDataListSource", () => {
 
     expect(result.current.canConfirm).toBe(false);
     expect(result.current.sourceError).toContain(
-      DATA_LIST_MAX_ITEMS.toLocaleString(),
+      DATA_LIST_MAX_ITEMS.toLocaleString("en-US"),
+    );
+  });
+
+  it("exposes a non-blocking sourceWarning for duplicate locale columns", () => {
+    const { result } = renderHook(() =>
+      useDataListSource({ initialFormat: "csv" }),
+    );
+
+    act(() => {
+      result.current.setCsvInput(
+        "value,default,it,IT\r\napple,Apple,Mela1,Mela2\r\n",
+      );
+    });
+
+    expect(result.current.canConfirm).toBe(true);
+    expect(result.current.sourceError).toBeNull();
+    expect(result.current.sourceWarning).toContain(
+      "Duplicate locale column 'IT'",
     );
   });
 

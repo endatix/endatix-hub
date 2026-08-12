@@ -165,6 +165,17 @@ export function LocaleImportConfirmPanel({
             </div>
           ) : null}
 
+          {discovery.warnings.length > 0 ? (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-amber-800 dark:text-amber-300">
+              <p className="font-medium">Import notes</p>
+              <ul className="mt-1 list-disc pl-5">
+                {discovery.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {selectionErrors.length > 0 ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-destructive">
               <ul className="list-disc pl-5">
