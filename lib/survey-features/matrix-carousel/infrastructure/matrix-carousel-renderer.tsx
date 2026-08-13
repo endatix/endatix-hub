@@ -344,12 +344,19 @@ export class MatrixCarouselRenderer extends SurveyQuestionMatrix {
       return;
     }
 
-    if (Math.abs(strip.scrollLeft - target.offsetLeft) <= SCROLL_EPSILON_PX) {
+    // getBoundingClientRect-based delta, not target.offsetLeft — offsetLeft
+    // resolves relative to offsetParent (nearest positioned ancestor), which
+    // turned out to be the surrounding .sd-question wrapper, not the strip,
+    // causing a confirmed ~40px overscroll that clipped the slide's left edge.
+    const targetLeft =
+      target.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+
+    if (Math.abs(strip.scrollLeft - targetLeft) <= SCROLL_EPSILON_PX) {
       return;
     }
 
     this.isProgrammaticScroll = true;
-    strip.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
+    strip.scrollTo({ left: targetLeft, behavior: "smooth" });
     strip.addEventListener("scrollend", this.clearProgrammaticScrollFlag, { once: true });
     this.programmaticScrollTimeout = setTimeout(
       this.clearProgrammaticScrollFlag,

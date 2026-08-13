@@ -63,3 +63,21 @@
   flex-direction: column;
   padding: 0.5rem;
 }
+
+/* PanelDynamic puts progress text in a separate sibling container with its
+   own margin-left:auto; our simpler single-row layout needs its own gap. */
+.sv-matrixcarousel__footer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Undoes the theme's sd-action-bar negative margin (designed for
+   PanelDynamic's own layout, where it's the row's only content) — here it
+   was cancelling the gap above. Scoped to our footer-row, not the shared
+   class. sd-action-bar has no gap of its own between buttons either. */
+.sv-matrixcarousel__footer-row .sd-action-bar {
+  margin: 0;
+  width: auto;
+  gap: 0.5rem;
+}
