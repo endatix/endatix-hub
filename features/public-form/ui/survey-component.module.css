@@ -11,6 +11,15 @@
   position: relative;
 }
 
+/* Fill mode: the parent script's iframe has already been sized to at least
+   fill its host container (see src/embed/embed.ts). Stretch to match so the
+   survey's own theme background reaches the edges instead of leaving a
+   transparent gap that shows the host page through. */
+.embedShellFill {
+  min-height: 100%;
+  background-color: var(--sjs-general-backcolor-dim, transparent);
+}
+
 .layoutFullHeight :global(.sd-completedpage),
 .embedShell :global(.sd-completedpage) {
   box-sizing: border-box;

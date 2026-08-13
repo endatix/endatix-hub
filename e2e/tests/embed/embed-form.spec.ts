@@ -139,3 +139,69 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     expect(page.url()).toContain("endatix.com");
   });
 });
+
+test.describe("Embed Form Height Modes (Real Environment)", () => {
+  const TEST_FORM_ID = process.env.E2E_EMBED_FORM_ID || "0";
+  const CONTAINER_HEIGHT_PX = 900;
+
+  test.beforeEach(async ({ page, baseURL }) => {
+    // Mock a host page whose script sits inside a fixed-height container,
+    // matching the customer scenario from endatix-hub#842.
+    await page.route(`${baseURL}/__mock_host_fill__`, async (route) => {
+      await route.fulfill({
+        contentType: "text/html",
+        body: `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>Test Host Page (Fill Mode)</title>
+                  <style>
+                    body { padding: 50px; background: #f0f0f0; font-family: sans-serif; }
+                  </style>
+                </head>
+                <body>
+                  <h1>My External Website</h1>
+                  <div style="height: ${CONTAINER_HEIGHT_PX}px; border: 1px solid #ccc;">
+                    <script
+                      src="${baseURL}/embed/v1/embed.js"
+                      data-form-id="${TEST_FORM_ID}"
+                      data-height-mode="fill">
+                    </script>
+                  </div>
+                </body>
+              </html>
+            `,
+      });
+    });
+
+    await page.goto(`${baseURL}/__mock_host_fill__`);
+  });
+
+  test("fills a fixed-height parent container when content is shorter", async ({
+    page,
+  }) => {
+    const iframeLocator = page.locator(`iframe[id^="edxf-${TEST_FORM_ID}"]`);
+    const frame = page.frameLocator(`iframe[id^="edxf-${TEST_FORM_ID}"]`);
+    await expect(frame.locator(".sd-root-modern")).toBeVisible();
+
+    // The browser resolves `min-height: 100%` against the 900px container natively;
+    // give layout a moment to settle before measuring.
+    await expect
+      .poll(async () => {
+        const box = await iframeLocator.boundingBox();
+        return box?.height ?? 0;
+      })
+      .toBeGreaterThanOrEqual(CONTAINER_HEIGHT_PX - 5);
+
+    // The outer iframe box filling the container isn't enough on its own —
+    // the document inside it must also paint that space, or the host page's
+    // own background shows through below the (much shorter) survey content.
+    const frameElement = await iframeLocator.elementHandle();
+    const frameDocument = await frameElement?.contentFrame();
+    const bodyBackground = await frameDocument?.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    );
+    expect(bodyBackground).not.toBe("rgba(0, 0, 0, 0)");
+    expect(bodyBackground).toBeTruthy();
+  });
+});

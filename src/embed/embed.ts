@@ -3,11 +3,15 @@ const MAX_SNOWFLAKE_ID = BigInt("9223372036854775807");
 const MAX_IFRAME_HEIGHT = 10_000;
 const EMBED_ID_QUERY_PARAM = "embedId";
 const PARENT_ORIGIN_QUERY_PARAM = "parentOrigin";
+const HEIGHT_MODE_QUERY_PARAM = "heightMode";
+
+type HeightMode = "auto" | "fill";
 
 interface EmbedOptions {
   baseUrl?: string;
   token?: string;
   prefill?: string;
+  heightMode?: string;
 }
 
 interface EmbedInstance {
@@ -17,6 +21,7 @@ interface EmbedInstance {
   options: EmbedOptions;
   expectedOrigin: string;
   embedId: string;
+  heightMode: HeightMode;
 }
 
 interface ParseResult {
@@ -138,6 +143,29 @@ export const parseNumericId = (
       error: `${paramName} must be a valid numeric value`,
     };
   }
+};
+
+const DEFAULT_HEIGHT_MODE: HeightMode = "auto";
+
+export const parseHeightMode = (
+  value: unknown,
+  warn = true,
+): HeightMode => {
+  const trimmedValue = typeof value === "string" ? value.trim() : value;
+
+  if (trimmedValue === undefined || trimmedValue === "") {
+    return DEFAULT_HEIGHT_MODE;
+  }
+
+  if (trimmedValue === "auto" || trimmedValue === "fill") {
+    return trimmedValue;
+  }
+
+  warnIfEnabled(
+    `Invalid data-height-mode value "${String(value)}". Falling back to "auto".`,
+    warn,
+  );
+  return DEFAULT_HEIGHT_MODE;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -351,15 +379,13 @@ const endatixEmbed: EndatixEmbedApi = {
       return;
     }
     const validatedFormId = parsedFormId.id.toString();
+    const heightMode = parseHeightMode(options.heightMode);
 
     const container = document.createElement("div");
     container.dataset.endatixForm = validatedFormId;
     container.dataset.endatixLoaded = "true";
-
-    if (targetScript?.parentNode) {
-      targetScript.parentNode.insertBefore(container, targetScript.nextSibling);
-    } else {
-      document.body.appendChild(container);
+    if (heightMode === "fill") {
+      container.style.height = "100%";
     }
 
     const embedId = createEmbedId(validatedFormId, this.instances.length);
@@ -411,6 +437,9 @@ const endatixEmbed: EndatixEmbedApi = {
       iframeUrl.searchParams.set(PARENT_ORIGIN_QUERY_PARAM, parentOrigin);
     }
     iframeUrl.searchParams.set(EMBED_ID_QUERY_PARAM, embedId);
+    if (heightMode === "fill") {
+      iframeUrl.searchParams.set(HEIGHT_MODE_QUERY_PARAM, "fill");
+    }
 
     iframe.src = iframeUrl.toString();
     iframe.allow = "clipboard-write";
@@ -422,8 +451,17 @@ const endatixEmbed: EndatixEmbedApi = {
     iframe.style.overflow = "hidden";
     iframe.style.display = "block";
     iframe.style.height = "400px";
+    if (heightMode === "fill") {
+      iframe.style.minHeight = "100%";
+    }
 
     container.appendChild(iframe);
+
+    if (targetScript?.parentNode) {
+      targetScript.parentNode.insertBefore(container, targetScript.nextSibling);
+    } else {
+      document.body.appendChild(container);
+    }
 
     this.instances.push({
       iframe,
@@ -432,6 +470,7 @@ const endatixEmbed: EndatixEmbedApi = {
       options,
       expectedOrigin: resolvedUrl.origin,
       embedId,
+      heightMode,
     });
   },
   findInstanceBySource(source: Window): EmbedInstance | null {
@@ -474,11 +513,12 @@ if (!globalThis.EndatixEmbed && globalThis.window) {
   const currentScript = document.currentScript as HTMLScriptElement | null;
   const formId = currentScript?.dataset.formId;
   if (formId && currentScript) {
-    const { baseUrl, prefill, token } = currentScript.dataset;
+    const { baseUrl, prefill, token, heightMode } = currentScript.dataset;
     const options: EmbedOptions = {
       baseUrl: baseUrl || globalThis.EndatixEmbed.getDefaultBaseUrl() || "",
       prefill: prefill || "",
       token: token || "",
+      heightMode: heightMode || "",
     };
 
     const embed = () => {
@@ -495,4 +535,4 @@ if (!globalThis.EndatixEmbed && globalThis.window) {
   Object.seal(globalThis.EndatixEmbed);
 }
 
-export type { EndatixEmbedApi, EmbedOptions, EmbedInstance };
+export type { EndatixEmbedApi, EmbedOptions, EmbedInstance, HeightMode };
