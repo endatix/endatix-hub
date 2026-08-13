@@ -521,6 +521,73 @@ describe("SurveyComponent - Embed Fill Mode", () => {
     );
   });
 
+  it("restores the prior background on unmount", async () => {
+    // Arrange: something (e.g. an earlier fill-mode instance, or an inline
+    // style already on the page) had set a background before this mounts.
+    document.documentElement.style.backgroundColor = "rgb(10, 20, 30)";
+    document.body.style.backgroundColor = "rgb(10, 20, 30)";
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(9, 8, 7)" },
+    });
+
+    // Act
+    let result!: ReturnType<typeof renderSurveyComponent>;
+    await act(async () => {
+      result = renderSurveyComponent({ isEmbed: true });
+    });
+    expect(document.body.style.backgroundColor).toBe("rgb(9, 8, 7)");
+
+    await act(async () => {
+      result.unmount();
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("rgb(10, 20, 30)");
+    expect(document.documentElement.style.backgroundColor).toBe(
+      "rgb(10, 20, 30)",
+    );
+  });
+
+  it("restores the prior background on a fill-to-auto transition", async () => {
+    // Arrange
+    document.documentElement.style.backgroundColor = "rgb(10, 20, 30)";
+    document.body.style.backgroundColor = "rgb(10, 20, 30)";
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(9, 8, 7)" },
+    });
+
+    // Act: mount in fill mode.
+    const result = renderSurveyComponent({ isEmbed: true });
+    await act(async () => {});
+    expect(document.body.style.backgroundColor).toBe("rgb(9, 8, 7)");
+
+    // Act: same instance, but the embed context no longer reports fill mode.
+    mockGetEmbedMessagingContext.mockReturnValue({});
+    await act(async () => {
+      result.rerender(
+        <FormRuntimeProvider initialState={{ formId: defaultProps.formId }}>
+          <SurveyComponent {...defaultProps} isEmbed />
+        </FormRuntimeProvider>,
+      );
+    });
+
+    // Assert: back to whatever was there before fill mode ever ran.
+    expect(document.body.style.backgroundColor).toBe("rgb(10, 20, 30)");
+    expect(document.documentElement.style.backgroundColor).toBe(
+      "rgb(10, 20, 30)",
+    );
+  });
+
   it("falls back to --sjs-general-backcolor when the dim variable is missing", async () => {
     // Arrange
     mockGetEmbedMessagingContext.mockReturnValue({

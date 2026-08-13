@@ -3,6 +3,7 @@ import "@/features/public-form/ui/already-responded-standalone.css";
 import {
   DEFAULT_FILL_BACKGROUND_COLOR,
   isFillHeightMode,
+  isValidEmbedId,
 } from "@/features/embed-form/height-mode";
 import { PublicSurveyContent } from "@/features/public-form/ui/public-survey-content";
 import { PublicSurveySkeleton } from "@/features/public-form/ui/public-survey-skeleton";
@@ -22,8 +23,10 @@ async function EmbedSurveyPage({ params, searchParams }: EmbedSurveyPage) {
   const { formId } = await params;
   const { token: urlToken, heightMode, embedId } = await searchParams;
   // Only apply fill-mode layout when this looks like a genuine embed.js load
-  // (it always sets embedId), not a direct/manual ?heightMode=fill visit.
-  const isFillMode = isFillHeightMode(heightMode) && Boolean(embedId);
+  // (it always sets a well-formed embedId), not a direct/manual
+  // ?heightMode=fill visit — same predicate the client-side messaging
+  // context uses, so server and client agree on when fill mode is active.
+  const isFillMode = isFillHeightMode(heightMode) && isValidEmbedId(embedId);
 
   if (urlToken) {
     if (!hasShareContinuationTokenPermission(urlToken)) {

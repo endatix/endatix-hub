@@ -1,6 +1,6 @@
 "use client";
 
-import { isFillHeightMode } from "../height-mode";
+import { isFillHeightMode, isValidEmbedId } from "../height-mode";
 import type { EmbedMessagingContext } from "../types";
 
 export const EMBED_ID_QUERY_PARAM = "embedId";
@@ -23,11 +23,7 @@ function parseHttpOrigin(value: string | null): string | undefined {
 }
 
 function parseEmbedId(value: string | null): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  return /^[a-zA-Z0-9:_-]{1,128}$/.test(value) ? value : undefined;
+  return isValidEmbedId(value) ? value : undefined;
 }
 
 function parseHeightMode(value: string | null): "auto" | "fill" | undefined {

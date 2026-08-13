@@ -128,8 +128,20 @@ export default function SurveyComponent({
       themeVariables["--sjs-general-backcolor-dim"] ||
       themeVariables["--sjs-general-backcolor"] ||
       DEFAULT_FILL_BACKGROUND_COLOR;
+
+    const previousHtmlBackground = document.documentElement.style.backgroundColor;
+    const previousBodyBackground = document.body.style.backgroundColor;
     document.documentElement.style.backgroundColor = backgroundColor;
     document.body.style.backgroundColor = backgroundColor;
+
+    // Restore whatever was there before on unmount, on a fill-to-auto
+    // transition, or before re-applying a changed theme's color — this
+    // mutates document/body, which outlives this component, so it
+    // shouldn't leave a stale override behind for whatever renders next.
+    return () => {
+      document.documentElement.style.backgroundColor = previousHtmlBackground;
+      document.body.style.backgroundColor = previousBodyBackground;
+    };
   }, [isFillMode, surveyModel, appliedTheme]);
 
   const getSubmissionId = useCallback(() => {
