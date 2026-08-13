@@ -56,25 +56,13 @@ const getShareUrl = (formId: string): string => {
   return path;
 };
 
-const FILL_MODE_WRAPPER_HEIGHT_PX = 800;
-
 const getEmbedCode = (formId: string, heightMode: EmbedHeightMode): string => {
   if (globalThis.window === undefined) {
     return ``;
   }
   const heightModeAttr =
     heightMode === "fill" ? ` data-height-mode="fill"` : "";
-  const scriptTag = `<script src="${globalThis.window.location.origin}${embedScriptPath}" data-form-id="${formId}"${heightModeAttr}></script>`;
-
-  if (heightMode !== "fill") {
-    return scriptTag;
-  }
-
-  // Fill mode only fills a container with an explicit height, so the copied
-  // snippet needs to include one — otherwise pasting it as-is reproduces
-  // the exact gap this mode exists to fix. Height is a starting point the
-  // customer should adjust to their own layout.
-  return `<div style="height: ${FILL_MODE_WRAPPER_HEIGHT_PX}px;">\n  ${scriptTag}\n</div>`;
+  return `<script src="${globalThis.window.location.origin}${embedScriptPath}" data-form-id="${formId}"${heightModeAttr}></script>`;
 };
 
 export function ShareDialog({ formId, open, onOpenChange }: ShareDialogProps) {

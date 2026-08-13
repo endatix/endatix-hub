@@ -26,33 +26,19 @@ describe("ShareDialog", () => {
     expect(textarea.value).not.toContain("data-height-mode");
   });
 
-  it('adds data-height-mode="fill" when Fill container is selected', async () => {
+  it('adds data-height-mode="fill" when Fill container is selected, without wrapping the script', async () => {
     await openEmbedCodeTab();
 
     fireEvent.click(screen.getByRole("radio", { name: /fill container/i }));
 
     await waitFor(() => {
       const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+      // No wrapper div: customers embedding fill mode into their own
+      // existing sized container shouldn't have to strip one out first.
       expect(textarea.value).toContain('data-height-mode="fill"');
+      expect(textarea.value).not.toContain("<div");
+      expect(textarea.value.trim().startsWith("<script")).toBe(true);
     });
-  });
-
-  it("wraps the script in a sized container when Fill container is selected", async () => {
-    await openEmbedCodeTab();
-
-    fireEvent.click(screen.getByRole("radio", { name: /fill container/i }));
-
-    await waitFor(() => {
-      const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
-      expect(textarea.value).toMatch(/<div style="height: \d+px;">/);
-      expect(textarea.value).toContain("</div>");
-    });
-  });
-
-  it("does not wrap the script in the default auto-resize snippet", async () => {
-    const textarea = await openEmbedCodeTab();
-
-    expect(textarea.value).not.toContain("<div");
   });
 
   it("removes data-height-mode again when switching back to Auto-resize", async () => {
@@ -68,7 +54,6 @@ describe("ShareDialog", () => {
     await waitFor(() => {
       const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
       expect(textarea.value).not.toContain("data-height-mode");
-      expect(textarea.value).not.toContain("<div");
     });
   });
 });
