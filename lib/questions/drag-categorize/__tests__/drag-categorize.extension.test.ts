@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { QuestionFactory, Serializer } from "survey-core";
+import { QuestionFactory, Serializer, SvgRegistry } from "survey-core";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { describe, expect, it } from "vitest";
 import { DRAG_CATEGORIZE_TYPE } from "../constants";
@@ -20,6 +20,18 @@ describe("dragCategorizeExtension", () => {
     expect(
       QuestionFactory.Instance.getAllTypes(),
     ).toContain(DRAG_CATEGORIZE_TYPE);
+  });
+
+  it("registers a toolbox icon the Creator theme can tint, before any Creator exists", () => {
+    // Arrange & Act — no SurveyCreatorModel involved: this must not need the
+    // lazy-loaded creator.ts bindings to be visible in the toolbox.
+    dragCategorizeExtension.onInit?.();
+    const icon = SvgRegistry.icons[DRAG_CATEGORIZE_TYPE];
+
+    // Assert — the toolbox tints icons via `fill`, so hard-coded fill/stroke
+    // attributes would render the icon black next to the built-in ones.
+    expect(icon).toBeDefined();
+    expect(icon).not.toMatch(/(fill|stroke)=/);
   });
 
   it("is safe to initialize more than once", () => {

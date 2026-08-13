@@ -1,4 +1,3 @@
-import { SvgRegistry } from "survey-core";
 import { getLocaleStrings } from "survey-creator-core";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import {
@@ -8,14 +7,16 @@ import {
   ZONES_PROPERTY,
 } from "./constants";
 import { registerDragCategorizeQuestion } from "./drag-categorize.component";
-import { DRAG_CATEGORIZE_SVG } from "./drag-categorize.icon";
 
 const CREATOR_BOUND_KEY = "__endatixDragCategorizeCreatorBound";
 
-/** Designer globals (icon, display name, pehelp). Called from bindDragCategorizeToCreator. */
+/**
+ * Designer globals (display name, pehelp). Called from bindDragCategorizeToCreator.
+ * The toolbox icon is registered eagerly in drag-categorize.extension.ts's
+ * onInit instead of here — see the comment there for why.
+ */
 export function registerDragCategorizeQuestionUI(): void {
   registerDragCategorizeQuestion();
-  SvgRegistry.registerIcon(DRAG_CATEGORIZE_TYPE, DRAG_CATEGORIZE_SVG);
 
   const translations = getLocaleStrings("en");
 

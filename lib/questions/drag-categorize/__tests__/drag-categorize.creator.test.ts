@@ -1,4 +1,4 @@
-import { ItemValue, SvgRegistry } from "survey-core";
+import { ItemValue } from "survey-core";
 import { getLocaleStrings, SurveyCreatorModel } from "survey-creator-core";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -95,17 +95,6 @@ describe("bindDragCategorizeToCreator", () => {
       DRAG_CATEGORIZE_DISPLAY_NAME,
     );
     expect(toolboxItem?.title).toBe(DRAG_CATEGORIZE_DISPLAY_NAME);
-  });
-
-  it("registers a toolbox icon the Creator theme can tint", () => {
-    // Arrange & Act
-    createBoundCreator();
-    const icon = SvgRegistry.icons[DRAG_CATEGORIZE_TYPE];
-
-    // Assert — the toolbox tints icons via `fill`, so hard-coded fill/stroke
-    // attributes would render the icon black next to the built-in ones.
-    expect(icon).toBeDefined();
-    expect(icon).not.toMatch(/(fill|stroke)=/);
   });
 
   it("gives new questions two default zones via the toolbox item", () => {

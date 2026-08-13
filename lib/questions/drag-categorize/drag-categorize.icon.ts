@@ -14,7 +14,7 @@ export const DRAG_CATEGORIZE_SVG = `
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
   <path d="M10 1H3C2.45 1 2 1.45 2 2V4C2 4.55 2.45 5 3 5H10C10.55 5 11 4.55 11 4V2C11 1.45 10.55 1 10 1Z"></path>
   <path d="M7.5 6V8H9.5L6.5 11.5L3.5 8H5.5V6H7.5Z"></path>
-  <path d="M11 13H2V22H11V13ZM9 20H4V15H9V20Z"></path>
-  <path d="M22 13H13V22H22V13ZM20 20H15V15H20V20Z"></path>
+  <path d="M11 13H2V22H11V13ZM10 21H3V14H10V21Z"></path>
+  <path d="M22 13H13V22H22V13ZM21 21H14V14H21V21Z"></path>
 </svg>
 `.trim();
