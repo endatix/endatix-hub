@@ -1,18 +1,11 @@
 import { ItemValue } from "survey-core";
+import {
+  hasCatalogLabelMap,
+  readCatalogLabels,
+} from "@/lib/utils/survey/choice-display";
 import { normalizeChoiceKey } from "@/lib/utils/survey/choice-values";
 
-/**
- * True when the choice has no usable display label (text missing or equal to value).
- * Lazy-load carry-forward often lands in this state before display values resolve.
- */
-export function isUnresolvedChoiceLabel(item: ItemValue): boolean {
-  const text = item.text;
-  if (text == null || text === "") {
-    return true;
-  }
-
-  return normalizeChoiceKey(text) === normalizeChoiceKey(item.value);
-}
+export { hasCatalogLabelMap, readCatalogLabels } from "@/lib/utils/survey/choice-display";
 
 type ChoiceMediaFields = {
   group?: string;
@@ -81,7 +74,7 @@ export function haveCarryForwardChoicesChanged(
 }
 
 /**
- * Prefer an already-resolved label on the target over an incoming ID-only
+ * Prefer a catalog label map already on the target over an incoming identity
  * fallback. Copies only display text / locText so grouping and media on the
  * freshly copied incoming choice are preserved.
  */
@@ -90,20 +83,31 @@ export function preferResolvedChoiceLabel(
   existingByValue: Map<string, ItemValue>,
 ): ItemValue {
   const key = normalizeChoiceKey(incoming.value);
-  if (!key || !isUnresolvedChoiceLabel(incoming)) {
+  if (!key) {
     return incoming;
   }
 
   const existing = existingByValue.get(key);
-  if (!existing || isUnresolvedChoiceLabel(existing)) {
+  if (
+    !existing ||
+    !hasCatalogLabelMap(existing) ||
+    hasCatalogLabelMap(incoming)
+  ) {
     return incoming;
   }
 
-  const locJson = existing.locText?.getJson?.();
-  if (locJson != null && locJson !== "") {
-    incoming.locText?.setJson?.(locJson);
-  } else if (existing.text) {
-    incoming.text = existing.text;
+  const labels = readCatalogLabels(existing);
+  if (typeof incoming.locText?.setJson === "function") {
+    incoming.locText.setJson(labels);
+  }
+
+  // Flat text fallback when setJson was a no-op.
+  if (!hasCatalogLabelMap(incoming) && existing.pureText) {
+    try {
+      incoming.text = existing.pureText;
+    } catch {
+      // SurveyJS ItemValue.text requires locText; ignore if unsettable.
+    }
   }
 
   return incoming;

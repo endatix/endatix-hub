@@ -40,18 +40,18 @@ type DataListLocaleQuery = {
   includeLocales?: string[];
 };
 
-function identityLabelMap(
-  values: string[],
-): Map<string, Record<string, string>> {
-  return new Map(values.map((value) => [value, { default: value }] as const));
-}
-
 /**
- * Resolves labels for a batch of choice values. On API failure, falls back to
- * identity labels so lazy-load display completion can still finish.
- * Telemetry for unexpected failures is handled by {@link toResult}.
+ * Resolves labels for a batch of choice values (typically still-missing IDs).
+ *
+ * Graceful degradation on API failure: returns an empty map so callers do not
+ * seed identity labels into an otherwise-resolved `labelsByValue` cache.
+ * Display completion still finishes — `writeCompleteSelectedItemValues`
+ * preserves prior resolved selected-item labels and only falls back to
+ * identity (`{ default: value }`) for values that remain unlabeled. There is
+ * no user-facing error or automatic retry beyond the reconcile pass budget;
+ * unexpected failures are logged via {@link toResult} / Telemetry.
  */
-async function fetchDataListLabelsOrIdentity(
+async function fetchDataListLabels(
   deps: ExtensionRuntimeDeps,
   dataListId: string,
   values: string[],
@@ -69,13 +69,13 @@ async function fetchDataListLabelsOrIdentity(
     );
 
     if (Result.isError(result)) {
-      return identityLabelMap(values);
+      return new Map();
     }
 
     return result.value;
   } catch (error) {
     TelemetryLogger.error(failureMessage, error, {}, LOGGER_NAME);
-    return identityLabelMap(values);
+    return new Map();
   }
 }
 
@@ -241,7 +241,7 @@ export function bindDataListsToSurvey(
       setItems: options.setItems,
       activeLocale: locales.locale,
       fetchLabels: (missingValues) =>
-        fetchDataListLabelsOrIdentity(
+        fetchDataListLabels(
           deps,
           dataListId,
           missingValues,

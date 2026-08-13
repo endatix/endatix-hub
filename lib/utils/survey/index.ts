@@ -1,4 +1,5 @@
 export { normalizeChoiceKey } from "./choice-values";
+export { hasCatalogLabelMap, readCatalogLabels } from "./choice-display";
 export {
   copyChoiceItem,
   copyChoiceItemWithMedia,

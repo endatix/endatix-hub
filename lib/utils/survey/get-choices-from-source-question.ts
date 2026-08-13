@@ -3,6 +3,7 @@ import {
   SourceSelectionModes,
   type SourceSelectionMode,
 } from "@/lib/survey-features/question-loops/types";
+import { hasCatalogLabelMap } from "./choice-display";
 import { normalizeChoiceKey } from "./choice-values";
 
 type LazySelectSource = QuestionSelectBase & {
@@ -104,15 +105,24 @@ function replaceResultsWithPreferredSelectedItems(
   selectedByKey: Map<string, ItemValue>,
 ): void {
   for (let i = 0; i < res.length; i++) {
-    const key = normalizeChoiceKey(res[i]!.value);
+    const current = res[i]!;
+    const key = normalizeChoiceKey(current.value);
     if (!key) {
       continue;
     }
 
     const preferred = selectedByKey.get(key);
-    if (preferred) {
-      res[i] = cloneChoiceItem(source, preferred);
+    if (!preferred) {
+      continue;
     }
+
+    // Do not regress a catalog-mapped visibleChoices label with identity
+    // selectedItemValues (common during lazy-load display races).
+    if (hasCatalogLabelMap(current) && !hasCatalogLabelMap(preferred)) {
+      continue;
+    }
+
+    res[i] = cloneChoiceItem(source, preferred);
   }
 }
 

@@ -2,20 +2,36 @@ import { describe, expect, it } from "vitest";
 import { ItemValue } from "survey-core";
 import {
   choiceDisplayFingerprint,
+  hasCatalogLabelMap,
   haveCarryForwardChoicesChanged,
-  isUnresolvedChoiceLabel,
   preferResolvedChoiceLabel,
 } from "../carry-forward-choice-display";
 
 describe("carry-forward-choice-display", () => {
-  it("treats text equal to value as unresolved", () => {
-    expect(isUnresolvedChoiceLabel(new ItemValue("2510911"))).toBe(true);
-    expect(isUnresolvedChoiceLabel(new ItemValue("2510911", "2510911"))).toBe(
-      true,
-    );
-    expect(isUnresolvedChoiceLabel(new ItemValue("2510911", "Sevilla"))).toBe(
-      false,
-    );
+  it("uses SurveyJS hasText / hasNonDefaultText; identity text===value is not a catalog label", () => {
+    // No stored text — ItemValue.text falls back to value.
+    expect(new ItemValue("2510911").hasText).toBe(false);
+    expect(hasCatalogLabelMap(new ItemValue("2510911"))).toBe(false);
+
+    // Explicit text equal to value (same omit rule as SurveyJS JSON serialization).
+    expect(hasCatalogLabelMap(new ItemValue("2510911", "2510911"))).toBe(false);
+    expect(hasCatalogLabelMap(new ItemValue("Jordan", "Jordan"))).toBe(false);
+
+    // Monolingual distinct default text (hasText, !hasNonDefaultText).
+    expect(hasCatalogLabelMap(new ItemValue("2510911", "Sevilla"))).toBe(true);
+
+    const mapped = new ItemValue("2510911", "Sevilla");
+    mapped.locText.setJson({ default: "Seville", es: "Sevilla" });
+    expect(mapped.locText.hasNonDefaultText()).toBe(true);
+    expect(hasCatalogLabelMap(mapped)).toBe(true);
+
+    // SurveyJS collapses getJson for monolingual maps; detection must not rely on that.
+    const monolingual = new ItemValue("sku-42", "sku-42");
+    monolingual.locText.setJson({ default: "Widget" });
+    expect(monolingual.locText.getJson()).toBe("Widget");
+    expect(monolingual.hasText).toBe(true);
+    expect(monolingual.locText.hasNonDefaultText()).toBe(false);
+    expect(hasCatalogLabelMap(monolingual)).toBe(true);
   });
 
   it("detects label-only upgrades as a change", () => {
@@ -37,7 +53,7 @@ describe("carry-forward-choice-display", () => {
     expect(haveCarryForwardChoicesChanged([withFlat], [withMap])).toBe(true);
   });
 
-  it("copies resolved labels onto unresolved incoming choices", () => {
+  it("copies catalog maps onto identity incoming choices", () => {
     const existing = new ItemValue("2510911", "Sevilla");
     existing.locText.setJson({ default: "Seville", es: "Sevilla" });
     const incoming = new ItemValue("2510911");
@@ -57,6 +73,37 @@ describe("carry-forward-choice-display", () => {
     // Label copy must not wipe grouping / randomization from the incoming copy.
     expect(merged.group).toBe("priority");
     expect(merged.randomize).toBe(false);
+  });
+
+  it("does not treat flat value===label text as a catalog map to prefer", () => {
+    const existing = new ItemValue("Jordan", "Jordan");
+    const incoming = new ItemValue("Jordan", "Jordan");
+
+    expect(existing.hasText).toBe(true);
+    expect(hasCatalogLabelMap(existing)).toBe(false);
+
+    const merged = preferResolvedChoiceLabel(
+      incoming,
+      new Map([["Jordan", existing]]),
+    );
+
+    expect(merged).toBe(incoming);
+  });
+
+  it("falls back to flat text when locText setJson is a no-op", () => {
+    const existing = new ItemValue("2510911", "Sevilla");
+    existing.locText.setJson({ default: "Seville", es: "Sevilla" });
+    const incoming = new ItemValue("2510911");
+    incoming.locText.setJson = () => {
+      // Simulate environments where setJson does not apply the locale map.
+    };
+
+    const merged = preferResolvedChoiceLabel(
+      incoming,
+      new Map([["2510911", existing]]),
+    );
+
+    expect(merged.text).toBe("Seville");
   });
 
   it("detects grouping and media field changes", () => {

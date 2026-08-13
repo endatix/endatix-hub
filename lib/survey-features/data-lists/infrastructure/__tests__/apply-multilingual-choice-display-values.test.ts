@@ -3,6 +3,7 @@ import { Model, QuestionDropdownModel } from "survey-core";
 import {
   applyMultilingualChoiceDisplayValues,
   completeLazyLoadChoiceDisplayValues,
+  notifyLazySelectedItemLocaleStrings,
 } from "../apply-multilingual-choice-display-values";
 
 type SelectedChoiceItem = {
@@ -301,7 +302,7 @@ describe("completeLazyLoadChoiceDisplayValues", () => {
       await completeLazyLoadChoiceDisplayValues({
         question,
         requestedValues: ["2510911"],
-        labelsByValue: new Map([["2510911", labels]]),
+        labelsByValue: new Map([["2510911", labels as Record<string, string>]]),
         setItems,
         activeLocale: formLocale || undefined,
         fetchLabels: async () => new Map(),
@@ -319,4 +320,56 @@ describe("completeLazyLoadChoiceDisplayValues", () => {
       }
     },
   );
+});
+
+describe("notifyLazySelectedItemLocaleStrings", () => {
+  it("fires locText.onStringChanged for lazy selected items", () => {
+    const model = new Model({
+      locale: "es",
+      pages: [
+        {
+          elements: [
+            {
+              type: "tagbox",
+              name: "cities",
+              choicesLazyLoadEnabled: true,
+            },
+          ],
+        },
+      ],
+    });
+    model.locale = "es";
+
+    const question = model.getQuestionByName("cities") as SelectBaseQuestion;
+    const item = question.createItemValue("2462881", "El Aaiún");
+    item.locText.setJson({
+      default: "Laayoune",
+      es: "El Aaiún",
+      fr: "Laâyoune",
+      it: "El Aaiún",
+    });
+    question.selectedItemValues = [item] as SelectedChoiceItem[];
+
+    const onStringChanged = vi.fn();
+    item.locText.onStringChanged.add(onStringChanged);
+
+    notifyLazySelectedItemLocaleStrings(question);
+
+    expect(onStringChanged).toHaveBeenCalled();
+  });
+
+  it("is a no-op when choicesLazyLoadEnabled is false", () => {
+    const model = new Model({
+      elements: [{ type: "tagbox", name: "cities", choices: ["A"] }],
+    });
+    const question = model.getQuestionByName("cities") as SelectBaseQuestion;
+    const item = question.createItemValue("A", "A");
+    question.selectedItemValues = [item] as SelectedChoiceItem[];
+    const onStringChanged = vi.fn();
+    item.locText.onStringChanged.add(onStringChanged);
+
+    notifyLazySelectedItemLocaleStrings(question);
+
+    expect(onStringChanged).not.toHaveBeenCalled();
+  });
 });

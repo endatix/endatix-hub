@@ -1,9 +1,12 @@
-import type { ItemValue, Question } from "survey-core";
+import { ItemValue, type Question } from "survey-core";
+import { hasCatalogLabelMap, readCatalogLabels } from "@/lib/utils/survey/choice-display";
+import { normalizeChoiceKey } from "@/lib/utils/survey/choice-values";
 import { parseScalarString } from "@/lib/utils/type-parsers";
 import { resolvePublicChoiceLabel } from "../use-cases/search-data-lists/map-public-choice";
 
 type SelectBaseQuestion = Question & {
   value?: unknown;
+  choicesLazyLoadEnabled?: boolean;
   createItemValue?: (value: unknown, text?: string) => ItemValue;
   selectedItemValues?: ItemValue | ItemValue[] | null;
   updateChoicesDependedQuestions?: () => void;
@@ -13,8 +16,12 @@ export type FetchChoiceLabels = (
   values: string[],
 ) => Promise<Map<string, Record<string, string>>>;
 
-/** Caps follow-up fetches for SurveyJS partial-request / mid-select races. */
-const MAX_MISSING_LABEL_FETCH_PASSES = 2;
+/**
+ * Caps follow-up fetches for SurveyJS partial-request / mid-select races.
+ * Bound is intentionally small (network chatter) but high enough for fast
+ * multi-select; a final fetch still runs after the loop if labels remain missing.
+ */
+const MAX_MISSING_LABEL_FETCH_PASSES = 4;
 
 /**
  * Monotonic generation per question so an older in-flight completion cannot
@@ -170,7 +177,25 @@ async function reconcileMissingLabels(options: {
     currentValues = getSelectedValueStrings(question);
   }
 
-  return currentValues;
+  // One last attempt after the pass cap so dependents are less likely to be
+  // notified with a still-incomplete label map.
+  const stillMissing = currentValues.filter(
+    (value) => !labelsByValue.has(value),
+  );
+  if (stillMissing.length === 0) {
+    return currentValues;
+  }
+
+  const fetched = await fetchLabels(stillMissing);
+  if (!isCurrentDisplayCompletion(question, generation)) {
+    return null;
+  }
+
+  for (const [value, labels] of fetched) {
+    labelsByValue.set(value, labels);
+  }
+
+  return getSelectedValueStrings(question);
 }
 
 function notifyChoicesDependedQuestions(question: Question): void {
@@ -178,6 +203,40 @@ function notifyChoicesDependedQuestions(question: Question): void {
   if (typeof host.updateChoicesDependedQuestions === "function") {
     host.updateChoicesDependedQuestions();
   }
+}
+
+/**
+ * SurveyJS refreshes `choices` LocStrings on locale change, but never
+ * `selectedItemValues` for `choicesLazyLoadEnabled` questions. Tagbox chips
+ * bind to `selectedItemValues[].locText` via SurveyLocStringViewer, so without
+ * this notify they keep the previous locale's DOM until remount/refresh.
+ *
+ * Label maps are already stamped by {@link applyMultilingualChoiceDisplayValues};
+ * this only fires LocString change so the UI can re-read `.text`.
+ */
+export function notifyLazySelectedItemLocaleStrings(question: Question): void {
+  const host = question as SelectBaseQuestion;
+  if (host.choicesLazyLoadEnabled !== true) {
+    return;
+  }
+
+  const items = getSelectedItemValueList(host);
+  if (items.length === 0) {
+    return;
+  }
+
+  ItemValue.locStrsChanged(items);
+}
+
+function getSelectedItemValueList(host: SelectBaseQuestion): ItemValue[] {
+  const selected = host.selectedItemValues;
+  if (Array.isArray(selected)) {
+    return selected;
+  }
+  if (selected) {
+    return [selected];
+  }
+  return [];
 }
 
 function getSelectedValueStrings(question: Question): string[] {
@@ -214,8 +273,10 @@ function writeCompleteSelectedItemValues(
     return;
   }
 
+  const existingByValue = indexSelectedItemsByValue(host.selectedItemValues);
+
   const items = values.map((value) => {
-    const labels = labelsByValue.get(value) ?? { default: value };
+    const labels = resolveLabelsForWrite(value, labelsByValue, existingByValue);
     const item = host.createItemValue!(
       value,
       resolvePublicChoiceLabel({ value, labels }, activeLocale),
@@ -225,6 +286,50 @@ function writeCompleteSelectedItemValues(
   });
 
   host.selectedItemValues = Array.isArray(host.value) ? items : items[0];
+}
+
+/**
+ * Prefer fetched labels; otherwise keep a previously stamped catalog map on
+ * the selected item; last resort is identity `{ default: value }` so SurveyJS /
+ * CF can still finish when the display-value API fails.
+ */
+function resolveLabelsForWrite(
+  value: string,
+  labelsByValue: Map<string, Record<string, string>>,
+  existingByValue: Map<string, ItemValue>,
+): Record<string, string> {
+  const fetched = labelsByValue.get(value);
+  if (fetched) {
+    return fetched;
+  }
+
+  const existing = existingByValue.get(value);
+  if (existing && hasCatalogLabelMap(existing)) {
+    return readCatalogLabels(existing);
+  }
+
+  return { default: value };
+}
+
+function indexSelectedItemsByValue(
+  selected: ItemValue | ItemValue[] | null | undefined,
+): Map<string, ItemValue> {
+  const byValue = new Map<string, ItemValue>();
+  let items: ItemValue[] = [];
+  if (Array.isArray(selected)) {
+    items = selected;
+  } else if (selected) {
+    items = [selected];
+  }
+
+  for (const item of items) {
+    const key = normalizeChoiceKey(item?.value);
+    if (key) {
+      byValue.set(key, item);
+    }
+  }
+
+  return byValue;
 }
 
 function writeSelectedItemLocaleMaps(
