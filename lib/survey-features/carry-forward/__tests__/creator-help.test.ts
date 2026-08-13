@@ -42,6 +42,9 @@ describe("registerAdvancedCarryForwardCreatorHelp", () => {
     expect(
       translations.pehelp[CARRY_FORWARD_SOURCES_PROPERTY],
     ).toContain('href="/data-lists"');
+    expect(
+      translations.pehelp[CARRY_FORWARD_SOURCES_PROPERTY],
+    ).toContain("always contribute only the respondent's selected options");
     expect(translations.pehelp[CARRY_FORWARD_MODE_PROPERTY]).toContain(
       "Selected",
     );
@@ -50,6 +53,15 @@ describe("registerAdvancedCarryForwardCreatorHelp", () => {
     );
     expect(translations.pehelp[CARRY_FORWARD_MODE_PROPERTY]).toContain(
       'href="/data-lists"',
+    );
+    expect(translations.pehelp[CARRY_FORWARD_MODE_PROPERTY]).toContain(
+      "including selections that are not on the currently loaded page",
+    );
+    expect(translations.pehelp[CARRY_FORWARD_MODE_PROPERTY]).toContain(
+      "even if this setting is All or Unselected",
+    );
+    expect(translations.pehelp[CARRY_FORWARD_MODE_PROPERTY]).toContain(
+      "Inline (fully loaded) sources still honor All and Unselected",
     );
     expect(
       translations.pehelp[CARRY_FORWARD_PRIORITY_ITEMS_PROPERTY],
