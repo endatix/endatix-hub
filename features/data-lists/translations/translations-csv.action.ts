@@ -2,16 +2,11 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import {
-  guardEnsureLocalesCount,
-  guardTranslationsCsvPayload,
-} from "@/features/data-lists/import-payload-guards";
+import { guardTranslationsCsvPayload } from "@/features/data-lists/import-payload-guards";
+import { prepareDataListImport } from "@/features/data-lists/prepare-data-list-import";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
-import {
-  normalizeCultureCodes,
-  tryNormalizeCultureCode,
-} from "@/lib/localization";
+import { tryNormalizeCultureCode } from "@/lib/localization";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
 import { validateEndatixId } from "@/lib/utils/type-validators";
@@ -40,56 +35,24 @@ function normalizeLocaleInput(locale: string): Result<string> {
 export async function uploadTranslationsCsvAction(
   input: UploadTranslationsCsvInput,
 ): Promise<UploadTranslationsCsvResult> {
-  const session = await auth();
-  const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
-
-  const idResult = validateEndatixId(input.dataListId, "dataListId");
-  if (Result.isError(idResult)) {
-    return idResult;
-  }
-
-  const localesResult = normalizeCultureCodes(input.ensureLocales ?? []);
-  if (!localesResult.ok) {
-    return Result.error(
-      `'${localesResult.invalid}' is not a valid culture code.`,
-    );
-  }
-
-  // Validate CSV shape before the details fetch so empty/oversized imports
-  // fail fast without a getById round-trip.
-  const csvGuard = guardTranslationsCsvPayload(input.csv);
-  if (Result.isError(csvGuard)) {
-    return csvGuard;
-  }
-
-  const earlyLocalesGuard = guardEnsureLocalesCount(localesResult.value, []);
-  if (Result.isError(earlyLocalesGuard)) {
-    return earlyLocalesGuard;
-  }
-
-  const api = new EndatixApi(session?.accessToken);
-  const detailsResult = toResult(await api.dataLists.getById(idResult.value), {
-    fallbackMessage: "Failed to load data list",
-    logMessage: "Failed to load data list before translations CSV upload",
+  const prepared = await prepareDataListImport({
+    dataListId: input.dataListId,
+    ensureLocales: input.ensureLocales,
+    payloadGuard: guardTranslationsCsvPayload(input.csv),
+    loadDetailsLogMessage:
+      "Failed to load data list before translations CSV upload",
     loggerName: "data-lists.translationsCsv",
   });
-  if (Result.isError(detailsResult)) {
-    return detailsResult;
-  }
-
-  const localesGuard = guardEnsureLocalesCount(
-    localesResult.value,
-    detailsResult.value.availableLocales ?? [],
-  );
-  if (Result.isError(localesGuard)) {
-    return localesGuard;
+  if (Result.isError(prepared)) {
+    return prepared;
   }
 
   const result = toResult(
-    await api.dataLists.uploadTranslationsCsv(idResult.value, input.csv, {
-      ensureLocales: localesResult.value,
-    }),
+    await prepared.value.api.dataLists.uploadTranslationsCsv(
+      prepared.value.dataListId,
+      input.csv,
+      { ensureLocales: prepared.value.ensureLocales },
+    ),
     {
       fallbackMessage: "Failed to upload translations CSV",
       logMessage: "Failed to upload translations CSV",
@@ -98,7 +61,7 @@ export async function uploadTranslationsCsvAction(
   );
 
   if (Result.isSuccess(result)) {
-    revalidatePath(`/data-lists/${idResult.value}`);
+    revalidatePath(`/data-lists/${prepared.value.dataListId}`);
   }
 
   return result;

@@ -8,6 +8,7 @@ import {
   isDataListPropertyVisible,
 } from "@/lib/survey-features/infrastructure/choice-source-mutual-exclusion";
 import { DATA_LIST_QUESTION_TYPES } from "./data-list-survey-integration";
+import { wrapSelectBaseLocStrsChangedForLazyLoad } from "./wrap-select-base-loc-strs-changed";
 
 let isDataListRegistryInitialized = false;
 
@@ -16,6 +17,8 @@ let isDataListRegistryInitialized = false;
  * Must run before SurveyCreator initializes JSON metadata.
  */
 export function registerDataListGlobals(): void {
+  wrapSelectBaseLocStrsChangedForLazyLoad();
+
   if (isDataListRegistryInitialized) {
     return;
   }

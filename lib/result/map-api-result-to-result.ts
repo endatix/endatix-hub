@@ -5,9 +5,9 @@ import {
   type ApiError,
   type ApiResult as ApiResultType,
 } from "@/lib/endatix-api/shared/api-result";
-import { Result, type ResultType } from "@/lib/result";
-import { mapApiErrorToResult } from "@/lib/result/map-api-error-to-result";
-import { mapApiErrorToTelemetryAttributes } from "@/lib/result/map-api-error-to-telemetry-attributes";
+import { Result, type ResultType } from "./result";
+import { mapApiErrorToResult } from "./map-api-error-to-result";
+import { mapApiErrorToTelemetryAttributes } from "./map-api-error-to-telemetry-attributes";
 
 type IsSameType<TLeft, TRight> = [TLeft] extends [TRight]
   ? [TRight] extends [TLeft]
@@ -44,8 +44,10 @@ type MapApiResultToResultBaseOptions = {
  * @param TApiResult The type of the API result.
  * @param TResult The type of the result.
  */
-export type MapApiResultToResultOptions<TApiResult, TResult = TApiResult> =
-  MapApiResultToResultBaseOptions & MapDataOption<TApiResult, TResult>;
+export type MapApiResultToResultOptions<
+  TApiResult,
+  TResult = TApiResult,
+> = MapApiResultToResultBaseOptions & MapDataOption<TApiResult, TResult>;
 
 type MapApiResultToResultImplementationOptions<TApiResult, TResult> =
   MapApiResultToResultBaseOptions & {

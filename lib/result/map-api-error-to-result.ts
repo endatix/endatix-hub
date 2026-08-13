@@ -1,5 +1,5 @@
 import { ApiError, ApiErrorType } from "@/lib/endatix-api/shared/api-result";
-import { Result, type ResultType } from "@/lib/result";
+import { Result, type ResultType } from "./result";
 
 type MapApiErrorToResultOptions = {
   fallbackMessage?: string;

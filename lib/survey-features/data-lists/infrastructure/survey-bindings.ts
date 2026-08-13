@@ -1,5 +1,6 @@
 import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
 import type { ExtensionRuntimeDeps } from "@/lib/survey-extensions/types";
+import { TelemetryLogger } from "@/features/telemetry";
 import {
   ChoicesLazyLoadEvent,
   GetChoiceDisplayValueEvent,
@@ -16,7 +17,7 @@ import {
 } from "../use-cases/search-data-lists";
 import { resolveDataListDisplayValues } from "../use-cases/resolve-data-list-display-values";
 import { getDataListIdFromQuestion } from "./data-list-survey-integration";
-import { applyMultilingualChoiceDisplayValues } from "./apply-multilingual-choice-display-values";
+import { completeLazyLoadChoiceDisplayValues } from "./apply-multilingual-choice-display-values";
 import {
   dispatchPropertyGridChoiceDisplayValues,
   dispatchPropertyGridChoicesLazyLoad,
@@ -24,13 +25,59 @@ import {
 } from "./property-grid-lazy-choice-registry";
 import { registerDataListGlobals } from "./registry";
 import { resolveSurveyLocalesForDataList } from "./resolve-survey-locales-for-data-list";
+import { Result, toResult } from "@/lib/result";
 
 const DATA_LIST_HANDLERS_ATTACHED_KEY = "__endatixDataListHandlersAttached";
+const LOGGER_NAME = "data-lists.surveyBindings";
 
 export type BindDataListsToSurveyOptions = {
   deps: ExtensionRuntimeDeps;
   getDesignerSurvey?: () => SurveyModel | null;
 };
+
+type DataListLocaleQuery = {
+  locale?: string;
+  includeLocales?: string[];
+};
+
+/**
+ * Resolves labels for a batch of choice values (typically still-missing IDs).
+ *
+ * Graceful degradation on API failure: returns an empty map so callers do not
+ * seed identity labels into an otherwise-resolved `labelsByValue` cache.
+ * Display completion still finishes — `writeCompleteSelectedItemValues`
+ * preserves prior resolved selected-item labels and only falls back to
+ * identity (`{ default: value }`) for values that remain unlabeled. There is
+ * no user-facing error or automatic retry beyond the reconcile pass budget;
+ * unexpected failures are logged via {@link toResult} / Telemetry.
+ */
+async function fetchDataListLabels(
+  deps: ExtensionRuntimeDeps,
+  dataListId: string,
+  values: string[],
+  locales: DataListLocaleQuery,
+  failureMessage: string,
+): Promise<Map<string, Record<string, string>>> {
+  try {
+    const result = toResult(
+      await resolveDataListDisplayValues(deps, dataListId, values, locales),
+      {
+        fallbackMessage: failureMessage,
+        logMessage: failureMessage,
+        loggerName: LOGGER_NAME,
+      },
+    );
+
+    if (Result.isError(result)) {
+      return new Map();
+    }
+
+    return result.value;
+  } catch (error) {
+    TelemetryLogger.error(failureMessage, error, {}, LOGGER_NAME);
+    return new Map();
+  }
+}
 
 function resolveBindOptions(
   depsOrOptions: ExtensionRuntimeDeps | BindDataListsToSurveyOptions,
@@ -171,38 +218,37 @@ export function bindDataListsToSurvey(
     }
 
     const values = options.values.map(String);
-    const { locale, includeLocales } = resolveSurveyLocalesForDataList(
-      model,
-      options.question,
-    );
+    const locales = resolveSurveyLocalesForDataList(model, options.question);
 
-    const response = await resolveDataListDisplayValues(
-      deps,
-      dataListId,
-      values,
+    const result = toResult(
+      await resolveDataListDisplayValues(deps, dataListId, values, locales),
       {
-        locale,
-        includeLocales,
+        fallbackMessage: "Failed to resolve data list display values.",
+        logMessage: "Failed to resolve data list display values.",
+        loggerName: LOGGER_NAME,
       },
     );
 
-    if (!response.success) {
-      console.error("Failed to resolve data list display values.", {
-        type: response.error.type,
-        message: response.error.message,
-        errorCode: response.error.errorCode,
-      });
+    if (Result.isError(result)) {
       options.setItems(values);
       return;
     }
 
-    applyMultilingualChoiceDisplayValues(
-      options.question,
-      values,
-      response.data,
-      options.setItems,
-      locale,
-    );
+    await completeLazyLoadChoiceDisplayValues({
+      question: options.question,
+      requestedValues: values,
+      labelsByValue: result.value,
+      setItems: options.setItems,
+      activeLocale: locales.locale,
+      fetchLabels: (missingValues) =>
+        fetchDataListLabels(
+          deps,
+          dataListId,
+          missingValues,
+          locales,
+          "Failed to resolve remaining data list display values.",
+        ),
+    });
   };
 
   model.onChoicesLazyLoad.add(onChoicesLazyLoad);

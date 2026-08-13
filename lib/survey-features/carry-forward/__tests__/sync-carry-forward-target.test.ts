@@ -6,6 +6,25 @@ import { registerAdvancedCarryForwardGlobals } from "../infrastructure/registry"
 import { syncSingleCarryForwardTarget } from "../use-cases/sync-carry-forward-target";
 import type { AdvancedCarryForwardQuestion } from "../types";
 
+type LazyTagbox = {
+  createItemValue: (
+    value: string,
+    text?: string,
+  ) => {
+    value: string;
+    text: string;
+    locText?: { setJson: (json: unknown) => void };
+  };
+  selectedItemValues:
+    | Array<{
+        value: string;
+        text: string;
+        locText?: { setJson: (json: unknown) => void };
+      }>
+    | null
+    | undefined;
+};
+
 beforeAll(() => {
   registerAdvancedCarryForwardGlobals();
   registerDataListGlobals();
@@ -230,18 +249,17 @@ describe("syncSingleCarryForwardTarget", () => {
     const target = survey.getQuestionByName(
       "target",
     ) as AdvancedCarryForwardQuestion;
-    const isArraysEqualSpy = vi.spyOn(Helpers, "isArraysEqual");
     syncSingleCarryForwardTarget(survey, target);
-    const callCountAfterFirstSync = isArraysEqualSpy.mock.calls.length;
+    const choiceItemsAfterFirstSync = [...target.choices];
 
     // Act
     syncSingleCarryForwardTarget(survey, target);
 
-    // Assert
-    expect(isArraysEqualSpy.mock.calls.length).toBe(
-      callCountAfterFirstSync + 1,
-    );
-    isArraysEqualSpy.mockRestore();
+    // Assert — setter may reuse the array; unchanged sync must keep item instances
+    expect(target.choices).toHaveLength(choiceItemsAfterFirstSync.length);
+    for (let i = 0; i < choiceItemsAfterFirstSync.length; i++) {
+      expect(target.choices[i]).toBe(choiceItemsAfterFirstSync[i]);
+    }
   });
 
   it("prunes invalid selected values when choices shrink", () => {
@@ -446,6 +464,197 @@ describe("syncSingleCarryForwardTarget", () => {
     syncSingleCarryForwardTarget(survey, target);
 
     expect(target.choices.map((item) => item.value)).toEqual(["legacy"]);
+  });
+
+  it("keeps off-page lazy-load selections in Selected Only carry-forward", () => {
+    // Arrange — source page only has Jordan; Mexico is selected but not loaded
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "countries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["countries"],
+          edxCarryForwardMode: "selected",
+        },
+      ],
+    });
+    survey.setValue("countries", ["Jordan", "Mexico"]);
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — Mexico survives even though it was absent from visibleChoices
+    expect(target.choices.map((item) => item.value)).toEqual([
+      "Jordan",
+      "Mexico",
+    ]);
+  });
+
+  it("carries lazy-load selectedItemValues labels into Selected Only target", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "cities",
+          choicesLazyLoadEnabled: true,
+          choices: [],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["cities"],
+          edxCarryForwardMode: "selected",
+        },
+      ],
+    });
+    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    survey.setValue("cities", ["3247449", "1279186"]);
+    cities.selectedItemValues = [
+      cities.createItemValue("3247449", "Aquisgrán"),
+      cities.createItemValue("1279186", "Aizawl"),
+    ];
+
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(
+      target.choices.map((item) => ({ value: item.value, text: item.text })),
+    ).toEqual([
+      { value: "3247449", text: "Aquisgrán" },
+      { value: "1279186", text: "Aizawl" },
+    ]);
+  });
+
+  it("does not keep visibleChoices ID text when selectedItemValues has labels", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "cities",
+          choicesLazyLoadEnabled: true,
+          choices: [{ value: "2510911", text: "2510911" }],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["cities"],
+          edxCarryForwardMode: "selected",
+        },
+      ],
+    });
+    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    survey.setValue("cities", ["2510911"]);
+    cities.selectedItemValues = [cities.createItemValue("2510911", "Sevilla")];
+
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(target.choices).toHaveLength(1);
+    expect(target.choices[0]?.value).toBe("2510911");
+    expect(target.choices[0]?.text).toBe("Sevilla");
+  });
+
+  it("upgrades ID-only target choices when source labels resolve later", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "cities",
+          choicesLazyLoadEnabled: true,
+          choices: [],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["cities"],
+          edxCarryForwardMode: "selected",
+        },
+      ],
+    });
+    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    survey.setValue("cities", ["2510911"]);
+    // First sync — display values not ready yet
+    syncSingleCarryForwardTarget(survey, target);
+    expect(target.choices[0]?.text).toBe("2510911");
+
+    cities.selectedItemValues = [cities.createItemValue("2510911", "Sevilla")];
+    cities.selectedItemValues[0]!.locText?.setJson({
+      default: "Seville",
+      es: "Sevilla",
+    });
+
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(target.choices[0]?.value).toBe("2510911");
+    expect(target.choices[0]?.text).toBe("Seville");
+    expect(target.choices[0]?.locText.getJson()).toEqual({
+      default: "Seville",
+      es: "Sevilla",
+    });
+  });
+
+  it("does not downgrade resolved labels when a later sync only has ID fallbacks", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "cities",
+          choicesLazyLoadEnabled: true,
+          choices: [],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["cities"],
+          edxCarryForwardMode: "selected",
+        },
+      ],
+    });
+    const cities = survey.getQuestionByName("cities") as LazyTagbox;
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    survey.setValue("cities", ["2510911"]);
+    cities.selectedItemValues = [cities.createItemValue("2510911", "Sevilla")];
+    syncSingleCarryForwardTarget(survey, target);
+    expect(target.choices[0]?.text).toBe("Sevilla");
+
+    // Later sync sees raw value only (selectedItemValues cleared / incomplete)
+    cities.selectedItemValues = undefined;
+    syncSingleCarryForwardTarget(survey, target);
+
+    expect(target.choices[0]?.value).toBe("2510911");
+    expect(target.choices[0]?.text).toBe("Sevilla");
   });
 
   it("works on tagbox with blind search enabled without errors", () => {
