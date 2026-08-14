@@ -501,6 +501,185 @@ describe("syncSingleCarryForwardTarget", () => {
     ]);
   });
 
+  it("forces Selected contribution for lazy sources when mode is All", () => {
+    // Arrange — visible page is Algeria/Jordan; only Mexico is selected (off-page)
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "countries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["countries"],
+          edxCarryForwardMode: "all",
+        },
+      ],
+    });
+    survey.setValue("countries", ["Mexico"]);
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — does not copy the whole visible page as All would
+    expect(target.choices.map((item) => item.value)).toEqual(["Mexico"]);
+  });
+
+  it("forces Selected contribution for lazy sources when mode is Unselected", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "countries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["countries"],
+          edxCarryForwardMode: "unselected",
+        },
+      ],
+    });
+    survey.setValue("countries", ["Jordan", "Mexico"]);
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — unselected page items (Algeria) are not carried; selected are
+    expect(target.choices.map((item) => item.value)).toEqual([
+      "Jordan",
+      "Mexico",
+    ]);
+  });
+
+  it("honors Unselected for inline sources while forcing Selected for lazy sources", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "checkbox",
+          name: "inlineBrands",
+          choices: ["A", "B", "C"],
+        },
+        {
+          type: "tagbox",
+          name: "lazyCountries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["inlineBrands", "lazyCountries"],
+          edxCarryForwardMode: "unselected",
+        },
+      ],
+    });
+    survey.setValue("inlineBrands", ["A"]);
+    survey.setValue("lazyCountries", ["Mexico"]);
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — inline unselected B/C + lazy selected Mexico
+    expect(target.choices.map((item) => item.value)).toEqual([
+      "B",
+      "C",
+      "Mexico",
+    ]);
+  });
+
+  it("honors All for inline sources while forcing Selected for lazy sources", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "checkbox",
+          name: "inlineBrands",
+          choices: ["A", "B", "C"],
+        },
+        {
+          type: "tagbox",
+          name: "lazyCountries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["inlineBrands", "lazyCountries"],
+          edxCarryForwardMode: "all",
+        },
+      ],
+    });
+    survey.setValue("inlineBrands", ["A"]);
+    survey.setValue("lazyCountries", ["Mexico"]);
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — full inline catalog + lazy selected Mexico (not the lazy page)
+    expect(target.choices.map((item) => item.value)).toEqual([
+      "A",
+      "B",
+      "C",
+      "Mexico",
+    ]);
+  });
+
+  it("yields no choices for a lazy source in All mode when nothing is selected", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "countries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["countries"],
+          edxCarryForwardMode: "all",
+        },
+      ],
+    });
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — does not copy the loaded page as All used to
+    expect(target.choices.map((item) => item.value)).toEqual([]);
+  });
+
   it("carries lazy-load selectedItemValues labels into Selected Only target", () => {
     const survey = new SurveyModel({
       elements: [
