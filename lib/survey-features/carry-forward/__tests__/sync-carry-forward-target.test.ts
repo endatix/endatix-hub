@@ -608,6 +608,78 @@ describe("syncSingleCarryForwardTarget", () => {
     ]);
   });
 
+  it("honors All for inline sources while forcing Selected for lazy sources", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "checkbox",
+          name: "inlineBrands",
+          choices: ["A", "B", "C"],
+        },
+        {
+          type: "tagbox",
+          name: "lazyCountries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["inlineBrands", "lazyCountries"],
+          edxCarryForwardMode: "all",
+        },
+      ],
+    });
+    survey.setValue("inlineBrands", ["A"]);
+    survey.setValue("lazyCountries", ["Mexico"]);
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — full inline catalog + lazy selected Mexico (not the lazy page)
+    expect(target.choices.map((item) => item.value)).toEqual([
+      "A",
+      "B",
+      "C",
+      "Mexico",
+    ]);
+  });
+
+  it("yields no choices for a lazy source in All mode when nothing is selected", () => {
+    const survey = new SurveyModel({
+      elements: [
+        {
+          type: "tagbox",
+          name: "countries",
+          choicesLazyLoadEnabled: true,
+          choices: ["Algeria", "Jordan"],
+        },
+        {
+          type: "checkbox",
+          name: "target",
+          choices: ["legacy"],
+          edxCarryForwardEnabled: true,
+          edxCarryForwardSources: ["countries"],
+          edxCarryForwardMode: "all",
+        },
+      ],
+    });
+    const target = survey.getQuestionByName(
+      "target",
+    ) as AdvancedCarryForwardQuestion;
+
+    // Act
+    syncSingleCarryForwardTarget(survey, target);
+
+    // Assert — does not copy the loaded page as All used to
+    expect(target.choices.map((item) => item.value)).toEqual([]);
+  });
+
   it("carries lazy-load selectedItemValues labels into Selected Only target", () => {
     const survey = new SurveyModel({
       elements: [
