@@ -9,6 +9,7 @@ export type EmbedMessageType =
 export interface EmbedMessagingContext {
   embedId?: string;
   parentOrigin?: string;
+  heightMode?: "auto" | "fill";
 }
 
 export interface EmbedFormInfo {

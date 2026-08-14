@@ -139,3 +139,122 @@ test.describe("Embed Form Behavior (Real Environment)", () => {
     expect(page.url()).toContain("endatix.com");
   });
 });
+
+test.describe("Embed Form Height Modes (Real Environment)", () => {
+  const TEST_FORM_ID = process.env.E2E_EMBED_FORM_ID || "0";
+  const CONTAINER_HEIGHT_PX = 900;
+
+  test.beforeEach(async ({ page, baseURL }) => {
+    // Mock a host page whose script sits inside a fixed-height container,
+    // matching the customer scenario from endatix-hub#842.
+    await page.route(`${baseURL}/__mock_host_fill__`, async (route) => {
+      await route.fulfill({
+        contentType: "text/html",
+        body: `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>Test Host Page (Fill Mode)</title>
+                  <style>
+                    body { padding: 50px; background: #f0f0f0; font-family: sans-serif; }
+                  </style>
+                </head>
+                <body>
+                  <h1>My External Website</h1>
+                  <div style="height: ${CONTAINER_HEIGHT_PX}px; border: 1px solid #ccc;">
+                    <script
+                      src="${baseURL}/embed/v1/embed.js"
+                      data-form-id="${TEST_FORM_ID}"
+                      data-height-mode="fill">
+                    </script>
+                  </div>
+                </body>
+              </html>
+            `,
+      });
+    });
+
+    await page.goto(`${baseURL}/__mock_host_fill__`);
+  });
+
+  test("fills a fixed-height parent container when content is shorter", async ({
+    page,
+  }) => {
+    const iframeLocator = page.locator(`iframe[id^="edxf-${TEST_FORM_ID}"]`);
+    const frame = page.frameLocator(`iframe[id^="edxf-${TEST_FORM_ID}"]`);
+    await expect(frame.locator(".sd-root-modern")).toBeVisible();
+
+    // Confirm this test's own premise: if the seeded form's content isn't
+    // actually shorter than the container, ">= container height" would
+    // trivially pass in plain auto mode too and this test would prove
+    // nothing about fill mode specifically.
+    const contentHeight = await frame
+      .locator(".sd-root-modern")
+      .evaluate((el) => el.getBoundingClientRect().height);
+    expect(contentHeight).toBeLessThan(CONTAINER_HEIGHT_PX);
+
+    // The browser resolves `min-height: 100%` against the 900px container natively;
+    // give layout a moment to settle before measuring.
+    await expect
+      .poll(async () => {
+        const box = await iframeLocator.boundingBox();
+        return box?.height ?? 0;
+      })
+      .toBeGreaterThanOrEqual(CONTAINER_HEIGHT_PX - 5);
+
+    // Upper bound too: proves the iframe settled at the container's height,
+    // not merely "grew to at least" it for some unrelated reason.
+    const finalHeight = (await iframeLocator.boundingBox())?.height ?? 0;
+    expect(finalHeight).toBeLessThan(CONTAINER_HEIGHT_PX + 20);
+
+    // The outer iframe box filling the container isn't enough on its own —
+    // the document inside it must also paint that space, or the host page's
+    // own background shows through below the (much shorter) survey content.
+    const frameElement = await iframeLocator.elementHandle();
+    const frameDocument = await frameElement?.contentFrame();
+    const bodyBackground = await frameDocument?.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    );
+    expect(bodyBackground).not.toBe("rgba(0, 0, 0, 0)");
+    expect(bodyBackground).toBeTruthy();
+  });
+
+  test("grows past the container when content is taller, and shrinks back down when content shrinks again", async ({
+    page,
+  }) => {
+    const iframeLocator = page.locator(`iframe[id^="edxf-${TEST_FORM_ID}"]`);
+    const frame = page.frameLocator(`iframe[id^="edxf-${TEST_FORM_ID}"]`);
+    await expect(frame.locator(".sd-root-modern")).toBeVisible();
+
+    const frameElement = await iframeLocator.elementHandle();
+    const frameDocument = await frameElement?.contentFrame();
+
+    // Simulate navigating to a page tall enough to exceed the container —
+    // same content-height change EmbedHeightReporter's MutationObserver
+    // would see from a real multi-page form, without depending on the
+    // seeded form having a page that happens to be this tall.
+    await frameDocument?.evaluate(() => {
+      const spacer = document.createElement("div");
+      spacer.id = "__e2e_grow_spacer__";
+      spacer.style.height = "1600px";
+      document.body.appendChild(spacer);
+    });
+
+    await expect
+      .poll(async () => (await iframeLocator.boundingBox())?.height ?? 0)
+      .toBeGreaterThan(CONTAINER_HEIGHT_PX + 100);
+
+    // Simulate navigating back to a short page. This is the case #842's
+    // own design goal (and this PR's CSS-only approach) explicitly targets:
+    // the used height must track content again, not stay pinned at the
+    // tallest height ever seen — the same ratchet problem the issue's own
+    // proposed Math.max(content, container) implementation would have had.
+    await frameDocument?.evaluate(() => {
+      document.getElementById("__e2e_grow_spacer__")?.remove();
+    });
+
+    await expect
+      .poll(async () => (await iframeLocator.boundingBox())?.height ?? 0)
+      .toBeLessThan(CONTAINER_HEIGHT_PX + 20);
+  });
+});

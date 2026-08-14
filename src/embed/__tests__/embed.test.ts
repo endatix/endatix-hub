@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseUrl, parseNumericId } from "../embed";
+import { parseUrl, parseNumericId, parseHeightMode } from "../embed";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("parseUrl", () => {
   it("returns null for empty string", () => {
@@ -109,5 +113,47 @@ describe("parseNumericId", () => {
     const result = parseNumericId("1000000000000000000", "formId");
     expect(result.isValid).toBe(true);
     expect(result.id).toBe(BigInt("1000000000000000000"));
+  });
+});
+
+describe("parseHeightMode", () => {
+  it("returns auto for undefined", () => {
+    expect(parseHeightMode(undefined)).toBe("auto");
+  });
+
+  it("returns auto for an empty string", () => {
+    expect(parseHeightMode("")).toBe("auto");
+  });
+
+  it("returns auto for the literal auto value", () => {
+    expect(parseHeightMode("auto")).toBe("auto");
+  });
+
+  it("returns fill for the literal fill value", () => {
+    expect(parseHeightMode("fill")).toBe("fill");
+  });
+
+  it("trims whitespace around a valid value", () => {
+    expect(parseHeightMode("  fill  ")).toBe("fill");
+  });
+
+  it("returns auto and warns for an invalid value", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const result = parseHeightMode("bogus");
+
+    expect(result).toBe("auto");
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Invalid data-height-mode value "bogus"'),
+    );
+  });
+
+  it("returns auto without warning for an invalid value when warn is false", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const result = parseHeightMode("bogus", false);
+
+    expect(result).toBe("auto");
+    expect(warn).not.toHaveBeenCalled();
   });
 });

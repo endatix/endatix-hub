@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Code, Link2 } from "lucide-react";
@@ -21,6 +24,27 @@ interface ShareDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type EmbedHeightMode = "auto" | "fill";
+
+const HEIGHT_MODE_OPTIONS: Array<{
+  value: EmbedHeightMode;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "auto",
+    title: "Auto-resize",
+    description:
+      "Iframe height matches form content. Recommended for most pages.",
+  },
+  {
+    value: "fill",
+    title: "Fill container",
+    description:
+      "Iframe fills the height of its parent container. Place the script inside a container with a fixed height.",
+  },
+];
+
 const sharePath = (formId: string): string => withBasePath(`/share/${formId}`);
 const embedScriptPath = withBasePath("/embed/v1/embed.js");
 
@@ -32,16 +56,19 @@ const getShareUrl = (formId: string): string => {
   return path;
 };
 
-const getEmbedCode = (formId: string): string => {
-  if (globalThis.window !== undefined) {
-    return `<script src="${globalThis.window.location.origin}${embedScriptPath}" data-form-id="${formId}"></script>`;
+const getEmbedCode = (formId: string, heightMode: EmbedHeightMode): string => {
+  if (globalThis.window === undefined) {
+    return ``;
   }
-  return ``;
+  const heightModeAttr =
+    heightMode === "fill" ? ` data-height-mode="fill"` : "";
+  return `<script src="${globalThis.window.location.origin}${embedScriptPath}" data-form-id="${formId}"${heightModeAttr}></script>`;
 };
 
 export function ShareDialog({ formId, open, onOpenChange }: ShareDialogProps) {
+  const [heightMode, setHeightMode] = useState<EmbedHeightMode>("auto");
   const shareUrl = getShareUrl(formId);
-  const embedCode = getEmbedCode(formId);
+  const embedCode = getEmbedCode(formId, heightMode);
 
   const handleTabChange = (value: string) => {
     if (value === "embed-code" && !embedCode) {
@@ -104,6 +131,33 @@ export function ShareDialog({ formId, open, onOpenChange }: ShareDialogProps) {
                   </p>
                 </div>
               </div>
+              <RadioGroup
+                value={heightMode}
+                onValueChange={(value) =>
+                  setHeightMode(value as EmbedHeightMode)
+                }
+                className="gap-2"
+              >
+                {HEIGHT_MODE_OPTIONS.map((option) => {
+                  const inputId = `embed-height-mode-${option.value}`;
+                  return (
+                    <div
+                      key={option.value}
+                      className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 p-3 has-[[data-state=checked]]:border-primary"
+                    >
+                      <RadioGroupItem id={inputId} value={option.value} />
+                      <div className="space-y-1">
+                        <Label htmlFor={inputId} className="font-normal">
+                          {option.title}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {option.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </RadioGroup>
               <div className="relative">
                 <Textarea
                   readOnly

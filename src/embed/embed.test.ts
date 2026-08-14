@@ -1,17 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { HeightMode } from "./embed";
 
 type TestEmbedInstance = {
   iframe: HTMLIFrameElement;
   container: HTMLElement;
   expectedOrigin: string;
   embedId: string;
+  heightMode: HeightMode;
 };
 
 type TestEmbedApi = {
   instances: TestEmbedInstance[];
   embedFormAt(
     formId: string,
-    options: { baseUrl?: string; token?: string; prefill?: string },
+    options: {
+      baseUrl?: string;
+      token?: string;
+      prefill?: string;
+      heightMode?: string;
+    },
     targetScript: HTMLScriptElement | null,
   ): void;
 };
@@ -188,6 +195,128 @@ describe("Endatix embed host script", () => {
 
     // Assert
     expect(instance.iframe.style.height).toBe("10000px");
+  });
+
+  it("does not leave a container in the DOM when no valid base URL can be resolved", async () => {
+    // Arrange
+    const api = await loadEmbedApi();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    // Act: no baseUrl option, and no document.currentScript to fall back
+    // to outside of real <script> execution, so URL resolution fails.
+    api.embedFormAt("123", {}, null);
+
+    // Assert
+    expect(error).toHaveBeenCalledWith(
+      "Cannot auto-resolve valid base URL. Cannot embed form",
+    );
+    expect(warn).toHaveBeenCalledWith(
+      "No valid baseUrl passed. Falling back to default.",
+    );
+    expect(api.instances).toHaveLength(0);
+    expect(document.querySelector("[data-endatix-loaded]")).toBeNull();
+  });
+
+  describe("height mode", () => {
+    it("leaves the wrapper and iframe height styles untouched by default", async () => {
+      // Arrange
+      const api = await loadEmbedApi();
+
+      // Act
+      api.embedFormAt(
+        "123",
+        { baseUrl: "https://hub.example/embed/v1/embed.js" },
+        null,
+      );
+
+      // Assert
+      const instance = api.instances[0];
+      expect(instance.heightMode).toBe("auto");
+      expect(instance.container.style.height).toBe("");
+      expect(instance.iframe.style.minHeight).toBe("");
+      expect(new URL(instance.iframe.src).searchParams.has("heightMode")).toBe(
+        false,
+      );
+    });
+
+    it("fills the wrapper and iframe when heightMode is fill", async () => {
+      // Arrange
+      const api = await loadEmbedApi();
+
+      // Act
+      api.embedFormAt(
+        "123",
+        {
+          baseUrl: "https://hub.example/embed/v1/embed.js",
+          heightMode: "fill",
+        },
+        null,
+      );
+
+      // Assert
+      const instance = api.instances[0];
+      expect(instance.heightMode).toBe("fill");
+      expect(instance.container.style.height).toBe("100%");
+      expect(instance.iframe.style.minHeight).toBe("100%");
+      // The inner document needs to know it's in fill mode too (to stretch
+      // and paint its own html/body) — it can only learn that from the URL.
+      expect(new URL(instance.iframe.src).searchParams.get("heightMode")).toBe(
+        "fill",
+      );
+    });
+
+    it("warns and falls back to auto for an invalid heightMode value", async () => {
+      // Arrange
+      const api = await loadEmbedApi();
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+      // Act
+      api.embedFormAt(
+        "123",
+        {
+          baseUrl: "https://hub.example/embed/v1/embed.js",
+          heightMode: "bogus",
+        },
+        null,
+      );
+
+      // Assert
+      const instance = api.instances[0];
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid data-height-mode value "bogus"'),
+      );
+      expect(instance.heightMode).toBe("auto");
+      expect(instance.container.style.height).toBe("");
+      expect(instance.iframe.style.minHeight).toBe("");
+    });
+
+    it("keeps the MAX_IFRAME_HEIGHT clamp independent of the fill-mode minHeight", async () => {
+      // Arrange
+      const api = await loadEmbedApi();
+      api.embedFormAt(
+        "123",
+        {
+          baseUrl: "https://hub.example/embed/v1/embed.js",
+          heightMode: "fill",
+        },
+        null,
+      );
+      const instance = api.instances[0];
+
+      // Act
+      dispatchMessage(instance, {
+        type: "endatix:resize",
+        embedId: instance.embedId,
+        height: 20000,
+      });
+
+      // Assert
+      expect(instance.iframe.style.height).toBe("10000px");
+      expect(instance.iframe.style.minHeight).toBe("100%");
+    });
   });
 
   it("navigates only to safe URLs from trusted iframes", async () => {

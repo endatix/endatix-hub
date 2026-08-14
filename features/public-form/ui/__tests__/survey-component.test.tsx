@@ -5,6 +5,13 @@ import SurveyComponent from "../survey-component";
 import { SurveyModel, CompleteEvent } from "survey-core";
 import { ApiResult } from "@/lib/endatix-api";
 import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
+import { DEFAULT_FILL_BACKGROUND_COLOR } from "@/features/embed-form/height-mode";
+
+function cssColor(value: string): string {
+  const probe = document.createElement("div");
+  probe.style.backgroundColor = value;
+  return probe.style.backgroundColor;
+}
 
 // --- HOIST MOCK FUNCTIONS ---
 // All mock functions must be hoisted so they're available in vi.mock factories
@@ -16,6 +23,8 @@ const {
   mockUseSurveyModel,
   mockSendEmbedMessage,
   mockEmbedHeightReporting,
+  mockGetEmbedMessagingContext,
+  mockUseSurveyTheme,
 } = vi.hoisted(() => ({
   mockSubmitPublicForm: vi.fn(),
   mockEnqueueSubmission: vi.fn(),
@@ -30,6 +39,13 @@ const {
     resume: vi.fn(),
     isFrozen: vi.fn(() => false),
   },
+  mockGetEmbedMessagingContext: vi.fn(() => ({})),
+  mockUseSurveyTheme: vi.fn(
+    (..._args: unknown[]): { theme: unknown; error: unknown } => ({
+      theme: undefined,
+      error: null,
+    }),
+  ),
 }));
 
 // --- MOCK DEPENDENCIES ---
@@ -60,6 +76,10 @@ vi.mock("@/features/embed-form", () => ({
   })),
 }));
 
+vi.mock("@/features/embed-form/ui/embed-messaging-context", () => ({
+  getEmbedMessagingContext: () => mockGetEmbedMessagingContext(),
+}));
+
 vi.mock("@/features/analytics/posthog/client", () => ({
   useTrackEvent: vi.fn(() => ({ trackException: vi.fn() })),
   captureException: vi.fn(),
@@ -72,11 +92,11 @@ vi.mock("@/features/asset-storage/client", () => ({
   })),
 }));
 
-vi.mock("./use-survey-theme.hook", () => ({
-  useSurveyTheme: vi.fn(),
+vi.mock("../use-survey-theme.hook", () => ({
+  useSurveyTheme: (...args: unknown[]) => mockUseSurveyTheme(...args),
 }));
 
-vi.mock("./language-selector", () => ({
+vi.mock("../language-selector", () => ({
   LanguageSelector: () => <div>Language Selector</div>,
 }));
 
@@ -196,14 +216,16 @@ const defaultProps = {
   isEmbed: false,
 };
 
-function renderSurveyComponent() {
+function renderSurveyComponent(
+  propsOverride: Partial<typeof defaultProps> = {},
+) {
   return render(
     <FormRuntimeProvider
       initialState={{
         formId: defaultProps.formId,
       }}
     >
-      <SurveyComponent {...defaultProps} />
+      <SurveyComponent {...defaultProps} {...propsOverride} />
     </FormRuntimeProvider>,
   );
 }
@@ -450,5 +472,257 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
       secondCompleteEventMocks.showSaveInProgress,
     ).not.toHaveBeenCalled();
     await expect(mockSubmitPublicForm).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SurveyComponent - Embed Fill Mode", () => {
+  let realSurveyModel: SurveyModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetEmbedMessagingContext.mockReturnValue({});
+    mockUseSurveyTheme.mockReturnValue({ theme: undefined, error: null });
+    document.documentElement.style.backgroundColor = "";
+    document.body.style.backgroundColor = "";
+
+    realSurveyModel = new SurveyModel(defaultProps.definition);
+    mockUseSurveyModel.mockImplementation(() => ({
+      surveyModel: realSurveyModel,
+      isLoading: false,
+      error: null,
+    }));
+  });
+
+  it("paints html/body with the survey's theme background when embedded in fill mode", async () => {
+    // Arrange
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(9, 8, 7)" },
+    });
+
+    // Act
+    let result!: ReturnType<typeof renderSurveyComponent>;
+    await act(async () => {
+      result = renderSurveyComponent({ isEmbed: true });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("rgb(9, 8, 7)");
+    expect(document.documentElement.style.backgroundColor).toBe(
+      "rgb(9, 8, 7)",
+    );
+    const shell = result.container.querySelector('[class*="embedShell"]');
+    expect(shell?.className).toEqual(
+      expect.stringContaining("embedShellFill"),
+    );
+  });
+
+  it("restores the prior background on unmount", async () => {
+    // Arrange: something (e.g. an earlier fill-mode instance, or an inline
+    // style already on the page) had set a background before this mounts.
+    document.documentElement.style.backgroundColor = "rgb(10, 20, 30)";
+    document.body.style.backgroundColor = "rgb(10, 20, 30)";
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(9, 8, 7)" },
+    });
+
+    // Act
+    let result!: ReturnType<typeof renderSurveyComponent>;
+    await act(async () => {
+      result = renderSurveyComponent({ isEmbed: true });
+    });
+    expect(document.body.style.backgroundColor).toBe("rgb(9, 8, 7)");
+
+    await act(async () => {
+      result.unmount();
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("rgb(10, 20, 30)");
+    expect(document.documentElement.style.backgroundColor).toBe(
+      "rgb(10, 20, 30)",
+    );
+  });
+
+  it("restores the prior background on a fill-to-auto transition", async () => {
+    // Arrange
+    document.documentElement.style.backgroundColor = "rgb(10, 20, 30)";
+    document.body.style.backgroundColor = "rgb(10, 20, 30)";
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(9, 8, 7)" },
+    });
+
+    // Act: mount in fill mode.
+    const result = renderSurveyComponent({ isEmbed: true });
+    await act(async () => {});
+    expect(document.body.style.backgroundColor).toBe("rgb(9, 8, 7)");
+
+    // Act: same instance, but the embed context no longer reports fill mode.
+    mockGetEmbedMessagingContext.mockReturnValue({});
+    await act(async () => {
+      result.rerender(
+        <FormRuntimeProvider initialState={{ formId: defaultProps.formId }}>
+          <SurveyComponent {...defaultProps} isEmbed />
+        </FormRuntimeProvider>,
+      );
+    });
+
+    // Assert: back to whatever was there before fill mode ever ran.
+    expect(document.body.style.backgroundColor).toBe("rgb(10, 20, 30)");
+    expect(document.documentElement.style.backgroundColor).toBe(
+      "rgb(10, 20, 30)",
+    );
+  });
+
+  it("falls back to --sjs-general-backcolor when the dim variable is missing", async () => {
+    // Arrange
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor": "rgb(4, 5, 6)" },
+    });
+
+    // Act
+    await act(async () => {
+      renderSurveyComponent({ isEmbed: true });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe(cssColor("rgb(4, 5, 6)"));
+  });
+
+  it("falls back to the default fill background when no theme variable is available", async () => {
+    // Arrange
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: {},
+    });
+
+    // Act
+    await act(async () => {
+      renderSurveyComponent({ isEmbed: true });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe(
+      cssColor(DEFAULT_FILL_BACKGROUND_COLOR),
+    );
+  });
+
+  it("does not paint html/body in the default auto-resize embed mode", async () => {
+    // Arrange
+    mockGetEmbedMessagingContext.mockReturnValue({});
+
+    // Act
+    let result!: ReturnType<typeof renderSurveyComponent>;
+    await act(async () => {
+      result = renderSurveyComponent({ isEmbed: true });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("");
+    expect(document.documentElement.style.backgroundColor).toBe("");
+    const shell = result.container.querySelector('[class*="embedShell"]');
+    expect(shell?.className).not.toEqual(
+      expect.stringContaining("embedShellFill"),
+    );
+  });
+
+  it("ignores heightMode=fill when not embedded at all", async () => {
+    // Arrange
+    mockGetEmbedMessagingContext.mockReturnValue({ heightMode: "fill" });
+
+    // Act
+    await act(async () => {
+      renderSurveyComponent({ isEmbed: false });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("");
+    expect(document.documentElement.style.backgroundColor).toBe("");
+  });
+
+  it("ignores heightMode=fill without an embedId (not a genuine SDK load)", async () => {
+    // Arrange: only embed.js ever sets heightMode=fill, and it always sets
+    // embedId alongside it — a bare ?heightMode=fill (e.g. someone opening
+    // the embed URL directly) shouldn't trigger fill styling.
+    mockGetEmbedMessagingContext.mockReturnValue({ heightMode: "fill" });
+
+    // Act
+    let result!: ReturnType<typeof renderSurveyComponent>;
+    await act(async () => {
+      result = renderSurveyComponent({ isEmbed: true });
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("");
+    expect(document.documentElement.style.backgroundColor).toBe("");
+    const shell = result.container.querySelector('[class*="embedShell"]');
+    expect(shell?.className).not.toEqual(
+      expect.stringContaining("embedShellFill"),
+    );
+  });
+
+  it("re-applies the background once the survey's real theme finishes applying", async () => {
+    // Arrange: useSurveyTheme applies DefaultLight first and the real theme
+    // a render later once it's parsed (see use-survey-theme.hook.tsx) — the
+    // effect must re-run on that second pass, not just the first.
+    mockGetEmbedMessagingContext.mockReturnValue({
+      heightMode: "fill",
+      embedId: "embed-1",
+    });
+    mockUseSurveyTheme.mockReturnValue({ theme: undefined, error: null });
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(1, 1, 1)" },
+    });
+
+    // Act: first pass, as if only DefaultLight has been applied so far.
+    const result = renderSurveyComponent({ isEmbed: true });
+    await act(async () => {});
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("rgb(1, 1, 1)");
+
+    // Act: second pass, simulating the real theme finishing application.
+    Object.defineProperty(realSurveyModel, "themeVariables", {
+      configurable: true,
+      value: { "--sjs-general-backcolor-dim": "rgb(2, 2, 2)" },
+    });
+    mockUseSurveyTheme.mockReturnValue({
+      theme: { themeName: "custom" },
+      error: null,
+    });
+    await act(async () => {
+      result.rerender(
+        <FormRuntimeProvider initialState={{ formId: defaultProps.formId }}>
+          <SurveyComponent {...defaultProps} isEmbed />
+        </FormRuntimeProvider>,
+      );
+    });
+
+    // Assert
+    expect(document.body.style.backgroundColor).toBe("rgb(2, 2, 2)");
   });
 });

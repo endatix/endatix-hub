@@ -11,6 +11,20 @@
   position: relative;
 }
 
+/* Fill mode: the parent script's iframe has already been sized to at least
+   fill its host container (see src/embed/embed.ts). Paint the survey's own
+   theme background so it reaches the edges instead of leaving a transparent
+   gap that shows the host page through — via the canvas background rule
+   (html/body backgrounds fill the full viewport regardless of box height),
+   not by stretching this element's own box. Deliberately no min-height
+   here: EmbedHeightReporter measures document.body.scrollHeight, and any
+   ancestor whose height tracks the iframe's own size (rather than content)
+   floors that measurement at the iframe's current height — once grown, it
+   could never shrink back down. */
+.embedShellFill {
+  background-color: var(--sjs-general-backcolor-dim, transparent);
+}
+
 .layoutFullHeight :global(.sd-completedpage),
 .embedShell :global(.sd-completedpage) {
   box-sizing: border-box;

@@ -6,6 +6,8 @@ import {
   embedHeightReporting,
   useSurveyEmbedBehavior,
 } from "@/features/embed-form";
+import { DEFAULT_FILL_BACKGROUND_COLOR } from "@/features/embed-form/height-mode";
+import { getEmbedMessagingContext } from "@/features/embed-form/ui/embed-messaging-context";
 import type { EmbedFormInfo } from "@/features/embed-form/types";
 import type { SubmissionOperation } from "@/features/public-form/application/submit-form-operation";
 import { submitPublicForm } from "@/features/public-form/application/submit-public-form";
@@ -84,12 +86,63 @@ export default function SurveyComponent({
   const { enqueueSubmission, clearQueue, waitForInFlightPartial } =
     useSubmissionQueue(formId, runtimeToken);
   const [isSubmitting, startSubmitting] = useTransition();
-  useSurveyTheme(theme, surveyModel);
+  const { theme: appliedTheme } = useSurveyTheme(theme, surveyModel);
   useRichText(surveyModel);
   useLoopAwareSummaryTable(surveyModel);
   const { trackException } = useTrackEvent();
   const submissionUpdateGuard = useRef<boolean>(false);
   const originalCompletedHtmlRef = useRef<string | null>(null);
+
+  // SurveyComponent is only ever loaded client-side (see
+  // dynamic(..., { ssr: false }) in survey-js-wrapper.tsx), so there's no
+  // server-rendered output to mismatch — safe to read synchronously instead
+  // of via useEffect+state. Require embedId too: embed.js always sets it
+  // alongside heightMode=fill, so a bare `?heightMode=fill` visit (not
+  // driven by our own SDK) doesn't trigger fill styling.
+  const embedMessagingContext = isEmbed ? getEmbedMessagingContext() : undefined;
+  const isFillMode = Boolean(
+    embedMessagingContext?.heightMode === "fill" &&
+      embedMessagingContext?.embedId,
+  );
+
+  useEffect(() => {
+    if (!isFillMode || !surveyModel) {
+      return;
+    }
+
+    // The iframe's outer height chain is fully under our control, but the
+    // surrounding host page's own layout wrappers (e.g. AppProvider's
+    // sidebar shell) are shared with non-embed routes and aren't guaranteed
+    // to propagate height down to us. Paint the canvas directly instead of
+    // depending on that chain: html/body backgrounds fill the full iframe
+    // viewport regardless of their own box height (CSS canvas painting),
+    // so this reaches the space beyond the survey's own content even if
+    // some ancestor's box stays content-sized.
+    //
+    // `appliedTheme` (from useSurveyTheme) is in the dependency list even
+    // though it's unused directly: useSurveyTheme applies DefaultLight
+    // first and the survey's real theme a render later once parsed, so
+    // without it this effect would only ever see the DefaultLight colors.
+    const themeVariables = surveyModel.themeVariables ?? {};
+    const backgroundColor =
+      themeVariables["--sjs-general-backcolor-dim"] ||
+      themeVariables["--sjs-general-backcolor"] ||
+      DEFAULT_FILL_BACKGROUND_COLOR;
+
+    const previousHtmlBackground = document.documentElement.style.backgroundColor;
+    const previousBodyBackground = document.body.style.backgroundColor;
+    document.documentElement.style.backgroundColor = backgroundColor;
+    document.body.style.backgroundColor = backgroundColor;
+
+    // Restore whatever was there before on unmount, on a fill-to-auto
+    // transition, or before re-applying a changed theme's color — this
+    // mutates document/body, which outlives this component, so it
+    // shouldn't leave a stale override behind for whatever renders next.
+    return () => {
+      document.documentElement.style.backgroundColor = previousHtmlBackground;
+      document.body.style.backgroundColor = previousBodyBackground;
+    };
+  }, [isFillMode, surveyModel, appliedTheme]);
 
   const getSubmissionId = useCallback(() => {
     return stateRef.current.submissionId;
@@ -281,11 +334,12 @@ export default function SurveyComponent({
     return <div>Loading...</div>;
   }
 
+  const shellClassName = isEmbed
+    ? `${styles.embedShell}${isFillMode ? ` ${styles.embedShellFill}` : ""}`
+    : styles.layoutFullHeight;
+
   return (
-    <div
-      className={isEmbed ? styles.embedShell : styles.layoutFullHeight}
-      style={surveyModel.themeVariables}
-    >
+    <div className={shellClassName} style={surveyModel.themeVariables}>
       {isRespondentTestMode && <TestSubmissionBadge />}
       <LanguageSelector
         availableLocales={surveyLocales}
