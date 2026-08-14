@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getEmbedMessagingContext } from "../embed-messaging-context";
+import {
+  getEmbedMessagingContext,
+  isValidEmbedId,
+} from "../embed-messaging-context";
 
 function setUrl(search: string): void {
   window.history.replaceState(null, "", `/embed/123${search}`);
@@ -84,5 +87,37 @@ describe("getEmbedMessagingContext", () => {
       parentOrigin: "https://customer.example",
       heightMode: "fill",
     });
+  });
+});
+
+describe("isValidEmbedId", () => {
+  it("accepts an embedId matching the SDK's generated format", () => {
+    expect(isValidEmbedId("edxf-123-0-abc123")).toBe(true);
+  });
+
+  it("accepts alphanumeric, colon, underscore, and hyphen characters", () => {
+    expect(isValidEmbedId("Az09:_-")).toBe(true);
+  });
+
+  it("rejects undefined and null", () => {
+    expect(isValidEmbedId(undefined)).toBe(false);
+    expect(isValidEmbedId(null)).toBe(false);
+  });
+
+  it("rejects an empty string", () => {
+    expect(isValidEmbedId("")).toBe(false);
+  });
+
+  it("rejects disallowed characters", () => {
+    expect(isValidEmbedId("<script>alert(1)</script>")).toBe(false);
+    expect(isValidEmbedId("has spaces")).toBe(false);
+  });
+
+  it("rejects a string longer than 128 characters", () => {
+    expect(isValidEmbedId("a".repeat(129))).toBe(false);
+  });
+
+  it("accepts a string exactly 128 characters long", () => {
+    expect(isValidEmbedId("a".repeat(128))).toBe(true);
   });
 });

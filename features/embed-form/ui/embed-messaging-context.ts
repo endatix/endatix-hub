@@ -1,6 +1,6 @@
 "use client";
 
-import { isFillHeightMode, isValidEmbedId } from "../height-mode";
+import { isFillHeightMode } from "../height-mode";
 import type { EmbedMessagingContext } from "../types";
 
 export const EMBED_ID_QUERY_PARAM = "embedId";
@@ -20,6 +20,21 @@ function parseHttpOrigin(value: string | null): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+const EMBED_ID_PATTERN = /^[a-zA-Z0-9:_-]{1,128}$/;
+
+/**
+ * Charset/length allowlist for the embedId the parent-page SDK generates
+ * (see createEmbedId in src/embed/embed.ts) to tell multiple embed
+ * instances on one page apart and route postMessage traffic to the right
+ * one. This is untrusted query input, not a security gate — it exists for
+ * messaging, not to prove "the SDK was here" for other purposes.
+ */
+export function isValidEmbedId(
+  value: string | null | undefined,
+): value is string {
+  return typeof value === "string" && EMBED_ID_PATTERN.test(value);
 }
 
 function parseEmbedId(value: string | null): string | undefined {
