@@ -176,7 +176,7 @@ describe("PublicSurveyContent", () => {
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
 
-  it("delegates hard failures to notFound", async () => {
+  it("delegates missing forms to notFound", async () => {
     vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
       kind: "notFound",
     });
@@ -189,6 +189,59 @@ describe("PublicSurveyContent", () => {
     render(component);
 
     expect(notFound).toHaveBeenCalled();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+  });
+
+  it("renders sign-in required copy for unauthenticated private-form access", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "unauthorized",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByText("401")).toBeDefined();
+    expect(screen.getByText("Sign in required")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+    expect(screen.queryByTestId("embed-height-reporter")).toBeNull();
+  });
+
+  it("reports embed height for unauthenticated private-form access", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "unauthorized",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "embed",
+    });
+
+    render(component);
+
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Sign in" })).toBeDefined();
+  });
+
+  it("renders access-denied copy for authenticated private-form denial", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "forbidden",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByText("403")).toBeDefined();
+    expect(screen.getByText("Access denied")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
 });

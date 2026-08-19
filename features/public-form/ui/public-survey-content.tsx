@@ -2,6 +2,7 @@ import { getClientStorageConfig } from "@/features/asset-storage/server";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
+import { PublicFormAccessError } from "@/features/public-form/ui/public-form-access-error";
 import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
 import { TokenSubmissionError } from "@/features/public-form/ui/token-submission-error";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
@@ -29,6 +30,17 @@ export async function PublicSurveyContent({
     tokenStore,
     urlToken,
   });
+
+  if (pageResult.kind === "unauthorized" || pageResult.kind === "forbidden") {
+    return (
+      <PublicFormAccessError
+        formId={formId}
+        kind={pageResult.kind}
+        urlToken={urlToken}
+        variant={variant}
+      />
+    );
+  }
 
   if (pageResult.kind === "notFound") {
     return notFound();

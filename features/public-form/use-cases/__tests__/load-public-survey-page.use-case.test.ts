@@ -367,6 +367,40 @@ describe("loadPublicSurveyPageUseCase", () => {
     expect(accessResult).toEqual({ kind: "notFound" });
     expect(definitionResult).toEqual({ kind: "notFound" });
   });
+
+  it("returns unauthorized when anonymous access to a private form is denied", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "You must be authenticated to access this form",
+        undefined,
+        ERROR_CODE.AUTHENTICATION_REQUIRED,
+      ),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({ kind: "unauthorized" });
+  });
+
+  it("returns forbidden when authenticated access to a private form is denied", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "You are not allowed to access this form",
+        undefined,
+        ERROR_CODE.ACCESS_FORBIDDEN,
+      ),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({ kind: "forbidden" });
+  });
 });
 
 function createDeferred<T>(): {

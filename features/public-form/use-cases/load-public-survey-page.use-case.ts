@@ -13,7 +13,7 @@ import {
   type Submission,
 } from "@/lib/endatix-api";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
-import { Result } from "@/lib/result";
+import { Result, type ResultType } from "@/lib/result";
 import type { ActiveDefinition } from "@/types";
 
 /**
@@ -48,6 +48,12 @@ export type LoadPublicSurveyPageResult =
       kind: "notFound";
     }
   | {
+      kind: "unauthorized";
+    }
+  | {
+      kind: "forbidden";
+    }
+  | {
       kind: "tokenSubmissionError";
       errorCode: string;
     }
@@ -80,7 +86,7 @@ export async function loadPublicSurveyPageUseCase({
     ]);
 
   if (Result.isError(publicFormAccessResult)) {
-    return { kind: "notFound" };
+    return mapAccessFailure(publicFormAccessResult);
   }
 
   if (submissionResult.kind === "submissionLoadError") {
@@ -120,7 +126,7 @@ async function loadAccessTokenSurveyPage({
   ]);
 
   if (Result.isError(publicFormAccessResult)) {
-    return { kind: "notFound" };
+    return mapAccessFailure(publicFormAccessResult);
   }
 
   if (submissionResult.kind === "tokenSubmissionError") {
@@ -152,6 +158,27 @@ async function loadAccessTokenSurveyPage({
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
     submission: submissionResult.value,
   };
+}
+
+function mapAccessFailure(
+  result: ResultType<unknown>,
+): Extract<
+  LoadPublicSurveyPageResult,
+  { kind: "notFound" | "unauthorized" | "forbidden" }
+> {
+  if (!Result.isError(result)) {
+    return { kind: "notFound" };
+  }
+
+  if (result.errorCode === ERROR_CODE.AUTHENTICATION_REQUIRED) {
+    return { kind: "unauthorized" };
+  }
+
+  if (result.errorCode === ERROR_CODE.ACCESS_FORBIDDEN) {
+    return { kind: "forbidden" };
+  }
+
+  return { kind: "notFound" };
 }
 
 type LoadAccessTokenSurveyPageQuery = {
