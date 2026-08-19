@@ -1,6 +1,7 @@
 import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
+import { getClientEndatixConfig } from "@/features/config";
 import { geistMono, geistSans } from "@/lib/fonts/geist-local";
 import { getPublicAssetPath } from "@/lib/hosting";
 import {
@@ -56,7 +57,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable}`}
       >
-        <AppProvider session={session}>
+        <AppProvider session={session} endatixConfig={getClientEndatixConfig()}>
           <div className="h-screen w-full overflow-hidden bg-muted/40">
             <a
               href="https://endatix.com"

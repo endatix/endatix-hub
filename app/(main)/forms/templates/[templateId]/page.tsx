@@ -55,13 +55,17 @@ export default async function FormTemplateEditPage({ params }: Params) {
     templateId: template.id,
     templateJson,
     templateName: template.name,
-    description: template.description
+    description: template.description,
   };
 
   return (
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
-        <DesignerRuntimeProvider initialState={{ templateId }}>
+        <DesignerRuntimeProvider
+          initialState={{
+            templateId,
+          }}
+        >
           <AssetStorageProvider>
             <FormTemplateEditorContainer {...props} />
           </AssetStorageProvider>

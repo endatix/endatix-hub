@@ -7,6 +7,7 @@ import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
+import { getClientEndatixConfig } from "@/features/config";
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
@@ -52,7 +53,11 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppProvider session={session} sidebarDefaultOpen={defaultSidebarOpen}>
+        <AppProvider
+          session={session}
+          sidebarDefaultOpen={defaultSidebarOpen}
+          endatixConfig={getClientEndatixConfig()}
+        >
           {nav}
           <main data-slot="sidebar-inset">
             {header}

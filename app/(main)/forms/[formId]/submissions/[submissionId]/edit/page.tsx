@@ -53,7 +53,12 @@ export default async function EditSubmissionPage({ params }: Params) {
   return (
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
-        <DesignerRuntimeProvider initialState={{ formId, submissionId }}>
+        <DesignerRuntimeProvider
+          initialState={{
+            formId,
+            submissionId,
+          }}
+        >
           <HubEditSubmission submission={submission} />
         </DesignerRuntimeProvider>
       </AssetStorageProvider>

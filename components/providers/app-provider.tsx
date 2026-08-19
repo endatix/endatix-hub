@@ -2,7 +2,9 @@
 
 import { ReactNode } from "react";
 import { ThemeProvider } from "./theme-provider";
+import { EndatixClientConfigProvider } from "./endatix-client-config-provider";
 import { PostHogProvider } from "@/features/analytics/posthog/client";
+import type { ClientEndatixConfig } from "@/features/config/client-endatix-config";
 import { SessionProvider } from "next-auth/react";
 import type { ThemeProviderProps } from "next-themes";
 import { Toaster } from "sonner";
@@ -40,6 +42,8 @@ interface AppProviderProps {
   options?: AppProviderOptions;
   themeOptions?: ThemeOptions;
   sidebarDefaultOpen?: boolean;
+  /** Request-time browser projection (API origin + extensions gate). No secrets. */
+  endatixConfig: ClientEndatixConfig;
 }
 
 /** Default for sidebar open state when layout does not pass it (avoids server cookie read). */
@@ -61,6 +65,7 @@ export function AppProvider({
   },
   themeOptions = {},
   sidebarDefaultOpen = DEFAULT_SIDEBAR_OPEN,
+  endatixConfig,
 }: AppProviderProps) {
   const {
     enableTheme,
@@ -111,5 +116,11 @@ export function AppProvider({
     );
   }
 
-  return content;
+  // Outermost: referentially stable env projection. Theme/session updates
+  // do not invalidate this context; only apiBaseUrl / extensionsEnabled do.
+  return (
+    <EndatixClientConfigProvider value={endatixConfig}>
+      {content}
+    </EndatixClientConfigProvider>
+  );
 }
