@@ -1,4 +1,4 @@
-import { DATA_TABLE_SURFACE_CLASS_NAME } from "@/components/ui/data-table-surface";
+import { DataTableSurface } from "@/components/ui/data-table-surface";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -85,7 +85,7 @@ export function SubmissionsTableSkeleton({
       role="status"
     >
       <span className="sr-only">{loadingLabel}</span>
-      <div className={DATA_TABLE_SURFACE_CLASS_NAME}>
+      <DataTableSurface>
         <Table className="border-separate border-spacing-0">
           <TableHeader className="bg-surface-container-low">
             <TableRow
@@ -133,7 +133,7 @@ export function SubmissionsTableSkeleton({
           <Skeleton className="h-8 w-40 bg-muted-foreground/15 dark:bg-muted" />
           <Skeleton className="h-8 w-48 bg-muted-foreground/15 dark:bg-muted" />
         </div>
-      </div>
+      </DataTableSurface>
     </div>
   );
 }

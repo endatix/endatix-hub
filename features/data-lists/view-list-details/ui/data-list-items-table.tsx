@@ -1,6 +1,12 @@
 "use client";
 
-import { DATA_TABLE_SURFACE_CLASS_NAME } from "@/components/ui/data-table-surface";
+import {
+  dataTableBodyCellClassName,
+  dataTableBodyRowClassName,
+  dataTableHeaderCellClassName,
+} from "@/components/ui/data-table-chrome";
+import { DataTableEmpty } from "@/components/ui/data-table-empty";
+import { DataTableSurface } from "@/components/ui/data-table-surface";
 import {
   Table,
   TableBody,
@@ -12,20 +18,21 @@ import {
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
 import { resolveCatalogDefaultLabelText } from "@/lib/localization";
-import { cn } from "@/lib/utils";
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import "./table-types";
 
 type DataListItemsTableProps = {
   items: DataListItem[];
   availableLocales: string[];
   defaultLocale?: string;
+  emptyMessage?: string;
+  footer?: ReactNode;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
@@ -75,6 +82,8 @@ export function DataListItemsTable({
   items,
   availableLocales,
   defaultLocale,
+  emptyMessage = "No items in this list.",
+  footer,
 }: Readonly<DataListItemsTableProps>) {
   const labelColumns = useMemo(
     () => ["default", ...availableLocales],
@@ -112,22 +121,15 @@ export function DataListItemsTable({
 
   if (rows.length === 0) {
     return (
-      <div
-        data-slot="data-list-items-table"
-        className={DATA_TABLE_SURFACE_CLASS_NAME}
-      >
-        <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          No items in this list.
-        </div>
-      </div>
+      <DataTableSurface data-slot="data-list-items-table">
+        <DataTableEmpty>{emptyMessage}</DataTableEmpty>
+        {footer}
+      </DataTableSurface>
     );
   }
 
   return (
-    <div
-      data-slot="data-list-items-table"
-      className={DATA_TABLE_SURFACE_CLASS_NAME}
-    >
+    <DataTableSurface data-slot="data-list-items-table">
       <div className="w-full overflow-x-auto">
         <Table className="border-separate border-spacing-0">
           <TableHeader className="bg-surface-container-low">
@@ -137,16 +139,15 @@ export function DataListItemsTable({
                 className="border-0 hover:bg-transparent"
               >
                 {headerGroup.headers.map((header) => {
-                  const isPinned = header.column.getIsPinned();
+                  const isPinnedLeft = header.column.getIsPinned() === "left";
                   return (
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className={cn(
-                        "sticky top-0 h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
-                        isPinned === "left" ? "left-0 z-30" : "z-10",
-                        header.column.columnDef.meta?.headerClassName,
-                      )}
+                      className={dataTableHeaderCellClassName({
+                        isPinnedLeft,
+                        className: header.column.columnDef.meta?.headerClassName,
+                      })}
                     >
                       {header.isPlaceholder
                         ? null
@@ -166,29 +167,18 @@ export function DataListItemsTable({
               return (
                 <TableRow
                   key={row.id}
-                  className={cn(
-                    "group border-0",
-                    isEvenRow
-                      ? "bg-surface-container-low hover:bg-surface-container"
-                      : "bg-surface-container-lowest hover:bg-surface-container",
-                  )}
+                  className={dataTableBodyRowClassName({ isEvenRow })}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const isPinned = cell.column.getIsPinned();
+                    const isPinnedLeft = cell.column.getIsPinned() === "left";
                     return (
                       <TableCell
                         key={cell.id}
-                        className={cn(
-                          "px-2 py-2",
-                          isPinned &&
-                            "sticky z-20 transition-colors duration-150",
-                          isPinned &&
-                            (isEvenRow
-                              ? "bg-surface-container-low group-hover:bg-surface-container"
-                              : "bg-surface-container-lowest group-hover:bg-surface-container"),
-                          isPinned === "left" && "left-0",
-                          cell.column.columnDef.meta?.cellClassName,
-                        )}
+                        className={dataTableBodyCellClassName({
+                          isPinnedLeft,
+                          isEvenRow,
+                          className: cell.column.columnDef.meta?.cellClassName,
+                        })}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
@@ -203,6 +193,7 @@ export function DataListItemsTable({
           </TableBody>
         </Table>
       </div>
-    </div>
+      {footer}
+    </DataTableSurface>
   );
 }
