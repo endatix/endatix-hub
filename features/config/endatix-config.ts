@@ -5,14 +5,12 @@ import {
   mergeEndatixImageLocalPatterns,
 } from "../../lib/hosting/next-config-helper";
 import {
-  logExperimentalStatus,
-} from "./experimental-config";
-import {
   resolveEndatixSettings,
   type WithEndatixOptions,
 } from "./resolve-endatix-settings";
 
 export type {
+  ClientEndatixConfig,
   EndatixConfig,
   EndatixResolvedSettings,
   ResolveEndatixSettingsSource,
@@ -20,7 +18,11 @@ export type {
   StorageProvider,
   WithEndatixOptions,
 } from "./resolve-endatix-settings";
-export { getRuntimeStorageProfile, resolveEndatixSettings } from "./resolve-endatix-settings";
+export {
+  getClientEndatixConfig,
+  getRuntimeStorageProfile,
+  resolveEndatixSettings,
+} from "./resolve-endatix-settings";
 
 /**
  * @param {import('next').NextConfig} nextConfig
@@ -35,8 +37,6 @@ export const withEndatix = (
     options,
     source: "withEndatix",
   });
-
-  logExperimentalStatus(resolved.mergedExperimentalConfig);
 
   const remotePatterns: (URL | RemotePattern)[] = [
     ...(nextConfig.images?.remotePatterns ?? []),

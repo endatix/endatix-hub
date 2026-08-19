@@ -29,6 +29,11 @@ describe("experimental-config", () => {
       expect(getExperimentalConfig()).toEqual({ extensions: true });
     });
 
+    it("returns extensions true when ENDATIX_ENABLE_EXTENSIONS is 'true' with whitespace", () => {
+      process.env.ENDATIX_ENABLE_EXTENSIONS = " true ";
+      expect(getExperimentalConfig()).toEqual({ extensions: true });
+    });
+
     it("returns extensions false when ENDATIX_ENABLE_EXTENSIONS is 'false'", () => {
       process.env.ENDATIX_ENABLE_EXTENSIONS = "false";
       expect(getExperimentalConfig()).toEqual({ extensions: false });

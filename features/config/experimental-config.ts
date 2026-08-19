@@ -1,6 +1,7 @@
 /**
  * Experimental features configuration.
- * Defaults are off; enable via env (ENDATIX_ENABLE_EXTENSIONS=true) or withEndatix options.
+ * Defaults are off; enable via env (ENDATIX_ENABLE_EXTENSIONS=true).
+ * Logged at Node startup (check-environment), not at Next build.
  */
 
 export interface ExperimentalConfig {
@@ -16,7 +17,7 @@ const EXPERIMENTAL_FEATURES: ReadonlyArray<keyof ExperimentalConfig> = [
  */
 export function getExperimentalConfig(): ExperimentalConfig {
   return {
-    extensions: process.env.ENDATIX_ENABLE_EXTENSIONS === "true",
+    extensions: process.env.ENDATIX_ENABLE_EXTENSIONS?.trim() === "true",
   };
 }
 
