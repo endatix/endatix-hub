@@ -244,4 +244,22 @@ describe("PublicSurveyContent", () => {
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
+
+  it("renders a load-failure screen for operational access errors", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.NETWORK_ERROR,
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByText("Unable to load form")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+  });
 });

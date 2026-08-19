@@ -342,9 +342,9 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
   });
 
-  it("returns notFound when access or definition cannot be loaded", async () => {
+  it("returns notFound for a confirmed missing form", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
-      Result.error("Access denied"),
+      Result.error("Form not found", undefined, ERROR_CODE.RESOURCE_NOT_FOUND),
     );
 
     const accessResult = await loadPublicSurveyPageUseCase({
@@ -366,6 +366,38 @@ describe("loadPublicSurveyPageUseCase", () => {
 
     expect(accessResult).toEqual({ kind: "notFound" });
     expect(definitionResult).toEqual({ kind: "notFound" });
+  });
+
+  it("returns accessLoadError for operational access failures", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error("Upstream unavailable", undefined, ERROR_CODE.NETWORK_ERROR),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.NETWORK_ERROR,
+    });
+  });
+
+  it("returns accessLoadError when access fails without a mapped error code", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error("Access denied"),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.UNKNOWN_ERROR,
+    });
   });
 
   it("returns unauthorized when anonymous access to a private form is denied", async () => {

@@ -54,6 +54,10 @@ export type LoadPublicSurveyPageResult =
       kind: "forbidden";
     }
   | {
+      kind: "accessLoadError";
+      errorCode: string;
+    }
+  | {
       kind: "tokenSubmissionError";
       errorCode: string;
     }
@@ -164,7 +168,7 @@ function mapAccessFailure(
   result: ResultType<unknown>,
 ): Extract<
   LoadPublicSurveyPageResult,
-  { kind: "notFound" | "unauthorized" | "forbidden" }
+  { kind: "notFound" | "unauthorized" | "forbidden" | "accessLoadError" }
 > {
   if (!Result.isError(result)) {
     return { kind: "notFound" };
@@ -178,7 +182,22 @@ function mapAccessFailure(
     return { kind: "forbidden" };
   }
 
-  return { kind: "notFound" };
+  if (isMissingFormAccessError(result.errorCode)) {
+    return { kind: "notFound" };
+  }
+
+  return {
+    kind: "accessLoadError",
+    errorCode: result.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
+  };
+}
+
+function isMissingFormAccessError(errorCode: string | undefined): boolean {
+  return (
+    errorCode === ERROR_CODE.RESOURCE_NOT_FOUND ||
+    errorCode === ERROR_CODE.FORM_NOT_FOUND ||
+    errorCode === ERROR_CODE.VALIDATION_ERROR
+  );
 }
 
 type LoadAccessTokenSurveyPageQuery = {
