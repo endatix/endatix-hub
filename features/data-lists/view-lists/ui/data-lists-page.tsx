@@ -1,5 +1,22 @@
 "use client";
 
+import { use, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  createPagedTableFooterProps,
+  PagedTableFooter,
+  TableSearchInput,
+} from "@/components/table";
+import {
+  dataTableBodyCellClassName,
+  dataTableBodyRowClassName,
+  dataTableHeaderCellClassName,
+} from "@/components/ui/data-table-chrome";
+import { DataTableEmpty } from "@/components/ui/data-table-empty";
+import { DataTableSurface } from "@/components/ui/data-table-surface";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/loaders/spinner";
 import {
   AlertDialog,
@@ -11,33 +28,52 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
+import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import type {
   DataList,
   FormDependencySummary,
 } from "@/lib/endatix-api/data-lists/types";
+import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
+import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";
 import { getDataListFormDependenciesAction } from "../get-data-list-form-dependencies.action";
-import { getDataListsAction } from "../get-data-lists.action";
 import { deleteDataListAction } from "../../delete-list/delete-data-list.action";
-import Link from "next/link";
+import {
+  buildDataListDetailHref,
+  buildDataListsListHref,
+  currentDataListsListQuery,
+} from "../utils";
 
 interface DataListsPageProps {
-  initialDataLists: DataList[];
+  dataListsPromise: Promise<DataListsPage>;
   openCreateOnLoad?: boolean;
 }
 
 export function DataListsPage({
-  initialDataLists,
+  dataListsPromise,
   openCreateOnLoad = false,
 }: Readonly<DataListsPageProps>) {
+  const paged = use(dataListsPromise);
   const router = useRouter();
-  const [dataLists, setDataLists] = useState<DataList[]>(initialDataLists);
+  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const listQuery = currentDataListsListQuery(searchParams);
+  const hasLocaleInput = searchParams.get("hasLocale") ?? "";
+  const { search: hasLocale, setSearch: setHasLocale } = useListUrlState(
+    "hasLocale",
+  );
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
     useState(openCreateOnLoad);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -53,19 +89,14 @@ export function DataListsPage({
     setIsCreateDialogOpen(openCreateOnLoad);
   }, [openCreateOnLoad]);
 
-  const refreshDataLists = async () => {
-    const result = await getDataListsAction();
-    if (!result.success) {
-      toast.error(result.error.message || "Failed to refresh data lists");
-      return;
-    }
-
-    setDataLists(result.data);
-  };
-
   const handleOpenDelete = (dataList: DataList) => {
     setIsCreateDialogOpen(false);
-    router.replace("/data-lists");
+    router.replace(buildDataListsListHref({
+      page: paged.page,
+      pageSize: paged.pageSize,
+      search: searchParams.get("search")?.trim() || undefined,
+      hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
+    }));
 
     setSelectedForDelete(dataList);
     setDependencies([]);
@@ -105,16 +136,25 @@ export function DataListsPage({
       toast.success("Data list deleted successfully");
       setIsDeleteDialogOpen(false);
       setSelectedForDelete(null);
-      await refreshDataLists();
+      router.refresh();
     });
   };
 
-  const handleCreateDialogClose = (open: boolean) => {
+  const handleCreateDialogClose = (open: boolean): void => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      router.replace("/data-lists");
+      router.replace(
+        buildDataListsListHref({
+          page: paged.page,
+          pageSize: paged.pageSize,
+          search: searchParams.get("search")?.trim() || undefined,
+          hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
+        }),
+      );
     }
   };
+
+  const footerProps = createPagedTableFooterProps(paged, "data lists", updateUrl);
 
   return (
     <>
@@ -127,71 +167,116 @@ export function DataListsPage({
         </div>
       </section>
 
-      <div className="mt-6 flex flex-col gap-2">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_64px] items-center px-4 py-1 text-xs text-muted-foreground md:grid-cols-[2fr_2fr_1.2fr_1.2fr_0.8fr_64px]">
-          <span>Friendly Name</span>
-          <span>Status</span>
-          <span className="hidden md:block">Created</span>
-          <span className="hidden md:block">Modified</span>
-          <span className="hidden text-center md:block">Items Count</span>
-          <span className="text-right">Actions</span>
-        </div>
-
-        {dataLists.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-card p-10 text-center">
-            <p className="text-sm text-muted-foreground">No data lists yet.</p>
-          </div>
-        ) : (
-          dataLists.map((dataList) => (
-            <div
-              key={dataList.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto_64px] items-center gap-4 rounded-xl border bg-card px-4 py-4 transition-colors hover:bg-muted/20 md:grid-cols-[2fr_2fr_1.2fr_1.2fr_0.8fr_64px]"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-base font-semibold">
-                  {dataList.name}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {dataList.description || "No description"}
-                </p>
-              </div>
-
-              <div>
-                <StatusPill isActive={dataList.isActive} />
-              </div>
-
-              <div className="hidden text-sm text-muted-foreground md:block">
-                {getFormattedDate(dataList.createdAt)}
-              </div>
-              <div className="hidden text-sm text-muted-foreground md:block">
-                {getFormattedDate(dataList.modifiedAt)}
-              </div>
-
-              <div className="hidden justify-center text-sm text-muted-foreground md:flex">
-                <Link
-                  href={`/data-lists/${dataList.id}`}
-                  className="flex items-center gap-1"
-                >
-                  {dataList.itemsCount}
-                </Link>
-              </div>
-
-              <div className="flex justify-end">
-                <DataListRowActions
-                  dataList={dataList}
-                  onDelete={handleOpenDelete}
-                />
-              </div>
-            </div>
-          ))
-        )}
+      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name or description"
+          ariaLabel="Search data lists"
+        />
+        <Input
+          value={hasLocale}
+          onChange={(event) => setHasLocale(event.target.value)}
+          placeholder="Filter by locale (e.g. es)"
+          aria-label="Filter data lists by locale"
+          className="lg:max-w-xs"
+        />
       </div>
+
+      <DataTableSurface data-slot="data-lists-table" className="mt-4">
+        {paged.items.length === 0 ? (
+          <DataTableEmpty>
+            {search || hasLocaleInput
+              ? "No data lists match the current filters."
+              : "No data lists yet."}
+          </DataTableEmpty>
+        ) : (
+          <div className="w-full overflow-x-auto">
+            <Table className="border-separate border-spacing-0">
+              <TableHeader className="bg-surface-container-low">
+                <TableRow className="border-0 hover:bg-transparent">
+                  <TableHead className={dataTableHeaderCellClassName({ className: "min-w-[12rem]" })}>
+                    Friendly Name
+                  </TableHead>
+                  <TableHead className={dataTableHeaderCellClassName({})}>
+                    Status
+                  </TableHead>
+                  <TableHead className={dataTableHeaderCellClassName({ className: "min-w-[10rem]" })}>
+                    Locales
+                  </TableHead>
+                  <TableHead className={dataTableHeaderCellClassName({ className: "hidden md:table-cell" })}>
+                    Created
+                  </TableHead>
+                  <TableHead className={dataTableHeaderCellClassName({ className: "hidden md:table-cell" })}>
+                    Modified
+                  </TableHead>
+                  <TableHead className={dataTableHeaderCellClassName({ className: "hidden text-center md:table-cell" })}>
+                    Items
+                  </TableHead>
+                  <TableHead className={dataTableHeaderCellClassName({ className: "text-right" })}>
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paged.items.map((dataList, rowIndex) => {
+                  const isEvenRow = rowIndex % 2 === 1;
+                  const detailHref = buildDataListDetailHref(
+                    String(dataList.id),
+                    listQuery,
+                  );
+                  return (
+                    <TableRow
+                      key={dataList.id}
+                      className={dataTableBodyRowClassName({ isEvenRow })}
+                    >
+                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "min-w-[12rem]" })}>
+                        <Link href={detailHref} className="block min-w-0">
+                          <p className="truncate text-base font-semibold">
+                            {dataList.name}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {dataList.description || "No description"}
+                          </p>
+                        </Link>
+                      </TableCell>
+                      <TableCell className={dataTableBodyCellClassName({ isEvenRow })}>
+                        <StatusPill isActive={dataList.isActive} />
+                      </TableCell>
+                      <TableCell className={dataTableBodyCellClassName({ isEvenRow })}>
+                        <LocalesCell dataList={dataList} />
+                      </TableCell>
+                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "hidden md:table-cell" })}>
+                        {getFormattedDate(dataList.createdAt)}
+                      </TableCell>
+                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "hidden md:table-cell" })}>
+                        {getFormattedDate(dataList.modifiedAt)}
+                      </TableCell>
+                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "hidden text-center md:table-cell" })}>
+                        <Link href={detailHref}>{dataList.itemsCount}</Link>
+                      </TableCell>
+                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "text-right" })}>
+                        <DataListRowActions
+                          dataList={dataList}
+                          listQuery={listQuery}
+                          onDelete={handleOpenDelete}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        <PagedTableFooter {...footerProps} />
+      </DataTableSurface>
 
       <CreateDataListDialog
         open={isCreateDialogOpen}
         onOpenChange={handleCreateDialogClose}
         onCreated={() => {
-          void refreshDataLists();
+          router.refresh();
         }}
       />
 
@@ -258,6 +343,28 @@ export function DataListsPage({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function LocalesCell({ dataList }: Readonly<{ dataList: DataList }>) {
+  const defaultLocale = dataList.defaultLocale;
+  const extra = dataList.availableLocales ?? [];
+
+  if (!defaultLocale && extra.length === 0) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {defaultLocale ? (
+        <Badge variant="secondary">{formatLocaleLabel(defaultLocale)}</Badge>
+      ) : null}
+      {extra.map((locale) => (
+        <Badge key={locale} variant="outline">
+          {formatLocaleLabel(locale)}
+        </Badge>
+      ))}
+    </div>
   );
 }
 
