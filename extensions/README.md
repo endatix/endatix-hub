@@ -1,9 +1,11 @@
 # Endatix Extensions Architecture 🧩
 
 > **Experimental Feature** 🚧
-> This feature is currently experimental and **disabled by default** in development.
-> To enable it add this to your .env file - `ENDATIX_ENABLE_EXTENSIONS=true`. 
-> Alternatively, set the `experimental.extensions` flag in `endatix-config.ts` to true.
+> Local Hub keeps extensions **off** unless you set `ENDATIX_ENABLE_EXTENSIONS=true` in `.env`.
+> The Helm chart defaults that flag **on**, so data-list questions work on a stock install.
+> Optional `withEndatix(nextConfig, { experimental: { extensions: true } })` is a rebuild-time code override — it cannot retarget a published image; use container/SWA env for that.
+>
+> The browser must **not** read `process.env.ENDATIX_ENABLE_EXTENSIONS` (Next would inline it at build). Layouts pass `{ apiBaseUrl, extensionsEnabled }` into `AppProvider`; `useSurveyExtensions` reads that context.
 
 ## Overview
 

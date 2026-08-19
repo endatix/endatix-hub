@@ -19,6 +19,12 @@ api:
   # e.g. https://api.example.com
   baseUrl: "http://endatix-api:8080"
 
+experimental:
+  # SurveyJS extensions (data-list questions, custom widgets). Defaults on so a
+  # stock chart deploy registers and fetches data lists without a hidden switch.
+  # This is a container env var (ENDATIX_ENABLE_EXTENSIONS), not a build-time flag.
+  extensions: true
+
 auth:
   # Name of an existing secret with keys: session-secret, auth-secret
   # session-secret: openssl rand -hex 32

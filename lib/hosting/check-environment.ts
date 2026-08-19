@@ -10,6 +10,14 @@ import {
   DEFAULT_COOKIE_NAME,
 } from "@/features/public-form/infrastructure/cookie-store";
 import { validateStorageProfile } from "@/features/asset-storage/infrastructure/bootstrap/validate-storage-profile";
+import {
+  API_ORIGIN_ENV_TIP,
+  ensureResolvedApiUrl,
+} from "@/features/config/api-config";
+import {
+  getExperimentalConfig,
+  logExperimentalStatus,
+} from "@/features/config/experimental-config";
 import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-settings";
 import styles from "../utils/console-styles";
 
@@ -26,13 +34,6 @@ type EnvConfig = {
  * Add all env vars here to validate them at startup
  */
 const envVars: EnvConfig[] = [
-  {
-    name: "ENDATIX_BASE_URL",
-    required: true,
-    type: "string",
-    default: "https://localhost:5001",
-    tip: "The Endatix API base URL we will use to make requests to. Can be local or a remote URL.",
-  },
   {
     name: "SESSION_SECRET",
     required: true,
@@ -59,8 +60,15 @@ const envVars: EnvConfig[] = [
  * Validates all environment variables defined in the envVars array
  * Returns validation status and error messages
  */
-function validateEnv(): { valid: boolean; errors: string[] } {
+export function validateEnv(): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
+
+  const apiConfig = ensureResolvedApiUrl();
+  if (!apiConfig) {
+    errors.push(
+      `${styles.bold("ENDATIX_BASE_URL")} or ${styles.bold("ENDATIX_API_URL")} is required but neither resolves to a valid API origin. (${styles.tip(API_ORIGIN_ENV_TIP)})`,
+    );
+  }
 
   for (const env of envVars) {
     const value = process.env[env.name];
@@ -134,8 +142,9 @@ function validateEnv(): { valid: boolean; errors: string[] } {
  * running to prevent unexpected downtime, though some features may not work
  * correctly without proper environment configuration.
  */
-function checkEnvironment(): void {
+export function checkEnvironment(): void {
   console.log(styles.dim("Checking environment variables..."));
+  logExperimentalStatus(getExperimentalConfig());
   const { valid, errors } = validateEnv();
   if (!valid) {
     console.error(
@@ -164,4 +173,6 @@ function checkEnvironment(): void {
   }
 }
 
-checkEnvironment();
+if (process.env.VITEST !== "true") {
+  checkEnvironment();
+}

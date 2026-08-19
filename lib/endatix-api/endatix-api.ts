@@ -1,3 +1,4 @@
+import { getApiConfig } from "@/features/config/api-config";
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
 import { ApiResult, ApiErrorDetails } from "./shared/api-result";
 import { ERROR_CODE } from "./shared/error-codes";
@@ -25,14 +26,15 @@ import PlatformAdmins from "./platform-admins/platform-admins";
 import { Reporting } from "./reporting/reporting";
 
 /**
- * Gets the validated and cached API URL
- * This URL is validated at startup and cached for performance
+ * Resolved Endatix API origin. Prefers `ENDATIX_API_URL`, then `ENDATIX_BASE_URL`
+ * (+ prefix) via {@link getApiConfig}.
  */
 export const getEdatixApiUrl = (): string => {
-  const apiUrl = process.env.ENDATIX_API_URL;
+  const apiUrl =
+    process.env.ENDATIX_API_URL?.trim() || getApiConfig()?.apiUrl || "";
   if (!apiUrl) {
     throw new Error(
-      "ENDATIX_API_URL not set. This should be configured via the withEndatix function. Please check your environment variables.",
+      "Endatix API URL is not configured. Set ENDATIX_BASE_URL or ENDATIX_API_URL.",
     );
   }
   return apiUrl;

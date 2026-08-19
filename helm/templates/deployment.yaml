@@ -59,6 +59,10 @@ spec:
         - name: ENDATIX_API_URL
           value: {{ .Values.api.apiUrl | quote }}
 
+        # Survey extensions (data lists, custom questions). Request-time env, not image build.
+        - name: ENDATIX_ENABLE_EXTENSIONS
+          value: {{ .Values.experimental.extensions | quote }}
+
         # Auth
         - name: SESSION_SECRET
           valueFrom:
