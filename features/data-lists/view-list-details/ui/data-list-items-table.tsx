@@ -25,13 +25,15 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import "./table-types";
 
 type DataListItemsTableProps = {
   items: DataListItem[];
   availableLocales: string[];
   defaultLocale?: string;
+  emptyMessage?: string;
+  footer?: ReactNode;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
@@ -92,6 +94,8 @@ export function DataListItemsTable({
   items,
   availableLocales,
   defaultLocale,
+  emptyMessage = "No items in this list.",
+  footer,
 }: Readonly<DataListItemsTableProps>) {
   const labelColumns = useMemo(
     () => ["default", ...availableLocales],
@@ -130,7 +134,8 @@ export function DataListItemsTable({
   if (rows.length === 0) {
     return (
       <DataTableSurface data-slot="data-list-items-table">
-        <DataTableEmpty>No items in this list.</DataTableEmpty>
+        <DataTableEmpty>{emptyMessage}</DataTableEmpty>
+        {footer}
       </DataTableSurface>
     );
   }
@@ -201,6 +206,7 @@ export function DataListItemsTable({
           </TableBody>
         </Table>
       </div>
+      {footer}
     </DataTableSurface>
   );
 }

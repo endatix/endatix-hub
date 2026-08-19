@@ -2,6 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  createPagedTableFooterProps,
+  PagedTableFooter,
+  TableSearchInput,
+} from "@/components/table";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -9,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toast";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
+import type { DataListItemsPage } from "@/lib/endatix-api/data-lists/data-lists";
+import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import { TelemetryLogger } from "@/features/telemetry";
 import { withBasePath } from "@/lib/hosting";
 import { getFormattedDate } from "@/lib/utils";
@@ -19,13 +26,13 @@ import {
 import { ArrowLeft, ChevronDown, Download, Upload } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
-import { useEffect, useState, useTransition } from "react";
+import { Suspense, use, useEffect, useState, useTransition } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog";
 import { useRouter } from "next/navigation";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
 import type { DataListSourceFormat } from "../../add-items/data-list-items-input";
-import { serializeDataListItemsJson } from "../../utils";
 import { DataListItemsTable } from "./data-list-items-table";
 import { LocaleCatalogPanel } from "./locale-catalog-panel";
 
@@ -33,12 +40,14 @@ const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
 
 interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
+  itemsPromise: Promise<DataListItemsPage>;
   openReplaceOnLoad?: boolean;
   returnHref?: string;
 }
 
 export function DataListDetailsPage({
   initialDetails,
+  itemsPromise,
   openReplaceOnLoad = false,
   returnHref = "/data-lists",
 }: Readonly<DataListDetailsPageProps>) {
@@ -90,22 +99,35 @@ export function DataListDetailsPage({
     setIsReplaceDialogOpen(true);
   };
 
-  const handleDownloadCsv = (): void => {
+  const handleDownloadJson = (): void => {
+    void downloadExport("json");
+  };
+
+  const downloadExport = (format: "csv" | "json"): void => {
     if (Result.isError(dataListIdResult)) {
       toast.error(dataListIdResult.message);
       return;
     }
 
     const dataListId = dataListIdResult.value;
+    const fallbackName =
+      format === "json"
+        ? `data-list-${dataListId}.json`
+        : `data-list-${dataListId}-translations.csv`;
+    const successMessage = format === "json" ? "JSON downloaded" : "CSV downloaded";
+    const errorMessage =
+      format === "json"
+        ? "Failed to download JSON"
+        : "Failed to download translations CSV";
 
     startDownloadTransition(async () => {
       try {
         const response = await fetch(
-          withBasePath(`/api/data-lists/${dataListId}/export?format=csv`),
+          withBasePath(`/api/data-lists/${dataListId}/export?format=${format}`),
         );
 
         if (!response.ok) {
-          let message = "Failed to download translations CSV";
+          let message = errorMessage;
           try {
             const payload = (await response.json()) as { error?: string };
             if (payload.error) {
@@ -113,7 +135,7 @@ export function DataListDetailsPage({
             }
           } catch (error) {
             TelemetryLogger.error(
-              "Failed to parse data list CSV export error response",
+              "Failed to parse data list export error response",
               error,
               {
                 "http.status_code": response.status,
@@ -130,26 +152,18 @@ export function DataListDetailsPage({
         const blob = await response.blob();
         const fileName = getFilenameFromContentDisposition(
           response.headers,
-          `data-list-${dataListId}-translations.csv`,
+          fallbackName,
         );
         initiateFileDownload(blob, fileName);
-        toast.success("CSV downloaded");
+        toast.success(successMessage);
       } catch {
-        toast.error("Failed to download translations CSV");
+        toast.error(errorMessage);
       }
     });
   };
 
-  const handleDownloadJson = (): void => {
-    const json = serializeDataListItemsJson(details.items);
-    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `data-list-${details.id}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    toast.success("JSON downloaded");
+  const handleDownloadCsv = (): void => {
+    void downloadExport("csv");
   };
 
   const availableLocales = details.availableLocales ?? [];
@@ -183,8 +197,8 @@ export function DataListDetailsPage({
                 Modified: {getFormattedDate(details.modifiedAt as Date | null)}
               </span>
               <span>
-                {details.items.length} item
-                {details.items.length === 1 ? "" : "s"}
+                {details.itemsCount} item
+                {details.itemsCount === 1 ? "" : "s"}
               </span>
             </div>
           </div>
@@ -228,13 +242,28 @@ export function DataListDetailsPage({
           </div>
         </div>
 
-        <LocaleCatalogPanel details={details} onUpdated={setDetails} />
-
-        <DataListItemsTable
-          items={details.items}
-          availableLocales={availableLocales}
-          defaultLocale={details.defaultLocale}
+        <LocaleCatalogPanel
+          details={details}
+          onUpdated={(updated) => {
+            setDetails(updated);
+            router.refresh();
+          }}
         />
+
+        <Suspense
+          fallback={
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full max-w-sm" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          }
+        >
+          <DataListItemsPanel
+            itemsPromise={itemsPromise}
+            availableLocales={availableLocales}
+            defaultLocale={details.defaultLocale}
+          />
+        </Suspense>
       </div>
 
       <ReplaceItemsDialog
@@ -250,9 +279,47 @@ export function DataListDetailsPage({
         initialFormat={replaceInitialFormat}
         onReplaced={(updated) => {
           setDetails(updated);
+          router.refresh();
           toast.success("Data list details updated");
         }}
       />
     </>
+  );
+}
+
+function DataListItemsPanel({
+  itemsPromise,
+  availableLocales,
+  defaultLocale,
+}: Readonly<{
+  itemsPromise: Promise<DataListItemsPage>;
+  availableLocales: string[];
+  defaultLocale?: string;
+}>) {
+  const paged = use(itemsPromise);
+  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
+  const hasSearch = Boolean(searchParams.get("search")?.trim());
+
+  return (
+    <div className="space-y-3">
+      <TableSearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search items by value or label"
+        ariaLabel="Search data list items"
+      />
+      <DataListItemsTable
+        items={[...paged.items]}
+        availableLocales={availableLocales}
+        defaultLocale={defaultLocale}
+        emptyMessage={
+          hasSearch
+            ? "No items match the current search."
+            : "No items in this list."
+        }
+        footer={<PagedTableFooter {...footerProps} />}
+      />
+    </div>
   );
 }
