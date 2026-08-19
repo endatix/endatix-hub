@@ -1,20 +1,22 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import {
+  hydrateBrowserEndatixConfig,
+  resetBrowserEndatixConfigForTests,
+} from "@/features/config/client-endatix-config";
 import {
   clearDataListDisplayValuesCacheForTests,
   resolveDataListDisplayValues,
 } from "../resolve-data-list-display-values";
 
-const { getDisplayValuesMock } = vi.hoisted(() => ({
+const { createEndatixPublicApiMock, getDisplayValuesMock } = vi.hoisted(() => ({
+  createEndatixPublicApiMock: vi.fn(),
   getDisplayValuesMock: vi.fn(),
 }));
 
 vi.mock("@/lib/endatix-api/public", () => ({
-  createEndatixPublicApi: () => ({
-    dataLists: {
-      getDisplayValues: getDisplayValuesMock,
-    },
-  }),
+  createEndatixPublicApi: (options?: unknown) =>
+    createEndatixPublicApiMock(options),
 }));
 
 vi.mock("@/lib/form-runtime/form-access-jwt-orchestrator", () => ({
@@ -22,9 +24,25 @@ vi.mock("@/lib/form-runtime/form-access-jwt-orchestrator", () => ({
   invalidateRuntimeFormAccessJwt: vi.fn(),
 }));
 
+const runtimeDeps = {
+  getRuntimeState: () => ({
+    formId: "101",
+  }),
+};
+
 describe("resolveDataListDisplayValues", () => {
   beforeEach(() => {
+    hydrateBrowserEndatixConfig({
+      apiBaseUrl: "https://api.example.com/api",
+      extensionsEnabled: true,
+    });
     clearDataListDisplayValuesCacheForTests();
+    createEndatixPublicApiMock.mockReset();
+    createEndatixPublicApiMock.mockReturnValue({
+      dataLists: {
+        getDisplayValues: getDisplayValuesMock,
+      },
+    });
     getDisplayValuesMock.mockReset();
     getDisplayValuesMock.mockResolvedValue(
       ApiResult.success([
@@ -36,13 +54,21 @@ describe("resolveDataListDisplayValues", () => {
     );
   });
 
+  afterEach(() => {
+    resetBrowserEndatixConfigForTests();
+  });
+
   it("requests includeLocales and returns full label maps", async () => {
     const result = await resolveDataListDisplayValues(
-      { getRuntimeState: () => ({ formId: "101" }) },
+      runtimeDeps,
       "42",
       ["728193"],
       { locale: "bg", includeLocales: ["default", "bg"] },
     );
+
+    expect(createEndatixPublicApiMock).toHaveBeenCalledWith({
+      baseUrl: "https://api.example.com/api",
+    });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -61,15 +87,12 @@ describe("resolveDataListDisplayValues", () => {
   });
 
   it("reuses cached labels without another network call", async () => {
-    await resolveDataListDisplayValues(
-      { getRuntimeState: () => ({ formId: "101" }) },
-      "42",
-      ["728193"],
-      { includeLocales: ["default", "bg"] },
-    );
+    await resolveDataListDisplayValues(runtimeDeps, "42", ["728193"], {
+      includeLocales: ["default", "bg"],
+    });
 
     const second = await resolveDataListDisplayValues(
-      { getRuntimeState: () => ({ formId: "101" }) },
+      runtimeDeps,
       "42",
       ["728193"],
       { includeLocales: ["default", "bg"] },
@@ -104,15 +127,12 @@ describe("resolveDataListDisplayValues", () => {
         ]),
       );
 
-    await resolveDataListDisplayValues(
-      { getRuntimeState: () => ({ formId: "101" }) },
-      "42",
-      ["728193"],
-      { includeLocales: ["default"] },
-    );
+    await resolveDataListDisplayValues(runtimeDeps, "42", ["728193"], {
+      includeLocales: ["default"],
+    });
 
     const second = await resolveDataListDisplayValues(
-      { getRuntimeState: () => ({ formId: "101" }) },
+      runtimeDeps,
       "42",
       ["728193"],
       { includeLocales: ["default", "bg"] },

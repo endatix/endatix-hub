@@ -1,5 +1,7 @@
 import { renderHook } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { ReactNode } from "react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { EndatixClientConfigProvider } from "@/components/providers/endatix-client-config-provider";
 import { useSurveyExtensions } from "../use-survey-extensions";
 
 const mockUseExtensionLoader = vi.fn();
@@ -13,7 +15,6 @@ vi.mock("../../server/analyzer", () => ({
     mockGetRequiredExtensionIds(formJson, all),
 }));
 
-// ALL_EXTENSIONS is built from core + user; mock so we control what the hook sees
 vi.mock("@/extensions/user-extensions", () => ({
   userExtensions: [{ id: "user-a", type: "question" as const }],
 }));
@@ -22,10 +23,24 @@ vi.mock("../../core-registry", () => ({
 }));
 
 describe("useSurveyExtensions", () => {
-  const originalEnv = process.env;
   const runtimeDeps = {
     getRuntimeState: () => ({ formId: "123" }),
   };
+
+  function wrap(extensionsEnabled: boolean) {
+    return function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <EndatixClientConfigProvider
+          value={{
+            apiBaseUrl: "https://api.example.com/api",
+            extensionsEnabled,
+          }}
+        >
+          {children}
+        </EndatixClientConfigProvider>
+      );
+    };
+  }
 
   beforeEach(() => {
     mockUseExtensionLoader.mockReturnValue({
@@ -34,22 +49,15 @@ describe("useSurveyExtensions", () => {
     });
     mockGetRequiredExtensionIds.mockReturnValue([]);
     mockGetRequiredExtensionIds.mockClear();
-    process.env = { ...originalEnv };
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
   });
 
   it("passes extensionIdsToLoad through to useExtensionLoader when provided", () => {
-    // Arrange – must be enabled so we don't short-circuit to []
-    process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     const extensionIdsToLoad = ["ext-1", "ext-2"];
 
-    // Act
-    renderHook(() => useSurveyExtensions({ extensionIdsToLoad, runtimeDeps }));
+    renderHook(() => useSurveyExtensions({ extensionIdsToLoad, runtimeDeps }), {
+      wrapper: wrap(true),
+    });
 
-    // Assert
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: ["ext-1", "ext-2"],
@@ -60,17 +68,15 @@ describe("useSurveyExtensions", () => {
   });
 
   it("prefers extensionIdsToLoad over formJson analysis when both are provided", () => {
-    // Arrange – server-provided whitelist should short-circuit client detection
-    process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     const extensionIdsToLoad = ["server-ext-a"];
     const formJson = { pages: [{ elements: [{ type: "country" }] }] };
 
-    // Act
-    renderHook(() =>
-      useSurveyExtensions({ extensionIdsToLoad, formJson, runtimeDeps }),
+    renderHook(
+      () =>
+        useSurveyExtensions({ extensionIdsToLoad, formJson, runtimeDeps }),
+      { wrapper: wrap(true) },
     );
 
-    // Assert
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: ["server-ext-a"],
@@ -83,15 +89,13 @@ describe("useSurveyExtensions", () => {
   });
 
   it("calls getRequiredExtensionIds when formJson provided and extensions enabled", () => {
-    // Arrange
-    process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
     mockGetRequiredExtensionIds.mockReturnValue(["country", "hello-world"]);
     const formJson = { pages: [] };
 
-    // Act
-    renderHook(() => useSurveyExtensions({ formJson, runtimeDeps }));
+    renderHook(() => useSurveyExtensions({ formJson, runtimeDeps }), {
+      wrapper: wrap(true),
+    });
 
-    // Assert
     expect(mockGetRequiredExtensionIds).toHaveBeenCalledWith(
       formJson,
       expect.any(Array),
@@ -106,15 +110,13 @@ describe("useSurveyExtensions", () => {
     );
   });
 
-  it('passes empty extensionIdsToLoad when ENDATIX_ENABLE_EXTENSIONS is not "true"', () => {
-    // Arrange
-    process.env.ENDATIX_ENABLE_EXTENSIONS = "false";
+  it("passes empty extensionIdsToLoad when client extensionsEnabled is not true", () => {
     const formJson = { pages: [] };
 
-    // Act
-    renderHook(() => useSurveyExtensions({ formJson, runtimeDeps }));
+    renderHook(() => useSurveyExtensions({ formJson, runtimeDeps }), {
+      wrapper: wrap(false),
+    });
 
-    // Assert – ids should be [] so no extensions load, getRequiredExtensionIds not used
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({
         extensionIdsToLoad: [],
@@ -127,9 +129,9 @@ describe("useSurveyExtensions", () => {
   });
 
   it("passes runtimeDeps unchanged when formJson is omitted", () => {
-    process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
-    renderHook(() =>
-      useSurveyExtensions({ extensionIdsToLoad: ["ext-a"], runtimeDeps }),
+    renderHook(
+      () => useSurveyExtensions({ extensionIdsToLoad: ["ext-a"], runtimeDeps }),
+      { wrapper: wrap(true) },
     );
     expect(mockUseExtensionLoader).toHaveBeenCalledWith(
       expect.objectContaining({ runtimeDeps }),
@@ -137,16 +139,14 @@ describe("useSurveyExtensions", () => {
   });
 
   it("returns whatever useExtensionLoader returns", () => {
-    // Arrange
     const ret = { isReady: false, onModelCreated: vi.fn() };
     mockUseExtensionLoader.mockReturnValue(ret);
 
-    // Act
-    const { result } = renderHook(() =>
-      useSurveyExtensions({ extensionIdsToLoad: [], runtimeDeps }),
+    const { result } = renderHook(
+      () => useSurveyExtensions({ extensionIdsToLoad: [], runtimeDeps }),
+      { wrapper: wrap(true) },
     );
 
-    // Assert
     expect(result.current).toBe(ret);
     expect(result.current.isReady).toBe(false);
     expect(result.current.onModelCreated).toBe(ret.onModelCreated);

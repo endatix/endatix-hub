@@ -1,4 +1,5 @@
 import { createEndatixPublicApi } from "@/lib/endatix-api/public";
+import { getBrowserEndatixConfig } from "@/features/config/client-endatix-config";
 import type { DataListChoiceItem } from "@/lib/endatix-api/public/data-lists/types";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { resolveFormRuntimeState } from "@/lib/form-runtime/resolve-form-runtime-state";
@@ -66,7 +67,9 @@ export async function resolveDataListDisplayValues(
   );
 
   if (missingValues.length > 0) {
-    const api = createEndatixPublicApi().dataLists;
+    const api = createEndatixPublicApi({
+      baseUrl: getBrowserEndatixConfig().apiBaseUrl,
+    }).dataLists;
     const response = await withFormAccessJwtRetry(runtime, (jwt) =>
       api.getDisplayValues({
         formId: runtime.formId,
