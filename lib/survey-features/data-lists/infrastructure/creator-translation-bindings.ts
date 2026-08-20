@@ -6,10 +6,10 @@ import { DATA_LIST_PROPERTY_NAME } from "@/lib/survey-features/data-lists/consta
 import { collectBoundDataListIds } from "@/lib/survey-features/data-lists/use-cases/collect-bound-data-list-ids";
 import { createDataListTranslationCsvHooks } from "@/lib/survey-features/data-lists/use-cases/creator-translation-csv-hooks";
 import {
-  hydrateTranslationGridFromCatalogs,
-  markHydratedTranslationChoicesReadOnly,
-  resetTranslationTabModel,
-  stripTranslationGridHydrate,
+  bindAddLocalePlaceholderRefresh,
+  injectDataListTranslationSummaries,
+  removeDataListTranslationSummaries,
+  type TranslationModelLike,
 } from "@/lib/survey-features/data-lists/use-cases/translation-grid-hydrate";
 import type {
   DataListTranslationCatalog,
@@ -19,14 +19,15 @@ import type {
   AfterPropertyChangedEvent,
   SurveyCreatorModel,
 } from "survey-creator-core";
+import "./creator-translation-bindings.css";
 
 const WRAPPED_MODEL_KEY = "__endatixDataListTranslationCsvWrapped";
 const TRANSLATION_TAB_NAME = "translation";
-const JSON_TAB_NAME = "json";
 
-type TranslationCsvModel = {
+type TranslationCsvModel = TranslationModelLike & {
   exportToCSV: () => string;
   importFromNestedArray: (rows: string[][]) => void;
+  reset: () => void;
 } & Record<string, unknown>;
 
 type TranslationTabPlugin = {
@@ -44,9 +45,6 @@ export function bindDataListCreatorTranslations(
     },
   });
 
-  let previousTab = creator.activeTab;
-  let hydrateRequestId = 0;
-
   const wrapActiveTranslationModel = (): void => {
     const model = getTranslationCsvModel(creator);
     if (!model || model[WRAPPED_MODEL_KEY]) {
@@ -56,24 +54,17 @@ export function bindDataListCreatorTranslations(
     model[WRAPPED_MODEL_KEY] = true;
     const originalExport = model.exportToCSV.bind(model);
     const originalImport = model.importFromNestedArray.bind(model);
+    const originalReset = model.reset.bind(model);
 
-    model.exportToCSV = () => {
-      stripTranslationGridHydrate(creator.survey);
-      try {
-        return hooks.wrapExportToCsv(originalExport)();
-      } finally {
-        void refreshTranslationGridPreview();
-      }
+    model.exportToCSV = hooks.wrapExportToCsv(originalExport);
+    model.importFromNestedArray =
+      hooks.wrapImportFromNestedArray(originalImport);
+    model.reset = () => {
+      removeDataListTranslationSummaries(creator);
+      originalReset();
+      injectDataListTranslationSummaries(creator, catalogs);
     };
-
-    model.importFromNestedArray = (rows) => {
-      stripTranslationGridHydrate(creator.survey);
-      try {
-        hooks.wrapImportFromNestedArray(originalImport)(rows);
-      } finally {
-        void refreshTranslationGridPreview();
-      }
-    };
+    bindAddLocalePlaceholderRefresh(model);
   };
 
   const loadBoundCatalogs = async (): Promise<void> => {
@@ -95,53 +86,27 @@ export function bindDataListCreatorTranslations(
     );
   };
 
-  const refreshTranslationGridPreview = async (): Promise<void> => {
+  const refreshTranslationGridSummary = async (): Promise<void> => {
     if (creator.activeTab !== TRANSLATION_TAB_NAME) {
       return;
     }
 
-    const requestId = ++hydrateRequestId;
     await loadBoundCatalogs();
-    if (requestId !== hydrateRequestId || creator.activeTab !== TRANSLATION_TAB_NAME) {
+    if (creator.activeTab !== TRANSLATION_TAB_NAME) {
       return;
     }
 
-    stripTranslationGridHydrate(creator.survey);
-    const { truncatedListIds } = hydrateTranslationGridFromCatalogs(
-      creator.survey,
-      catalogs,
-    );
-
-    if (truncatedListIds.length > 0) {
-      toast.info(
-        `Showing the first 500 choices per data list in the Translations grid. Export CSV for the full catalog.`,
-      );
-    }
-
-    resetTranslationTabModel(creator);
-    markHydratedTranslationChoicesReadOnly(creator);
+    wrapActiveTranslationModel();
+    injectDataListTranslationSummaries(creator, catalogs);
   };
 
   const onActiveTabChanged = (): void => {
-    const currentTab = creator.activeTab;
-
-    if (
-      previousTab === TRANSLATION_TAB_NAME &&
-      currentTab !== TRANSLATION_TAB_NAME
-    ) {
-      stripTranslationGridHydrate(creator.survey);
+    if (creator.activeTab !== TRANSLATION_TAB_NAME) {
+      return;
     }
 
-    if (currentTab === JSON_TAB_NAME) {
-      stripTranslationGridHydrate(creator.survey);
-    }
-
-    if (currentTab === TRANSLATION_TAB_NAME) {
-      wrapActiveTranslationModel();
-      void refreshTranslationGridPreview();
-    }
-
-    previousTab = currentTab;
+    wrapActiveTranslationModel();
+    void refreshTranslationGridSummary();
   };
 
   const onPropertyChanged = (
@@ -156,7 +121,7 @@ export function bindDataListCreatorTranslations(
       return;
     }
 
-    void refreshTranslationGridPreview();
+    void refreshTranslationGridSummary();
   };
 
   creator.onActiveTabChanged.add(onActiveTabChanged);
@@ -166,7 +131,6 @@ export function bindDataListCreatorTranslations(
   }
 
   return () => {
-    stripTranslationGridHydrate(creator.survey);
     creator.onActiveTabChanged.remove(onActiveTabChanged);
     creator.onAfterPropertyChanged.remove(onPropertyChanged);
   };
@@ -175,9 +139,9 @@ export function bindDataListCreatorTranslations(
 function getTranslationCsvModel(
   creator: SurveyCreatorModel,
 ): TranslationCsvModel | null {
-  const plugin = creator.getPlugin(
-    TRANSLATION_TAB_NAME,
-  ) as TranslationTabPlugin | undefined;
+  const plugin = creator.getPlugin(TRANSLATION_TAB_NAME) as unknown as
+    | TranslationTabPlugin
+    | undefined;
   return plugin?.model ?? null;
 }
 

@@ -79,6 +79,8 @@ export async function getDataListTranslationCatalogAction(
 
   return Result.success({
     dataListId: idResult.value,
+    name: detailsResult.value.name,
+    itemsCount: detailsResult.value.itemsCount,
     defaultLocale: detailsResult.value.defaultLocale,
     availableLocales: includeLocales,
     items: items.slice(0, DATA_LIST_MAX_ITEMS),

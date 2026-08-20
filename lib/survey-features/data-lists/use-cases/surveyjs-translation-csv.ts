@@ -6,6 +6,8 @@ import {
 
 export interface DataListTranslationCatalog {
   dataListId: string;
+  name?: string;
+  itemsCount?: number;
   defaultLocale?: string;
   availableLocales: string[];
   items: Array<{
@@ -51,7 +53,9 @@ export function appendDataListRowsToSurveyCsv(
   const localeHeaders = splitCsvLine(headerLine).slice(1);
   const extraRows = catalogs.flatMap((catalog) =>
     catalog.items.map((item) => {
-      const row = [encodeDataListTranslationKey(catalog.dataListId, item.value)];
+      const row = [
+        encodeDataListTranslationKey(catalog.dataListId, item.value),
+      ];
       localeHeaders.forEach((localeHeader, index) => {
         row.push(
           resolveLabelForSurveyHeader(item.labels, localeHeader, index === 0),
@@ -69,9 +73,10 @@ export function appendDataListRowsToSurveyCsv(
   return `${trimmed}\r\n${extraRows.join("\r\n")}`;
 }
 
-export function extractDataListCsvsFromSurveyRows(
-  rows: string[][],
-): { formRows: string[][]; dataListCsvs: GroupedDataListCsv[] } {
+export function extractDataListCsvsFromSurveyRows(rows: string[][]): {
+  formRows: string[][];
+  dataListCsvs: GroupedDataListCsv[];
+} {
   if (rows.length === 0) {
     return { formRows: [], dataListCsvs: [] };
   }
@@ -95,10 +100,12 @@ export function extractDataListCsvsFromSurveyRows(
     const existing = grouped.get(parsed.dataListId) ?? [
       ["value", DEFAULT_LABEL_KEY, ...cultureColumns],
     ];
-    const labelsByCulture = localeHeaders.slice(1).map((localeHeader, index) => ({
-      locale: tryNormalizeCultureCode(localeHeader),
-      text: row[index + 2] ?? "",
-    }));
+    const labelsByCulture = localeHeaders
+      .slice(1)
+      .map((localeHeader, index) => ({
+        locale: tryNormalizeCultureCode(localeHeader),
+        text: row[index + 2] ?? "",
+      }));
     existing.push([
       parsed.value,
       row[1] ?? "",

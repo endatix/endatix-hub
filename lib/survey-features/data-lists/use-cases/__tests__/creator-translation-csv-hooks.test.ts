@@ -16,7 +16,8 @@ describe("createDataListTranslationCsvHooks", () => {
       persistCsvs,
     });
     const exportCsv = hooks.wrapExportToCsv(
-      () => '"description ↓ - language →",English\r\npage1.title,Hello',
+      () =>
+        '"description ↓ - language →",English\r\npage1.title,Hello\r\nsurvey.page1.questionCities.edxDataList_7.choices,',
     );
     const importRows = hooks.wrapImportFromNestedArray(vi.fn());
 
@@ -30,6 +31,7 @@ describe("createDataListTranslationCsvHooks", () => {
 
     // Assert
     expect(csv).toContain("edx_dataList_7_a,Alpha");
+    expect(csv).not.toContain("edxDataList_");
     expect(persistCsvs).toHaveBeenCalledTimes(1);
     expect(persistCsvs.mock.calls[0][0][0].dataListId).toBe("7");
   });
