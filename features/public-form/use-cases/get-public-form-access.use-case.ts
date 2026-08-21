@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { EndatixApi } from "@/lib/endatix-api";
 import type {
   GetPublicFormAccessRequest,
   PublicFormAccessResponse,
 } from "@/lib/endatix-api/forms/types";
-import { Result } from "@/lib/result";
+import { toResult, type ResultType } from "@/lib/result";
 
 export interface GetPublicFormAccessQuery {
   formId: string;
@@ -20,22 +20,22 @@ export async function getPublicFormAccessUseCase({
   formId,
   token,
   tokenType,
-}: GetPublicFormAccessQuery): Promise<Result<PublicFormAccessResponse>> {
+}: GetPublicFormAccessQuery): Promise<ResultType<PublicFormAccessResponse>> {
   const session = await auth();
   const endatixApi = new EndatixApi(session?.accessToken);
   const resolvedTokenType = tokenType ?? (token ? "AccessToken" : undefined);
   const accessRequest: GetPublicFormAccessRequest =
     token && resolvedTokenType ? { token, tokenType: resolvedTokenType } : {};
 
-  const accessResult = await endatixApi.forms.getPublicFormAccess(
+  const getAccessApiResult = await endatixApi.forms.getPublicFormAccess(
     formId,
     accessRequest,
     false,
   );
 
-  if (ApiResult.isError(accessResult)) {
-    return Result.error(accessResult.error.message);
-  }
-
-  return Result.success(accessResult.data);
+  return toResult(getAccessApiResult, {
+    fallbackMessage: "Failed to load form access.",
+    logMessage: "Failed to load public form access.",
+    loggerName: "public-form.access",
+  });
 }

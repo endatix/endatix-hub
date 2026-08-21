@@ -342,9 +342,9 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
   });
 
-  it("returns notFound when access or definition cannot be loaded", async () => {
+  it("returns notFound for a confirmed missing form", async () => {
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
-      Result.error("Access denied"),
+      Result.error("Form not found", undefined, ERROR_CODE.RESOURCE_NOT_FOUND),
     );
 
     const accessResult = await loadPublicSurveyPageUseCase({
@@ -366,6 +366,136 @@ describe("loadPublicSurveyPageUseCase", () => {
 
     expect(accessResult).toEqual({ kind: "notFound" });
     expect(definitionResult).toEqual({ kind: "notFound" });
+  });
+
+  it("returns accessLoadError for invalid form identifiers", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error("Invalid formId", undefined, ERROR_CODE.VALIDATION_ERROR),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.VALIDATION_ERROR,
+    });
+  });
+
+  it("returns accessLoadError for operational access failures", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error("Upstream unavailable", undefined, ERROR_CODE.NETWORK_ERROR),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.NETWORK_ERROR,
+    });
+  });
+
+  it("returns accessLoadError when access fails without a mapped error code", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error("Access denied"),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.UNKNOWN_ERROR,
+    });
+  });
+
+  it("returns unauthorized when anonymous access to a private form is denied", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "You must be authenticated to access this form",
+        undefined,
+        ERROR_CODE.AUTHENTICATION_REQUIRED,
+      ),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({ kind: "unauthorized" });
+  });
+
+  it("returns forbidden when authenticated access to a private form is denied", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "You are not allowed to access this form",
+        undefined,
+        ERROR_CODE.ACCESS_FORBIDDEN,
+      ),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+    });
+
+    expect(result).toEqual({ kind: "forbidden" });
+  });
+
+  it("maps token-path access failures to tokenSubmissionError instead of sign-in", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "You must be authenticated to access this form",
+        undefined,
+        ERROR_CODE.AUTHENTICATION_REQUIRED,
+      ),
+    );
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.success(accessTokenSubmission),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: token,
+    });
+
+    expect(result).toEqual({
+      kind: "tokenSubmissionError",
+      errorCode: ERROR_CODE.AUTHENTICATION_REQUIRED,
+    });
+  });
+
+  it("prefers the submission error when both token-path lookups fail", async () => {
+    vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
+      Result.error(
+        "You must be authenticated to access this form",
+        undefined,
+        ERROR_CODE.AUTHENTICATION_REQUIRED,
+      ),
+    );
+    vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
+      Result.error("Token expired", undefined, ERROR_CODE.TOKEN_EXPIRED),
+    );
+
+    const result = await loadPublicSurveyPageUseCase({
+      formId,
+      tokenStore,
+      urlToken: token,
+    });
+
+    expect(result).toEqual({
+      kind: "tokenSubmissionError",
+      errorCode: ERROR_CODE.TOKEN_EXPIRED,
+    });
   });
 });
 

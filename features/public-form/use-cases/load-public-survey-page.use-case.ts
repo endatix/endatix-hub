@@ -13,7 +13,7 @@ import {
   type Submission,
 } from "@/lib/endatix-api";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
-import { Result } from "@/lib/result";
+import { Result, type ResultType } from "@/lib/result";
 import type { ActiveDefinition } from "@/types";
 
 /**
@@ -48,6 +48,16 @@ export type LoadPublicSurveyPageResult =
       kind: "notFound";
     }
   | {
+      kind: "unauthorized";
+    }
+  | {
+      kind: "forbidden";
+    }
+  | {
+      kind: "accessLoadError";
+      errorCode: string;
+    }
+  | {
       kind: "tokenSubmissionError";
       errorCode: string;
     }
@@ -80,7 +90,7 @@ export async function loadPublicSurveyPageUseCase({
     ]);
 
   if (Result.isError(publicFormAccessResult)) {
-    return { kind: "notFound" };
+    return mapAccessFailure(publicFormAccessResult);
   }
 
   if (submissionResult.kind === "submissionLoadError") {
@@ -119,12 +129,15 @@ async function loadAccessTokenSurveyPage({
     loadAccessTokenSubmission({ formId, urlToken }),
   ]);
 
-  if (Result.isError(publicFormAccessResult)) {
-    return { kind: "notFound" };
-  }
-
   if (submissionResult.kind === "tokenSubmissionError") {
     return submissionResult;
+  }
+
+  if (Result.isError(publicFormAccessResult)) {
+    return {
+      kind: "tokenSubmissionError",
+      errorCode: publicFormAccessResult.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
+    };
   }
 
   const activeDefinitionResult = resolveSubmissionFormDefinition(
@@ -152,6 +165,41 @@ async function loadAccessTokenSurveyPage({
     isRespondentTestMode: publicFormAccessResult.value.isRespondentTestMode,
     submission: submissionResult.value,
   };
+}
+
+function mapAccessFailure(
+  result: ResultType<unknown>,
+): Extract<
+  LoadPublicSurveyPageResult,
+  { kind: "notFound" | "unauthorized" | "forbidden" | "accessLoadError" }
+> {
+  if (!Result.isError(result)) {
+    return { kind: "notFound" };
+  }
+
+  if (result.errorCode === ERROR_CODE.AUTHENTICATION_REQUIRED) {
+    return { kind: "unauthorized" };
+  }
+
+  if (result.errorCode === ERROR_CODE.ACCESS_FORBIDDEN) {
+    return { kind: "forbidden" };
+  }
+
+  if (isMissingFormAccessError(result.errorCode)) {
+    return { kind: "notFound" };
+  }
+
+  return {
+    kind: "accessLoadError",
+    errorCode: result.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
+  };
+}
+
+function isMissingFormAccessError(errorCode: string | undefined): boolean {
+  return (
+    errorCode === ERROR_CODE.RESOURCE_NOT_FOUND ||
+    errorCode === ERROR_CODE.FORM_NOT_FOUND
+  );
 }
 
 type LoadAccessTokenSurveyPageQuery = {

@@ -1,4 +1,7 @@
 import { PublicSurveyContent } from "@/features/public-form/ui/public-survey-content";
+import {
+  buildPublicFormSignInHref,
+} from "@/features/public-form/ui/public-form-access-error";
 import type { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
 import type { LoadPublicSurveyPageResult } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
@@ -176,7 +179,7 @@ describe("PublicSurveyContent", () => {
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
 
-  it("delegates hard failures to notFound", async () => {
+  it("delegates missing forms to notFound", async () => {
     vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
       kind: "notFound",
     });
@@ -190,5 +193,120 @@ describe("PublicSurveyContent", () => {
 
     expect(notFound).toHaveBeenCalled();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+  });
+
+  it("renders sign-in required copy for unauthenticated private-form access", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "unauthorized",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByText("401")).toBeDefined();
+    expect(screen.getByText("Sign in required")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+    expect(screen.queryByTestId("embed-height-reporter")).toBeNull();
+  });
+
+  it("reports embed height for unauthenticated private-form access", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "unauthorized",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "embed",
+    });
+
+    render(component);
+
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Sign in" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("target")).toBe(
+      "_top",
+    );
+  });
+
+  it("forwards urlToken into the unauthorized sign-in returnUrl", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "unauthorized",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      urlToken: "token.rw",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe(
+      buildPublicFormSignInHref({
+        formId: "form-1",
+        urlToken: "token.rw",
+        variant: "share",
+      }),
+    );
+  });
+
+  it("renders access-denied copy for authenticated private-form denial", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "forbidden",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByText("403")).toBeDefined();
+    expect(screen.getByText("Access denied")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+  });
+
+  it("renders a load-failure screen for operational access errors", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.NETWORK_ERROR,
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByText("Unable to load form")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+    expect(screen.queryByTestId("embed-height-reporter")).toBeNull();
+  });
+
+  it("reports embed height for operational access errors", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.NETWORK_ERROR,
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "embed",
+    });
+
+    render(component);
+
+    expect(screen.getByText("Unable to load form")).toBeDefined();
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
   });
 });
