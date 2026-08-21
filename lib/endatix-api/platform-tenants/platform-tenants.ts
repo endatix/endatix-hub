@@ -1,10 +1,15 @@
-import type { ApiResult } from "../shared/api-result";
+import { ApiResult } from "../shared/api-result";
 import { buildQueryEndpoint } from "../shared/query-params";
 import type { PagedResponse } from "../shared/types";
 import type { EndatixApi } from "../endatix-api";
+import { Result } from "@/lib/result";
+import { validateEndatixId } from "@/lib/utils/type-validators";
 import type {
+  CreatePlatformTenantRequest,
   ListPlatformTenantsRequest,
+  PlatformTenant,
   PlatformTenantListItem,
+  UpdatePlatformTenantRequest,
 } from "./types";
 
 export default class PlatformTenants {
@@ -25,6 +30,36 @@ export default class PlatformTenants {
         ["modifiedFrom", request.modifiedFrom],
         ["modifiedTo", request.modifiedTo],
       ]),
+    );
+  }
+
+  async getById(tenantId: string): Promise<ApiResult<PlatformTenant>> {
+    const idResult = validateEndatixId(String(tenantId), "tenantId");
+    if (Result.isError(idResult)) {
+      return ApiResult.validationError(idResult.message);
+    }
+
+    return this.endatix.get<PlatformTenant>(`/admin/tenants/${idResult.value}`);
+  }
+
+  async create(
+    request: CreatePlatformTenantRequest,
+  ): Promise<ApiResult<PlatformTenant>> {
+    return this.endatix.post<PlatformTenant>("/admin/tenants", request);
+  }
+
+  async update(
+    tenantId: string,
+    request: UpdatePlatformTenantRequest,
+  ): Promise<ApiResult<PlatformTenant>> {
+    const idResult = validateEndatixId(String(tenantId), "tenantId");
+    if (Result.isError(idResult)) {
+      return ApiResult.validationError(idResult.message);
+    }
+
+    return this.endatix.patch<PlatformTenant>(
+      `/admin/tenants/${idResult.value}`,
+      request,
     );
   }
 }

@@ -17,9 +17,40 @@ export interface ListPlatformTenantsRequest
 export interface PlatformTenantListItem {
   id: string;
   name: string;
+  slug: string;
   description?: string | null;
   createdAt: string;
   modifiedAt?: string | null;
   formsCount: number;
   submissionsCount: number;
+  selfRegistrationEnabled: boolean;
+}
+
+export interface PlatformTenant {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  allowSelfRegistration: boolean;
+  allowedAuthProviderKeys: string[];
+  defaultRegistrationRoleName: string;
+  createdAt: string;
+  modifiedAt?: string | null;
+}
+
+export interface CreatePlatformTenantRequest {
+  name: string;
+  slug: string;
+  description?: string | null;
+  allowSelfRegistration: boolean;
+  allowedAuthProviderKeys?: string[];
+  defaultRegistrationRoleName?: string;
+}
+
+export interface UpdatePlatformTenantRequest {
+  name?: string;
+  description?: string | null;
+  allowSelfRegistration?: boolean;
+  allowedAuthProviderKeys?: string[];
+  defaultRegistrationRoleName?: string;
 }
