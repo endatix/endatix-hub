@@ -27,6 +27,21 @@ const HUB_PATHS = [
   "/data-lists",
 ];
 
+const TENANT_PUBLIC_AUTH_PREFIX = "/t/";
+
+function isTenantPublicAuthPath(pathname: string): boolean {
+  if (!pathname.startsWith(TENANT_PUBLIC_AUTH_PREFIX)) {
+    return false;
+  }
+
+  const segments = pathname.slice(TENANT_PUBLIC_AUTH_PREFIX.length).split("/");
+  return (
+    segments.length === 2 &&
+    segments[0].length > 0 &&
+    (segments[1] === "signin" || segments[1] === "register")
+  );
+}
+
 export {
   AUTH_ROUTES,
   DEFAULT_RETURN_URL,
@@ -36,4 +51,5 @@ export {
   SIGNOUT_PATH,
   UNAUTHORIZED_PATH,
   HUB_PATHS,
+  isTenantPublicAuthPath,
 };

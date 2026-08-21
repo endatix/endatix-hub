@@ -10,6 +10,7 @@ import {
   SIGNIN_PATH,
   RETURN_URL_PARAM,
   HUB_PATHS,
+  isTenantPublicAuthPath,
 } from "@/features/auth/infrastructure/auth-constants";
 
 /** Session shape needed for redirect decision; exported for testing. */
@@ -22,7 +23,7 @@ export function shouldRedirectToLogin(
   pathname: string,
   session: ProxySession,
 ): boolean {
-  if (AUTH_ROUTES.includes(pathname)) {
+  if (AUTH_ROUTES.includes(pathname) || isTenantPublicAuthPath(pathname)) {
     return false;
   }
   const isHubPath = HUB_PATHS.some((p) => pathname.startsWith(p));
