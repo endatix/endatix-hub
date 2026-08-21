@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Eye, Sparkles, X } from "lucide-react";
-import { FacetedFilter } from "./faceted-filter";
+import { FacetedFilter } from "@/components/table";
 
 interface SubmissionsFilterToolbarProps {
   isCompleteFilter: Set<string>;

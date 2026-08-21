@@ -9,7 +9,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CheckCircle2 } from "lucide-react";
 import { CellCompleteStatus } from "./cell-complete-status";
 import { CellCompletionTime } from "./cell-completion-time";
-import { CellDate } from "./cell-date";
+import { CellDate } from "@/components/table";
 import { CellStatusDropdown } from "./cell-status-dropdown";
 import { ColumnHeader } from "./column-header";
 import type {

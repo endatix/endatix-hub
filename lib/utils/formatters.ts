@@ -51,6 +51,24 @@ function formatNumber(number: number, fallback: string = "-"): string {
 }
 
 /**
+ * Formats an integer with locale grouping (e.g. 5,000).
+ * Prefer this for table counts and pager totals over compact {@link formatNumber}.
+ */
+function formatInteger(
+  value: number,
+  locale?: string,
+  fallback: string = "-",
+): string {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+/**
  * Formats a number as currency.
  * @param value - The number to format
  * @param currencyCode - The currency code (default: USD)
@@ -187,6 +205,7 @@ function formatValue(value: unknown): string {
 
 export {
   formatNumber,
+  formatInteger,
   formatCurrency,
   formatDecimalNumber,
   formatDateTime,

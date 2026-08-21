@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import {
   BackToTableButton,
+  CellDate,
   createPagedTableFooterProps,
   PagedTableFooter,
   TableSearchInput,
@@ -19,7 +20,7 @@ import type { DataListItemsPage } from "@/lib/endatix-api/data-lists/data-lists"
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import { TelemetryLogger } from "@/features/telemetry";
 import { withBasePath } from "@/lib/hosting";
-import { getFormattedDate } from "@/lib/utils";
+import { formatInteger } from "@/lib/utils/formatters";
 import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
@@ -211,16 +212,17 @@ export function DataListDetailsPage({
             <p className="text-sm text-muted-foreground">
               {details.description || "No description"}
             </p>
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <span>
-                Created:{" "}
-                {getFormattedDate(details.createdAt as Date | null | undefined)}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="font-medium text-foreground/70">Created</span>
+                <CellDate date={details.createdAt} />
               </span>
-              <span>
-                Modified: {getFormattedDate(details.modifiedAt as Date | null)}
+              <span className="inline-flex items-center gap-1.5">
+                <span className="font-medium text-foreground/70">Modified</span>
+                <CellDate date={details.modifiedAt} />
               </span>
-              <span>
-                {details.itemsCount} item
+              <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                {formatInteger(details.itemsCount)} item
                 {details.itemsCount === 1 ? "" : "s"}
               </span>
             </div>
@@ -273,20 +275,11 @@ export function DataListDetailsPage({
           }}
         />
 
-        <Suspense
-          fallback={
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-full max-w-sm" />
-              <Skeleton className="h-64 w-full" />
-            </div>
-          }
-        >
-          <DataListItemsPanel
-            itemsPromise={itemsPromise}
-            availableLocales={availableLocales}
-            defaultLocale={details.defaultLocale}
-          />
-        </Suspense>
+        <DataListItemsSection
+          itemsPromise={itemsPromise}
+          availableLocales={availableLocales}
+          defaultLocale={details.defaultLocale}
+        />
       </div>
 
       <ReplaceItemsDialog
@@ -311,6 +304,42 @@ export function DataListDetailsPage({
   );
 }
 
+function DataListItemsSection({
+  itemsPromise,
+  availableLocales,
+  defaultLocale,
+}: Readonly<{
+  itemsPromise: Promise<DataListItemsPage>;
+  availableLocales: string[];
+  defaultLocale?: string;
+}>) {
+  const { search, setSearch } = useListUrlState();
+
+  return (
+    <div className="space-y-3">
+      <TableSearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search items by value or label"
+        ariaLabel="Search data list items"
+      />
+      <Suspense
+        fallback={
+          <div className="space-y-3">
+            <Skeleton className="h-64 w-full" />
+          </div>
+        }
+      >
+        <DataListItemsPanel
+          itemsPromise={itemsPromise}
+          availableLocales={availableLocales}
+          defaultLocale={defaultLocale}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
 function DataListItemsPanel({
   itemsPromise,
   availableLocales,
@@ -321,29 +350,21 @@ function DataListItemsPanel({
   defaultLocale?: string;
 }>) {
   const paged = use(itemsPromise);
-  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const { updateUrl, searchParams } = useListUrlState();
   const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
   const hasSearch = Boolean(searchParams.get("search")?.trim());
 
   return (
-    <div className="space-y-3">
-      <TableSearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Search items by value or label"
-        ariaLabel="Search data list items"
-      />
-      <DataListItemsTable
-        items={[...paged.items]}
-        availableLocales={availableLocales}
-        defaultLocale={defaultLocale}
-        emptyMessage={
-          hasSearch
-            ? "No items match the current search."
-            : "No items in this list."
-        }
-        footer={<PagedTableFooter {...footerProps} />}
-      />
-    </div>
+    <DataListItemsTable
+      items={[...paged.items]}
+      availableLocales={availableLocales}
+      defaultLocale={defaultLocale}
+      emptyMessage={
+        hasSearch
+          ? "No items match the current search."
+          : "No items in this list."
+      }
+      footer={<PagedTableFooter {...footerProps} />}
+    />
   );
 }

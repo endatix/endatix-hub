@@ -5,18 +5,17 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  CellDate,
   createPagedTableFooterProps,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
+  dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
   DataTableEmpty,
   DataTableSurface,
   PagedTableFooter,
-  TableSearchInput,
-  useTableFiltersUrlState,
 } from "@/components/table";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/loaders/spinner";
 import {
   AlertDialog,
@@ -44,16 +43,16 @@ import type {
 } from "@/lib/endatix-api/data-lists/types";
 import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
 import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
+import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import { Result } from "@/lib/result";
-import { getFormattedDate } from "@/lib/utils";
+import { formatInteger } from "@/lib/utils/formatters";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
 import { DataListRowActions } from "./data-list-row-actions";
 import { getDataListFormDependenciesAction } from "../get-data-list-form-dependencies.action";
 import { deleteDataListAction } from "../../delete-list/delete-data-list.action";
 import {
   buildDataListDetailHref,
-  currentDataListsListHref,
-  DATA_LISTS_FILTER_KEYS,
+  buildDataListsListHref,
   DATA_LISTS_TABLE_KEY,
   parseDataListsReturnQuery,
 } from "../utils";
@@ -63,18 +62,28 @@ interface DataListsPageProps {
   openCreateOnLoad?: boolean;
 }
 
+export function DataListsPageHeader() {
+  return (
+    <section className="space-y-1">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Data Lists</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage reusable JSON datasets for form choices.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function DataListsPage({
   dataListsPromise,
   openCreateOnLoad = false,
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
   const router = useRouter();
-  const { values, setValue, searchParams, updateUrl } = useTableFiltersUrlState(
-    DATA_LISTS_FILTER_KEYS,
-  );
-  const search = values.search;
-  const hasLocale = values.hasLocale;
+  const { updateUrl, searchParams } = useListUrlState();
   const hasLocaleInput = searchParams.get("hasLocale") ?? "";
+  const searchInput = searchParams.get("search") ?? "";
 
   // Lets "Back to Data Lists" on the detail page restore paging/filters —
   // see lib/list-page/table-return-to and AGENTS.md "Detail → list back
@@ -104,7 +113,14 @@ export function DataListsPage({
 
   const handleOpenDelete = (dataList: DataList) => {
     setIsCreateDialogOpen(false);
-    router.replace(currentDataListsListHref(searchParams) as Route);
+    router.replace(
+      buildDataListsListHref({
+        page: paged.page,
+        pageSize: paged.pageSize,
+        search: searchParams.get("search")?.trim() || undefined,
+        hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
+      }) as Route,
+    );
 
     setSelectedForDelete(dataList);
     setDependencies([]);
@@ -151,47 +167,25 @@ export function DataListsPage({
   const handleCreateDialogClose = (open: boolean): void => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      router.replace(currentDataListsListHref(searchParams) as Route);
+      router.replace(
+        buildDataListsListHref({
+          page: paged.page,
+          pageSize: paged.pageSize,
+          search: searchParams.get("search")?.trim() || undefined,
+          hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
+        }) as Route,
+      );
     }
   };
 
-  const footerProps = createPagedTableFooterProps(
-    paged,
-    "data lists",
-    updateUrl,
-  );
+  const footerProps = createPagedTableFooterProps(paged, "data lists", updateUrl);
 
   return (
     <>
-      <section className="space-y-1">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Data Lists</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage reusable JSON datasets for form choices.
-          </p>
-        </div>
-      </section>
-
-      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <TableSearchInput
-          value={search}
-          onChange={(value) => setValue("search", value)}
-          placeholder="Search by name or description"
-          ariaLabel="Search data lists"
-        />
-        <Input
-          value={hasLocale}
-          onChange={(event) => setValue("hasLocale", event.target.value)}
-          placeholder="Filter by locale (e.g. es)"
-          aria-label="Filter data lists by locale"
-          className="lg:max-w-xs"
-        />
-      </div>
-
       <DataTableSurface data-slot="data-lists-table" className="mt-4">
         {paged.items.length === 0 ? (
           <DataTableEmpty>
-            {search || hasLocaleInput
+            {searchInput || hasLocaleInput
               ? "No data lists match the current filters."
               : "No data lists yet."}
           </DataTableEmpty>
@@ -205,45 +199,59 @@ export function DataListsPage({
                       className: "min-w-[12rem]",
                     })}
                   >
-                    Friendly Name
+                    <span className={dataTableColumnLabelClassName()}>
+                      Friendly Name
+                    </span>
                   </TableHead>
                   <TableHead className={dataTableHeaderCellClassName({})}>
-                    Status
+                    <span className={dataTableColumnLabelClassName()}>
+                      Status
+                    </span>
                   </TableHead>
                   <TableHead
                     className={dataTableHeaderCellClassName({
                       className: "min-w-[10rem]",
                     })}
                   >
-                    Locales
+                    <span className={dataTableColumnLabelClassName()}>
+                      Locales
+                    </span>
                   </TableHead>
                   <TableHead
                     className={dataTableHeaderCellClassName({
                       className: "hidden md:table-cell",
                     })}
                   >
-                    Created
+                    <span className={dataTableColumnLabelClassName()}>
+                      Created
+                    </span>
                   </TableHead>
                   <TableHead
                     className={dataTableHeaderCellClassName({
                       className: "hidden md:table-cell",
                     })}
                   >
-                    Modified
+                    <span className={dataTableColumnLabelClassName()}>
+                      Modified
+                    </span>
                   </TableHead>
                   <TableHead
                     className={dataTableHeaderCellClassName({
-                      className: "hidden text-center md:table-cell",
+                      className: "hidden text-right md:table-cell",
                     })}
                   >
-                    Items
+                    <span className={dataTableColumnLabelClassName()}>
+                      Items
+                    </span>
                   </TableHead>
                   <TableHead
                     className={dataTableHeaderCellClassName({
                       className: "text-right",
                     })}
                   >
-                    Actions
+                    <span className={dataTableColumnLabelClassName()}>
+                      Actions
+                    </span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -264,15 +272,15 @@ export function DataListsPage({
                           className: "min-w-[12rem]",
                         })}
                       >
-                        <Link
-                          href={detailHref as Route}
-                          className="block min-w-0"
-                        >
-                          <p className="truncate text-base font-semibold">
+                        <Link href={detailHref as Route} className="block min-w-0">
+                          <p className="truncate text-sm font-medium">
                             {dataList.name}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             {dataList.description || "No description"}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground md:hidden">
+                            <CellDate date={dataList.modifiedAt ?? dataList.createdAt} />
                           </p>
                         </Link>
                       </TableCell>
@@ -292,7 +300,7 @@ export function DataListsPage({
                           className: "hidden md:table-cell",
                         })}
                       >
-                        {getFormattedDate(dataList.createdAt)}
+                        <CellDate date={dataList.createdAt} />
                       </TableCell>
                       <TableCell
                         className={dataTableBodyCellClassName({
@@ -300,16 +308,16 @@ export function DataListsPage({
                           className: "hidden md:table-cell",
                         })}
                       >
-                        {getFormattedDate(dataList.modifiedAt)}
+                        <CellDate date={dataList.modifiedAt} />
                       </TableCell>
                       <TableCell
                         className={dataTableBodyCellClassName({
                           isEvenRow,
-                          className: "hidden text-center md:table-cell",
+                          className: "hidden text-right md:table-cell",
                         })}
                       >
                         <Link href={detailHref as Route}>
-                          {dataList.itemsCount}
+                          {formatInteger(dataList.itemsCount)}
                         </Link>
                       </TableCell>
                       <TableCell

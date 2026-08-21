@@ -1,12 +1,16 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { DataListsPage } from "@/features/data-lists/view-lists/ui/data-lists-page";
+import {
+  DataListsPage,
+  DataListsPageHeader,
+} from "@/features/data-lists/view-lists/ui/data-lists-page";
+import { DataListsListToolbar } from "@/features/data-lists/view-lists/ui/data-lists-list-toolbar";
+import { DataListsTableSkeleton } from "@/features/data-lists/view-lists/ui/data-lists-table-skeleton";
 import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
 import {
   firstString,
   parseDataListsListParams,
 } from "@/features/data-lists/view-lists/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 import { Suspense } from "react";
 
@@ -18,17 +22,6 @@ interface DataListsRoutePageProps {
     search: SearchParam;
     hasLocale: SearchParam;
   }>;
-}
-
-function DataListsTableSkeleton() {
-  return (
-    <div className="mt-6 space-y-3">
-      <Skeleton className="h-10 w-full" />
-      {[1, 2, 3, 4, 5].map((row) => (
-        <Skeleton key={row} className="h-14 w-full" />
-      ))}
-    </div>
-  );
 }
 
 export default async function DataListsRoutePage({
@@ -49,11 +42,15 @@ export default async function DataListsRoutePage({
   const openCreateOnLoad = hasValue(raw.action, "create");
 
   return (
-    <Suspense fallback={<DataListsTableSkeleton />}>
-      <DataListsPage
-        dataListsPromise={dataListsPromise}
-        openCreateOnLoad={openCreateOnLoad}
-      />
-    </Suspense>
+    <>
+      <DataListsPageHeader />
+      <DataListsListToolbar />
+      <Suspense fallback={<DataListsTableSkeleton />}>
+        <DataListsPage
+          dataListsPromise={dataListsPromise}
+          openCreateOnLoad={openCreateOnLoad}
+        />
+      </Suspense>
+    </>
   );
 }

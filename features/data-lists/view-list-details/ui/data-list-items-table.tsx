@@ -4,6 +4,7 @@ import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
+  dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
   DataTableEmpty,
   DataTableSurface,
@@ -68,7 +69,9 @@ function buildColumns(
     {
       id: "value",
       accessorKey: "value",
-      header: "Value",
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Value</span>
+      ),
       cell: ({ row }) => (
         <span className="font-mono text-xs">{row.original.value}</span>
       ),
@@ -79,7 +82,11 @@ function buildColumns(
     },
     ...labelColumns.map((column) => ({
       id: `label:${column}`,
-      header: labelColumnHeader(column, defaultLocale),
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>
+          {labelColumnHeader(column, defaultLocale)}
+        </span>
+      ),
       cell: ({ row }: { row: { original: DataListItemRow } }) =>
         resolveItemLabelText(row.original, column, defaultLocale),
       meta: {

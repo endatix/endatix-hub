@@ -28,6 +28,16 @@ describe("parseDataListsListParams", () => {
     });
   });
 
+  it("normalizes comma-separated locale filters", () => {
+    // Arrange & Act
+    const parsed = parseDataListsListParams({
+      hasLocale: " ES, de ,ES ",
+    });
+
+    // Assert
+    expect(parsed.hasLocale).toBe("es,de");
+  });
+
   it("drops the all-locales sentinel", () => {
     // Arrange & Act
     const parsed = parseDataListsListParams({

@@ -60,7 +60,36 @@ export function parseHasLocaleFilter(
     return undefined;
   }
 
-  return tryNormalizeCultureCode(value) ?? undefined;
+  const seen = new Set<string>();
+  const locales: string[] = [];
+  for (const part of value.split(",")) {
+    const normalized = tryNormalizeCultureCode(part.trim());
+    if (normalized == null || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    locales.push(normalized);
+  }
+
+  return locales.length > 0 ? locales.join(",") : undefined;
+}
+
+export function parseHasLocaleFilterSet(
+  value: string | null | undefined,
+): Set<string> {
+  const parsed = parseHasLocaleFilter(value);
+  if (!parsed) {
+    return new Set();
+  }
+
+  return new Set(parsed.split(","));
+}
+
+export function serializeHasLocaleFilter(
+  locales: ReadonlySet<string> | readonly string[],
+): string | undefined {
+  const values = Array.isArray(locales) ? locales : [...locales];
+  return parseHasLocaleFilter(values.join(","));
 }
 
 export function serializeDataListsListSearchParams(
