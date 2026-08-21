@@ -30,6 +30,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   roleHasHubAccess,
   TENANT_DEFAULT_REGISTRATION_ROLES,
+  tenantPublicSignInPath,
   type AuthProviderOption,
 } from "../../create-tenant/tenant-self-registration";
 import { getTenantAction, updateTenantAction } from "../update-tenant.action";
@@ -95,13 +96,14 @@ export function EditTenantSheet({
     };
   }, [tenantId, onOpenChange]);
 
-  const copySlug = async () => {
+  const copySignInUrl = async () => {
     if (!tenant?.slug) {
       return;
     }
 
-    await navigator.clipboard.writeText(tenant.slug);
-    toast.success("Slug copied");
+    const path = tenantPublicSignInPath(tenant.slug);
+    await navigator.clipboard.writeText(`${window.location.origin}${path}`);
+    toast.success("Sign-in URL copied");
   };
 
   const submit = () => {
@@ -134,8 +136,8 @@ export function EditTenantSheet({
         <SheetHeader>
           <SheetTitle>Edit tenant</SheetTitle>
           <SheetDescription>
-            Update the display name and self-registration policy. The slug stays
-            locked because public URLs already use it.
+            Update the display name and self-registration policy. The public id
+            stays locked because sign-in URLs already use it.
           </SheetDescription>
         </SheetHeader>
 
@@ -162,12 +164,16 @@ export function EditTenantSheet({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-tenant-slug">Slug</Label>
+              <Label htmlFor="edit-tenant-slug">Public sign-in URL</Label>
               <div className="flex gap-2">
-                <Input id="edit-tenant-slug" value={tenant.slug} readOnly />
-                <Button type="button" variant="outline" size="icon" onClick={copySlug}>
+                <Input
+                  id="edit-tenant-slug"
+                  value={tenantPublicSignInPath(tenant.slug)}
+                  readOnly
+                />
+                <Button type="button" variant="outline" size="icon" onClick={copySignInUrl}>
                   <Copy />
-                  <span className="sr-only">Copy slug</span>
+                  <span className="sr-only">Copy sign-in URL</span>
                 </Button>
               </div>
             </div>

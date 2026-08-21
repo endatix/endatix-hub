@@ -25,32 +25,31 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { Result } from "@/lib/result";
-import { normalizeUrlSlug } from "@/lib/url/url-slug";
-import { Info, Plus } from "lucide-react";
+import { Copy, Info, Plus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { createTenantAction } from "../create-tenant.action";
 import {
   identityStepError,
   roleHasHubAccess,
-  suggestedTenantSlug,
   TENANT_DEFAULT_REGISTRATION_ROLES,
+  tenantPublicSignInPath,
   type AuthProviderOption,
 } from "../tenant-self-registration";
 
-type CreateStep = 1 | 2 | 3;
+type CreateStep = 1 | 2 | 3 | "done";
 
-const STEP_COPY: Record<CreateStep, { title: string; description: string }> = {
+const STEP_COPY: Record<Exclude<CreateStep, "done">, { title: string; description: string }> = {
   1: {
     title: "Identity",
-    description: "Name the tenant and choose the public slug used in sign-in URLs.",
+    description: "Name the tenant. The public sign-in URL is generated after create.",
   },
   2: {
     title: "Access",
-    description: "Configure whether people can self-register through the tenant slug.",
+    description: "Configure whether people can self-register through the tenant URL.",
   },
   3: {
     title: "Confirm",
-    description: "Review the tenant before creating it. The slug cannot be changed later.",
+    description: "Review the tenant before creating it. The public id cannot be changed later.",
   },
 };
 
@@ -65,13 +64,12 @@ export function CreateTenantDialog({
   const [step, setStep] = useState<CreateStep>(1);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
   const [allowSelfRegistration, setAllowSelfRegistration] = useState(false);
   const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
   const [defaultRole, setDefaultRole] = useState(
     TENANT_DEFAULT_REGISTRATION_ROLES[0].name,
   );
+  const [createdSignInPath, setCreatedSignInPath] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -83,33 +81,34 @@ export function CreateTenantDialog({
     setStep(1);
     setName("");
     setDescription("");
-    setSlug("");
-    setSlugTouched(false);
     setAllowSelfRegistration(false);
     setAllowedProviders([]);
     setDefaultRole(TENANT_DEFAULT_REGISTRATION_ROLES[0].name);
+    setCreatedSignInPath(null);
     setStepError(null);
   }, [open]);
 
-  const nextSlug = suggestedTenantSlug(name, slug, slugTouched);
-
   const goToAccess = () => {
-    const error = identityStepError(name, nextSlug);
+    const error = identityStepError(name);
     if (error) {
       setStepError(error);
       return;
     }
 
-    setSlug(normalizeUrlSlug(nextSlug));
     setStepError(null);
     setStep(2);
+  };
+
+  const copySignInUrl = async (path: string) => {
+    const url = `${window.location.origin}${path}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Sign-in URL copied");
   };
 
   const submit = () => {
     startTransition(async () => {
       const result = await createTenantAction({
         name: name.trim(),
-        slug: normalizeUrlSlug(nextSlug),
         description: description.trim() || null,
         allowSelfRegistration,
         allowedAuthProviderKeys: allowedProviders,
@@ -121,8 +120,10 @@ export function CreateTenantDialog({
         return;
       }
 
+      const path = tenantPublicSignInPath(result.value.slug);
+      setCreatedSignInPath(path);
+      setStep("done");
       toast.success("Tenant created");
-      setOpen(false);
     });
   };
 
@@ -138,7 +139,9 @@ export function CreateTenantDialog({
         <DialogHeader>
           <DialogTitle>Create tenant</DialogTitle>
           <DialogDescription>
-            Step {step} of 3 — {STEP_COPY[step].title}. {STEP_COPY[step].description}
+            {step === "done"
+              ? "Copy the public sign-in URL. Anyone with the link can open it."
+              : `Step ${step} of 3 — ${STEP_COPY[step].title}. ${STEP_COPY[step].description}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -149,12 +152,7 @@ export function CreateTenantDialog({
               <Input
                 id="tenant-name"
                 value={name}
-                onChange={(event) => {
-                  setName(event.target.value);
-                  if (!slugTouched) {
-                    setSlug(urlSlugPreview(event.target.value));
-                  }
-                }}
+                onChange={(event) => setName(event.target.value)}
               />
             </div>
             <div className="grid gap-2">
@@ -164,20 +162,6 @@ export function CreateTenantDialog({
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="tenant-slug">Slug</Label>
-              <Input
-                id="tenant-slug"
-                value={nextSlug}
-                onChange={(event) => {
-                  setSlugTouched(true);
-                  setSlug(event.target.value);
-                }}
-              />
-              <p className="text-sm text-muted-foreground">
-                Sign-in URL preview: /t/{normalizeUrlSlug(nextSlug) || "…"}/signin
-              </p>
             </div>
           </div>
         )}
@@ -255,10 +239,6 @@ export function CreateTenantDialog({
               <dd className="font-medium">{name.trim()}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Slug</dt>
-              <dd className="font-mono">{normalizeUrlSlug(nextSlug)}</dd>
-            </div>
-            <div>
               <dt className="text-muted-foreground">Self-registration</dt>
               <dd>{allowSelfRegistration ? "On" : "Off"}</dd>
             </div>
@@ -269,18 +249,36 @@ export function CreateTenantDialog({
           </dl>
         )}
 
+        {step === "done" && createdSignInPath && (
+          <div className="grid gap-2">
+            <Label htmlFor="tenant-signin-url">Public sign-in URL</Label>
+            <div className="flex gap-2">
+              <Input id="tenant-signin-url" value={createdSignInPath} readOnly />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => copySignInUrl(createdSignInPath)}
+              >
+                <Copy />
+                <span className="sr-only">Copy sign-in URL</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
         {stepError && (
           <p className="text-sm text-destructive">{stepError}</p>
         )}
 
         <DialogFooter>
-          {step > 1 && (
+          {step !== "done" && step > 1 && (
             <Button
               type="button"
               variant="outline"
               onClick={() => {
                 setStepError(null);
-                setStep((current) => (current === 1 ? 1 : ((current - 1) as CreateStep)));
+                setStep((current) => (current === 1 ? 1 : ((Number(current) - 1) as 1 | 2 | 3)));
               }}
             >
               Back
@@ -301,12 +299,13 @@ export function CreateTenantDialog({
               {isPending ? "Creating…" : "Create tenant"}
             </Button>
           )}
+          {step === "done" && (
+            <Button type="button" onClick={() => setOpen(false)}>
+              Done
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
-
-function urlSlugPreview(name: string): string {
-  return suggestedTenantSlug(name, "", false);
 }
