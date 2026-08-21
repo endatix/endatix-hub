@@ -17,12 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { assumeTenantAction } from "@/features/platform-admin/assume-tenant/assume-tenant.action";
 import type { AuthProviderOption } from "@/features/platform-admin/tenant-registration";
 import { EditTenantSheet } from "@/features/platform-admin/update-tenant/ui/edit-tenant-sheet";
 import type { PagedResponse, PlatformTenantListItem } from "@/lib/endatix-api";
 import { getFormattedDate } from "@/lib/utils";
 import { MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 /** Tenant, Public id, ID, Self-reg, Forms, Submissions, Created, Modified. */
 const BASE_COLUMNS = 8;
@@ -39,6 +40,7 @@ export function TenantsTable({
   authProviders = [],
 }: Readonly<TenantsTableProps>) {
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
+  const [isEnteringTenant, startEnteringTenant] = useTransition();
   const columnCount = BASE_COLUMNS + (canManage ? 1 : 0);
 
   return (
@@ -108,6 +110,16 @@ export function TenantsTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={isEnteringTenant}
+                            onSelect={() => {
+                              startEnteringTenant(() => {
+                                void assumeTenantAction(tenant.id);
+                              });
+                            }}
+                          >
+                            Enter tenant
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setEditingTenantId(tenant.id)}
                           >

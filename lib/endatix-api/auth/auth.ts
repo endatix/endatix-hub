@@ -4,6 +4,8 @@ import {
   ApiResult,
   ActivateInviteRequest,
   ActivateInviteResponse,
+  AssumeTenantRequest,
+  AssumeTenantResponse,
   AuthorizationData,
   InviteDetailsRequest,
   InviteDetailsResponse,
@@ -72,6 +74,24 @@ export default class Auth {
       );
     },
   );
+
+  async assumeTenant(
+    request: AssumeTenantRequest,
+  ): Promise<ApiResult<AssumeTenantResponse>> {
+    return this.endatix.post<AssumeTenantResponse>(
+      "/auth/assume-tenant",
+      request,
+      { requireAuth: true },
+    );
+  }
+
+  async exitAssume(): Promise<ApiResult<AssumeTenantResponse>> {
+    return this.endatix.post<AssumeTenantResponse>(
+      "/auth/exit-assume",
+      {},
+      { requireAuth: true },
+    );
+  }
 
   /**
    * Get authorization data for the current user

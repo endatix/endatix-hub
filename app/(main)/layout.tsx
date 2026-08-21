@@ -8,6 +8,9 @@ import { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
 import { getClientEndatixConfig } from "@/features/config/server";
+import { SupportAccessBanner } from "@/features/platform-admin/assume-tenant/ui/support-access-banner";
+import { readAssumeSession } from "@/features/platform-admin/assume-tenant/read-assume-session";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
@@ -60,10 +63,28 @@ export default async function RootLayout({
           {nav}
           <main data-slot="sidebar-inset">
             {header}
+            <AssumedTenantBanner accessToken={session?.accessToken} />
             <div data-slot="content-wrapper">{children}</div>
           </main>
         </AppProvider>
       </body>
     </html>
   );
+}
+
+async function AssumedTenantBanner({
+  accessToken,
+}: {
+  accessToken?: string;
+}) {
+  const assumed = readAssumeSession(accessToken);
+  if (!assumed || !accessToken) {
+    return null;
+  }
+
+  const api = new EndatixApi(accessToken);
+  const tenant = await api.platformTenants.getById(assumed.tenantId);
+  const tenantName = ApiResult.isSuccess(tenant) ? tenant.data.name : undefined;
+
+  return <SupportAccessBanner tenantName={tenantName} />;
 }
