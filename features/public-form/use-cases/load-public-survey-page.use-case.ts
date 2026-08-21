@@ -129,12 +129,15 @@ async function loadAccessTokenSurveyPage({
     loadAccessTokenSubmission({ formId, urlToken }),
   ]);
 
-  if (Result.isError(publicFormAccessResult)) {
-    return mapAccessFailure(publicFormAccessResult);
-  }
-
   if (submissionResult.kind === "tokenSubmissionError") {
     return submissionResult;
+  }
+
+  if (Result.isError(publicFormAccessResult)) {
+    return {
+      kind: "tokenSubmissionError",
+      errorCode: publicFormAccessResult.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
+    };
   }
 
   const activeDefinitionResult = resolveSubmissionFormDefinition(
@@ -195,8 +198,7 @@ function mapAccessFailure(
 function isMissingFormAccessError(errorCode: string | undefined): boolean {
   return (
     errorCode === ERROR_CODE.RESOURCE_NOT_FOUND ||
-    errorCode === ERROR_CODE.FORM_NOT_FOUND ||
-    errorCode === ERROR_CODE.VALIDATION_ERROR
+    errorCode === ERROR_CODE.FORM_NOT_FOUND
   );
 }
 

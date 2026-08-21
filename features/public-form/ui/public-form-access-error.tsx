@@ -1,13 +1,19 @@
 import { RETURN_URL_PARAM, SIGNIN_PATH } from "@/features/auth/infrastructure/auth-constants";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import type { PublicSurveyVariant } from "@/features/public-form/types";
+import { getErrorMessageWithFallback } from "@/lib/endatix-api/shared/error-codes";
+import { withBasePath } from "@/lib/hosting";
 import { ShieldX } from "lucide-react";
+import emptyState from "./already-responded.module.css";
 import styles from "./public-form-access-error.module.css";
 
-export type PublicFormAccessErrorKind = "unauthorized" | "forbidden";
+export type PublicFormAccessErrorKind =
+  | "unauthorized"
+  | "forbidden"
+  | "accessLoadError";
 
 const COPY: Record<
-  PublicFormAccessErrorKind,
+  Exclude<PublicFormAccessErrorKind, "accessLoadError">,
   {
     title: string;
     subtitle: string;
@@ -31,19 +37,40 @@ export type PublicFormAccessErrorProps = {
   formId: string;
   variant: PublicSurveyVariant;
   urlToken?: string;
+  errorCode?: string;
 };
 
 export function buildPublicFormSignInHref({
   formId,
   variant,
   urlToken,
-}: Omit<PublicFormAccessErrorProps, "kind">): string {
-  const formPath = variant === "embed" ? `/embed/${formId}` : `/share/${formId}`;
+}: Omit<PublicFormAccessErrorProps, "kind" | "errorCode">): string {
+  const formPath = withBasePath(
+    variant === "embed" ? `/embed/${formId}` : `/share/${formId}`,
+  );
   const returnUrl = urlToken
     ? `${formPath}?token=${encodeURIComponent(urlToken)}`
     : formPath;
 
-  return `${SIGNIN_PATH}?${RETURN_URL_PARAM}=${encodeURIComponent(returnUrl)}`;
+  return `${withBasePath(SIGNIN_PATH)}?${RETURN_URL_PARAM}=${encodeURIComponent(returnUrl)}`;
+}
+
+function getCopy(
+  kind: PublicFormAccessErrorKind,
+  errorCode?: string,
+): { title: string; subtitle: string; message: string } {
+  if (kind === "accessLoadError") {
+    return {
+      title: "Unable to load form",
+      subtitle: "Something went wrong",
+      message: getErrorMessageWithFallback(
+        errorCode,
+        "Please try again later.",
+      ),
+    };
+  }
+
+  return COPY[kind];
 }
 
 export function PublicFormAccessError({
@@ -51,20 +78,21 @@ export function PublicFormAccessError({
   formId,
   variant,
   urlToken,
+  errorCode,
 }: Readonly<PublicFormAccessErrorProps>) {
-  const copy = COPY[kind];
+  const copy = getCopy(kind, errorCode);
   const isEmbed = variant === "embed";
 
   return (
-    <div className={styles.container}>
+    <div className={emptyState.container}>
       {isEmbed && <EmbedHeightReporter />}
-      <div className={styles.content}>
-        <h1 className={styles.title}>{copy.title}</h1>
+      <div className={emptyState.content}>
+        <h1 className={emptyState.title}>{copy.title}</h1>
         <h2 className={styles.subtitle}>{copy.subtitle}</h2>
         <div className={styles.iconWrapper}>
           <ShieldX className={styles.icon} size={48} strokeWidth={1.8} />
         </div>
-        <p className={styles.message}>{copy.message}</p>
+        <p className={emptyState.message}>{copy.message}</p>
         {kind === "unauthorized" && (
           <a
             className={styles.signInLink}
@@ -73,6 +101,7 @@ export function PublicFormAccessError({
               variant,
               urlToken,
             })}
+            {...(isEmbed ? { target: "_top" } : {})}
           >
             Sign in
           </a>

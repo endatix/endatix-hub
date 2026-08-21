@@ -18,6 +18,8 @@ const ERROR_CODES = Object.freeze({
   validation_error: "The provided data is invalid.",
   json_parse_error: "Failed to parse server response.",
   invalid_token: "Token is invalid or has expired.",
+  invalid_access_token: "Token is invalid or has expired.",
+  token_expired: "This link has expired.",
   unknown_error: "An unknown error occurred.",
 } as const);
 
@@ -39,6 +41,8 @@ const ERROR_CODE = Object.freeze({
   VALIDATION_ERROR: "validation_error",
   JSON_PARSE_ERROR: "json_parse_error",
   INVALID_TOKEN: "invalid_token",
+  INVALID_ACCESS_TOKEN: "invalid_access_token",
+  TOKEN_EXPIRED: "token_expired",
   UNKNOWN_ERROR: "unknown_error",
 } as const);
 

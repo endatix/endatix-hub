@@ -27,12 +27,15 @@ export async function getPublicFormAccessUseCase({
   const accessRequest: GetPublicFormAccessRequest =
     token && resolvedTokenType ? { token, tokenType: resolvedTokenType } : {};
 
-  return toResult(
-    await endatixApi.forms.getPublicFormAccess(formId, accessRequest, false),
-    {
-      fallbackMessage: "Failed to load form access.",
-      logMessage: "Failed to load public form access.",
-      loggerName: "public-form.access",
-    },
+  const getAccessApiResult = await endatixApi.forms.getPublicFormAccess(
+    formId,
+    accessRequest,
+    false,
   );
+
+  return toResult(getAccessApiResult, {
+    fallbackMessage: "Failed to load form access.",
+    logMessage: "Failed to load public form access.",
+    loggerName: "public-form.access",
+  });
 }

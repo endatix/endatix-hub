@@ -1,4 +1,3 @@
-import { NotFoundComponent } from "@/components/error-handling/not-found/not-found-component";
 import { getClientStorageConfig } from "@/features/asset-storage/server";
 import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cookie-store";
 import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
@@ -32,9 +31,18 @@ export async function PublicSurveyContent({
     urlToken,
   });
 
-  if (pageResult.kind === "unauthorized" || pageResult.kind === "forbidden") {
+  if (
+    pageResult.kind === "unauthorized" ||
+    pageResult.kind === "forbidden" ||
+    pageResult.kind === "accessLoadError"
+  ) {
     return (
       <PublicFormAccessError
+        errorCode={
+          pageResult.kind === "accessLoadError"
+            ? pageResult.errorCode
+            : undefined
+        }
         formId={formId}
         kind={pageResult.kind}
         urlToken={urlToken}
@@ -45,17 +53,6 @@ export async function PublicSurveyContent({
 
   if (pageResult.kind === "notFound") {
     return notFound();
-  }
-
-  if (pageResult.kind === "accessLoadError") {
-    return (
-      <NotFoundComponent
-        notFoundTitle="Unable to load form"
-        notFoundSubtitle="Something went wrong"
-        notFoundMessage="Please try again later."
-        titleSize="medium"
-      />
-    );
   }
 
   if (

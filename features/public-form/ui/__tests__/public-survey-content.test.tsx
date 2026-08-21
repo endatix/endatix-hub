@@ -1,4 +1,7 @@
 import { PublicSurveyContent } from "@/features/public-form/ui/public-survey-content";
+import {
+  buildPublicFormSignInHref,
+} from "@/features/public-form/ui/public-form-access-error";
 import type { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-wrapper";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
 import type { LoadPublicSurveyPageResult } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
@@ -225,6 +228,31 @@ describe("PublicSurveyContent", () => {
 
     expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
     expect(screen.getByRole("link", { name: "Sign in" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("target")).toBe(
+      "_top",
+    );
+  });
+
+  it("forwards urlToken into the unauthorized sign-in returnUrl", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "unauthorized",
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      urlToken: "token.rw",
+      variant: "share",
+    });
+
+    render(component);
+
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe(
+      buildPublicFormSignInHref({
+        formId: "form-1",
+        urlToken: "token.rw",
+        variant: "share",
+      }),
+    );
   });
 
   it("renders access-denied copy for authenticated private-form denial", async () => {
@@ -261,5 +289,24 @@ describe("PublicSurveyContent", () => {
     expect(screen.getByText("Unable to load form")).toBeDefined();
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+    expect(screen.queryByTestId("embed-height-reporter")).toBeNull();
+  });
+
+  it("reports embed height for operational access errors", async () => {
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "accessLoadError",
+      errorCode: ERROR_CODE.NETWORK_ERROR,
+    });
+
+    const component = await PublicSurveyContent({
+      formId: "form-1",
+      variant: "embed",
+    });
+
+    render(component);
+
+    expect(screen.getByText("Unable to load form")).toBeDefined();
+    expect(screen.getByTestId("embed-height-reporter")).toBeDefined();
+    expect(notFound).not.toHaveBeenCalled();
   });
 });

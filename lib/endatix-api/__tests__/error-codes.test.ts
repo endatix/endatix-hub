@@ -72,6 +72,11 @@ describe("ERROR_CODES", () => {
     expect(ERROR_CODES.json_parse_error).toBe(
       "Failed to parse server response.",
     );
+    expect(ERROR_CODES.invalid_token).toBe("Token is invalid or has expired.");
+    expect(ERROR_CODES.invalid_access_token).toBe(
+      "Token is invalid or has expired.",
+    );
+    expect(ERROR_CODES.token_expired).toBe("This link has expired.");
     expect(ERROR_CODES.unknown_error).toBe("An unknown error occurred.");
   });
 
@@ -110,6 +115,9 @@ describe("ERROR_CODE", () => {
     expect(ERROR_CODE.SERVER_ERROR).toBe("server_error");
     expect(ERROR_CODE.VALIDATION_ERROR).toBe("validation_error");
     expect(ERROR_CODE.JSON_PARSE_ERROR).toBe("json_parse_error");
+    expect(ERROR_CODE.INVALID_TOKEN).toBe("invalid_token");
+    expect(ERROR_CODE.INVALID_ACCESS_TOKEN).toBe("invalid_access_token");
+    expect(ERROR_CODE.TOKEN_EXPIRED).toBe("token_expired");
     expect(ERROR_CODE.UNKNOWN_ERROR).toBe("unknown_error");
   });
 
