@@ -99,20 +99,11 @@ export const userExtensions: ExtensionDefinition[] = [
 
 ## Configuration (Feature Flag)
 
-This feature is guarded by a compile-time/build-time flag to ensure safety during the experimental phase.
+Extensions are gated by the runtime env var `ENDATIX_ENABLE_EXTENSIONS` (`true` to enable). Set it in `.env`, Helm, or SWA appsettings — published images pick it up without a rebuild.
 
-To enable or disable extensions project-wide, update your `next.config.ts` (via `withEndatix`):
+`withEndatix(nextConfig, { experimental: { extensions: true } })` remains a rebuild-time code override only. Prefer the env flag for deployed environments.
 
-```typescript
-// next.config.ts
-export default withEndatix(nextConfig, {
-  experimental: {
-    extensions: true, // Set to false to disable all extensions
-  },
-});
-```
-
-When disabled, `useSurveyExtensions` returns an empty list, and no extension code will be downloaded or executed.
+When disabled, `useSurveyExtensions` returns an empty list, and no extension code is downloaded or executed.
 
 ## Advanced Usage: Context-Based Filtering
 

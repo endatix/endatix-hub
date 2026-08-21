@@ -12,12 +12,13 @@ service:
   port: 8000
 
 api:
-  # Hub server → API origin. Must include the /api suffix.
-  # e.g. http://endatix-api:8080/api
+  # Set exactly one of apiUrl or baseUrl (not both).
+  # Complete API URL including the /api suffix, e.g. http://endatix-api:8080/api
   apiUrl: "http://endatix-api:8080/api"
-  # API origin without /api. Used with ENDATIX_API_PREFIX when apiUrl is unset.
-  # e.g. http://endatix-api:8080
-  baseUrl: "http://endatix-api:8080"
+  # Origin without /api — used only when apiUrl is empty
+  baseUrl: ""
+  # Optional path prefix when using baseUrl. Hub defaults to /api if unset.
+  apiPrefix: "/api"
 
 experimental:
   # SurveyJS extensions (data-list questions, custom widgets). Defaults on so a

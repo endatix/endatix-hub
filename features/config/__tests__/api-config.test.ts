@@ -198,6 +198,25 @@ describe("getApiConfig", () => {
     expect(getApiConfig()).toBeNull();
   });
 
+  test("returns null when ENDATIX_API_URL uses an unsupported protocol", () => {
+    process.env.ENDATIX_API_URL = "ftp://api.example.com/api";
+    expect(getApiConfig()).toBeNull();
+
+    resetApiConfigCacheForTests();
+    process.env.ENDATIX_API_URL = "file:///tmp/api";
+    expect(getApiConfig()).toBeNull();
+  });
+
+  test("accepts ENDATIX_API_URL with http or https", () => {
+    process.env.ENDATIX_API_URL = "http://api.example.com/api";
+    expect(getApiConfig()?.apiUrl).toBe("http://api.example.com/api");
+
+    resetApiConfigCacheForTests();
+    delete process.env.ENDATIX_API_URL;
+    process.env.ENDATIX_API_URL = "https://api.example.com/api";
+    expect(getApiConfig()?.apiUrl).toBe("https://api.example.com/api");
+  });
+
   test("returns null when ENDATIX_BASE_URL is not a valid URL", () => {
     process.env.ENDATIX_BASE_URL = "not-a-url";
     expect(getApiConfig()).toBeNull();

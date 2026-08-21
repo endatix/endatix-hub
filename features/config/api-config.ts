@@ -50,10 +50,14 @@ export function constructApiUrl(baseUrl: string, prefix: string): string {
 
 /**
  * Parses a complete API origin (Helm `ENDATIX_API_URL`) when `ENDATIX_BASE_URL` is unset.
+ * Only `http:` and `https:` are accepted.
  */
 function parseDirectApiUrl(directApiUrl: string): ApiConfig | null {
   try {
     const parsed = new URL(directApiUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
     const prefix =
       parsed.pathname === "/"
         ? ""
@@ -71,38 +75,39 @@ function parseDirectApiUrl(directApiUrl: string): ApiConfig | null {
 }
 
 /**
- * Validates and constructs the Endatix API configuration from `ENDATIX_BASE_URL`
- * (+ optional prefix) or, if base is unset, from a complete `ENDATIX_API_URL`.
+ * Validates and constructs the Endatix API configuration.
+ *
+ * Precedence (first match wins):
+ * 1. `ENDATIX_BASE_URL` + optional `ENDATIX_API_PREFIX` (default `/api`)
+ * 2. else a complete `ENDATIX_API_URL`
+ *
+ * Invalid values return `null` (never a raw rejected string).
  */
 export function getApiConfig(): ApiConfig | null {
   if (cachedConfig !== null) {
     return cachedConfig;
   }
 
-  const baseUrl = process.env.ENDATIX_BASE_URL;
-  let apiPrefix = process.env.ENDATIX_API_PREFIX;
-  if (apiPrefix === undefined) {
-    apiPrefix = DEFAULT_API_PREFIX;
-  }
-
-  if (!baseUrl) {
-    const directApiUrl = process.env.ENDATIX_API_URL?.trim();
-    if (!directApiUrl) {
+  const baseUrl = process.env.ENDATIX_BASE_URL?.trim();
+  if (baseUrl) {
+    const apiPrefix = process.env.ENDATIX_API_PREFIX ?? DEFAULT_API_PREFIX;
+    try {
+      const apiUrl = constructApiUrl(baseUrl, apiPrefix);
+      new URL(apiUrl);
+      cachedConfig = { baseUrl, prefix: apiPrefix, apiUrl };
+      return cachedConfig;
+    } catch {
       return null;
     }
-    cachedConfig = parseDirectApiUrl(directApiUrl);
-    return cachedConfig;
   }
 
-  try {
-    const apiUrl = constructApiUrl(baseUrl, apiPrefix);
-    new URL(apiUrl);
-    cachedConfig = { baseUrl, prefix: apiPrefix, apiUrl };
-
-    return cachedConfig;
-  } catch {
+  const directApiUrl = process.env.ENDATIX_API_URL?.trim();
+  if (!directApiUrl) {
     return null;
   }
+
+  cachedConfig = parseDirectApiUrl(directApiUrl);
+  return cachedConfig;
 }
 
 /**

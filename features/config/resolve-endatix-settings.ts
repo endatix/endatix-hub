@@ -210,13 +210,9 @@ export function getRuntimeStorageProfile(): StorageProfileSlice {
  */
 export function getClientEndatixConfig(): ClientEndatixConfig {
   const resolved = resolveEndatixSettings({ source: "runtime" });
-  const apiBaseUrl =
-    resolved.mergedApiConfig?.apiUrl ??
-    process.env.ENDATIX_API_URL?.trim() ??
-    "";
 
   return Object.freeze({
-    apiBaseUrl,
+    apiBaseUrl: resolved.mergedApiConfig?.apiUrl ?? "",
     extensionsEnabled: resolved.mergedExperimentalConfig.extensions,
   });
 }

@@ -56,24 +56,22 @@ const envVars: EnvConfig[] = [
   },
 ];
 
-/**
- * Validates all environment variables defined in the envVars array
- * Returns validation status and error messages
- */
-export function validateEnv(): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  const apiConfig = ensureResolvedApiUrl();
-  if (!apiConfig) {
-    errors.push(
-      `${styles.bold("ENDATIX_BASE_URL")} or ${styles.bold("ENDATIX_API_URL")} is required but neither resolves to a valid API origin. (${styles.tip(API_ORIGIN_ENV_TIP)})`,
-    );
+function collectApiOriginErrors(): string[] {
+  if (ensureResolvedApiUrl()) {
+    return [];
   }
 
-  for (const env of envVars) {
+  return [
+    `${styles.bold("ENDATIX_BASE_URL")} or ${styles.bold("ENDATIX_API_URL")} is required but neither resolves to a valid API origin. (${styles.tip(API_ORIGIN_ENV_TIP)})`,
+  ];
+}
+
+function collectEnvVarErrors(configs: EnvConfig[]): string[] {
+  const errors: string[] = [];
+
+  for (const env of configs) {
     const value = process.env[env.name];
 
-    // Check required variables
     if (env.required && !value) {
       errors.push(
         `${styles.bold(env.name)} is required but not set. ${
@@ -83,7 +81,6 @@ export function validateEnv(): { valid: boolean; errors: string[] } {
       continue;
     }
 
-    // Skip validation if not required and not provided
     if (!env.required && value === undefined) {
       if (env.default !== undefined) {
         console.log(
@@ -95,7 +92,6 @@ export function validateEnv(): { valid: boolean; errors: string[] } {
       continue;
     }
 
-    // Type validation if value is provided
     if (value !== undefined && env.type) {
       if (env.type === "number" && isNaN(Number(value))) {
         errors.push(`${env.name} must be a valid number, got "${value}"`);
@@ -112,11 +108,12 @@ export function validateEnv(): { valid: boolean; errors: string[] } {
     }
   }
 
+  return errors;
+}
+
+function collectStorageErrors(): string[] {
   const storageProfile = getRuntimeStorageProfile();
   const storageErrors = validateStorageProfile(storageProfile);
-  for (const storageError of storageErrors) {
-    errors.push(storageError);
-  }
 
   const isBlobStorageEnabled =
     storageProfile.provider === "azure" || storageProfile.provider === "s3";
@@ -128,6 +125,20 @@ export function validateEnv(): { valid: boolean; errors: string[] } {
       )}`,
     );
   }
+
+  return storageErrors;
+}
+
+/**
+ * Validates all environment variables defined in the envVars array
+ * Returns validation status and error messages
+ */
+export function validateEnv(): { valid: boolean; errors: string[] } {
+  const errors = [
+    ...collectApiOriginErrors(),
+    ...collectEnvVarErrors(envVars),
+    ...collectStorageErrors(),
+  ];
 
   return { valid: errors.length === 0, errors };
 }

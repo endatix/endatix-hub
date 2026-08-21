@@ -26,12 +26,10 @@ import PlatformAdmins from "./platform-admins/platform-admins";
 import { Reporting } from "./reporting/reporting";
 
 /**
- * Resolved Endatix API origin. Prefers `ENDATIX_API_URL`, then `ENDATIX_BASE_URL`
- * (+ prefix) via {@link getApiConfig}.
+ * Resolved Endatix API origin via {@link getApiConfig} (validated env only).
  */
 export const getEdatixApiUrl = (): string => {
-  const apiUrl =
-    process.env.ENDATIX_API_URL?.trim() || getApiConfig()?.apiUrl || "";
+  const apiUrl = getApiConfig()?.apiUrl ?? "";
   if (!apiUrl) {
     throw new Error(
       "Endatix API URL is not configured. Set ENDATIX_BASE_URL or ENDATIX_API_URL.",

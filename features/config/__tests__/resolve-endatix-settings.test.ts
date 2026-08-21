@@ -261,6 +261,15 @@ describe("resolveEndatixSettings", () => {
       expect(config.extensionsEnabled).toBe(false);
     });
 
+    it("returns empty apiBaseUrl when ENDATIX_API_URL is invalid", () => {
+      process.env.ENDATIX_API_URL = "not-a-url";
+
+      const config = getClientEndatixConfig();
+
+      expect(config.apiBaseUrl).toBe("");
+      expect(config.extensionsEnabled).toBe(false);
+    });
+
     it("returns empty apiBaseUrl and extensions off when unset", () => {
       const config = getClientEndatixConfig();
 
