@@ -475,8 +475,8 @@ function buildDataListColumns({
         headerClassName: "min-w-[10rem]",
         cellClassName: "min-w-[10rem]",
       },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Locales" />
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Locales</span>
       ),
       cell: ({ row }) => (
         <DataListLocalesCell

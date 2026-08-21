@@ -5,6 +5,7 @@ import {
   BackToTableButton,
   CellDate,
   createPagedTableFooterProps,
+  FacetedFilter,
   PagedTableFooter,
   TableSearchInput,
   type FacetedFilterOption,
@@ -37,7 +38,7 @@ import {
   parseHasLocaleFilterSet,
   serializeHasLocaleFilter,
 } from "../../view-lists/utils";
-import { ChevronDown, Download, PencilLine, Upload } from "lucide-react";
+import { ChevronDown, Download, PencilLine, Upload, X } from "lucide-react";
 import type { Route } from "next";
 import {
   Suspense,
@@ -393,12 +394,46 @@ function DataListItemsSection({
 
   return (
     <div className="space-y-3">
-      <TableSearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Search items by value or label"
-        ariaLabel="Search data list items"
-      />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search items by value or label"
+          ariaLabel="Search data list items"
+        />
+        <div className="flex max-w-full min-w-0 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {localeOptions.length > 0 ? (
+            <FacetedFilter
+              title="Locale"
+              options={localeOptions}
+              selectedValues={selectedLocales}
+              onValueChange={(values) => {
+                updateUrl({
+                  hasLocale: serializeHasLocaleFilter(values) ?? null,
+                  page: '1',
+                });
+              }}
+            />
+          ) : null}
+          {search.trim() || selectedLocales.size > 0 ? (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSearch('');
+                updateUrl({
+                  search: null,
+                  hasLocale: null,
+                  page: '1',
+                });
+              }}
+              className="shrink-0 px-2 lg:px-3"
+            >
+              Reset Filters
+              <X className="ml-2 h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
+      </div>
       <Suspense
         fallback={
           <DataListItemsTableSkeleton
@@ -410,14 +445,6 @@ function DataListItemsSection({
           itemsPromise={itemsPromise}
           availableLocales={availableLocales}
           defaultLocale={defaultLocale}
-          localeOptions={localeOptions}
-          selectedLocales={selectedLocales}
-          onLocaleFilterChange={(values) => {
-            updateUrl({
-              hasLocale: serializeHasLocaleFilter(values) ?? null,
-              page: "1",
-            });
-          }}
         />
       </Suspense>
     </div>
@@ -428,16 +455,10 @@ function DataListItemsPanel({
   itemsPromise,
   availableLocales,
   defaultLocale,
-  localeOptions,
-  selectedLocales,
-  onLocaleFilterChange,
 }: Readonly<{
   itemsPromise: Promise<DataListItemsPage>;
   availableLocales: string[];
   defaultLocale?: string;
-  localeOptions: FacetedFilterOption[];
-  selectedLocales: Set<string>;
-  onLocaleFilterChange: (values: Set<string>) => void;
 }>) {
   const paged = use(itemsPromise);
   const { updateUrl, searchParams } = useListUrlState();
@@ -457,9 +478,6 @@ function DataListItemsPanel({
       items={[...paged.items]}
       labelColumns={labelColumns}
       defaultLocale={defaultLocale}
-      localeOptions={localeOptions}
-      selectedLocales={selectedLocales}
-      onLocaleFilterChange={onLocaleFilterChange}
       emptyMessage={
         hasFilters
           ? "No items match the current filters."

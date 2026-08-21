@@ -60,9 +60,7 @@ export default async function DataListsRoutePage({
   return (
     <>
       <DataListsPageHeader />
-      <Suspense fallback={<DataListsListToolbar />}>
-        <DataListsToolbar localesPromise={localesPromise} />
-      </Suspense>
+      <DataListsListToolbar localesPromise={localesPromise} />
       <Suspense fallback={<DataListsTableSkeleton />}>
         <DataListsPage
           dataListsPromise={dataListsPromise}
@@ -71,15 +69,4 @@ export default async function DataListsRoutePage({
       </Suspense>
     </>
   );
-}
-
-interface DataListsToolbarProps {
-  localesPromise: Promise<string[]>;
-}
-
-async function DataListsToolbar({
-  localesPromise,
-}: Readonly<DataListsToolbarProps>) {
-  const locales = await localesPromise;
-  return <DataListsListToolbar locales={locales} />;
 }

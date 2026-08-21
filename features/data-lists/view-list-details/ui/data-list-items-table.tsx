@@ -1,16 +1,14 @@
-"use client";
+'use client';
 
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
-  DataTableColumnHeader,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
+  dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
   DataTableEmpty,
   DataTableSurface,
-  FacetedFilter,
-  type FacetedFilterOption,
-} from "@/components/table";
+} from '@/components/table';
 import {
   Table,
   TableBody,
@@ -18,18 +16,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
-import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
-import { resolveCatalogDefaultLabelText } from "@/lib/localization";
+} from '@/components/ui/table';
+import { formatLocaleLabel } from '@/features/data-lists/translations/locale-discovery';
+import type { DataListItem } from '@/lib/endatix-api/data-lists/types';
+import { resolveCatalogDefaultLabelText } from '@/lib/localization';
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
-} from "@tanstack/react-table";
-import { type ReactNode, useMemo } from "react";
-import "./table-types";
+} from '@tanstack/react-table';
+import { type ReactNode, useMemo } from 'react';
+import './table-types';
 
 type DataListItemsTableProps = {
   items: DataListItem[];
@@ -38,85 +36,54 @@ type DataListItemsTableProps = {
   defaultLocale?: string;
   emptyMessage?: string;
   footer?: ReactNode;
-  localeOptions?: FacetedFilterOption[];
-  selectedLocales?: Set<string>;
-  onLocaleFilterChange?: (values: Set<string>) => void;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
 
-function buildColumns(args: {
-  labelColumns: readonly string[];
-  defaultLocale: string | undefined;
-  localeOptions: FacetedFilterOption[];
-  selectedLocales: Set<string>;
-  onLocaleFilterChange: ((values: Set<string>) => void) | undefined;
-}): ColumnDef<DataListItemRow>[] {
-  const {
-    labelColumns,
-    defaultLocale,
-    localeOptions,
-    selectedLocales,
-    onLocaleFilterChange,
-  } = args;
-
+function buildColumns(
+  labelColumns: readonly string[],
+  defaultLocale: string | undefined,
+): ColumnDef<DataListItemRow>[] {
   return [
     {
-      id: "value",
-      accessorKey: "value",
+      id: 'value',
+      accessorKey: 'value',
       enableSorting: false,
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Value"
-          facetFilterActive={selectedLocales.size > 0}
-          facetFilter={
-            onLocaleFilterChange && localeOptions.length > 0 ? (
-              <FacetedFilter
-                title="Locale"
-                options={localeOptions}
-                selectedValues={selectedLocales}
-                onValueChange={onLocaleFilterChange}
-              />
-            ) : undefined
-          }
-        />
+      header: () => (
+        <span className={dataTableColumnLabelClassName()}>Value</span>
       ),
       cell: ({ row }) => (
         <span className="font-mono text-xs">{row.original.value}</span>
       ),
       meta: {
-        headerClassName: "min-w-[8rem]",
-        cellClassName: "min-w-[8rem]",
+        headerClassName: 'min-w-[8rem]',
+        cellClassName: 'min-w-[8rem]',
       },
     },
     ...labelColumns.map(
       (columnKey): ColumnDef<DataListItemRow> => ({
         id: `label:${columnKey}`,
         enableSorting: false,
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title={
-              columnKey === "default"
-                ? `Default (${defaultLocale ?? "—"})`
-                : formatLocaleLabel(columnKey)
-            }
-          />
+        header: () => (
+          <span className={dataTableColumnLabelClassName()}>
+            {columnKey === 'default'
+              ? `Default (${defaultLocale ?? '—'})`
+              : formatLocaleLabel(columnKey)}
+          </span>
         ),
         cell: ({ row }) => {
           const text =
-            columnKey === "default"
+            columnKey === 'default'
               ? resolveCatalogDefaultLabelText(
                   row.original.labels,
                   defaultLocale,
                 )
               : row.original.labels[columnKey];
-          return text?.trim() ? text : "—";
+          return text?.trim() ? text : '—';
         },
         meta: {
-          headerClassName: "min-w-[10rem]",
-          cellClassName: "min-w-[10rem]",
+          headerClassName: 'min-w-[10rem]',
+          cellClassName: 'min-w-[10rem]',
         },
       }),
     ),
@@ -127,11 +94,8 @@ export function DataListItemsTable({
   items,
   labelColumns,
   defaultLocale,
-  emptyMessage = "No items in this list.",
+  emptyMessage = 'No items in this list.',
   footer,
-  localeOptions = [],
-  selectedLocales = new Set(),
-  onLocaleFilterChange,
 }: Readonly<DataListItemsTableProps>) {
   const data = useMemo<DataListItemRow[]>(
     () =>
@@ -143,21 +107,8 @@ export function DataListItemsTable({
   );
 
   const columns = useMemo(
-    () =>
-      buildColumns({
-        labelColumns,
-        defaultLocale,
-        localeOptions,
-        selectedLocales,
-        onLocaleFilterChange,
-      }),
-    [
-      labelColumns,
-      defaultLocale,
-      localeOptions,
-      selectedLocales,
-      onLocaleFilterChange,
-    ],
+    () => buildColumns(labelColumns, defaultLocale),
+    [labelColumns, defaultLocale],
   );
 
   const table = useReactTable({
@@ -168,7 +119,7 @@ export function DataListItemsTable({
     enableColumnPinning: true,
     initialState: {
       columnPinning: {
-        left: ["value"],
+        left: ['value'],
       },
     },
   });
@@ -195,15 +146,14 @@ export function DataListItemsTable({
                 className="border-0 hover:bg-transparent"
               >
                 {headerGroup.headers.map((header) => {
-                  const isPinnedLeft = header.column.getIsPinned() === "left";
+                  const isPinnedLeft = header.column.getIsPinned() === 'left';
                   return (
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
                       className={dataTableHeaderCellClassName({
                         isPinnedLeft,
-                        className:
-                          header.column.columnDef.meta?.headerClassName,
+                        className: header.column.columnDef.meta?.headerClassName,
                       })}
                     >
                       {header.isPlaceholder
@@ -227,7 +177,7 @@ export function DataListItemsTable({
                   className={dataTableBodyRowClassName({ isEvenRow })}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const isPinnedLeft = cell.column.getIsPinned() === "left";
+                    const isPinnedLeft = cell.column.getIsPinned() === 'left';
                     return (
                       <TableCell
                         key={cell.id}
