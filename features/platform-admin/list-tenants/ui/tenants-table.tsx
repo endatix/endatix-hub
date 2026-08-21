@@ -49,7 +49,7 @@ export function TenantsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Tenant</TableHead>
-                <TableHead>Slug</TableHead>
+                <TableHead>Public id</TableHead>
                 <TableHead>ID</TableHead>
                 <TableHead>Self-reg</TableHead>
                 <TableHead>Forms</TableHead>
