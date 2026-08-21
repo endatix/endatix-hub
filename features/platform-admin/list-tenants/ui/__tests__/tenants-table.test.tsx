@@ -8,6 +8,10 @@ vi.mock("@/features/platform-admin/update-tenant/update-tenant.action", () => ({
   updateTenantAction: vi.fn(),
 }));
 
+vi.mock("@/features/platform-admin/assume-tenant/assume-tenant.action", () => ({
+  assumeTenantAction: vi.fn(),
+}));
+
 const TENANTS: PagedResponse<PlatformTenantListItem> = {
   page: 1,
   pageSize: 10,

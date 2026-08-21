@@ -18,11 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AuthProviderOption } from "@/features/platform-admin/create-tenant/tenant-self-registration";
+import { assumeTenantAction } from "@/features/platform-admin/assume-tenant/assume-tenant.action";
 import { EditTenantSheet } from "@/features/platform-admin/update-tenant/ui/edit-tenant-sheet";
 import type { PagedResponse, PlatformTenantListItem } from "@/lib/endatix-api";
 import { getFormattedDate } from "@/lib/utils";
 import { MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 interface TenantsTableProps {
   tenants: PagedResponse<PlatformTenantListItem>;
@@ -36,6 +37,7 @@ export function TenantsTable({
   authProviders = [],
 }: Readonly<TenantsTableProps>) {
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
+  const [isEnteringTenant, startEnteringTenant] = useTransition();
   const columnCount = canManage ? 9 : 8;
 
   return (
@@ -97,6 +99,16 @@ export function TenantsTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={isEnteringTenant}
+                            onSelect={() => {
+                              startEnteringTenant(() => {
+                                void assumeTenantAction(String(tenant.id));
+                              });
+                            }}
+                          >
+                            Enter tenant
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setEditingTenantId(String(tenant.id))}
                           >

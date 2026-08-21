@@ -9,6 +9,7 @@ export const Permissions = {
   },
   Platform: {
     ManageTenants: "platform.tenants.manage",
+    AssumeTenants: "platform.tenants.assume",
     ManageSettings: "platform.settings.manage",
     ManageIntegrations: "platform.integrations.manage",
     ImpersonateUsers: "platform.users.impersonate",
