@@ -473,6 +473,11 @@ export const getSubmissions = async (
     redirect("/login");
   }
 
+  const validateFormIdResult = validateEndatixId(formId, "formId");
+  if (Result.isError(validateFormIdResult)) {
+    throw new TypeError(validateFormIdResult.message);
+  }
+
   const CLIENT_PAGE_SIZE = 10_000;
   const headers = new HeaderBuilder().withAuth(session).build();
 
@@ -492,7 +497,7 @@ export const getSubmissions = async (
     );
   }
 
-  const url = `${apiBaseUrl()}/forms/${formId}/submissions?${params.toString()}`;
+  const url = `${apiBaseUrl()}/forms/${validateFormIdResult.value}/submissions?${params.toString()}`;
 
   const response = await fetch(url, {
     headers: headers,
