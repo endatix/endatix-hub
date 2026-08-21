@@ -32,6 +32,11 @@ export const reportingExportFlag = flag<boolean>({
   defaultValue: false,
 });
 
+export const tenantManagementFlag = flag<boolean>({
+  key: "multi-tenancy",
+  defaultValue: false,
+});
+
 // Get all flags at once (async version)
 export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   experimentalFeatures: await experimentalFeaturesFlag(),
@@ -40,4 +45,5 @@ export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   formAnalytics: await formAnalyticsFlag(),
   storageStats: await storageStatsFlag(),
   reportingExport: await reportingExportFlag(),
+  tenantManagement: await tenantManagementFlag(),
 });

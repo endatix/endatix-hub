@@ -6,6 +6,8 @@ export interface FeatureFlagConfig {
   formAnalytics: boolean;
   storageStats: boolean;
   reportingExport: boolean;
+  /** Mirrors API `multi-tenancy` deployment flag. */
+  tenantManagement: boolean;
 }
 
 export interface AIFeatures {
