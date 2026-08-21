@@ -34,6 +34,21 @@ export interface AssumeTenantResponse {
   refreshToken: string;
 }
 
+export interface MembershipTenant {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+}
+
+export interface UserTenantsResponse {
+  items: MembershipTenant[];
+}
+
+export interface SwitchTenantRequest {
+  tenantId: number | string;
+}
+
 export const ActivateInviteRequestSchema = z
   .object({
     token: z.string().trim().min(1, { error: "Invite token is required." }),

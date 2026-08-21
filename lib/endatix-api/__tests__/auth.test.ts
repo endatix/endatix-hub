@@ -316,4 +316,51 @@ describe("Auth", () => {
       expect(ApiResult.isSuccess(result)).toBe(true);
     });
   });
+
+  describe("listMyTenants", () => {
+    it("gets membership tenants", async () => {
+      const authedApi = new EndatixApi("access-token");
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [
+              { id: "1", name: "Acme", slug: "xK9mP2qR8vNw", isActive: true },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+      const result = await authedApi.auth.listMyTenants();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/auth/tenants"),
+        expect.objectContaining({ method: "GET" }),
+      );
+      expect(ApiResult.isSuccess(result)).toBe(true);
+    });
+  });
+
+  describe("switchTenant", () => {
+    it("posts the tenant id to switch-tenant", async () => {
+      const authedApi = new EndatixApi("access-token");
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ accessToken: "a", refreshToken: "r" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+      const result = await authedApi.auth.switchTenant({ tenantId: "42" });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/auth/switch-tenant"),
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ tenantId: "42" }),
+        }),
+      );
+      expect(ApiResult.isSuccess(result)).toBe(true);
+    });
+  });
 });
