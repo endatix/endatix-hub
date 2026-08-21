@@ -316,4 +316,36 @@ describe("Auth", () => {
       expect(ApiResult.isSuccess(result)).toBe(true);
     });
   });
+
+  describe("register", () => {
+    it("posts tenantSlug on unauthenticated register", async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ success: true, message: "User has been successfully registered" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+      const result = await auth.register({
+        email: "user@example.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+        tenantSlug: "xK9mP2qR8vNw",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/auth/register"),
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            email: "user@example.com",
+            password: "Password123!",
+            confirmPassword: "Password123!",
+            tenantSlug: "xK9mP2qR8vNw",
+          }),
+        }),
+      );
+      expect(ApiResult.isSuccess(result)).toBe(true);
+    });
+  });
 });

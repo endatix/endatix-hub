@@ -51,6 +51,9 @@ export type {
   RefreshTokenResponse,
   AssumeTenantRequest,
   AssumeTenantResponse,
+  RegisterRequest,
+  RegisterResponse,
+  PublicTenant,
   AuthorizationData,
 } from "./auth/types";
 

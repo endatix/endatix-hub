@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  filterTenantAuthProviders,
   identityStepError,
   roleHasHubAccess,
+  tenantPublicRegisterPath,
   tenantPublicSignInPath,
 } from "../tenant-self-registration";
 
@@ -13,6 +15,26 @@ describe("tenant-self-registration", () => {
 
   it("builds the public sign-in path from the opaque id", () => {
     expect(tenantPublicSignInPath("xK9mP2qR")).toBe("/t/xK9mP2qR/signin");
+  });
+
+  it("builds the public register path from the opaque id", () => {
+    expect(tenantPublicRegisterPath("xK9mP2qR8vNw")).toBe(
+      "/t/xK9mP2qR8vNw/register",
+    );
+  });
+
+  it("keeps Endatix credentials and filters other providers by the allow list", () => {
+    const providers = [
+      { id: "endatix" },
+      { id: "google" },
+      { id: "keycloak" },
+    ];
+
+    expect(filterTenantAuthProviders(providers, ["google"])).toEqual([
+      { id: "endatix" },
+      { id: "google" },
+    ]);
+    expect(filterTenantAuthProviders(providers, [])).toEqual([{ id: "endatix" }]);
   });
 
   it("flags Hub-capable default roles", () => {

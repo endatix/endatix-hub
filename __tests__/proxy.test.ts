@@ -270,6 +270,11 @@ describe("shouldRedirectToLogin (pure)", () => {
     expect(shouldRedirectToLogin("/auth-error", null)).toBe(false);
   });
 
+  it("returns false for tenant public sign-in and register paths", () => {
+    expect(shouldRedirectToLogin("/t/xK9mP2qR8vNw/signin", null)).toBe(false);
+    expect(shouldRedirectToLogin("/t/xK9mP2qR8vNw/register", null)).toBe(false);
+  });
+
   it("returns false for non-hub paths", () => {
     expect(shouldRedirectToLogin("/", null)).toBe(false);
     expect(shouldRedirectToLogin("/some-other-path", null)).toBe(false);
