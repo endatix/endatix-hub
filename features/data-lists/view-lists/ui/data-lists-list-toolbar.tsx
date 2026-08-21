@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
 import { X } from "lucide-react";
-import { Suspense, use, useMemo } from "react";
+import { useMemo } from "react";
 import {
   listUrlStateFromSearchParams,
   parseHasLocaleFilterSet,
@@ -13,17 +13,26 @@ import {
 } from "../utils";
 
 type DataListsListToolbarProps = {
-  localesPromise: Promise<string[]>;
+  /** Tenant catalog locales (resolved on the server — avoid Suspense remounts). */
+  locales: readonly string[];
 };
 
 export function DataListsListToolbar({
-  localesPromise,
+  locales,
 }: Readonly<DataListsListToolbarProps>) {
   const { search, setSearch, updateUrl, searchParams } = useListUrlState();
   const urlState = listUrlStateFromSearchParams(searchParams);
   const selectedLocales = useMemo(
     () => parseHasLocaleFilterSet(searchParams.get("hasLocale")),
     [searchParams],
+  );
+  const localeOptions = useMemo(
+    () =>
+      locales.map((value) => ({
+        value,
+        label: formatLocaleLabel(value),
+      })),
+    [locales],
   );
   const hasActiveFilters = Boolean(
     search.trim() ||
@@ -56,10 +65,11 @@ export function DataListsListToolbar({
         ariaLabel="Search data lists"
       />
       <div className="flex max-w-full min-w-0 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Suspense fallback={<LocaleFilterFallback />}>
-          <DataListsLocaleFilter
-            localesPromise={localesPromise}
-            selectedLocales={selectedLocales}
+        {localeOptions.length > 0 ? (
+          <FacetedFilter
+            title="Locale"
+            options={localeOptions}
+            selectedValues={selectedLocales}
             onValueChange={(values) => {
               updateUrl({
                 hasLocale: serializeHasLocaleFilter(values) ?? null,
@@ -67,7 +77,7 @@ export function DataListsListToolbar({
               });
             }}
           />
-        </Suspense>
+        ) : null}
         {hasActiveFilters ? (
           <Button
             variant="ghost"
@@ -80,51 +90,5 @@ export function DataListsListToolbar({
         ) : null}
       </div>
     </div>
-  );
-}
-
-function LocaleFilterFallback() {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      disabled
-      className="rounded-full border-dashed"
-    >
-      Locale
-    </Button>
-  );
-}
-
-function DataListsLocaleFilter({
-  localesPromise,
-  selectedLocales,
-  onValueChange,
-}: Readonly<{
-  localesPromise: Promise<string[]>;
-  selectedLocales: Set<string>;
-  onValueChange: (values: Set<string>) => void;
-}>) {
-  const tenantLocales = use(localesPromise);
-  const options = useMemo(
-    () =>
-      tenantLocales.map((value) => ({
-        value,
-        label: formatLocaleLabel(value),
-      })),
-    [tenantLocales],
-  );
-
-  if (options.length === 0) {
-    return null;
-  }
-
-  return (
-    <FacetedFilter
-      title="Locale"
-      options={options}
-      selectedValues={selectedLocales}
-      onValueChange={onValueChange}
-    />
   );
 }
