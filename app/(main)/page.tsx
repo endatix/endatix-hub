@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { SIGNIN_PATH } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import SessionCard from "@/features/auth/ui/session-card";
+import { getApiConfig } from "@/features/config/api-config";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { Session } from "next-auth";
 import { redirect } from "next/navigation";
@@ -32,7 +33,7 @@ export default async function Home() {
       {userInfo && (
         <div className="space-y-2">
           <h3 className="text-md font-semibold">User Info Claims (Debug)</h3>
-          <pre className="bg-muted p-4 rounded-md text-xs overflow-auto">
+          <pre className="overflow-auto rounded-md bg-muted p-4 text-xs">
             {JSON.stringify(userInfo.claims, null, 2)}
           </pre>
         </div>
@@ -55,7 +56,7 @@ async function getCurrentUserInfo(session: Session | null) {
 
   try {
     const userInfoResponse = await fetch(
-      `${process.env.ENDATIX_API_URL}/my-account/user-info`,
+      `${getApiConfig()?.apiUrl}/my-account/user-info`,
       { headers },
     );
     if (!userInfoResponse.ok) {

@@ -197,6 +197,11 @@ describe("getApiConfig", () => {
     process.env.ENDATIX_API_URL = "not-a-url";
     expect(getApiConfig()).toBeNull();
   });
+
+  test("returns null when ENDATIX_BASE_URL is not a valid URL", () => {
+    process.env.ENDATIX_BASE_URL = "not-a-url";
+    expect(getApiConfig()).toBeNull();
+  });
 });
 
 describe("ensureResolvedApiUrl", () => {

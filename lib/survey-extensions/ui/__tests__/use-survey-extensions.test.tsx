@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { EndatixClientConfigProvider } from "@/components/providers/endatix-client-config-provider";
+import { EndatixConfigProvider } from "@/components/providers/endatix-config-provider";
 import { useSurveyExtensions } from "../use-survey-extensions";
 
 const mockUseExtensionLoader = vi.fn();
@@ -30,14 +30,14 @@ describe("useSurveyExtensions", () => {
   function wrap(extensionsEnabled: boolean) {
     return function Wrapper({ children }: { children: ReactNode }) {
       return (
-        <EndatixClientConfigProvider
+        <EndatixConfigProvider
           value={{
             apiBaseUrl: "https://api.example.com/api",
             extensionsEnabled,
           }}
         >
           {children}
-        </EndatixClientConfigProvider>
+        </EndatixConfigProvider>
       );
     };
   }
@@ -72,8 +72,7 @@ describe("useSurveyExtensions", () => {
     const formJson = { pages: [{ elements: [{ type: "country" }] }] };
 
     renderHook(
-      () =>
-        useSurveyExtensions({ extensionIdsToLoad, formJson, runtimeDeps }),
+      () => useSurveyExtensions({ extensionIdsToLoad, formJson, runtimeDeps }),
       { wrapper: wrap(true) },
     );
 

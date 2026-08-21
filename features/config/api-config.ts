@@ -100,12 +100,8 @@ export function getApiConfig(): ApiConfig | null {
     cachedConfig = { baseUrl, prefix: apiPrefix, apiUrl };
 
     return cachedConfig;
-  } catch (error) {
-    throw new Error(
-      `Invalid API URL constructed: ${baseUrl}${apiPrefix}. ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
-    );
+  } catch {
+    return null;
   }
 }
 

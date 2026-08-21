@@ -2,7 +2,7 @@
  * Browser-safe Endatix settings. Origin URL and a boolean only — no secrets,
  * storage keys, or auth. Safe to send to the client.
  *
- * React trees read this via {@link EndatixClientConfigProvider}. Non-React
+ * React trees read this via {@link EndatixConfigProvider}. Non-React
  * SurveyJS fetchers read {@link getBrowserEndatixConfig} (they cannot use a hook).
  */
 
@@ -37,7 +37,7 @@ export function getBrowserEndatixConfig(): ClientEndatixConfig {
   return browserConfig;
 }
 
-/** Called from {@link EndatixClientConfigProvider} during render (before children). */
+/** Called from {@link EndatixConfigProvider} during render (before children). */
 export function hydrateBrowserEndatixConfig(config: ClientEndatixConfig): void {
   browserConfig = config;
 }

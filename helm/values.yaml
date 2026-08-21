@@ -12,11 +12,11 @@ service:
   port: 8000
 
 api:
-  # Used by the Hub server to make backend API calls — must include /api suffix
-  # e.g. http://endatix-api:8080/api  (internal K8s service URL)
+  # Hub server → API origin. Must include the /api suffix.
+  # e.g. http://endatix-api:8080/api
   apiUrl: "http://endatix-api:8080/api"
-  # Base URL of the Endatix API, used for constructing links in emails etc.
-  # e.g. https://api.example.com
+  # API origin without /api. Used with ENDATIX_API_PREFIX when apiUrl is unset.
+  # e.g. http://endatix-api:8080
   baseUrl: "http://endatix-api:8080"
 
 experimental:

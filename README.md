@@ -83,7 +83,7 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
    - `ENDATIX_BASE_URL` — API origin, e.g. `https://localhost:5001`
    - `SESSION_SECRET` — `openssl rand -hex 32`
    - `AUTH_SECRET` — `npx auth secret`
-   Optional behind a proxy: `AUTH_URL`, `AUTH_TRUST_HOST`. Full operator guide: [Hub environment variables](https://docs.endatix.com/docs/developers/hub/environment).
+   Optional behind a proxy: `AUTH_URL`, `AUTH_TRUST_HOST`. See `.env.example` for the full key list.
 4. Run the development server with `pnpm dev`
 5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
@@ -93,7 +93,7 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 
 
 > [!NOTE]
-> Required variables in `.env.example` are marked `[REQUIRED]`. The file is the complete key list; the docs page is the story (runtime vs build, Helm, grouped links).
+> Required variables in `.env.example` are marked `[REQUIRED]`. That file is the complete key list.
 
 ## Project Structure
 
@@ -124,4 +124,3 @@ Keep log attributes safe and scalar. Do not log tokens, cookies, raw request bod
 To learn more about Endatix, take a look at the following resources:
 
 - [Endatix Documentation](https://docs.endatix.com/docs/category/getting-started) — product overview and API
-- [Hub environment variables](https://docs.endatix.com/docs/developers/hub/environment) — required keys, runtime vs build, Helm

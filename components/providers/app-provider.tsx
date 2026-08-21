@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { ThemeProvider } from "./theme-provider";
-import { EndatixClientConfigProvider } from "./endatix-client-config-provider";
+import { EndatixConfigProvider } from "./endatix-config-provider";
 import { PostHogProvider } from "@/features/analytics/posthog/client";
 import type { ClientEndatixConfig } from "@/features/config/client-endatix-config";
 import { SessionProvider } from "next-auth/react";
@@ -116,11 +116,9 @@ export function AppProvider({
     );
   }
 
-  // Outermost: referentially stable env projection. Theme/session updates
-  // do not invalidate this context; only apiBaseUrl / extensionsEnabled do.
+  // Outermost: memoized env projection. Session/theme live inside this
+  // provider so those context updates do not change this value.
   return (
-    <EndatixClientConfigProvider value={endatixConfig}>
-      {content}
-    </EndatixClientConfigProvider>
+    <EndatixConfigProvider value={endatixConfig}>{content}</EndatixConfigProvider>
   );
 }

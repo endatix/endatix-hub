@@ -1,30 +1,27 @@
 "use client";
 
 import {
-  EMPTY_CLIENT_ENDATIX_CONFIG,
   hydrateBrowserEndatixConfig,
   toClientEndatixConfig,
   type ClientEndatixConfig,
 } from "@/features/config/client-endatix-config";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-const EndatixClientConfigContext = createContext<ClientEndatixConfig>(
-  EMPTY_CLIENT_ENDATIX_CONFIG,
-);
+const EndatixConfigContext = createContext<ClientEndatixConfig | null>(null);
 
-interface EndatixClientConfigProviderProps {
+interface EndatixConfigProviderProps {
   value: ClientEndatixConfig;
   children: ReactNode;
 }
 
 /**
  * Root-level, referentially stable projection of request-time Endatix env.
- * Separate from theme/session so those updates do not rerender config consumers.
+ * Kept outside theme/session so those contexts do not subscribe config consumers.
  */
-export function EndatixClientConfigProvider({
+export function EndatixConfigProvider({
   value,
   children,
-}: Readonly<EndatixClientConfigProviderProps>) {
+}: Readonly<EndatixConfigProviderProps>) {
   const { apiBaseUrl, extensionsEnabled } = value;
   const stable = useMemo(
     () => toClientEndatixConfig({ apiBaseUrl, extensionsEnabled }),
@@ -34,12 +31,18 @@ export function EndatixClientConfigProvider({
   hydrateBrowserEndatixConfig(stable);
 
   return (
-    <EndatixClientConfigContext.Provider value={stable}>
+    <EndatixConfigContext.Provider value={stable}>
       {children}
-    </EndatixClientConfigContext.Provider>
+    </EndatixConfigContext.Provider>
   );
 }
 
-export function useEndatixClientConfig(): ClientEndatixConfig {
-  return useContext(EndatixClientConfigContext);
+export function useEndatixConfig(): ClientEndatixConfig {
+  const config = useContext(EndatixConfigContext);
+  if (config === null) {
+    throw new Error(
+      "useEndatixConfig must be used within an EndatixConfigProvider.",
+    );
+  }
+  return config;
 }

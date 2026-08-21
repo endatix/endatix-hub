@@ -2,9 +2,9 @@ import { render, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  EndatixClientConfigProvider,
-  useEndatixClientConfig,
-} from "../endatix-client-config-provider";
+  EndatixConfigProvider,
+  useEndatixConfig,
+} from "../endatix-config-provider";
 import {
   getBrowserEndatixConfig,
   resetBrowserEndatixConfigForTests,
@@ -14,14 +14,12 @@ import {
 function wrapper(value: { apiBaseUrl: string; extensionsEnabled: boolean }) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <EndatixClientConfigProvider value={value}>
-        {children}
-      </EndatixClientConfigProvider>
+      <EndatixConfigProvider value={value}>{children}</EndatixConfigProvider>
     );
   };
 }
 
-describe("EndatixClientConfigProvider", () => {
+describe("EndatixConfigProvider", () => {
   afterEach(() => {
     resetBrowserEndatixConfigForTests();
   });
@@ -33,7 +31,7 @@ describe("EndatixClientConfigProvider", () => {
       secret: "do-not-leak",
     };
 
-    const { result } = renderHook(() => useEndatixClientConfig(), {
+    const { result } = renderHook(() => useEndatixConfig(), {
       wrapper: wrapper(extra),
     });
 
@@ -49,28 +47,34 @@ describe("EndatixClientConfigProvider", () => {
     const seen: unknown[] = [];
 
     function Consumer() {
-      seen.push(useEndatixClientConfig());
+      seen.push(useEndatixConfig());
       return null;
     }
 
     const { rerender } = render(
-      <EndatixClientConfigProvider
+      <EndatixConfigProvider
         value={{ apiBaseUrl: "https://a.example/api", extensionsEnabled: true }}
       >
         <Consumer />
-      </EndatixClientConfigProvider>,
+      </EndatixConfigProvider>,
     );
 
     rerender(
-      <EndatixClientConfigProvider
+      <EndatixConfigProvider
         value={{ apiBaseUrl: "https://a.example/api", extensionsEnabled: true }}
       >
         <Consumer />
-      </EndatixClientConfigProvider>,
+      </EndatixConfigProvider>,
     );
 
     expect(seen).toHaveLength(2);
     expect(seen[0]).toBe(seen[1]);
+  });
+
+  it("throws when useEndatixConfig is used outside the provider", () => {
+    expect(() => renderHook(() => useEndatixConfig())).toThrow(
+      /EndatixConfigProvider/,
+    );
   });
 
   it("treats non-boolean extensionsEnabled as off", () => {
