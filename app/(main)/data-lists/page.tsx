@@ -6,7 +6,10 @@ import {
 } from "@/features/data-lists/view-lists/ui/data-lists-page";
 import { DataListsListToolbar } from "@/features/data-lists/view-lists/ui/data-lists-list-toolbar";
 import { DataListsTableSkeleton } from "@/features/data-lists/view-lists/ui/data-lists-table-skeleton";
-import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
+import {
+  getDataListLocales,
+  getDataListsPage,
+} from "@/features/data-lists/view-lists/get-data-lists.server";
 import {
   firstString,
   parseDataListsListParams,
@@ -21,6 +24,12 @@ interface DataListsRoutePageProps {
     pageSize: SearchParam;
     search: SearchParam;
     hasLocale: SearchParam;
+    sortBy: SearchParam;
+    sortDir: SearchParam;
+    createdFrom: SearchParam;
+    createdTo: SearchParam;
+    modifiedFrom: SearchParam;
+    modifiedTo: SearchParam;
   }>;
 }
 
@@ -37,8 +46,15 @@ export default async function DataListsRoutePage({
     pageSize: firstString(raw.pageSize),
     search: firstString(raw.search),
     hasLocale: firstString(raw.hasLocale),
+    sortBy: firstString(raw.sortBy),
+    sortDir: firstString(raw.sortDir),
+    createdFrom: firstString(raw.createdFrom),
+    createdTo: firstString(raw.createdTo),
+    modifiedFrom: firstString(raw.modifiedFrom),
+    modifiedTo: firstString(raw.modifiedTo),
   });
   const dataListsPromise = getDataListsPage(listRequest);
+  const localesPromise = getDataListLocales();
   const openCreateOnLoad = hasValue(raw.action, "create");
 
   return (
@@ -48,6 +64,7 @@ export default async function DataListsRoutePage({
       <Suspense fallback={<DataListsTableSkeleton />}>
         <DataListsPage
           dataListsPromise={dataListsPromise}
+          localesPromise={localesPromise}
           openCreateOnLoad={openCreateOnLoad}
         />
       </Suspense>

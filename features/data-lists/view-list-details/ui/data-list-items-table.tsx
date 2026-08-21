@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
+  DataTableColumnHeader,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
   DataTableEmpty,
   DataTableSurface,
-} from "@/components/table";
+} from '@/components/table';
 import {
   Table,
   TableBody,
@@ -16,18 +17,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
-import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
-import { resolveCatalogDefaultLabelText } from "@/lib/localization";
+} from '@/components/ui/table';
+import { formatLocaleLabel } from '@/features/data-lists/translations/locale-discovery';
+import type { DataListItem } from '@/lib/endatix-api/data-lists/types';
+import { resolveCatalogDefaultLabelText } from '@/lib/localization';
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
-} from "@tanstack/react-table";
-import { type ReactNode, useMemo } from "react";
-import "./table-types";
+} from '@tanstack/react-table';
+import { type ReactNode, useMemo } from 'react';
+import './table-types';
 
 type DataListItemsTableProps = {
   items: DataListItem[];
@@ -35,6 +36,8 @@ type DataListItemsTableProps = {
   defaultLocale?: string;
   emptyMessage?: string;
   footer?: ReactNode;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
@@ -63,25 +66,41 @@ function labelColumnHeader(column: string, defaultLocale?: string): string {
 
 function buildColumns(
   labelColumns: string[],
-  defaultLocale?: string,
+  defaultLocale: string | undefined,
+  searchValue: string,
+  onSearchChange: ((value: string) => void) | undefined,
 ): ColumnDef<DataListItemRow>[] {
   return [
     {
-      id: "value",
-      accessorKey: "value",
-      header: () => (
-        <span className={dataTableColumnLabelClassName()}>Value</span>
+      id: 'value',
+      accessorKey: 'value',
+      enableSorting: false,
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Value"
+          textFilter={
+            onSearchChange
+              ? {
+                  value: searchValue,
+                  placeholder: 'Search value or label',
+                  onChange: onSearchChange,
+                }
+              : undefined
+          }
+        />
       ),
       cell: ({ row }) => (
         <span className="font-mono text-xs">{row.original.value}</span>
       ),
       meta: {
-        headerClassName: "min-w-[8rem]",
-        cellClassName: "min-w-[8rem]",
+        headerClassName: 'min-w-[8rem]',
+        cellClassName: 'min-w-[8rem]',
       },
     },
     ...labelColumns.map((column) => ({
       id: `label:${column}`,
+      enableSorting: false as const,
       header: () => (
         <span className={dataTableColumnLabelClassName()}>
           {labelColumnHeader(column, defaultLocale)}
@@ -90,8 +109,8 @@ function buildColumns(
       cell: ({ row }: { row: { original: DataListItemRow } }) =>
         resolveItemLabelText(row.original, column, defaultLocale),
       meta: {
-        headerClassName: "min-w-[10rem]",
-        cellClassName: "min-w-[10rem]",
+        headerClassName: 'min-w-[10rem]',
+        cellClassName: 'min-w-[10rem]',
       },
     })),
   ];
@@ -101,11 +120,13 @@ export function DataListItemsTable({
   items,
   availableLocales,
   defaultLocale,
-  emptyMessage = "No items in this list.",
+  emptyMessage = 'No items in this list.',
   footer,
+  searchValue = '',
+  onSearchChange,
 }: Readonly<DataListItemsTableProps>) {
   const labelColumns = useMemo(
-    () => ["default", ...availableLocales],
+    () => ['default', ...availableLocales],
     [availableLocales],
   );
 
@@ -119,8 +140,9 @@ export function DataListItemsTable({
   );
 
   const columns = useMemo(
-    () => buildColumns(labelColumns, defaultLocale),
-    [labelColumns, defaultLocale],
+    () =>
+      buildColumns(labelColumns, defaultLocale, searchValue, onSearchChange),
+    [labelColumns, defaultLocale, searchValue, onSearchChange],
   );
 
   const table = useReactTable({
@@ -131,7 +153,7 @@ export function DataListItemsTable({
     enableColumnPinning: true,
     initialState: {
       columnPinning: {
-        left: ["value"],
+        left: ['value'],
       },
     },
   });
@@ -158,7 +180,7 @@ export function DataListItemsTable({
                 className="border-0 hover:bg-transparent"
               >
                 {headerGroup.headers.map((header) => {
-                  const isPinnedLeft = header.column.getIsPinned() === "left";
+                  const isPinnedLeft = header.column.getIsPinned() === 'left';
                   return (
                     <TableHead
                       key={header.id}
@@ -190,7 +212,7 @@ export function DataListItemsTable({
                   className={dataTableBodyRowClassName({ isEvenRow })}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const isPinnedLeft = cell.column.getIsPinned() === "left";
+                    const isPinnedLeft = cell.column.getIsPinned() === 'left';
                     return (
                       <TableCell
                         key={cell.id}

@@ -5,8 +5,10 @@ import {
   BackToTableButton,
   CellDate,
   createPagedTableFooterProps,
+  FacetedFilter,
   PagedTableFooter,
   TableSearchInput,
+  type FacetedFilterOption,
 } from "@/components/table";
 import {
   DropdownMenu,
@@ -25,9 +27,21 @@ import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
 } from "@/lib/utils/files-download";
+import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
+import {
+  parseHasLocaleFilterSet,
+  serializeHasLocaleFilter,
+} from "@/features/data-lists/view-lists/utils";
 import { ChevronDown, Download, Upload } from "lucide-react";
 import type { Route } from "next";
-import { Suspense, use, useEffect, useState, useTransition } from "react";
+import {
+  Suspense,
+  use,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -313,16 +327,49 @@ function DataListItemsSection({
   availableLocales: string[];
   defaultLocale?: string;
 }>) {
-  const { search, setSearch } = useListUrlState();
+  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const selectedLocales = useMemo(
+    () => parseHasLocaleFilterSet(searchParams.get("hasLocale")),
+    [searchParams],
+  );
+  const localeOptions = useMemo<FacetedFilterOption[]>(() => {
+    const codes = [
+      ...(defaultLocale ? [defaultLocale] : []),
+      ...availableLocales.filter(
+        (locale) =>
+          !defaultLocale ||
+          locale.trim().toLowerCase() !== defaultLocale.trim().toLowerCase(),
+      ),
+    ];
+    return codes.map((value) => ({
+      value,
+      label: formatLocaleLabel(value),
+    }));
+  }, [availableLocales, defaultLocale]);
 
   return (
     <div className="space-y-3">
-      <TableSearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Search items by value or label"
-        ariaLabel="Search data list items"
-      />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <TableSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search items by value or label"
+          ariaLabel="Search data list items"
+        />
+        {localeOptions.length > 0 ? (
+          <FacetedFilter
+            title="Locale"
+            options={localeOptions}
+            selectedValues={selectedLocales}
+            onValueChange={(values) => {
+              updateUrl({
+                hasLocale: serializeHasLocaleFilter(values) ?? null,
+                page: "1",
+              });
+            }}
+          />
+        ) : null}
+      </div>
       <Suspense
         fallback={
           <div className="space-y-3">
@@ -352,16 +399,27 @@ function DataListItemsPanel({
   const paged = use(itemsPromise);
   const { updateUrl, searchParams } = useListUrlState();
   const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
-  const hasSearch = Boolean(searchParams.get("search")?.trim());
+  const searchValue = searchParams.get("search") ?? "";
+  const hasLocaleFilter = Boolean(
+    searchParams.get("hasLocale")?.trim(),
+  );
+  const hasFilters = Boolean(searchValue.trim() || hasLocaleFilter);
 
   return (
     <DataListItemsTable
       items={[...paged.items]}
       availableLocales={availableLocales}
       defaultLocale={defaultLocale}
+      searchValue={searchValue}
+      onSearchChange={(value) => {
+        updateUrl({
+          search: value || null,
+          page: "1",
+        });
+      }}
       emptyMessage={
-        hasSearch
-          ? "No items match the current search."
+        hasFilters
+          ? "No items match the current filters."
           : "No items in this list."
       }
       footer={<PagedTableFooter {...footerProps} variant="surface" />}

@@ -33,9 +33,28 @@ export interface CreateDataListRequest {
   description?: string;
 }
 
+export type DataListListSortBy =
+  | 'name'
+  | 'createdAt'
+  | 'modifiedAt'
+  | 'itemsCount'
+  | 'isActive';
+
+export type DataListListSortDir = 'asc' | 'desc';
+
 export interface ListDataListsRequest extends IPagedRequest {
   search?: string;
   hasLocale?: string;
+  sortBy?: DataListListSortBy;
+  sortDir?: DataListListSortDir;
+  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
+  createdFrom?: string;
+  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
+  createdTo?: string;
+  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
+  modifiedFrom?: string;
+  /** Inclusive UTC calendar day `YYYY-MM-DD`. */
+  modifiedTo?: string;
 }
 
 export interface ListDataListItemsRequest extends IPagedRequest {

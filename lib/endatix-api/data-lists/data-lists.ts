@@ -53,6 +53,12 @@ export function buildListDataListsEndpoint(
   appendPagingQueryParams(searchParams, request, { page: 1, pageSize: 10 });
   appendQueryParam(searchParams, "search", request.search);
   appendQueryParam(searchParams, "hasLocale", request.hasLocale);
+  appendQueryParam(searchParams, "sortBy", request.sortBy);
+  appendQueryParam(searchParams, "sortDir", request.sortDir);
+  appendQueryParam(searchParams, "createdFrom", request.createdFrom);
+  appendQueryParam(searchParams, "createdTo", request.createdTo);
+  appendQueryParam(searchParams, "modifiedFrom", request.modifiedFrom);
+  appendQueryParam(searchParams, "modifiedTo", request.modifiedTo);
   return buildEndpointWithQuery(DATA_LISTS_BASE, searchParams);
 }
 
@@ -91,6 +97,10 @@ export class DataLists {
     }
 
     return ApiResult.success(normalizePagedResponse(response.data));
+  }
+
+  async listLocales(): Promise<ApiResult<string[]>> {
+    return this.endatix.get<string[]>(`${DATA_LISTS_BASE}/locales`);
   }
 
   async listItems(

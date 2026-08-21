@@ -16,9 +16,29 @@ export async function getDataListsPage(
 
   const api = new EndatixApi(session?.accessToken);
   const result = toResult(await api.dataLists.list(request), {
-    fallbackMessage: "Failed to load data lists.",
-    logMessage: "Failed to load data lists.",
-    loggerName: "data-lists.list",
+    fallbackMessage: 'Failed to load data lists.',
+    logMessage: 'Failed to load data lists.',
+    loggerName: 'data-lists.list',
+  });
+
+  if (Result.isError(result)) {
+    throw new DataLoadError(result.message);
+  }
+
+  return result.value;
+}
+
+/** Distinct culture codes from tenant data-list catalogs (unfiltered by list query). */
+export async function getDataListLocales(): Promise<string[]> {
+  const session = await auth();
+  const { requireHubAccess } = await authorization(session);
+  await requireHubAccess();
+
+  const api = new EndatixApi(session?.accessToken);
+  const result = toResult(await api.dataLists.listLocales(), {
+    fallbackMessage: 'Failed to load data list locales.',
+    logMessage: 'Failed to load data list locales.',
+    loggerName: 'data-lists.locales',
   });
 
   if (Result.isError(result)) {
