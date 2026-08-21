@@ -33,6 +33,27 @@ export function tenantPublicSignInPath(shortUrl: string): Route {
   return `/t/${shortUrl}/signin` as Route;
 }
 
+export function tenantPublicRegisterPath(shortUrl: string): Route {
+  return `/t/${shortUrl}/register` as Route;
+}
+
+export function filterTenantAuthProviders<T extends { id: string }>(
+  providers: readonly T[],
+  allowedAuthProviders: readonly string[],
+): T[] {
+  const allowed = new Set(
+    allowedAuthProviders.map((key) => key.toLowerCase()),
+  );
+
+  return providers.filter((provider) => {
+    if (provider.id === "endatix") {
+      return true;
+    }
+
+    return allowed.has(provider.id.toLowerCase());
+  });
+}
+
 /** Unknown roles do not imply Hub access. */
 export function roleHasHubAccess(roleName: string): boolean {
   return TENANT_REGISTRATION_ROLES.some(
