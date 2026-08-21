@@ -40,7 +40,6 @@ export interface PlatformTenant {
 
 export interface CreatePlatformTenantRequest {
   name: string;
-  slug: string;
   description?: string | null;
   allowSelfRegistration: boolean;
   allowedAuthProviderKeys?: string[];
