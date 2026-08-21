@@ -10,7 +10,7 @@ import { identityStepError } from "./tenant-self-registration";
 
 export async function createTenantAction(request: CreatePlatformTenantRequest) {
   const session = await requirePlatformAdmin();
-  const identityError = identityStepError(request.name, request.slug);
+  const identityError = identityStepError(request.name);
   if (identityError) {
     return Result.validationError(identityError);
   }
@@ -18,7 +18,6 @@ export async function createTenantAction(request: CreatePlatformTenantRequest) {
   const api = new EndatixApi(session.accessToken);
   const created = await api.platformTenants.create({
     name: request.name.trim(),
-    slug: request.slug.trim(),
     description: request.description?.trim() || null,
     allowSelfRegistration: request.allowSelfRegistration,
     allowedAuthProviderKeys: request.allowedAuthProviderKeys,
@@ -28,7 +27,7 @@ export async function createTenantAction(request: CreatePlatformTenantRequest) {
   if (!created.success) {
     return mapApiErrorToResult(created, {
       fallbackMessage: "Failed to create tenant",
-      preferredFields: ["slug", "name", "defaultRegistrationRoleName"],
+      preferredFields: ["name", "defaultRegistrationRoleName"],
     });
   }
 
