@@ -1,4 +1,14 @@
-import type { PagedResponse, PlatformTenantListItem } from "@/lib/endatix-api";
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -7,67 +17,122 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { AuthProviderOption } from "@/features/platform-admin/create-tenant/tenant-self-registration";
+import { EditTenantSheet } from "@/features/platform-admin/update-tenant/ui/edit-tenant-sheet";
+import type { PagedResponse, PlatformTenantListItem } from "@/lib/endatix-api";
 import { getFormattedDate } from "@/lib/utils";
+import { MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 
 interface TenantsTableProps {
   tenants: PagedResponse<PlatformTenantListItem>;
+  canManage?: boolean;
+  authProviders?: AuthProviderOption[];
 }
 
-export function TenantsTable({ tenants }: Readonly<TenantsTableProps>) {
+export function TenantsTable({
+  tenants,
+  canManage = false,
+  authProviders = [],
+}: Readonly<TenantsTableProps>) {
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
+  const columnCount = canManage ? 9 : 8;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tenants</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tenant</TableHead>
-              <TableHead>ID</TableHead>
-              <TableHead>Forms</TableHead>
-              <TableHead>Submissions</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Modified</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tenants.items.map((tenant) => (
-              <TableRow key={tenant.id}>
-                <TableCell className="max-w-md whitespace-normal">
-                  <div className="font-medium">{tenant.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {tenant.description || "No description"}
-                  </div>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {tenant.id}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{tenant.formsCount}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{tenant.submissionsCount}</Badge>
-                </TableCell>
-                <TableCell>{getFormattedDate(tenant.createdAt)}</TableCell>
-                <TableCell>{getFormattedDate(tenant.modifiedAt)}</TableCell>
-              </TableRow>
-            ))}
-            {tenants.items.length === 0 && (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Tenants</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No tenants found.
-                </TableCell>
+                <TableHead>Tenant</TableHead>
+                <TableHead>Slug</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead>Self-reg</TableHead>
+                <TableHead>Forms</TableHead>
+                <TableHead>Submissions</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Modified</TableHead>
+                {canManage && <TableHead className="w-12"><span className="sr-only">Actions</span></TableHead>}
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {tenants.items.map((tenant) => (
+                <TableRow key={String(tenant.id)}>
+                  <TableCell className="max-w-md whitespace-normal">
+                    <div className="font-medium">{tenant.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {tenant.description || "No description"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground">
+                    {tenant.slug}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {tenant.id}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={tenant.selfRegistrationEnabled ? "default" : "secondary"}>
+                      {tenant.selfRegistrationEnabled ? "On" : "Off"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{tenant.formsCount}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{tenant.submissionsCount}</Badge>
+                  </TableCell>
+                  <TableCell>{getFormattedDate(tenant.createdAt)}</TableCell>
+                  <TableCell>{getFormattedDate(tenant.modifiedAt)}</TableCell>
+                  {canManage && (
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal />
+                            <span className="sr-only">Open tenant actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => setEditingTenantId(String(tenant.id))}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+              {tenants.items.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={columnCount}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No tenants found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      {canManage && (
+        <EditTenantSheet
+          tenantId={editingTenantId}
+          authProviders={authProviders}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setEditingTenantId(null);
+            }
+          }}
+        />
+      )}
+    </>
   );
 }
