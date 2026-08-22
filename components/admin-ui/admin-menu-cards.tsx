@@ -11,9 +11,13 @@ import { useRouter } from "next/navigation";
 
 type AdminMenuCardsProps = {
   showStorage?: boolean;
+  showSignupRequests?: boolean;
 };
 
-export function AdminMenuCards({ showStorage }: Readonly<AdminMenuCardsProps>) {
+export function AdminMenuCards({
+  showStorage,
+  showSignupRequests,
+}: Readonly<AdminMenuCardsProps>) {
   const router = useRouter();
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
@@ -71,6 +75,25 @@ export function AdminMenuCards({ showStorage }: Readonly<AdminMenuCardsProps>) {
           <div className="text-muted-foreground"></div>
         </CardFooter>
       </Card>
+      {showSignupRequests ? (
+        <Card
+          className="@container/card cursor-pointer"
+          onClick={() => router.push("/admin/signup-requests")}
+        >
+          <CardHeader>
+            <CardDescription>Review Waitlist</CardDescription>
+            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              Signup requests
+            </CardTitle>
+          </CardHeader>
+          <CardFooter className="flex-col items-start gap-1.5 text-sm">
+            <div className="line-clamp-1 flex gap-2 font-medium">
+              Approve or reject workspace requests from /signup.
+            </div>
+            <div className="text-muted-foreground"></div>
+          </CardFooter>
+        </Card>
+      ) : null}
       <Card
         className="@container/card cursor-pointer"
         onClick={() => router.push("/admin/environment")}
