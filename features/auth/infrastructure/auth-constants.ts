@@ -10,6 +10,7 @@ const AUTH_ROUTES = [
   SIGNIN_PATH,
   SIGNOUT_PATH,
   "/create-account",
+  "/signup",
   "/account-verification",
   "/verify-email",
   "/forgot-password",
