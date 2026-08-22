@@ -36,6 +36,11 @@ export const tenantManagementFlag = flag<boolean>({
   defaultValue: false,
 });
 
+export const saasManagementFlag = flag<boolean>({
+  key: "saas-management",
+  defaultValue: false,
+});
+
 export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   experimentalFeatures: await experimentalFeaturesFlag(),
   advancedAnalytics: await advancedAnalyticsFlag(),
@@ -44,4 +49,5 @@ export const getAllFlags = async (): Promise<FeatureFlagConfig> => ({
   storageStats: await storageStatsFlag(),
   reportingExport: await reportingExportFlag(),
   tenantManagement: await tenantManagementFlag(),
+  saasManagement: await saasManagementFlag(),
 });
