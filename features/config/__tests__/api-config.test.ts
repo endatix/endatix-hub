@@ -224,6 +224,15 @@ describe("getApiConfig", () => {
     expect(getApiConfig()).toBeNull();
   });
 
+  test("returns null when ENDATIX_BASE_URL uses an unsupported protocol", () => {
+    process.env.ENDATIX_BASE_URL = "ftp://api.example.com";
+    expect(getApiConfig()).toBeNull();
+
+    resetApiConfigCacheForTests();
+    process.env.ENDATIX_BASE_URL = "file:///tmp";
+    expect(getApiConfig()).toBeNull();
+  });
+
   test("strips a trailing slash from ENDATIX_API_URL pathname", () => {
     process.env.ENDATIX_API_URL = "https://helm.example.com/api/";
     const config = getApiConfig();

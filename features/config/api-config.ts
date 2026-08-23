@@ -5,6 +5,8 @@
  * Provides a centralized way to manage API configuration.
  */
 
+import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
+
 const DEFAULT_API_PREFIX = "/api";
 
 let cachedConfig: ApiConfig | null = null;
@@ -56,20 +58,16 @@ export function constructApiUrl(baseUrl: string, prefix: string): string {
  * Only `http:` and `https:` are accepted.
  */
 function parseDirectApiUrl(directApiUrl: string): ApiConfig | null {
-  try {
-    const parsed = new URL(directApiUrl);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return null;
-    }
-    const prefix = normalizeApiPrefix(parsed.pathname);
-    return Object.freeze({
-      baseUrl: parsed.origin,
-      prefix,
-      apiUrl: `${parsed.origin}${prefix}`,
-    });
-  } catch {
+  if (!isValidAbsoluteUrl(directApiUrl)) {
     return null;
   }
+  const parsed = new URL(directApiUrl);
+  const prefix = normalizeApiPrefix(parsed.pathname);
+  return Object.freeze({
+    baseUrl: parsed.origin,
+    prefix,
+    apiUrl: `${parsed.origin}${prefix}`,
+  });
 }
 
 /**
@@ -91,14 +89,12 @@ export function getApiConfig(): ApiConfig | null {
     const prefix = normalizeApiPrefix(
       process.env.ENDATIX_API_PREFIX ?? DEFAULT_API_PREFIX,
     );
-    try {
-      const apiUrl = constructApiUrl(baseUrl, prefix);
-      new URL(apiUrl);
-      cachedConfig = Object.freeze({ baseUrl, prefix, apiUrl });
-      return cachedConfig;
-    } catch {
+    const apiUrl = constructApiUrl(baseUrl, prefix);
+    if (!isValidAbsoluteUrl(apiUrl)) {
       return null;
     }
+    cachedConfig = Object.freeze({ baseUrl, prefix, apiUrl });
+    return cachedConfig;
   }
 
   const directApiUrl = process.env.ENDATIX_API_URL?.trim();
