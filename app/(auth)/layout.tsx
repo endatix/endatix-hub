@@ -45,7 +45,7 @@ const formFeatures = [
 
 export default async function AuthLayout({ children }: AuthLayoutProps) {
   const session = await auth();
-  const endatixConfig = await getClientEndatixConfig();
+  const endatixConfig = getClientEndatixConfig();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>

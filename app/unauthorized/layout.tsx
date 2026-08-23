@@ -31,7 +31,7 @@ export default async function UnauthorizedLayout({
   children,
 }: UnauthorizedLayoutProps) {
   const session = await auth();
-  const endatixConfig = await getClientEndatixConfig();
+  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html lang="en" suppressHydrationWarning>
