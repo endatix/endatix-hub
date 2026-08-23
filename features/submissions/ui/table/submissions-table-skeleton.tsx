@@ -1,4 +1,4 @@
-import { DataTableSurface } from "@/components/ui/data-table-surface";
+import { DataTableSurface } from "@/components/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,

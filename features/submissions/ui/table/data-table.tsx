@@ -3,9 +3,9 @@ import {
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
-} from "@/components/ui/data-table-chrome";
-import { DataTableEmpty } from "@/components/ui/data-table-empty";
-import { DataTableSurface } from "@/components/ui/data-table-surface";
+  DataTableEmpty,
+  DataTableSurface,
+} from "@/components/table";
 import {
   Sheet,
   SheetContent,

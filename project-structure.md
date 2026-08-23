@@ -170,6 +170,7 @@ Action rules:
 - Use one paged API endpoint with scope/tenant filters rather than two parallel lists sharing the same `page` param.
 - Client tables update the URL via `useListUrlState` (debounced search, `Select` filters, `PagedTableFooter` / `PagedListFooter`) and receive unresolved promises from the server page wrapped in `Suspense`.
 - Shared helpers live in `lib/list-page/` (`parse-paged-search-params`, `use-list-url-state`).
+- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, paged footer) lives in `components/table/`. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
 - Reference: `settings/organization/users/page.tsx`, `admin/platform-admins/page.tsx`, `forms/page.tsx`, and `features/forms/list-forms/`.
 
 ##### Forms list scope model (`/forms`)

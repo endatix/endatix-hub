@@ -3,7 +3,7 @@ import {
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
-} from "../data-table-chrome";
+} from "./data-table-chrome";
 
 describe("data-table-chrome", () => {
   it("pins left header cells above other sticky headers", () => {
