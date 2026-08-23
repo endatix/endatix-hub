@@ -76,14 +76,14 @@ export function AdminMenuCards({ showStorage }: Readonly<AdminMenuCardsProps>) {
         onClick={() => router.push("/admin/environment")}
       >
         <CardHeader>
-          <CardDescription>Review Environment Details</CardDescription>
+          <CardDescription>Review Hub Runtime</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             Environment
           </CardTitle>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Debug environment variables e.g. NODE_ENV, etc.
+            View Endatix API origin and SurveyJS extensions status.
           </div>
           <div className="text-muted-foreground"></div>
         </CardFooter>

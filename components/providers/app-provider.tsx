@@ -42,7 +42,7 @@ interface AppProviderProps {
   options?: AppProviderOptions;
   themeOptions?: ThemeOptions;
   sidebarDefaultOpen?: boolean;
-  /** Request-time browser projection (API origin + extensions gate). No secrets. */
+  /** Safe request-time browser read-only projection of endatix config properties */
   endatixConfig: ClientEndatixConfig;
 }
 
