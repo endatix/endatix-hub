@@ -87,13 +87,12 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 4. Run the development server with `pnpm dev`
 5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-> [!TIP]
+>[!TIP]
 >You can also run the website with self-signed SSL enabled by running `pnpm dev-https`, which will make the website available at [https://localhost:3000](https://localhost:3000).
 >More info at [Next.js documentation](https://vercel.com/guides/access-nextjs-localhost-https-certificate-self-signed).
 
-
-> [!NOTE]
-> Required variables in `.env.example` are marked `[REQUIRED]`. That file is the complete key list.
+>[!NOTE]
+>Required variables in `.env.example` are marked `[REQUIRED]`. That file is the complete key list.
 
 ## Project Structure
 
