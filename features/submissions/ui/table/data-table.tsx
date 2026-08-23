@@ -1,5 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
@@ -266,7 +267,7 @@ export function DataTable<TData extends Submission>({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <Table className="border-separate border-spacing-0">
+          <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
             <TableHeader className="bg-surface-container-low">
               <SortableContext
                 items={visibleColumnOrder}

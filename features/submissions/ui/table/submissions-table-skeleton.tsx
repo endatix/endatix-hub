@@ -1,4 +1,4 @@
-import { DataTableSurface } from "@/components/table";
+import { DATA_TABLE_ELEMENT_CLASS_NAME, DataTableSurface } from "@/components/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -86,7 +86,7 @@ export function SubmissionsTableSkeleton({
     >
       <span className="sr-only">{loadingLabel}</span>
       <DataTableSurface>
-        <Table className="border-separate border-spacing-0">
+        <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
           <TableHeader className="bg-surface-container-low">
             <TableRow
               className={cn(ROW_HEIGHT_CLASS, "border-0 hover:bg-transparent")}

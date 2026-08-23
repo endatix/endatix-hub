@@ -170,8 +170,9 @@ Action rules:
 - Use one paged API endpoint with scope/tenant filters rather than two parallel lists sharing the same `page` param.
 - Client tables update the URL via `useListUrlState` (debounced search, `Select` filters, `PagedTableFooter` / `PagedListFooter`) and receive unresolved promises from the server page wrapped in `Suspense`.
 - Shared helpers live in `lib/list-page/` (`parse-paged-search-params`, `use-list-url-state`).
-- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, paged footer) lives in `components/table/`. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
-- Reference: `settings/organization/users/page.tsx`, `admin/platform-admins/page.tsx`, `forms/page.tsx`, and `features/forms/list-forms/`.
+- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, **toolbar**, paged footer) lives in `components/table/`. `DataTableToolbar` is one row: filters scroll, actions stay pinned. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
+- Hub list URL key is **`search`**; map it to the API query field (`query`, `filter`, etc.) inside the slice parser. Do not introduce a parallel `q` param.
+- Reference: `settings/organization/users/page.tsx`, `admin/platform-admins/page.tsx`, `forms/page.tsx`, `features/forms/list-forms/`, and `features/data-lists/view-lists/`.
 
 ##### Forms list scope model (`/forms`)
 
@@ -192,6 +193,20 @@ Parsing and helpers live in `features/forms/list-forms/utils.ts` (`parseFormsLis
 - **Phase 3 — Layout toggle:** `layout=cards|table` with compact table view for large lists.
 - **Phase 4 — Pinning:** Backend `UserFormPin` + pinned strip above list.
 - **Phase 5 — Tasks:** Assigned/review sections when collaboration exists.
+
+##### Data lists list + items (`/data-lists`)
+
+Hub management grids follow the same URL + chrome pattern as forms/users. Parsing stays in the owning slice (not a new query slice).
+
+| Surface | Slice | Hub URL | API |
+| --- | --- | --- | --- |
+| List | `features/data-lists/view-lists/` | `search`, `hasLocale` (comma-separated OR), `page`, `pageSize`, `action=create` | `GET /data-lists` (`query`, `hasLocale`) |
+| Detail items | `features/data-lists/view-list-details/` | `search`, `page`, `pageSize`, `from`, `action=replace` | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
+
+- List → detail preserves filters with `from` (serialized list query). Back uses `parseDataListsReturnHref` and ignores unknown keys.
+- Items are **GET-only** in Hub. Authors edit via file replace (`replace-items`), not per-item CRUD.
+- Stream the paged promise from the App Router page into the client table (`use()` + `Suspense`). Footer lives **inside** `DataTableSurface`.
+- Creator Translations CSV wrap lives in `lib/survey-features/data-lists/` (compound keys + SurveyJS CSV merge). Hub actions stay in `features/data-lists/translations/` (`uploadTranslationsCsvAction`, `getDataListTranslationCatalogAction`).
 
 ### Server Helper Layer (`*.server.ts`)
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { DataTableToolbar } from "@/components/table";
 import { ShareDialog } from "@/features/forms/ui/share-dialog";
 import {
   buildSubmissionsTableKey,
@@ -276,49 +277,54 @@ function SubmissionsContent({
 
   return (
     <>
-      <div className="mt-8 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <SubmissionsFilterToolbar
-          isCompleteFilter={isCompleteFilter}
-          statusFilter={statusFilter}
-          testSubmissionFilter={testSubmissionFilter}
-          onIsCompleteChange={onIsCompleteChange}
-          onStatusChange={onStatusChange}
-          onTestSubmissionChange={onTestSubmissionChange}
-          onResetFilters={onResetFilters}
-          disabled={disableTableControls}
-          hasAdditionalFilters={
-            hasDateFilters(dateFilters) ||
-            submitterDisplayIdFilter.length > 0 ||
-            submitterEmailFilter.length > 0
-          }
-        />
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <div
-            role="status"
-            aria-live="polite"
-            className="min-w-[5rem] text-right text-sm text-muted-foreground"
-          >
-            {isPending ? "Updating…" : null}
-          </div>
-          <ColumnViewOptionsDropdown
-            columns={columnHeaders}
+      <DataTableToolbar
+        className="mt-8 mb-4"
+        filters={
+          <SubmissionsFilterToolbar
+            isCompleteFilter={isCompleteFilter}
+            statusFilter={statusFilter}
+            testSubmissionFilter={testSubmissionFilter}
+            onIsCompleteChange={onIsCompleteChange}
+            onStatusChange={onStatusChange}
+            onTestSubmissionChange={onTestSubmissionChange}
+            onResetFilters={onResetFilters}
             disabled={disableTableControls}
+            hasAdditionalFilters={
+              hasDateFilters(dateFilters) ||
+              submitterDisplayIdFilter.length > 0 ||
+              submitterEmailFilter.length > 0
+            }
           />
-          {isClient && (
-            <ResetOptionsDropdown
-              options={resetOptions}
-              onResetAll={handleResetAll}
+        }
+        actions={
+          <>
+            <div
+              role="status"
+              aria-live="polite"
+              className="hidden min-w-[5rem] text-right text-sm text-muted-foreground sm:block"
+            >
+              {isPending ? "Updating…" : null}
+            </div>
+            <ColumnViewOptionsDropdown
+              columns={columnHeaders}
               disabled={disableTableControls}
             />
-          )}
-          <ExportSubmissionsButton
-            formId={formId}
-            disabled={disableTableControls}
-            useReportingExport={useReportingExport}
-            listFilters={exportListFilters}
-          />
-        </div>
-      </div>
+            {isClient && (
+              <ResetOptionsDropdown
+                options={resetOptions}
+                onResetAll={handleResetAll}
+                disabled={disableTableControls}
+              />
+            )}
+            <ExportSubmissionsButton
+              formId={formId}
+              disabled={disableTableControls}
+              useReportingExport={useReportingExport}
+              listFilters={exportListFilters}
+            />
+          </>
+        }
+      />
       {tableRegion}
     </>
   );

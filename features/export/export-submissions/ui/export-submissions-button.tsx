@@ -33,6 +33,19 @@ interface ExportSubmissionsButtonProps {
   listFilters?: SubmissionExportListFilters;
 }
 
+function ExportButtonContents({
+  isExporting,
+}: Readonly<{ isExporting: boolean }>) {
+  return (
+    <>
+      {isExporting ? <Spinner /> : <Download />}
+      <span className="sr-only sm:not-sr-only">
+        {isExporting ? "Exporting..." : "Export Submissions"}
+      </span>
+    </>
+  );
+}
+
 export function ExportSubmissionsButton({
   formId,
   className,
@@ -113,8 +126,8 @@ function ReportingExportSubmissionsButton({
         asChild
       >
         <Link href={"/settings/organization/export-formats" as Route}>
-          <Download className="mr-2 h-4 w-4" />
-          Configure export formats
+          <Download />
+          <span className="sr-only sm:not-sr-only">Configure export formats</span>
         </Link>
       </Button>
     );
@@ -129,12 +142,7 @@ function ReportingExportSubmissionsButton({
         title={loadError ?? undefined}
         onClick={() => setDialogOpen(true)}
       >
-        {isExporting ? (
-          <Spinner className="mr-2 h-4 w-4" />
-        ) : (
-          <Download className="mr-2 h-4 w-4" />
-        )}
-        {isExporting ? "Exporting..." : "Export Submissions"}
+        <ExportButtonContents isExporting={isExporting} />
       </Button>
 
       <ExportSubmissionsDialog
@@ -219,12 +227,7 @@ function LegacyExportSubmissionsButton({
         disabled={disabled || isExporting}
         className={className}
       >
-        {isExporting ? (
-          <Spinner className="mr-2 h-4 w-4" />
-        ) : (
-          <Download className="mr-2 h-4 w-4" />
-        )}
-        {isExporting ? "Exporting..." : "Export Submissions"}
+        <ExportButtonContents isExporting={isExporting} />
       </Button>
     );
   }
@@ -237,13 +240,8 @@ function LegacyExportSubmissionsButton({
           disabled={disabled || isExporting}
           className={className}
         >
-          {isExporting ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
-          )}
-          {isExporting ? "Exporting..." : "Export Submissions"}
-          <ChevronDown className="ml-2 h-4 w-4" />
+          <ExportButtonContents isExporting={isExporting} />
+          <ChevronDown />
         </Button>
       </DropdownMenuTrigger>
 

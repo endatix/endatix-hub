@@ -50,7 +50,7 @@ export function SubmissionsFilterToolbar({
     hasAdditionalFilters;
 
   return (
-    <div className="flex max-w-full min-w-0 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <>
       <FacetedFilter
         title="Complete"
         options={isCompleteOptions}
@@ -80,9 +80,9 @@ export function SubmissionsFilterToolbar({
           className="shrink-0 px-2 lg:px-3"
         >
           Reset Filters
-          <X className="ml-2 h-4 w-4" />
+          <X />
         </Button>
       )}
-    </div>
+    </>
   );
 }

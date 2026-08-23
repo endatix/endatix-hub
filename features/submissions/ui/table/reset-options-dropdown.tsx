@@ -31,16 +31,16 @@ export function ResetOptionsDropdown({
   // Single option: show as simple button
   if (options.length === 1) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={options[0].onClick}
-        disabled={disabled}
-        className="px-2 lg:px-3"
-      >
-        <RotateCcw className="mr-2 h-4 w-4" />
-        {options[0].label}
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={options[0].onClick}
+          disabled={disabled}
+          aria-label={options[0].label}
+        >
+          <RotateCcw />
+          <span className="sr-only sm:not-sr-only">{options[0].label}</span>
+        </Button>
     );
   }
 
@@ -48,10 +48,15 @@ export function ResetOptionsDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled} className="px-2 lg:px-3">
-          <RotateCcw className="mr-2 h-4 w-4" />
-          Reset
-          <ChevronDown className="ml-2 h-4 w-4" />
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          aria-label="Reset table options"
+        >
+          <RotateCcw />
+          <span className="sr-only sm:not-sr-only">Reset</span>
+          <ChevronDown />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">

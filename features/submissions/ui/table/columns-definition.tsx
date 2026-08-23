@@ -35,8 +35,9 @@ interface SubmissionSystemColumnsOptions {
 const submitterPrimaryFilterLabel =
   process.env.NEXT_PUBLIC_SUBMITTER_PRIMARY_FILTER_LABEL?.trim() || "Submitter";
 
-/** Shrink-wrap column to content so leftover width goes to Status. */
-const SHRINK_WRAP = "w-[1%] whitespace-nowrap";
+/** Icon/action columns stay compact; text columns keep a min width and share leftover space. */
+const COMPACT_COLUMN = "w-12 whitespace-nowrap";
+const FLUID_COLUMN = "min-w-[6.5rem]";
 
 export function buildSubmissionSystemColumns({
   dateFilters,
@@ -52,8 +53,8 @@ export function buildSubmissionSystemColumns({
       enableSorting: false,
       meta: {
         displayName: "Actions",
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
+        headerClassName: COMPACT_COLUMN,
+        cellClassName: COMPACT_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -70,8 +71,8 @@ export function buildSubmissionSystemColumns({
       accessorKey: "isComplete",
       meta: {
         displayName: "Complete",
-        headerClassName: `${SHRINK_WRAP} text-center`,
-        cellClassName: `${SHRINK_WRAP} text-center`,
+        headerClassName: `${COMPACT_COLUMN} text-center`,
+        cellClassName: `${COMPACT_COLUMN} text-center`,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -97,8 +98,8 @@ export function buildSubmissionSystemColumns({
       accessorKey: "modifiedAt",
       meta: {
         displayName: "Last modified",
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
+        headerClassName: FLUID_COLUMN,
+        cellClassName: FLUID_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -123,8 +124,8 @@ export function buildSubmissionSystemColumns({
       accessorKey: "startedAt",
       meta: {
         displayName: "Started",
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
+        headerClassName: FLUID_COLUMN,
+        cellClassName: FLUID_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -149,8 +150,8 @@ export function buildSubmissionSystemColumns({
       accessorKey: "completedAt",
       meta: {
         displayName: "Completed",
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
+        headerClassName: FLUID_COLUMN,
+        cellClassName: FLUID_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -175,8 +176,8 @@ export function buildSubmissionSystemColumns({
       accessorKey: "createdAt",
       meta: {
         displayName: "Created",
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
+        headerClassName: FLUID_COLUMN,
+        cellClassName: FLUID_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -201,8 +202,8 @@ export function buildSubmissionSystemColumns({
       accessorKey: "submitterDisplayId",
       meta: {
         displayName: submitterPrimaryFilterLabel,
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
+        headerClassName: FLUID_COLUMN,
+        cellClassName: FLUID_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -238,8 +239,8 @@ export function buildSubmissionSystemColumns({
           : -1,
       meta: {
         displayName: "Time",
-        headerClassName: SHRINK_WRAP,
-        cellClassName: SHRINK_WRAP,
+        headerClassName: FLUID_COLUMN,
+        cellClassName: FLUID_COLUMN,
       },
       header: ({ column }) => (
         <ColumnHeader
@@ -295,8 +296,8 @@ function buildSubmitterProfileColumns({
     enableSorting: false,
     meta: {
       displayName: humanizeFieldName(field),
-      headerClassName: SHRINK_WRAP,
-      cellClassName: SHRINK_WRAP,
+      headerClassName: FLUID_COLUMN,
+      cellClassName: FLUID_COLUMN,
     },
     header: ({ column }) => (
       <ColumnHeader
