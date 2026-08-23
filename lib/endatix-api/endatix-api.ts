@@ -1,4 +1,4 @@
-import { getApiConfig } from "@/features/config/api-config";
+import { requireApiUrl } from "@/features/config/api-config";
 import { HeaderBuilder } from "@/lib/endatix-api/shared/header-builder";
 import { ApiResult, ApiErrorDetails } from "./shared/api-result";
 import { ERROR_CODE } from "./shared/error-codes";
@@ -25,18 +25,8 @@ import PlatformTenants from "./platform-tenants/platform-tenants";
 import PlatformAdmins from "./platform-admins/platform-admins";
 import { Reporting } from "./reporting/reporting";
 
-/**
- * Resolved Endatix API origin via {@link getApiConfig} (validated env only).
- */
-export const getEdatixApiUrl = (): string => {
-  const apiUrl = getApiConfig()?.apiUrl ?? "";
-  if (!apiUrl) {
-    throw new Error(
-      "Endatix API URL is not configured. Set ENDATIX_BASE_URL or ENDATIX_API_URL.",
-    );
-  }
-  return apiUrl;
-};
+/** Resolved Endatix API origin via {@link requireApiUrl}. */
+export const getEdatixApiUrl = (): string => requireApiUrl();
 
 const DEFAULT_HEADERS = {};
 

@@ -15,6 +15,9 @@ export interface ApiConfig {
   apiUrl: string;
 }
 
+export const API_ORIGIN_ENV_TIP =
+  "Set ENDATIX_BASE_URL (optional ENDATIX_API_PREFIX) or a complete ENDATIX_API_URL.";
+
 /**
  * Normalizes API prefix: ensures leading '/' for non-empty prefix, removes trailing '/', handles multiple slashes
  */
@@ -58,12 +61,7 @@ function parseDirectApiUrl(directApiUrl: string): ApiConfig | null {
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       return null;
     }
-    const prefix =
-      parsed.pathname === "/"
-        ? ""
-        : parsed.pathname.endsWith("/")
-          ? parsed.pathname.slice(0, -1)
-          : parsed.pathname;
+    const prefix = normalizeApiPrefix(parsed.pathname);
     return Object.freeze({
       baseUrl: parsed.origin,
       prefix,
@@ -90,11 +88,13 @@ export function getApiConfig(): ApiConfig | null {
 
   const baseUrl = process.env.ENDATIX_BASE_URL?.trim();
   if (baseUrl) {
-    const apiPrefix = process.env.ENDATIX_API_PREFIX ?? DEFAULT_API_PREFIX;
+    const prefix = normalizeApiPrefix(
+      process.env.ENDATIX_API_PREFIX ?? DEFAULT_API_PREFIX,
+    );
     try {
-      const apiUrl = constructApiUrl(baseUrl, apiPrefix);
+      const apiUrl = constructApiUrl(baseUrl, prefix);
       new URL(apiUrl);
-      cachedConfig = { baseUrl, prefix: apiPrefix, apiUrl };
+      cachedConfig = Object.freeze({ baseUrl, prefix, apiUrl });
       return cachedConfig;
     } catch {
       return null;
@@ -111,6 +111,18 @@ export function getApiConfig(): ApiConfig | null {
 }
 
 /**
+ * Same as {@link getApiConfig}, but for callers that cannot proceed without an origin.
+ * Probe / diagnostics stay on {@link getApiConfig} (null = unset or invalid).
+ */
+export function requireApiUrl(): string {
+  const apiUrl = getApiConfig()?.apiUrl;
+  if (!apiUrl) {
+    throw new Error(`Endatix API URL is not configured. ${API_ORIGIN_ENV_TIP}`);
+  }
+  return apiUrl;
+}
+
+/**
  * Resolves the API origin from env. Either `ENDATIX_BASE_URL` (+ optional
  * `ENDATIX_API_PREFIX`) or a complete `ENDATIX_API_URL` is enough.
  * When only base URL is set, writes `ENDATIX_API_URL` so server modules that
@@ -123,9 +135,6 @@ export function ensureResolvedApiUrl(): ApiConfig | null {
   }
   return config;
 }
-
-export const API_ORIGIN_ENV_TIP =
-  "Set ENDATIX_BASE_URL (optional ENDATIX_API_PREFIX) or a complete ENDATIX_API_URL.";
 
 /** Clears the env-derived API config cache (Vitest when flipping env). */
 export function resetApiConfigCacheForTests(): void {

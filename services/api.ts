@@ -1,5 +1,5 @@
 import { getSession } from "@/features/auth";
-import { getApiConfig } from "@/features/config/api-config";
+import { requireApiUrl } from "@/features/config/api-config";
 import { SubmissionData } from "@/features/submissions/types";
 import { Submission } from "@/lib/endatix-api";
 import { CreateFormRequest } from "@/lib/form-types";
@@ -13,16 +13,6 @@ import { ITheme } from "survey-core";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
 import { ActiveDefinition, Form, FormDefinition, FormTemplate } from "../types";
 
-function apiBaseUrl(): string {
-  const url = getApiConfig()?.apiUrl;
-  if (!url) {
-    throw new Error(
-      "Endatix API URL is not configured. Set ENDATIX_BASE_URL or ENDATIX_API_URL.",
-    );
-  }
-  return url;
-}
-
 export const createForm = async (
   formRequest: CreateFormRequest,
 ): Promise<FormTemplate> => {
@@ -33,7 +23,7 @@ export const createForm = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${apiBaseUrl()}/forms`, {
+  const response = await fetch(`${requireApiUrl()}/forms`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(formRequest),
@@ -65,7 +55,7 @@ export const getForm = async (formId: string): Promise<Form> => {
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateIdResult.value}`,
+    `${requireApiUrl()}/forms/${validateIdResult.value}`,
     requestOptions,
   );
 
@@ -101,7 +91,7 @@ export const updateForm = async (
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateIdResult.value}`,
+    `${requireApiUrl()}/forms/${validateIdResult.value}`,
     {
       method: "PATCH",
       headers: headers,
@@ -129,7 +119,7 @@ export const deleteForm = async (formId: string): Promise<string> => {
   const headers = new HeaderBuilder().withAuth(session).build();
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validatedIdResult.value}`,
+    `${requireApiUrl()}/forms/${validatedIdResult.value}`,
     {
       method: "DELETE",
       headers: headers,
@@ -167,7 +157,7 @@ export const getActiveFormDefinition = async (
 
   requestOptions.headers = headerBuilder.build();
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateIdResult.value}/definition`,
+    `${requireApiUrl()}/forms/${validateIdResult.value}/definition`,
     requestOptions,
   );
 
@@ -206,7 +196,7 @@ export const getFormDefinition = async (
   requestOptions.headers = headers;
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateFormIdResult.value}/definitions/${validateDefinitionIdResult.value}`,
+    `${requireApiUrl()}/forms/${validateFormIdResult.value}/definitions/${validateDefinitionIdResult.value}`,
     requestOptions,
   );
 
@@ -240,7 +230,7 @@ export const updateFormDefinition = async (
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateFormIdResult.value}/definition`,
+    `${requireApiUrl()}/forms/${validateFormIdResult.value}/definition`,
     {
       method: "PATCH",
       headers: headers,
@@ -270,7 +260,7 @@ export const getThemes = async (
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
   const response = await fetch(
-    `${apiBaseUrl()}/themes?page=${page}&pageSize=${pageSize}`,
+    `${requireApiUrl()}/themes?page=${page}&pageSize=${pageSize}`,
     {
       headers: headers,
     },
@@ -296,7 +286,7 @@ export const createTheme = async (theme: ITheme): Promise<ThemeResponse> => {
     jsonData: JSON.stringify(theme),
   };
 
-  const response = await fetch(`${apiBaseUrl()}/themes`, {
+  const response = await fetch(`${requireApiUrl()}/themes`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(createThemeRequest),
@@ -326,7 +316,7 @@ export const updateTheme = async (
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/themes/${validateIdResult.value}`,
+    `${requireApiUrl()}/themes/${validateIdResult.value}`,
     {
       method: "PATCH",
       headers: headers,
@@ -356,7 +346,7 @@ export const deleteTheme = async (themeId: string): Promise<string> => {
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/themes/${validateThemeIdResult.value}`,
+    `${requireApiUrl()}/themes/${validateThemeIdResult.value}`,
     {
       method: "DELETE",
       headers: headers,
@@ -382,7 +372,7 @@ export const getFormTemplate = async (
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/form-templates/${validateTemplateIdResult.value}`,
+    `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       headers: headers,
     },
@@ -416,7 +406,7 @@ export const updateFormTemplate = async (
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/form-templates/${validateTemplateIdResult.value}`,
+    `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       method: "PATCH",
       headers: headers,
@@ -446,7 +436,7 @@ export const deleteFormTemplate = async (
   }
 
   const response = await fetch(
-    `${apiBaseUrl()}/form-templates/${validateTemplateIdResult.value}`,
+    `${requireApiUrl()}/form-templates/${validateTemplateIdResult.value}`,
     {
       method: "DELETE",
       headers: headers,
@@ -497,7 +487,7 @@ export const getSubmissions = async (
     );
   }
 
-  const url = `${apiBaseUrl()}/forms/${validateFormIdResult.value}/submissions?${params.toString()}`;
+  const url = `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions?${params.toString()}`;
 
   const response = await fetch(url, {
     headers: headers,
@@ -543,7 +533,7 @@ export const updateSubmission = async (
     .build();
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
+    `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       method: "PATCH",
       headers: headers,
@@ -595,7 +585,7 @@ export const updateSubmissionStatus = async (
     .build();
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/status`,
+    `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}/status`,
     {
       method: "POST",
       headers: headers,
@@ -627,7 +617,7 @@ export const getPartialSubmissionPublic = async (
   const headers = new HeaderBuilder().acceptJson().build();
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
+    `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/by-token/${validateTokenResult.value}`,
     {
       headers: headers,
     },
@@ -665,7 +655,7 @@ export const getSubmission = async (
   const headers = new HeaderBuilder().withAuth(session).acceptJson().build();
 
   const response = await fetch(
-    `${apiBaseUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
+    `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
     {
       headers: headers,
     },
@@ -691,7 +681,7 @@ export const getCustomQuestions = async (): Promise<CustomQuestion[]> => {
   const session = await getSession();
   const headers = new HeaderBuilder().withAuth(session).build();
 
-  const response = await fetch(`${apiBaseUrl()}/questions`, {
+  const response = await fetch(`${requireApiUrl()}/questions`, {
     headers: headers,
   });
 
@@ -718,7 +708,7 @@ export const createCustomQuestion = async (
     .provideJson()
     .build();
 
-  const response = await fetch(`${apiBaseUrl()}/questions`, {
+  const response = await fetch(`${requireApiUrl()}/questions`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),
@@ -766,11 +756,14 @@ export const sendVerification = async (
 ): Promise<SendVerificationApiResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(`${apiBaseUrl()}/auth/send-verification-email`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(request),
-  });
+  const response = await fetch(
+    `${requireApiUrl()}/auth/send-verification-email`,
+    {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(request),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
@@ -785,7 +778,7 @@ export const verifyEmail = async (
 ): Promise<VerifyEmailApiResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(`${apiBaseUrl()}/auth/verify-email`, {
+  const response = await fetch(`${requireApiUrl()}/auth/verify-email`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),
@@ -819,7 +812,7 @@ export const register = async (
 ): Promise<RegistrationResponse> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
 
-  const response = await fetch(`${apiBaseUrl()}/auth/register`, {
+  const response = await fetch(`${requireApiUrl()}/auth/register`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(request),

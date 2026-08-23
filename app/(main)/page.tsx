@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { SIGNIN_PATH } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
 import SessionCard from "@/features/auth/ui/session-card";
-import { getApiConfig } from "@/features/config/api-config";
+import { requireApiUrl } from "@/features/config/api-config";
 import { experimentalFeaturesFlag } from "@/lib/feature-flags";
 import { Session } from "next-auth";
 import { redirect } from "next/navigation";
@@ -56,7 +56,7 @@ async function getCurrentUserInfo(session: Session | null) {
 
   try {
     const userInfoResponse = await fetch(
-      `${getApiConfig()?.apiUrl}/my-account/user-info`,
+      `${requireApiUrl()}/my-account/user-info`,
       { headers },
     );
     if (!userInfoResponse.ok) {

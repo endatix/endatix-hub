@@ -7,8 +7,10 @@ import {
   normalizeApiPrefix,
   constructApiUrl,
   getApiConfig,
+  requireApiUrl,
   ensureResolvedApiUrl,
   resetApiConfigCacheForTests,
+  API_ORIGIN_ENV_TIP,
 } from "../api-config";
 
 describe("API Configuration", () => {
@@ -220,6 +222,40 @@ describe("getApiConfig", () => {
   test("returns null when ENDATIX_BASE_URL is not a valid URL", () => {
     process.env.ENDATIX_BASE_URL = "not-a-url";
     expect(getApiConfig()).toBeNull();
+  });
+
+  test("strips a trailing slash from ENDATIX_API_URL pathname", () => {
+    process.env.ENDATIX_API_URL = "https://helm.example.com/api/";
+    const config = getApiConfig();
+    expect(config?.prefix).toBe("/api");
+    expect(config?.apiUrl).toBe("https://helm.example.com/api");
+    expect(Object.isFrozen(config)).toBe(true);
+  });
+});
+
+describe("requireApiUrl", () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    resetApiConfigCacheForTests();
+    process.env = { ...originalEnv };
+    delete process.env.ENDATIX_BASE_URL;
+    delete process.env.ENDATIX_API_URL;
+    delete process.env.ENDATIX_API_PREFIX;
+  });
+
+  afterEach(() => {
+    resetApiConfigCacheForTests();
+    process.env = { ...originalEnv };
+  });
+
+  test("returns the resolved apiUrl when configured", () => {
+    process.env.ENDATIX_BASE_URL = "https://api.example.com";
+    expect(requireApiUrl()).toBe("https://api.example.com/api");
+  });
+
+  test("throws when neither origin env var resolves", () => {
+    expect(() => requireApiUrl()).toThrow(API_ORIGIN_ENV_TIP);
   });
 });
 
