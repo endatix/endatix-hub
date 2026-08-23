@@ -5,7 +5,7 @@
  * Provides a centralized way to manage API configuration.
  */
 
-import { isValidAbsoluteUrl } from "@/lib/utils/url-utils";
+import { isValidAbsoluteUrl } from "../../lib/utils/is-valid-absolute-url";
 
 const DEFAULT_API_PREFIX = "/api";
 
