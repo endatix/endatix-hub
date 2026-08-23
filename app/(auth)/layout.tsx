@@ -45,6 +45,7 @@ const formFeatures = [
 
 export default async function AuthLayout({ children }: AuthLayoutProps) {
   const session = await auth();
+  const endatixConfig = await getClientEndatixConfig();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -57,7 +58,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable}`}
       >
-        <AppProvider session={session} endatixConfig={getClientEndatixConfig()}>
+        <AppProvider session={session} endatixConfig={endatixConfig}>
           <div className="h-screen w-full overflow-hidden bg-muted/40">
             <a
               href="https://endatix.com"

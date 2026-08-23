@@ -23,7 +23,7 @@ export default async function EditLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-
+  const endatixConfig = await getClientEndatixConfig();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -34,7 +34,7 @@ export default async function EditLayout({
         />
       </head>
       <body>
-        <AppProvider session={session} endatixConfig={getClientEndatixConfig()}>
+        <AppProvider session={session} endatixConfig={endatixConfig}>
           {children}
         </AppProvider>
       </body>

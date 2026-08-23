@@ -31,6 +31,7 @@ export default async function UnauthorizedLayout({
   children,
 }: UnauthorizedLayoutProps) {
   const session = await auth();
+  const endatixConfig = await getClientEndatixConfig();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -42,7 +43,7 @@ export default async function UnauthorizedLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppProvider session={session} endatixConfig={getClientEndatixConfig()}>
+        <AppProvider session={session} endatixConfig={endatixConfig}>
           <div className="flex min-h-screen w-full flex-row bg-muted/40">
             <main className="flex flex-1 flex-col p-6">{children}</main>
           </div>
