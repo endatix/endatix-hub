@@ -5,16 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createPagedTableFooterProps,
-  PagedTableFooter,
-  TableSearchInput,
-} from "@/components/table";
-import {
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
-} from "@/components/ui/data-table-chrome";
-import { DataTableEmpty } from "@/components/ui/data-table-empty";
-import { DataTableSurface } from "@/components/ui/data-table-surface";
+  DataTableEmpty,
+  DataTableSurface,
+  PagedTableFooter,
+  TableSearchInput,
+} from "@/components/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/loaders/spinner";
