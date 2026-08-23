@@ -12,12 +12,13 @@ service:
   port: 8000
 
 api:
-  # Set exactly one of apiUrl or baseUrl (not both).
+  # Set exactly one of apiUrl or baseUrl (not both). Helm merges overlays onto
+  # these defaults — set apiUrl: "" when overriding baseUrl.
   # Complete API URL including the /api suffix, e.g. http://endatix-api:8080/api
   apiUrl: "http://endatix-api:8080/api"
   # Origin without /api — used only when apiUrl is empty
   baseUrl: ""
-  # Optional path prefix when using baseUrl. Hub defaults to /api if unset.
+  # Path prefix in baseUrl mode only. Hub defaults to /api if this is empty.
   apiPrefix: "/api"
 
 experimental:

@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: { { include "endatix-hub.fullname" . } }
+  name: {{ include "endatix-hub.fullname" . }}
   labels:
-    app.kubernetes.io/name: { { .Chart.Name } }
-    app.kubernetes.io/instance: { { .Release.Name } }
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: { { .Values.replicaCount } }
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: { { .Chart.Name } }
-      app.kubernetes.io/instance: { { .Release.Name } }
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: { { .Chart.Name } }
-        app.kubernetes.io/instance: { { .Release.Name } }
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       # The Hub only talks to the Endatix API over HTTP — it never calls the
       # Kubernetes API, so a mounted service-account token would just park a
@@ -29,12 +29,12 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      imagePullSecrets: { { .Values.imagePullSecrets | toJson } }
-      nodeSelector: { { .Values.nodeSelector | toJson } }
+      imagePullSecrets: {{ .Values.imagePullSecrets | toJson }}
+      nodeSelector: {{ .Values.nodeSelector | toJson }}
       containers:
-        - name: { { .Chart.Name } }
+        - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
-          imagePullPolicy: { { .Values.image.pullPolicy } }
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -42,78 +42,58 @@ spec:
               drop:
                 - ALL
           ports:
-            - containerPort: { { .Values.service.port } }
+            - containerPort: {{ .Values.service.port }}
           env:
             # Node / Next.js
             - name: NODE_ENV
-              value: { { .Values.nodeEnv | quote } }
+              value: {{ .Values.nodeEnv | quote }}
             - name: PORT
-              value: { { .Values.service.port | quote } }
+              value: {{ .Values.service.port | quote }}
 
-            # Endatix API connection — set api.apiUrl or api.baseUrl in values (not both)
-            - name: ENDATIX_API_URL
-              value: { { .Values.api.apiUrl | quote } }
-            - name: ENDATIX_BASE_URL
-              value: { { .Values.api.baseUrl | quote } }
-            - name: ENDATIX_API_PREFIX
-              value: { { .Values.api.apiPrefix | quote } }
+            # Endatix API connection — exactly one of api.apiUrl or api.baseUrl
+            {{- include "endatix-hub.apiEnvVars" . | nindent 12 }}
 
             # Survey extensions (data lists, custom questions). Request-time env, not image build.
             - name: ENDATIX_ENABLE_EXTENSIONS
-              value: { { .Values.experimental.extensions | quote } }
+              value: {{ .Values.experimental.extensions | quote }}
 
             # Auth
             - name: SESSION_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: { { .Values.auth.secretName } }
+                  name: {{ .Values.auth.secretName }}
                   key: session-secret
             - name: AUTH_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: { { .Values.auth.secretName } }
+                  name: {{ .Values.auth.secretName }}
                   key: auth-secret
             - name: AUTH_TRUST_HOST
-              value: { { .Values.auth.trustHost | quote } }
+              value: {{ .Values.auth.trustHost | quote }}
             - name: AUTH_URL
-              value: { { .Values.auth.url | quote } }
+              value: {{ .Values.auth.url | quote }}
 
             # OpenTelemetry — empty endpoint disables export (same as otel.enabled=false)
             - name: OTEL_SERVICE_NAME
-              value:
-                {
-                  {
-                    ternary .Values.otel.serviceName "" .Values.otel.enabled | quote,
-                  },
-                }
+              value: {{ ternary .Values.otel.serviceName "" .Values.otel.enabled | quote }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value:
-                {
-                  {
-                    ternary .Values.otel.endpoint "" .Values.otel.enabled | quote,
-                  },
-                }
+              value: {{ ternary .Values.otel.endpoint "" .Values.otel.enabled | quote }}
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
-              value:
-                {
-                  {
-                    ternary .Values.otel.protocol "" .Values.otel.enabled | quote,
-                  },
-                }
+              value: {{ ternary .Values.otel.protocol "" .Values.otel.enabled | quote }}
             - name: NEXT_OTEL_VERBOSE
-              value: { { ternary "0" "" .Values.otel.enabled | quote } }
+              value: {{ ternary "0" "" .Values.otel.enabled | quote }}
 
-          resources: { { .Values.resources | toJson } }
+          resources: {{ .Values.resources | toJson }}
           readinessProbe:
             httpGet:
               path: /
-              port: { { .Values.service.port } }
+              port: {{ .Values.service.port }}
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /
-              port: { { .Values.service.port } }
+              port: {{ .Values.service.port }}
             initialDelaySeconds: 30
             periodSeconds: 30
           # The only writable path, required by readOnlyRootFilesystem above.
