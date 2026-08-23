@@ -66,45 +66,64 @@ function collectApiOriginErrors(): string[] {
   ];
 }
 
+const BOOLEAN_ENV_VALUES = new Set(["true", "false", "0", "1"]);
+
+function missingRequiredMessage(
+  env: EnvConfig,
+  value: string | undefined,
+): string | undefined {
+  if (!env.required || value) {
+    return undefined;
+  }
+
+  const tip = env.tip ? `(${styles.tip(env.tip)})` : "";
+  return `${styles.bold(env.name)} is required but not set. ${tip}`;
+}
+
+function logOptionalDefault(env: EnvConfig): void {
+  if (env.default === undefined) {
+    return;
+  }
+
+  console.log(
+    `${styles.warning(
+      `${env.name} not set, will use default: ${env.default}`,
+    )}`,
+  );
+}
+
+function typeMismatchMessage(
+  env: EnvConfig,
+  value: string,
+): string | undefined {
+  if (env.type === "number" && Number.isNaN(Number(value))) {
+    return `${env.name} must be a valid number, got "${value}"`;
+  }
+
+  if (env.type === "boolean" && !BOOLEAN_ENV_VALUES.has(value.toLowerCase())) {
+    return `${env.name} must be a boolean (true/false/0/1), got "${value}"`;
+  }
+  
+  return undefined;
+}
+
 function collectEnvVarErrors(configs: EnvConfig[]): string[] {
   const errors: string[] = [];
 
   for (const env of configs) {
     const value = process.env[env.name];
-
-    if (env.required && !value) {
-      errors.push(
-        `${styles.bold(env.name)} is required but not set. ${
-          env.tip ? `(${styles.tip(env.tip)})` : ""
-        }`,
-      );
+    const missing = missingRequiredMessage(env, value);
+    if (missing) {
+      errors.push(missing);
       continue;
     }
-
-    if (!env.required && value === undefined) {
-      if (env.default !== undefined) {
-        console.log(
-          `${styles.warning(
-            `${env.name} not set, will use default: ${env.default}`,
-          )}`,
-        );
-      }
+    if (value === undefined) {
+      logOptionalDefault(env);
       continue;
     }
-
-    if (value !== undefined && env.type) {
-      if (env.type === "number" && isNaN(Number(value))) {
-        errors.push(`${env.name} must be a valid number, got "${value}"`);
-      }
-
-      if (
-        env.type === "boolean" &&
-        !["true", "false", "0", "1"].includes(value.toLowerCase())
-      ) {
-        errors.push(
-          `${env.name} must be a boolean (true/false/0/1), got "${value}"`,
-        );
-      }
+    const typeError = typeMismatchMessage(env, value);
+    if (typeError) {
+      errors.push(typeError);
     }
   }
 
