@@ -2,6 +2,7 @@
 
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
@@ -56,8 +57,8 @@ function buildColumns(
         <span className="font-mono text-xs">{row.original.value}</span>
       ),
       meta: {
-        headerClassName: 'min-w-[8rem]',
-        cellClassName: 'min-w-[8rem]',
+        headerClassName: `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} min-w-[8rem]`,
+        cellClassName: `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} min-w-[8rem]`,
       },
     },
     ...labelColumns.map(

@@ -14,6 +14,8 @@ import {
   CellDate,
   createPagedTableFooterProps,
   DataTableColumnHeader,
+  DATA_TABLE_ELEMENT_CLASS_NAME,
+  DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableColumnLabelClassName,
@@ -274,7 +276,7 @@ export function DataListsPage({
           </DataTableEmpty>
         ) : (
           <div className="w-full overflow-x-auto">
-            <Table className="border-separate border-spacing-0">
+            <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
               <TableHeader className="bg-surface-container-low">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
@@ -459,6 +461,10 @@ function buildDataListColumns({
       id: sortableId("isActive"),
       accessorKey: "isActive",
       enableSorting: true,
+      meta: {
+        headerClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+        cellClassName: DATA_TABLE_SHRINK_WRAP_CLASS_NAME,
+      },
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
@@ -472,8 +478,8 @@ function buildDataListColumns({
       id: "locales",
       enableSorting: false,
       meta: {
-        headerClassName: "min-w-[10rem]",
-        cellClassName: "min-w-[10rem]",
+        headerClassName: `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} min-w-[10rem]`,
+        cellClassName: `${DATA_TABLE_SHRINK_WRAP_CLASS_NAME} min-w-[10rem]`,
       },
       header: () => (
         <span className={dataTableColumnLabelClassName()}>Locales</span>
@@ -490,8 +496,8 @@ function buildDataListColumns({
       accessorKey: "createdAt",
       enableSorting: true,
       meta: {
-        headerClassName: "hidden md:table-cell",
-        cellClassName: "hidden md:table-cell",
+        headerClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+        cellClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
       },
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -517,8 +523,8 @@ function buildDataListColumns({
       accessorKey: "modifiedAt",
       enableSorting: true,
       meta: {
-        headerClassName: "hidden md:table-cell",
-        cellClassName: "hidden md:table-cell",
+        headerClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+        cellClassName: `hidden md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
       },
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -544,8 +550,8 @@ function buildDataListColumns({
       accessorKey: "itemsCount",
       enableSorting: true,
       meta: {
-        headerClassName: "hidden text-right md:table-cell",
-        cellClassName: "hidden text-right md:table-cell",
+        headerClassName: `hidden text-right md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+        cellClassName: `hidden text-right md:table-cell ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
       },
       header: ({ column }) => (
         <DataTableColumnHeader
@@ -567,8 +573,8 @@ function buildDataListColumns({
       id: "actions",
       enableSorting: false,
       meta: {
-        headerClassName: "text-right",
-        cellClassName: "text-right",
+        headerClassName: `text-right ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
+        cellClassName: `text-right ${DATA_TABLE_SHRINK_WRAP_CLASS_NAME}`,
       },
       header: () => (
         <span className={dataTableColumnLabelClassName()}>Actions</span>

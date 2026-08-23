@@ -1,6 +1,10 @@
 "use client";
 
-import { FacetedFilter, TableSearchInput } from "@/components/table";
+import {
+  DataTableToolbar,
+  FacetedFilter,
+  TableSearchInput,
+} from "@/components/table";
 import { Button } from "@/components/ui/button";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import { useListUrlState } from "@/lib/list-page/use-list-url-state";
@@ -57,38 +61,42 @@ export function DataListsListToolbar({
   };
 
   return (
-    <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
-      <TableSearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Search by name or description"
-        ariaLabel="Search data lists"
-      />
-      <div className="flex max-w-full min-w-0 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {localeOptions.length > 0 ? (
-          <FacetedFilter
-            title="Locale"
-            options={localeOptions}
-            selectedValues={selectedLocales}
-            onValueChange={(values) => {
-              updateUrl({
-                hasLocale: serializeHasLocaleFilter(values) ?? null,
-                page: "1",
-              });
-            }}
+    <DataTableToolbar
+      className="mt-6"
+      filters={
+        <>
+          <TableSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by name or description"
+            ariaLabel="Search data lists"
+            className="min-w-[12rem] flex-none lg:flex-1"
           />
-        ) : null}
-        {hasActiveFilters ? (
-          <Button
-            variant="ghost"
-            onClick={resetFilters}
-            className="shrink-0 px-2 lg:px-3"
-          >
-            Reset Filters
-            <X className="ml-2 h-4 w-4" />
-          </Button>
-        ) : null}
-      </div>
-    </div>
+          {localeOptions.length > 0 ? (
+            <FacetedFilter
+              title="Locale"
+              options={localeOptions}
+              selectedValues={selectedLocales}
+              onValueChange={(values) => {
+                updateUrl({
+                  hasLocale: serializeHasLocaleFilter(values) ?? null,
+                  page: "1",
+                });
+              }}
+            />
+          ) : null}
+          {hasActiveFilters ? (
+            <Button
+              variant="ghost"
+              onClick={resetFilters}
+              className="shrink-0 px-2 lg:px-3"
+            >
+              Reset Filters
+              <X />
+            </Button>
+          ) : null}
+        </>
+      }
+    />
   );
 }

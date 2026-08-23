@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
   DataTableSurface,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
@@ -35,7 +36,7 @@ export function DataListItemsTableSkeleton({
   return (
     <DataTableSurface data-slot="data-list-items-table-skeleton">
       <div className="w-full overflow-x-auto">
-        <Table className="border-separate border-spacing-0">
+        <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
           <TableHeader className="bg-surface-container-low">
             <TableRow className="border-0 hover:bg-transparent">
               {["Value", ...localeHeaders].map((title) => (

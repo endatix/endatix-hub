@@ -6,6 +6,7 @@ import {
   CellDate,
   createPagedTableFooterProps,
   FacetedFilter,
+  DataTableToolbar,
   PagedTableFooter,
   TableSearchInput,
   type FacetedFilterOption,
@@ -393,47 +394,50 @@ function DataListItemsSection({
   }, [availableLocales, defaultLocale]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <TableSearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Search items by value or label"
-          ariaLabel="Search data list items"
-        />
-        <div className="flex max-w-full min-w-0 items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {localeOptions.length > 0 ? (
-            <FacetedFilter
-              title="Locale"
-              options={localeOptions}
-              selectedValues={selectedLocales}
-              onValueChange={(values) => {
-                updateUrl({
-                  hasLocale: serializeHasLocaleFilter(values) ?? null,
-                  page: '1',
-                });
-              }}
+    <div className="flex flex-col gap-3">
+      <DataTableToolbar
+        filters={
+          <>
+            <TableSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search items by value or label"
+              ariaLabel="Search data list items"
+              className="min-w-[12rem] flex-none lg:flex-1"
             />
-          ) : null}
-          {search.trim() || selectedLocales.size > 0 ? (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setSearch('');
-                updateUrl({
-                  search: null,
-                  hasLocale: null,
-                  page: '1',
-                });
-              }}
-              className="shrink-0 px-2 lg:px-3"
-            >
-              Reset Filters
-              <X className="ml-2 h-4 w-4" />
-            </Button>
-          ) : null}
-        </div>
-      </div>
+            {localeOptions.length > 0 ? (
+              <FacetedFilter
+                title="Locale"
+                options={localeOptions}
+                selectedValues={selectedLocales}
+                onValueChange={(values) => {
+                  updateUrl({
+                    hasLocale: serializeHasLocaleFilter(values) ?? null,
+                    page: '1',
+                  });
+                }}
+              />
+            ) : null}
+            {search.trim() || selectedLocales.size > 0 ? (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearch('');
+                  updateUrl({
+                    search: null,
+                    hasLocale: null,
+                    page: '1',
+                  });
+                }}
+                className="shrink-0 px-2 lg:px-3"
+              >
+                Reset Filters
+                <X />
+              </Button>
+            ) : null}
+          </>
+        }
+      />
       <Suspense
         fallback={
           <DataListItemsTableSkeleton
