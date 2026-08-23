@@ -15,6 +15,7 @@ interface SlackLayoutProps {
 
 export default async function SlackLayout({ children }: SlackLayoutProps) {
   const session = await auth();
+  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -22,7 +23,7 @@ export default async function SlackLayout({ children }: SlackLayoutProps) {
         <AppProvider
           options={AppOptions.PublicPages}
           session={session}
-          endatixConfig={getClientEndatixConfig()}
+          endatixConfig={endatixConfig}
         >
           <div className="flex min-h-screen flex-col">{children}</div>
         </AppProvider>

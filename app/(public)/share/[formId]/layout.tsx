@@ -23,6 +23,7 @@ export default async function ShareLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
+  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -39,7 +40,7 @@ export default async function ShareLayout({
         <AppProvider
           options={AppOptions.PublicPages}
           session={session}
-          endatixConfig={getClientEndatixConfig()}
+          endatixConfig={endatixConfig}
         >
           {children}
         </AppProvider>
