@@ -1,4 +1,7 @@
-import { DATA_TABLE_ELEMENT_CLASS_NAME, DataTableSurface } from "@/components/table";
+import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
+  DataTableSurface,
+} from "@/components/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -15,14 +18,14 @@ const ROW_HEIGHT_CLASS = "h-[60px]";
 
 /** Approximate system-column layout: actions, complete, dates, submitter, time, status. */
 const SKELETON_COLUMNS = [
-  { id: "actions", cell: "actions", headerClassName: "w-14" },
-  { id: "complete", cell: "icon", headerClassName: "w-10" },
-  { id: "modifiedAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "startedAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "completedAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "createdAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "submitter", cell: "id", headerClassName: "min-w-[6rem]" },
-  { id: "time", cell: "short", headerClassName: "min-w-[4rem]" },
+  { id: "actions", cell: "actions", headerClassName: "w-12" },
+  { id: "complete", cell: "icon", headerClassName: "w-12" },
+  { id: "modifiedAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "startedAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "completedAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "createdAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "submitter", cell: "id", headerClassName: "min-w-[6.5rem]" },
+  { id: "time", cell: "short", headerClassName: "min-w-[6.5rem]" },
   { id: "status", cell: "badge", headerClassName: "min-w-[7.5rem]" },
 ] as const;
 
