@@ -10,6 +10,14 @@ import {
   DEFAULT_COOKIE_NAME,
 } from "@/features/public-form/infrastructure/cookie-store";
 import { validateStorageProfile } from "@/features/asset-storage/infrastructure/bootstrap/validate-storage-profile";
+import {
+  API_ORIGIN_ENV_TIP,
+  ensureResolvedApiUrl,
+} from "@/features/config/api-config";
+import {
+  getExperimentalConfig,
+  logExperimentalStatus,
+} from "@/features/config/experimental-config";
 import { getRuntimeStorageProfile } from "@/features/config/resolve-endatix-settings";
 import styles from "../utils/console-styles";
 
@@ -26,13 +34,6 @@ type EnvConfig = {
  * Add all env vars here to validate them at startup
  */
 const envVars: EnvConfig[] = [
-  {
-    name: "ENDATIX_BASE_URL",
-    required: true,
-    type: "string",
-    default: "https://localhost:5001",
-    tip: "The Endatix API base URL we will use to make requests to. Can be local or a remote URL.",
-  },
   {
     name: "SESSION_SECRET",
     required: true,
@@ -55,60 +56,83 @@ const envVars: EnvConfig[] = [
   },
 ];
 
-/**
- * Validates all environment variables defined in the envVars array
- * Returns validation status and error messages
- */
-function validateEnv(): { valid: boolean; errors: string[] } {
+function collectApiOriginErrors(): string[] {
+  if (ensureResolvedApiUrl()) {
+    return [];
+  }
+
+  return [
+    `${styles.bold("ENDATIX_BASE_URL")} or ${styles.bold("ENDATIX_API_URL")} is required but neither resolves to a valid API origin. (${styles.tip(API_ORIGIN_ENV_TIP)})`,
+  ];
+}
+
+const BOOLEAN_ENV_VALUES = new Set(["true", "false", "0", "1"]);
+
+function missingRequiredMessage(
+  env: EnvConfig,
+  value: string | undefined,
+): string | undefined {
+  if (!env.required || value) {
+    return undefined;
+  }
+
+  const tip = env.tip ? `(${styles.tip(env.tip)})` : "";
+  return `${styles.bold(env.name)} is required but not set. ${tip}`;
+}
+
+function logOptionalDefault(env: EnvConfig): void {
+  if (env.default === undefined) {
+    return;
+  }
+
+  console.log(
+    `${styles.warning(
+      `${env.name} not set, will use default: ${env.default}`,
+    )}`,
+  );
+}
+
+function typeMismatchMessage(
+  env: EnvConfig,
+  value: string,
+): string | undefined {
+  if (env.type === "number" && Number.isNaN(Number(value))) {
+    return `${env.name} must be a valid number, got "${value}"`;
+  }
+
+  if (env.type === "boolean" && !BOOLEAN_ENV_VALUES.has(value.toLowerCase())) {
+    return `${env.name} must be a boolean (true/false/0/1), got "${value}"`;
+  }
+  
+  return undefined;
+}
+
+function collectEnvVarErrors(configs: EnvConfig[]): string[] {
   const errors: string[] = [];
 
-  for (const env of envVars) {
+  for (const env of configs) {
     const value = process.env[env.name];
-
-    // Check required variables
-    if (env.required && !value) {
-      errors.push(
-        `${styles.bold(env.name)} is required but not set. ${
-          env.tip ? `(${styles.tip(env.tip)})` : ""
-        }`,
-      );
+    const missing = missingRequiredMessage(env, value);
+    if (missing) {
+      errors.push(missing);
       continue;
     }
-
-    // Skip validation if not required and not provided
-    if (!env.required && value === undefined) {
-      if (env.default !== undefined) {
-        console.log(
-          `${styles.warning(
-            `${env.name} not set, will use default: ${env.default}`,
-          )}`,
-        );
-      }
+    if (value === undefined) {
+      logOptionalDefault(env);
       continue;
     }
-
-    // Type validation if value is provided
-    if (value !== undefined && env.type) {
-      if (env.type === "number" && isNaN(Number(value))) {
-        errors.push(`${env.name} must be a valid number, got "${value}"`);
-      }
-
-      if (
-        env.type === "boolean" &&
-        !["true", "false", "0", "1"].includes(value.toLowerCase())
-      ) {
-        errors.push(
-          `${env.name} must be a boolean (true/false/0/1), got "${value}"`,
-        );
-      }
+    const typeError = typeMismatchMessage(env, value);
+    if (typeError) {
+      errors.push(typeError);
     }
   }
 
+  return errors;
+}
+
+function collectStorageErrors(): string[] {
   const storageProfile = getRuntimeStorageProfile();
   const storageErrors = validateStorageProfile(storageProfile);
-  for (const storageError of storageErrors) {
-    errors.push(storageError);
-  }
 
   const isBlobStorageEnabled =
     storageProfile.provider === "azure" || storageProfile.provider === "s3";
@@ -120,6 +144,20 @@ function validateEnv(): { valid: boolean; errors: string[] } {
       )}`,
     );
   }
+
+  return storageErrors;
+}
+
+/**
+ * Validates all environment variables defined in the envVars array
+ * Returns validation status and error messages
+ */
+export function validateEnv(): { valid: boolean; errors: string[] } {
+  const errors = [
+    ...collectApiOriginErrors(),
+    ...collectEnvVarErrors(envVars),
+    ...collectStorageErrors(),
+  ];
 
   return { valid: errors.length === 0, errors };
 }
@@ -134,8 +172,9 @@ function validateEnv(): { valid: boolean; errors: string[] } {
  * running to prevent unexpected downtime, though some features may not work
  * correctly without proper environment configuration.
  */
-function checkEnvironment(): void {
+export function checkEnvironment(): void {
   console.log(styles.dim("Checking environment variables..."));
+  logExperimentalStatus(getExperimentalConfig());
   const { valid, errors } = validateEnv();
   if (!valid) {
     console.error(
@@ -164,4 +203,6 @@ function checkEnvironment(): void {
   }
 }
 
-checkEnvironment();
+if (process.env.VITEST !== "true") {
+  checkEnvironment();
+}

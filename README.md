@@ -79,18 +79,20 @@ It can be deployed to on-premise servers, cloud environments such as **Azure**, 
 
 1. Setup correct node version. Open the terminal and run `nvm use v20.9.0`
 2. Install the dependencies. Run `pnpm install`
-3. Run the development server with `pnpm dev`
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. 
+3. Copy `.env.example` to `.env` and set at least:
+   - `ENDATIX_BASE_URL` — API origin, e.g. `https://localhost:5001`
+   - `SESSION_SECRET` — `openssl rand -hex 32`
+   - `AUTH_SECRET` — `npx auth secret`
+   Optional behind a proxy: `AUTH_URL`, `AUTH_TRUST_HOST`. See `.env.example` for the full key list.
+4. Run the development server with `pnpm dev`
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-> [!TIP]
+>[!TIP]
 >You can also run the website with self-signed SSL enabled by running `pnpm dev-https`, which will make the website available at [https://localhost:3000](https://localhost:3000).
 >More info at [Next.js documentation](https://vercel.com/guides/access-nextjs-localhost-https-certificate-self-signed).
 
-
-> [!NOTE]
-> **Environment Variable**
->💡 Remember to update your `.env` file with the correct values for the development server such as AUTH_URL, etc.
-> Check the [.env.example](./.env.example) file for all variables and their description. The required variables are marked with a `[REQUIRED]` tag.
+>[!NOTE]
+>Required variables in `.env.example` are marked `[REQUIRED]`. That file is the complete key list.
 
 ## Project Structure
 
@@ -120,4 +122,4 @@ Keep log attributes safe and scalar. Do not log tokens, cookies, raw request bod
 
 To learn more about Endatix, take a look at the following resources:
 
-- [Endatix Documentation](https://docs.endatix.com/docs/category/getting-started) - learn about Endatix features and API.
+- [Endatix Documentation](https://docs.endatix.com/docs/category/getting-started) — product overview and API

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useEndatixConfig } from "@/components/providers/endatix-config-provider";
 import { useExtensionLoader } from "./use-extension-loader";
 import { getRequiredExtensionIds } from "../server/analyzer";
 import { coreExtensions } from "../core-registry";
@@ -26,10 +27,10 @@ export function useSurveyExtensions({
   formJson,
   runtimeDeps,
 }: UseSurveyExtensionsOptions) {
-  const isEnabled = process.env.ENDATIX_ENABLE_EXTENSIONS === "true";
+  const { extensionsEnabled } = useEndatixConfig();
 
   const ids = useMemo(() => {
-    if (!isEnabled) {
+    if (!extensionsEnabled) {
       return [];
     }
 
@@ -42,7 +43,7 @@ export function useSurveyExtensions({
     }
 
     return ALL_EXTENSIONS.map((extension: ExtensionDefinition) => extension.id);
-  }, [extensionIdsToLoad, formJson, isEnabled]);
+  }, [extensionIdsToLoad, formJson, extensionsEnabled]);
 
   return useExtensionLoader({
     allExtensions: ALL_EXTENSIONS,

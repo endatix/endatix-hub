@@ -1,9 +1,11 @@
 # Endatix Extensions Architecture 🧩
 
 > **Experimental Feature** 🚧
-> This feature is currently experimental and **disabled by default** in development.
-> To enable it add this to your .env file - `ENDATIX_ENABLE_EXTENSIONS=true`. 
-> Alternatively, set the `experimental.extensions` flag in `endatix-config.ts` to true.
+> Local Hub keeps extensions **off** unless you set `ENDATIX_ENABLE_EXTENSIONS=true` in `.env`.
+> The Helm chart defaults that flag **on**, so data-list questions work on a stock install.
+> Optional `withEndatix(nextConfig, { experimental: { extensions: true } })` is a rebuild-time code override — it cannot retarget a published image; use container/SWA env for that.
+>
+> The browser must **not** read `process.env.ENDATIX_ENABLE_EXTENSIONS` (Next would inline it at build). Layouts pass `{ apiBaseUrl, extensionsEnabled }` into `AppProvider`; `useSurveyExtensions` reads that context.
 
 ## Overview
 
@@ -97,20 +99,11 @@ export const userExtensions: ExtensionDefinition[] = [
 
 ## Configuration (Feature Flag)
 
-This feature is guarded by a compile-time/build-time flag to ensure safety during the experimental phase.
+Extensions are gated by the runtime env var `ENDATIX_ENABLE_EXTENSIONS` (`true` to enable). Set it in `.env`, Helm, or SWA appsettings — published images pick it up without a rebuild.
 
-To enable or disable extensions project-wide, update your `next.config.ts` (via `withEndatix`):
+`withEndatix(nextConfig, { experimental: { extensions: true } })` remains a rebuild-time code override only. Prefer the env flag for deployed environments.
 
-```typescript
-// next.config.ts
-export default withEndatix(nextConfig, {
-  experimental: {
-    extensions: true, // Set to false to disable all extensions
-  },
-});
-```
-
-When disabled, `useSurveyExtensions` returns an empty list, and no extension code will be downloaded or executed.
+When disabled, `useSurveyExtensions` returns an empty list, and no extension code is downloaded or executed.
 
 ## Advanced Usage: Context-Based Filtering
 

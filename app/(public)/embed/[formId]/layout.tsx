@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
 import { AppOptions } from "@/components/providers/app-provider";
+import { getClientEndatixConfig } from "@/features/config";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
@@ -17,6 +18,7 @@ export default async function EmbedLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
+  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -28,7 +30,11 @@ export default async function EmbedLayout({
         />
       </head>
       <body>
-        <AppProvider options={AppOptions.PublicPages} session={session}>
+        <AppProvider
+          options={AppOptions.PublicPages}
+          session={session}
+          endatixConfig={endatixConfig}
+        >
           {children}
         </AppProvider>
       </body>

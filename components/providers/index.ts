@@ -4,3 +4,7 @@
 
 export { AppProvider } from "./app-provider";
 export { ThemeProvider } from "./theme-provider";
+export {
+  EndatixConfigProvider,
+  useEndatixConfig,
+} from "./endatix-config-provider";

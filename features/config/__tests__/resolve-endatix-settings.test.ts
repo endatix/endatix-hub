@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  getClientEndatixConfig,
   resolveEndatixSettings,
   resetResolveEndatixSettingsCacheForTests,
 } from "../resolve-endatix-settings";
@@ -28,6 +29,10 @@ describe("resolveEndatixSettings", () => {
     delete process.env.ENDATIX_RESOLVED_AZURE_CREDENTIALS;
     delete process.env.ENDATIX_RESOLVED_IMAGE_REMOTE_HOSTNAMES;
     delete process.env.ENDATIX_RESOLVED_S3_CREDENTIALS;
+    delete process.env.ENDATIX_BASE_URL;
+    delete process.env.ENDATIX_API_URL;
+    delete process.env.ENDATIX_API_PREFIX;
+    delete process.env.ENDATIX_ENABLE_EXTENSIONS;
   });
 
   afterEach(() => {
@@ -153,7 +158,7 @@ describe("resolveEndatixSettings", () => {
       expect(r.envPatch.ENDATIX_RESOLVED_S3_CREDENTIALS).toBe("0");
     });
 
-    it("options.api overrides env for merged API URL in envPatch", () => {
+    it("options.api overrides env for merged API URL without inlining into envPatch", () => {
       process.env.ENDATIX_BASE_URL = "https://env.example.com";
       process.env.ENDATIX_API_PREFIX = "/api";
       const r = resolveEndatixSettings({
@@ -163,7 +168,18 @@ describe("resolveEndatixSettings", () => {
         },
       });
       expect(r.mergedApiConfig?.apiUrl).toBe("https://opts.example.com/v2");
-      expect(r.envPatch.ENDATIX_API_URL).toBe("https://opts.example.com/v2");
+      expect(r.envPatch.ENDATIX_API_URL).toBeUndefined();
+      expect(r.envPatch.ENDATIX_ENABLE_EXTENSIONS).toBeUndefined();
+    });
+
+    it("does not put ENDATIX_API_URL or ENDATIX_ENABLE_EXTENSIONS in envPatch", () => {
+      process.env.ENDATIX_BASE_URL = "https://api.example.com";
+      process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
+      const r = resolveEndatixSettings({ source: "withEndatix", options: {} });
+      expect(r.mergedApiConfig?.apiUrl).toBe("https://api.example.com/api");
+      expect(r.mergedExperimentalConfig.extensions).toBe(true);
+      expect(r.envPatch).not.toHaveProperty("ENDATIX_API_URL");
+      expect(r.envPatch).not.toHaveProperty("ENDATIX_ENABLE_EXTENSIONS");
     });
   });
 
@@ -222,6 +238,43 @@ describe("resolveEndatixSettings", () => {
       expect(r.storage.imageRemoteHostnames).toContain(
         "z.blob.core.windows.net",
       );
+    });
+  });
+
+  describe("getClientEndatixConfig", () => {
+    it("projects live API URL and extensions from env", () => {
+      process.env.ENDATIX_BASE_URL = "https://api.live.example.com";
+      process.env.ENDATIX_ENABLE_EXTENSIONS = "true";
+
+      const config = getClientEndatixConfig();
+
+      expect(config.apiBaseUrl).toBe("https://api.live.example.com/api");
+      expect(config.extensionsEnabled).toBe(true);
+    });
+
+    it("falls back to ENDATIX_API_URL when ENDATIX_BASE_URL is unset", () => {
+      process.env.ENDATIX_API_URL = "https://helm.example.com/api";
+
+      const config = getClientEndatixConfig();
+
+      expect(config.apiBaseUrl).toBe("https://helm.example.com/api");
+      expect(config.extensionsEnabled).toBe(false);
+    });
+
+    it("returns empty apiBaseUrl when ENDATIX_API_URL is invalid", () => {
+      process.env.ENDATIX_API_URL = "not-a-url";
+
+      const config = getClientEndatixConfig();
+
+      expect(config.apiBaseUrl).toBe("");
+      expect(config.extensionsEnabled).toBe(false);
+    });
+
+    it("returns empty apiBaseUrl and extensions off when unset", () => {
+      const config = getClientEndatixConfig();
+
+      expect(config.apiBaseUrl).toBe("");
+      expect(config.extensionsEnabled).toBe(false);
     });
   });
 });

@@ -5,6 +5,8 @@ declare namespace NodeJS {
     REMOTE_IMAGE_HOSTNAMES?: string;
     ROBOTS_ALLOWED_DOMAINS?: string;
     ENDATIX_BASE_URL?: string;
+    ENDATIX_API_URL?: string;
+    ENDATIX_API_PREFIX?: string;
     AI_API_BASE_URL?: string;
 
     // Experimental features

@@ -1,4 +1,5 @@
 import { Result } from "../result";
+import { isValidAbsoluteUrl } from "./is-valid-absolute-url";
 
 /**
  * Extracts the hostname from a URL string. This prevents malformed URLs when hostName is concatenated with protocols elsewhere
@@ -69,31 +70,6 @@ function toSafeRelativeUrl(
     return relative;
   } catch {
     return defaultPath;
-  }
-}
-
-/**
- * Checks if a URL is valid and safe (http/https only).
- * Prevents dangerous protocols like javascript:, data:, vbscript:, etc.
- * @param url - The URL to check.
- * @returns True if the URL is valid, false otherwise.
- */
-function isValidAbsoluteUrl(url: string): boolean {
-  if (!url || typeof url !== "string") {
-    return false;
-  }
-
-  const trimmedUrl = url.trim();
-
-  if (trimmedUrl.length === 0 || trimmedUrl.startsWith("//")) {
-    return false;
-  }
-
-  try {
-    const urlObj = new URL(trimmedUrl);
-    return urlObj.protocol === "http:" || urlObj.protocol === "https:";
-  } catch {
-    return false;
   }
 }
 

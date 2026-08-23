@@ -6,6 +6,7 @@ import { getOsClass } from "@/lib/utils/next-utils";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { getMetadataBase } from "@/lib/seo";
+import { getClientEndatixConfig } from "@/features/config";
 
 const appOptions = {
   enableTheme: true,
@@ -30,6 +31,7 @@ export default async function PublicLayout({
 }: Readonly<MaintenanceLayoutProps>) {
   const requestHeaders = await headers();
   const osClass = getOsClass(requestHeaders);
+  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html
@@ -45,7 +47,9 @@ export default async function PublicLayout({
         />
       </head>
       <body>
-        <AppProvider options={appOptions}>{children}</AppProvider>
+        <AppProvider options={appOptions} endatixConfig={endatixConfig}>
+          {children}
+        </AppProvider>
       </body>
     </html>
   );

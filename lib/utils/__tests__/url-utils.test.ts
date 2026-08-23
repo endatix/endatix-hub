@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   extractHostname,
   toSafeRelativeUrl,
-  isValidAbsoluteUrl,
   isSafeRedirectUrl,
   trimTrailingSlashes,
 } from "../url-utils";
@@ -378,88 +377,6 @@ describe("extractHostname", () => {
       if (Result.isError(result)) {
         expect(result.message).toBe("Invalid URL string to extract hostname");
       }
-    });
-  });
-});
-
-describe("isValidAbsoluteUrl", () => {
-  describe("valid absolute URLs", () => {
-    it("returns true for valid https URLs", () => {
-      expect(isValidAbsoluteUrl("https://example.com")).toBe(true);
-      expect(isValidAbsoluteUrl("https://example.com/path")).toBe(true);
-      expect(isValidAbsoluteUrl("https://example.com/path?query=value")).toBe(
-        true,
-      );
-    });
-
-    it("returns true for valid http URLs", () => {
-      expect(isValidAbsoluteUrl("http://example.com")).toBe(true);
-      expect(isValidAbsoluteUrl("http://example.com/path")).toBe(true);
-    });
-  });
-
-  describe("invalid/malicious URLs - security tests", () => {
-    it("returns false for javascript: protocol", () => {
-      expect(isValidAbsoluteUrl("javascript:alert(1)")).toBe(false);
-      expect(isValidAbsoluteUrl("javascript:alert('xss')")).toBe(false);
-      expect(isValidAbsoluteUrl("javascript:void(0)")).toBe(false);
-    });
-
-    it("returns false for data: protocol", () => {
-      expect(
-        isValidAbsoluteUrl("data:text/html,<script>alert(1)</script>"),
-      ).toBe(false);
-      expect(isValidAbsoluteUrl("data:,Hello%2C%20World!")).toBe(false);
-    });
-
-    it("returns false for vbscript: protocol", () => {
-      expect(isValidAbsoluteUrl("vbscript:msgbox('xss')")).toBe(false);
-    });
-
-    it("returns false for file: protocol", () => {
-      expect(isValidAbsoluteUrl("file:///etc/passwd")).toBe(false);
-    });
-
-    it("returns false for ftp: protocol", () => {
-      expect(isValidAbsoluteUrl("ftp://example.com")).toBe(false);
-    });
-
-    it("returns false for mailto: protocol", () => {
-      expect(isValidAbsoluteUrl("mailto:admin@example.com")).toBe(false);
-    });
-
-    it("returns false for tel: protocol", () => {
-      expect(isValidAbsoluteUrl("tel:+1234567890")).toBe(false);
-    });
-
-    it("returns false for empty string", () => {
-      expect(isValidAbsoluteUrl("")).toBe(false);
-    });
-
-    it("returns false for null input", () => {
-      expect(isValidAbsoluteUrl(null as unknown as string)).toBe(false);
-    });
-
-    it("returns false for undefined input", () => {
-      expect(isValidAbsoluteUrl(undefined as unknown as string)).toBe(false);
-    });
-
-    it("returns false for whitespace-only string", () => {
-      expect(isValidAbsoluteUrl("   ")).toBe(false);
-    });
-
-    it("returns false for protocol-relative URLs", () => {
-      expect(isValidAbsoluteUrl("//evil.com")).toBe(false);
-    });
-
-    it("returns false for URLs with invalid protocol", () => {
-      expect(isValidAbsoluteUrl("hack://example.com")).toBe(false);
-      expect(isValidAbsoluteUrl("fake://malicious.com")).toBe(false);
-    });
-
-    it("returns false for relative URLs (requires absolute)", () => {
-      expect(isValidAbsoluteUrl("/path")).toBe(false);
-      expect(isValidAbsoluteUrl("/path?query=value")).toBe(false);
     });
   });
 });

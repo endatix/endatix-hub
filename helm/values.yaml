@@ -12,12 +12,20 @@ service:
   port: 8000
 
 api:
-  # Used by the Hub server to make backend API calls — must include /api suffix
-  # e.g. http://endatix-api:8080/api  (internal K8s service URL)
+  # Set exactly one of apiUrl or baseUrl (not both). Helm merges overlays onto
+  # these defaults — set apiUrl: "" when overriding baseUrl.
+  # Complete API URL including the /api suffix, e.g. http://endatix-api:8080/api
   apiUrl: "http://endatix-api:8080/api"
-  # Base URL of the Endatix API, used for constructing links in emails etc.
-  # e.g. https://api.example.com
-  baseUrl: "http://endatix-api:8080"
+  # Origin without /api — used only when apiUrl is empty
+  baseUrl: ""
+  # Path prefix in baseUrl mode only. Hub defaults to /api if this is empty.
+  apiPrefix: "/api"
+
+experimental:
+  # SurveyJS extensions (data-list questions, custom widgets). Defaults on so a
+  # stock chart deploy registers and fetches data lists without a hidden switch.
+  # This is a container env var (ENDATIX_ENABLE_EXTENSIONS), not a build-time flag.
+  extensions: true
 
 auth:
   # Name of an existing secret with keys: session-secret, auth-secret

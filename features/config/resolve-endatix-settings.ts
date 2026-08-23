@@ -9,16 +9,19 @@ import {
   constructApiUrl,
   getApiConfig,
   normalizeApiPrefix,
+  resetApiConfigCacheForTests,
   type ApiConfig,
 } from "./api-config";
 import {
   getExperimentalConfig,
   type ExperimentalConfig,
 } from "./experimental-config";
+import type { ClientEndatixConfig } from "./client-endatix-config";
 
 const DEFAULT_API_PREFIX = "/api";
 
 export type { StorageProvider } from "../../lib/hosting/storage-image-remote-hostnames";
+export type { ClientEndatixConfig } from "./client-endatix-config";
 
 export interface StorageProfileSlice {
   readonly provider: StorageProvider;
@@ -69,8 +72,9 @@ export interface EndatixResolvedSettings {
   readonly mergedExperimentalConfig: ExperimentalConfig;
   readonly mergedApiConfig: ApiConfig | null;
   /**
-   * Keys merged into `nextConfig.env` (build). Includes `ENDATIX_RESOLVED_*` mirror so
-   * {@link resolveEndatixSettings} with `source: 'runtime'` matches build-time storage + images.
+   * Keys merged into `nextConfig.env` (build). Compiler-needed only: `ENDATIX_RESOLVED_*`
+   * so {@link resolveEndatixSettings} with `source: 'runtime'` matches build-time storage + images.
+   * Does not include `ENDATIX_API_URL` or `ENDATIX_ENABLE_EXTENSIONS` (request-time client projection).
    */
   readonly envPatch: Readonly<Record<string, string>>;
 }
@@ -200,6 +204,19 @@ export function getRuntimeStorageProfile(): StorageProfileSlice {
   return readStorageProfile("runtime");
 }
 
+/**
+ * Request-time browser projection (API origin + extensions gate).
+ * Call from Server Component layouts and pass into `AppProvider` — not via `nextConfig.env`.
+ */
+export function getClientEndatixConfig(): ClientEndatixConfig {
+  const resolved = resolveEndatixSettings({ source: "runtime" });
+
+  return Object.freeze({
+    apiBaseUrl: resolved.mergedApiConfig?.apiUrl ?? "",
+    extensionsEnabled: resolved.mergedExperimentalConfig.extensions,
+  });
+}
+
 function mergeAuthConfig(
   options: WithEndatixOptions | undefined,
 ): EndatixAuthConfig {
@@ -265,8 +282,6 @@ function resolveMergedApiConfig(
 
 function buildEnvPatch(
   mergedAuth: EndatixAuthConfig,
-  mergedExperimental: ExperimentalConfig,
-  mergedApi: ApiConfig | null,
   storage: StorageProfileSlice,
   source: ResolveEndatixSettingsSource,
 ): Record<string, string> {
@@ -275,12 +290,7 @@ function buildEnvPatch(
     AUTH_KEYCLOAK_CLIENT_ID: mergedAuth.providers.keycloak.clientId ?? "",
     AUTH_KEYCLOAK_ISSUER: mergedAuth.providers.keycloak.issuer ?? "",
     SESSION_MAX_AGE_IN_MINUTES: mergedAuth.session.maxAge.toString(),
-    ENDATIX_ENABLE_EXTENSIONS: mergedExperimental.extensions.toString(),
   };
-
-  if (mergedApi !== null) {
-    env.ENDATIX_API_URL = mergedApi.apiUrl;
-  }
 
   if (source === "withEndatix") {
     env[RESOLVED_STORAGE_VERSION_KEY] = STORAGE_MIRROR_VERSION;
@@ -310,13 +320,7 @@ export function resolveEndatixSettings(input: {
   const storage = readStorageProfile(input.source);
 
   const envPatch = Object.freeze(
-    buildEnvPatch(
-      mergedAuthConfig,
-      mergedExperimentalConfig,
-      mergedApiConfig,
-      storage,
-      input.source,
-    ),
+    buildEnvPatch(mergedAuthConfig, storage, input.source),
   );
 
   return Object.freeze({
@@ -328,7 +332,8 @@ export function resolveEndatixSettings(input: {
   });
 }
 
-/** Clears env-only storage cache (Vitest when flipping env without mirror). */
+/** Clears env-only storage and API caches (Vitest when flipping env without mirror). */
 export function resetResolveEndatixSettingsCacheForTests(): void {
   cachedStorageFromEnv = undefined;
+  resetApiConfigCacheForTests();
 }

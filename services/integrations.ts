@@ -1,9 +1,8 @@
 "use server";
 
+import { getApiConfig } from "@/features/config/api-config";
 import { SlackAuthResponse } from "@/types";
 import { HeaderBuilder } from "../lib/endatix-api/shared/header-builder";
-
-const API_BASE_URL = `${process.env.ENDATIX_API_URL}`;
 const SLACK_CLIENT_ID = `${process.env.SLACK_CLIENT_ID}`;
 const SLACK_CLIENT_SECRET = `${process.env.SLACK_CLIENT_SECRET}`;
 const SLACK_REDIRECT_URI = `${process.env.SLACK_REDIRECT_URI}`;
@@ -27,8 +26,12 @@ export const getSlackBearerToken = async (
 
 export const sendSlackBearerToken = async (token: string): Promise<boolean> => {
   const headers = new HeaderBuilder().acceptJson().provideJson().build();
+  const apiUrl = getApiConfig()?.apiUrl;
+  if (!apiUrl) {
+    return false;
+  }
 
-  const endpointUrl = `${API_BASE_URL}/slacktoken`;
+  const endpointUrl = `${apiUrl}/slacktoken`;
 
   const response = await fetch(endpointUrl, {
     method: "POST",

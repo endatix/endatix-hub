@@ -62,7 +62,12 @@ async function SubmissionDetails({
 
   return (
     <SubmissionDetailsProvider submissionPromise={submissionPromise}>
-      <DesignerRuntimeProvider initialState={{ formId, submissionId }}>
+      <DesignerRuntimeProvider
+        initialState={{
+          formId,
+          submissionId,
+        }}
+      >
         <AssetStorageProvider>
           <div className="flex w-full flex-col gap-6">
             <MetadataCard />

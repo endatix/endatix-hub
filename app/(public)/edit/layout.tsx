@@ -1,6 +1,7 @@
 import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AppProvider } from "@/components/providers";
+import { getClientEndatixConfig } from "@/features/config";
 import { getPublicAssetPath } from "@/lib/hosting";
 import type { Metadata } from "next";
 import { ROBOTS, getMetadataBase } from "@/lib/seo";
@@ -22,7 +23,7 @@ export default async function EditLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-
+  const endatixConfig = getClientEndatixConfig();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -33,7 +34,9 @@ export default async function EditLayout({
         />
       </head>
       <body>
-        <AppProvider session={session}>{children}</AppProvider>
+        <AppProvider session={session} endatixConfig={endatixConfig}>
+          {children}
+        </AppProvider>
       </body>
     </html>
   );

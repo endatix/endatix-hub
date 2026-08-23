@@ -5,6 +5,8 @@
  * Provides a centralized way to manage API configuration.
  */
 
+import { isValidAbsoluteUrl } from "../../lib/utils/is-valid-absolute-url";
+
 const DEFAULT_API_PREFIX = "/api";
 
 let cachedConfig: ApiConfig | null = null;
@@ -14,6 +16,9 @@ export interface ApiConfig {
   prefix: string;
   apiUrl: string;
 }
+
+export const API_ORIGIN_ENV_TIP =
+  "Set ENDATIX_BASE_URL (optional ENDATIX_API_PREFIX) or a complete ENDATIX_API_URL.";
 
 /**
  * Normalizes API prefix: ensures leading '/' for non-empty prefix, removes trailing '/', handles multiple slashes
@@ -49,34 +54,85 @@ export function constructApiUrl(baseUrl: string, prefix: string): string {
 }
 
 /**
- * Validates and constructs the Endatix API configuration
+ * Parses a complete API origin (Helm `ENDATIX_API_URL`) when `ENDATIX_BASE_URL` is unset.
+ * Only `http:` and `https:` are accepted.
+ */
+function parseDirectApiUrl(directApiUrl: string): ApiConfig | null {
+  if (!isValidAbsoluteUrl(directApiUrl)) {
+    return null;
+  }
+  const parsed = new URL(directApiUrl);
+  const prefix = normalizeApiPrefix(parsed.pathname);
+  return Object.freeze({
+    baseUrl: parsed.origin,
+    prefix,
+    apiUrl: `${parsed.origin}${prefix}`,
+  });
+}
+
+/**
+ * Validates and constructs the Endatix API configuration.
+ *
+ * Precedence (first match wins):
+ * 1. `ENDATIX_BASE_URL` + optional `ENDATIX_API_PREFIX` (default `/api`)
+ * 2. else a complete `ENDATIX_API_URL`
+ *
+ * Invalid values return `null` (never a raw rejected string).
  */
 export function getApiConfig(): ApiConfig | null {
   if (cachedConfig !== null) {
     return cachedConfig;
   }
 
-  const baseUrl = process.env.ENDATIX_BASE_URL;
-  let apiPrefix = process.env.ENDATIX_API_PREFIX;
-  if (apiPrefix === undefined) {
-    apiPrefix = DEFAULT_API_PREFIX;
+  const baseUrl = process.env.ENDATIX_BASE_URL?.trim();
+  if (baseUrl) {
+    const prefix = normalizeApiPrefix(
+      process.env.ENDATIX_API_PREFIX ?? DEFAULT_API_PREFIX,
+    );
+    const apiUrl = constructApiUrl(baseUrl, prefix);
+    if (!isValidAbsoluteUrl(apiUrl)) {
+      return null;
+    }
+    cachedConfig = Object.freeze({ baseUrl, prefix, apiUrl });
+    return cachedConfig;
   }
 
-  if (!baseUrl) {
+  const directApiUrl = process.env.ENDATIX_API_URL?.trim();
+  if (!directApiUrl) {
     return null;
   }
 
-  try {
-    const apiUrl = constructApiUrl(baseUrl, apiPrefix);
-    new URL(apiUrl);
-    cachedConfig = { baseUrl, prefix: apiPrefix, apiUrl };
+  cachedConfig = parseDirectApiUrl(directApiUrl);
+  return cachedConfig;
+}
 
-    return cachedConfig;
-  } catch (error) {
-    throw new Error(
-      `Invalid API URL constructed: ${baseUrl}${apiPrefix}. ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
-    );
+/**
+ * Same as {@link getApiConfig}, but for callers that cannot proceed without an origin.
+ * Probe / diagnostics stay on {@link getApiConfig} (null = unset or invalid).
+ */
+export function requireApiUrl(): string {
+  const apiUrl = getApiConfig()?.apiUrl;
+  if (!apiUrl) {
+    throw new Error(`Endatix API URL is not configured. ${API_ORIGIN_ENV_TIP}`);
   }
+  return apiUrl;
+}
+
+/**
+ * Resolves the API origin from env. Either `ENDATIX_BASE_URL` (+ optional
+ * `ENDATIX_API_PREFIX`) or a complete `ENDATIX_API_URL` is enough.
+ * When only base URL is set, writes `ENDATIX_API_URL` so server modules that
+ * still read it stay in sync.
+ */
+export function ensureResolvedApiUrl(): ApiConfig | null {
+  const config = getApiConfig();
+  if (config && !process.env.ENDATIX_API_URL?.trim()) {
+    process.env.ENDATIX_API_URL = config.apiUrl;
+  }
+  return config;
+}
+
+/** Clears the env-derived API config cache (Vitest when flipping env). */
+export function resetApiConfigCacheForTests(): void {
+  cachedConfig = null;
 }

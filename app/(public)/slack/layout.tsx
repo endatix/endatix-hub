@@ -2,6 +2,7 @@ import { AppProvider } from "@/components/providers";
 import "@/app/globals.css";
 import { AppOptions } from "@/components/providers/app-provider";
 import { auth } from "@/auth";
+import { getClientEndatixConfig } from "@/features/config";
 
 export const metadata = {
   title: "Next.js",
@@ -14,11 +15,16 @@ interface SlackLayoutProps {
 
 export default async function SlackLayout({ children }: SlackLayoutProps) {
   const session = await auth();
+  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <AppProvider options={AppOptions.PublicPages} session={session}>
+        <AppProvider
+          options={AppOptions.PublicPages}
+          session={session}
+          endatixConfig={endatixConfig}
+        >
           <div className="flex min-h-screen flex-col">{children}</div>
         </AppProvider>
       </body>
