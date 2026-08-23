@@ -66,7 +66,7 @@ export function AppProvider({
   themeOptions = {},
   sidebarDefaultOpen = DEFAULT_SIDEBAR_OPEN,
   endatixConfig,
-}: AppProviderProps) {
+}: Readonly<AppProviderProps>) {
   const {
     enableTheme,
     enableAnalytics,
@@ -119,6 +119,8 @@ export function AppProvider({
   // Outermost: memoized env projection. Session/theme live inside this
   // provider so those context updates do not change this value.
   return (
-    <EndatixConfigProvider value={endatixConfig}>{content}</EndatixConfigProvider>
+    <EndatixConfigProvider value={endatixConfig}>
+      {content}
+    </EndatixConfigProvider>
   );
 }
