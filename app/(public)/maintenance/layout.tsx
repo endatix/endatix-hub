@@ -31,6 +31,7 @@ export default async function PublicLayout({
 }: Readonly<MaintenanceLayoutProps>) {
   const requestHeaders = await headers();
   const osClass = getOsClass(requestHeaders);
+  const endatixConfig = getClientEndatixConfig();
 
   return (
     <html
@@ -46,10 +47,7 @@ export default async function PublicLayout({
         />
       </head>
       <body>
-        <AppProvider
-          options={appOptions}
-          endatixConfig={getClientEndatixConfig()}
-        >
+        <AppProvider options={appOptions} endatixConfig={endatixConfig}>
           {children}
         </AppProvider>
       </body>

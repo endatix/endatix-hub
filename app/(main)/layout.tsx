@@ -36,10 +36,12 @@ export default async function RootLayout({
   header,
   nav,
 }: RootLayoutProps) {
+
   const requestHeaders = await headers();
   const osClass = getOsClass(requestHeaders);
   const session = await auth();
   const cookieStore = await cookies();
+  const endatixConfig = getClientEndatixConfig();
   const sidebarValue = cookieStore.get("sidebar_state");
   const defaultSidebarOpen = sidebarValue?.value === "true";
 
@@ -56,7 +58,7 @@ export default async function RootLayout({
         <AppProvider
           session={session}
           sidebarDefaultOpen={defaultSidebarOpen}
-          endatixConfig={getClientEndatixConfig()}
+          endatixConfig={endatixConfig}
         >
           {nav}
           <main data-slot="sidebar-inset">
