@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
   dataTableHeaderCellClassName,
@@ -131,7 +132,7 @@ export function DataListItemsTable({
   return (
     <DataTableSurface data-slot="data-list-items-table">
       <div className="w-full overflow-x-auto">
-        <Table className="border-separate border-spacing-0">
+        <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
           <TableHeader className="bg-surface-container-low">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
