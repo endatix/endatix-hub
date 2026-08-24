@@ -17,8 +17,12 @@ export async function getDataListsAction(
 }
 
 /**
- * Gets all data lists via server-side aggregation. Used by the SurveyJS
- * Creator data-list picker, which needs the full collection rather than one Hub grid page.
+ * Gets all data lists via server-side aggregation.
+ *
+ * Still required for the Creator "Choices from data list" dropdown
+ * (`edxDataListId`) and convert-inline uniqueness checks. Those use
+ * Serializer `choices`, not the lazy-load handlers in creator-bindings
+ * (those load *items of a bound list* via public search).
  */
 export async function getAllDataListsAction(): Promise<DataList[]> {
   return getAllDataLists();

@@ -34,9 +34,12 @@ export async function getDataListsPage(
 }
 
 /**
- * Aggregates every data list across all pages. Unlike `getDataListsPage`
- * (one page, for the Hub management grid), callers such as the SurveyJS
- * Creator data-list picker need the full collection to populate choices.
+ * Aggregates every data list across all pages.
+ *
+ * Hub's management grid uses {@link getDataListsPage} (one page).
+ * The Creator catalog picker still needs the full collection until
+ * `edxDataListId` is wired to {@link getDataListsPage} + search as a
+ * property-grid lazy provider.
  */
 export async function getAllDataLists(
   request: Omit<ListDataListsRequest, "page" | "pageSize"> = {},
