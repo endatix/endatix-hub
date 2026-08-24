@@ -25,18 +25,38 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { type ReactNode, useMemo } from "react";
+import { useMemo } from "react";
 import "./table-types";
 
 type DataListItemsTableProps = {
   items: DataListItem[];
   availableLocales: string[];
   defaultLocale?: string;
-  emptyMessage?: string;
-  footer?: ReactNode;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
+
+function resolveItemLabelText(
+  item: DataListItemRow,
+  column: string,
+  defaultLocale?: string,
+): string {
+  if (column === "default") {
+    return (
+      resolveCatalogDefaultLabelText(item.labels, defaultLocale)?.trim() || "—"
+    );
+  }
+
+  return item.labels[column]?.trim() || "—";
+}
+
+function labelColumnHeader(column: string, defaultLocale?: string): string {
+  if (column === "default") {
+    return `default (${defaultLocale ?? "—"})`;
+  }
+
+  return formatLocaleLabel(column);
+}
 
 function buildColumns(
   labelColumns: string[],
@@ -57,20 +77,9 @@ function buildColumns(
     },
     ...labelColumns.map((column) => ({
       id: `label:${column}`,
-      header:
-        column === "default"
-          ? `default (${defaultLocale ?? "—"})`
-          : formatLocaleLabel(column),
-      cell: ({ row }: { row: { original: DataListItemRow } }) => {
-        const text =
-          column === "default"
-            ? resolveCatalogDefaultLabelText(
-                row.original.labels,
-                defaultLocale,
-              )
-            : row.original.labels[column];
-        return text?.trim() ? text : "—";
-      },
+      header: labelColumnHeader(column, defaultLocale),
+      cell: ({ row }: { row: { original: DataListItemRow } }) =>
+        resolveItemLabelText(row.original, column, defaultLocale),
       meta: {
         headerClassName: "min-w-[10rem]",
         cellClassName: "min-w-[10rem]",
@@ -83,8 +92,6 @@ export function DataListItemsTable({
   items,
   availableLocales,
   defaultLocale,
-  emptyMessage = "No items in this list.",
-  footer,
 }: Readonly<DataListItemsTableProps>) {
   const labelColumns = useMemo(
     () => ["default", ...availableLocales],
@@ -123,8 +130,7 @@ export function DataListItemsTable({
   if (rows.length === 0) {
     return (
       <DataTableSurface data-slot="data-list-items-table">
-        <DataTableEmpty>{emptyMessage}</DataTableEmpty>
-        {footer}
+        <DataTableEmpty>No items in this list.</DataTableEmpty>
       </DataTableSurface>
     );
   }
@@ -147,7 +153,8 @@ export function DataListItemsTable({
                       colSpan={header.colSpan}
                       className={dataTableHeaderCellClassName({
                         isPinnedLeft,
-                        className: header.column.columnDef.meta?.headerClassName,
+                        className:
+                          header.column.columnDef.meta?.headerClassName,
                       })}
                     >
                       {header.isPlaceholder
@@ -194,7 +201,6 @@ export function DataListItemsTable({
           </TableBody>
         </Table>
       </div>
-      {footer}
     </DataTableSurface>
   );
 }

@@ -1,6 +1,8 @@
 import {
   DATA_TABLE_ELEMENT_CLASS_NAME,
   DataTableSurface,
+  dataTableBodyRowClassName,
+  dataTableHeaderCellClassName,
 } from "@/components/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -97,10 +99,10 @@ export function SubmissionsTableSkeleton({
               {SKELETON_COLUMNS.map((column) => (
                 <TableHead
                   key={column.id}
-                  className={cn(
-                    "h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
-                    column.headerClassName,
-                  )}
+                  className={dataTableHeaderCellClassName({
+                    isStatic: true,
+                    className: column.headerClassName,
+                  })}
                 >
                   <Skeleton className="h-3 w-16 bg-muted-foreground/20 dark:bg-muted" />
                 </TableHead>
@@ -113,13 +115,11 @@ export function SubmissionsTableSkeleton({
               return (
                 <TableRow
                   key={row}
-                  className={cn(
-                    ROW_HEIGHT_CLASS,
-                    "border-0",
-                    isEvenRow
-                      ? "bg-surface-container-low"
-                      : "bg-surface-container-lowest",
-                  )}
+                  className={dataTableBodyRowClassName({
+                    isEvenRow,
+                    isStatic: true,
+                    className: ROW_HEIGHT_CLASS,
+                  })}
                 >
                   {SKELETON_COLUMNS.map((column) => (
                     <TableCell key={column.id} className="px-2">

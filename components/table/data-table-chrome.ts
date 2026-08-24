@@ -14,22 +14,37 @@ export function dataTableColumnLabelClassName(className?: string): string {
 
 export function dataTableHeaderCellClassName(options: {
   isPinnedLeft?: boolean;
+  /** Omit sticky stacking — for skeletons and other non-interactive headers. */
+  isStatic?: boolean;
   className?: string;
 }): string {
+  const isStatic = options.isStatic === true;
+  const stickyClass = isStatic ? undefined : "sticky top-0";
+  let stackingClass: string | undefined;
+  if (!isStatic) {
+    stackingClass = options.isPinnedLeft ? "left-0 z-30" : "z-10";
+  }
+
   return cn(
-    "sticky top-0 h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
-    options.isPinnedLeft ? "left-0 z-30" : "z-10",
+    "h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
+    stickyClass,
+    stackingClass,
     options.className,
   );
 }
 
 export function dataTableBodyRowClassName(options: {
   isEvenRow: boolean;
+  /** Omit hover/group chrome — for skeletons and other non-interactive rows. */
+  isStatic?: boolean;
   className?: string;
 }): string {
+  const isStatic = options.isStatic === true;
+
   return cn(
-    "group border-0",
-    dataTableZebraRowFillClassName(options.isEvenRow),
+    "border-0",
+    !isStatic && "group",
+    dataTableZebraRowFillClassName(options.isEvenRow, isStatic),
     options.className,
   );
 }
@@ -54,12 +69,19 @@ export function dataTableBodyCellClassName(options: {
   );
 }
 
-function dataTableZebraRowFillClassName(isEvenRow: boolean): string {
+function dataTableZebraRowFillClassName(
+  isEvenRow: boolean,
+  isStatic: boolean,
+): string {
   if (isEvenRow) {
-    return "bg-surface-container-low hover:bg-surface-container";
+    return isStatic
+      ? "bg-surface-container-low"
+      : "bg-surface-container-low hover:bg-surface-container";
   }
 
-  return "bg-surface-container-lowest hover:bg-surface-container";
+  return isStatic
+    ? "bg-surface-container-lowest"
+    : "bg-surface-container-lowest hover:bg-surface-container";
 }
 
 function dataTablePinnedCellFillClassName(options: {

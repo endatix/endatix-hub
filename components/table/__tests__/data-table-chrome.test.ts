@@ -25,7 +25,23 @@ describe("data-table-chrome", () => {
 
     // Assert
     expect(even).toContain("bg-surface-container-low");
+    expect(even).toContain("hover:bg-surface-container");
+    expect(even).toContain("group");
     expect(odd).toContain("bg-surface-container-lowest");
+  });
+
+  it("omits sticky and hover chrome for static skeletons", () => {
+    // Arrange & Act
+    const header = dataTableHeaderCellClassName({ isStatic: true });
+    const row = dataTableBodyRowClassName({ isEvenRow: true, isStatic: true });
+
+    // Assert
+    expect(header).toContain("bg-surface-container-low");
+    expect(header).not.toContain("sticky");
+    expect(header).not.toContain("z-10");
+    expect(row).toContain("bg-surface-container-low");
+    expect(row).not.toContain("hover:");
+    expect(row).not.toContain("group");
   });
 
   it("uses accent fill for selected pinned cells", () => {
