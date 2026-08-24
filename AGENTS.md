@@ -29,6 +29,26 @@
 - Use `Promise.all` for independent data dependencies. Await sequentially only when a later call depends on an earlier result.
 - For server page calls to the Endatix API, convert `ApiResult<T>` with `toResult(...)` so unexpected operational failures are logged consistently and expected invalid/not-found states can map to page-specific fallback UI.
 
+## Table filter state (client)
+
+- One debounced field (a search box): `useListUrlState()` (`lib/list-page/use-list-url-state.ts`).
+- **Two or more** debounced fields on the same table (search + a free-text filter, etc.): `useTableFiltersUrlState(keys)` (`components/table`), not one `useListUrlState` / `useUrlSearchParamsUpdater` call per field. Independent debounced writers race — each rebuilds the next URL from its own `searchParams` snapshot at the moment its timer fires, so whichever settles second can silently drop the other's just-committed change. `useTableFiltersUrlState` commits every field together in a single `updateUrl` call per settle window, so there is exactly one writer.
+  - `keys` must be a module-level constant array (e.g. `const FILTER_KEYS = ["search", "hasLocale"] as const;`), not an inline literal — it drives the hook's effect dependencies.
+  - Non-debounced filters (`Select`s, checkboxes) still call `updateUrl` directly; they don't need to be listed in `keys`.
+  - Reference: `features/data-lists/view-lists/ui/data-lists-page.tsx` (`DATA_LISTS_FILTER_KEYS` in `utils.ts`).
+
+## Detail → list back navigation
+
+When a detail page has a "Back to `<list>`" control that should restore the list's last paging/filters, use `BackToTableButton` (`components/table/back-to-table-button.tsx`) backed by `lib/list-page/table-return-to`. Do **not** carry list state back via a URL param (e.g. `?from=...`) for this — session-scoped storage keeps detail URLs shareable/bookmarkable without embedding list state, and is naturally scoped per browser tab (a middle-click into a new tab correctly falls back to the bare list path instead of inheriting another tab's filters).
+
+- The list page remembers its own current query in a `useEffect` keyed on `searchParams`: `rememberTableReturnTo(tableKey, searchParams.toString(), parse, scopeId?)`.
+- The detail page's back control is `<BackToTableButton tableKey="..." fallbackHref="..." parse={...} buildHref={...} />` (or call `getTableReturnHref(...)` directly outside a `Link`).
+- `tableKey` scopes the storage key (e.g. `"data-lists"`, `"submissions"`); also pass `scopeId` when the list itself is per-parent-entity (e.g. a formId for `/forms/:formId/submissions`).
+- **`parse` is mandatory and is the whitelist.** It must be the same `parse*ListParams` + `serialize*ListSearchParams` round-trip the list page's own URL parsing already uses (paging clamped to positive ints, enums/culture-codes validated, unknown keys dropped). `table-return-to` re-runs `parse` on read too — defense in depth, since a value written by an older app version (or edited via storage/devtools) must be re-validated before ever being reused for navigation — and falls back to `fallbackHref` if `parse` throws or empties the query. Never pass a function that returns raw/unvalidated input, and `buildHref` must build against a hardcoded list path, never treat the stored value itself as a redirect target.
+- `parse` / `buildHref` should be stable references (module-level functions, not inline closures) — they're effect dependencies on `BackToTableButton`.
+- Reference implementation: `features/data-lists/view-lists/utils.ts` (`parseDataListsReturnQuery`, `dataListsListHrefFromQuery`), wired into `data-lists-page.tsx` (remember) and `data-list-details-page.tsx` (`BackToTableButton`).
+- `features/submissions/list-submission-query/submission-list-return-to.ts` + `back-to-submissions-button.tsx` predate this shared abstraction (bespoke sessionStorage, same shape, not yet migrated). Move it onto `table-return-to` / `BackToTableButton` next time that code is touched rather than adding a third bespoke copy.
+
 ## Error Handling
 
 - Preserve API-provided user-facing messages, validation errors, and error codes through the shared result mappers.

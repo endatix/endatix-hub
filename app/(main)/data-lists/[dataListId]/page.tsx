@@ -7,10 +7,7 @@ import {
 } from "@/features/data-lists/view-list-details";
 import { getDataListItemsPage } from "@/features/data-lists/view-list-details/get-data-list-items.server";
 import { parseDataListItemsParams } from "@/features/data-lists/view-list-details/utils";
-import {
-  firstString,
-  parseDataListsReturnHref,
-} from "@/features/data-lists/view-lists/utils";
+import { firstString } from "@/features/data-lists/view-lists/utils";
 import { isNotFoundError } from "@/lib/endatix-api";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 
@@ -21,7 +18,6 @@ interface DataListDetailsRoutePageProps {
     page: SearchParam;
     pageSize: SearchParam;
     search: SearchParam;
-    from: SearchParam;
   }>;
 }
 
@@ -57,14 +53,12 @@ export default async function DataListDetailsRoutePage({
     locale: dataListResult.data.defaultLocale,
   });
   const openReplaceOnLoad = hasValue(raw.action, "replace");
-  const returnHref = parseDataListsReturnHref(firstString(raw.from));
 
   return (
     <DataListDetailsPage
       initialDetails={dataListResult.data}
       itemsPromise={itemsPromise}
       openReplaceOnLoad={openReplaceOnLoad}
-      returnHref={returnHref}
     />
   );
 }

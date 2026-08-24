@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  BackToTableButton,
   createPagedTableFooterProps,
   PagedTableFooter,
   TableSearchInput,
@@ -23,18 +24,23 @@ import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
 } from "@/lib/utils/files-download";
-import { ArrowLeft, ChevronDown, Download, Upload } from "lucide-react";
-import Link from "next/link";
+import { ChevronDown, Download, Upload } from "lucide-react";
 import type { Route } from "next";
 import { Suspense, use, useEffect, useState, useTransition } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result } from "@/lib/result";
 import type { DataListSourceFormat } from "../../add-items/data-list-items-input";
 import { DataListItemsTable } from "./data-list-items-table";
 import { LocaleCatalogPanel } from "./locale-catalog-panel";
+import {
+  DATA_LISTS_LIST_PATH,
+  DATA_LISTS_TABLE_KEY,
+  dataListsListHrefFromQuery,
+  parseDataListsReturnQuery,
+} from "../../view-lists/utils";
 
 const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
 
@@ -42,14 +48,12 @@ interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
   itemsPromise: Promise<DataListItemsPage>;
   openReplaceOnLoad?: boolean;
-  returnHref?: string;
 }
 
 export function DataListDetailsPage({
   initialDetails,
   itemsPromise,
   openReplaceOnLoad = false,
-  returnHref = "/data-lists",
 }: Readonly<DataListDetailsPageProps>) {
   const [details, setDetails] = useState(initialDetails);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] =
@@ -60,7 +64,24 @@ export function DataListDetailsPage({
     useState<DataListSourceFormat>("json");
   const [isDownloadPending, startDownloadTransition] = useTransition();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dataListIdResult = validateEndatixId(String(details.id), "dataListId");
+
+  // Items pagination/search is keyed off the URL, but the item set just
+  // changed size (or content) — an out-of-range `page` or stale `search`
+  // would otherwise render a false "no items" empty state after replace.
+  const resetItemsListState = (): void => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (!nextParams.has("page") && !nextParams.has("search")) {
+      return;
+    }
+
+    nextParams.delete("page");
+    nextParams.delete("search");
+    const query = nextParams.toString();
+    router.replace((query ? `${pathname}?${query}` : pathname) as Route);
+  };
 
   useEffect(() => {
     if (!openReplaceOnLoad) {
@@ -114,7 +135,8 @@ export function DataListDetailsPage({
       format === "json"
         ? `data-list-${dataListId}.json`
         : `data-list-${dataListId}-translations.csv`;
-    const successMessage = format === "json" ? "JSON downloaded" : "CSV downloaded";
+    const successMessage =
+      format === "json" ? "JSON downloaded" : "CSV downloaded";
     const errorMessage =
       format === "json"
         ? "Failed to download JSON"
@@ -171,12 +193,13 @@ export function DataListDetailsPage({
   return (
     <>
       <div className="mb-4">
-        <Button variant="outline" asChild>
-          <Link href={returnHref as Route}>
-            <ArrowLeft className="h-4 w-4" />
-            Back to Data Lists
-          </Link>
-        </Button>
+        <BackToTableButton
+          tableKey={DATA_LISTS_TABLE_KEY}
+          fallbackHref={DATA_LISTS_LIST_PATH}
+          parse={parseDataListsReturnQuery}
+          buildHref={dataListsListHrefFromQuery}
+          text="Back to Data Lists"
+        />
       </div>
 
       <div className="space-y-4">
@@ -279,6 +302,7 @@ export function DataListDetailsPage({
         initialFormat={replaceInitialFormat}
         onReplaced={(updated) => {
           setDetails(updated);
+          resetItemsListState();
           router.refresh();
           toast.success("Data list details updated");
         }}

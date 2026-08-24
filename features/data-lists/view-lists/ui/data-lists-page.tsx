@@ -13,6 +13,7 @@ import {
   DataTableSurface,
   PagedTableFooter,
   TableSearchInput,
+  useTableFiltersUrlState,
 } from "@/components/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ import type {
   FormDependencySummary,
 } from "@/lib/endatix-api/data-lists/types";
 import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
-import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
+import { rememberTableReturnTo } from "@/lib/list-page/table-return-to";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
@@ -52,7 +53,9 @@ import { deleteDataListAction } from "../../delete-list/delete-data-list.action"
 import {
   buildDataListDetailHref,
   currentDataListsListHref,
-  currentDataListsListQuery,
+  DATA_LISTS_FILTER_KEYS,
+  DATA_LISTS_TABLE_KEY,
+  parseDataListsReturnQuery,
 } from "../utils";
 
 interface DataListsPageProps {
@@ -60,49 +63,29 @@ interface DataListsPageProps {
   openCreateOnLoad?: boolean;
 }
 
-const FILTERS_DEBOUNCE_MS = 350;
-
 export function DataListsPage({
   dataListsPromise,
   openCreateOnLoad = false,
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
   const router = useRouter();
-  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
-  const listQuery = currentDataListsListQuery(searchParams);
-  const urlSearch = searchParams.get("search") ?? "";
-  const urlHasLocale = searchParams.get("hasLocale") ?? "";
-  const [search, setSearch] = useState(urlSearch);
-  const [hasLocale, setHasLocale] = useState(urlHasLocale);
+  const { values, setValue, searchParams, updateUrl } = useTableFiltersUrlState(
+    DATA_LISTS_FILTER_KEYS,
+  );
+  const search = values.search;
+  const hasLocale = values.hasLocale;
+  const hasLocaleInput = searchParams.get("hasLocale") ?? "";
 
+  // Lets "Back to Data Lists" on the detail page restore paging/filters —
+  // see lib/list-page/table-return-to and AGENTS.md "Detail → list back
+  // navigation".
   useEffect(() => {
-    setSearch(urlSearch);
-  }, [urlSearch]);
-
-  useEffect(() => {
-    setHasLocale(urlHasLocale);
-  }, [urlHasLocale]);
-
-  // Coalesced into a single debounce + updateUrl call
-  useEffect(() => {
-    const trimmedSearch = search.trim();
-    const trimmedHasLocale = hasLocale.trim();
-    if (trimmedSearch === urlSearch && trimmedHasLocale === urlHasLocale) {
-      return;
-    }
-
-    const timeout = globalThis.window.setTimeout(() => {
-      updateUrl({
-        search: trimmedSearch || null,
-        hasLocale: trimmedHasLocale || null,
-        page: "1",
-      });
-    }, FILTERS_DEBOUNCE_MS);
-
-    return () => globalThis.window.clearTimeout(timeout);
-  }, [search, hasLocale, urlSearch, urlHasLocale, updateUrl]);
-
-  const hasLocaleInput = urlHasLocale;
+    rememberTableReturnTo(
+      DATA_LISTS_TABLE_KEY,
+      searchParams.toString(),
+      parseDataListsReturnQuery,
+    );
+  }, [searchParams]);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
     useState(openCreateOnLoad);
@@ -192,13 +175,13 @@ export function DataListsPage({
       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
         <TableSearchInput
           value={search}
-          onChange={setSearch}
+          onChange={(value) => setValue("search", value)}
           placeholder="Search by name or description"
           ariaLabel="Search data lists"
         />
         <Input
           value={hasLocale}
-          onChange={(event) => setHasLocale(event.target.value)}
+          onChange={(event) => setValue("hasLocale", event.target.value)}
           placeholder="Filter by locale (e.g. es)"
           aria-label="Filter data lists by locale"
           className="lg:max-w-xs"
@@ -269,7 +252,6 @@ export function DataListsPage({
                   const isEvenRow = rowIndex % 2 === 1;
                   const detailHref = buildDataListDetailHref(
                     String(dataList.id),
-                    listQuery,
                   );
                   return (
                     <TableRow
@@ -338,7 +320,6 @@ export function DataListsPage({
                       >
                         <DataListRowActions
                           dataList={dataList}
-                          listQuery={listQuery}
                           onDelete={handleOpenDelete}
                         />
                       </TableCell>

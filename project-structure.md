@@ -168,9 +168,11 @@ Action rules:
 
 - Drive search, filters, and pagination from URL `searchParams` (parse in a server page or shared util, e.g. `parsePlatformAdminListParams`, `parseFormsListParams`).
 - Use one paged API endpoint with scope/tenant filters rather than two parallel lists sharing the same `page` param.
-- Client tables update the URL via `useListUrlState` (debounced search, `Select` filters, `PagedTableFooter` / `PagedListFooter`) and receive unresolved promises from the server page wrapped in `Suspense`.
-- Shared helpers live in `lib/list-page/` (`parse-paged-search-params`, `use-list-url-state`).
-- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, **toolbar**, paged footer) lives in `components/table/`. `DataTableToolbar` is one row: filters scroll, actions stay pinned. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
+- Client tables update the URL via `useListUrlState` (single debounced field) or `useTableFiltersUrlState` (2+ debounced fields, one coalesced commit — see below), plus `Select` filters calling `updateUrl` directly, `PagedTableFooter` / `PagedListFooter`, and receive unresolved promises from the server page wrapped in `Suspense`.
+- Shared helpers live in `lib/list-page/` (`parse-paged-search-params`, `use-list-url-state`, `table-return-to`).
+- List-table **chrome** (surface, empty state, header/row/cell class helpers, search input, **toolbar**, paged footer, **`BackToTableButton`**, **`useTableFiltersUrlState`**) lives in `components/table/`. `DataTableToolbar` is one row: filters scroll, actions stay pinned. Keep the ShadCN primitive (`Table`, `TableRow`, …) in `components/ui/table.tsx`.
+- **Two or more debounced filter fields on the same table** must share one `useTableFiltersUrlState(keys)` call (`components/table`), not one `useListUrlState`/`useUrlSearchParamsUpdater` per field — independent debounced writers race (each rebuilds the URL from its own stale `searchParams` snapshot) and can silently drop each other's change. `keys` must be a module-level constant array.
+- **Detail → list back navigation** restores the list's paging/filters via session-scoped storage, not a URL param — see AGENTS.md "Detail → list back navigation" and `lib/list-page/table-return-to`.
 - Hub list URL key is **`search`**; map it to the API query field (`query`, `filter`, etc.) inside the slice parser. Do not introduce a parallel `q` param.
 - Reference: `settings/organization/users/page.tsx`, `admin/platform-admins/page.tsx`, `forms/page.tsx`, `features/forms/list-forms/`, and `features/data-lists/view-lists/`.
 
@@ -201,9 +203,10 @@ Hub management grids follow the same URL + chrome pattern as forms/users. Parsin
 | Surface | Slice | Hub URL | API |
 | --- | --- | --- | --- |
 | List | `features/data-lists/view-lists/` | `search`, `hasLocale` (single BCP-47 code), `page`, `pageSize`, `action=create` | `GET /data-lists` (`search`, `hasLocale`) |
-| Detail items | `features/data-lists/view-list-details/` | `search`, `page`, `pageSize`, `from`, `action=replace` | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
+| Detail items | `features/data-lists/view-list-details/` | `search`, `page`, `pageSize`, `action=replace` | `GET /data-lists/{id}/items` (`query`) + `GET /data-lists/{id}?includeItems=false` |
 
-- List → detail preserves filters with `from` (serialized list query). Back uses `parseDataListsReturnHref` and ignores unknown keys.
+- List → detail "Back to Data Lists" restores filters/paging via `BackToTableButton` (`tableKey: "data-lists"`), not a URL param — see AGENTS.md "Detail → list back navigation".
+- Replacing items resets the items grid's `page`/`search` (stale values from before the replace would otherwise point past the new item set).
 - Items are **GET-only** in Hub. Authors edit via file replace (`replace-items`), not per-item CRUD.
 - Stream the paged promise from the App Router page into the client table (`use()` + `Suspense`). Footer lives **inside** `DataTableSurface`.
 - Creator Translations CSV wrap lives in `lib/survey-features/data-lists/` (compound keys + SurveyJS CSV merge). Hub actions stay in `features/data-lists/translations/` (`uploadTranslationsCsvAction`, `getDataListTranslationCatalogAction`).
