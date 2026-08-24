@@ -6,7 +6,11 @@ import {
   normalizePagedResponse,
   NormalizedPagedResponse,
 } from "../shared/paged-response";
-import { appendQueryParam, buildEndpointWithQuery } from "../shared/query-params";
+import {
+  appendPagingQueryParams,
+  appendQueryParam,
+  buildEndpointWithQuery,
+} from "../shared/query-params";
 import { PagedResponse } from "../shared/types";
 import {
   CreateDataListRequest,
@@ -42,11 +46,12 @@ function normalizeEnsureLocales(locales?: readonly string[]): string[] {
     .filter((locale) => locale.length > 0);
 }
 
-function buildListDataListsEndpoint(request: ListDataListsRequest): string {
+export function buildListDataListsEndpoint(
+  request: ListDataListsRequest,
+): string {
   const searchParams = new URLSearchParams();
-  appendQueryParam(searchParams, "page", request.page ?? 1);
-  appendQueryParam(searchParams, "pageSize", request.pageSize ?? 10);
-  appendQueryParam(searchParams, "query", request.query);
+  appendPagingQueryParams(searchParams, request, { page: 1, pageSize: 10 });
+  appendQueryParam(searchParams, "search", request.search);
   appendQueryParam(searchParams, "hasLocale", request.hasLocale);
   return buildEndpointWithQuery(DATA_LISTS_BASE, searchParams);
 }
@@ -65,7 +70,10 @@ function buildListDataListItemsEndpoint(
     appendQueryParam(searchParams, INCLUDE_LOCALES_QUERY_PARAM, locale);
   }
 
-  return buildEndpointWithQuery(dataListPath(dataListId, "items"), searchParams);
+  return buildEndpointWithQuery(
+    dataListPath(dataListId, "items"),
+    searchParams,
+  );
 }
 
 export class DataLists {

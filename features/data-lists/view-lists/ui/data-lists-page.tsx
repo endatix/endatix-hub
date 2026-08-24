@@ -50,7 +50,7 @@ import { getDataListFormDependenciesAction } from "../get-data-list-form-depende
 import { deleteDataListAction } from "../../delete-list/delete-data-list.action";
 import {
   buildDataListDetailHref,
-  buildDataListsListHref,
+  currentDataListsListHref,
   currentDataListsListQuery,
 } from "../utils";
 
@@ -68,9 +68,8 @@ export function DataListsPage({
   const { search, setSearch, updateUrl, searchParams } = useListUrlState();
   const listQuery = currentDataListsListQuery(searchParams);
   const hasLocaleInput = searchParams.get("hasLocale") ?? "";
-  const { search: hasLocale, setSearch: setHasLocale } = useListUrlState(
-    "hasLocale",
-  );
+  const { search: hasLocale, setSearch: setHasLocale } =
+    useListUrlState("hasLocale");
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
     useState(openCreateOnLoad);
@@ -89,12 +88,7 @@ export function DataListsPage({
 
   const handleOpenDelete = (dataList: DataList) => {
     setIsCreateDialogOpen(false);
-    router.replace(buildDataListsListHref({
-      page: paged.page,
-      pageSize: paged.pageSize,
-      search: searchParams.get("search")?.trim() || undefined,
-      hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
-    }));
+    router.replace(currentDataListsListHref(searchParams));
 
     setSelectedForDelete(dataList);
     setDependencies([]);
@@ -141,18 +135,15 @@ export function DataListsPage({
   const handleCreateDialogClose = (open: boolean): void => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      router.replace(
-        buildDataListsListHref({
-          page: paged.page,
-          pageSize: paged.pageSize,
-          search: searchParams.get("search")?.trim() || undefined,
-          hasLocale: searchParams.get("hasLocale")?.trim() || undefined,
-        }),
-      );
+      router.replace(currentDataListsListHref(searchParams));
     }
   };
 
-  const footerProps = createPagedTableFooterProps(paged, "data lists", updateUrl);
+  const footerProps = createPagedTableFooterProps(
+    paged,
+    "data lists",
+    updateUrl,
+  );
 
   return (
     <>
@@ -193,25 +184,49 @@ export function DataListsPage({
             <Table className="border-separate border-spacing-0">
               <TableHeader className="bg-surface-container-low">
                 <TableRow className="border-0 hover:bg-transparent">
-                  <TableHead className={dataTableHeaderCellClassName({ className: "min-w-[12rem]" })}>
+                  <TableHead
+                    className={dataTableHeaderCellClassName({
+                      className: "min-w-[12rem]",
+                    })}
+                  >
                     Friendly Name
                   </TableHead>
                   <TableHead className={dataTableHeaderCellClassName({})}>
                     Status
                   </TableHead>
-                  <TableHead className={dataTableHeaderCellClassName({ className: "min-w-[10rem]" })}>
+                  <TableHead
+                    className={dataTableHeaderCellClassName({
+                      className: "min-w-[10rem]",
+                    })}
+                  >
                     Locales
                   </TableHead>
-                  <TableHead className={dataTableHeaderCellClassName({ className: "hidden md:table-cell" })}>
+                  <TableHead
+                    className={dataTableHeaderCellClassName({
+                      className: "hidden md:table-cell",
+                    })}
+                  >
                     Created
                   </TableHead>
-                  <TableHead className={dataTableHeaderCellClassName({ className: "hidden md:table-cell" })}>
+                  <TableHead
+                    className={dataTableHeaderCellClassName({
+                      className: "hidden md:table-cell",
+                    })}
+                  >
                     Modified
                   </TableHead>
-                  <TableHead className={dataTableHeaderCellClassName({ className: "hidden text-center md:table-cell" })}>
+                  <TableHead
+                    className={dataTableHeaderCellClassName({
+                      className: "hidden text-center md:table-cell",
+                    })}
+                  >
                     Items
                   </TableHead>
-                  <TableHead className={dataTableHeaderCellClassName({ className: "text-right" })}>
+                  <TableHead
+                    className={dataTableHeaderCellClassName({
+                      className: "text-right",
+                    })}
+                  >
                     Actions
                   </TableHead>
                 </TableRow>
@@ -228,7 +243,12 @@ export function DataListsPage({
                       key={dataList.id}
                       className={dataTableBodyRowClassName({ isEvenRow })}
                     >
-                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "min-w-[12rem]" })}>
+                      <TableCell
+                        className={dataTableBodyCellClassName({
+                          isEvenRow,
+                          className: "min-w-[12rem]",
+                        })}
+                      >
                         <Link href={detailHref} className="block min-w-0">
                           <p className="truncate text-base font-semibold">
                             {dataList.name}
@@ -238,22 +258,46 @@ export function DataListsPage({
                           </p>
                         </Link>
                       </TableCell>
-                      <TableCell className={dataTableBodyCellClassName({ isEvenRow })}>
+                      <TableCell
+                        className={dataTableBodyCellClassName({ isEvenRow })}
+                      >
                         <StatusPill isActive={dataList.isActive} />
                       </TableCell>
-                      <TableCell className={dataTableBodyCellClassName({ isEvenRow })}>
+                      <TableCell
+                        className={dataTableBodyCellClassName({ isEvenRow })}
+                      >
                         <LocalesCell dataList={dataList} />
                       </TableCell>
-                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "hidden md:table-cell" })}>
+                      <TableCell
+                        className={dataTableBodyCellClassName({
+                          isEvenRow,
+                          className: "hidden md:table-cell",
+                        })}
+                      >
                         {getFormattedDate(dataList.createdAt)}
                       </TableCell>
-                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "hidden md:table-cell" })}>
+                      <TableCell
+                        className={dataTableBodyCellClassName({
+                          isEvenRow,
+                          className: "hidden md:table-cell",
+                        })}
+                      >
                         {getFormattedDate(dataList.modifiedAt)}
                       </TableCell>
-                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "hidden text-center md:table-cell" })}>
+                      <TableCell
+                        className={dataTableBodyCellClassName({
+                          isEvenRow,
+                          className: "hidden text-center md:table-cell",
+                        })}
+                      >
                         <Link href={detailHref}>{dataList.itemsCount}</Link>
                       </TableCell>
-                      <TableCell className={dataTableBodyCellClassName({ isEvenRow, className: "text-right" })}>
+                      <TableCell
+                        className={dataTableBodyCellClassName({
+                          isEvenRow,
+                          className: "text-right",
+                        })}
+                      >
                         <DataListRowActions
                           dataList={dataList}
                           listQuery={listQuery}

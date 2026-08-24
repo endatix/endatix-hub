@@ -9,7 +9,7 @@ import {
 } from "../utils";
 
 describe("parseDataListsListParams", () => {
-  it("maps Hub search to API query and normalizes locale", () => {
+  it("maps Hub search to API search and normalizes locale", () => {
     // Arrange & Act
     const parsed = parseDataListsListParams({
       page: "2",
@@ -22,7 +22,7 @@ describe("parseDataListsListParams", () => {
     expect(parsed).toEqual({
       page: 2,
       pageSize: 25,
-      query: "cities",
+      search: "cities",
       hasLocale: "es",
     });
   });

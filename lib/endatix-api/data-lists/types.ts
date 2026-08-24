@@ -34,7 +34,7 @@ export interface CreateDataListRequest {
 }
 
 export interface ListDataListsRequest extends IPagedRequest {
-  query?: string;
+  search?: string;
   hasLocale?: string;
 }
 

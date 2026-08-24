@@ -34,13 +34,16 @@ function firstString(value: string | string[] | undefined): string | undefined {
 export function parseDataListsListParams(
   searchParams?: DataListsListSearchParams,
 ): ListDataListsRequest {
-  const paging = parsePagedSearchParams(searchParams, DEFAULT_DATA_LISTS_PAGE_SIZE);
+  const paging = parsePagedSearchParams(
+    searchParams,
+    DEFAULT_DATA_LISTS_PAGE_SIZE,
+  );
   const search = searchParams?.search?.trim() || undefined;
   const hasLocale = parseHasLocaleFilter(searchParams?.hasLocale);
 
   return {
     ...paging,
-    query: search,
+    search,
     hasLocale,
   };
 }
@@ -117,12 +120,14 @@ export function parseDataListsReturnHref(from: string | undefined): string {
   return buildDataListsListHref({
     page: parsed.page ?? 1,
     pageSize: parsed.pageSize ?? DEFAULT_DATA_LISTS_PAGE_SIZE,
-    search: parsed.query,
+    search: parsed.search,
     hasLocale: parsed.hasLocale,
   });
 }
 
-export function currentDataListsListQuery(searchParams: URLSearchParams): string {
+export function currentDataListsListQuery(
+  searchParams: URLSearchParams,
+): string {
   return serializeDataListsListSearchParams({
     page: Number(searchParams.get("page") ?? 1) || 1,
     pageSize:
@@ -131,4 +136,11 @@ export function currentDataListsListQuery(searchParams: URLSearchParams): string
     search: searchParams.get("search")?.trim() || undefined,
     hasLocale: parseHasLocaleFilter(searchParams.get("hasLocale")),
   });
+}
+
+export function currentDataListsListHref(
+  searchParams: URLSearchParams,
+): string {
+  const query = currentDataListsListQuery(searchParams);
+  return query ? `${DATA_LISTS_LIST_PATH}?${query}` : DATA_LISTS_LIST_PATH;
 }
