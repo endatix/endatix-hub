@@ -6,16 +6,9 @@
  *   - With version (e.g. 2.5.9): pnpm add survey-*@2.5.9
  *   - Without: pnpm add survey-*@latest
  *
- * Security (for static analysis / learning):
- * - spawnSync(..., { shell: false }) avoids command injection: args are passed
- *   as an array, so the shell never interprets user input. See CWE-78, OWASP
- *   "Command Injection".
- * - Version spec is validated (semver or "latest") so we never pass
- *   shell metacharacters into the child process.
- * - Version parsing/validation uses the semver package (no custom regexes),
- *   avoiding ReDoS (S5852) and matching npm semver behavior.
- * - Executable is resolved to a fixed path (hub node_modules/.bin/pnpm) so
- *   we do not rely on PATH, which may contain user-writable directories.
+ * CLI version is untrusted. It is allowlisted (`latest` or semver.valid)
+ * before any child-process argv is built. spawnSync uses an args array
+ * and shell: false (CWE-78).
  */
 
 import { spawnSync } from "node:child_process";
@@ -27,29 +20,70 @@ import semver from "semver";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Survey packages to upgrade
-const SURVEY_PACKAGES = [
+const SURVEY_PACKAGES = Object.freeze([
   "survey-core",
   "survey-creator-core",
   "survey-creator-react",
   "survey-react-ui",
   "survey-analytics",
-];
+]);
 
-// Extract a valid semver string from a range or tag (e.g. "^2.5.9" or "v2.5.9" -> "2.5.9"). Uses semver package to avoid ReDoS.
+const PACKAGE_NAME_PATTERN = /^survey-[a-z0-9-]+$/;
+const PNPM_BIN_NAMES = new Set(["pnpm", "pnpm.cmd"]);
+
 function parseVersion(versionStr) {
   if (!versionStr || typeof versionStr !== "string") return null;
   const coerced = semver.coerce(versionStr);
   return coerced ? semver.valid(coerced) : null;
 }
 
-// Allow only "latest" or a valid semver string; otherwise default to "latest".
+/** Only `latest` or a canonical semver string. Rejects everything else. */
 function toValidSpec(versionArg) {
-  const raw = versionArg ? parseVersion(versionArg) || versionArg : "latest";
-  if (raw === "latest") {
-    return raw;
+  if (versionArg == null || versionArg === "") {
+    return "latest";
   }
-  return semver.valid(raw) ? raw : "latest";
+  if (typeof versionArg !== "string") {
+    throw new Error("Version must be a string.");
+  }
+  if (versionArg === "latest") {
+    return "latest";
+  }
+  // Do not coerce: "2.5.9; rm" would become "2.5.9". Exact semver only.
+  const parsed = semver.valid(versionArg);
+  if (!parsed) {
+    throw new Error(
+      `Invalid version '${versionArg}'. Use a semver version (e.g. 2.5.9) or omit for latest.`,
+    );
+  }
+  return parsed;
+}
+
+function assertSafePackageNames(packages) {
+  for (const pkg of packages) {
+    if (!PACKAGE_NAME_PATTERN.test(pkg) || !SURVEY_PACKAGES.includes(pkg)) {
+      throw new Error(`Refusing to install unexpected package '${pkg}'.`);
+    }
+  }
+}
+
+function buildPnpmAddArgs(spec) {
+  assertSafePackageNames(SURVEY_PACKAGES);
+  if (spec !== "latest" && !semver.valid(spec)) {
+    throw new Error(`Refusing to pass unvalidated specifier '${spec}'.`);
+  }
+  return ["add", ...SURVEY_PACKAGES.map((pkg) => `${pkg}@${spec}`)];
+}
+
+function assertSafePnpmPath(pnpmPath) {
+  const resolved = path.resolve(pnpmPath);
+  const base = path.basename(resolved);
+  if (!PNPM_BIN_NAMES.has(base)) {
+    throw new Error(`Refusing to execute unexpected binary '${base}'.`);
+  }
+  if (!existsSync(resolved)) {
+    throw new Error(`pnpm not found at ${resolved}.`);
+  }
+  return resolved;
 }
 
 function getInstalledVersion(hubDir) {
@@ -63,17 +97,14 @@ function getInstalledVersion(hubDir) {
   }
 }
 
-// Fixed path to pnpm so we do not rely on PATH (may contain user-writable dirs).
-// Try: hub node_modules, parent node_modules, then same directory as Node (corepack/global).
 function getPnpmPath(hubDir) {
   const name = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  const inHub = path.join(hubDir, "node_modules", ".bin", name);
-  if (existsSync(inHub)) return inHub;
-  const inParent = path.join(hubDir, "..", "node_modules", ".bin", name);
-  if (existsSync(inParent)) return inParent;
-  const nextToNode = path.join(path.dirname(process.execPath), name);
-  if (existsSync(nextToNode)) return nextToNode;
-  return nextToNode;
+  const candidates = [
+    path.join(hubDir, "node_modules", ".bin", name),
+    path.join(hubDir, "..", "node_modules", ".bin", name),
+    path.join(path.dirname(process.execPath), name),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[2];
 }
 
 console.log("🚀 Upgrading Survey.js packages...\n");
@@ -84,23 +115,11 @@ const hubDir = existsSync(path.join(PROJECT_ROOT, "package.json"))
   : path.resolve(__dirname, "..");
 process.chdir(hubDir);
 
-const versionArg = process.argv[2]?.trim();
-const spec = toValidSpec(versionArg);
-// Build args as array (no shell) so static tools don't flag command injection
-const args = ["add", ...SURVEY_PACKAGES.map((p) => `${p}@${spec}`)];
-
-const pnpmPath = getPnpmPath(hubDir);
-if (!existsSync(pnpmPath)) {
-  console.error(
-    `\n❌ pnpm not found. Tried: hub/node_modules/.bin, parent node_modules/.bin, and Node bin dir (${path.dirname(
-      process.execPath,
-    )}).\n` +
-      `  Run "pnpm install" from the hub directory, or enable corepack: corepack enable\n`,
-  );
-  process.exit(1);
-}
-
 try {
+  const spec = toValidSpec(process.argv[2]?.trim());
+  const args = buildPnpmAddArgs(spec);
+  const pnpmPath = assertSafePnpmPath(getPnpmPath(hubDir));
+
   console.log(`📦 Packages: ${SURVEY_PACKAGES.join(", ")}`);
   console.log(`📌 Specifier: ${spec}\n`);
   console.log(`⚡ Running: pnpm ${args.join(" ")}\n`);
@@ -109,9 +128,9 @@ try {
     stdio: "inherit",
     cwd: hubDir,
     shell: false,
+    windowsHide: true,
   });
 
-  // status is null when the process was killed by a signal (e.g. SIGINT)
   if (result.status !== 0 || result.signal) {
     let msg;
     if (result.error) {

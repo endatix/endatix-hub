@@ -121,7 +121,7 @@ export function DataListDetailsPage({
   };
 
   const handleDownloadJson = (): void => {
-    void downloadExport("json");
+    downloadExport("json");
   };
 
   const downloadExport = (format: "csv" | "json"): void => {
@@ -185,7 +185,7 @@ export function DataListDetailsPage({
   };
 
   const handleDownloadCsv = (): void => {
-    void downloadExport("csv");
+    downloadExport("csv");
   };
 
   const availableLocales = details.availableLocales ?? [];
