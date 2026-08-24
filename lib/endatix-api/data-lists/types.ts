@@ -33,6 +33,12 @@ export interface CreateDataListRequest {
   description?: string;
 }
 
+/** Omitted fields keep current values; empty description clears it. */
+export interface UpdateDataListDetailsRequest {
+  name?: string;
+  description?: string;
+}
+
 export type DataListListSortBy =
   | 'name'
   | 'createdAt'

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { buildDataListDetailHref } from "../utils";
 import type { DataList } from "@/lib/endatix-api/data-lists/types";
-import { Eye, MoreHorizontal, PencilLine, Trash2 } from "lucide-react";
+import { Eye, MoreHorizontal, PencilLine, Trash2, Upload } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -23,6 +23,9 @@ export function DataListRowActions({
   onDelete,
 }: Readonly<DataListRowActionsProps>) {
   const detailHref = buildDataListDetailHref(String(dataList.id));
+  const editHref = buildDataListDetailHref(String(dataList.id), {
+    action: "edit",
+  });
   const replaceHref = buildDataListDetailHref(String(dataList.id), {
     action: "replace",
   });
@@ -42,8 +45,14 @@ export function DataListRowActions({
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={replaceHref as Route}>
+          <Link href={editHref as Route}>
             <PencilLine className="mr-2 h-4 w-4" />
+            Edit
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={replaceHref as Route}>
+            <Upload className="mr-2 h-4 w-4" />
             Replace Items
           </Link>
         </DropdownMenuItem>

@@ -42,3 +42,49 @@ export function resolveItemsIncludeLocales(options: {
 
   return [...options.availableLocales];
 }
+
+/**
+ * Label column keys for the items grid (`default` + culture codes).
+ * When `hasLocale` is set, only selected cultures appear (default culture → `default` column).
+ */
+export function resolveVisibleLabelColumns(options: {
+  hasLocale?: string;
+  defaultLocale?: string;
+  availableLocales: readonly string[];
+}): string[] {
+  const extras = options.availableLocales.filter(
+    (locale) =>
+      !options.defaultLocale ||
+      locale.trim().toLowerCase() !==
+        options.defaultLocale.trim().toLowerCase(),
+  );
+
+  if (!options.hasLocale) {
+    return ['default', ...extras];
+  }
+
+  const selected = options.hasLocale
+    .split(',')
+    .map((locale) => locale.trim())
+    .filter((locale) => locale.length > 0);
+
+  const columns: string[] = [];
+  const defaultNorm = options.defaultLocale?.trim().toLowerCase();
+
+  for (const code of selected) {
+    const norm = code.toLowerCase();
+    if (defaultNorm && norm === defaultNorm) {
+      if (!columns.includes('default')) {
+        columns.push('default');
+      }
+      continue;
+    }
+
+    const match = extras.find((locale) => locale.toLowerCase() === norm);
+    if (match && !columns.includes(match)) {
+      columns.push(match);
+    }
+  }
+
+  return columns;
+}

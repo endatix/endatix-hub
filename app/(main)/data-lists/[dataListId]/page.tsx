@@ -65,12 +65,14 @@ export default async function DataListDetailsRoutePage({
     locale: searchLocale,
   });
   const openReplaceOnLoad = hasValue(raw.action, "replace");
+  const openEditOnLoad = hasValue(raw.action, "edit");
 
   return (
     <DataListDetailsPage
       initialDetails={dataListResult.data}
       itemsPromise={itemsPromise}
       openReplaceOnLoad={openReplaceOnLoad}
+      openEditOnLoad={openEditOnLoad}
     />
   );
 }

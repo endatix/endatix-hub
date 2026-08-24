@@ -23,6 +23,7 @@ import {
   ImportDataListRequest,
   ListDataListItemsRequest,
   ListDataListsRequest,
+  UpdateDataListDetailsRequest,
 } from "./types";
 
 export type DataListsPage = NormalizedPagedResponse<DataList>;
@@ -146,6 +147,21 @@ export class DataLists {
     request: CreateDataListRequest,
   ): Promise<ApiResult<DataListDetails>> {
     return this.endatix.post<DataListDetails>(DATA_LISTS_BASE, request);
+  }
+
+  async updateDetails(
+    dataListId: string,
+    request: UpdateDataListDetailsRequest,
+  ): Promise<ApiResult<DataListDetails>> {
+    const idResult = this.requireDataListId(dataListId);
+    if (!idResult.success) {
+      return idResult;
+    }
+
+    return this.endatix.patch<DataListDetails>(
+      dataListPath(idResult.data),
+      request,
+    );
   }
 
   async import(

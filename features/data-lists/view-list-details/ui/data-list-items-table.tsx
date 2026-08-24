@@ -5,10 +5,11 @@ import {
   DataTableColumnHeader,
   dataTableBodyCellClassName,
   dataTableBodyRowClassName,
-  dataTableColumnLabelClassName,
   dataTableHeaderCellClassName,
   DataTableEmpty,
   DataTableSurface,
+  FacetedFilter,
+  type FacetedFilterOption,
 } from '@/components/table';
 import {
   Table,
@@ -32,44 +33,33 @@ import './table-types';
 
 type DataListItemsTableProps = {
   items: DataListItem[];
-  availableLocales: string[];
+  /** Label column keys: `default` and/or culture codes. */
+  labelColumns: readonly string[];
   defaultLocale?: string;
   emptyMessage?: string;
   footer?: ReactNode;
-  searchValue?: string;
-  onSearchChange?: (value: string) => void;
+  localeOptions?: FacetedFilterOption[];
+  selectedLocales?: Set<string>;
+  onLocaleFilterChange?: (values: Set<string>) => void;
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
 
-function resolveItemLabelText(
-  item: DataListItemRow,
-  column: string,
-  defaultLocale?: string,
-): string {
-  if (column === "default") {
-    return (
-      resolveCatalogDefaultLabelText(item.labels, defaultLocale)?.trim() || "—"
-    );
-  }
+function buildColumns(args: {
+  labelColumns: readonly string[];
+  defaultLocale: string | undefined;
+  localeOptions: FacetedFilterOption[];
+  selectedLocales: Set<string>;
+  onLocaleFilterChange: ((values: Set<string>) => void) | undefined;
+}): ColumnDef<DataListItemRow>[] {
+  const {
+    labelColumns,
+    defaultLocale,
+    localeOptions,
+    selectedLocales,
+    onLocaleFilterChange,
+  } = args;
 
-  return item.labels[column]?.trim() || "—";
-}
-
-function labelColumnHeader(column: string, defaultLocale?: string): string {
-  if (column === "default") {
-    return `default (${defaultLocale ?? "—"})`;
-  }
-
-  return formatLocaleLabel(column);
-}
-
-function buildColumns(
-  labelColumns: string[],
-  defaultLocale: string | undefined,
-  searchValue: string,
-  onSearchChange: ((value: string) => void) | undefined,
-): ColumnDef<DataListItemRow>[] {
   return [
     {
       id: 'value',
@@ -79,14 +69,16 @@ function buildColumns(
         <DataTableColumnHeader
           column={column}
           title="Value"
-          textFilter={
-            onSearchChange
-              ? {
-                  value: searchValue,
-                  placeholder: 'Search value or label',
-                  onChange: onSearchChange,
-                }
-              : undefined
+          facetFilterActive={selectedLocales.size > 0}
+          facetFilter={
+            onLocaleFilterChange && localeOptions.length > 0 ? (
+              <FacetedFilter
+                title="Locale"
+                options={localeOptions}
+                selectedValues={selectedLocales}
+                onValueChange={onLocaleFilterChange}
+              />
+            ) : undefined
           }
         />
       ),
@@ -98,38 +90,49 @@ function buildColumns(
         cellClassName: 'min-w-[8rem]',
       },
     },
-    ...labelColumns.map((column) => ({
-      id: `label:${column}`,
-      enableSorting: false as const,
-      header: () => (
-        <span className={dataTableColumnLabelClassName()}>
-          {labelColumnHeader(column, defaultLocale)}
-        </span>
-      ),
-      cell: ({ row }: { row: { original: DataListItemRow } }) =>
-        resolveItemLabelText(row.original, column, defaultLocale),
-      meta: {
-        headerClassName: 'min-w-[10rem]',
-        cellClassName: 'min-w-[10rem]',
-      },
-    })),
+    ...labelColumns.map(
+      (columnKey): ColumnDef<DataListItemRow> => ({
+        id: `label:${columnKey}`,
+        enableSorting: false,
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title={
+              columnKey === 'default'
+                ? `Default (${defaultLocale ?? '—'})`
+                : formatLocaleLabel(columnKey)
+            }
+          />
+        ),
+        cell: ({ row }) => {
+          const text =
+            columnKey === 'default'
+              ? resolveCatalogDefaultLabelText(
+                  row.original.labels,
+                  defaultLocale,
+                )
+              : row.original.labels[columnKey];
+          return text?.trim() ? text : '—';
+        },
+        meta: {
+          headerClassName: 'min-w-[10rem]',
+          cellClassName: 'min-w-[10rem]',
+        },
+      }),
+    ),
   ];
 }
 
 export function DataListItemsTable({
   items,
-  availableLocales,
+  labelColumns,
   defaultLocale,
   emptyMessage = 'No items in this list.',
   footer,
-  searchValue = '',
-  onSearchChange,
+  localeOptions = [],
+  selectedLocales = new Set(),
+  onLocaleFilterChange,
 }: Readonly<DataListItemsTableProps>) {
-  const labelColumns = useMemo(
-    () => ['default', ...availableLocales],
-    [availableLocales],
-  );
-
   const data = useMemo<DataListItemRow[]>(
     () =>
       items.map((item, index) => ({
@@ -141,8 +144,20 @@ export function DataListItemsTable({
 
   const columns = useMemo(
     () =>
-      buildColumns(labelColumns, defaultLocale, searchValue, onSearchChange),
-    [labelColumns, defaultLocale, searchValue, onSearchChange],
+      buildColumns({
+        labelColumns,
+        defaultLocale,
+        localeOptions,
+        selectedLocales,
+        onLocaleFilterChange,
+      }),
+    [
+      labelColumns,
+      defaultLocale,
+      localeOptions,
+      selectedLocales,
+      onLocaleFilterChange,
+    ],
   );
 
   const table = useReactTable({
@@ -187,8 +202,7 @@ export function DataListItemsTable({
                       colSpan={header.colSpan}
                       className={dataTableHeaderCellClassName({
                         isPinnedLeft,
-                        className:
-                          header.column.columnDef.meta?.headerClassName,
+                        className: header.column.columnDef.meta?.headerClassName,
                       })}
                     >
                       {header.isPlaceholder

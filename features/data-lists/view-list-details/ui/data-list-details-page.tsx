@@ -1,39 +1,49 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   BackToTableButton,
   CellDate,
   createPagedTableFooterProps,
-  FacetedFilter,
   PagedTableFooter,
   TableSearchInput,
   type FacetedFilterOption,
-} from "@/components/table";
+} from '@/components/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { toast } from "@/components/ui/toast";
-import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
-import type { DataListItemsPage } from "@/lib/endatix-api/data-lists/data-lists";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
-import { TelemetryLogger } from "@/features/telemetry";
-import { withBasePath } from "@/lib/hosting";
-import { formatInteger } from "@/lib/utils/formatters";
+} from '@/components/ui/dropdown-menu';
+import { toast } from '@/components/ui/toast';
+import type { DataListDetails } from '@/lib/endatix-api/data-lists/types';
+import type { DataListItemsPage } from '@/lib/endatix-api/data-lists/data-lists';
+import { useListUrlState } from '@/lib/list-page/use-list-url-state';
+import { TelemetryLogger } from '@/features/telemetry';
+import { withBasePath } from '@/lib/hosting';
+import { formatInteger } from '@/lib/utils/formatters';
 import {
   getFilenameFromContentDisposition,
   initiateFileDownload,
-} from "@/lib/utils/files-download";
-import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
+} from '@/lib/utils/files-download';
+import { formatLocaleLabel } from '@/features/data-lists/translations/locale-discovery';
+import { DataListLocalesCell } from '@/features/data-lists/view-lists/ui/data-list-locales-cell';
 import {
+  DATA_LISTS_LIST_PATH,
+  DATA_LISTS_TABLE_KEY,
+  dataListsListHrefFromQuery,
+  parseDataListsReturnQuery,
+  parseHasLocaleFilter,
   parseHasLocaleFilterSet,
   serializeHasLocaleFilter,
-} from "@/features/data-lists/view-lists/utils";
-import { ChevronDown, Download, Upload } from "lucide-react";
-import type { Route } from "next";
+} from '../../view-lists/utils';
+import {
+  ChevronDown,
+  Download,
+  PencilLine,
+  Upload,
+} from 'lucide-react';
+import type { Route } from 'next';
 import {
   Suspense,
   use,
@@ -41,47 +51,46 @@ import {
   useMemo,
   useState,
   useTransition,
-} from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { validateEndatixId } from "@/lib/utils/type-validators";
-import { Result } from "@/lib/result";
-import type { DataListSourceFormat } from "../../add-items/data-list-items-input";
-import { DataListItemsTable } from "./data-list-items-table";
-import { LocaleCatalogPanel } from "./locale-catalog-panel";
-import {
-  DATA_LISTS_LIST_PATH,
-  DATA_LISTS_TABLE_KEY,
-  dataListsListHrefFromQuery,
-  parseDataListsReturnQuery,
-} from "../../view-lists/utils";
+} from 'react';
+import { ReplaceItemsDialog } from '../../replace-items/ui/replace-items-dialog';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { validateEndatixId } from '@/lib/utils/type-validators';
+import { Result } from '@/lib/result';
+import type { DataListSourceFormat } from '../../add-items/data-list-items-input';
+import { DataListItemsTable } from './data-list-items-table';
+import { DataListItemsTableSkeleton } from './data-list-items-table-skeleton';
+import { EditDataListPanel } from './edit-data-list-panel';
+import { resolveVisibleLabelColumns } from '../utils';
 
-const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
+const CSV_EXPORT_LOGGER = 'data-lists.exportCsv';
 
 interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
   itemsPromise: Promise<DataListItemsPage>;
   openReplaceOnLoad?: boolean;
+  openEditOnLoad?: boolean;
 }
 
 export function DataListDetailsPage({
   initialDetails,
   itemsPromise,
   openReplaceOnLoad = false,
+  openEditOnLoad = false,
 }: Readonly<DataListDetailsPageProps>) {
   const [details, setDetails] = useState(initialDetails);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] =
     useState(openReplaceOnLoad);
   const [openedReplaceFromLoad, setOpenedReplaceFromLoad] =
     useState(openReplaceOnLoad);
+  const [isEditPanelOpen, setIsEditPanelOpen] = useState(openEditOnLoad);
+  const [openedEditFromLoad, setOpenedEditFromLoad] = useState(openEditOnLoad);
   const [replaceInitialFormat, setReplaceInitialFormat] =
-    useState<DataListSourceFormat>("json");
+    useState<DataListSourceFormat>('json');
   const [isDownloadPending, startDownloadTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const dataListIdResult = validateEndatixId(String(details.id), "dataListId");
+  const dataListIdResult = validateEndatixId(String(details.id), 'dataListId');
 
   // Items pagination/search is keyed off the URL, but the item set just
   // changed size (or content) — an out-of-range `page` or stale `search`
@@ -103,7 +112,7 @@ export function DataListDetailsPage({
       return;
     }
 
-    const idResult = validateEndatixId(String(details.id), "dataListId");
+    const idResult = validateEndatixId(String(details.id), 'dataListId');
     if (Result.isError(idResult)) {
       toast.error(idResult.message);
       return;
@@ -113,10 +122,19 @@ export function DataListDetailsPage({
     setIsReplaceDialogOpen(true);
   }, [openReplaceOnLoad, details.id]);
 
+  useEffect(() => {
+    if (!openEditOnLoad) {
+      return;
+    }
+
+    setOpenedEditFromLoad(true);
+    setIsEditPanelOpen(true);
+  }, [openEditOnLoad]);
+
   const handleOpenCloseReplaceDialog = (open: boolean): void => {
     setIsReplaceDialogOpen(open);
     if (!open) {
-      setReplaceInitialFormat("json");
+      setReplaceInitialFormat('json');
       if (openedReplaceFromLoad) {
         setOpenedReplaceFromLoad(false);
         router.back();
@@ -124,7 +142,15 @@ export function DataListDetailsPage({
     }
   };
 
-  const openReplace = (format: DataListSourceFormat = "json"): void => {
+  const handleOpenCloseEditPanel = (open: boolean): void => {
+    setIsEditPanelOpen(open);
+    if (!open && openedEditFromLoad) {
+      setOpenedEditFromLoad(false);
+      router.back();
+    }
+  };
+
+  const openReplace = (format: DataListSourceFormat = 'json'): void => {
     if (Result.isError(dataListIdResult)) {
       toast.error(dataListIdResult.message);
       return;
@@ -139,7 +165,7 @@ export function DataListDetailsPage({
     downloadExport("json");
   };
 
-  const downloadExport = (format: "csv" | "json"): void => {
+  const downloadExport = (format: 'csv' | 'json'): void => {
     if (Result.isError(dataListIdResult)) {
       toast.error(dataListIdResult.message);
       return;
@@ -147,15 +173,15 @@ export function DataListDetailsPage({
 
     const dataListId = dataListIdResult.value;
     const fallbackName =
-      format === "json"
+      format === 'json'
         ? `data-list-${dataListId}.json`
         : `data-list-${dataListId}-translations.csv`;
     const successMessage =
-      format === "json" ? "JSON downloaded" : "CSV downloaded";
+      format === 'json' ? 'JSON downloaded' : 'CSV downloaded';
     const errorMessage =
-      format === "json"
-        ? "Failed to download JSON"
-        : "Failed to download translations CSV";
+      format === 'json'
+        ? 'Failed to download JSON'
+        : 'Failed to download translations CSV';
 
     startDownloadTransition(async () => {
       try {
@@ -172,11 +198,11 @@ export function DataListDetailsPage({
             }
           } catch (error) {
             TelemetryLogger.error(
-              "Failed to parse data list export error response",
+              'Failed to parse data list export error response',
               error,
               {
-                "http.status_code": response.status,
-                "error.type":
+                'http.status_code': response.status,
+                'error.type':
                   error instanceof Error ? error.name : typeof error,
               },
               CSV_EXPORT_LOGGER,
@@ -224,7 +250,7 @@ export function DataListDetailsPage({
               {details.name}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {details.description || "No description"}
+              {details.description || 'No description'}
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
@@ -237,12 +263,28 @@ export function DataListDetailsPage({
               </span>
               <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                 {formatInteger(details.itemsCount)} item
-                {details.itemsCount === 1 ? "" : "s"}
+                {details.itemsCount === 1 ? '' : 's'}
               </span>
             </div>
+            <DataListLocalesCell
+              defaultLocale={details.defaultLocale}
+              availableLocales={availableLocales}
+              className="pt-1"
+            />
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenedEditFromLoad(false);
+                setIsEditPanelOpen(true);
+              }}
+            >
+              <PencilLine className="h-4 w-4" />
+              Edit
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={isDownloadPending}>
@@ -270,24 +312,16 @@ export function DataListDetailsPage({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openReplace("csv")}>
+                <DropdownMenuItem onClick={() => openReplace('csv')}>
                   Upload CSV
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openReplace("json")}>
+                <DropdownMenuItem onClick={() => openReplace('json')}>
                   Upload JSON
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
-
-        <LocaleCatalogPanel
-          details={details}
-          onUpdated={(updated) => {
-            setDetails(updated);
-            router.refresh();
-          }}
-        />
 
         <DataListItemsSection
           itemsPromise={itemsPromise}
@@ -296,12 +330,22 @@ export function DataListDetailsPage({
         />
       </div>
 
+      <EditDataListPanel
+        open={isEditPanelOpen}
+        onOpenChange={handleOpenCloseEditPanel}
+        details={details}
+        onUpdated={(updated) => {
+          setDetails(updated);
+          router.refresh();
+        }}
+      />
+
       <ReplaceItemsDialog
         key={`${details.id}-${replaceInitialFormat}-${isReplaceDialogOpen}`}
         open={isReplaceDialogOpen}
         onOpenChange={handleOpenCloseReplaceDialog}
         dataListId={
-          Result.isSuccess(dataListIdResult) ? dataListIdResult.value : ""
+          Result.isSuccess(dataListIdResult) ? dataListIdResult.value : ''
         }
         title={details.name}
         availableLocales={availableLocales}
@@ -311,7 +355,7 @@ export function DataListDetailsPage({
           setDetails(updated);
           resetItemsListState();
           router.refresh();
-          toast.success("Data list details updated");
+          toast.success('Data list details updated');
         }}
       />
     </>
@@ -329,7 +373,7 @@ function DataListItemsSection({
 }>) {
   const { search, setSearch, updateUrl, searchParams } = useListUrlState();
   const selectedLocales = useMemo(
-    () => parseHasLocaleFilterSet(searchParams.get("hasLocale")),
+    () => parseHasLocaleFilterSet(searchParams.get('hasLocale')),
     [searchParams],
   );
   const localeOptions = useMemo<FacetedFilterOption[]>(() => {
@@ -349,38 +393,31 @@ function DataListItemsSection({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <TableSearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Search items by value or label"
-          ariaLabel="Search data list items"
-        />
-        {localeOptions.length > 0 ? (
-          <FacetedFilter
-            title="Locale"
-            options={localeOptions}
-            selectedValues={selectedLocales}
-            onValueChange={(values) => {
-              updateUrl({
-                hasLocale: serializeHasLocaleFilter(values) ?? null,
-                page: "1",
-              });
-            }}
-          />
-        ) : null}
-      </div>
+      <TableSearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search items by value or label"
+        ariaLabel="Search data list items"
+      />
       <Suspense
         fallback={
-          <div className="space-y-3">
-            <Skeleton className="h-64 w-full" />
-          </div>
+          <DataListItemsTableSkeleton
+            localeColumnCount={Math.max(1, availableLocales.length + 1)}
+          />
         }
       >
         <DataListItemsPanel
           itemsPromise={itemsPromise}
           availableLocales={availableLocales}
           defaultLocale={defaultLocale}
+          localeOptions={localeOptions}
+          selectedLocales={selectedLocales}
+          onLocaleFilterChange={(values) => {
+            updateUrl({
+              hasLocale: serializeHasLocaleFilter(values) ?? null,
+              page: '1',
+            });
+          }}
         />
       </Suspense>
     </div>
@@ -391,36 +428,42 @@ function DataListItemsPanel({
   itemsPromise,
   availableLocales,
   defaultLocale,
+  localeOptions,
+  selectedLocales,
+  onLocaleFilterChange,
 }: Readonly<{
   itemsPromise: Promise<DataListItemsPage>;
   availableLocales: string[];
   defaultLocale?: string;
+  localeOptions: FacetedFilterOption[];
+  selectedLocales: Set<string>;
+  onLocaleFilterChange: (values: Set<string>) => void;
 }>) {
   const paged = use(itemsPromise);
   const { updateUrl, searchParams } = useListUrlState();
-  const footerProps = createPagedTableFooterProps(paged, "items", updateUrl);
-  const searchValue = searchParams.get("search") ?? "";
-  const hasLocaleFilter = Boolean(
-    searchParams.get("hasLocale")?.trim(),
-  );
+  const footerProps = createPagedTableFooterProps(paged, 'items', updateUrl);
+  const searchValue = searchParams.get('search') ?? '';
+  const hasLocale = parseHasLocaleFilter(searchParams.get('hasLocale'));
+  const hasLocaleFilter = Boolean(hasLocale);
   const hasFilters = Boolean(searchValue.trim() || hasLocaleFilter);
+  const labelColumns = resolveVisibleLabelColumns({
+    hasLocale,
+    defaultLocale,
+    availableLocales,
+  });
 
   return (
     <DataListItemsTable
       items={[...paged.items]}
-      availableLocales={availableLocales}
+      labelColumns={labelColumns}
       defaultLocale={defaultLocale}
-      searchValue={searchValue}
-      onSearchChange={(value) => {
-        updateUrl({
-          search: value || null,
-          page: "1",
-        });
-      }}
+      localeOptions={localeOptions}
+      selectedLocales={selectedLocales}
+      onLocaleFilterChange={onLocaleFilterChange}
       emptyMessage={
         hasFilters
-          ? "No items match the current filters."
-          : "No items in this list."
+          ? 'No items match the current filters.'
+          : 'No items in this list.'
       }
       footer={<PagedTableFooter {...footerProps} variant="surface" />}
     />
