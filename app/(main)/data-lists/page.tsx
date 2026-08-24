@@ -9,11 +9,11 @@ import { Suspense } from "react";
 
 interface DataListsRoutePageProps {
   searchParams: Promise<{
-    action?: SearchParam;
-    page?: SearchParam;
-    pageSize?: SearchParam;
-    search?: SearchParam;
-    hasLocale?: SearchParam;
+    action: SearchParam;
+    page: SearchParam;
+    pageSize: SearchParam;
+    search: SearchParam;
+    hasLocale: SearchParam;
   }>;
 }
 
