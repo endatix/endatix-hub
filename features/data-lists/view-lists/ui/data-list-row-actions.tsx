@@ -10,6 +10,7 @@ import {
 import { buildDataListDetailHref } from "../utils";
 import type { DataList } from "@/lib/endatix-api/data-lists/types";
 import { Eye, MoreHorizontal, PencilLine, Trash2 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 
 interface DataListRowActionsProps {
@@ -37,13 +38,13 @@ export function DataListRowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <Link href={detailHref}>
+          <Link href={detailHref as Route}>
             <Eye className="mr-2 h-4 w-4" />
             View
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={replaceHref}>
+          <Link href={replaceHref as Route}>
             <PencilLine className="mr-2 h-4 w-4" />
             Replace Items
           </Link>

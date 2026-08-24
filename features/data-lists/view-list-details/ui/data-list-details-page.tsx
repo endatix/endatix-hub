@@ -18,6 +18,7 @@ import {
 } from "@/lib/utils/files-download";
 import { ArrowLeft, ChevronDown, Download, Upload } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { useEffect, useState, useTransition } from "react";
 import { ReplaceItemsDialog } from "../../replace-items/ui/replace-items-dialog";
 import { useRouter } from "next/navigation";
@@ -33,11 +34,13 @@ const CSV_EXPORT_LOGGER = "data-lists.exportCsv";
 interface DataListDetailsPageProps {
   initialDetails: DataListDetails;
   openReplaceOnLoad?: boolean;
+  returnHref?: string;
 }
 
 export function DataListDetailsPage({
   initialDetails,
   openReplaceOnLoad = false,
+  returnHref = "/data-lists",
 }: Readonly<DataListDetailsPageProps>) {
   const [details, setDetails] = useState(initialDetails);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] =
@@ -155,7 +158,7 @@ export function DataListDetailsPage({
     <>
       <div className="mb-4">
         <Button variant="outline" asChild>
-          <Link href="/data-lists">
+          <Link href={returnHref as Route}>
             <ArrowLeft className="h-4 w-4" />
             Back to Data Lists
           </Link>

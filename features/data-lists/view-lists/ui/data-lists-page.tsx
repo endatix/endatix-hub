@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState, useTransition } from "react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -41,7 +42,7 @@ import type {
   FormDependencySummary,
 } from "@/lib/endatix-api/data-lists/types";
 import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
-import { useListUrlState } from "@/lib/list-page/use-list-url-state";
+import { useUrlSearchParamsUpdater } from "@/lib/utils/hooks/use-url-search-params-updater.hook";
 import { Result } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import { CreateDataListDialog } from "../../create-list/ui/create-data-list-dialog";
@@ -59,17 +60,49 @@ interface DataListsPageProps {
   openCreateOnLoad?: boolean;
 }
 
+const FILTERS_DEBOUNCE_MS = 350;
+
 export function DataListsPage({
   dataListsPromise,
   openCreateOnLoad = false,
 }: Readonly<DataListsPageProps>) {
   const paged = use(dataListsPromise);
   const router = useRouter();
-  const { search, setSearch, updateUrl, searchParams } = useListUrlState();
+  const { searchParams, updateUrl } = useUrlSearchParamsUpdater();
   const listQuery = currentDataListsListQuery(searchParams);
-  const hasLocaleInput = searchParams.get("hasLocale") ?? "";
-  const { search: hasLocale, setSearch: setHasLocale } =
-    useListUrlState("hasLocale");
+  const urlSearch = searchParams.get("search") ?? "";
+  const urlHasLocale = searchParams.get("hasLocale") ?? "";
+  const [search, setSearch] = useState(urlSearch);
+  const [hasLocale, setHasLocale] = useState(urlHasLocale);
+
+  useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
+
+  useEffect(() => {
+    setHasLocale(urlHasLocale);
+  }, [urlHasLocale]);
+
+  // Coalesced into a single debounce + updateUrl call
+  useEffect(() => {
+    const trimmedSearch = search.trim();
+    const trimmedHasLocale = hasLocale.trim();
+    if (trimmedSearch === urlSearch && trimmedHasLocale === urlHasLocale) {
+      return;
+    }
+
+    const timeout = globalThis.window.setTimeout(() => {
+      updateUrl({
+        search: trimmedSearch || null,
+        hasLocale: trimmedHasLocale || null,
+        page: "1",
+      });
+    }, FILTERS_DEBOUNCE_MS);
+
+    return () => globalThis.window.clearTimeout(timeout);
+  }, [search, hasLocale, urlSearch, urlHasLocale, updateUrl]);
+
+  const hasLocaleInput = urlHasLocale;
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] =
     useState(openCreateOnLoad);
@@ -88,7 +121,7 @@ export function DataListsPage({
 
   const handleOpenDelete = (dataList: DataList) => {
     setIsCreateDialogOpen(false);
-    router.replace(currentDataListsListHref(searchParams));
+    router.replace(currentDataListsListHref(searchParams) as Route);
 
     setSelectedForDelete(dataList);
     setDependencies([]);
@@ -135,7 +168,7 @@ export function DataListsPage({
   const handleCreateDialogClose = (open: boolean): void => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      router.replace(currentDataListsListHref(searchParams));
+      router.replace(currentDataListsListHref(searchParams) as Route);
     }
   };
 
@@ -249,7 +282,10 @@ export function DataListsPage({
                           className: "min-w-[12rem]",
                         })}
                       >
-                        <Link href={detailHref} className="block min-w-0">
+                        <Link
+                          href={detailHref as Route}
+                          className="block min-w-0"
+                        >
                           <p className="truncate text-base font-semibold">
                             {dataList.name}
                           </p>
@@ -290,7 +326,9 @@ export function DataListsPage({
                           className: "hidden text-center md:table-cell",
                         })}
                       >
-                        <Link href={detailHref}>{dataList.itemsCount}</Link>
+                        <Link href={detailHref as Route}>
+                          {dataList.itemsCount}
+                        </Link>
                       </TableCell>
                       <TableCell
                         className={dataTableBodyCellClassName({

@@ -2,7 +2,10 @@ import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { DataListsPage } from "@/features/data-lists/view-lists/ui/data-lists-page";
 import { getDataListsPage } from "@/features/data-lists/view-lists/get-data-lists.server";
-import { parseDataListsListParams } from "@/features/data-lists/view-lists/utils";
+import {
+  firstString,
+  parseDataListsListParams,
+} from "@/features/data-lists/view-lists/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasValue, SearchParam } from "@/lib/utils/next-utils";
 import { Suspense } from "react";
@@ -15,14 +18,6 @@ interface DataListsRoutePageProps {
     search: SearchParam;
     hasLocale: SearchParam;
   }>;
-}
-
-function firstString(value: SearchParam): string | undefined {
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-
-  return value;
 }
 
 function DataListsTableSkeleton() {

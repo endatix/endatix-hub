@@ -23,7 +23,9 @@ export interface DataListsListUrlState {
   action?: string;
 }
 
-function firstString(value: string | string[] | undefined): string | undefined {
+export function firstString(
+  value: string | string[] | undefined,
+): string | undefined {
   if (Array.isArray(value)) {
     return value[0];
   }
@@ -109,32 +111,25 @@ export function parseDataListsReturnHref(from: string | undefined): string {
     return DATA_LISTS_LIST_PATH;
   }
 
-  const raw = new URLSearchParams(from);
-  const parsed = parseDataListsListParams({
-    page: firstString(raw.get("page") ?? undefined),
-    pageSize: firstString(raw.get("pageSize") ?? undefined),
-    search: firstString(raw.get("search") ?? undefined),
-    hasLocale: firstString(raw.get("hasLocale") ?? undefined),
-  });
-
-  return buildDataListsListHref({
-    page: parsed.page ?? 1,
-    pageSize: parsed.pageSize ?? DEFAULT_DATA_LISTS_PAGE_SIZE,
-    search: parsed.search,
-    hasLocale: parsed.hasLocale,
-  });
+  const query = currentDataListsListQuery(new URLSearchParams(from));
+  return query ? `${DATA_LISTS_LIST_PATH}?${query}` : DATA_LISTS_LIST_PATH;
 }
 
 export function currentDataListsListQuery(
   searchParams: URLSearchParams,
 ): string {
+  const parsed = parseDataListsListParams({
+    page: firstString(searchParams.get("page") ?? undefined),
+    pageSize: firstString(searchParams.get("pageSize") ?? undefined),
+    search: firstString(searchParams.get("search") ?? undefined),
+    hasLocale: firstString(searchParams.get("hasLocale") ?? undefined),
+  });
+
   return serializeDataListsListSearchParams({
-    page: Number(searchParams.get("page") ?? 1) || 1,
-    pageSize:
-      Number(searchParams.get("pageSize") ?? DEFAULT_DATA_LISTS_PAGE_SIZE) ||
-      DEFAULT_DATA_LISTS_PAGE_SIZE,
-    search: searchParams.get("search")?.trim() || undefined,
-    hasLocale: parseHasLocaleFilter(searchParams.get("hasLocale")),
+    page: parsed.page ?? 1,
+    pageSize: parsed.pageSize ?? DEFAULT_DATA_LISTS_PAGE_SIZE,
+    search: parsed.search,
+    hasLocale: parsed.hasLocale,
   });
 }
 
