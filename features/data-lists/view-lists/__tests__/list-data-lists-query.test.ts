@@ -96,5 +96,7 @@ describe("parseDataListsReturnQuery + dataListsListHrefFromQuery", () => {
     // Assert
     expect(parsed).not.toContain("evil");
     expect(parsed).toContain("search=cities");
+    expect(parsed).not.toContain("page=");
+    expect(parsed).toContain("pageSize=1000");
   });
 });
