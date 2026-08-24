@@ -413,7 +413,7 @@ function DataListItemsSection({
                 onValueChange={(values) => {
                   updateUrl({
                     hasLocale: serializeHasLocaleFilter(values) ?? null,
-                    page: '1',
+                    page: "1",
                   });
                 }}
               />
@@ -422,11 +422,11 @@ function DataListItemsSection({
               <Button
                 variant="ghost"
                 onClick={() => {
-                  setSearch('');
+                  setSearch("");
                   updateUrl({
                     search: null,
                     hasLocale: null,
-                    page: '1',
+                    page: "1",
                   });
                 }}
                 className="shrink-0 px-2 lg:px-3"
@@ -476,10 +476,14 @@ function DataListItemsPanel({
     defaultLocale,
     availableLocales,
   });
+  // A fresh `[...paged.items]` literal here is a new reference every render,
+  // which defeats internal row-model memoization and can cascade into a
+  // setState loop (see data-lists-page.tsx's tableData for the same fix).
+  const items = useMemo(() => [...paged.items], [paged.items]);
 
   return (
     <DataListItemsTable
-      items={[...paged.items]}
+      items={items}
       labelColumns={labelColumns}
       defaultLocale={defaultLocale}
       emptyMessage={

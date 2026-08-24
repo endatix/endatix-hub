@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useCallback, useRef } from 'react';
-import type { Route } from 'next';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useRef } from "react";
+import type { Route } from "next";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 /**
  * The type of a function that updates the URL search params.

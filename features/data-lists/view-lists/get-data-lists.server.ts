@@ -6,6 +6,7 @@ import type {
   ListDataListsRequest,
 } from "@/lib/endatix-api/data-lists/types";
 import type { DataListsPage } from "@/lib/endatix-api/data-lists/data-lists";
+import { ApiErrorType } from "@/lib/endatix-api/shared/api-result";
 import { DataLoadError } from "@/lib/errors/data-load-error";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
@@ -33,6 +34,12 @@ export async function getDataListsPage(
   return result.value;
 }
 
+/** Response shapes an older (pre-e966) API returns when it binds "locales" as GetById(Int64) instead of the dedicated locales route. */
+const LEGACY_API_FALLBACK_ERROR_TYPES: ReadonlySet<ApiErrorType> = new Set([
+  ApiErrorType.NotFoundError,
+  ApiErrorType.ValidationError,
+]);
+
 /** Distinct culture codes from tenant data-list catalogs (unfiltered by list query). */
 export async function getDataListLocales(): Promise<string[]> {
   const session = await auth();
@@ -40,17 +47,31 @@ export async function getDataListLocales(): Promise<string[]> {
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = toResult(await api.dataLists.listLocales(), {
-    fallbackMessage: "Failed to load data list locales.",
-    logMessage: "Failed to load data list locales.",
-    loggerName: "data-lists.locales",
-  });
+  const response = await api.dataLists.listLocales();
 
-  if (Result.isSuccess(result)) {
-    return result.value;
+  if (response.success) {
+    return response.data;
   }
 
-  // GET /data-lists/locales is OSS e966+. Older APIs bind "locales" as GetById (Int64).
+  // GET /data-lists/locales is OSS e966+. Older APIs bind "locales" as GetById
+  // (Int64), which fails route/model binding as 404/400 -- fall back to
+  // aggregating every list only for that specific, expected failure shape.
+  // Any other failure (auth, server error, network) should surface as a real
+  // error instead of silently degrading into an expensive full-tenant scan.
+  if (!LEGACY_API_FALLBACK_ERROR_TYPES.has(response.error.type)) {
+    const result = toResult(response, {
+      fallbackMessage: "Failed to load data list locales.",
+      logMessage: "Failed to load data list locales.",
+      loggerName: "data-lists.locales",
+    });
+    // `response` is a failure, so `result` is always Result.error here.
+    throw new DataLoadError(
+      Result.isError(result)
+        ? result.message
+        : "Failed to load data list locales.",
+    );
+  }
+
   return collectCatalogLocales(await getAllDataLists());
 }
 
