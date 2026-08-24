@@ -1,5 +1,12 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DATA_TABLE_SURFACE_CLASS_NAME } from "@/components/ui/data-table-surface";
+import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
+  dataTableBodyCellClassName,
+  dataTableBodyRowClassName,
+  dataTableHeaderCellClassName,
+  DataTableEmpty,
+  DataTableSurface,
+} from "@/components/table";
 import {
   Sheet,
   SheetContent,
@@ -235,32 +242,24 @@ export function DataTable<TData extends Submission>({
       onFilteredEmptyClear !== undefined;
 
     return (
-      <div
-        data-slot="submission-data-table"
-        className={DATA_TABLE_SURFACE_CLASS_NAME}
-      >
+      <DataTableSurface data-slot="submission-data-table">
         {isFilteredEmpty ? (
           <NoMatchingSubmissionsEmptyState
             onClearFilters={onFilteredEmptyClear}
           />
         ) : (
-          <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-            No rows to display.
-          </div>
+          <DataTableEmpty>No rows to display.</DataTableEmpty>
         )}
         {manualRowCount && manualRowCount > 0 ? (
           <TablePagination table={table} totalRows={manualRowCount} />
         ) : null}
-      </div>
+      </DataTableSurface>
     );
   }
 
   return (
     <>
-      <div
-        data-slot="submission-data-table"
-        className={DATA_TABLE_SURFACE_CLASS_NAME}
-      >
+      <DataTableSurface data-slot="submission-data-table">
         <DndContext
           id={dndContextId}
           sensors={sensors}
@@ -268,7 +267,7 @@ export function DataTable<TData extends Submission>({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <Table className="border-separate border-spacing-0">
+          <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
             <TableHeader className="bg-surface-container-low">
               <SortableContext
                 items={visibleColumnOrder}
@@ -280,16 +279,17 @@ export function DataTable<TData extends Submission>({
                     className="border-0 hover:bg-transparent"
                   >
                     {headerGroup.headers.map((header) => {
-                      const isPinned = header.column.getIsPinned();
+                      const isPinnedLeft =
+                        header.column.getIsPinned() === "left";
                       return (
                         <TableHead
                           key={header.id}
                           colSpan={header.colSpan}
-                          className={cn(
-                            "sticky top-0 h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
-                            isPinned === "left" ? "left-0 z-30" : "z-10",
-                            header.column.columnDef.meta?.headerClassName,
-                          )}
+                          className={dataTableHeaderCellClassName({
+                            isPinnedLeft,
+                            className:
+                              header.column.columnDef.meta?.headerClassName,
+                          })}
                         >
                           {header.isPlaceholder ? null : (
                             <DraggableColumnHeader
@@ -311,37 +311,25 @@ export function DataTable<TData extends Submission>({
                 return (
                   <TableRow
                     key={row.id}
-                    className={cn(
-                      "group cursor-pointer border-0",
-                      isEvenRow
-                        ? "bg-surface-container-low hover:bg-surface-container"
-                        : "bg-surface-container-lowest hover:bg-surface-container",
-                      getRowClassName(row),
-                    )}
+                    className={dataTableBodyRowClassName({
+                      isEvenRow,
+                      className: cn("cursor-pointer", getRowClassName(row)),
+                    })}
                     onClick={() => handleRowSelectionChange(row)}
                     data-state={isSelected && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => {
-                      const isPinned = cell.column.getIsPinned();
+                      const isPinnedLeft =
+                        cell.column.getIsPinned() === "left";
                       return (
                         <TableCell
                           key={cell.id}
-                          className={cn(
-                            "px-2 py-2",
-                            isPinned &&
-                              "sticky z-20 transition-colors duration-150",
-                            // Opaque fill so scrolled columns cannot show through sticky Actions.
-                            isPinned &&
-                              !isSelected &&
-                              (isEvenRow
-                                ? "bg-surface-container-low group-hover:bg-surface-container"
-                                : "bg-surface-container-lowest group-hover:bg-surface-container"),
-                            isPinned &&
-                              isSelected &&
-                              "bg-accent group-hover:bg-accent",
-                            isPinned === "left" && "left-0",
-                            cell.column.columnDef.meta?.cellClassName,
-                          )}
+                          className={dataTableBodyCellClassName({
+                            isPinnedLeft,
+                            isEvenRow,
+                            isSelected,
+                            className: cell.column.columnDef.meta?.cellClassName,
+                          })}
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
@@ -385,7 +373,7 @@ export function DataTable<TData extends Submission>({
           table={table}
           totalRows={rowCount ?? table.getFilteredRowModel().rows.length}
         />
-      </div>
+      </DataTableSurface>
       <Sheet modal={true} open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="flex h-screen w-[600px] flex-col justify-between sm:w-[480px] sm:max-w-none">
           <SheetHeader>

@@ -24,9 +24,14 @@ export function ColumnViewOptionsDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled}>
-          <Settings2 className="mr-2 h-4 w-4" />
-          View
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          aria-label="View columns"
+        >
+          <Settings2 />
+          <span className="sr-only sm:not-sr-only">View</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[180px]">

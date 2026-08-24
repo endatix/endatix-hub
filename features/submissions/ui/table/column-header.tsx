@@ -1,3 +1,4 @@
+import { dataTableColumnLabelClassName } from "@/components/table";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -465,9 +466,7 @@ export function ColumnHeader<TData, TValue>({
   }
 
   const titleLabel = titleContent ?? (
-    <span className="truncate text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-      {title}
-    </span>
+    <span className={dataTableColumnLabelClassName()}>{title}</span>
   );
 
   if (!canSort && !dateFilter && !textFilter) {

@@ -117,18 +117,21 @@ describe("submission table column definitions", () => {
     ).toBe("Time");
   });
 
-  it("shrink-wraps dense system columns and reserves min width for Status", () => {
+  it("keeps action columns compact and gives text columns a min width", () => {
     const columns = buildSubmissionSystemColumns();
 
     expect(
+      columns.find((col) => col.id === "actions")?.meta?.headerClassName,
+    ).toContain("w-12");
+    expect(
       columns.find((col) => col.id === "complete")?.meta?.headerClassName,
-    ).toContain("w-[1%]");
+    ).toContain("w-12");
     expect(
       columns.find((col) => col.id === "createdAt")?.meta?.cellClassName,
-    ).toContain("w-[1%]");
+    ).toBe("min-w-[6.5rem]");
     expect(
       columns.find((col) => col.id === "status")?.meta?.headerClassName,
-    ).toContain("min-w-");
+    ).toBe("min-w-[7.5rem]");
   });
   it("uses humanized field names for dynamic form column labels and hides them by default", () => {
     const columns = buildSubmissionDataColumns([

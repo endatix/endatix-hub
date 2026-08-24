@@ -1,4 +1,9 @@
-import { DATA_TABLE_SURFACE_CLASS_NAME } from "@/components/ui/data-table-surface";
+import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
+  DataTableSurface,
+  dataTableBodyRowClassName,
+  dataTableHeaderCellClassName,
+} from "@/components/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -15,14 +20,14 @@ const ROW_HEIGHT_CLASS = "h-[60px]";
 
 /** Approximate system-column layout: actions, complete, dates, submitter, time, status. */
 const SKELETON_COLUMNS = [
-  { id: "actions", cell: "actions", headerClassName: "w-14" },
-  { id: "complete", cell: "icon", headerClassName: "w-10" },
-  { id: "modifiedAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "startedAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "completedAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "createdAt", cell: "date", headerClassName: "min-w-[6rem]" },
-  { id: "submitter", cell: "id", headerClassName: "min-w-[6rem]" },
-  { id: "time", cell: "short", headerClassName: "min-w-[4rem]" },
+  { id: "actions", cell: "actions", headerClassName: "w-12" },
+  { id: "complete", cell: "icon", headerClassName: "w-12" },
+  { id: "modifiedAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "startedAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "completedAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "createdAt", cell: "date", headerClassName: "min-w-[6.5rem]" },
+  { id: "submitter", cell: "id", headerClassName: "min-w-[6.5rem]" },
+  { id: "time", cell: "short", headerClassName: "min-w-[6.5rem]" },
   { id: "status", cell: "badge", headerClassName: "min-w-[7.5rem]" },
 ] as const;
 
@@ -85,8 +90,8 @@ export function SubmissionsTableSkeleton({
       role="status"
     >
       <span className="sr-only">{loadingLabel}</span>
-      <div className={DATA_TABLE_SURFACE_CLASS_NAME}>
-        <Table className="border-separate border-spacing-0">
+      <DataTableSurface>
+        <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
           <TableHeader className="bg-surface-container-low">
             <TableRow
               className={cn(ROW_HEIGHT_CLASS, "border-0 hover:bg-transparent")}
@@ -94,10 +99,10 @@ export function SubmissionsTableSkeleton({
               {SKELETON_COLUMNS.map((column) => (
                 <TableHead
                   key={column.id}
-                  className={cn(
-                    "h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
-                    column.headerClassName,
-                  )}
+                  className={dataTableHeaderCellClassName({
+                    isStatic: true,
+                    className: column.headerClassName,
+                  })}
                 >
                   <Skeleton className="h-3 w-16 bg-muted-foreground/20 dark:bg-muted" />
                 </TableHead>
@@ -110,13 +115,11 @@ export function SubmissionsTableSkeleton({
               return (
                 <TableRow
                   key={row}
-                  className={cn(
-                    ROW_HEIGHT_CLASS,
-                    "border-0",
-                    isEvenRow
-                      ? "bg-surface-container-low"
-                      : "bg-surface-container-lowest",
-                  )}
+                  className={dataTableBodyRowClassName({
+                    isEvenRow,
+                    isStatic: true,
+                    className: ROW_HEIGHT_CLASS,
+                  })}
                 >
                   {SKELETON_COLUMNS.map((column) => (
                     <TableCell key={column.id} className="px-2">
@@ -133,7 +136,7 @@ export function SubmissionsTableSkeleton({
           <Skeleton className="h-8 w-40 bg-muted-foreground/15 dark:bg-muted" />
           <Skeleton className="h-8 w-48 bg-muted-foreground/15 dark:bg-muted" />
         </div>
-      </div>
+      </DataTableSurface>
     </div>
   );
 }

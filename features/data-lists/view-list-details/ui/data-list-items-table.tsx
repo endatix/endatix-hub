@@ -1,6 +1,13 @@
 "use client";
 
-import { DATA_TABLE_SURFACE_CLASS_NAME } from "@/components/ui/data-table-surface";
+import {
+  DATA_TABLE_ELEMENT_CLASS_NAME,
+  dataTableBodyCellClassName,
+  dataTableBodyRowClassName,
+  dataTableHeaderCellClassName,
+  DataTableEmpty,
+  DataTableSurface,
+} from "@/components/table";
 import {
   Table,
   TableBody,
@@ -12,7 +19,6 @@ import {
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import type { DataListItem } from "@/lib/endatix-api/data-lists/types";
 import { resolveCatalogDefaultLabelText } from "@/lib/localization";
-import { cn } from "@/lib/utils";
 import {
   flexRender,
   getCoreRowModel,
@@ -29,6 +35,28 @@ type DataListItemsTableProps = {
 };
 
 type DataListItemRow = DataListItem & { rowId: string };
+
+function resolveItemLabelText(
+  item: DataListItemRow,
+  column: string,
+  defaultLocale?: string,
+): string {
+  if (column === "default") {
+    return (
+      resolveCatalogDefaultLabelText(item.labels, defaultLocale)?.trim() || "—"
+    );
+  }
+
+  return item.labels[column]?.trim() || "—";
+}
+
+function labelColumnHeader(column: string, defaultLocale?: string): string {
+  if (column === "default") {
+    return `default (${defaultLocale ?? "—"})`;
+  }
+
+  return formatLocaleLabel(column);
+}
 
 function buildColumns(
   labelColumns: string[],
@@ -49,20 +77,9 @@ function buildColumns(
     },
     ...labelColumns.map((column) => ({
       id: `label:${column}`,
-      header:
-        column === "default"
-          ? `default (${defaultLocale ?? "—"})`
-          : formatLocaleLabel(column),
-      cell: ({ row }: { row: { original: DataListItemRow } }) => {
-        const text =
-          column === "default"
-            ? resolveCatalogDefaultLabelText(
-                row.original.labels,
-                defaultLocale,
-              )
-            : row.original.labels[column];
-        return text?.trim() ? text : "—";
-      },
+      header: labelColumnHeader(column, defaultLocale),
+      cell: ({ row }: { row: { original: DataListItemRow } }) =>
+        resolveItemLabelText(row.original, column, defaultLocale),
       meta: {
         headerClassName: "min-w-[10rem]",
         cellClassName: "min-w-[10rem]",
@@ -112,24 +129,16 @@ export function DataListItemsTable({
 
   if (rows.length === 0) {
     return (
-      <div
-        data-slot="data-list-items-table"
-        className={DATA_TABLE_SURFACE_CLASS_NAME}
-      >
-        <div className="flex h-24 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          No items in this list.
-        </div>
-      </div>
+      <DataTableSurface data-slot="data-list-items-table">
+        <DataTableEmpty>No items in this list.</DataTableEmpty>
+      </DataTableSurface>
     );
   }
 
   return (
-    <div
-      data-slot="data-list-items-table"
-      className={DATA_TABLE_SURFACE_CLASS_NAME}
-    >
+    <DataTableSurface data-slot="data-list-items-table">
       <div className="w-full overflow-x-auto">
-        <Table className="border-separate border-spacing-0">
+        <Table className={DATA_TABLE_ELEMENT_CLASS_NAME}>
           <TableHeader className="bg-surface-container-low">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
@@ -137,16 +146,16 @@ export function DataListItemsTable({
                 className="border-0 hover:bg-transparent"
               >
                 {headerGroup.headers.map((header) => {
-                  const isPinned = header.column.getIsPinned();
+                  const isPinnedLeft = header.column.getIsPinned() === "left";
                   return (
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className={cn(
-                        "sticky top-0 h-10 bg-surface-container-low px-2 shadow-[inset_0_-1px_0_0] shadow-border/30",
-                        isPinned === "left" ? "left-0 z-30" : "z-10",
-                        header.column.columnDef.meta?.headerClassName,
-                      )}
+                      className={dataTableHeaderCellClassName({
+                        isPinnedLeft,
+                        className:
+                          header.column.columnDef.meta?.headerClassName,
+                      })}
                     >
                       {header.isPlaceholder
                         ? null
@@ -166,29 +175,18 @@ export function DataListItemsTable({
               return (
                 <TableRow
                   key={row.id}
-                  className={cn(
-                    "group border-0",
-                    isEvenRow
-                      ? "bg-surface-container-low hover:bg-surface-container"
-                      : "bg-surface-container-lowest hover:bg-surface-container",
-                  )}
+                  className={dataTableBodyRowClassName({ isEvenRow })}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const isPinned = cell.column.getIsPinned();
+                    const isPinnedLeft = cell.column.getIsPinned() === "left";
                     return (
                       <TableCell
                         key={cell.id}
-                        className={cn(
-                          "px-2 py-2",
-                          isPinned &&
-                            "sticky z-20 transition-colors duration-150",
-                          isPinned &&
-                            (isEvenRow
-                              ? "bg-surface-container-low group-hover:bg-surface-container"
-                              : "bg-surface-container-lowest group-hover:bg-surface-container"),
-                          isPinned === "left" && "left-0",
-                          cell.column.columnDef.meta?.cellClassName,
-                        )}
+                        className={dataTableBodyCellClassName({
+                          isPinnedLeft,
+                          isEvenRow,
+                          className: cell.column.columnDef.meta?.cellClassName,
+                        })}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
@@ -203,6 +201,6 @@ export function DataListItemsTable({
           </TableBody>
         </Table>
       </div>
-    </div>
+    </DataTableSurface>
   );
 }
